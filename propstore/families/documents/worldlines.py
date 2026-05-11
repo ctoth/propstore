@@ -112,6 +112,11 @@ class WorldlineRevisionQueryDocument(DocumentStruct):
     target: str | None = None
     conflicts: dict[str, tuple[str, ...]] = msgspec.field(default_factory=dict)
     operator: str | None = None
+    profile_atom_ids: tuple[tuple[str, ...], ...] = ()
+    integrity_constraint: dict[str, Any] | None = None
+    merge_parent_commits: tuple[str, ...] = ()
+    merge_operator: str | None = None
+    max_alphabet_size: int | None = None
 
 
 class WorldlineRevisionResultDocument(DocumentStruct):

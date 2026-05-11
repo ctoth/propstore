@@ -121,6 +121,10 @@ class WorldlineRevisionQuery:
     target: str | None = None
     conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
     operator: str | None = None
+    profile_atom_ids: tuple[tuple[str, ...], ...] = ()
+    integrity_constraint: Mapping[str, Any] | None = None
+    merge_parent_commits: tuple[str, ...] = ()
+    max_alphabet_size: int | None = None
 
     @classmethod
     def from_document(
@@ -149,7 +153,11 @@ class WorldlineRevisionQuery:
                     for atom_id, target_ids in data.conflicts.items()
                 }
             ),
-            operator=data.operator,
+            operator=data.merge_operator or data.operator,
+            profile_atom_ids=tuple(tuple(str(atom_id) for atom_id in profile) for profile in data.profile_atom_ids),
+            integrity_constraint=None if data.integrity_constraint is None else dict(data.integrity_constraint),
+            merge_parent_commits=tuple(str(commit) for commit in data.merge_parent_commits),
+            max_alphabet_size=data.max_alphabet_size,
         )
 
     @classmethod
@@ -161,7 +169,19 @@ class WorldlineRevisionQuery:
             atom=RevisionAtomRef.from_mapping(data.get("atom")),
             target=_validated_revision_target(str(data.get("operation", "")), data.get("target")),
             conflicts=RevisionConflictSelection.from_mapping(data.get("conflicts")),
-            operator=data.get("operator"),
+            operator=data.get("merge_operator") or data.get("operator"),
+            profile_atom_ids=_revision_profile_atom_ids(data.get("profile_atom_ids") or ()),
+            integrity_constraint=(
+                None
+                if data.get("integrity_constraint") is None
+                else dict(_optional_mapping(data.get("integrity_constraint"), "integrity_constraint"))
+            ),
+            merge_parent_commits=tuple(str(commit) for commit in (data.get("merge_parent_commits") or ())),
+            max_alphabet_size=(
+                None
+                if data.get("max_alphabet_size") is None
+                else int(data.get("max_alphabet_size"))
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -174,7 +194,26 @@ class WorldlineRevisionQuery:
             data["conflicts"] = self.conflicts.to_dict()
         if self.operator is not None:
             data["operator"] = self.operator
+        if self.profile_atom_ids:
+            data["profile_atom_ids"] = [list(profile) for profile in self.profile_atom_ids]
+        if self.integrity_constraint is not None:
+            data["integrity_constraint"] = dict(self.integrity_constraint)
+        if self.merge_parent_commits:
+            data["merge_parent_commits"] = list(self.merge_parent_commits)
+        if self.max_alphabet_size is not None:
+            data["max_alphabet_size"] = self.max_alphabet_size
         return data
+
+
+def _revision_profile_atom_ids(value: object) -> tuple[tuple[str, ...], ...]:
+    if isinstance(value, str) or not isinstance(value, tuple | list):
+        raise ValueError("worldline revision profile_atom_ids must be a sequence")
+    profiles: list[tuple[str, ...]] = []
+    for profile in value:
+        if isinstance(profile, str) or not isinstance(profile, tuple | list):
+            raise ValueError("worldline revision profile_atom_ids entries must be sequences")
+        profiles.append(tuple(str(atom_id) for atom_id in profile))
+    return tuple(profiles)
 
 
 @dataclass
