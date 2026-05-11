@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from quire.documents import DocumentStruct, decode_document_bytes
+from quire.git_store import HeadMismatchError
 from quire.refs import RefName
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
 from propstore.families.registry import (
@@ -107,11 +108,11 @@ class HeadBoundTransaction:
                 branch=self.branch,
                 expected_head=self.expected_head,
             )
-        except ValueError as exc:
-            raise _map_stale_head_error(
-                exc,
+        except HeadMismatchError as exc:
+            raise StaleHeadError(
                 branch=self.branch,
-                expected_head=self.expected_head,
+                expected_head=exc.expected_head,
+                actual_head=exc.actual_head,
                 path=self.path,
             ) from exc
         object.__setattr__(self, "_commit_sha", commit_sha)
@@ -140,11 +141,11 @@ class HeadBoundTransaction:
             ) as transaction:
                 yield transaction
             object.__setattr__(self, "_commit_sha", transaction.commit_sha)
-        except ValueError as exc:
-            raise _map_stale_head_error(
-                exc,
+        except HeadMismatchError as exc:
+            raise StaleHeadError(
                 branch=self.branch,
-                expected_head=self.expected_head,
+                expected_head=exc.expected_head,
+                actual_head=exc.actual_head,
                 path=self.path,
             ) from exc
 
@@ -333,31 +334,6 @@ def _write_bootstrap_manifest(git, *, seed_commit: str | None) -> None:
         separators=(",", ":"),
     ).encode("utf-8")
     git.write_blob_ref(PROPSTORE_BOOTSTRAP_REF, payload)
-
-
-def _map_stale_head_error(
-    exc: ValueError,
-    *,
-    branch: str,
-    expected_head: str | None,
-    path: str,
-) -> StaleHeadError:
-    message = str(exc)
-    if "head mismatch" not in message and "head changed" not in message:
-        raise exc
-    actual_head: str | None = None
-    if " got " in message:
-        actual_head = message.rsplit(" got ", 1)[1].strip()
-    elif ", got " in message:
-        actual_head = message.rsplit(", got ", 1)[1].strip()
-    if actual_head == "None":
-        actual_head = None
-    return StaleHeadError(
-        branch=branch,
-        expected_head=expected_head,
-        actual_head=actual_head,
-        path=path,
-    )
 
 
 def _read_bootstrap_manifest(git) -> dict[str, object] | None:

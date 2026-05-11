@@ -4,6 +4,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from quire.git_store import HeadMismatchError
 
 from propstore.repository import StaleHeadError
 from propstore.source import finalize_source_branch, promote_source_branch
@@ -24,8 +25,10 @@ def test_promote_cas_rejection_does_not_write_blocked_sidecar_rows(
 
     def stale_commit_batch(self, adds, deletes, message, *, branch=None, expected_head=None):
         if branch == "master" and expected_head == expected_head_at_start:
-            raise ValueError(
-                f"Branch {branch!r} head mismatch: expected {expected_head}, got concurrent-head"
+            raise HeadMismatchError(
+                branch=branch,
+                expected_head=expected_head,
+                actual_head="concurrent-head",
             )
         return original_commit_batch(
             self,

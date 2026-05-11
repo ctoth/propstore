@@ -4,6 +4,7 @@ from dataclasses import FrozenInstanceError
 from pathlib import Path
 
 import pytest
+from quire.git_store import HeadMismatchError
 
 from propstore.repository import Repository, StaleHeadError
 
@@ -70,8 +71,10 @@ def test_head_bound_transaction_discards_sidecar_writes_on_stale_head(
     applied: list[str] = []
 
     def stale_commit_batch(self, adds, deletes, message, *, branch=None, expected_head=None):
-        raise ValueError(
-            f"Branch {branch!r} head mismatch: expected {expected_head}, got newer-head"
+        raise HeadMismatchError(
+            branch=branch,
+            expected_head=expected_head,
+            actual_head="newer-head",
         )
 
     monkeypatch.setattr(type(repo.git), "commit_batch", stale_commit_batch)

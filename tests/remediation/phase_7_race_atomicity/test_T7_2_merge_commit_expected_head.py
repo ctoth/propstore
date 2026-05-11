@@ -7,7 +7,7 @@ from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
 from propstore.storage import init_git_store
 from propstore.storage.snapshot import RepositorySnapshot
-from quire.git_store import GitStore
+from quire.git_store import GitStore, HeadMismatchError
 from tests.conftest import normalize_claims_payload
 
 
@@ -61,7 +61,7 @@ def test_merge_commit_rejects_target_branch_moved_before_materialization(tmp_pat
 
     monkeypatch.setattr(snapshot_git, "commit_flat_tree", race_before_materialization)
 
-    with pytest.raises(ValueError, match="head mismatch"):
+    with pytest.raises(HeadMismatchError):
         create_merge_commit(snapshot, "master", branch_name)
 
     assert racing_sha is not None

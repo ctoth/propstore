@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 from hypothesis import settings
 from hypothesis.stateful import RuleBasedStateMachine, invariant, rule, run_state_machine_as_test
-from quire.git_store import GitStore
+from quire.git_store import GitStore, HeadMismatchError
 from quire.refs import RefName
 
 from propstore.merge.merge_commit import create_merge_commit
@@ -107,8 +107,7 @@ class FullRaceMachine(RuleBasedStateMachine):
         assert not any(thread.is_alive() for thread in threads)
         assert len(successes) == 1, [repr(error) for error in errors]
         assert len(errors) == 1
-        assert isinstance(errors[0], ValueError)
-        assert "head mismatch" in str(errors[0])
+        assert isinstance(errors[0], HeadMismatchError)
         assert kr.branch_sha("master") == successes[0]
 
     @rule()

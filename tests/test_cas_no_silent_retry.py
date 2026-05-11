@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from quire.git_store import HeadMismatchError
 
 from propstore.repository import Repository, StaleHeadError
 from tests.test_branch_head_cas_matrix import (
@@ -69,8 +70,10 @@ def test_cas_rejection_is_not_silently_retried(
             if branch == target_branch and expected_head == head_at_start:
                 attempts += 1
                 if attempts == 1:
-                    raise ValueError(
-                        f"Branch {branch!r} head mismatch: expected {expected_head}, got concurrent-head"
+                    raise HeadMismatchError(
+                        branch=branch,
+                        expected_head=expected_head,
+                        actual_head="concurrent-head",
                     )
             return original_commit_batch(
                 self,

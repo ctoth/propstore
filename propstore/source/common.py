@@ -6,6 +6,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TypeVar, cast
 
+from quire.git_store import HeadMismatchError
+
 from propstore.families.registry import SOURCE_DOCUMENT_FAMILY, SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
@@ -30,8 +32,7 @@ TDocument = TypeVar("TDocument")
 
 def is_stale_branch_error(exc: ValueError) -> bool:
     """Return whether a git write failed because its expected branch head is stale."""
-    message = str(exc)
-    return "head mismatch" in message or "head changed" in message
+    return isinstance(exc, HeadMismatchError)
 
 
 def current_source_branch_head(repo: Repository, name: str) -> str | None:

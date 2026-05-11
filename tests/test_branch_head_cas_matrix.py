@@ -4,6 +4,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+from quire.git_store import HeadMismatchError
 
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.documents.sources import (
@@ -159,8 +160,10 @@ def test_concurrent_writer_loses_cleanly(
 
         def stale_commit_batch(self, adds, deletes, message, *, branch=None, expected_head=None):
             if branch == path_name_branch and expected_head == head_at_start:
-                raise ValueError(
-                    f"Branch {branch!r} head mismatch: expected {expected_head}, got concurrent-head"
+                raise HeadMismatchError(
+                    branch=branch,
+                    expected_head=expected_head,
+                    actual_head="concurrent-head",
                 )
             return original_commit_batch(
                 self,
