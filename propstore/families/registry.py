@@ -11,6 +11,7 @@ from quire.artifacts import (
     BranchPlacement,
     FixedFilePlacement,
     FlatYamlPlacement,
+    HashScatteredYamlPlacement,
     NestedFlatYamlPlacement,
     SingletonFilePlacement,
     SubdirFixedFilePlacement,
@@ -39,7 +40,7 @@ from propstore.families.contexts.documents import ContextDocument
 from propstore.families.forms.documents import FormDocument
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
-from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
 from propstore.families.documents.predicates import PredicateProposalDocument, PredicatesFileDocument
 from propstore.families.documents.rules import RuleProposalDocument, RulesFileDocument
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
@@ -104,8 +105,8 @@ if TYPE_CHECKING:
         name: str
 
     @dataclass(frozen=True)
-    class MicropubsFileRef:
-        name: str
+    class MicropublicationRef:
+        artifact_id: str
 
     @dataclass(frozen=True)
     class ConceptFileRef:
@@ -185,7 +186,7 @@ if not TYPE_CHECKING:
     WorldlineRef = single_field_ref_type("WorldlineRef", "name", module=__name__)
     CanonicalSourceRef = single_field_ref_type("CanonicalSourceRef", "name", module=__name__)
     ClaimsFileRef = single_field_ref_type("ClaimsFileRef", "name", module=__name__)
-    MicropubsFileRef = single_field_ref_type("MicropubsFileRef", "name", module=__name__)
+    MicropublicationRef = single_field_ref_type("MicropublicationRef", "artifact_id", module=__name__)
     ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
     JustificationRef = single_field_ref_type("JustificationRef", "artifact_id", module=__name__)
     PredicateFileRef = single_field_ref_type("PredicateFileRef", "name", module=__name__)
@@ -334,10 +335,12 @@ CANONICAL_SOURCE_PLACEMENT = FlatYamlPlacement["Repository", CanonicalSourceRef]
     ref_field="name",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-MICROPUBS_FILE_PLACEMENT = FlatYamlPlacement["Repository", MicropubsFileRef](
+MICROPUBLICATION_PLACEMENT = HashScatteredYamlPlacement["Repository", MicropublicationRef](
     "micropubs",
-    MicropubsFileRef,
-    ref_field="name",
+    MicropublicationRef,
+    ref_field="artifact_id",
+    codec="base64url",
+    filename_mode="encoded_ref",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
 JUSTIFICATION_PLACEMENT = FlatYamlPlacement["Repository", JustificationRef](
@@ -531,11 +534,11 @@ CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, Sourc
 )
 
 
-MICROPUBS_FILE_FAMILY = ArtifactFamily["Repository", MicropubsFileRef, MicropublicationsFileDocument](
-    name="micropubs_file",
+MICROPUBLICATION_FAMILY = ArtifactFamily["Repository", MicropublicationRef, MicropublicationDocument](
+    name="micropublication",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=MicropublicationsFileDocument,
-    placement=MICROPUBS_FILE_PLACEMENT,
+    doc_type=MicropublicationDocument,
+    placement=MICROPUBLICATION_PLACEMENT,
 )
 
 JUSTIFICATION_FAMILY = ArtifactFamily["Repository", JustificationRef, JustificationDocument](
@@ -779,8 +782,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.MICROPUBS,
             name=PropstoreFamily.MICROPUBS.value,
-            contract_version=MICROPUBS_FILE_FAMILY.contract_version,
-            artifact_family=MICROPUBS_FILE_FAMILY,
+            contract_version=MICROPUBLICATION_FAMILY.contract_version,
+            artifact_family=MICROPUBLICATION_FAMILY,
         ),
         FamilyDefinition(
             key=PropstoreFamily.JUSTIFICATIONS,
