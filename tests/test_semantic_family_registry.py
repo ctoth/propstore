@@ -203,7 +203,8 @@ def test_semantic_family_owns_path_ref_and_listing_behaviour(tmp_path: Path) -> 
     stance = semantic_family_by_name(PropstoreFamily.STANCES.value)
 
     assert semantic_address_path(concept.name, repo, repo.families.concepts.ref_from_path("concepts/pitch.yaml")) == "concepts/pitch.yaml"
-    assert repo.families.by_name(claim.name).ref_from_path("claims/paper.yaml").name == "paper"
+    claim_ref = repo.families.by_name(claim.name).ref_from_path("claims/ps__claim__paper.yaml")
+    assert claim_ref.artifact_id == "ps:claim:paper"
     assert semantic_address_path(stance.name, repo, repo.families.stances.ref_from_path("stances/claim__a.yaml")) == "stances/claim__a.yaml"
     assert repo.families.by_name(stance.name).ref_from_path("stances/claim__a.yaml").artifact_id == "claim:a"
     assert repo.families.concepts.ref_from_path("concepts/pitch.yaml").name == "pitch"
