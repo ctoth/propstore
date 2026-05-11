@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR
+from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR, DEFAULT_MAX_ALPHABET_SIZE
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     JournalOperator,
@@ -274,6 +274,34 @@ def _journal_operator_input(
                 "revision_operator": operator,
                 "max_candidates": _MAX_CANDIDATES,
             },
+        )
+    if operation == "ic_merge":
+        profile_atom_ids = tuple(tuple(str(atom_id) for atom_id in profile) for profile in revision_query.profile_atom_ids)
+        if not profile_atom_ids:
+            raise ValueError("IC merge journal capture requires profile_atom_ids")
+        integrity_constraint = revision_query.integrity_constraint
+        if not isinstance(integrity_constraint, Mapping):
+            raise ValueError("IC merge journal capture requires integrity_constraint")
+        merge_parent_commits = tuple(revision_query.merge_parent_commits or state.scope.merge_parent_commits)
+        merge_operator = revision_query.operator or "sigma"
+        max_alphabet_size = revision_query.max_alphabet_size or DEFAULT_MAX_ALPHABET_SIZE
+        target_atom_ids = tuple(dict.fromkeys(atom_id for profile in profile_atom_ids for atom_id in profile))
+        operator_input = {
+            "profile_atom_ids": profile_atom_ids,
+            "merge_parent_commits": merge_parent_commits,
+            "integrity_constraint": dict(integrity_constraint),
+            "merge_operator": merge_operator,
+            "max_alphabet_size": max_alphabet_size,
+        }
+        return (
+            JournalOperator.IC_MERGE,
+            TransitionOperation(
+                name=operation,
+                input_atom_id=None,
+                target_atom_ids=target_atom_ids,
+                parameters=operator_input,
+            ),
+            operator_input,
         )
     raise ValueError(f"Unknown revision operation: {operation}")
 
