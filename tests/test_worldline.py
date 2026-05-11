@@ -22,7 +22,7 @@ from hypothesis import strategies as st
 from quire.documents import decode_document_path
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.repository import Repository
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import build_sidecar, claim_artifact_commit_payloads
 from propstore.cli.worldline import _parse_kv_args
 from quire.tree_path import GitTreePath as GitKnowledgePath
 from quire.git_store import GitStore
@@ -49,6 +49,17 @@ def _commit_fixture_repository(repo: Repository, message: str) -> None:
         },
         message,
     )
+
+
+def _write_claim_artifacts(repo: Repository, payload: dict) -> None:
+    for relative_path, content in claim_artifact_commit_payloads(
+        repo,
+        normalize_claims_payload(payload),
+        source="claims/fixture.yaml",
+    ).items():
+        path = repo.root / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
 
 
 # ── Test fixtures ───────────────────────────────────────────────────
@@ -245,10 +256,9 @@ def physics_knowledge(tmp_path_factory):
         "form_parameters": {"values": ["earth", "moon"], "extensible": False},
     })
 
-    claims_dir = root / "claims"
-    claims_dir.mkdir(exist_ok=True)
-    with open(claims_dir / "physics_claims.yaml", "w") as f:
-        yaml.dump(normalize_claims_payload({
+    _write_claim_artifacts(
+        repo,
+        {
             "source": {"paper": "test"},
             "claims": [
                 {
@@ -278,7 +288,8 @@ def physics_knowledge(tmp_path_factory):
                     "provenance": {"paper": "test", "page": 1},
                 },
             ],
-        }), f, default_flow_style=False)
+        },
+    )
 
     _commit_fixture_repository(repo, "Seed physics worldline fixture")
     return repo
@@ -350,10 +361,9 @@ def chained_physics_knowledge(tmp_path_factory):
         }],
     })
 
-    claims_dir = root / "claims"
-    claims_dir.mkdir(exist_ok=True)
-    with open(claims_dir / "physics_claims.yaml", "w", encoding="utf-8") as f:
-        yaml.dump(normalize_claims_payload({
+    _write_claim_artifacts(
+        repo,
+        {
             "source": {"paper": "test"},
             "claims": [
                 {
@@ -365,7 +375,8 @@ def chained_physics_knowledge(tmp_path_factory):
                     "provenance": {"paper": "test", "page": 1},
                 },
             ],
-        }), f, default_flow_style=False)
+        },
+    )
 
     _commit_fixture_repository(repo, "Seed chained physics worldline fixture")
     return repo
