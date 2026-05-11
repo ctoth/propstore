@@ -33,7 +33,7 @@ from propstore.families.contexts.stages import (
     loaded_contexts_to_lifting_system,
 )
 from propstore.families.documents.justifications import JustificationDocument
-from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.sources import SourceDocument
 from propstore.families.claims.stages import RawIdQuarantineRecord
 from propstore.families.documents.stances import StanceDocument
@@ -940,11 +940,11 @@ def compile_raw_id_quarantine_sidecar_rows(
 
 
 def compile_micropublication_sidecar_rows(
-    micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
+    micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
     claim_reference_map: dict[str, str],
 ) -> MicropublicationSidecarRows:
     rows, diagnostics = _compile_micropublication_sidecar_rows_with_diagnostics(
-        micropub_files,
+        micropub_entries,
         claim_reference_map,
     )
     if diagnostics:
@@ -953,7 +953,7 @@ def compile_micropublication_sidecar_rows(
 
 
 def _compile_micropublication_sidecar_rows_with_diagnostics(
-    micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
+    micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
     claim_reference_map: dict[str, str],
 ) -> tuple[MicropublicationSidecarRows, tuple[QuarantineDiagnostic, ...]]:
     valid_claim_ids = set(claim_reference_map.values())
@@ -961,70 +961,69 @@ def _compile_micropublication_sidecar_rows_with_diagnostics(
     claim_rows: list[MicropublicationClaimInsertRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
-    for filename, document in sorted(micropub_files, key=lambda item: item[0]):
-        for micropub in document.micropubs:
-            resolved_claims: list[str] = []
-            missing_claim_ref: str | None = None
-            for claim_id in micropub.claims:
-                resolved_claim = resolve_claim_reference(claim_id, claim_reference_map)
-                if (
-                    not isinstance(resolved_claim, str)
-                    or resolved_claim not in valid_claim_ids
-                ):
-                    if isinstance(resolved_claim, str) and resolved_claim:
-                        missing_claim_ref = resolved_claim
-                    elif isinstance(claim_id, str) and claim_id:
-                        missing_claim_ref = claim_id
-                    else:
-                        missing_claim_ref = micropub.artifact_id
-                    break
-                resolved_claims.append(resolved_claim)
-            if missing_claim_ref is not None:
-                message = (
-                    f"micropublication {micropub.artifact_id} references "
-                    f"nonexistent claim '{missing_claim_ref}'"
-                )
-                diagnostics.append(
-                    QuarantineDiagnostic(
-                        artifact_id=missing_claim_ref,
-                        kind="micropublication",
-                        diagnostic_kind="micropublication_validation",
-                        message=message,
-                        file=filename,
-                    )
-                )
-                continue
-
-            micropublication_rows.append(
-                MicropublicationInsertRow(
-                    (
-                        micropub.artifact_id,
-                        str(micropub.context.id),
-                        json.dumps(list(micropub.assumptions), sort_keys=True),
-                        json.dumps(
-                            [item.to_payload() for item in micropub.evidence],
-                            sort_keys=True,
-                        ),
-                        None if micropub.stance is None else micropub.stance.value,
-                        (
-                            None
-                            if micropub.provenance is None
-                            else json.dumps(
-                                micropub.provenance.to_payload(),
-                                sort_keys=True,
-                            )
-                        ),
-                        micropub.source,
-                    )
+    for filename, micropub in sorted(micropub_entries, key=lambda item: item[0]):
+        resolved_claims: list[str] = []
+        missing_claim_ref: str | None = None
+        for claim_id in micropub.claims:
+            resolved_claim = resolve_claim_reference(claim_id, claim_reference_map)
+            if (
+                not isinstance(resolved_claim, str)
+                or resolved_claim not in valid_claim_ids
+            ):
+                if isinstance(resolved_claim, str) and resolved_claim:
+                    missing_claim_ref = resolved_claim
+                elif isinstance(claim_id, str) and claim_id:
+                    missing_claim_ref = claim_id
+                else:
+                    missing_claim_ref = micropub.artifact_id
+                break
+            resolved_claims.append(resolved_claim)
+        if missing_claim_ref is not None:
+            message = (
+                f"micropublication artifact {micropub.artifact_id} references "
+                f"nonexistent claim '{missing_claim_ref}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=missing_claim_ref,
+                    kind="micropublication",
+                    diagnostic_kind="micropublication_validation",
+                    message=message,
+                    file=filename,
                 )
             )
-            for seq, claim_id in enumerate(resolved_claims, start=1):
-                assert claim_id is not None
-                claim_rows.append(
-                    MicropublicationClaimInsertRow(
-                        (micropub.artifact_id, claim_id, seq)
-                    )
+            continue
+
+        micropublication_rows.append(
+            MicropublicationInsertRow(
+                (
+                    micropub.artifact_id,
+                    str(micropub.context.id),
+                    json.dumps(list(micropub.assumptions), sort_keys=True),
+                    json.dumps(
+                        [item.to_payload() for item in micropub.evidence],
+                        sort_keys=True,
+                    ),
+                    None if micropub.stance is None else micropub.stance.value,
+                    (
+                        None
+                        if micropub.provenance is None
+                        else json.dumps(
+                            micropub.provenance.to_payload(),
+                            sort_keys=True,
+                        )
+                    ),
+                    micropub.source,
                 )
+            )
+        )
+        for seq, claim_id in enumerate(resolved_claims, start=1):
+            assert claim_id is not None
+            claim_rows.append(
+                MicropublicationClaimInsertRow(
+                    (micropub.artifact_id, claim_id, seq)
+                )
+            )
 
     return (
         MicropublicationSidecarRows(
@@ -1041,7 +1040,7 @@ def compile_sidecar_build_plan(
     source_entries: Iterable[tuple[str, SourceDocument]],
     stance_entries: Iterable[tuple[str, StanceDocument]],
     justification_entries: Iterable[tuple[str, JustificationDocument]],
-    micropub_files: Iterable[tuple[str, MicropublicationsFileDocument]],
+    micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
 ) -> SidecarBuildPlan:
     claim_rows: ClaimSidecarRows | None = None
     raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(())
@@ -1101,7 +1100,7 @@ def compile_sidecar_build_plan(
 
     micropublication_rows, micropublication_quarantine_diagnostics = (
         _compile_micropublication_sidecar_rows_with_diagnostics(
-            micropub_files,
+            micropub_entries,
             claim_reference_map,
         )
     )
