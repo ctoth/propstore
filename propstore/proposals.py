@@ -207,10 +207,13 @@ def build_stance_document(
         "classification_date": str(date.today()),
     }
     stamped = stamp_stance_artifact_id(payload)
+    artifact_id = stamped["artifact_code"]
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise ValueError("stance proposal document missing artifact_code")
     return convert_document_value(
         stamped,
         StanceDocument,
-        source=stance_proposal_relpath(stamped["artifact_code"]),
+        source=stance_proposal_relpath(artifact_id),
     )
 
 
