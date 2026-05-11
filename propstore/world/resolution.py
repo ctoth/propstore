@@ -537,10 +537,8 @@ def _resolve_structured_argumentation(
         ReasoningBackend.ASPIC,
         semantics,
     )
-    from propstore.structured_projection import (
-        build_structured_projection,
-        compute_structured_justified_arguments,
-    )
+    from propstore.aspic_bridge import build_aspic_projection
+    from propstore.structured_projection import compute_structured_justified_arguments
 
     if not world.has_table("relation_edge"):
         return None, "no stance data"
@@ -554,7 +552,7 @@ def _resolve_structured_argumentation(
     if not isinstance(world, GroundingBundleStore):
         return None, "ASPIC backend requires a grounded bundle-capable store"
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         world,
         cast(list[ActiveClaimInput], active_claim_rows),
         bundle=world.grounding_bundle(),
