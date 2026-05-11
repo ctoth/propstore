@@ -6,17 +6,8 @@ from collections.abc import Mapping, Sequence
 from dataclasses import asdict, is_dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, TypeAlias
+from propstore.json_types import JsonValue
 
-JsonValue: TypeAlias = (
-    None
-    | bool
-    | int
-    | float
-    | str
-    | list["JsonValue"]
-    | dict[str, "JsonValue"]
-)
 
 
 class JsonReportMixin:
@@ -27,7 +18,7 @@ class JsonReportMixin:
         return {"value": value}
 
 
-def json_ready(value: Any) -> JsonValue:
+def json_ready(value: object) -> JsonValue:
     if value is None or isinstance(value, bool | int | float | str):
         return value
     if isinstance(value, Enum):
