@@ -25,7 +25,7 @@ def test_repository_import_attaches_import_provenance_note(tmp_path) -> None:
     source_git.commit_files(
         {
             "claims/source.yaml": yaml.safe_dump(
-                {"claims": [{"id": "claim_one", "context": {"id": "ctx"}}]},
+                {"id": "claim_one", "context": {"id": "ctx"}},
                 sort_keys=False,
             ).encode()
         },
