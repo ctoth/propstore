@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.storage import init_git_store
-from tests.ws_l_merge_helpers import claim_yaml, param_claim, snapshot
+from tests.ws_l_merge_helpers import claim_payloads, param_claim, snapshot
 
 
 def test_regime_split_same_value_claims_remain_distinct_with_ignorance(tmp_path) -> None:
@@ -12,19 +12,17 @@ def test_regime_split_same_value_claims_remain_distinct_with_ignorance(tmp_path)
     kr.create_branch(branch_name, source_commit=base_sha)
 
     kr.commit_files(
-        {
-            "claims/left.yaml": claim_yaml(
-                [param_claim("claim1", "concept_x", 300.0, conditions=["T < 100"])],
-            )
-        },
+        claim_payloads(
+            kr,
+            [param_claim("claim1", "concept_x", 300.0, conditions=["T < 100"])],
+        ),
         "left",
     )
     kr.commit_files(
-        {
-            "claims/right.yaml": claim_yaml(
-                [param_claim("claim1", "concept_x", 300.0, conditions=["T >= 100"])],
-            )
-        },
+        claim_payloads(
+            kr,
+            [param_claim("claim1", "concept_x", 300.0, conditions=["T >= 100"])],
+        ),
         "right",
         branch=branch_name,
     )
