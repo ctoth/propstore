@@ -187,13 +187,14 @@ def test_relate_claims_commits_single_claim_proposals_to_branch(
 
     assert report.branch == stance_proposal_branch()
     assert report.commit_sha is not None
-    assert report.relpaths == ("stances/claim-a.yaml",)
+    assert len(report.relpaths) == 1
     data = yaml.safe_load(
-        repo.git.read_file("stances/claim-a.yaml", commit=report.commit_sha)
+        repo.git.read_file(report.relpaths[0], commit=report.commit_sha)
     )
     assert data["source_claim"] == "claim-a"
     assert data["classification_model"] == "test-model"
-    assert data["stances"][0]["target"] == "claim-b"
+    assert data["target"] == "claim-b"
+    assert data["type"] == "supports"
 
 
 def test_relate_claims_all_reports_summary_without_empty_commit(
