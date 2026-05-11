@@ -8,50 +8,54 @@ from collections import defaultdict
 from quire.hashing import canonical_json_sha256
 
 from propstore.families.identity.claims import canonicalize_claim_for_version
+from propstore.json_types import JsonObject, JsonValue
 
 
-def _hash_payload(payload: dict[str, object]) -> str:
+def _hash_payload(payload: JsonObject) -> str:
     return canonical_json_sha256(payload)
 
 
-def source_artifact_code(source_doc: dict[str, object]) -> str:
+def source_artifact_code(source_doc: JsonObject) -> str:
     canonical = copy.deepcopy(source_doc)
     canonical.pop("artifact_code", None)
     return _hash_payload(canonical)
 
 
-def justification_artifact_code(justification: dict[str, object]) -> str:
+def justification_artifact_code(justification: JsonObject) -> str:
     canonical = copy.deepcopy(justification)
     canonical.pop("artifact_code", None)
     premises = canonical.get("premises")
     if isinstance(premises, list):
-        canonical["premises"] = sorted(str(premise) for premise in premises)
+        canonical["premises"] = [
+            str(premise)
+            for premise in sorted(premises, key=str)
+        ]
     return _hash_payload(canonical)
 
 
-def stance_artifact_code(stance: dict[str, object]) -> str:
+def stance_artifact_code(stance: JsonObject) -> str:
     canonical = copy.deepcopy(stance)
     canonical.pop("artifact_code", None)
     return _hash_payload(canonical)
 
 
 def _copied_artifact_doc(
-    payload: dict[str, object] | None,
+    payload: JsonObject | None,
     *,
     list_field: str,
-) -> dict[str, object]:
+) -> JsonObject:
     if payload is not None:
         return copy.deepcopy(payload)
     return {list_field: []}
 
 
-def _artifact_entries(payload: dict[str, object], list_field: str) -> list[object]:
+def _artifact_entries(payload: JsonObject, list_field: str) -> list[JsonValue]:
     entries = payload.get(list_field)
     return entries if isinstance(entries, list) else []
 
 
 def claim_artifact_code(
-    claim: dict[str, object],
+    claim: JsonObject,
     *,
     source_code: str,
     justification_codes: list[str],
@@ -59,22 +63,27 @@ def claim_artifact_code(
 ) -> str:
     canonical = canonicalize_claim_for_version(claim)
     canonical.pop("artifact_code", None)
+    payload: JsonObject = {
+        "source_artifact_code": source_code,
+        "claim": canonical,
+        "justification_codes": [
+            code for code in sorted(justification_codes)
+        ],
+        "stance_codes": [
+            code for code in sorted(stance_codes)
+        ],
+    }
     return _hash_payload(
-        {
-            "source_artifact_code": source_code,
-            "claim": canonical,
-            "justification_codes": sorted(justification_codes),
-            "stance_codes": sorted(stance_codes),
-        }
+        payload
     )
 
 
 def attach_source_artifact_codes(
-    source_doc: dict[str, object],
-    claims_doc: dict[str, object] | None,
-    justifications_doc: dict[str, object] | None,
-    stances_doc: dict[str, object] | None,
-) -> tuple[dict[str, object], dict[str, object], dict[str, object], dict[str, object]]:
+    source_doc: JsonObject,
+    claims_doc: JsonObject | None,
+    justifications_doc: JsonObject | None,
+    stances_doc: JsonObject | None,
+) -> tuple[JsonObject, JsonObject, JsonObject, JsonObject]:
     updated_source = copy.deepcopy(source_doc)
     updated_claims = _copied_artifact_doc(claims_doc, list_field="claims")
     updated_justifications = _copied_artifact_doc(
@@ -87,7 +96,7 @@ def attach_source_artifact_codes(
     updated_source["artifact_code"] = source_code
 
     justification_codes_by_conclusion: dict[str, list[str]] = defaultdict(list)
-    rewritten_justifications: list[object] = []
+    rewritten_justifications: list[JsonValue] = []
     for justification in _artifact_entries(updated_justifications, "justifications"):
         if not isinstance(justification, dict):
             rewritten_justifications.append(justification)
@@ -102,7 +111,7 @@ def attach_source_artifact_codes(
     updated_justifications["justifications"] = rewritten_justifications
 
     stance_codes_by_source: dict[str, list[str]] = defaultdict(list)
-    rewritten_stances: list[object] = []
+    rewritten_stances: list[JsonValue] = []
     for stance in _artifact_entries(updated_stances, "stances"):
         if not isinstance(stance, dict):
             rewritten_stances.append(stance)
@@ -116,7 +125,7 @@ def attach_source_artifact_codes(
         rewritten_stances.append(rewritten)
     updated_stances["stances"] = rewritten_stances
 
-    rewritten_claims: list[object] = []
+    rewritten_claims: list[JsonValue] = []
     for claim in _artifact_entries(updated_claims, "claims"):
         if not isinstance(claim, dict):
             rewritten_claims.append(claim)
