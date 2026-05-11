@@ -68,17 +68,18 @@ def expand_loaded_claim_batch(batch: LoadedClaimBatch) -> tuple[LoadedClaimsFile
     source_payload = batch.document.source.to_payload()
     expanded: list[LoadedClaimsFile] = []
     for index, claim in enumerate(batch.document.claims, start=1):
-        expanded.append(
-            loaded_claim_file_from_payload(
-                filename=f"{batch.filename}#{index}",
-                source_path=batch.artifact_path,
-                data={
-                    "source": source_payload,
-                    "claims": [claim.to_payload()],
-                },
-                knowledge_root=batch.store_root,
-            )
+        loaded = loaded_claim_file_from_payload(
+            filename=f"{batch.filename}#{index}",
+            source_path=batch.artifact_path,
+            data={
+                "source": source_payload,
+                "claims": [claim.to_payload()],
+            },
+            knowledge_root=batch.store_root,
         )
+        setattr(loaded, "source_path", batch.artifact_path)
+        setattr(loaded, "stage", batch.document.stage)
+        expanded.append(loaded)
     return tuple(expanded)
 
 
@@ -108,7 +109,8 @@ def claim_file_source_paper(claim_file: ClaimFileEntry) -> str:
 
 
 def claim_file_stage(claim_file: ClaimFileEntry) -> str | None:
-    return None
+    stage = getattr(claim_file, "stage", None)
+    return stage if isinstance(stage, str) else None
 
 
 def claim_file_payload(claim_file: ClaimFileEntry) -> dict[str, Any]:
