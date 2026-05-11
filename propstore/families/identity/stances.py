@@ -3,7 +3,10 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from quire.documents import convert_document_value
+
 from propstore.artifact_codes import stance_artifact_code
+from propstore.families.documents.stances import StanceDocument
 from propstore.json_types import JsonObject
 
 STANCE_VERSION_ID_EXCLUDED_FIELDS = (
@@ -25,7 +28,12 @@ def derive_stance_artifact_id(stance: JsonObject) -> str:
     artifact_id = stance.get("artifact_code")
     if isinstance(artifact_id, str) and artifact_id:
         return artifact_id
-    return stance_artifact_code(canonicalize_stance_for_identity(stance))
+    document = convert_document_value(
+        canonicalize_stance_for_identity(stance),
+        StanceDocument,
+        source="stance-identity",
+    )
+    return stance_artifact_code(document)
 
 
 def stamp_stance_artifact_id(stance: dict[str, Any]) -> JsonObject:

@@ -3,7 +3,10 @@ from __future__ import annotations
 import copy
 from typing import Any
 
+from quire.documents import convert_document_value
+
 from propstore.artifact_codes import justification_artifact_code
+from propstore.families.documents.justifications import JustificationDocument
 from propstore.json_types import JsonObject
 
 JUSTIFICATION_VERSION_ID_EXCLUDED_FIELDS = ("artifact_code",)
@@ -23,7 +26,12 @@ def derive_justification_artifact_id(justification: JsonObject) -> str:
     artifact_id = justification.get("artifact_code")
     if isinstance(artifact_id, str) and artifact_id:
         return artifact_id
-    return justification_artifact_code(canonicalize_justification_for_identity(justification))
+    document = convert_document_value(
+        canonicalize_justification_for_identity(justification),
+        JustificationDocument,
+        source="justification-identity",
+    )
+    return justification_artifact_code(document)
 
 
 def stamp_justification_artifact_id(justification: dict[str, Any]) -> JsonObject:

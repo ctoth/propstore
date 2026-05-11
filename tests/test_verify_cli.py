@@ -9,7 +9,16 @@ from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.artifact_codes import attach_source_artifact_codes
+from quire.documents import convert_document_value
+
+from propstore.artifact_codes import stamp_source_artifact_codes
+from propstore.families.documents.sources import (
+    SourceClaimsDocument,
+    SourceDocument,
+    SourceJustificationsDocument,
+    SourceStancesDocument,
+)
+from propstore.families.registry import ClaimRef
 from tests.family_helpers import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
@@ -158,8 +167,11 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
     promote = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
     assert promote.exit_code == 0, promote.output
 
-    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
-    claim_id = claims_doc["claims"][1]["artifact_id"]
+    claim_id = next(
+        handle.ref.artifact_id
+        for handle in repo.families.claims.iter_handles()
+        if handle.document.statement == "A second claim."
+    )
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
     papers_dir = repo.root.parent / "papers" / "demo"
     papers_dir.mkdir(parents=True, exist_ok=True)
@@ -201,12 +213,13 @@ def test_verify_tree_reports_claim_mismatch(tmp_path: Path) -> None:
     repo, claim_id = _prepare_promoted_source(tmp_path)
     runner = CliRunner()
 
-    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
-    claims_doc["claims"][1]["artifact_code"] = "sha256:" + ("0" * 64)
+    claim_path = repo.families.claims.address(ClaimRef(claim_id)).require_path()
+    claim_doc = yaml.safe_load(repo.git.read_file(claim_path))
+    claim_doc["artifact_code"] = "sha256:" + ("0" * 64)
     repo.git.commit_batch(
         adds={
-            "claims/demo.yaml": yaml.safe_dump(
-                claims_doc,
+            claim_path: yaml.safe_dump(
+                claim_doc,
                 sort_keys=False,
                 allow_unicode=True,
             ).encode("utf-8")
@@ -241,57 +254,84 @@ def test_verify_tree_atms_failure_propagates(tmp_path: Path) -> None:
 @given(order=st.permutations([0, 1]))
 @settings(deadline=None)
 def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple[int, int]) -> None:
-    source_doc = {
-        "id": "tag:local@propstore,2026:source/demo",
-        "kind": "academic_paper",
-        "origin": {"type": "file", "value": "paper.pdf", "retrieved": "2026-04-04T00:00:00Z", "content_ref": "ni:///sha-256;abc"},
-        "trust": {
-            "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
-            "quality": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
-            "derived_from": [],
+    source_doc = convert_document_value(
+        {
+            "id": "tag:local@propstore,2026:source/demo",
+            "kind": "academic_paper",
+            "origin": {"type": "file", "value": "paper.pdf", "retrieved": "2026-04-04T00:00:00Z", "content_ref": "ni:///sha-256;abc"},
+            "trust": {
+                "status": "vacuous",
+                "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+                "quality": {"status": "vacuous", "b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+                "derived_from": [],
+            },
+            "metadata": {"name": "demo"},
         },
-        "metadata": {"name": "demo"},
-    }
-    claims_doc = {
-        "claims": [
-            {
-                "artifact_id": "ps:claim:a",
-                "logical_ids": [{"namespace": "demo", "value": "claim_a"}],
-                "version_id": "sha256:" + ("1" * 64),
-                "type": "observation",
-                "statement": "A",
-            },
-            {
-                "artifact_id": "ps:claim:b",
-                "logical_ids": [{"namespace": "demo", "value": "claim_b"}],
-                "version_id": "sha256:" + ("2" * 64),
-                "type": "observation",
-                "statement": "B",
-            },
-        ]
-    }
+        SourceDocument,
+        source="test:source",
+    )
+    claims_doc = convert_document_value(
+        {
+            "claims": [
+                {
+                    "artifact_id": "ps:claim:a",
+                    "logical_ids": [{"namespace": "demo", "value": "claim_a"}],
+                    "version_id": "sha256:" + ("1" * 64),
+                    "type": "observation",
+                    "statement": "A",
+                },
+                {
+                    "artifact_id": "ps:claim:b",
+                    "logical_ids": [{"namespace": "demo", "value": "claim_b"}],
+                    "version_id": "sha256:" + ("2" * 64),
+                    "type": "observation",
+                    "statement": "B",
+                },
+            ]
+        },
+        SourceClaimsDocument,
+        source="test:claims",
+    )
     justifications = [
         {"id": "j1", "conclusion": "ps:claim:b", "premises": ["ps:claim:a"], "rule_kind": "support"},
         {"id": "j2", "conclusion": "ps:claim:b", "premises": ["ps:claim:a"], "rule_kind": "support_2"},
     ]
     stances = [
         {"source_claim": "ps:claim:b", "target": "ps:claim:a", "type": "supports"},
-        {"source_claim": "ps:claim:b", "target": "ps:claim:a", "type": "qualifies"},
+        {"source_claim": "ps:claim:b", "target": "ps:claim:a", "type": "rebuts"},
     ]
 
-    left = attach_source_artifact_codes(
+    left = stamp_source_artifact_codes(
         source_doc,
         claims_doc,
-        {"justifications": [justifications[i] for i in order]},
-        {"stances": [stances[i] for i in order]},
+        convert_document_value(
+            {"justifications": [justifications[i] for i in order]},
+            SourceJustificationsDocument,
+            source="test:justifications-left",
+        ),
+        convert_document_value(
+            {"stances": [stances[i] for i in order]},
+            SourceStancesDocument,
+            source="test:stances-left",
+        ),
     )
-    right = attach_source_artifact_codes(
+    right = stamp_source_artifact_codes(
         source_doc,
         claims_doc,
-        {"justifications": justifications},
-        {"stances": stances},
+        convert_document_value(
+            {"justifications": justifications},
+            SourceJustificationsDocument,
+            source="test:justifications-right",
+        ),
+        convert_document_value(
+            {"stances": stances},
+            SourceStancesDocument,
+            source="test:stances-right",
+        ),
     )
 
-    left_claim = next(claim for claim in left[1]["claims"] if claim["artifact_id"] == "ps:claim:b")
-    right_claim = next(claim for claim in right[1]["claims"] if claim["artifact_id"] == "ps:claim:b")
-    assert left_claim["artifact_code"] == right_claim["artifact_code"]
+    assert left[1] is not None
+    assert right[1] is not None
+    left_claim = next(claim for claim in left[1].claims if claim.artifact_id == "ps:claim:b")
+    right_claim = next(claim for claim in right[1].claims if claim.artifact_id == "ps:claim:b")
+    assert left_claim.artifact_code == right_claim.artifact_code

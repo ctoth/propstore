@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.artifact_codes import attach_source_artifact_codes
+from propstore.artifact_codes import stamp_source_artifact_codes
 from propstore.claim_references import (
     ClaimReferenceResolver,
     load_primary_branch_claim_reference_index,
@@ -194,46 +194,30 @@ def finalize_source_branch(
                 and not justification_errors
                 and not stance_errors
             ):
-                updated_source, updated_claims, updated_justifications, updated_stances = attach_source_artifact_codes(
-                    source_doc.to_payload(),
-                    None if claims_doc is None else claims_doc.to_payload(),
-                    None if justifications_doc is None else justifications_doc.to_payload(),
-                    None if stances_doc is None else stances_doc.to_payload(),
+                updated_source, updated_claims, updated_justifications, updated_stances = stamp_source_artifact_codes(
+                    source_doc,
+                    claims_doc,
+                    justifications_doc,
+                    stances_doc,
                 )
                 transaction.source_documents.save(
                     ref,
-                    convert_document_value(
-                        updated_source,
-                        type(source_doc),
-                        source=f"{source_branch_name(source_name)}:source.yaml",
-                    ),
+                    updated_source,
                 )
-                if updated_claims.get("claims"):
+                if updated_claims is not None and updated_claims.claims:
                     transaction.source_claims.save(
                         ref,
-                        convert_document_value(
-                            updated_claims,
-                            SourceClaimsDocument,
-                            source=f"{source_branch_name(source_name)}:claims.yaml",
-                        ),
+                        updated_claims,
                     )
-                if updated_justifications.get("justifications"):
+                if updated_justifications is not None and updated_justifications.justifications:
                     transaction.source_justifications.save(
                         ref,
-                        convert_document_value(
-                            updated_justifications,
-                            SourceJustificationsDocument,
-                            source=f"{source_branch_name(source_name)}:justifications.yaml",
-                        ),
+                        updated_justifications,
                     )
-                if updated_stances.get("stances"):
+                if updated_stances is not None and updated_stances.stances:
                     transaction.source_stances.save(
                         ref,
-                        convert_document_value(
-                            updated_stances,
-                            SourceStancesDocument,
-                            source=f"{source_branch_name(source_name)}:stances.yaml",
-                        ),
+                        updated_stances,
                     )
                 if micropubs_doc is not None:
                     transaction.source_micropubs.save(

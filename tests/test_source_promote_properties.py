@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-import yaml
 from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
@@ -38,6 +37,13 @@ _SOURCE_LOCAL_FIELD_VALUES = st.dictionaries(
 )
 
 
+def _canonical_claim_ids(repo: Repository) -> list[str]:
+    return sorted(
+        handle.ref.artifact_id
+        for handle in repo.families.claims.iter_handles()
+    )
+
+
 @pytest.mark.property
 @given(source_name=_SOURCE_NAME, statement=_TEXT)
 @settings(deadline=None, max_examples=5)
@@ -69,14 +75,12 @@ def test_ws_e_generated_repromote_preserves_claim_artifacts(
         )
 
         _finalize_and_promote(repo, runner, source_name)
-        first = yaml.safe_load(repo.git.read_file(f"claims/{source_name}.yaml"))
+        first = _canonical_claim_ids(repo)
         _finalize_and_promote(repo, runner, source_name)
-        second = yaml.safe_load(repo.git.read_file(f"claims/{source_name}.yaml"))
+        second = _canonical_claim_ids(repo)
 
-        assert [claim["artifact_id"] for claim in first["claims"]] == [
-            claim["artifact_id"] for claim in second["claims"]
-        ]
-        assert len(second["claims"]) == 1
+        assert first == second
+        assert len(second) == 1
 
 
 @pytest.mark.property

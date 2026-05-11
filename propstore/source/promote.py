@@ -28,7 +28,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
-from propstore.artifact_codes import attach_source_artifact_codes
+from propstore.artifact_codes import stamp_canonical_artifact_codes
 from propstore.families.identity.claims import normalize_canonical_claim_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.claim_references import (
@@ -73,7 +73,6 @@ from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceConceptEntryDocument,
     SourceDocument,
-    SourceJustificationsDocument,
     SourceTrustDocument,
 )
 from propstore.json_types import JsonObject, JsonValue
@@ -889,7 +888,6 @@ def promote_source_branch(
         valid_artifact_ids=valid_artifact_ids,
     )
 
-    promoted_stance_documents: dict[StanceRef, StanceDocument] = {}
     promoted_stances: list[dict[str, Any]] = []
     for stance in (() if stances_doc is None else stances_doc.stances):
         source_claim = stance.source_claim
@@ -938,17 +936,6 @@ def promote_source_branch(
         justifications_payload["justifications"] = valid_justification_entries
         filtered_justifications_payload = justifications_payload
 
-    stances_payload: JsonObject = {
-        "stances": [
-            stance for stance in promoted_stances
-        ],
-    }
-    promoted_source_doc, promoted_claims_doc, promoted_justifications_doc, promoted_stances_doc = attach_source_artifact_codes(
-        source_doc.to_payload(),
-        promoted_claims_doc,
-        filtered_justifications_payload,
-        stances_payload,
-    )
     raw_promoted_claims = promoted_claims_doc.get("claims")
     promoted_claims = raw_promoted_claims if isinstance(raw_promoted_claims, list) else []
     promoted_claims_source = promoted_claims_doc.get("source")
@@ -978,38 +965,9 @@ def promote_source_branch(
         )
     promoted_claims_doc["claims"] = normalized_promoted_claims
 
-    raw_promoted_stances = promoted_stances_doc.get("stances")
-    promoted_stance_entries = (
-        raw_promoted_stances
-        if isinstance(raw_promoted_stances, list)
-        else []
-    )
-    for stance in promoted_stance_entries:
-        if not isinstance(stance, dict):
-            continue
-        artifact_id = derive_stance_artifact_id(stance)
-        stance["artifact_code"] = artifact_id
-        stance_ref = StanceRef(artifact_id)
-        promoted_stance_documents[stance_ref] = convert_document_value(
-            stance,
-            StanceDocument,
-            source=repo.families.stances.address(stance_ref).require_path(),
-        )
-
     source_ref = CanonicalSourceRef(slug)
-    promoted_source_document = convert_document_value(
-        promoted_source_doc,
-        SourceDocument,
-        source=repo.families.sources.address(source_ref).require_path(),
-    )
-    promoted_claim_documents: dict[ClaimRef, ClaimDocument] = {}
-    raw_promoted_claim_documents = promoted_claims_doc.get("claims")
-    promoted_claim_document_payloads = (
-        raw_promoted_claim_documents
-        if isinstance(raw_promoted_claim_documents, list)
-        else []
-    )
-    for claim in promoted_claim_document_payloads:
+    unstamped_claim_documents: list[ClaimDocument] = []
+    for claim in normalized_promoted_claims:
         if not isinstance(claim, dict):
             continue
         artifact_id = claim.get("artifact_id")
@@ -1018,11 +976,64 @@ def promote_source_branch(
         claim_payload = dict(claim)
         claim_payload.setdefault("source", {"paper": promoted_source_paper})
         claim_ref = ClaimRef(artifact_id)
-        promoted_claim_documents[claim_ref] = convert_document_value(
-            claim_payload,
-            ClaimDocument,
-            source=repo.families.claims.address(claim_ref).require_path(),
+        unstamped_claim_documents.append(
+            convert_document_value(
+                claim_payload,
+                ClaimDocument,
+                source=repo.families.claims.address(claim_ref).require_path(),
+            )
         )
+
+    unstamped_stance_documents: list[StanceDocument] = []
+    for stance in promoted_stances:
+        stance_document = convert_document_value(
+            stance,
+            StanceDocument,
+            source="source-promote:stance",
+        )
+        unstamped_stance_documents.append(stance_document)
+
+    unstamped_justification_documents: list[JustificationDocument] = []
+    raw_promoted_justifications = (
+        []
+        if filtered_justifications_payload is None
+        else filtered_justifications_payload.get("justifications")
+    )
+    promoted_justification_entries = (
+        raw_promoted_justifications
+        if isinstance(raw_promoted_justifications, list)
+        else []
+    )
+    for justification in promoted_justification_entries:
+        if not isinstance(justification, dict):
+            continue
+        unstamped_justification_documents.append(
+            convert_document_value(
+                justification,
+                JustificationDocument,
+                source="source-promote:justification",
+            )
+        )
+
+    (
+        promoted_source_document,
+        stamped_claim_documents,
+        stamped_justification_documents,
+        stamped_stance_documents,
+    ) = stamp_canonical_artifact_codes(
+        source_doc,
+        unstamped_claim_documents,
+        unstamped_justification_documents,
+        unstamped_stance_documents,
+    )
+
+    promoted_claim_documents: dict[ClaimRef, ClaimDocument] = {}
+    for claim_document in stamped_claim_documents:
+        artifact_id = claim_document.artifact_id
+        if not isinstance(artifact_id, str) or not artifact_id:
+            raise ValueError("promoted claim is missing artifact_id")
+        promoted_claim_documents[ClaimRef(artifact_id)] = claim_document
+
     promoted_concept_plan_documents = {
         ConceptFileRef(concept_slug): concept_document
         for concept_slug, concept_document in promoted_concept_documents.items()
@@ -1032,24 +1043,15 @@ def promote_source_branch(
         promoted_claim_documents=promoted_claim_documents,
         promoted_concept_documents=promoted_concept_plan_documents,
     )
+    promoted_stance_documents: dict[StanceRef, StanceDocument] = {}
+    for stance_document in stamped_stance_documents:
+        artifact_id = derive_stance_artifact_id(stance_document.to_payload())
+        promoted_stance_documents[StanceRef(artifact_id)] = stance_document
+
     promoted_justification_documents: dict[JustificationRef, JustificationDocument] = {}
-    raw_promoted_justifications = promoted_justifications_doc.get("justifications")
-    promoted_justification_entries = (
-        raw_promoted_justifications
-        if isinstance(raw_promoted_justifications, list)
-        else []
-    )
-    for justification in promoted_justification_entries:
-        if not isinstance(justification, dict):
-            continue
-        artifact_id = derive_justification_artifact_id(justification)
-        justification["artifact_code"] = artifact_id
-        justification_ref = JustificationRef(artifact_id)
-        promoted_justification_documents[justification_ref] = convert_document_value(
-            justification,
-            JustificationDocument,
-            source=repo.families.justifications.address(justification_ref).require_path(),
-        )
+    for justification_document in stamped_justification_documents:
+        artifact_id = derive_justification_artifact_id(justification_document.to_payload())
+        promoted_justification_documents[JustificationRef(artifact_id)] = justification_document
     promoted_micropub_documents: dict[MicropublicationRef, MicropublicationDocument] = {}
     for micropub in promoted_micropubs:
         micropub_ref = MicropublicationRef(micropub.artifact_id)

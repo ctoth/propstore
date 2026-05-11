@@ -2,27 +2,50 @@
 
 from __future__ import annotations
 
-import copy
 from collections import defaultdict
+from collections.abc import Sequence
+from typing import Any, Protocol
 
 from quire.hashing import canonical_json_sha256
+from quire.documents import convert_document_value
 
+from propstore.families.claims.documents import ClaimDocument
+from propstore.families.documents.justifications import JustificationDocument
+from propstore.families.documents.sources import (
+    SourceClaimDocument,
+    SourceClaimsDocument,
+    SourceDocument,
+    SourceJustificationDocument,
+    SourceJustificationsDocument,
+    SourceStanceEntryDocument,
+    SourceStancesDocument,
+)
+from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.claims import canonicalize_claim_for_version
-from propstore.json_types import JsonObject, JsonValue
 
 
-def _hash_payload(payload: JsonObject) -> str:
+class _PayloadDocument(Protocol):
+    def to_payload(self) -> Any: ...
+
+
+def _payload(document: _PayloadDocument) -> Any:
+    return document.to_payload()
+
+
+def _hash_payload(payload: object) -> str:
     return canonical_json_sha256(payload)
 
 
-def source_artifact_code(source_doc: JsonObject) -> str:
-    canonical = copy.deepcopy(source_doc)
+def source_artifact_code(source_doc: SourceDocument) -> str:
+    canonical = _payload(source_doc)
     canonical.pop("artifact_code", None)
     return _hash_payload(canonical)
 
 
-def justification_artifact_code(justification: JsonObject) -> str:
-    canonical = copy.deepcopy(justification)
+def justification_artifact_code(
+    justification: JustificationDocument | SourceJustificationDocument,
+) -> str:
+    canonical = _payload(justification)
     canonical.pop("artifact_code", None)
     premises = canonical.get("premises")
     if isinstance(premises, list):
@@ -33,37 +56,22 @@ def justification_artifact_code(justification: JsonObject) -> str:
     return _hash_payload(canonical)
 
 
-def stance_artifact_code(stance: JsonObject) -> str:
-    canonical = copy.deepcopy(stance)
+def stance_artifact_code(stance: StanceDocument | SourceStanceEntryDocument) -> str:
+    canonical = _payload(stance)
     canonical.pop("artifact_code", None)
     return _hash_payload(canonical)
 
 
-def _copied_artifact_doc(
-    payload: JsonObject | None,
-    *,
-    list_field: str,
-) -> JsonObject:
-    if payload is not None:
-        return copy.deepcopy(payload)
-    return {list_field: []}
-
-
-def _artifact_entries(payload: JsonObject, list_field: str) -> list[JsonValue]:
-    entries = payload.get(list_field)
-    return entries if isinstance(entries, list) else []
-
-
 def claim_artifact_code(
-    claim: JsonObject,
+    claim: ClaimDocument | SourceClaimDocument,
     *,
     source_code: str,
-    justification_codes: list[str],
-    stance_codes: list[str],
+    justification_codes: Sequence[str],
+    stance_codes: Sequence[str],
 ) -> str:
-    canonical = canonicalize_claim_for_version(claim)
+    canonical = canonicalize_claim_for_version(_payload(claim))
     canonical.pop("artifact_code", None)
-    payload: JsonObject = {
+    payload = {
         "source_artifact_code": source_code,
         "claim": canonical,
         "justification_codes": [
@@ -78,68 +86,198 @@ def claim_artifact_code(
     )
 
 
-def attach_source_artifact_codes(
-    source_doc: JsonObject,
-    claims_doc: JsonObject | None,
-    justifications_doc: JsonObject | None,
-    stances_doc: JsonObject | None,
-) -> tuple[JsonObject, JsonObject, JsonObject, JsonObject]:
-    updated_source = copy.deepcopy(source_doc)
-    updated_claims = _copied_artifact_doc(claims_doc, list_field="claims")
-    updated_justifications = _copied_artifact_doc(
-        justifications_doc,
-        list_field="justifications",
+def _stamp_source_doc(source_doc: SourceDocument, artifact_code: str) -> SourceDocument:
+    payload = _payload(source_doc)
+    payload["artifact_code"] = artifact_code
+    return convert_document_value(
+        payload,
+        SourceDocument,
+        source="artifact-codes:source",
     )
-    updated_stances = _copied_artifact_doc(stances_doc, list_field="stances")
 
-    source_code = source_artifact_code(updated_source)
-    updated_source["artifact_code"] = source_code
+
+def _stamp_source_claim(claim: SourceClaimDocument, artifact_code: str) -> SourceClaimDocument:
+    payload = _payload(claim)
+    payload["artifact_code"] = artifact_code
+    return convert_document_value(
+        payload,
+        SourceClaimDocument,
+        source="artifact-codes:claim",
+    )
+
+
+def _stamp_source_justification(
+    justification: SourceJustificationDocument,
+    artifact_code: str,
+) -> SourceJustificationDocument:
+    payload = _payload(justification)
+    payload["artifact_code"] = artifact_code
+    return convert_document_value(
+        payload,
+        SourceJustificationDocument,
+        source="artifact-codes:justification",
+    )
+
+
+def _stamp_justification(
+    justification: JustificationDocument,
+    artifact_code: str,
+) -> JustificationDocument:
+    payload = _payload(justification)
+    payload["artifact_code"] = artifact_code
+    return convert_document_value(
+        payload,
+        JustificationDocument,
+        source="artifact-codes:canonical-justification",
+    )
+
+
+def _stamp_source_stance(
+    stance: SourceStanceEntryDocument,
+    artifact_code: str,
+) -> SourceStanceEntryDocument:
+    payload = _payload(stance)
+    payload["artifact_code"] = artifact_code
+    return convert_document_value(
+        payload,
+        SourceStanceEntryDocument,
+        source="artifact-codes:stance",
+    )
+
+
+def _stamp_stance(stance: StanceDocument, artifact_code: str) -> StanceDocument:
+    payload = _payload(stance)
+    payload["artifact_code"] = artifact_code
+    return convert_document_value(
+        payload,
+        StanceDocument,
+        source="artifact-codes:canonical-stance",
+    )
+
+
+def stamp_canonical_artifact_codes(
+    source_doc: SourceDocument,
+    claims: Sequence[ClaimDocument],
+    justifications: Sequence[JustificationDocument],
+    stances: Sequence[StanceDocument],
+) -> tuple[
+    SourceDocument,
+    tuple[ClaimDocument, ...],
+    tuple[JustificationDocument, ...],
+    tuple[StanceDocument, ...],
+]:
+    source_code = source_artifact_code(source_doc)
+    updated_source = _stamp_source_doc(source_doc, source_code)
 
     justification_codes_by_conclusion: dict[str, list[str]] = defaultdict(list)
-    rewritten_justifications: list[JsonValue] = []
-    for justification in _artifact_entries(updated_justifications, "justifications"):
-        if not isinstance(justification, dict):
-            rewritten_justifications.append(justification)
-            continue
-        rewritten = copy.deepcopy(justification)
-        artifact_code = justification_artifact_code(rewritten)
-        rewritten["artifact_code"] = artifact_code
-        conclusion = rewritten.get("conclusion")
+    rewritten_justifications: list[JustificationDocument] = []
+    for justification in justifications:
+        artifact_code = justification_artifact_code(justification)
+        rewritten = _stamp_justification(justification, artifact_code)
+        conclusion = rewritten.conclusion
         if isinstance(conclusion, str) and conclusion:
             justification_codes_by_conclusion[conclusion].append(artifact_code)
         rewritten_justifications.append(rewritten)
-    updated_justifications["justifications"] = rewritten_justifications
 
     stance_codes_by_source: dict[str, list[str]] = defaultdict(list)
-    rewritten_stances: list[JsonValue] = []
-    for stance in _artifact_entries(updated_stances, "stances"):
-        if not isinstance(stance, dict):
-            rewritten_stances.append(stance)
-            continue
-        rewritten = copy.deepcopy(stance)
-        artifact_code = stance_artifact_code(rewritten)
-        rewritten["artifact_code"] = artifact_code
-        source_claim = rewritten.get("source_claim")
+    rewritten_stances: list[StanceDocument] = []
+    for stance in stances:
+        artifact_code = stance_artifact_code(stance)
+        rewritten = _stamp_stance(stance, artifact_code)
+        source_claim = rewritten.source_claim
         if isinstance(source_claim, str) and source_claim:
             stance_codes_by_source[source_claim].append(artifact_code)
         rewritten_stances.append(rewritten)
-    updated_stances["stances"] = rewritten_stances
 
-    rewritten_claims: list[JsonValue] = []
-    for claim in _artifact_entries(updated_claims, "claims"):
-        if not isinstance(claim, dict):
-            rewritten_claims.append(claim)
-            continue
-        rewritten = copy.deepcopy(claim)
-        claim_id = rewritten.get("artifact_id")
+    return (
+        updated_source,
+        tuple(claims),
+        tuple(rewritten_justifications),
+        tuple(rewritten_stances),
+    )
+
+
+def stamp_source_artifact_codes(
+    source_doc: SourceDocument,
+    claims_doc: SourceClaimsDocument | None,
+    justifications_doc: SourceJustificationsDocument | None,
+    stances_doc: SourceStancesDocument | None,
+) -> tuple[
+    SourceDocument,
+    SourceClaimsDocument | None,
+    SourceJustificationsDocument | None,
+    SourceStancesDocument | None,
+]:
+    source_code = source_artifact_code(source_doc)
+    updated_source = _stamp_source_doc(source_doc, source_code)
+
+    justification_codes_by_conclusion: dict[str, list[str]] = defaultdict(list)
+    rewritten_justifications: list[SourceJustificationDocument] = []
+    for justification in (() if justifications_doc is None else justifications_doc.justifications):
+        artifact_code = justification_artifact_code(justification)
+        rewritten = _stamp_source_justification(justification, artifact_code)
+        conclusion = rewritten.conclusion
+        if isinstance(conclusion, str) and conclusion:
+            justification_codes_by_conclusion[conclusion].append(artifact_code)
+        rewritten_justifications.append(rewritten)
+    updated_justifications = None
+    if justifications_doc is not None:
+        justifications_payload = _payload(justifications_doc)
+        justifications_payload["justifications"] = [
+            justification.to_payload()
+            for justification in rewritten_justifications
+        ]
+        updated_justifications = convert_document_value(
+            justifications_payload,
+            SourceJustificationsDocument,
+            source="artifact-codes:justifications",
+        )
+
+    stance_codes_by_source: dict[str, list[str]] = defaultdict(list)
+    rewritten_stances: list[SourceStanceEntryDocument] = []
+    for stance in (() if stances_doc is None else stances_doc.stances):
+        artifact_code = stance_artifact_code(stance)
+        rewritten = _stamp_source_stance(stance, artifact_code)
+        source_claim = rewritten.source_claim
+        if isinstance(source_claim, str) and source_claim:
+            stance_codes_by_source[source_claim].append(artifact_code)
+        rewritten_stances.append(rewritten)
+    updated_stances = None
+    if stances_doc is not None:
+        stances_payload = _payload(stances_doc)
+        stances_payload["stances"] = [
+            stance.to_payload()
+            for stance in rewritten_stances
+        ]
+        updated_stances = convert_document_value(
+            stances_payload,
+            SourceStancesDocument,
+            source="artifact-codes:stances",
+        )
+
+    rewritten_claims: list[SourceClaimDocument] = []
+    for claim in (() if claims_doc is None else claims_doc.claims):
+        claim_id = claim.artifact_id
         justification_codes = justification_codes_by_conclusion.get(str(claim_id), [])
         stance_codes = stance_codes_by_source.get(str(claim_id), [])
-        rewritten["artifact_code"] = claim_artifact_code(
-            rewritten,
+        artifact_code = claim_artifact_code(
+            claim,
             source_code=source_code,
             justification_codes=justification_codes,
             stance_codes=stance_codes,
         )
+        rewritten = _stamp_source_claim(claim, artifact_code)
         rewritten_claims.append(rewritten)
-    updated_claims["claims"] = rewritten_claims
+    updated_claims = None
+    if claims_doc is not None:
+        claims_payload = _payload(claims_doc)
+        claims_payload["claims"] = [
+            claim.to_payload()
+            for claim in rewritten_claims
+        ]
+        updated_claims = convert_document_value(
+            claims_payload,
+            SourceClaimsDocument,
+            source="artifact-codes:claims",
+        )
     return updated_source, updated_claims, updated_justifications, updated_stances
