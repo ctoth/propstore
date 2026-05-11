@@ -9,6 +9,7 @@ from propstore.families.registry import MicropublicationRef
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def test_micropublication_missing_claim_quarantines_not_raises(
@@ -46,6 +47,11 @@ def test_micropublication_missing_claim_quarantines_not_raises(
     missing_claim_id = "ps:claim:missing-micropub"
     micropub_id = "ps:micropub:bad-claim"
     repo = Repository.init(tmp_path / "knowledge")
+    claim_payloads = claim_artifact_commit_payloads(
+        repo,
+        claim_payload,
+        source="claims/micropublication_claim.yaml",
+    )
     repo.git.commit_files(
         {
             "forms/frequency.yaml": yaml.dump(
@@ -56,14 +62,11 @@ def test_micropublication_missing_claim_quarantines_not_raises(
                 concept_payload,
                 sort_keys=False,
             ).encode(),
-            "claims/micropublication_claim.yaml": yaml.dump(
-                claim_payload,
-                sort_keys=False,
-            ).encode(),
             "contexts/ctx_test.yaml": yaml.dump(
                 {"id": "ctx_test", "name": "Test context"},
                 sort_keys=False,
             ).encode(),
+            **claim_payloads,
             repo.families.micropubs.address(MicropublicationRef(micropub_id)).require_path(): yaml.dump(
                 {
                     "artifact_id": micropub_id,
