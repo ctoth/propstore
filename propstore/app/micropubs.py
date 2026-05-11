@@ -5,11 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterator
 
-from propstore.families.documents.micropubs import (
-    MicropublicationDocument,
-    MicropublicationsFileDocument,
-)
-from propstore.families.registry import MicropubsFileRef
+from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.registry import MicropublicationRef
 from propstore.families.contexts.stages import (
     LoadedContext,
     loaded_contexts_to_lifting_system,
@@ -24,7 +21,7 @@ class MicropubNotFoundError(Exception):
 
 @dataclass(frozen=True)
 class MicropubEntry:
-    ref: MicropubsFileRef
+    ref: MicropublicationRef
     document: MicropublicationDocument
 
 
@@ -48,29 +45,21 @@ class MicropubLiftReport:
 
 @dataclass(frozen=True)
 class MicropubListItem:
-    bundle: str
     artifact_id: str
     context_id: str
-
-
-def load_micropub_bundle(repo: Repository, source: str) -> MicropublicationsFileDocument:
-    document = repo.families.micropubs.load(MicropubsFileRef(source))
-    if document is None:
-        raise MicropubNotFoundError(f"Micropub bundle '{source}' not found.")
-    return document
+    source: str | None
 
 
 def iter_micropubs(repo: Repository) -> Iterator[MicropubEntry]:
     for handle in repo.families.micropubs.iter_handles():
-        document = handle.document
-        for entry in document.micropubs:
-            yield MicropubEntry(ref=handle.ref, document=entry)
+        yield MicropubEntry(ref=handle.ref, document=handle.document)
 
 
 def find_micropub(repo: Repository, artifact_id: str) -> MicropubEntry:
-    for entry in iter_micropubs(repo):
-        if entry.document.artifact_id == artifact_id:
-            return entry
+    ref = MicropublicationRef(artifact_id)
+    document = repo.families.micropubs.load(ref)
+    if document is not None:
+        return MicropubEntry(ref=ref, document=document)
     raise MicropubNotFoundError(f"Micropub '{artifact_id}' not found.")
 
 
@@ -120,9 +109,9 @@ def inspect_micropub_lift(
 def list_micropubs(repo: Repository) -> tuple[MicropubListItem, ...]:
     return tuple(
         MicropubListItem(
-            bundle=entry.ref.name,
             artifact_id=entry.document.artifact_id,
             context_id=entry.document.context.id,
+            source=entry.document.source,
         )
         for entry in iter_micropubs(repo)
     )

@@ -1,4 +1,4 @@
-"""pks micropub - inspect and lift micropublication bundles."""
+"""pks micropub - inspect and lift micropublication artifacts."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ from propstore.app.micropubs import (
     find_micropub,
     inspect_micropub_lift,
     list_micropubs,
-    load_micropub_bundle,
 )
 from propstore.repository import Repository
 from propstore.cli.helpers import EXIT_ERROR, exit_with_code, fail
@@ -22,32 +21,19 @@ def micropub() -> None:
     """Inspect micropublications."""
 
 
-@micropub.command("bundle")
-@click.argument("source")
-@click.pass_obj
-def bundle(obj: dict, source: str) -> None:
-    """Render the canonical micropublication bundle for a source."""
-    repo: Repository = obj["repo"]
-    try:
-        document = load_micropub_bundle(repo, source)
-    except MicropubNotFoundError as exc:
-        fail(exc)
-    emit_yaml(document.to_payload())
-
-
 @micropub.command("list")
 @click.pass_obj
 def list_cmd(obj: dict) -> None:
-    """List micropublication entries across bundles."""
+    """List micropublication artifacts."""
     repo: Repository = obj["repo"]
     items = list_micropubs(repo)
     if not items:
         emit("No micropublications.")
         return
     emit_table(
-        ("BUNDLE", "ARTIFACT ID", "CONTEXT"),
+        ("ARTIFACT ID", "CONTEXT", "SOURCE"),
         [
-            (item.bundle, item.artifact_id, item.context_id)
+            (item.artifact_id, item.context_id, item.source or "")
             for item in items
         ],
     )
