@@ -211,6 +211,7 @@ IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
 WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.04")
 SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
+PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.03")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
@@ -553,14 +554,14 @@ PROPOSAL_PREDICATES_FAMILY = ArtifactFamily[
     "Repository", PredicateProposalRef, PredicateProposalDocument
 ](
     name="proposal_predicates",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=PredicateProposalDocument,
     placement=PROPOSAL_PREDICATE_PLACEMENT,
 )
 
 PROPOSAL_RULES_FAMILY = ArtifactFamily["Repository", RuleProposalRef, RuleProposalDocument](
     name="proposal_rules",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=RuleProposalDocument,
     placement=PROPOSAL_RULE_PLACEMENT,
 )

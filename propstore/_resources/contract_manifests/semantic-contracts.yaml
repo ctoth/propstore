@@ -213,7 +213,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: proposal_predicates
-  contract_version: 2026.04.27
+  contract_version: 2026.05.11
   body:
     coerce_payload: null
     decode_bytes: null
@@ -225,14 +225,17 @@ contracts:
       branch:
         fixed_branch: proposal/predicates
         policy: fixed
-      kind: predicate-proposal
-      template: predicates/{source_paper}/declarations.yaml
+      codec: identity
+      filename: declarations.yaml
+      kind: subdir-fixed-file
+      namespace: predicates
+      ref_field: source_paper
     render_document: null
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
   name: proposal_rules
-  contract_version: 2026.04.27
+  contract_version: 2026.05.11
   body:
     coerce_payload: null
     decode_bytes: null
@@ -244,8 +247,13 @@ contracts:
       branch:
         fixed_branch: proposal/rules
         policy: fixed
-      kind: rule-proposal
-      template: rules/{source_paper}/{rule_id}.yaml
+      dir_codec: identity
+      dir_ref_field: source_paper
+      extension: .yaml
+      kind: nested-flat-yaml
+      namespace: rules
+      stem_codec: stem
+      stem_ref_field: rule_id
     render_document: null
     scan_type: null
     validate_for_write: null
@@ -3241,10 +3249,10 @@ contracts:
     - contract_version: 2026.04.27
       key: proposal_stances
       name: proposal_stances
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.11
       key: proposal_predicates
       name: proposal_predicates
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.11
       key: proposal_rules
       name: proposal_rules
     - contract_version: 2026.04.27
@@ -3542,7 +3550,7 @@ contracts:
       semantic: true
 - kind: family
   name: proposal_predicates
-  contract_version: 2026.04.27
+  contract_version: 2026.05.11
   body:
     accessor: proposal_predicates
     artifact_family: proposal_predicates
@@ -3552,14 +3560,17 @@ contracts:
         branch:
           fixed_branch: proposal/predicates
           policy: fixed
-        kind: predicate-proposal
-        template: predicates/{source_paper}/declarations.yaml
-    artifact_family_contract_version: 2026.04.27
+        codec: identity
+        filename: declarations.yaml
+        kind: subdir-fixed-file
+        namespace: predicates
+        ref_field: source_paper
+    artifact_family_contract_version: 2026.05.11
     foreign_keys: []
     key: proposal_predicates
 - kind: family
   name: proposal_rules
-  contract_version: 2026.04.27
+  contract_version: 2026.05.11
   body:
     accessor: proposal_rules
     artifact_family: proposal_rules
@@ -3569,9 +3580,14 @@ contracts:
         branch:
           fixed_branch: proposal/rules
           policy: fixed
-        kind: rule-proposal
-        template: rules/{source_paper}/{rule_id}.yaml
-    artifact_family_contract_version: 2026.04.27
+        dir_codec: identity
+        dir_ref_field: source_paper
+        extension: .yaml
+        kind: nested-flat-yaml
+        namespace: rules
+        stem_codec: stem
+        stem_ref_field: rule_id
+    artifact_family_contract_version: 2026.05.11
     foreign_keys: []
     key: proposal_rules
 - kind: family
