@@ -45,7 +45,7 @@ from propstore.families.registry import (
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptFileRef,
-    JustificationsFileRef,
+    JustificationRef,
     MicropubsFileRef,
     SourceRef,
     StanceRef,
@@ -58,6 +58,7 @@ from propstore.families.concepts.stages import (
 from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.contexts.stages import parse_context_record_document
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.forms.stages import parse_form
 from propstore.provenance import (
     Provenance,
@@ -78,6 +79,7 @@ from propstore.families.documents.sources import (
 from propstore.json_types import JsonObject, JsonValue
 from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
 from propstore.families.documents.stances import StanceDocument
+from propstore.families.identity.justifications import derive_justification_artifact_id
 from propstore.families.identity.stances import derive_stance_artifact_id
 
 from .common import (
@@ -1025,16 +1027,24 @@ def promote_source_branch(
         promoted_claims_document=promoted_claims_document,
         promoted_concept_documents=promoted_concept_plan_documents,
     )
-    if promoted_justifications_doc.get("justifications"):
-        promoted_justifications_ref: JustificationsFileRef | None = JustificationsFileRef(slug)
-        promoted_justifications_document = convert_document_value(
-            promoted_justifications_doc,
-            SourceJustificationsDocument,
-            source=repo.families.justifications.address(promoted_justifications_ref).require_path(),
+    promoted_justification_documents: dict[JustificationRef, JustificationDocument] = {}
+    raw_promoted_justifications = promoted_justifications_doc.get("justifications")
+    promoted_justification_entries = (
+        raw_promoted_justifications
+        if isinstance(raw_promoted_justifications, list)
+        else []
+    )
+    for justification in promoted_justification_entries:
+        if not isinstance(justification, dict):
+            continue
+        artifact_id = derive_justification_artifact_id(justification)
+        justification["artifact_code"] = artifact_id
+        justification_ref = JustificationRef(artifact_id)
+        promoted_justification_documents[justification_ref] = convert_document_value(
+            justification,
+            JustificationDocument,
+            source=repo.families.justifications.address(justification_ref).require_path(),
         )
-    else:
-        promoted_justifications_ref = None
-        promoted_justifications_document = None
     promotion_plan = SourcePromotionPlan(
         source_name=source_name,
         slug=slug,
@@ -1050,8 +1060,7 @@ def promote_source_branch(
         ),
         promoted_micropubs_document=promoted_micropubs_document,
         promoted_concept_documents=promoted_concept_plan_documents,
-        promoted_justifications_ref=promoted_justifications_ref,
-        promoted_justifications_document=promoted_justifications_document,
+        promoted_justification_documents=promoted_justification_documents,
         promoted_stance_documents=promoted_stance_documents,
         blocked_claims=tuple(blocked_claims),
         blocked_reasons=blocked_reasons,
@@ -1095,13 +1104,10 @@ def promote_source_branch(
                         concept_ref,
                         concept_document,
                     )
-                if (
-                    promotion_plan.promoted_justifications_ref is not None
-                    and promotion_plan.promoted_justifications_document is not None
-                ):
+                for justification_ref, justification_document in promotion_plan.promoted_justification_documents.items():
                     transaction.justifications.save(
-                        promotion_plan.promoted_justifications_ref,
-                        promotion_plan.promoted_justifications_document,
+                        justification_ref,
+                        justification_document,
                     )
                 for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
                     transaction.stances.save(

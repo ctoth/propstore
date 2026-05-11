@@ -15,17 +15,17 @@ from propstore.claim_references import ImportedClaimHandleIndex
 from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceDocument,
-    SourceJustificationsDocument,
 )
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.registry import (
     CanonicalSourceRef,
     ClaimsFileRef,
     ConceptFileRef,
-    JustificationsFileRef,
+    JustificationRef,
     MicropubsFileRef,
     StanceRef,
 )
@@ -81,8 +81,9 @@ class SourcePromotionPlan:
     promoted_concept_documents: dict[ConceptFileRef, ConceptDocument] = field(
         default_factory=dict
     )
-    promoted_justifications_ref: JustificationsFileRef | None = None
-    promoted_justifications_document: SourceJustificationsDocument | None = None
+    promoted_justification_documents: dict[JustificationRef, JustificationDocument] = field(
+        default_factory=dict
+    )
     promoted_stance_documents: dict[StanceRef, StanceDocument] = field(
         default_factory=dict
     )
