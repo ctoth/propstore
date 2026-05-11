@@ -91,6 +91,22 @@ def test_stance_family_target_model_is_one_semantic_artifact_per_file() -> None:
     assert canonical.metadata and canonical.metadata["collection_field"] is None
 
 
+def test_justification_family_target_model_is_one_semantic_artifact_per_file() -> None:
+    from propstore.families.documents.justifications import JustificationDocument
+    from propstore.families.registry import JustificationRef
+
+    canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.JUSTIFICATIONS)
+    artifact_family = canonical.artifact_family
+    placement = artifact_family.placement.contract_body()
+
+    assert artifact_family.doc_type is JustificationDocument
+    assert artifact_family.placement.ref_factory is JustificationRef
+    assert placement["namespace"] == "justifications"
+    assert placement["ref_field"] == "artifact_id"
+    assert placement["codec"] == "colon_to_double_underscore"
+    assert canonical.metadata is None or canonical.metadata.get("collection_field") is None
+
+
 def test_canonical_artifact_path_helpers_are_deleted() -> None:
     import propstore.families.registry as family_registry
 
