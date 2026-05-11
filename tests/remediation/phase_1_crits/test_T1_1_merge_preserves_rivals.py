@@ -13,22 +13,8 @@ from propstore.repository import Repository
 from propstore.storage import init_git_store
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
-from tests.conftest import normalize_claims_payload
 from tests.family_helpers import load_claim_files
-
-
-def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
-    doc = normalize_claims_payload(
-        {
-            "source": {
-                "paper": paper,
-                "extraction_model": "test",
-                "extraction_date": "2026-01-01",
-            },
-            "claims": claims,
-        }
-    )
-    return yaml.dump(doc, sort_keys=False).encode()
+from tests.ws_l_merge_helpers import claim_payloads
 
 
 def _obs_claim(claim_id: str, statement: str) -> dict:
@@ -66,11 +52,11 @@ def test_merge_preserves_rival_bodies(left_body: str, right_body: str) -> None:
         kr.create_branch(branch_name, source_commit=base_sha)
 
         kr.commit_files(
-            {"claims/shared.yaml": _claim_yaml([_obs_claim("claim1", left_body)])},
+            claim_payloads(kr, [_obs_claim("claim1", left_body)]),
             "left rival body",
         )
         kr.commit_files(
-            {"claims/shared.yaml": _claim_yaml([_obs_claim("claim1", right_body)])},
+            claim_payloads(kr, [_obs_claim("claim1", right_body)]),
             "right rival body",
             branch=branch_name,
         )
@@ -82,24 +68,19 @@ def test_merge_preserves_rival_bodies(left_body: str, right_body: str) -> None:
         claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
         canonical_claim_id = "test_paper:claim1"
         materialized_claim_ids = {
-            argument["artifact_id"]
+            argument["assertion_id"]
             for argument in manifest["merge"]["arguments"]
             if argument["canonical_claim_id"] == canonical_claim_id
         }
-        bodies = [
-            claim["statement"]
+        materialized_claims = [
+            claim_file_payload(claim_file)
             for claim_file in claim_files
-            for claim in claim_file_payload(claim_file).get("claims", [])
-            if claim["artifact_id"] in materialized_claim_ids
+            if claim_file_payload(claim_file)["artifact_id"] in materialized_claim_ids
         ]
-        version_ids = {
-            claim["version_id"]
-            for claim_file in claim_files
-            for claim in claim_file_payload(claim_file).get("claims", [])
-            if claim["artifact_id"] in materialized_claim_ids
-        }
+        bodies = [claim["statement"] for claim in materialized_claims]
+        version_ids = {claim["version_id"] for claim in materialized_claims}
 
-        assert len(materialized_claim_ids) == 1
+        assert len(materialized_claim_ids) == 2
         assert len(bodies) == 2
         assert len(version_ids) == 2
         assert left_body in bodies
