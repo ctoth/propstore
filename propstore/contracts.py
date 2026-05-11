@@ -37,6 +37,7 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
+    / "_resources"
     / "contract_manifests"
     / "semantic-contracts.yaml"
 )
