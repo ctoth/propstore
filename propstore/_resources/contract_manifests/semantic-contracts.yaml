@@ -131,23 +131,23 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
-  name: justifications_file
+  name: justification
   contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.sources.SourceJustificationsDocument
+    doc_type: propstore.families.documents.justifications.JustificationDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
     placement:
       branch:
         policy: primary
-      codec: stem
+      codec: colon_to_double_underscore
       extension: .yaml
       kind: flat-yaml
       namespace: justifications
-      ref_field: name
+      ref_field: artifact_id
     render_document: null
     scan_type: null
     validate_for_write: null
@@ -3462,17 +3462,17 @@ contracts:
   contract_version: 2026.04.27
   body:
     accessor: justifications
-    artifact_family: justifications_file
+    artifact_family: justification
     artifact_family_contract:
-      doc_type: propstore.families.documents.sources.SourceJustificationsDocument
+      doc_type: propstore.families.documents.justifications.JustificationDocument
       placement:
         branch:
           policy: primary
-        codec: stem
+        codec: colon_to_double_underscore
         extension: .yaml
         kind: flat-yaml
         namespace: justifications
-        ref_field: name
+        ref_field: artifact_id
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: justifications
