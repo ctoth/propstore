@@ -1154,7 +1154,7 @@ def test_promote_commits(tmp_path):
     repo = Repository.init(root)
 
     git = repo.git
-    commit_stance_proposals(
+    _, relpaths = commit_stance_proposals(
         repo,
         {
             "claim_a": [{
@@ -1168,6 +1168,7 @@ def test_promote_commits(tmp_path):
         },
         "test-model",
     )
+    promoted_filename = Path(relpaths[0]).name
     commits_before = len(git.log(max_count=100))
 
     runner = CliRunner()
@@ -1179,7 +1180,7 @@ def test_promote_commits(tmp_path):
     assert commits_after == commits_before + 1
 
     # Stance file is now in master git state
-    assert "claim_a.yaml" in git.iter_dir("stances")
+    assert promoted_filename in git.iter_dir("stances")
 
 
 def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkeypatch):
@@ -1193,7 +1194,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     repo = Repository.init(root)
 
     git = repo.git
-    commit_stance_proposals(
+    _, relpaths = commit_stance_proposals(
         repo,
         {
             "claim_a": [{
@@ -1207,6 +1208,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
         },
         "test-model",
     )
+    proposal_relpath = relpaths[0]
     proposal_branch = stance_proposal_branch()
     proposal_sha = git.branch_sha(proposal_branch)
     assert proposal_sha is not None
@@ -1220,9 +1222,9 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     result = runner.invoke(cli, ["-C", str(root), "proposal", "promote", "-y"])
     assert result.exit_code != 0
     assert git.branch_sha("master") is not None
-    assert git.read_file("stances/claim_a.yaml", commit=proposal_sha) is not None
+    assert git.read_file(proposal_relpath, commit=proposal_sha) is not None
     with pytest.raises(FileNotFoundError):
-        git.read_file("stances/claim_a.yaml")
+        git.read_file(proposal_relpath)
 
 
 def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
@@ -1265,12 +1267,14 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
 
     proposal_sha = repo.git.branch_sha(proposal_branch)
     assert proposal_sha is not None
-    data = yaml.safe_load(repo.git.read_file("stances/claim_a.yaml", commit=proposal_sha))
+    proposal_filename = repo.git.iter_dir("stances", commit=proposal_sha)[0]
+    proposal_relpath = f"stances/{proposal_filename}"
+    data = yaml.safe_load(repo.git.read_file(proposal_relpath, commit=proposal_sha))
     assert data["source_claim"] == "claim_a"
     assert data["classification_model"] == "test-model"
-    assert data["stances"][0]["target"] == "claim_b"
+    assert data["target"] == "claim_b"
     with pytest.raises(FileNotFoundError):
-        repo.git.read_file("stances/claim_a.yaml")
+        repo.git.read_file(proposal_relpath)
 
 
 def test_init_creates_git_repo(tmp_path):

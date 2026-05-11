@@ -11,6 +11,7 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
+from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.repository import Repository
 from tests.conftest import (
     TEST_CONTEXT_ID,
@@ -375,6 +376,14 @@ def test_commit_repository_import_writes_commit_to_target_branch_and_returns_res
     source = _init_project(tmp_path / "repo-b")
     source_git = source.git
     assert source_git is not None
+    stance_payload = stamp_stance_artifact_id(
+        {
+            "source_claim": "claim_a",
+            "target": "claim_b",
+            "type": "rebuts",
+        }
+    )
+    stance_path = "stances/" + str(stance_payload["artifact_code"]).replace(":", "__") + ".yaml"
     source_git.commit_files(
         {
             "claims/source.yaml": _raw_claim_yaml("imported"),
@@ -516,13 +525,7 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
                 },
                 sort_keys=False,
             ).encode(),
-            "stances/claim_a.yaml": yaml.safe_dump(
-                {
-                    "source_claim": "claim_a",
-                    "stances": [{"target": "claim_b", "type": "rebuts"}],
-                },
-                sort_keys=False,
-            ).encode(),
+            stance_path: yaml.safe_dump(stance_payload, sort_keys=False).encode(),
         },
         "seed source claims and stances",
     )
@@ -531,12 +534,13 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
     result = commit_repository_import(destination, plan)
 
     imported_stances = yaml.safe_load(
-        destination.git.read_file("stances/claim_a.yaml", commit=result.commit_sha)
+        destination.git.read_file(stance_path, commit=result.commit_sha)
     )
     claim_a_id = make_claim_identity("claim_a", namespace="repo-b")["artifact_id"]
     claim_b_id = make_claim_identity("claim_b", namespace="repo-b")["artifact_id"]
     assert imported_stances["source_claim"] == claim_a_id
-    assert imported_stances["stances"] == [{"target": claim_b_id, "type": "rebuts"}]
+    assert imported_stances["target"] == claim_b_id
+    assert imported_stances["type"] == "rebuts"
 
 
 def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_path):

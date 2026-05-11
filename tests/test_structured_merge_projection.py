@@ -10,6 +10,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from quire.git_store import GitStore
+from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.storage import init_git_store
 from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
@@ -32,11 +33,13 @@ def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
     return yaml.dump(doc, sort_keys=False).encode()
 
 
-def _stance_yaml(source_claim: str, stances: list[dict]) -> bytes:
-    return yaml.dump(
-        {"source_claim": source_claim, "stances": stances},
-        sort_keys=False,
-    ).encode()
+def _stance_files(source_claim: str, stances: list[dict]) -> dict[str, bytes]:
+    files: dict[str, bytes] = {}
+    for stance in stances:
+        payload = stamp_stance_artifact_id({"source_claim": source_claim, **stance})
+        path = "stances/" + str(payload["artifact_code"]).replace(":", "__") + ".yaml"
+        files[path] = yaml.dump(payload, sort_keys=False).encode()
+    return files
 
 
 def _artifact_id(local_id: str, *, paper: str = "test_paper") -> str:
@@ -69,7 +72,7 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
                 _obs_claim("claim_a", "A"),
                 _obs_claim("claim_b", "B"),
             ]),
-            "stances/claim_a.yaml": _stance_yaml(
+            **_stance_files(
                 _artifact_id("claim_a"),
                 [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
             ),
@@ -119,7 +122,7 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
             _obs_claim("claim_a", "A"),
             _obs_claim("claim_b", "B"),
         ]),
-        "stances/claim_a.yaml": _stance_yaml(
+        **_stance_files(
             _artifact_id("claim_a"),
             [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
         ),
@@ -143,7 +146,7 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
                 _obs_claim("claim_a", "A"),
                 _obs_claim("claim_b", "B"),
             ]),
-            "stances/claim_a.yaml": _stance_yaml(
+            **_stance_files(
                 _artifact_id("claim_a"),
                 [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
             ),
@@ -180,7 +183,7 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
                 _obs_claim("claim_a", "A"),
                 _obs_claim("claim_b", "B"),
             ]),
-            "stances/claim_a.yaml": _stance_yaml(
+            **_stance_files(
                 _artifact_id("claim_a"),
                 [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
             ),
@@ -251,7 +254,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
         kr.commit_files(
             {
                 "claims/claims.yaml": _claim_yaml(base_claims),
-                "stances/claim_a.yaml": _stance_yaml(
+                **_stance_files(
                     _artifact_id("claim_a"),
                     [{"target": _artifact_id("claim_b"), "type": "rebuts"}],
                 ),
@@ -261,7 +264,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
         kr.commit_files(
             {
                 "claims/claims.yaml": _claim_yaml(base_claims),
-                "stances/claim_a.yaml": _stance_yaml(
+                **_stance_files(
                     _artifact_id("claim_a"),
                     [{"target": _artifact_id("claim_b"), "type": "rebuts"}] + extra_stances,
                 ),
@@ -307,7 +310,7 @@ def test_branch_structured_summary_is_order_invariant(
         kr.commit_files(
             {
                 "claims/claims.yaml": _claim_yaml([claims_by_id[claim_id] for claim_id in claim_order]),
-                "stances/claim_a.yaml": _stance_yaml(
+                **_stance_files(
                     _artifact_id("claim_a"),
                     [{"target": _artifact_id(target), "type": "rebuts"} for target in stance_order],
                 ),
@@ -319,7 +322,7 @@ def test_branch_structured_summary_is_order_invariant(
                 "claims/claims.yaml": _claim_yaml(
                     [claims_by_id["claim_c"], claims_by_id["claim_a"], claims_by_id["claim_b"]]
                 ),
-                "stances/claim_a.yaml": _stance_yaml(
+                **_stance_files(
                     _artifact_id("claim_a"),
                     [
                         {"target": _artifact_id("claim_c"), "type": "rebuts"},
