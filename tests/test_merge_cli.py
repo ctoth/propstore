@@ -8,11 +8,13 @@ import pytest
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.families.identity.claims import compute_claim_version_id
 from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import summarize_merge_framework
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.conftest import normalize_claims_payload
+from tests.family_helpers import claim_artifact_commit_payloads
 
 
 def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
@@ -25,6 +27,18 @@ def _claim_yaml(claims: list[dict], paper: str = "test_paper") -> bytes:
         "claims": claims,
     })
     return yaml.dump(doc, sort_keys=False).encode()
+
+
+def _claim_payloads(repo: Repository, claims: list[dict], paper: str = "test_paper") -> dict[str, bytes]:
+    doc = normalize_claims_payload({
+        "source": {
+            "paper": paper,
+            "extraction_model": "test",
+            "extraction_date": "2026-01-01",
+        },
+        "claims": claims,
+    })
+    return claim_artifact_commit_payloads(repo, doc, source=f"claims/{paper}.yaml")
 
 
 def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_paper") -> bytes:
@@ -48,6 +62,34 @@ def _claim_yaml_with_explicit_identities(claims: list[dict], paper: str = "test_
         rewritten_claims.append(merged)
     doc["claims"] = rewritten_claims
     return yaml.dump(doc, sort_keys=False).encode()
+
+
+def _claim_payloads_with_explicit_identities(
+    repo: Repository,
+    claims: list[dict],
+    paper: str = "test_paper",
+) -> dict[str, bytes]:
+    doc = normalize_claims_payload({
+        "source": {
+            "paper": paper,
+            "extraction_model": "test",
+            "extraction_date": "2026-01-01",
+        },
+        "claims": claims,
+    })
+    rewritten_claims: list[dict] = []
+    for original, normalized_claim in zip(claims, doc["claims"], strict=True):
+        merged = deepcopy(normalized_claim)
+        artifact_id = original.get("artifact_id")
+        if isinstance(artifact_id, str) and artifact_id:
+            merged["artifact_id"] = artifact_id
+        logical_ids = original.get("logical_ids")
+        if isinstance(logical_ids, list):
+            merged["logical_ids"] = logical_ids
+        merged["version_id"] = compute_claim_version_id(merged)
+        rewritten_claims.append(merged)
+    doc["claims"] = rewritten_claims
+    return claim_artifact_commit_payloads(repo, doc, source=f"claims/{paper}.yaml")
 
 
 def _param_claim(
@@ -81,25 +123,17 @@ def test_merge_inspect_cli_surfaces_query_summary(tmp_path):
     assert git is not None
 
     base_sha = git.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/phi"
     git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
-        {
-            "claims/shared.yaml": _claim_yaml(
-                [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]
-            )
-        },
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]),
         "left",
     )
     git.commit_files(
-        {
-            "claims/shared.yaml": _claim_yaml(
-                [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]
-            )
-        },
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]),
         "right",
         branch=branch_name,
     )
@@ -134,25 +168,17 @@ def test_merge_inspect_cli_matches_report_helper_output(tmp_path, semantics):
     assert git is not None
 
     base_sha = git.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/differential"
     git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
-        {
-            "claims/shared.yaml": _claim_yaml(
-                [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]
-            )
-        },
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 300.0, conditions=["temp > 300"])]),
         "left",
     )
     git.commit_files(
-        {
-            "claims/shared.yaml": _claim_yaml(
-                [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]
-            )
-        },
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 150.0, conditions=["temp < 200"])]),
         "right",
         branch=branch_name,
     )
@@ -187,17 +213,17 @@ def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
     assert git is not None
 
     base_sha = git.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/conflict"
     git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 300.0)]),
         "left",
     )
     git.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 150.0)]),
         "right",
         branch=branch_name,
     )
@@ -214,10 +240,9 @@ def test_merge_commit_cli_surfaces_storage_commit_metadata(tmp_path):
     assert payload["branch_a"] == "master"
     assert payload["branch_b"] == branch_name
     assert payload["target_branch"] == "master"
-    assert payload["claims_paths"] == [
-        "claims/merged__test_paper__master.yaml",
-        "claims/merged__test_paper__paper_conflict.yaml",
-    ]
+    assert len(payload["claims_paths"]) == 2
+    assert all(path.startswith("claims/") for path in payload["claims_paths"])
+    assert all("merged__" not in path for path in payload["claims_paths"])
     assert payload["manifest_path"] == "merge/manifest.yaml"
     assert len(payload["commit_sha"]) == 40
     assert "completion_count" not in payload
@@ -252,11 +277,11 @@ def test_merge_inspect_cli_collapses_duplicate_assertions_without_candidate_buck
     }
 
     git.commit_files(
-        {"claims/left.yaml": _claim_yaml_with_explicit_identities([left_claim], paper="left_paper")},
+        _claim_payloads_with_explicit_identities(repo, [left_claim], paper="left_paper"),
         "left",
     )
     git.commit_files(
-        {"claims/right.yaml": _claim_yaml_with_explicit_identities([right_claim], paper="right_paper")},
+        _claim_payloads_with_explicit_identities(repo, [right_claim], paper="right_paper"),
         "right",
         branch=branch_name,
     )
@@ -304,11 +329,11 @@ def test_merge_commit_cli_reports_semantic_candidate_count(tmp_path):
     }
 
     git.commit_files(
-        {"claims/left.yaml": _claim_yaml_with_explicit_identities([left_claim], paper="left_paper")},
+        _claim_payloads_with_explicit_identities(repo, [left_claim], paper="left_paper"),
         "left",
     )
     git.commit_files(
-        {"claims/right.yaml": _claim_yaml_with_explicit_identities([right_claim], paper="right_paper")},
+        _claim_payloads_with_explicit_identities(repo, [right_claim], paper="right_paper"),
         "right",
         branch=branch_name,
     )
@@ -330,17 +355,17 @@ def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
     assert git is not None
 
     base_sha = git.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 250.0)])},
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
     )
     branch_name = "paper/storage"
     git.create_branch(branch_name, source_commit=base_sha)
     git.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 300.0)])},
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 300.0)]),
         "left",
     )
     git.commit_files(
-        {"claims/shared.yaml": _claim_yaml([_param_claim("claim1", "concept_x", 150.0)])},
+        _claim_payloads(repo, [_param_claim("claim1", "concept_x", 150.0)]),
         "right",
         branch=branch_name,
     )
@@ -363,12 +388,11 @@ def test_merge_commit_cli_matches_materialized_merge_state(tmp_path):
     merged_claims = []
     for claims_path in payload["claims_paths"]:
         loaded = yaml.safe_load((git.tree(commit=commit_sha) / claims_path).read_text())
-        merged_claims.extend(loaded["claims"])
+        merged_claims.append(loaded)
 
-    assert payload["claims_paths"] == [
-        "claims/merged__test_paper__master.yaml",
-        "claims/merged__test_paper__paper_storage.yaml",
-    ]
+    assert len(payload["claims_paths"]) == 2
+    assert all(path.startswith("claims/") for path in payload["claims_paths"])
+    assert all("merged__" not in path for path in payload["claims_paths"])
     assert payload["manifest_path"] == "merge/manifest.yaml"
     assert manifest["merge"]["branch_a"] == "master"
     assert manifest["merge"]["branch_b"] == branch_name
