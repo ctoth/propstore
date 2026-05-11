@@ -10,13 +10,14 @@ from propstore.families.sameas.documents import (
 def test_sameas_family_schema_exposes_graded_identity_vocab() -> None:
     family = PROPSTORE_FAMILY_REGISTRY.by_name(PropstoreFamily.SAMEAS.value)
 
-    assert family.artifact_family.name == "same_as_file"
+    assert family.artifact_family.name == "same_as_assertion"
     assert {relation.value for relation in SameAsRelation} == {
         "sim:sameIndividual",
         "sim:claimsIdentical",
         "sim:almostSameAs",
     }
     assertion = SameAsAssertionDocument(
+        artifact_id="ps:sameas:edge",
         left_artifact_id="ps:claim:left",
         right_artifact_id="ps:claim:right",
         relation=SameAsRelation.CLAIMS_IDENTICAL,
@@ -25,6 +26,7 @@ def test_sameas_family_schema_exposes_graded_identity_vocab() -> None:
     )
 
     assert assertion.to_payload() == {
+        "artifact_id": "ps:sameas:edge",
         "left_artifact_id": "ps:claim:left",
         "right_artifact_id": "ps:claim:right",
         "relation": "sim:claimsIdentical",
