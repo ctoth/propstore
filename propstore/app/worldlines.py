@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import TypeAlias, TypeGuard
 
 from quire.documents import DocumentSchemaError
 from propstore.app.world import WorldSidecarMissingError, open_app_world_model
 from propstore.families.registry import WorldlineRef
+from propstore.json_types import JsonObject, JsonValue
 from propstore.repository import Repository
 from propstore.world.types import (
     ReasoningBackend,
@@ -17,18 +17,6 @@ from propstore.world.types import (
     validate_backend_semantics,
 )
 from propstore.worldline import WorldlineDefinition, WorldlineResult
-
-
-JsonValue: TypeAlias = (
-    str
-    | int
-    | float
-    | bool
-    | None
-    | Mapping[str, "JsonValue"]
-    | Sequence["JsonValue"]
-)
-JsonObject: TypeAlias = Mapping[str, JsonValue]
 
 
 class WorldlineAppError(Exception):
@@ -52,29 +40,27 @@ class WorldlineValidationError(WorldlineAppError):
     pass
 
 
-def _is_json_value(value: object) -> TypeGuard[JsonValue]:
+def _coerce_json_value(value: object, *, field_name: str) -> JsonValue:
     if value is None or isinstance(value, str | int | float | bool):
-        return True
+        return value
     if isinstance(value, Mapping):
-        return all(
-            isinstance(key, str) and _is_json_value(item)
-            for key, item in value.items()
-        )
+        return _coerce_json_object(value, field_name=field_name)
     if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
-        return all(_is_json_value(item) for item in value)
-    return False
+        return [
+            _coerce_json_value(item, field_name=f"{field_name}[]")
+            for item in value
+        ]
+    raise WorldlineValidationError(f"{field_name} is not JSON-serializable")
 
 
-def _coerce_json_object(value: object, *, field_name: str) -> dict[str, JsonValue]:
+def _coerce_json_object(value: object, *, field_name: str) -> JsonObject:
     if not isinstance(value, Mapping):
         raise WorldlineValidationError(f"{field_name} must be a JSON object")
-    result: dict[str, JsonValue] = {}
+    result: JsonObject = {}
     for key, item in value.items():
         if not isinstance(key, str):
             raise WorldlineValidationError(f"{field_name} keys must be strings")
-        if not _is_json_value(item):
-            raise WorldlineValidationError(f"{field_name}.{key} is not JSON-serializable")
-        result[key] = item
+        result[key] = _coerce_json_value(item, field_name=f"{field_name}.{key}")
     return result
 
 
