@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 
+from propstore.json_types import JsonValueT
+
 
 class CanonicalEncodingError(TypeError):
     """Raised when a payload is not JSON-native canonical data."""
 
 
-def canonical_dumps(payload: object) -> str:
+def canonical_dumps(payload: JsonValueT) -> str:
     """Encode JSON-native payloads deterministically and fail on unknown values."""
 
     try:
