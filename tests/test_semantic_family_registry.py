@@ -155,7 +155,7 @@ def test_semantic_family_owns_path_ref_and_listing_behaviour(tmp_path: Path) -> 
     assert semantic_address_path(concept.name, repo, repo.families.concepts.ref_from_path("concepts/pitch.yaml")) == "concepts/pitch.yaml"
     assert repo.families.by_name(claim.name).ref_from_path("claims/paper.yaml").name == "paper"
     assert semantic_address_path(stance.name, repo, repo.families.stances.ref_from_path("stances/claim__a.yaml")) == "stances/claim__a.yaml"
-    assert repo.families.by_name(stance.name).ref_from_path("stances/claim__a.yaml").source_claim == "claim:a"
+    assert repo.families.by_name(stance.name).ref_from_path("stances/claim__a.yaml").artifact_id == "claim:a"
     assert repo.families.concepts.ref_from_path("concepts/pitch.yaml").name == "pitch"
     assert list(repo.families.concepts.iter()) == []
 

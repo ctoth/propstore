@@ -490,7 +490,7 @@ def test_load_claim_files_from_git_tree(tmp_path):
     claim_files = load_claim_files(kr.tree() / "claims")
     assert len(claim_files) == 1
     assert claim_file_payload(claim_files[0])["claims"][0]["id"] == "claim1"
-    assert isinstance(claim_files[0].source_path, GitKnowledgePath)
+    assert isinstance(claim_files[0].artifact_path, GitKnowledgePath)
     assert claim_files[0].filename == "test_claims"
 
 
@@ -1267,7 +1267,7 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
 
     proposal_sha = repo.git.branch_sha(proposal_branch)
     assert proposal_sha is not None
-    proposal_filename = repo.git.iter_dir("stances", commit=proposal_sha)[0]
+    proposal_filename = next(repo.git.iter_dir("stances", commit=proposal_sha))
     proposal_relpath = f"stances/{proposal_filename}"
     data = yaml.safe_load(repo.git.read_file(proposal_relpath, commit=proposal_sha))
     assert data["source_claim"] == "claim_a"

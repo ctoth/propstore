@@ -22,6 +22,7 @@ from propstore.families.documents.sources import (
     SourceTrustDocument,
 )
 from propstore.families.documents.stances import StanceDocument
+from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.repository import Repository
 from propstore.provenance import ProvenanceStatus
 from propstore.sidecar.authoring_lints import collect_authoring_lints
@@ -920,10 +921,14 @@ class TestRebuildSkipping:
         stances_dir.mkdir(parents=True, exist_ok=True)
         claim1_id = make_claim_identity("claim1", namespace="test_paper_alpha")["artifact_id"]
         claim5_id = make_claim_identity("claim5", namespace="test_paper_alpha")["artifact_id"]
-        (stances_dir / "claim1.yaml").write_text(yaml.dump({
+        stance_payload = stamp_stance_artifact_id({
             "source_claim": claim1_id,
-            "stances": [{"type": "supports", "target": claim5_id, "note": "new stance file"}],
-        }, default_flow_style=False))
+            "type": "supports",
+            "target": claim5_id,
+            "note": "new stance file",
+        })
+        stance_filename = str(stance_payload["artifact_code"]).replace(":", "__") + ".yaml"
+        (stances_dir / stance_filename).write_text(yaml.dump(stance_payload, default_flow_style=False))
 
         assert build_sidecar(knowledge_reader, sidecar_path) is True
 

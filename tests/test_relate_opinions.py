@@ -281,9 +281,9 @@ class TestStanceYamlRoundTrip:
             },
         }]
 
-        data = yaml.safe_load(dump_yaml_bytes(build_stance_document("claim_a", stances, "test-model")))
+        data = yaml.safe_load(dump_yaml_bytes(build_stance_document("claim_a", stances[0], "test-model")))
 
-        res = data["stances"][0]["resolution"]
+        res = data["resolution"]
         assert res["opinion"]["b"] == pytest.approx(0.0)
         assert res["opinion"]["d"] == pytest.approx(0.0)
         assert res["opinion"]["u"] == pytest.approx(1.0)
