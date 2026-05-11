@@ -489,9 +489,9 @@ def test_load_claim_files_from_git_tree(tmp_path):
     from tests.family_helpers import load_claim_files
     claim_files = load_claim_files(kr.tree() / "claims")
     assert len(claim_files) == 1
-    assert claim_file_payload(claim_files[0])["claims"][0]["id"] == "claim1"
+    assert claim_file_payload(claim_files[0])["logical_ids"][0]["value"] == "claim1"
     assert isinstance(claim_files[0].artifact_path, GitKnowledgePath)
-    assert claim_files[0].filename == "test_claims"
+    assert claim_files[0].filename == "test_claims.yaml#1"
 
 
 def test_load_contexts_from_git_tree(tmp_path):
