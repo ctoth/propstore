@@ -44,12 +44,18 @@ def _build_registry(predicates):
 
 def _claim_file_from_payload(payload: dict):
     from propstore.claims import loaded_claim_file_from_payload
+    from tests.conftest import normalize_claims_payload
 
-    return loaded_claim_file_from_payload(
-        filename="claims.yaml",
-        artifact_path=None,
-        store_root=None,
-        data=payload,
+    normalized = normalize_claims_payload(payload)
+    source = normalized.get("source", {})
+    return tuple(
+        loaded_claim_file_from_payload(
+            filename=f"claims.yaml#{index}",
+            source_path=None,
+            knowledge_root=None,
+            data={"source": source, "claims": [claim]},
+        )
+        for index, claim in enumerate(normalized.get("claims", []), start=1)
     )
 
 
@@ -127,6 +133,7 @@ def _runtime_grounded_bundle():
 
 
 def test_ws7_extract_facts_materializes_claim_structural_sources() -> None:
+    from propstore.claims import claim_file_claims
     from propstore.grounding.facts import GroundingFactInputs, extract_facts
 
     registry = _build_registry(
@@ -170,21 +177,30 @@ def test_ws7_extract_facts_materializes_claim_structural_sources() -> None:
         ]
     )
 
+    claim_files = _ws7_claim_file()
+    claim_ids = {
+        claim.primary_logical_id: claim.artifact_id
+        for claim_file in claim_files
+        for claim in claim_file_claims(claim_file)
+    }
+    tweety_claim_id = claim_ids["Garcia_2004_DefeasibleLogicProgramming:claim-tweety"]
+    flight_claim_id = claim_ids["Garcia_2004_DefeasibleLogicProgramming:claim-flight"]
+
     atoms = extract_facts(
-        GroundingFactInputs(claim_files=(_ws7_claim_file(),)),
+        GroundingFactInputs(claim_files=claim_files),
         registry,
     )
 
     assert set(atoms) == {
-        GroundAtom("claim_sample_size", ("claim-tweety", 11)),
-        GroundAtom("claim_condition", ("claim-tweety", "habitat == 'wetland'")),
-        GroundAtom("claim_context", ("claim-tweety", "ctx-field")),
-        GroundAtom("claim_context", ("claim-flight", "ctx-field")),
-        GroundAtom("claim_page", ("claim-tweety", 25)),
-        GroundAtom("claim_page", ("claim-flight", 8)),
-        GroundAtom("claim_output_concept", ("claim-tweety", "concept:bird")),
-        GroundAtom("claim_about_concept", ("claim-flight", "concept:bird")),
-        GroundAtom("claim_about_concept", ("claim-flight", "concept:flight")),
+        GroundAtom("claim_sample_size", (tweety_claim_id, 11)),
+        GroundAtom("claim_condition", (tweety_claim_id, "habitat == 'wetland'")),
+        GroundAtom("claim_context", (tweety_claim_id, "ctx-field")),
+        GroundAtom("claim_context", (flight_claim_id, "ctx-field")),
+        GroundAtom("claim_page", (tweety_claim_id, 25)),
+        GroundAtom("claim_page", (flight_claim_id, 8)),
+        GroundAtom("claim_output_concept", (tweety_claim_id, "concept:bird")),
+        GroundAtom("claim_about_concept", (flight_claim_id, "concept:bird")),
+        GroundAtom("claim_about_concept", (flight_claim_id, "concept:flight")),
     }
 
 
