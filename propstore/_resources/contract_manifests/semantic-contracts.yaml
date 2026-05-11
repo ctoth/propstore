@@ -25,23 +25,23 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
-  name: claims_file
+  name: claim
   contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.claims.documents.ClaimsFileDocument
+    doc_type: propstore.families.claims.documents.ClaimDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
     placement:
       branch:
         policy: primary
-      codec: stem
+      codec: colon_to_double_underscore
       extension: .yaml
       kind: flat-yaml
       namespace: claims
-      ref_field: name
+      ref_field: artifact_id
     render_document: null
     scan_type: null
     validate_for_write: null
@@ -962,6 +962,9 @@ contracts:
     - name: proposition
       required: true
       type: AtomicPropositionDocument | IstPropositionDocument | None
+    - name: source
+      required: true
+      type: ClaimSourceDocument | None
     - name: artifact_id
       required: true
       type: str | None
@@ -3259,17 +3262,17 @@ contracts:
   contract_version: 2026.04.29
   body:
     accessor: claims
-    artifact_family: claims_file
+    artifact_family: claim
     artifact_family_contract:
-      doc_type: propstore.families.claims.documents.ClaimsFileDocument
+      doc_type: propstore.families.claims.documents.ClaimDocument
       placement:
         branch:
           policy: primary
-        codec: stem
+        codec: colon_to_double_underscore
         extension: .yaml
         kind: flat-yaml
         namespace: claims
-        ref_field: name
+        ref_field: artifact_id
     artifact_family_contract_version: 2026.04.27
     foreign_keys:
     - many: false
@@ -3322,10 +3325,11 @@ contracts:
       - version_id
       - id
       - source_local_id
+      - source
       version_id_function: propstore.families.identity.claims.compute_claim_version_id
     key: claims
     metadata:
-      collection_field: claims
+      collection_field: null
       import_order: 20
       importable: true
       init_directory: true
