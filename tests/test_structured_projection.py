@@ -7,13 +7,13 @@ from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+from propstore.aspic_bridge import build_aspic_projection
 from propstore.cli import cli
 from propstore.core.justifications import CanonicalJustification
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import (
     StructuredProjection,
     SupportQuality,
-    build_structured_projection,
     compute_structured_justified_arguments,
 )
 from argumentation.dung import ArgumentationFramework, complete_extensions
@@ -230,7 +230,7 @@ def test_structured_projection_uses_stable_argument_ids_and_exact_labels() -> No
     bound = _make_bound(store, bindings={"x": 1})
     active = bound.active_claims()
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         active,
         bundle=_EMPTY_BUNDLE,
@@ -259,7 +259,7 @@ def test_structured_projection_keeps_semantic_overlap_unlabeled() -> None:
     bound = _make_bound(store, bindings={"x": 1})
     active = bound.active_claims()
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         active,
         bundle=_EMPTY_BUNDLE,
@@ -291,7 +291,7 @@ def test_structured_projection_does_not_treat_context_scope_as_unconditional() -
     )
     active = bound.active_claims()
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         active,
         bundle=_EMPTY_BUNDLE,
@@ -315,7 +315,7 @@ def test_structured_projection_support_induces_additional_defeat_path_under_weak
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -360,7 +360,7 @@ def test_structured_projection_uses_authored_multi_premise_justification_without
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -403,7 +403,7 @@ def test_structured_projection_suppresses_support_fallback_when_authored_justifi
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -453,7 +453,7 @@ def test_structured_projection_authored_targeted_undercut_hits_only_named_defeas
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -500,7 +500,7 @@ def test_structured_projection_builds_real_premises_and_subargument_graphs() -> 
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -543,7 +543,7 @@ def test_structured_projection_undermines_target_premise_dependent_arguments_not
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -589,7 +589,7 @@ def test_structured_projection_undercuts_target_inference_rules_not_base_claims(
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -642,7 +642,7 @@ def test_undercut_does_not_bleed_across_alternative_justifications_for_same_clai
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -709,7 +709,7 @@ def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
         "target_justification_id": targeted_justification_id,
     })
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         _ProjectionStore(claims=claims, stances=stances),
         claims,
         bundle=_EMPTY_BUNDLE,
@@ -732,7 +732,7 @@ def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label
         ]
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
@@ -740,100 +740,6 @@ def test_structured_projection_defaults_unconditional_claim_to_exact_empty_label
 
     assert projection.arguments[0].label == Label.empty()
     assert projection.arguments[0].support_quality == SupportQuality.EXACT
-
-
-def test_build_structured_projection_threads_link_to_aspic_bridge(monkeypatch) -> None:
-    calls: list[dict] = []
-
-    def fake_build_aspic_projection(*args, **kwargs):
-        calls.append(kwargs)
-        return type(
-            "FakeProjection",
-            (),
-            {
-                "arguments": (),
-                "framework": ArgumentationFramework(
-                    arguments=frozenset(),
-                    defeats=frozenset(),
-                    attacks=frozenset(),
-                ),
-                "claim_to_argument_ids": {},
-                "argument_to_claim_id": {},
-            },
-        )()
-
-    monkeypatch.setattr(
-        "propstore.aspic_bridge.build_aspic_projection",
-        fake_build_aspic_projection,
-    )
-
-    store = _ProjectionStore(
-        claims=[{"id": "claim_a", "concept_id": "concept1", "type": "parameter", "value": 1.0}]
-    )
-
-    build_structured_projection(
-        store,
-        store.claims_for(None),
-        bundle=_EMPTY_BUNDLE,
-        comparison="democratic",
-        link="weakest",
-    )
-
-    assert calls
-    assert calls[0]["comparison"] == "democratic"
-    assert calls[0]["link"] == "weakest"
-
-
-@pytest.mark.property
-@given(
-    comparison=st.sampled_from(["elitist", "democratic"]),
-    link=st.sampled_from(["last", "weakest"]),
-)
-@settings(deadline=None)
-def test_build_structured_projection_property_threads_selected_preference_config(
-    comparison: str,
-    link: str,
-) -> None:
-    calls: list[dict] = []
-
-    def fake_build_aspic_projection(*args, **kwargs):
-        calls.append(kwargs)
-        return type(
-            "FakeProjection",
-            (),
-            {
-                "arguments": (),
-                "framework": ArgumentationFramework(
-                    arguments=frozenset(),
-                    defeats=frozenset(),
-                    attacks=frozenset(),
-                ),
-                "claim_to_argument_ids": {},
-                "argument_to_claim_id": {},
-            },
-        )()
-
-    with pytest.MonkeyPatch.context() as monkeypatch:
-        monkeypatch.setattr(
-            "propstore.aspic_bridge.build_aspic_projection",
-            fake_build_aspic_projection,
-        )
-
-        store = _ProjectionStore(
-            claims=[{"id": "claim_a", "concept_id": "concept1", "type": "parameter", "value": 1.0}]
-        )
-
-        build_structured_projection(
-            store,
-            store.claims_for(None),
-            bundle=_EMPTY_BUNDLE,
-            comparison=comparison,
-            link=link,
-        )
-
-    assert calls
-    assert calls[0]["comparison"] == comparison
-    assert calls[0]["link"] == link
 
 
 def test_aspic_grounded_semantics_respects_attacks_when_attacks_exist() -> None:
