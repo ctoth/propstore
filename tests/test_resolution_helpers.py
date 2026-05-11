@@ -262,7 +262,7 @@ def test_structured_resolution_distinguishes_skeptical_failure(monkeypatch) -> N
         },
     )
     monkeypatch.setattr(
-        "propstore.structured_projection.build_structured_projection",
+        "propstore.aspic_bridge.build_aspic_projection",
         lambda *args, **kwargs: projection,
     )
     monkeypatch.setattr(
@@ -402,7 +402,7 @@ def test_structured_resolution_grounded_respects_attack_conflict_freeness(monkey
         },
     )
     monkeypatch.setattr(
-        "propstore.structured_projection.build_structured_projection",
+        "propstore.aspic_bridge.build_aspic_projection",
         lambda *args, **kwargs: projection,
     )
 
