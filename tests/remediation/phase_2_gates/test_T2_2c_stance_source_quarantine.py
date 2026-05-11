@@ -8,6 +8,7 @@ import yaml
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.family_helpers import claim_artifact_commit_payloads, stance_artifact_commit_payload
 
 
 def test_stance_file_missing_source_claim_quarantines_not_raises(
@@ -42,6 +43,19 @@ def test_stance_file_missing_source_claim_quarantines_not_raises(
     )
     target_claim_id = claim_payload["claims"][0]["artifact_id"]
     repo = Repository.init(tmp_path / "knowledge")
+    claim_payloads = claim_artifact_commit_payloads(
+        repo,
+        claim_payload,
+        source="claims/stance_source.yaml",
+    )
+    stance_payload = stance_artifact_commit_payload(
+        repo,
+        {
+            "source_claim": "ps:claim:missing",
+            "target": target_claim_id,
+            "type": "rebuts",
+        },
+    )
     repo.git.commit_files(
         {
             "forms/frequency.yaml": yaml.dump(
@@ -52,21 +66,12 @@ def test_stance_file_missing_source_claim_quarantines_not_raises(
                 concept_payload,
                 sort_keys=False,
             ).encode(),
-            "claims/stance_source.yaml": yaml.dump(
-                claim_payload,
-                sort_keys=False,
-            ).encode(),
             "contexts/ctx_test.yaml": yaml.dump(
                 {"id": "ctx_test", "name": "Test context"},
                 sort_keys=False,
             ).encode(),
-            "stances/ps__claim__missing.yaml": yaml.dump(
-                {
-                    "source_claim": "ps:claim:missing",
-                    "stances": [{"target": target_claim_id, "type": "rebuts"}],
-                },
-                sort_keys=False,
-            ).encode(),
+            **claim_payloads,
+            **stance_payload,
         },
         "seed missing stance source quarantine test",
     )
