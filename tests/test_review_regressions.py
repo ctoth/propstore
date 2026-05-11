@@ -8,11 +8,11 @@ from argumentation.probabilistic import (
     ProbabilisticAF,
     compute_probabilistic_acceptance,
 )
+from propstore.aspic_bridge import build_aspic_projection
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.praf import (
     summarize_defeat_relations,
 )
-from propstore.structured_projection import build_structured_projection
 
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
@@ -187,7 +187,7 @@ def test_structured_projection_keeps_vacuous_attack_edges() -> None:
         ],
     )
 
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         store,
         store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
