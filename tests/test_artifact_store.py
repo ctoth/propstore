@@ -33,8 +33,8 @@ def test_repository_exposes_bound_family_registry(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     assert repo.families.registry is PROPSTORE_FAMILY_REGISTRY
-    assert repo.families.by_key(PropstoreFamily.CLAIMS).family.name == "claims_file"
-    assert repo.families.by_name("claims").family.name == "claims_file"
+    assert repo.families.by_key(PropstoreFamily.CLAIMS).family.name == "claim"
+    assert repo.families.by_name("claims").family.name == "claim"
     assert list(repo.families.claims.iter()) == []
 
 
