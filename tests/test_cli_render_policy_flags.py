@@ -38,11 +38,8 @@ from propstore.families.documents.sources import (
     SourceJustificationDocument,
     SourceJustificationsDocument,
 )
-from propstore.families.documents.stances import (
-    StanceEntryDocument,
-    StanceFileDocument,
-)
-from propstore.families.registry import JustificationsFileRef, StanceFileRef
+from propstore.families.identity.stances import stamp_stance_artifact_id
+from propstore.families.registry import JustificationsFileRef, StanceRef
 from propstore.repository import Repository
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
@@ -268,17 +265,20 @@ def _seed_authored_reasoning(repo: Repository) -> None:
         ),
         message="Seed world status justifications",
     )
+    stance_payload = stamp_stance_artifact_id(
+        {
+            "source_claim": "claim_fixture_final",
+            "target": "claim_fixture_draft",
+            "type": StanceType.SUPPORTS.value,
+            "strength": "low",
+        }
+    )
+    stance_ref = StanceRef(str(stance_payload["artifact_code"]))
     repo.families.stances.save(
-        StanceFileRef("claim_fixture_final"),
-        StanceFileDocument(
-            source_claim="claim_fixture_final",
-            stances=(
-                StanceEntryDocument(
-                    target="claim_fixture_draft",
-                    type=StanceType.SUPPORTS,
-                    strength="low",
-                ),
-            ),
+        stance_ref,
+        repo.families.stances.coerce(
+            stance_payload,
+            source=repo.families.stances.address(stance_ref).require_path(),
         ),
         message="Seed world status stances",
     )

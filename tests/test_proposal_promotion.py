@@ -47,9 +47,10 @@ def test_stance_proposal_promotion_plan_selects_committed_proposals(tmp_path) ->
     assert plan.branch == stance_proposal_branch()
     assert plan.proposal_tip is not None
     assert len(plan.items) == 1
+    assert plan.items[0].artifact_id
     assert plan.items[0].source_claim == "claim_a"
-    assert plan.items[0].source_relpath == "proposal/stances:stances/claim_a.yaml"
-    assert plan.items[0].target_path == repo.root / "stances" / "claim_a.yaml"
+    assert plan.items[0].source_relpath == f"proposal/stances:stances/{plan.items[0].filename}"
+    assert plan.items[0].target_path == repo.root / "stances" / plan.items[0].filename
 
 
 def test_stance_proposal_promotion_commits_to_master(tmp_path) -> None:
@@ -60,7 +61,7 @@ def test_stance_proposal_promotion_commits_to_master(tmp_path) -> None:
     result = promote_stance_proposals(repo, plan)
 
     assert result.moved == 1
-    assert "claim_a.yaml" in repo.git.iter_dir("stances")
+    assert plan.items[0].filename in repo.git.iter_dir("stances")
 
 
 def test_stance_proposal_promotion_reports_missing_branch(tmp_path) -> None:

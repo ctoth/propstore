@@ -23,4 +23,4 @@ def test_proposal_path_helpers_do_not_fabricate_repository_owner() -> None:
 
     assert "typing import TYPE_CHECKING, cast" not in source
     assert stance_proposal_branch() == "proposal/stances"
-    assert stance_proposal_relpath("paper:claim_a") == "stances/paper__claim_a.yaml"
+    assert stance_proposal_relpath("ps:stance:abc") == "stances/ps__stance__abc.yaml"

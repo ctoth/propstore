@@ -21,7 +21,7 @@ from propstore.families.documents.sources import (
     SourceOriginDocument,
     SourceTrustDocument,
 )
-from propstore.families.documents.stances import StanceEntryDocument, StanceFileDocument
+from propstore.families.documents.stances import StanceDocument
 from propstore.repository import Repository
 from propstore.provenance import ProvenanceStatus
 from propstore.sidecar.authoring_lints import collect_authoring_lints
@@ -119,14 +119,10 @@ def test_authoring_lints_cover_sources_claims_and_stances() -> None:
             }
         ),
     )
-    stance_file = StanceFileDocument(
+    stance_file = StanceDocument(
         source_claim="claim3",
-        stances=(
-            StanceEntryDocument(
-                target="claim4",
-                type=StanceType.UNDERCUTS,
-            ),
-        ),
+        target="claim4",
+        type=StanceType.UNDERCUTS,
     )
 
     diagnostics = collect_authoring_lints(

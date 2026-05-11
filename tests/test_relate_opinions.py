@@ -28,7 +28,7 @@ from propstore.heuristic.calibrate import (
     categorical_to_opinion,
 )
 from propstore.core.base_rates import BaseRateUnresolved
-from propstore.families.documents.stances import StanceFileDocument
+from propstore.families.documents.stances import StanceDocument
 from propstore.opinion import Opinion, fuse
 from propstore.provenance import Provenance, ProvenanceStatus
 
@@ -371,22 +371,20 @@ class TestSidecarPopulatesOpinionColumns:
             "source_claim": "c1",
             "classification_model": "test",
             "classification_date": "2026-01-01",
-            "stances": [{
-                "target": "c2",
-                "type": "supports",
-                "strength": "strong",
-                "note": "test",
-                "resolution": {
-                    "method": "nli",
-                    "model": "test",
-                    "confidence": 0.7,
-                    "opinion": _opinion_payload(a=0.7),
-                },
-            }],
+            "target": "c2",
+            "type": "supports",
+            "strength": "strong",
+            "note": "test",
+            "resolution": {
+                "method": "nli",
+                "model": "test",
+                "confidence": 0.7,
+                "opinion": _opinion_payload(a=0.7),
+            },
         }
         stance_path = stances_dir / "c1.yaml"
         stance_path.write_text(yaml.dump(stance_data))
-        stance_document = decode_document_path(stance_path, StanceFileDocument)
+        stance_document = decode_document_path(stance_path, StanceDocument)
 
         populate_stances(
             conn,
@@ -487,21 +485,19 @@ class TestSidecarHandlesOldFormatYaml:
             "source_claim": "c1",
             "classification_model": "test",
             "classification_date": "2026-01-01",
-            "stances": [{
-                "target": "c2",
-                "type": "supports",
-                "strength": "strong",
-                "note": "old format test",
-                "resolution": {
-                    "method": "nli_first_pass",
-                    "model": "test",
-                    "confidence": 0.95,
-                },
-            }],
+            "target": "c2",
+            "type": "supports",
+            "strength": "strong",
+            "note": "old format test",
+            "resolution": {
+                "method": "nli_first_pass",
+                "model": "test",
+                "confidence": 0.95,
+            },
         }
         stance_path = stances_dir / "c1.yaml"
         stance_path.write_text(yaml.dump(stance_data))
-        stance_document = decode_document_path(stance_path, StanceFileDocument)
+        stance_document = decode_document_path(stance_path, StanceDocument)
 
         populate_stances(
             conn,
@@ -663,7 +659,7 @@ class TestStanceProposalsUseBranchState:
         from propstore.proposals import stance_proposal_branch, stance_proposal_relpath
 
         assert stance_proposal_branch() == "proposal/stances"
-        assert stance_proposal_relpath("paper:claim_a") == "stances/paper__claim_a.yaml"
+        assert stance_proposal_relpath("ps:stance:abc") == "stances/ps__stance__abc.yaml"
 
 
 # ---------------------------------------------------------------------------
