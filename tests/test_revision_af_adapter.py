@@ -6,9 +6,10 @@ import ast
 import json
 from pathlib import Path
 
+from propstore.aspic_bridge import build_aspic_projection
 from propstore.claim_graph import build_argumentation_framework
 from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.structured_projection import SupportQuality, build_structured_projection
+from propstore.structured_projection import SupportQuality
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_bound_world import _atom_id_for_claim, _operator_bound
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
@@ -58,7 +59,7 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
     state = bound.epistemic_state()
 
     view = project_epistemic_state_argumentation_view(bound._store, state)
-    projection = build_structured_projection(
+    projection = build_aspic_projection(
         view.store,
         list(view.active_claims),
         bundle=_EMPTY_BUNDLE,
