@@ -14,11 +14,11 @@ class SameAsRelation(StrEnum):
 
 
 class SameAsAssertionDocument(DocumentStruct):
-    artifact_id: str | None = None
     left_artifact_id: str
     right_artifact_id: str
     relation: SameAsRelation
     evidence_source: str
+    artifact_id: str | None = None
     provenance: dict[str, Any] = msgspec.field(default_factory=dict)
     confidence: float | int | None = None
 
