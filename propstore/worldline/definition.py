@@ -164,6 +164,7 @@ class WorldlineRevisionQuery:
     def from_dict(cls, data: dict | None) -> WorldlineRevisionQuery | None:
         if not data:
             return None
+        max_alphabet_size = data.get("max_alphabet_size")
         return cls(
             operation=str(data.get("operation", "")),
             atom=RevisionAtomRef.from_mapping(data.get("atom")),
@@ -179,8 +180,8 @@ class WorldlineRevisionQuery:
             merge_parent_commits=tuple(str(commit) for commit in (data.get("merge_parent_commits") or ())),
             max_alphabet_size=(
                 None
-                if data.get("max_alphabet_size") is None
-                else int(data.get("max_alphabet_size"))
+                if max_alphabet_size is None
+                else int(max_alphabet_size)
             ),
         )
 
