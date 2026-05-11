@@ -1,24 +1,19 @@
 from __future__ import annotations
 
 import pytest
-import yaml
 
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
 from propstore.storage import init_git_store
 from propstore.storage.snapshot import RepositorySnapshot
 from quire.git_store import GitStore, HeadMismatchError
-from tests.conftest import normalize_claims_payload
+from tests.ws_l_merge_helpers import claim_payloads
 
 
-def _claim_yaml(claim_id: str, statement: str) -> bytes:
-    payload = normalize_claims_payload({
-        "source": {
-            "paper": "race-test",
-            "extraction_model": "test",
-            "extraction_date": "2026-01-01",
-        },
-        "claims": [
+def _claim_payloads(kr: GitStore, claim_id: str, statement: str) -> dict[str, bytes]:
+    return claim_payloads(
+        kr,
+        [
             {
                 "id": claim_id,
                 "type": "observation",
@@ -27,8 +22,8 @@ def _claim_yaml(claim_id: str, statement: str) -> bytes:
                 "provenance": {"paper": "race-test", "page": 1},
             }
         ],
-    })
-    return yaml.dump(payload, sort_keys=False).encode()
+        paper="race-test",
+    )
 
 
 def _snapshot(kr: GitStore) -> RepositorySnapshot:
@@ -39,12 +34,12 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 def test_merge_commit_rejects_target_branch_moved_before_materialization(tmp_path, monkeypatch):
     kr = init_git_store(tmp_path / "knowledge")
-    base_sha = kr.commit_files({"claims/base.yaml": _claim_yaml("base", "Base")}, "seed")
+    base_sha = kr.commit_files(_claim_payloads(kr, "base", "Base"), "seed")
     branch_name = "paper/race"
     kr.create_branch(branch_name, source_commit=base_sha)
-    kr.commit_files({"claims/left.yaml": _claim_yaml("left", "Left")}, "left")
+    kr.commit_files(_claim_payloads(kr, "left", "Left"), "left")
     kr.commit_files(
-        {"claims/right.yaml": _claim_yaml("right", "Right")},
+        _claim_payloads(kr, "right", "Right"),
         "right",
         branch=branch_name,
     )
@@ -56,7 +51,7 @@ def test_merge_commit_rejects_target_branch_moved_before_materialization(tmp_pat
     def race_before_materialization(*args: object, **kwargs: object) -> str:
         nonlocal racing_sha
         if racing_sha is None:
-            racing_sha = kr.commit_files({"claims/race.yaml": _claim_yaml("race", "Race")}, "race")
+            racing_sha = kr.commit_files(_claim_payloads(kr, "race", "Race"), "race")
         return original_commit_flat_tree(*args, **kwargs)
 
     monkeypatch.setattr(snapshot_git, "commit_flat_tree", race_before_materialization)
