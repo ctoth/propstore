@@ -148,7 +148,7 @@ def test_ic_merge_journal_replay_matches_direct_dispatch(count: int) -> None:
         "profile_atom_ids": [list(atom_ids)],
         "integrity_constraint": {"kind": "top"},
         "merge_operator": "sigma",
-        "max_candidates": 32,
+        "max_alphabet_size": 32,
     }
     direct = dispatch(
         JournalOperator.IC_MERGE,
@@ -205,7 +205,7 @@ def test_event_hash_changes_when_ic_or_policy_changes(count: int) -> None:
             "profile_atom_ids": [list(atom_ids)],
             "integrity_constraint": {"kind": "atom", "atom_id": atom_ids[0]},
             "merge_operator": "sigma",
-            "max_candidates": 32,
+            "max_alphabet_size": 32,
         },
         policy={**_POLICY, "revision_policy_version": "revision.v2"},
     )
@@ -296,7 +296,7 @@ def _dispatch_merge(
             "profile_atom_ids": profile_atom_ids,
             "integrity_constraint": integrity_constraint,
             "merge_operator": merge_operator,
-            "max_candidates": 32,
+            "max_alphabet_size": 32,
         },
         policy=_POLICY,
     )

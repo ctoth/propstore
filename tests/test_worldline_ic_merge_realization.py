@@ -334,7 +334,7 @@ def _dispatch_merge(state, *, profile_atom_ids, integrity_constraint):
             "profile_atom_ids": profile_atom_ids,
             "integrity_constraint": integrity_constraint,
             "merge_operator": "sigma",
-            "max_candidates": 8,
+            "max_alphabet_size": 8,
         },
         policy=_POLICY,
     )

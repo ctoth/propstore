@@ -82,7 +82,7 @@ def test_ic_merge_requires_explicit_integrity_constraint() -> None:
             state_in=state.to_canonical_dict(),
             operator_input={
                 "profile_atom_ids": [["atom:left"], ["atom:right"]],
-                "max_candidates": 8,
+                "max_alphabet_size": 8,
             },
             policy=_POLICY,
         )
@@ -111,7 +111,7 @@ def test_ic_merge_dispatch_calls_formal_adapter_with_profile_and_constraint(monk
             operator_input={
                 "profile_atom_ids": [["atom:left"], ["atom:right"]],
                 "integrity_constraint": {"kind": "top"},
-                "max_candidates": 8,
+                "max_alphabet_size": 8,
             },
             policy=_POLICY,
         )
