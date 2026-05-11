@@ -170,23 +170,28 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
-  name: micropubs_file
+  name: micropublication
   contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.micropubs.MicropublicationsFileDocument
+    doc_type: propstore.families.documents.micropubs.MicropublicationDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
     placement:
       branch:
         policy: primary
-      codec: stem
+      codec: base64url
       extension: .yaml
-      kind: flat-yaml
+      fanout:
+      - 2
+      - 2
+      filename_mode: encoded_ref
+      hash_algorithm: sha256
+      kind: hash-scattered-yaml
       namespace: micropubs
-      ref_field: name
+      ref_field: artifact_id
     render_document: null
     scan_type: null
     validate_for_write: null
@@ -3497,17 +3502,22 @@ contracts:
   contract_version: 2026.04.27
   body:
     accessor: micropubs
-    artifact_family: micropubs_file
+    artifact_family: micropublication
     artifact_family_contract:
-      doc_type: propstore.families.documents.micropubs.MicropublicationsFileDocument
+      doc_type: propstore.families.documents.micropubs.MicropublicationDocument
       placement:
         branch:
           policy: primary
-        codec: stem
+        codec: base64url
         extension: .yaml
-        kind: flat-yaml
+        fanout:
+        - 2
+        - 2
+        filename_mode: encoded_ref
+        hash_algorithm: sha256
+        kind: hash-scattered-yaml
         namespace: micropubs
-        ref_field: name
+        ref_field: artifact_id
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: micropubs
