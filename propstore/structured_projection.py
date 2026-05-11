@@ -1,9 +1,8 @@
-"""Public projection facade for structured argumentation.
+"""Projection result models and lifting helpers for structured argumentation.
 
-After the Phase 5 cutover, `build_structured_projection()` delegates to
-`aspic_bridge.build_aspic_projection()` for full recursive ASPIC+
-construction (Modgil & Prakken 2018 Defs 1-22). This module intentionally
-retains the public projection dataclasses and thin delegation wrappers.
+ASPIC+ construction lives in ``propstore.aspic_bridge.build_aspic_projection``.
+This module owns propstore-facing projection records and extension semantics
+over a constructed ``StructuredProjection``.
 """
 
 from __future__ import annotations
@@ -20,20 +19,14 @@ from argumentation.dung import (
     stable_extensions,
 )
 
-from propstore.core.active_claims import (
-    ActiveClaimInput,
-    coerce_active_claims,
-)
-from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
-from propstore.core.labels import Label, SupportMetadata, SupportQuality
+from propstore.core.labels import Label, SupportQuality
 from propstore.core.reasoning import (
     ArgumentationSemantics,
     ReasoningBackend,
     validate_backend_semantics,
 )
 from propstore.core.results import AnalyzerResult
-from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.provenance.records import ProjectionFrameProvenanceRecord
 
 
@@ -204,37 +197,6 @@ class StructuredProjection:
     framework: ArgumentationFramework
     claim_to_argument_ids: dict[str, tuple[str, ...]]
     argument_to_claim_id: dict[str, str]
-
-
-def build_structured_projection(
-    store: StanceStore,
-    active_claims: Sequence[ActiveClaimInput],
-    *,
-    bundle: GroundedRulesBundle,
-    support_metadata: SupportMetadata | None = None,
-    comparison: str = "elitist",
-    link: str = "last",
-    active_graph: ActiveWorldGraph | None = None,
-) -> StructuredProjection:
-    """Build real structured arguments from canonical justifications.
-
-    Delegates to the ASPIC+ bridge for full recursive argument construction.
-
-    The caller must supply the grounded bundle explicitly. Grounding is part of
-    the theory identity, so this wrapper no longer fabricates
-    ``GroundedRulesBundle.empty()`` internally.
-    """
-    from propstore.aspic_bridge import build_aspic_projection
-
-    return build_aspic_projection(
-        store,
-        coerce_active_claims(active_claims),
-        bundle=bundle,
-        support_metadata=support_metadata,
-        comparison=comparison,
-        link=link,
-        active_graph=active_graph,
-    )
 
 
 def compute_structured_justified_arguments(
