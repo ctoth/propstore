@@ -15,22 +15,23 @@ from quire.artifacts import encode_ref_value
 from quire.documents import encode_document
 from propstore.families.registry import PROPOSAL_STANCE_BRANCH
 from propstore.families.registry import PROPOSAL_STANCE_PLACEMENT
-from propstore.families.registry import StanceFileRef
-from propstore.families.documents.stances import StanceFileDocument
+from propstore.families.registry import StanceRef
+from propstore.families.documents.stances import StanceDocument
+from propstore.families.identity.stances import stamp_stance_artifact_id
 from quire.documents import convert_document_value
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
 
 
-def stance_proposal_filename(source_claim_id: str) -> str:
-    """Return the proposal filename for a source claim."""
-    return Path(stance_proposal_relpath(source_claim_id)).name
+def stance_proposal_filename(artifact_id: str) -> str:
+    """Return the proposal filename for a stance artifact."""
+    return Path(stance_proposal_relpath(artifact_id)).name
 
 
-def stance_proposal_relpath(source_claim_id: str) -> str:
+def stance_proposal_relpath(artifact_id: str) -> str:
     """Return the repo-relative stance proposal path."""
-    stem = encode_ref_value(source_claim_id, PROPOSAL_STANCE_PLACEMENT.codec)
+    stem = encode_ref_value(artifact_id, PROPOSAL_STANCE_PLACEMENT.codec)
     return (
         f"{PROPOSAL_STANCE_PLACEMENT.namespace}/"
         f"{stem}{PROPOSAL_STANCE_PLACEMENT.extension}"
@@ -47,6 +48,7 @@ def stance_proposal_branch() -> str:
 
 @dataclass(frozen=True)
 class StanceProposalPromotionItem:
+    artifact_id: str
     source_claim: str
     source_relpath: str
     target_path: Path
@@ -82,11 +84,11 @@ class UnknownProposalPath(ValueError):
 
 
 class ProposalAlreadyPromoted(ValueError):
-    def __init__(self, source_claim: str, promoted_from_sha: str) -> None:
-        self.source_claim = source_claim
+    def __init__(self, artifact_id: str, promoted_from_sha: str) -> None:
+        self.artifact_id = artifact_id
         self.promoted_from_sha = promoted_from_sha
         super().__init__(
-            f"Stance proposal for {source_claim!r} was already promoted from {promoted_from_sha}"
+            f"Stance proposal {artifact_id!r} was already promoted from {promoted_from_sha}"
         )
 
 
@@ -109,7 +111,7 @@ def plan_stance_proposal_promotion(
         commit=proposal_tip,
     )
     available_by_name = {
-        stance_proposal_filename(ref.source_claim): ref
+        stance_proposal_filename(ref.artifact_id): ref
         for ref in available_refs
     }
     if path is not None:
@@ -124,11 +126,16 @@ def plan_stance_proposal_promotion(
 
     items: list[StanceProposalPromotionItem] = []
     for ref in selected_refs:
-        filename = stance_proposal_filename(ref.source_claim)
-        target_relpath = repo.families.stances.address(StanceFileRef(ref.source_claim)).require_path()
+        filename = stance_proposal_filename(ref.artifact_id)
+        target_relpath = repo.families.stances.address(StanceRef(ref.artifact_id)).require_path()
+        proposal_document = repo.families.proposal_stances.require(
+            ref,
+            commit=proposal_tip,
+        )
         items.append(
             StanceProposalPromotionItem(
-                source_claim=ref.source_claim,
+                artifact_id=ref.artifact_id,
+                source_claim=proposal_document.source_claim or "",
                 source_relpath=f"{proposal_branch}:{repo.families.proposal_stances.address(ref).require_path()}",
                 target_path=repo.root / target_relpath,
                 filename=filename,
@@ -155,7 +162,7 @@ def promote_stance_proposals(
             message=f"Promote {moved} stance proposal file(s) from {plan.branch}",
         ) as transaction:
             for item in plan.items:
-                ref = StanceFileRef(item.source_claim)
+                ref = StanceRef(item.artifact_id)
                 existing = repo.families.stances.load(ref)
                 if (
                     existing is not None
@@ -163,7 +170,7 @@ def promote_stance_proposals(
                     and not force
                 ):
                     raise ProposalAlreadyPromoted(
-                        item.source_claim,
+                        item.artifact_id,
                         existing.promoted_from_sha,
                     )
                 proposal_document = repo.families.proposal_stances.require(
@@ -176,7 +183,7 @@ def promote_stance_proposals(
                     ref,
                     convert_document_value(
                         proposal_payload,
-                        StanceFileDocument,
+                        StanceDocument,
                         source=repo.families.stances.address(ref).require_path(),
                     ),
                 )
@@ -189,19 +196,21 @@ def promote_stance_proposals(
 
 def build_stance_document(
     source_claim_id: str,
-    stances: list[dict],
+    stance: dict,
     model_name: str,
-    ) -> StanceFileDocument:
+    ) -> StanceDocument:
     """Build the persisted typed payload for a stance proposal."""
+    payload = {
+        **stance,
+        "source_claim": stance.get("source_claim") or source_claim_id,
+        "classification_model": model_name,
+        "classification_date": str(date.today()),
+    }
+    stamped = stamp_stance_artifact_id(payload)
     return convert_document_value(
-        {
-            "source_claim": source_claim_id,
-            "classification_model": model_name,
-            "classification_date": str(date.today()),
-            "stances": stances,
-        },
-        StanceFileDocument,
-        source=stance_proposal_relpath(source_claim_id),
+        stamped,
+        StanceDocument,
+        source=stance_proposal_relpath(stamped["artifact_code"]),
     )
 
 
@@ -222,21 +231,33 @@ def commit_stance_proposals(
         return None, []
 
     target_branch = stance_proposal_branch() if branch is None else branch
+    proposal_documents: list[StanceDocument] = []
+    for source_claim_id, stances in sorted(stances_by_claim.items()):
+        for stance in stances:
+            proposal_documents.append(
+                build_stance_document(source_claim_id, stance, model_name)
+            )
+    if not proposal_documents:
+        return None, []
+
     sha: str | None = None
     with repo.families.transact(
         message=(
-            f"Record {len(stances_by_claim)} stance proposal file(s)"
-            if len(stances_by_claim) != 1
-            else f"Record stance proposal for {next(iter(stances_by_claim))}"
+            f"Record {len(proposal_documents)} stance proposal artifact(s)"
+            if len(proposal_documents) != 1
+            else "Record stance proposal artifact"
         ),
         branch=target_branch,
     ) as transaction:
         relpaths: list[str] = []
-        for source_claim_id, stances in sorted(stances_by_claim.items()):
-            ref = StanceFileRef(source_claim_id)
+        for document in proposal_documents:
+            artifact_id = document.artifact_code
+            if not isinstance(artifact_id, str) or not artifact_id:
+                raise ValueError("stance proposal document missing artifact_code")
+            ref = StanceRef(artifact_id)
             transaction.proposal_stances.save(
                 ref,
-                build_stance_document(source_claim_id, stances, model_name),
+                document,
             )
             relpaths.append(repo.families.proposal_stances.address(ref).require_path())
         transaction.transaction.commit()
