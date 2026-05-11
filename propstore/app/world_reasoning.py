@@ -152,9 +152,9 @@ def world_extensions(
             )
             argument_to_claim = {claim_id: claim_id for claim_id in claim_ids}
         elif backend is ReasoningBackend.ASPIC:
+            from propstore.aspic_bridge import build_aspic_projection
             from propstore.grounding.bundle import GroundedRulesBundle
             from propstore.structured_projection import (
-                build_structured_projection,
                 compute_structured_justified_arguments,
             )
 
@@ -162,7 +162,7 @@ def world_extensions(
             if isinstance(world, GroundingBundleStore):
                 grounding_bundle = world.grounding_bundle()
 
-            aspic_projection = build_structured_projection(
+            aspic_projection = build_aspic_projection(
                 world,
                 active,
                 bundle=grounding_bundle,
