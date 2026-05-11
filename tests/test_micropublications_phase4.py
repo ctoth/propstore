@@ -160,6 +160,12 @@ def _single_promoted_micropub(repo: Repository, commit: str | None = None):
     return handles[0]
 
 
+def _single_promoted_claim(repo: Repository, commit: str | None = None):
+    handles = list(repo.families.claims.iter_handles(commit=commit))
+    assert len(handles) == 1
+    return handles[0].document
+
+
 def test_source_promote_writes_canonical_micropub_artifact(tmp_path: Path) -> None:
     repo = _init_source_with_claim(tmp_path)
     runner = CliRunner()
@@ -170,10 +176,10 @@ def test_source_promote_writes_canonical_micropub_artifact(tmp_path: Path) -> No
     master_tip = repo.git.branch_sha("master")
     assert master_tip is not None
     promoted = _single_promoted_micropub(repo, master_tip).document
-    promoted_claims = yaml.safe_load(repo.git.read_file("claims/demo.yaml", commit=master_tip))
+    promoted_claim = _single_promoted_claim(repo, master_tip)
 
-    assert promoted.claims == (promoted_claims["claims"][0]["artifact_id"],)
-    assert promoted_claims["claims"][0]["context"] == {"id": "ctx_test"}
+    assert promoted.claims == (promoted_claim.artifact_id,)
+    assert promoted_claim.context.id == "ctx_test"
 
 
 def test_micropub_cli_show_and_lift(tmp_path: Path) -> None:

@@ -519,8 +519,8 @@ def _prepare_promoted_parameter_source(
     papers_dir.mkdir(parents=True, exist_ok=True)
     (papers_dir / "paper.pdf").write_bytes(content_file.read_bytes())
 
-    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
-    return claims_doc["claims"][0]["artifact_id"]
+    handle = next(repo.families.claims.iter_handles())
+    return handle.ref.artifact_id
 
 
 def test_propose_concept_reports_linked_status(tmp_path: Path) -> None:

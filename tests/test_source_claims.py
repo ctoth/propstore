@@ -328,11 +328,13 @@ def test_promoted_claims_conform_to_master_schema(tmp_path: Path) -> None:
     # Read the promoted claims from master
     master_tip = repo.git.branch_sha("master")
     assert master_tip is not None
-    promoted = yaml.safe_load(repo.git.read_file("claims/demo.yaml", commit=master_tip))
-    assert promoted is not None
-    assert "claims" in promoted
+    promoted = [
+        handle.document.to_payload()
+        for handle in repo.families.claims.iter_handles(commit=master_tip)
+    ]
+    assert promoted
 
-    for claim in promoted["claims"]:
+    for claim in promoted:
         source_only_present = _SOURCE_ONLY_FIELDS & set(claim.keys())
         assert not source_only_present, (
             f"Promoted claim carries source-branch-only fields: {source_only_present}. "

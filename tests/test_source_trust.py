@@ -7,9 +7,12 @@ import yaml
 from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from quire.documents import convert_document_value
 
 from propstore.core.row_types import coerce_claim_row
 from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.families.claims.documents import ClaimDocument
+from propstore.families.registry import ClaimRef
 from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import NoCalibration, p_arg_from_claim
 from propstore.source.common import initial_source_document
@@ -224,14 +227,21 @@ def _seed_calibration_claim(repo: Repository) -> None:
         },
         default_namespace="calibration",
     )
+    claim_adds: dict[str, bytes] = {}
+    for claim in claims["claims"]:
+        claim_payload = {**claim, "source": claims["source"]}
+        claim_doc = convert_document_value(
+            claim_payload,
+            ClaimDocument,
+            source="test:calibration-claim",
+        )
+        assert claim_doc.artifact_id is not None
+        ref = ClaimRef(claim_doc.artifact_id)
+        claim_adds[repo.families.claims.address(ref).require_path()] = (
+            repo.families.claims.render(claim_doc).encode("utf-8")
+        )
     repo.git.commit_batch(
-        adds={
-            "claims/calibration.yaml": yaml.safe_dump(
-                claims,
-                sort_keys=False,
-                allow_unicode=True,
-            ).encode("utf-8")
-        },
+        adds=claim_adds,
         deletes=[],
         message="Seed calibration claims",
         branch="master",
@@ -370,8 +380,7 @@ def test_world_query_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) ->
     assert runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"]).exit_code == 0
 
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
-    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
-    claim_id = claims_doc["claims"][0]["artifact_id"]
+    claim_id = next(repo.families.claims.iter_handles()).ref.artifact_id
     wm = WorldQuery(repo)
     try:
         claim = wm.get_claim(claim_id)
