@@ -1220,7 +1220,7 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
         },
     )
     monkeypatch.setattr(
-        "propstore.structured_projection.build_structured_projection",
+        "propstore.aspic_bridge.build_aspic_projection",
         lambda *args, **kwargs: FakeProjection(),
     )
     monkeypatch.setattr(
@@ -1300,7 +1300,7 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
         },
     )
     monkeypatch.setattr(
-        "propstore.structured_projection.build_structured_projection",
+        "propstore.aspic_bridge.build_aspic_projection",
         lambda *args, **kwargs: FakeProjection(),
     )
     monkeypatch.setattr(
