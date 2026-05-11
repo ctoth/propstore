@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from propstore.app.world import open_app_world_model
 from propstore.repository import Repository
-from propstore.support_revision.state import BeliefAtom, is_assumption_atom, is_assertion_atom
+from propstore.support_revision.state import BeliefAtom, RevisionEvent, is_assumption_atom, is_assertion_atom
 
 
 class WorldRevisionAppError(Exception):
@@ -93,6 +93,27 @@ def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
             display_id=atom.atom_id,
         )
     raise TypeError(f"unsupported revision atom: {type(atom).__name__}")
+
+
+def revision_event_inspection_payload(event: RevisionEvent) -> dict[str, object]:
+    decision_payload = None if event.decision is None else event.decision.to_dict()
+    realization_payload = None if event.realization is None else event.realization.to_dict()
+    diagnostics = {
+        "operation": event.operation,
+        "replay_status": event.replay_status,
+        "realization_failure": event.realization_failure,
+    }
+    if event.decision is not None:
+        diagnostics["merge_operator"] = event.decision.trace.get("merge_operator")
+        diagnostics["selected_worlds_hash"] = event.decision.trace.get("selected_worlds_hash")
+        diagnostics["scored_worlds_hash"] = event.decision.trace.get("scored_worlds_hash")
+    return {
+        "decision": decision_payload,
+        "realization": realization_payload,
+        "policy": dict(event.policy_snapshot),
+        "diagnostics": diagnostics,
+        "content_hash": event.content_hash,
+    }
 
 
 def world_revision_base(repo: Repository, request: AppRevisionWorldRequest):
