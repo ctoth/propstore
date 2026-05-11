@@ -14,7 +14,7 @@ from propstore.families.addresses import SemanticFamilyAddress
 from propstore.claim_references import ImportedClaimHandleIndex
 from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.concepts.documents import ConceptDocument
-from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
@@ -26,7 +26,7 @@ from propstore.families.registry import (
     ClaimsFileRef,
     ConceptFileRef,
     JustificationRef,
-    MicropubsFileRef,
+    MicropublicationRef,
     StanceRef,
 )
 
@@ -76,8 +76,9 @@ class SourcePromotionPlan:
     claims_ref: ClaimsFileRef
     promoted_source_document: SourceDocument
     promoted_claims_document: ClaimsFileDocument
-    promoted_micropubs_ref: MicropubsFileRef | None = None
-    promoted_micropubs_document: MicropublicationsFileDocument | None = None
+    promoted_micropub_documents: dict[MicropublicationRef, MicropublicationDocument] = field(
+        default_factory=dict
+    )
     promoted_concept_documents: dict[ConceptFileRef, ConceptDocument] = field(
         default_factory=dict
     )

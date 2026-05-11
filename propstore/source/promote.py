@@ -46,7 +46,7 @@ from propstore.families.registry import (
     ClaimsFileRef,
     ConceptFileRef,
     JustificationRef,
-    MicropubsFileRef,
+    MicropublicationRef,
     SourceRef,
     StanceRef,
 )
@@ -57,7 +57,7 @@ from propstore.families.concepts.stages import (
 )
 from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.contexts.stages import parse_context_record_document
-from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.forms.stages import parse_form
 from propstore.provenance import (
@@ -336,24 +336,15 @@ def _filter_promoted_micropubs(
     micropubs_doc: MicropublicationsFileDocument | None,
     *,
     valid_artifact_ids: set[str],
-) -> MicropublicationsFileDocument | None:
+) -> tuple[MicropublicationDocument, ...]:
     if micropubs_doc is None:
-        return None
-    kept = [
-        micropub.to_payload()
+        return ()
+    kept = tuple(
+        micropub
         for micropub in micropubs_doc.micropubs
         if all(claim_id in valid_artifact_ids for claim_id in micropub.claims)
-    ]
-    if not kept:
-        return None
-    return convert_document_value(
-        {
-            "source": None if micropubs_doc.source is None else micropubs_doc.source.to_payload(),
-            "micropubs": kept,
-        },
-        MicropublicationsFileDocument,
-        source="micropubs/promoted.yaml",
     )
+    return kept
 
 
 def resolve_source_concept_promotions(
@@ -893,7 +884,7 @@ def promote_source_branch(
             return source_logical_target in valid_artifact_ids
         return reference in primary_claim_index.logical_to_artifact
 
-    promoted_micropubs_document = _filter_promoted_micropubs(
+    promoted_micropubs = _filter_promoted_micropubs(
         micropubs_doc,
         valid_artifact_ids=valid_artifact_ids,
     )
@@ -1045,6 +1036,14 @@ def promote_source_branch(
             JustificationDocument,
             source=repo.families.justifications.address(justification_ref).require_path(),
         )
+    promoted_micropub_documents: dict[MicropublicationRef, MicropublicationDocument] = {}
+    for micropub in promoted_micropubs:
+        micropub_ref = MicropublicationRef(micropub.artifact_id)
+        promoted_micropub_documents[micropub_ref] = convert_document_value(
+            micropub.to_payload(),
+            MicropublicationDocument,
+            source=repo.families.micropubs.address(micropub_ref).require_path(),
+        )
     promotion_plan = SourcePromotionPlan(
         source_name=source_name,
         slug=slug,
@@ -1053,12 +1052,7 @@ def promote_source_branch(
         claims_ref=claims_ref,
         promoted_source_document=promoted_source_document,
         promoted_claims_document=promoted_claims_document,
-        promoted_micropubs_ref=(
-            MicropubsFileRef(slug)
-            if promoted_micropubs_document is not None
-            else None
-        ),
-        promoted_micropubs_document=promoted_micropubs_document,
+        promoted_micropub_documents=promoted_micropub_documents,
         promoted_concept_documents=promoted_concept_plan_documents,
         promoted_justification_documents=promoted_justification_documents,
         promoted_stance_documents=promoted_stance_documents,
@@ -1091,13 +1085,10 @@ def promote_source_branch(
                     promotion_plan.claims_ref,
                     promotion_plan.promoted_claims_document,
                 )
-                if (
-                    promotion_plan.promoted_micropubs_ref is not None
-                    and promotion_plan.promoted_micropubs_document is not None
-                ):
+                for micropub_ref, micropub_document in promotion_plan.promoted_micropub_documents.items():
                     transaction.micropubs.save(
-                        promotion_plan.promoted_micropubs_ref,
-                        promotion_plan.promoted_micropubs_document,
+                        micropub_ref,
+                        micropub_document,
                     )
                 for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
                     transaction.concepts.save(
