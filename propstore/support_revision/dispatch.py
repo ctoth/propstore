@@ -66,13 +66,24 @@ def dispatch(
         if not isinstance(integrity_constraint, Mapping):
             raise RevisionMergeRequiredFailure(reason="missing_integrity_constraint")
         entrenchment = _entrenchment_from_state(state)
+        profile_atom_ids = _profile_atom_ids(payload.get("profile_atom_ids") or ())
         decision = decide_ic_merge_profile(
-            profile_atom_ids=_profile_atom_ids(payload.get("profile_atom_ids") or ()),
+            profile_atom_ids=profile_atom_ids,
             integrity_constraint=integrity_constraint,
             merge_operator=str(payload.get("merge_operator") or "sigma"),
             max_alphabet_size=_max_candidates(payload),
         )
-        result = realize_ic_merge_decision(state.base, decision)
+        try:
+            result = realize_ic_merge_decision(state.base, decision)
+        except RevisionMergeRequiredFailure as exc:
+            _raise_ic_merge_failure(
+                state,
+                decision=decision.report,
+                profile_atom_ids=profile_atom_ids,
+                integrity_constraint=integrity_constraint,
+                policy_snapshot=policy_snapshot,
+                exc=exc,
+            )
         return advance_epistemic_state(
             state,
             result,
@@ -266,6 +277,42 @@ def _raise_realization_failure(
         realization_failure=str(exc),
     )
     raise RevisionRealizationFailure(event) from exc
+
+
+def _raise_ic_merge_failure(
+    state: EpistemicState,
+    *,
+    decision,
+    profile_atom_ids: tuple[tuple[str, ...], ...],
+    integrity_constraint: Mapping[str, Any],
+    policy_snapshot: Mapping[str, str],
+    exc: RevisionMergeRequiredFailure,
+) -> None:
+    from propstore.support_revision.history import EpistemicSnapshot
+
+    decision_report = exc.decision_report or decision
+    selected_worlds_hash = exc.selected_worlds_hash
+    if selected_worlds_hash is None and decision_report is not None:
+        selected_worlds_hash = decision_report.trace.get("selected_worlds_hash")
+    event = RevisionEvent(
+        operation=JournalOperator.IC_MERGE.value,
+        pre_state_hash=EpistemicSnapshot.from_state(state).content_hash,
+        target_atom_ids=tuple(atom_id for profile in profile_atom_ids for atom_id in profile),
+        decision=decision_report,
+        realization=None,
+        policy_snapshot=policy_snapshot,
+        replay_status="realization_failed",
+        realization_failure=exc.reason,
+    )
+    raise RevisionMergeRequiredFailure(
+        reason=exc.reason,
+        parent_commits=exc.parent_commits or state.scope.merge_parent_commits,
+        decision_report=decision_report,
+        profile_atom_ids=exc.profile_atom_ids or profile_atom_ids,
+        integrity_constraint=exc.integrity_constraint or integrity_constraint,
+        selected_worlds_hash=selected_worlds_hash,
+        event=event,
+    ) from exc
 
 
 def _string_tuple(value: Sequence[object]) -> tuple[str, ...]:
