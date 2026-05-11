@@ -11,6 +11,7 @@ from quire.family_store import DocumentFamilyStore
 
 from propstore.families.addresses import SemanticFamilyAddress
 from propstore.families.registry import (
+    ClaimRef,
     PropstoreFamily,
     semantic_family_for_path,
     semantic_import_families,
@@ -61,6 +62,27 @@ def _planned_write(
     family = semantic_family_for_path(path).artifact_family
     ref = store.ref_from_path(cast(Any, family), path)
     document = store.coerce(cast(Any, family), payload, source=path)
+    address = store.address(cast(Any, family), ref)
+    return PlannedSemanticWrite(
+        family=family,
+        ref=ref,
+        document=document,
+        relpath=SemanticFamilyAddress(address.require_path()),
+    )
+
+
+def _planned_claim_write(
+    store: DocumentFamilyStore["Repository"],
+    payload: dict[str, Any],
+    *,
+    source: str,
+) -> PlannedSemanticWrite:
+    artifact_id = payload.get("artifact_id")
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise ValueError(f"Imported claim {source!r} is missing artifact_id after normalization")
+    family = semantic_family_for_path("claims/__placeholder__.yaml").artifact_family
+    ref = ClaimRef(artifact_id)
+    document = store.coerce(cast(Any, family), payload, source=source)
     address = store.address(cast(Any, family), ref)
     return PlannedSemanticWrite(
         family=family,
@@ -132,38 +154,46 @@ def _rewrite_claim_concept_refs(
     rewritten = dict(data)
     claims = rewritten.get("claims")
     if not isinstance(claims, list):
-        return rewritten
+        return _rewrite_claim_payload_concept_refs(rewritten, concept_ref_map=concept_ref_map)
 
     updated_claims: list[Any] = []
     for claim in claims:
         if not isinstance(claim, dict):
             updated_claims.append(claim)
             continue
-        copied = dict(claim)
-        if "concept" in copied:
-            concept = _rewrite_reference(copied.pop("concept"), concept_ref_map)
-            _place_rewritten_singular_concept(copied, concept)
-        if "target_concept" in copied:
-            copied["target_concept"] = _rewrite_reference(copied.get("target_concept"), concept_ref_map)
-        concepts = copied.get("concepts")
-        if isinstance(concepts, list):
-            copied["concepts"] = [_rewrite_reference(concept_ref, concept_ref_map) for concept_ref in concepts]
-        for field_name in ("variables", "parameters"):
-            values = copied.get(field_name)
-            if not isinstance(values, list):
-                continue
-            copied[field_name] = [
-                (
-                    {**value, "concept": _rewrite_reference(value.get("concept"), concept_ref_map)}
-                    if isinstance(value, dict)
-                    else value
-                )
-                for value in values
-            ]
-        updated_claims.append(normalize_canonical_claim_payload(copied))
+        updated_claims.append(_rewrite_claim_payload_concept_refs(claim, concept_ref_map=concept_ref_map))
 
     rewritten["claims"] = updated_claims
     return rewritten
+
+
+def _rewrite_claim_payload_concept_refs(
+    data: dict[str, Any],
+    *,
+    concept_ref_map: Mapping[str, str],
+) -> dict[str, Any]:
+    copied = dict(data)
+    if "concept" in copied:
+        concept = _rewrite_reference(copied.pop("concept"), concept_ref_map)
+        _place_rewritten_singular_concept(copied, concept)
+    if "target_concept" in copied:
+        copied["target_concept"] = _rewrite_reference(copied.get("target_concept"), concept_ref_map)
+    concepts = copied.get("concepts")
+    if isinstance(concepts, list):
+        copied["concepts"] = [_rewrite_reference(concept_ref, concept_ref_map) for concept_ref in concepts]
+    for field_name in ("variables", "parameters"):
+        values = copied.get(field_name)
+        if not isinstance(values, list):
+            continue
+        copied[field_name] = [
+            (
+                {**value, "concept": _rewrite_reference(value.get("concept"), concept_ref_map)}
+                if isinstance(value, dict)
+                else value
+            )
+            for value in values
+        ]
+    return normalize_canonical_claim_payload(copied)
 
 
 def _place_rewritten_singular_concept(claim: dict[str, Any], concept: object) -> None:
@@ -245,13 +275,34 @@ def _normalize_claim_batch(
     normalized: dict[str, PlannedSemanticWrite] = {}
     for path in paths:
         payload = _decode_yaml(writes[path], path=path)
+        if isinstance(payload.get("claims"), list):
+            raise ValueError(
+                f"Imported claim path {path!r} is an aggregate; "
+                "canonical repository imports require one claim artifact per file"
+            )
         source = payload.get("source")
         has_source = isinstance(source, dict) and isinstance(source.get("paper"), str) and bool(source.get("paper"))
-        normalized_payload, local_map = normalize_claim_file_payload(payload, default_namespace=state.repository_name)
+        normalization_input: dict[str, Any] = {"claims": [payload]}
+        if has_source:
+            normalization_input["source"] = source
+        normalized_payload, local_map = normalize_claim_file_payload(
+            normalization_input,
+            default_namespace=state.repository_name,
+        )
+        normalized_claims = normalized_payload.get("claims")
+        if not isinstance(normalized_claims, list) or len(normalized_claims) != 1:
+            raise ValueError(f"Imported claim path {path!r} did not normalize to one claim artifact")
+        normalized_claim = normalized_claims[0]
+        if not isinstance(normalized_claim, dict):
+            raise ValueError(f"Imported claim path {path!r} did not normalize to a claim mapping")
         if not has_source:
-            normalized_payload["source"] = _claim_source_from_import_path(path)
-        rewritten_payload = _rewrite_claim_concept_refs(normalized_payload, concept_ref_map=state.concept_ref_map)
-        normalized[path] = _planned_write(store, path, rewritten_payload)
+            normalized_claim["source"] = _claim_source_from_import_path(path)
+        rewritten_payload = _rewrite_claim_payload_concept_refs(
+            normalized_claim,
+            concept_ref_map=state.concept_ref_map,
+        )
+        planned_write = _planned_claim_write(store, rewritten_payload, source=path)
+        normalized[planned_write.relpath] = planned_write
         for local_id, artifact_id in local_map.items():
             if state.local_handle_index.record(local_id, artifact_id):
                 state.warnings.append(
@@ -266,14 +317,13 @@ def _normalize_stance_batch(
     writes: Mapping[str, bytes],
     state: SourceImportState,
 ) -> Mapping[str, PlannedSemanticWrite]:
-    return {
-        path: _planned_write(
-            store,
-            path,
-            state.local_handle_index.rewrite_stance_payload(_decode_yaml(writes[path], path=path), path=path),
-        )
-        for path in paths
-    }
+    normalized: dict[str, PlannedSemanticWrite] = {}
+    for path in paths:
+        payload = state.local_handle_index.rewrite_stance_payload(_decode_yaml(writes[path], path=path), path=path)
+        if isinstance(payload.get("target"), str):
+            payload["target"] = state.local_handle_index.resolve(payload.get("target"), path=path, role="target")
+        normalized[path] = _planned_write(store, path, payload)
+    return normalized
 
 
 def _normalize_passthrough_batch(
