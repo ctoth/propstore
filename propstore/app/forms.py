@@ -263,7 +263,7 @@ def add_form(repo: Repository, request: FormAddRequest, *, dry_run: bool) -> For
     ref = FormRef(request.name)
     relpath = repo.families.forms.address(ref).require_path()
     path = repo.root / relpath
-    if repo.families.forms.load(ref) is not None:
+    if repo.families.forms.exists(ref):
         raise FormWorkflowError(f"Form '{request.name}' already exists")
 
     source = f"dry-run:{relpath}" if dry_run else relpath
@@ -304,7 +304,7 @@ def remove_form(
     ref = FormRef(name)
     relpath = repo.families.forms.address(ref).require_path()
     path = repo.root / relpath
-    if repo.families.forms.load(ref) is None:
+    if not repo.families.forms.exists(ref):
         raise FormNotFoundError(name)
 
     references = form_references(repo, name)
@@ -325,7 +325,7 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
     if not form_handles:
         return None
 
-    if name is not None and repo.families.forms.load(FormRef(name)) is None:
+    if name is not None and not repo.families.forms.exists(FormRef(name)):
         raise FormNotFoundError(name)
 
     form_result = run_form_pipeline(

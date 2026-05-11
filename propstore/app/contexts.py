@@ -210,7 +210,7 @@ def add_context(
     ref = ContextRef(request.name)
     relpath = repo.families.contexts.family.address_for(repo, ref).require_path()
     filepath = repo.root / relpath
-    if repo.families.contexts.load(ref) is not None:
+    if repo.families.contexts.exists(ref):
         raise ContextWorkflowError(f"Context file '{filepath}' already exists")
 
     _validate_context_assumption_cel(repo, request)

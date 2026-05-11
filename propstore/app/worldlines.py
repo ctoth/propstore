@@ -430,7 +430,7 @@ def create_worldline(
     ref = WorldlineRef(request.name)
     address = repo.families.worldlines.family.address_for(repo, ref)
     path = address.require_path()
-    if repo.families.worldlines.load(ref) is not None:
+    if repo.families.worldlines.exists(ref):
         raise WorldlineAlreadyExistsError(request.name, path)
 
     definition = _definition_from_request(request)
@@ -540,7 +540,7 @@ def delete_worldline(repo: Repository, name: str) -> WorldlineMutationReport:
     ref = WorldlineRef(name)
     address = repo.families.worldlines.family.address_for(repo, ref)
     path = address.require_path()
-    if repo.families.worldlines.load(ref) is None:
+    if not repo.families.worldlines.exists(ref):
         raise WorldlineNotFoundError(name)
     repo.families.worldlines.delete(ref, message=f"Delete worldline: {name}")
     return WorldlineMutationReport(name=name, path=path)
