@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.support_revision.belief_set_adapter import decide_ic_merge_profile
+from belief_set import Atom, TOP, disjunction
+
+from propstore.support_revision.belief_set_adapter import decide_ic_merge, decide_ic_merge_profile
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import JournalOperator
 from propstore.support_revision.iterated import make_epistemic_state
+from propstore.support_revision.realization import realize_ic_merge_decision
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionMergeRequiredFailure, RevisionScope
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
@@ -129,17 +132,20 @@ def test_realized_ic_merge_records_realization_report_in_event() -> None:
 
 def test_disjunctive_selected_worlds_fail_with_typed_ambiguous_realization() -> None:
     state, atom_ids = _merge_state()
+    decision = decide_ic_merge(
+        frozenset((atom_ids["a"], atom_ids["b"])),
+        (TOP,),
+        disjunction(Atom(atom_ids["a"]), Atom(atom_ids["b"])),
+        merge_operator="sigma",
+        max_alphabet_size=4,
+    )
 
     with pytest.raises(RevisionMergeRequiredFailure) as exc_info:
-        _dispatch_merge(
-            state,
-            profile_atom_ids=[[atom_ids["a"]], [atom_ids["b"]]],
-            integrity_constraint={"kind": "top"},
-        )
+        realize_ic_merge_decision(state.base, decision)
 
     assert exc_info.value.reason == "ambiguous_selected_worlds"
     assert exc_info.value.decision_report is not None
-    assert exc_info.value.profile_atom_ids == ((atom_ids["a"],), (atom_ids["b"],))
+    assert exc_info.value.selected_worlds_hash == decision.report.trace["selected_worlds_hash"]
 
 
 def test_selected_world_with_unknown_formal_atom_fails_typed() -> None:
@@ -189,33 +195,25 @@ def test_unrealizable_merge_failure_event_preserves_selected_world_hash() -> Non
     state, atom_ids = _merge_state()
 
     with pytest.raises(RevisionMergeRequiredFailure) as exc_info:
-        _dispatch_merge(
-            state,
-            profile_atom_ids=[[atom_ids["a"]], [atom_ids["b"]]],
-            integrity_constraint={"kind": "top"},
-        )
+        _dispatch_unsatisfiable_merge(state, atom_ids)
 
     event = exc_info.value.event
     assert event is not None
     assert event.decision is not None
     assert event.realization is None
-    assert event.realization_failure == "ambiguous_selected_worlds"
+    assert event.realization_failure == "unsatisfiable_integrity_constraint"
     assert event.decision.trace["selected_worlds_hash"] == exc_info.value.selected_worlds_hash
 
 
 def test_unrealizable_merge_failure_is_replayable_as_failure() -> None:
     state, atom_ids = _merge_state()
-    kwargs = {
-        "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
-        "integrity_constraint": {"kind": "top"},
-    }
 
     with pytest.raises(RevisionMergeRequiredFailure) as first:
-        _dispatch_merge(state, **kwargs)
+        _dispatch_unsatisfiable_merge(state, atom_ids)
     with pytest.raises(RevisionMergeRequiredFailure) as second:
-        _dispatch_merge(state, **kwargs)
+        _dispatch_unsatisfiable_merge(state, atom_ids)
 
-    assert first.value.reason == second.value.reason == "ambiguous_selected_worlds"
+    assert first.value.reason == second.value.reason == "unsatisfiable_integrity_constraint"
     assert first.value.event is not None
     assert second.value.event is not None
     assert first.value.event.content_hash == second.value.event.content_hash
@@ -244,6 +242,18 @@ def _dispatch_merge(state, *, profile_atom_ids, integrity_constraint):
             "max_candidates": 8,
         },
         policy=_POLICY,
+    )
+
+
+def _dispatch_unsatisfiable_merge(state, atom_ids: dict[str, str]):
+    return _dispatch_merge(
+        state,
+        profile_atom_ids=[[atom_ids["a"]]],
+        integrity_constraint={
+            "kind": "literals",
+            "required": [atom_ids["a"]],
+            "forbidden": [atom_ids["a"]],
+        },
     )
 
 
