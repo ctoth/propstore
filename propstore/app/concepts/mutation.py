@@ -39,12 +39,12 @@ from propstore.families.concepts.stages import (
     parse_concept_record,
     parse_concept_record_document,
 )
-from propstore.families.claims.documents import ClaimsFileDocument
+from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
-from propstore.families.identity.claims import normalize_claim_file_payload
+from propstore.families.identity.claims import normalize_canonical_claim_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
-from propstore.families.registry import ClaimsFileRef, ConceptFileRef
+from propstore.families.registry import ClaimRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.semantic_passes.types import PipelineResult
@@ -790,6 +790,13 @@ def _rewrite_claim_conditions(
     claim_file_data: dict, old_name: str, new_name: str
 ) -> bool:
     changed = False
+    if "claims" not in claim_file_data:
+        rewritten, claim_changed = _rewrite_condition_list(
+            claim_file_data.get("conditions"), old_name, new_name
+        )
+        if claim_changed:
+            claim_file_data["conditions"] = rewritten
+        return claim_changed
     for claim in claim_file_data.get("claims", []) or []:
         if not isinstance(claim, dict):
             continue
@@ -806,8 +813,11 @@ def _concept_ref(concept_entry: LoadedConcept) -> ConceptFileRef:
     return ConceptFileRef(concept_entry.filename)
 
 
-def _claims_ref(claim_file: ClaimFileEntry) -> ClaimsFileRef:
-    return ClaimsFileRef(claim_file_filename(claim_file))
+def _claims_ref(claim_file: ClaimFileEntry) -> ClaimRef:
+    artifact_id = claim_file.document.artifact_id
+    if not isinstance(artifact_id, str) or not artifact_id:
+        artifact_id = claim_file_filename(claim_file)
+    return ClaimRef(artifact_id)
 
 
 def _normalize_concept_data(
@@ -841,8 +851,8 @@ def _canonical_concept_document(
 
 
 def _claims_document(
-    repo: Repository, ref: ClaimsFileRef, data: dict
-) -> ClaimsFileDocument:
+    repo: Repository, ref: ClaimRef, data: dict
+) -> ClaimDocument:
     return repo.families.claims.coerce(
         data,
         source=repo.families.claims.address(ref).require_path(),
@@ -1307,15 +1317,15 @@ def rename_concept(
         for warning in concept_validation.warnings
     ]
 
-    updated_claim_files: list[tuple[ClaimsFileRef, ClaimFileEntry]] = []
-    changed_claim_refs: set[ClaimsFileRef] = set()
+    updated_claim_files: list[tuple[ClaimRef, ClaimFileEntry]] = []
+    changed_claim_refs: set[ClaimRef] = set()
     if claim_files:
         for claim_file in claim_files:
             claim_ref = _claims_ref(claim_file)
             claim_data = deepcopy(claim_file_payload(claim_file))
             if _rewrite_claim_conditions(claim_data, str(old_name), request.name):
                 changed_claim_refs.add(claim_ref)
-                claim_data, _ = normalize_claim_file_payload(claim_data)
+                claim_data = normalize_canonical_claim_payload(claim_data)
             updated_claim_files.append(
                 (
                     claim_ref,

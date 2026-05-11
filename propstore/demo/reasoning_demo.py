@@ -10,7 +10,7 @@ from propstore.families.identity.concepts import (
 )
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import (
-    ClaimsFileRef,
+    ClaimRef,
     ConceptFileRef,
     ContextRef,
     PredicateFileRef,
@@ -185,14 +185,17 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                 source=repo.families.contexts.address(context_ref).require_path(),
             ),
         )
-        claims_ref = ClaimsFileRef("reasoning_demo")
-        transaction.claims.save(
-            claims_ref,
-            transaction.claims.coerce(
-                claims_payload,
-                source=repo.families.claims.address(claims_ref).require_path(),
-            ),
-        )
+        source_payload = claims_payload["source"]
+        for claim_payload in claims_payload["claims"]:
+            claim_payload.setdefault("source", source_payload)
+            claims_ref = ClaimRef(str(claim_payload["artifact_id"]))
+            transaction.claims.save(
+                claims_ref,
+                transaction.claims.coerce(
+                    claim_payload,
+                    source=repo.families.claims.address(claims_ref).require_path(),
+                ),
+            )
         for payload in (stance_against_yes, stance_against_no):
             stance_ref = StanceRef(str(payload["artifact_code"]))
             transaction.stances.save(
