@@ -12,7 +12,7 @@ from hypothesis import strategies as st
 from propstore.families.identity.claims import derive_claim_artifact_id
 from propstore.merge.merge_classifier import IntegrityConstraint, build_merge_framework
 from propstore.storage import init_git_store
-from tests.ws_l_merge_helpers import claim_yaml, obs_claim, snapshot
+from tests.ws_l_merge_helpers import claim_payloads, obs_claim, snapshot
 
 
 def test_integrity_constraint_prunes_forbidden_artifact_ids(tmp_path) -> None:
@@ -21,11 +21,11 @@ def test_integrity_constraint_prunes_forbidden_artifact_ids(tmp_path) -> None:
     branch_name = "paper/right"
     kr.create_branch(branch_name, source_commit=base_sha)
     kr.commit_files(
-        {"claims/left.yaml": claim_yaml([obs_claim("left", "Left", ["concept_left"])])},
+        claim_payloads(kr, [obs_claim("left", "Left", ["concept_left"])]),
         "left",
     )
     kr.commit_files(
-        {"claims/right.yaml": claim_yaml([obs_claim("right", "Right", ["concept_right"])])},
+        claim_payloads(kr, [obs_claim("right", "Right", ["concept_right"])]),
         "right",
         branch=branch_name,
     )
@@ -64,16 +64,16 @@ def test_nary_merge_profile_preserves_disjoint_branch_additions(
         kr.create_branch(right_branch, source_commit=base_sha)
         kr.create_branch(third_branch, source_commit=base_sha)
         kr.commit_files(
-            {"claims/left.yaml": claim_yaml([obs_claim(left_name, "Left", ["concept_left"])])},
+            claim_payloads(kr, [obs_claim(left_name, "Left", ["concept_left"])]),
             "left",
         )
         kr.commit_files(
-            {"claims/right.yaml": claim_yaml([obs_claim(right_name, "Right", ["concept_right"])])},
+            claim_payloads(kr, [obs_claim(right_name, "Right", ["concept_right"])]),
             "right",
             branch=right_branch,
         )
         kr.commit_files(
-            {"claims/third.yaml": claim_yaml([obs_claim(third_name, "Third", ["concept_third"])])},
+            claim_payloads(kr, [obs_claim(third_name, "Third", ["concept_third"])]),
             "third",
             branch=third_branch,
         )
