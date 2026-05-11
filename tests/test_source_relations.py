@@ -71,6 +71,15 @@ def _init_source(runner: CliRunner, repo: Repository, name: str) -> None:
     assert result.exit_code == 0, result.output
 
 
+def _promoted_claims(repo: Repository, source_name: str) -> list[dict]:
+    claims: list[dict] = []
+    for handle in repo.families.claims.iter_handles():
+        source = handle.document.source
+        if source is not None and source.paper == source_name:
+            claims.append(handle.document.to_payload())
+    return claims
+
+
 def _seed_master_concept(repo: Repository, *, name: str, form: str = "structural") -> str:
     concept = normalize_concept_payloads(
         [
@@ -1030,8 +1039,7 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     )
     assert promote.exit_code == 0, promote.output
 
-    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
-    promoted_claims = claims_doc["claims"]
+    promoted_claims = _promoted_claims(repo, "demo")
     parameter_claim = next(claim for claim in promoted_claims if claim["type"] == "parameter")
     observation_claim = next(claim for claim in promoted_claims if claim["type"] == "observation")
     assert parameter_claim["output_concept"] == canonical_concept_id
@@ -1149,8 +1157,7 @@ def test_source_promote_materializes_unique_proposed_concepts(tmp_path: Path) ->
     assert concept_doc["artifact_id"].startswith("ps:concept:")
     assert concept_doc["version_id"].startswith("sha256:")
 
-    claims_doc = yaml.safe_load(repo.git.read_file("claims/demo.yaml"))
-    promoted_claim = claims_doc["claims"][0]
+    promoted_claim = _promoted_claims(repo, "demo")[0]
     assert promoted_claim["concepts"] == [concept_doc["artifact_id"]]
 
 
