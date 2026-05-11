@@ -5,6 +5,7 @@ from pathlib import Path
 
 import yaml
 
+from propstore.families.registry import MicropublicationRef
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
@@ -43,6 +44,7 @@ def test_micropublication_missing_claim_quarantines_not_raises(
     )
     included_claim_id = claim_payload["claims"][0]["artifact_id"]
     missing_claim_id = "ps:claim:missing-micropub"
+    micropub_id = "ps:micropub:bad-claim"
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.commit_files(
         {
@@ -62,25 +64,21 @@ def test_micropublication_missing_claim_quarantines_not_raises(
                 {"id": "ctx_test", "name": "Test context"},
                 sort_keys=False,
             ).encode(),
-            "micropubs/bad_claim.yaml": yaml.dump(
+            repo.families.micropubs.address(MicropublicationRef(micropub_id)).require_path(): yaml.dump(
                 {
-                    "micropubs": [
+                    "artifact_id": micropub_id,
+                    "context": {"id": "ctx_test"},
+                    "claims": [included_claim_id, missing_claim_id],
+                    "evidence": [
                         {
-                            "artifact_id": "ps:micropub:bad-claim",
-                            "context": {"id": "ctx_test"},
-                            "claims": [included_claim_id, missing_claim_id],
-                            "evidence": [
-                                {
-                                    "kind": "paper_page",
-                                    "reference": "micropublication_claim:1",
-                                }
-                            ],
-                            "provenance": {
-                                "paper": "micropublication_claim",
-                                "page": 1,
-                            },
+                            "kind": "paper_page",
+                            "reference": "micropublication_claim:1",
                         }
-                    ]
+                    ],
+                    "provenance": {
+                        "paper": "micropublication_claim",
+                        "page": 1,
+                    },
                 },
                 sort_keys=False,
             ).encode(),
