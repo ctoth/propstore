@@ -113,12 +113,18 @@ def _materialize_claim_fixture_batches(repo: Repository) -> None:
         if not isinstance(data.get("claims"), list):
             continue
         normalized, _ = normalize_claim_file_payload(data)
-        batch = convert_document_value(
-            normalized,
-            ClaimsFileDocument,
-            source=path.as_posix(),
+        batch = LoadedDocument(
+            filename=path.name,
+            artifact_path=path,
+            store_root=repo.root,
+            document=convert_document_value(
+                normalized,
+                ClaimsFileDocument,
+                source=path.as_posix(),
+            ),
         )
-        for claim in batch.claims:
+        for loaded in expand_loaded_claim_batch(batch):
+            claim = loaded.document
             artifact_id = claim.artifact_id
             if artifact_id is None:
                 raise ValueError(f"{path.as_posix()}: normalized claim is missing artifact_id")
