@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from belief_set import Atom, TOP, disjunction
@@ -7,10 +9,12 @@ from belief_set import Atom, TOP, disjunction
 from propstore.support_revision.belief_set_adapter import decide_ic_merge, decide_ic_merge_profile
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
-from propstore.support_revision.history import JournalOperator
+from propstore.support_revision.history import JournalOperator, TransitionJournal, TransitionOperation
 from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.realization import realize_ic_merge_decision
 from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionMergeRequiredFailure, RevisionScope
+from propstore.worldline.definition import WorldlineRevisionQuery
+from tests.fixtures.journal import make_journal_entry
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 
 
@@ -219,6 +223,97 @@ def test_unrealizable_merge_failure_is_replayable_as_failure() -> None:
     assert first.value.event.content_hash == second.value.event.content_hash
 
 
+def test_ic_merge_journal_replay_reconstructs_realized_state() -> None:
+    journal = _realizable_ic_merge_journal()
+
+    replayed = journal.replay()
+
+    assert replayed.ok
+    assert not replayed.errors
+    assert not replayed.divergences
+
+
+def test_ic_merge_replay_rejects_profile_drift() -> None:
+    journal = _realizable_ic_merge_journal()
+    entry = journal.entries[0]
+    drifted_input = dict(entry.operator_input)
+    drifted_input["profile_atom_ids"] = [[entry.operation.target_atom_ids[0]]]
+    drifted = TransitionJournal(entries=(replace(entry, operator_input=drifted_input),))
+
+    replayed = drifted.replay()
+
+    assert not replayed.ok
+    assert replayed.errors or replayed.divergences
+
+
+def test_ic_merge_replay_rejects_integrity_constraint_drift() -> None:
+    journal = _realizable_ic_merge_journal()
+    entry = journal.entries[0]
+    drifted_input = dict(entry.operator_input)
+    drifted_input["integrity_constraint"] = {
+        "kind": "literals",
+        "required": [entry.operation.target_atom_ids[1]],
+        "forbidden": [entry.operation.target_atom_ids[0]],
+    }
+    drifted = TransitionJournal(entries=(replace(entry, operator_input=drifted_input),))
+
+    replayed = drifted.replay()
+
+    assert not replayed.ok
+    assert replayed.errors or replayed.divergences
+
+
+def test_ic_merge_replay_rejects_policy_drift_before_semantic_replay() -> None:
+    journal = _realizable_ic_merge_journal()
+    entry = journal.entries[0]
+    drifted = TransitionJournal(
+        entries=(
+            replace(
+                entry,
+                version_policy_snapshot={
+                    **entry.version_policy_snapshot,
+                    "revision_policy_version": "revision.v2",
+                },
+            ),
+        )
+    )
+
+    replayed = drifted.replay()
+
+    assert not replayed.ok
+    assert replayed.errors
+    assert "policy snapshot mismatch" in replayed.errors[0]
+
+
+def test_worldline_capture_serializes_ic_merge_event() -> None:
+    state, atom_ids = _merge_state()
+    query = WorldlineRevisionQuery.from_dict({
+        "operation": "ic_merge",
+        "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
+        "integrity_constraint": {
+            "kind": "literals",
+            "required": [atom_ids["a"]],
+            "forbidden": [atom_ids["b"]],
+        },
+        "merge_parent_commits": ["left", "right"],
+        "merge_operator": "sigma",
+        "max_alphabet_size": 8,
+    })
+    assert query is not None
+
+    journal = _capture_journal_for(state, (query,))
+
+    payload = journal.to_dict()
+    entry = payload["entries"][0]
+    assert entry["operator"] == "ic_merge"
+    assert entry["operator_input"]["merge_parent_commits"] == ["left", "right"]
+    assert entry["operator_input"]["integrity_constraint"]["required"] == [atom_ids["a"]]
+    event = entry["normalized_state_out"]["history"][-1]["event"]
+    assert event["operation"] == "ic_merge"
+    assert event["decision"]["trace"]["merge_operator"] == "sigma"
+    assert event["realization"]["rejected_atom_ids"] == [atom_ids["b"]]
+
+
 def _dispatch_realizable_merge(state, atom_ids: dict[str, str]):
     return _dispatch_merge(
         state,
@@ -255,6 +350,53 @@ def _dispatch_unsatisfiable_merge(state, atom_ids: dict[str, str]):
             "forbidden": [atom_ids["a"]],
         },
     )
+
+
+def _realizable_ic_merge_journal() -> TransitionJournal:
+    state, atom_ids = _merge_state()
+    operator_input = {
+        "profile_atom_ids": [[atom_ids["a"]], [atom_ids["b"]]],
+        "merge_parent_commits": ["left", "right"],
+        "integrity_constraint": {
+            "kind": "literals",
+            "required": [atom_ids["a"]],
+            "forbidden": [atom_ids["b"]],
+        },
+        "merge_operator": "sigma",
+        "max_alphabet_size": 8,
+    }
+    state_out = dispatch(
+        JournalOperator.IC_MERGE,
+        state_in=state.to_canonical_dict(),
+        operator_input=operator_input,
+        policy=_POLICY,
+    )
+    return TransitionJournal(
+        entries=(
+            make_journal_entry(
+                state_in=state,
+                operation=TransitionOperation(
+                    name="ic_merge",
+                    target_atom_ids=(atom_ids["a"], atom_ids["b"]),
+                    parameters=operator_input,
+                ),
+                operator=JournalOperator.IC_MERGE,
+                operator_input=operator_input,
+                state_out=state_out,
+                policy=_POLICY,
+            ),
+        )
+    )
+
+
+def _capture_journal_for(state, queries):
+    from propstore.worldline.revision_capture import capture_journal
+
+    class _Bound:
+        def epistemic_state(self):
+            return state
+
+    return capture_journal(_Bound(), queries, policy_id="policy:revision/default")
 
 
 def _merge_state():
