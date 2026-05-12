@@ -52,6 +52,11 @@ def _promoted_claims(repo: Repository):
 def _save_source(repo: Repository, source_name: str, concepts_payload: dict, claims_payload: dict | None = None) -> None:
     branch = source_branch_name(source_name)
     repo.snapshot.ensure_branch(branch)
+    for concept in concepts_payload.get("concepts", ()):
+        if isinstance(concept, dict) and isinstance(concept.get("form"), str):
+            _seed_form_via_git(repo, concept["form"])
+    if claims_payload is not None:
+        _seed_master_context_via_git(repo)
 
     source_doc = initial_source_document(
         repo,
@@ -456,6 +461,11 @@ def _seed_master_concept_via_git(repo: Repository, name: str) -> str:
 
 
 def _seed_master_context_via_git(repo: Repository, name: str = "ctx_test") -> None:
+    try:
+        repo.git.read_file(f"contexts/{name}.yaml")
+        return
+    except FileNotFoundError:
+        pass
     repo.git.commit_batch(
         adds={
             f"contexts/{name}.yaml": yaml.safe_dump(
@@ -474,18 +484,30 @@ def _seed_master_context_via_git(repo: Repository, name: str = "ctx_test") -> No
     )
 
 
-def _seed_structural_form_via_git(repo: Repository) -> None:
+def _seed_form_via_git(repo: Repository, name: str) -> None:
+    try:
+        repo.git.read_file(f"forms/{name}.yaml")
+        return
+    except FileNotFoundError:
+        pass
     repo.git.commit_batch(
         adds={
-            "forms/structural.yaml": yaml.safe_dump(
-                {"name": "structural", "dimensionless": True},
+            f"forms/{name}.yaml": yaml.safe_dump(
+                {
+                    "name": name,
+                    "dimensionless": name in {"boolean", "category", "scalar", "structural"},
+                },
                 sort_keys=False,
             ).encode("utf-8")
         },
         deletes=[],
-        message="Seed structural form",
+        message=f"Seed {name} form",
         branch="master",
     )
+
+
+def _seed_structural_form_via_git(repo: Repository) -> None:
+    _seed_form_via_git(repo, "structural")
 
 
 def _setup_source_with_partial_validity(
