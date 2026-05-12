@@ -1,9 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from quire.artifacts import (
@@ -1030,68 +1028,36 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
 )
 
 
-def _metadata(family: FamilyDefinition[Any, Any, Any, Any]) -> Mapping[str, object]:
-    return family.metadata or {}
-
-
-def _is_semantic_family(family: FamilyDefinition[Any, Any, Any, Any]) -> bool:
-    return _metadata(family).get("semantic") is True
-
-
 def _semantic_import_order(family: FamilyDefinition[Any, Any, Any, Any]) -> int:
-    value = _metadata(family).get("import_order", 100)
+    value = family.metadata_value("import_order", 100)
     return value if isinstance(value, int) else 100
 
 
 def _semantic_init_directory(family: FamilyDefinition[Any, Any, Any, Any]) -> bool:
-    return _metadata(family).get("init_directory") is not False
+    return family.metadata_value("init_directory") is not False
 
 
 def _semantic_importable(family: FamilyDefinition[Any, Any, Any, Any]) -> bool:
-    return _metadata(family).get("importable") is True
-
-
-def _semantic_root(family: FamilyDefinition[Any, Any, Any, Any]) -> str:
-    placement_body = family.artifact_family.placement.contract_body()
-    namespace = placement_body.get("namespace")
-    if not isinstance(namespace, str) or not namespace:
-        raise ValueError(f"family {family.name!r} does not use a namespace placement")
-    return namespace
+    return family.metadata_value("importable") is True
 
 
 def semantic_families() -> tuple[FamilyDefinition[Any, Any, Any, Any], ...]:
-    return tuple(family for family in PROPSTORE_FAMILY_REGISTRY.families if _is_semantic_family(family))
-
-
-def semantic_family_names() -> tuple[str, ...]:
-    return tuple(family.name for family in semantic_families())
+    return PROPSTORE_FAMILY_REGISTRY.select_by_metadata("semantic", True)
 
 
 def semantic_family_by_name(name: str) -> FamilyDefinition[Any, Any, Any, Any]:
     family = PROPSTORE_FAMILY_REGISTRY.by_name(name)
-    if not _is_semantic_family(family):
+    if family.metadata_value("semantic") is not True:
         raise KeyError(f"not a semantic family: {name}")
     return family
 
 
-def semantic_family_by_root(root: str) -> FamilyDefinition[Any, Any, Any, Any]:
-    for family in semantic_families():
-        if _semantic_root(family) == root:
-            return family
-    raise KeyError(f"unknown semantic family root: {root}")
-
-
-def semantic_family_for_path(path: str | Path) -> FamilyDefinition[Any, Any, Any, Any]:
-    normalized = str(path).replace("\\", "/")
-    return semantic_family_by_root(normalized.split("/", 1)[0])
-
-
 def semantic_init_roots() -> tuple[str, ...]:
-    return tuple(_semantic_root(family) for family in semantic_families() if _semantic_init_directory(family))
+    return tuple(family.storage_root() for family in semantic_families() if _semantic_init_directory(family))
 
 
 def semantic_import_roots() -> tuple[str, ...]:
-    return tuple(_semantic_root(family) for family in semantic_import_families())
+    return tuple(family.storage_root() for family in semantic_import_families())
 
 
 def semantic_import_families() -> tuple[FamilyDefinition[Any, Any, Any, Any], ...]:
@@ -1106,16 +1072,6 @@ def semantic_import_families() -> tuple[FamilyDefinition[Any, Any, Any, Any], ..
 def semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
     specs = [spec for family in semantic_families() for spec in family.foreign_keys]
     return tuple(sorted(specs, key=lambda spec: spec.name))
-
-
-def semantic_root_path(name: str, tree_or_repo: object) -> Path:
-    root = _semantic_root(semantic_family_by_name(name))
-    if isinstance(tree_or_repo, Path):
-        return tree_or_repo / root
-    repo_root = getattr(tree_or_repo, "root", None)
-    if isinstance(repo_root, Path):
-        return repo_root / root
-    raise TypeError(f"cannot resolve semantic root for {type(tree_or_repo).__name__}")
 
 
 def semantic_address_path(name: str, repo: Repository, ref: object) -> SemanticFamilyAddress:
