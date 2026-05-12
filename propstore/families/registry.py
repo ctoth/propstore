@@ -279,20 +279,6 @@ CONCEPT_PLACEMENT = FlatYamlPlacement["Repository", ConceptFileRef](
     ref_field="name",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-SOURCE_DOCUMENT_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("source.yaml", branch=SOURCE_BRANCH)
-SOURCE_NOTES_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("notes.md", branch=SOURCE_BRANCH)
-SOURCE_METADATA_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("metadata.json", branch=SOURCE_BRANCH)
-SOURCE_CONCEPTS_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("concepts.yaml", branch=SOURCE_BRANCH)
-SOURCE_CLAIMS_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("claims.yaml", branch=SOURCE_BRANCH)
-SOURCE_MICROPUBS_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("micropubs.yaml", branch=SOURCE_BRANCH)
-SOURCE_JUSTIFICATIONS_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("justifications.yaml", branch=SOURCE_BRANCH)
-SOURCE_STANCES_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("stances.yaml", branch=SOURCE_BRANCH)
-SOURCE_FINALIZE_REPORT_PLACEMENT = TemplateFilePlacement["Repository", SourceRef](
-    "merge/finalize/{stem}.yaml",
-    ref_field="name",
-    codec="safe_slug",
-    branch=SOURCE_BRANCH,
-)
 CANONICAL_SOURCE_PLACEMENT = FlatYamlPlacement["Repository", CanonicalSourceRef](
     "sources",
     CanonicalSourceRef,
@@ -307,40 +293,6 @@ MICROPUBLICATION_PLACEMENT = HashScatteredYamlPlacement["Repository", Micropubli
     filename_mode="encoded_ref",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-PROPOSAL_STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
-    "stances",
-    StanceRef,
-    ref_field="artifact_id",
-    codec="colon_to_double_underscore",
-    branch=PROPOSAL_STANCE_BRANCH,
-)
-PROPOSAL_PREDICATE_PLACEMENT = SubdirFixedFilePlacement["Repository", PredicateProposalRef](
-    namespace="predicates",
-    filename="declarations.yaml",
-    ref_factory=PredicateProposalRef,
-    ref_field="source_paper",
-    branch=PROPOSAL_PREDICATE_BRANCH,
-)
-PROPOSAL_RULE_PLACEMENT = NestedFlatYamlPlacement["Repository", RuleProposalRef](
-    namespace="rules",
-    ref_factory=RuleProposalRef,
-    dir_ref_field="source_paper",
-    stem_ref_field="rule_id",
-    branch=PROPOSAL_RULE_BRANCH,
-)
-CONCEPT_ALIGNMENT_PLACEMENT = FlatYamlPlacement["Repository", ConceptAlignmentRef](
-    "merge/concepts",
-    ConceptAlignmentRef,
-    ref_field="slug",
-    branch=PROPOSAL_CONCEPT_BRANCH,
-)
-MERGE_MANIFEST_PLACEMENT = SingletonFilePlacement["Repository", MergeManifestRef](
-    "merge/manifest.yaml",
-    ref_factory=MergeManifestRef,
-    branch=PRIMARY_ARTIFACT_BRANCH,
-)
-
-
 CLAIM_FAMILY = ArtifactFamily["Repository", ClaimRef, ClaimDocument](
     name="claim",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -359,80 +311,6 @@ CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocume
     normalize_for_write=normalize_concept_document_for_write,
 )
 
-SOURCE_DOCUMENT_FAMILY = ArtifactFamily["Repository", SourceRef, SourceDocument](
-    name="source_document",
-    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SourceDocument,
-    placement=SOURCE_DOCUMENT_PLACEMENT,
-)
-
-SOURCE_NOTES_FAMILY = ArtifactFamily["Repository", SourceRef, str](
-    name="source_notes",
-    contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=str,
-    placement=SOURCE_NOTES_PLACEMENT,
-    coerce_payload=coerce_text_document,
-    decode_bytes=decode_text_document,
-    encode_document=encode_text_document,
-    render_document=identity_text_document,
-    document_payload=identity_text_document,
-)
-
-SOURCE_METADATA_FAMILY = ArtifactFamily["Repository", SourceRef, dict[str, Any]](
-    name="source_metadata",
-    contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=dict,
-    placement=SOURCE_METADATA_PLACEMENT,
-    coerce_payload=coerce_json_mapping,
-    decode_bytes=decode_json_mapping,
-    encode_document=encode_json_mapping,
-    render_document=render_json_mapping,
-    document_payload=identity_json_mapping,
-)
-
-SOURCE_CONCEPTS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceConceptsDocument](
-    name="source_concepts",
-    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SourceConceptsDocument,
-    placement=SOURCE_CONCEPTS_PLACEMENT,
-)
-
-SOURCE_CLAIMS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceClaimsDocument](
-    name="source_claims",
-    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SourceClaimsDocument,
-    placement=SOURCE_CLAIMS_PLACEMENT,
-)
-
-
-SOURCE_MICROPUBS_FAMILY = ArtifactFamily["Repository", SourceRef, MicropublicationsFileDocument](
-    name="source_micropubs",
-    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=MicropublicationsFileDocument,
-    placement=SOURCE_MICROPUBS_PLACEMENT,
-)
-
-SOURCE_JUSTIFICATIONS_FAMILY = ArtifactFamily["Repository", SourceRef, SourceJustificationsDocument](
-    name="source_justifications",
-    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SourceJustificationsDocument,
-    placement=SOURCE_JUSTIFICATIONS_PLACEMENT,
-)
-
-SOURCE_STANCES_FAMILY = ArtifactFamily["Repository", SourceRef, SourceStancesDocument](
-    name="source_stances",
-    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SourceStancesDocument,
-    placement=SOURCE_STANCES_PLACEMENT,
-)
-
-SOURCE_FINALIZE_REPORT_FAMILY = ArtifactFamily["Repository", SourceRef, SourceFinalizeReportDocument](
-    name="source_finalize_report",
-    contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SourceFinalizeReportDocument,
-    placement=SOURCE_FINALIZE_REPORT_PLACEMENT,
-)
-
 CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, SourceDocument](
     name="canonical_source",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -447,44 +325,6 @@ MICROPUBLICATION_FAMILY = ArtifactFamily["Repository", MicropublicationRef, Micr
     doc_type=MicropublicationDocument,
     placement=MICROPUBLICATION_PLACEMENT,
 )
-
-PROPOSAL_STANCE_FAMILY = ArtifactFamily["Repository", StanceRef, StanceDocument](
-    name="proposal_stance",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=StanceDocument,
-    placement=PROPOSAL_STANCE_PLACEMENT,
-)
-
-PROPOSAL_PREDICATES_FAMILY = ArtifactFamily[
-    "Repository", PredicateProposalRef, PredicateProposalDocument
-](
-    name="proposal_predicates",
-    contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=PredicateProposalDocument,
-    placement=PROPOSAL_PREDICATE_PLACEMENT,
-)
-
-PROPOSAL_RULES_FAMILY = ArtifactFamily["Repository", RuleProposalRef, RuleProposalDocument](
-    name="proposal_rules",
-    contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=RuleProposalDocument,
-    placement=PROPOSAL_RULE_PLACEMENT,
-)
-
-CONCEPT_ALIGNMENT_FAMILY = ArtifactFamily["Repository", ConceptAlignmentRef, ConceptAlignmentArtifactDocument](
-    name="concept_alignment",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=ConceptAlignmentArtifactDocument,
-    placement=CONCEPT_ALIGNMENT_PLACEMENT,
-)
-
-MERGE_MANIFEST_FAMILY = ArtifactFamily["Repository", MergeManifestRef, MergeManifestDocument](
-    name="merge_manifest",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=MergeManifestDocument,
-    placement=MERGE_MANIFEST_PLACEMENT,
-)
-
 
 CLAIM_FOREIGN_KEYS = (
     ForeignKeySpec(
@@ -892,90 +732,160 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             identity_field="artifact_code",
             reference_keys=(ReferenceKey.field("id"),),
         ).to_definition(),
-        FamilyDefinition(
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_DOCUMENTS,
             name=PropstoreFamily.SOURCE_DOCUMENTS.value,
-            contract_version=SOURCE_DOCUMENT_FAMILY.contract_version,
-            artifact_family=SOURCE_DOCUMENT_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_document",
+            doc_type=SourceDocument,
+            placement=FixedFilePlacement("source.yaml", branch=SOURCE_BRANCH),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_NOTES,
             name=PropstoreFamily.SOURCE_NOTES.value,
-            contract_version=SOURCE_NOTES_FAMILY.contract_version,
-            artifact_family=SOURCE_NOTES_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_notes",
+            doc_type=str,
+            placement=FixedFilePlacement("notes.md", branch=SOURCE_BRANCH),
+            coerce_payload=coerce_text_document,
+            decode_bytes=decode_text_document,
+            encode_document=encode_text_document,
+            render_document=identity_text_document,
+            document_payload=identity_text_document,
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_METADATA,
             name=PropstoreFamily.SOURCE_METADATA.value,
-            contract_version=SOURCE_METADATA_FAMILY.contract_version,
-            artifact_family=SOURCE_METADATA_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_metadata",
+            doc_type=dict,
+            placement=FixedFilePlacement("metadata.json", branch=SOURCE_BRANCH),
+            coerce_payload=coerce_json_mapping,
+            decode_bytes=decode_json_mapping,
+            encode_document=encode_json_mapping,
+            render_document=render_json_mapping,
+            document_payload=identity_json_mapping,
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_CONCEPTS,
             name=PropstoreFamily.SOURCE_CONCEPTS.value,
-            contract_version=SOURCE_CONCEPTS_FAMILY.contract_version,
-            artifact_family=SOURCE_CONCEPTS_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_concepts",
+            doc_type=SourceConceptsDocument,
+            placement=FixedFilePlacement("concepts.yaml", branch=SOURCE_BRANCH),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_CLAIMS,
             name=PropstoreFamily.SOURCE_CLAIMS.value,
-            contract_version=SOURCE_CLAIMS_FAMILY.contract_version,
-            artifact_family=SOURCE_CLAIMS_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_claims",
+            doc_type=SourceClaimsDocument,
+            placement=FixedFilePlacement("claims.yaml", branch=SOURCE_BRANCH),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_MICROPUBS,
             name=PropstoreFamily.SOURCE_MICROPUBS.value,
-            contract_version=SOURCE_MICROPUBS_FAMILY.contract_version,
-            artifact_family=SOURCE_MICROPUBS_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_micropubs",
+            doc_type=MicropublicationsFileDocument,
+            placement=FixedFilePlacement("micropubs.yaml", branch=SOURCE_BRANCH),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_JUSTIFICATIONS,
             name=PropstoreFamily.SOURCE_JUSTIFICATIONS.value,
-            contract_version=SOURCE_JUSTIFICATIONS_FAMILY.contract_version,
-            artifact_family=SOURCE_JUSTIFICATIONS_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_justifications",
+            doc_type=SourceJustificationsDocument,
+            placement=FixedFilePlacement("justifications.yaml", branch=SOURCE_BRANCH),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_STANCES,
             name=PropstoreFamily.SOURCE_STANCES.value,
-            contract_version=SOURCE_STANCES_FAMILY.contract_version,
-            artifact_family=SOURCE_STANCES_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_stances",
+            doc_type=SourceStancesDocument,
+            placement=FixedFilePlacement("stances.yaml", branch=SOURCE_BRANCH),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SOURCE_FINALIZE_REPORTS,
             name=PropstoreFamily.SOURCE_FINALIZE_REPORTS.value,
-            contract_version=SOURCE_FINALIZE_REPORT_FAMILY.contract_version,
-            artifact_family=SOURCE_FINALIZE_REPORT_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="source_finalize_report",
+            doc_type=SourceFinalizeReportDocument,
+            placement=TemplateFilePlacement(
+                "merge/finalize/{stem}.yaml",
+                ref_field="name",
+                codec="safe_slug",
+                branch=SOURCE_BRANCH,
+            ),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.PROPOSAL_STANCES,
             name=PropstoreFamily.PROPOSAL_STANCES.value,
-            contract_version=PROPOSAL_STANCE_FAMILY.contract_version,
-            artifact_family=PROPOSAL_STANCE_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="proposal_stance",
+            doc_type=StanceDocument,
+            placement=FlatYamlPlacement(
+                "stances",
+                StanceRef,
+                ref_field="artifact_id",
+                codec="colon_to_double_underscore",
+                branch=PROPOSAL_STANCE_BRANCH,
+            ),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.PROPOSAL_PREDICATES,
             name=PropstoreFamily.PROPOSAL_PREDICATES.value,
-            contract_version=PROPOSAL_PREDICATES_FAMILY.contract_version,
-            artifact_family=PROPOSAL_PREDICATES_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="proposal_predicates",
+            doc_type=PredicateProposalDocument,
+            placement=SubdirFixedFilePlacement(
+                namespace="predicates",
+                filename="declarations.yaml",
+                ref_factory=PredicateProposalRef,
+                ref_field="source_paper",
+                branch=PROPOSAL_PREDICATE_BRANCH,
+            ),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.PROPOSAL_RULES,
             name=PropstoreFamily.PROPOSAL_RULES.value,
-            contract_version=PROPOSAL_RULES_FAMILY.contract_version,
-            artifact_family=PROPOSAL_RULES_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="proposal_rules",
+            doc_type=RuleProposalDocument,
+            placement=NestedFlatYamlPlacement(
+                namespace="rules",
+                ref_factory=RuleProposalRef,
+                dir_ref_field="source_paper",
+                stem_ref_field="rule_id",
+                branch=PROPOSAL_RULE_BRANCH,
+            ),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.CONCEPT_ALIGNMENTS,
             name=PropstoreFamily.CONCEPT_ALIGNMENTS.value,
-            contract_version=CONCEPT_ALIGNMENT_FAMILY.contract_version,
-            artifact_family=CONCEPT_ALIGNMENT_FAMILY,
-        ),
-        FamilyDefinition(
+            contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="concept_alignment",
+            doc_type=ConceptAlignmentArtifactDocument,
+            placement=FlatYamlPlacement(
+                "merge/concepts",
+                ConceptAlignmentRef,
+                ref_field="slug",
+                branch=PROPOSAL_CONCEPT_BRANCH,
+            ),
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.MERGE_MANIFESTS,
             name=PropstoreFamily.MERGE_MANIFESTS.value,
-            contract_version=MERGE_MANIFEST_FAMILY.contract_version,
-            artifact_family=MERGE_MANIFEST_FAMILY,
-        ),
+            contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="merge_manifest",
+            doc_type=MergeManifestDocument,
+            placement=SingletonFilePlacement(
+                "merge/manifest.yaml",
+                ref_factory=MergeManifestRef,
+                branch=PRIMARY_ARTIFACT_BRANCH,
+            ),
+        ).to_definition(),
     ),
 )
 
