@@ -19,6 +19,7 @@ from bridgman import mul_dims, div_dims, dims_equal, format_dims
 from bridgman import verify_expr, DimensionalError
 
 from quire.documents import load_document_dir
+from quire.references import FamilyReferenceIndex
 from propstore.claims import expand_loaded_claim_batch
 from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.core.conditions import check_condition_ir
@@ -57,7 +58,10 @@ from propstore.families.concepts.stages import (
     normalize_loaded_concepts,
     concept_payload_registry,
 )
-from propstore.compiler.references import build_claim_reference_lookup
+from propstore.compiler.context import (
+    CompilerClaimReference,
+    build_compiler_claim_index,
+)
 from propstore.families.registry import PropstoreFamily
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
@@ -239,20 +243,18 @@ def _validate_lemon_document(
         )
 
 
-def _load_claim_reference_lookup(
+def _load_claim_reference_index(
     claims_dir: KnowledgePath | None,
-) -> Mapping[str, tuple[str, ...]]:
+) -> FamilyReferenceIndex[CompilerClaimReference]:
     """Load claim artifact and logical reference keys from claim YAML files."""
     if claims_dir is None:
-        return {}
+        return build_compiler_claim_index(())
     claim_files = [
         claim_file
         for batch in load_document_dir(claims_dir, ClaimsFileDocument)
         for claim_file in expand_loaded_claim_batch(batch)
     ]
-    return build_claim_reference_lookup(
-        claim_files
-    )
+    return build_compiler_claim_index(claim_files)
 
 
 def _validate_logical_ids(
@@ -327,7 +329,7 @@ def _check_concepts(
     *,
     forms_dir: KnowledgePath | None = None,
     form_registry: Mapping[str, FormDefinition] | None = None,
-    claim_reference_lookup: Mapping[str, tuple[str, ...]] | None = None,
+    claim_index: FamilyReferenceIndex[CompilerClaimReference] | None = None,
 ) -> _ConceptCheckResult:
     """Run all compiler contract validation checks.
 
@@ -338,7 +340,7 @@ def _check_concepts(
             against the claim IDs found in claim files.
         form_registry: Preloaded form definitions. Repository workflows pass
             this instead of loading from a forms directory.
-        claim_reference_lookup: Preloaded claim reference lookup. Repository
+        claim_index: Preloaded claim reference index. Repository
             workflows pass this instead of enumerating a claims directory.
         forms_dir: Optional explicit forms root. When omitted, concepts must
             carry ``knowledge_root`` metadata so the validator can resolve
@@ -378,10 +380,10 @@ def _check_concepts(
             return dict(form_def.dimensions)
         return {} if form_def.is_dimensionless else None
 
-    loaded_claim_reference_lookup = (
-        _load_claim_reference_lookup(claims_dir)
-        if claim_reference_lookup is None
-        else claim_reference_lookup
+    loaded_claim_index = (
+        _load_claim_reference_index(claims_dir)
+        if claim_index is None
+        else claim_index
     )
 
     for c in concepts:
@@ -718,21 +720,17 @@ def _check_concepts(
             # canonical_claim must reference an existing claim
             canonical_claim = param.get("canonical_claim")
             if canonical_claim:
-                if claim_reference_lookup is None and claims_dir is None:
+                if claim_index is None and claims_dir is None:
                     # No claims_dir provided — can't validate, emit error
                     result.errors.append(
                         f"{c.filename}: canonical_claim '{canonical_claim}' "
                         f"cannot be validated (no claims directory provided)")
                 else:
-                    claim_candidates = loaded_claim_reference_lookup.get(str(canonical_claim), ())
-                    if len(claim_candidates) == 0:
+                    claim_id = loaded_claim_index.resolve_id(str(canonical_claim))
+                    if claim_id is None:
                         result.errors.append(
                             f"{c.filename}: canonical_claim '{canonical_claim}' "
                             f"not found in claim files")
-                    elif len(claim_candidates) > 1:
-                        result.errors.append(
-                            f"{c.filename}: canonical_claim '{canonical_claim}' "
-                            f"is ambiguous in claim files")
 
             # Warning: missing sympy
             if not param.get("sympy"):
@@ -770,7 +768,7 @@ class ConceptPipelineContext:
     claims_dir: KnowledgePath | None = None
     forms_dir: KnowledgePath | None = None
     form_registry: Mapping[str, FormDefinition] | None = None
-    claim_reference_lookup: Mapping[str, tuple[str, ...]] | None = None
+    claim_index: FamilyReferenceIndex[CompilerClaimReference] | None = None
 
 
 class ConceptNormalizePass:
@@ -832,7 +830,7 @@ class ConceptSemanticCheckPass:
             claims_dir=pipeline_context.claims_dir,
             forms_dir=pipeline_context.forms_dir,
             form_registry=pipeline_context.form_registry,
-            claim_reference_lookup=pipeline_context.claim_reference_lookup,
+            claim_index=pipeline_context.claim_index,
         )
         diagnostics = [
             _diagnostic("warning", "concept.warning", warning)
