@@ -4,14 +4,9 @@ from __future__ import annotations
 
 import yaml
 
-from quire.references import CrossFamilyReferenceIndex
-
 from propstore.families.claims.passes import compile_claim_files, run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
-from propstore.compiler.references import (
-    foreign_keys_from_context,
-    iter_semantic_foreign_keys,
-)
+from propstore.families.registry import semantic_foreign_keys
 from tests.family_helpers import build_compilation_context_from_paths, load_claim_files
 from propstore.sidecar.claim_utils import prepare_claim_insert_row
 from tests.conftest import (
@@ -58,9 +53,10 @@ def test_build_compilation_context_from_paths_keeps_canonical_records_and_lookup
 
     assert artifact_id in context.concepts_by_id
     assert context.concepts_by_id[artifact_id].canonical_name == "fundamental_frequency"
-    assert context.concept_lookup["F0"] == (artifact_id,)
-    assert context.concept_lookup["fundamental_frequency"] == (artifact_id,)
-    assert context.concept_lookup[logical_id] == (artifact_id,)
+    assert context.concept_index.resolve_id("F0") == artifact_id
+    assert context.concept_index.resolve_id("fundamental_frequency") == artifact_id
+    assert context.concept_index.resolve_id(logical_id) == artifact_id
+    assert not hasattr(context, "concept_lookup")
     assert not hasattr(context, "legacy_concept_registry")
 
 
@@ -162,7 +158,7 @@ def test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stanc
     assert semantic_claim.stances[0].target_ref.resolved_id == target_claim_id
 
 
-def test_compilation_context_exposes_quire_cross_family_foreign_key_index(tmp_path):
+def test_compilation_context_exposes_quire_reference_indexes(tmp_path):
     claims_dir = tmp_path / "claims"
     claims_dir.mkdir()
 
@@ -175,17 +171,15 @@ def test_compilation_context_exposes_quire_cross_family_foreign_key_index(tmp_pa
 
     files = load_claim_files(claims_dir)
     context = make_compilation_context(make_concept_registry(), claim_files=files)
-    references = foreign_keys_from_context(context)
     claim_logical_id = (
         f"{payload['claims'][0]['logical_ids'][0]['namespace']}:"
         f"{payload['claims'][0]['logical_ids'][0]['value']}"
     )
 
-    assert isinstance(references, CrossFamilyReferenceIndex)
-    assert references.exists("concept", "F0")
-    assert references.exists("claim", claim_logical_id)
-    assert references.resolve_id("claim", claim_logical_id) == payload["claims"][0]["artifact_id"]
-    assert {spec.name for spec in iter_semantic_foreign_keys()} >= {
+    assert context.concept_index.exists("F0")
+    assert context.claim_index.exists(claim_logical_id)
+    assert context.claim_index.resolve_id(claim_logical_id) == payload["claims"][0]["artifact_id"]
+    assert {spec.name for spec in semantic_foreign_keys()} >= {
         "claim_stance_target",
         "concept_parameterization_canonical_claim",
     }
