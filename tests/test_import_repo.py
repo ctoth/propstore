@@ -18,7 +18,9 @@ from tests.conftest import (
     attach_claim_version_id,
     make_claim_identity,
     make_concept_identity,
+    make_test_context_commit_entry,
     normalize_claims_payload,
+    normalize_concept_payloads,
 )
 
 
@@ -36,6 +38,40 @@ SEMANTIC_DIRS = (
 
 def _init_project(root: Path) -> Repository:
     return Repository.init(root / "knowledge")
+
+
+def _structural_form_commit_entry() -> tuple[str, bytes]:
+    return (
+        "forms/structural.yaml",
+        yaml.safe_dump({"name": "structural", "dimensionless": True}).encode("utf-8"),
+    )
+
+
+def _canonical_concept_yaml(local_id: str, *, domain: str = "propstore") -> bytes:
+    return yaml.safe_dump(
+        normalize_concept_payloads(
+            [
+                {
+                    "id": local_id,
+                    "canonical_name": local_id,
+                    "status": "proposed",
+                    "definition": local_id,
+                    "domain": domain,
+                    "form": "structural",
+                }
+            ],
+            default_domain=domain,
+        )[0],
+        sort_keys=False,
+    ).encode()
+
+
+def _context_commit_entries(context_id: str = TEST_CONTEXT_ID) -> dict[str, bytes]:
+    return dict([make_test_context_commit_entry(context_id)])
+
+
+def _structural_form_commit_entries() -> dict[str, bytes]:
+    return dict([_structural_form_commit_entry()])
 
 
 def _write_source_file(project_root: Path, relative_path: str, content: bytes) -> None:
@@ -113,13 +149,14 @@ def test_repository_import_is_snapshot_convergent_under_repeated_commits(
             branch=f"import/{repository_name}",
         )
 
-    source_git.commit_files(
+    source_snapshot = _context_commit_entries()
+    source_snapshot.update(
         {
             f"claims/{claim_id}.yaml": _raw_claim_yaml(claim_id)
             for claim_id in source_claim_ids
-        },
-        "seed source snapshot",
+        }
     )
+    source_git.commit_files(source_snapshot, "seed source snapshot")
 
     first_result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
     second_result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
@@ -192,7 +229,15 @@ def test_repository_import_normalizes_concepts_and_claim_refs_under_random_snaps
         ).encode()
         for index, concept_id in enumerate(concept_ids, start=1)
     }
-    source_git.commit_files({**concept_files, **claim_files}, "seed randomized source snapshot")
+    source_git.commit_files(
+        {
+            **_context_commit_entries(),
+            **_structural_form_commit_entries(),
+            **concept_files,
+            **claim_files,
+        },
+        "seed randomized source snapshot",
+    )
 
     result = commit_repository_import(destination, plan_repository_import(destination, source.root.parent))
 
@@ -398,6 +443,8 @@ def test_commit_repository_import_writes_commit_to_target_branch_and_returns_res
     assert source_git is not None
     source_git.commit_files(
         {
+            **_context_commit_entries(),
+            **_structural_form_commit_entries(),
             "claims/source.yaml": _raw_claim_yaml("imported"),
             "concepts/example.yaml": b"id: concept1\n",
         },
@@ -421,6 +468,8 @@ def test_commit_repository_import_writes_commit_to_target_branch_and_returns_res
     assert result.touched_paths == [
         imported_path,
         "concepts/example.yaml",
+        f"contexts/{TEST_CONTEXT_ID}.yaml",
+        "forms/structural.yaml",
     ]
     assert result.deleted_paths == []
 
@@ -431,14 +480,26 @@ def test_commit_repository_import_does_not_mutate_master_unless_targeted(tmp_pat
     destination = _init_project(tmp_path / "dest")
     destination_git = destination.git
     assert destination_git is not None
-    destination_git.commit_files({"concepts/local.yaml": b"id: local\n"}, "local seed")
+    destination_git.commit_files(
+        {
+            **_structural_form_commit_entries(),
+            "concepts/local.yaml": _canonical_concept_yaml("local"),
+        },
+        "local seed",
+    )
     destination_git.sync_worktree()
     master_before = destination_git.head_sha()
 
     source = _init_project(tmp_path / "repo-b")
     source_git = source.git
     assert source_git is not None
-    source_git.commit_files({"claims/source.yaml": _raw_claim_yaml("imported")}, "seed")
+    source_git.commit_files(
+        {
+            **_context_commit_entries(),
+            "claims/source.yaml": _raw_claim_yaml("imported"),
+        },
+        "seed",
+    )
 
     plan = plan_repository_import(destination, source.root.parent)
     result = commit_repository_import(destination, plan)
@@ -458,7 +519,13 @@ def test_commit_repository_import_does_not_materialize_master_or_other_branches(
     source = _init_project(tmp_path / "repo-b")
     source_git = source.git
     assert source_git is not None
-    source_git.commit_files({"claims/source.yaml": _raw_claim_yaml("imported")}, "seed")
+    source_git.commit_files(
+        {
+            **_context_commit_entries(),
+            "claims/source.yaml": _raw_claim_yaml("imported"),
+        },
+        "seed",
+    )
     imported_path = _claim_artifact_path("imported", namespace="repo-b")
 
     non_master_destination = _init_project(tmp_path / "dest-branch")
@@ -531,12 +598,12 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
     stance_path = "stances/" + str(stance_payload["artifact_code"]).replace(":", "__") + ".yaml"
     source_git.commit_files(
         {
+            **_context_commit_entries(),
             "claims/claim_a.yaml": yaml.safe_dump(
                 {
                     "id": "claim_a",
                     "type": "observation",
                     "statement": "A",
-                    "concepts": ["concept_a"],
                     "context": {"id": TEST_CONTEXT_ID},
                 },
                 sort_keys=False,
@@ -546,7 +613,6 @@ def test_import_repo_rewrites_stance_targets_to_claim_artifact_ids(tmp_path):
                     "id": "claim_b",
                     "type": "observation",
                     "statement": "B",
-                    "concepts": ["concept_b"],
                     "context": {"id": TEST_CONTEXT_ID},
                 },
                 sort_keys=False,
@@ -578,6 +644,7 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
     assert source_git is not None
     source_git.commit_files(
         {
+            **_structural_form_commit_entries(),
             "concepts/concept_a.yaml": yaml.safe_dump(
                 {
                     "id": "concept_a",
@@ -638,6 +705,8 @@ def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_id
     assert source_git is not None
     source_git.commit_files(
         {
+            **_context_commit_entries(),
+            **_structural_form_commit_entries(),
             "concepts/concept_a.yaml": yaml.safe_dump(
                 {
                     "id": "concept_a",
@@ -701,7 +770,10 @@ def test_import_repo_cli_emits_structured_yaml_for_import_commit(tmp_path):
     source_git = source.git
     assert source_git is not None
     source_git.commit_files(
-        {"claims/source.yaml": _raw_claim_yaml("imported")},
+        {
+            **_context_commit_entries(),
+            "claims/source.yaml": _raw_claim_yaml("imported"),
+        },
         "seed",
     )
 
@@ -719,7 +791,10 @@ def test_import_repo_cli_emits_structured_yaml_for_import_commit(tmp_path):
     assert payload["target_branch"] == "import/repo-b"
     assert len(payload["commit_sha"]) == 40
     imported_path = _claim_artifact_path("imported", namespace="repo-b")
-    assert payload["touched_paths"] == [imported_path]
+    assert payload["touched_paths"] == [
+        imported_path,
+        f"contexts/{TEST_CONTEXT_ID}.yaml",
+    ]
     assert payload["deleted_paths"] == []
 
 
@@ -729,7 +804,10 @@ def test_import_repo_cli_can_target_master_without_materializing_worktree(tmp_pa
     source_git = source.git
     assert source_git is not None
     source_git.commit_files(
-        {"claims/source.yaml": _raw_claim_yaml("imported")},
+        {
+            **_context_commit_entries(),
+            "claims/source.yaml": _raw_claim_yaml("imported"),
+        },
         "seed",
     )
 
