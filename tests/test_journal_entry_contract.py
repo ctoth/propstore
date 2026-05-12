@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.canonical_json import canonical_dumps
+import rfc8785
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 from propstore.support_revision.history import TransitionJournalEntry, TransitionOperation
@@ -64,10 +64,10 @@ def test_ws_j_transition_journal_entry_has_typed_replay_contract() -> None:
     assert payload["version_policy_snapshot"] == version_policy_snapshot
     assert payload["normalized_state_in"] == state_in.to_canonical_dict()
     assert payload["normalized_state_out"] == state_out.to_canonical_dict()
-    canonical_dumps(payload["operator_input"])
-    canonical_dumps(payload["version_policy_snapshot"])
-    canonical_dumps(payload["normalized_state_in"])
-    canonical_dumps(payload["normalized_state_out"])
+    rfc8785.dumps(payload["operator_input"])
+    rfc8785.dumps(payload["version_policy_snapshot"])
+    rfc8785.dumps(payload["normalized_state_in"])
+    rfc8785.dumps(payload["normalized_state_out"])
 
     replayed = dispatch(
         entry.operator,

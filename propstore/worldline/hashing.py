@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Mapping, Sequence
 
-from propstore.canonical_json import canonical_dumps
+import rfc8785
 from propstore.worldline.result_types import (
     WorldlineArgumentationState,
     WorldlineDependencies,
@@ -37,5 +37,5 @@ def compute_worldline_content_hash(
         "argumentation": None if argumentation is None else argumentation.to_dict(),
         "revision": None if revision is None else revision.to_dict(),
     }
-    encoded = canonical_dumps(payload).encode("utf-8")
+    encoded = rfc8785.dumps(payload)
     return hashlib.sha256(encoded).hexdigest()

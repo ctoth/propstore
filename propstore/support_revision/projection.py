@@ -4,7 +4,7 @@ import hashlib
 import json
 from typing import TYPE_CHECKING
 
-from propstore.canonical_json import canonical_dumps
+import rfc8785
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.assertions.situated import SituatedAssertion
@@ -221,5 +221,4 @@ def _stable_value(value: object) -> str:
 
 
 def _digest(value: JsonValue) -> str:
-    rendered = canonical_dumps(value)
-    return hashlib.sha256(rendered.encode("utf-8")).hexdigest()
+    return hashlib.sha256(rfc8785.dumps(value)).hexdigest()

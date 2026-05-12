@@ -31,14 +31,14 @@ _JSON_VALUES = st.recursive(
 @given(payload=_JSON_VALUES)
 @pytest.mark.property
 @settings(max_examples=20)
-def test_ws_j_canonical_dumps_is_deterministic_for_json_native_payloads(
+def test_ws_j_rfc8785_dumps_is_deterministic_for_json_native_payloads(
     payload: object,
 ) -> None:
     """Codex 2.10: JSON-native payloads get byte-stable canonical encoding."""
 
-    from propstore.canonical_json import canonical_dumps
+    import rfc8785
 
-    assert canonical_dumps(payload) == canonical_dumps(payload)
+    assert rfc8785.dumps(payload) == rfc8785.dumps(payload)
 
 
 @given(
@@ -50,25 +50,25 @@ def test_ws_j_canonical_dumps_is_deterministic_for_json_native_payloads(
 )
 @pytest.mark.property
 @settings(max_examples=12)
-def test_ws_j_canonical_dumps_rejects_non_json_native_payloads(value: object) -> None:
+def test_ws_j_rfc8785_dumps_rejects_non_json_native_payloads(value: object) -> None:
     """J-H2: unknown objects fail loudly instead of being stringified into hashes."""
 
-    from propstore.canonical_json import CanonicalEncodingError, canonical_dumps
+    import rfc8785
 
-    with pytest.raises(CanonicalEncodingError) as exc_info:
-        canonical_dumps({"value": value})
+    with pytest.raises(rfc8785.CanonicalizationError) as exc_info:
+        rfc8785.dumps({"value": value})
 
     assert type(value).__name__ in str(exc_info.value)
 
 
 @pytest.mark.parametrize("value", [-(2**53), 2**53])
-def test_ws_j_canonical_dumps_rejects_integers_outside_rfc8785_domain(
+def test_ws_j_rfc8785_dumps_rejects_integers_outside_rfc8785_domain(
     value: int,
 ) -> None:
-    from propstore.canonical_json import CanonicalEncodingError, canonical_dumps
+    import rfc8785
 
-    with pytest.raises(CanonicalEncodingError):
-        canonical_dumps(value)
+    with pytest.raises(rfc8785.CanonicalizationError):
+        rfc8785.dumps(value)
 
 
 def test_ws_j_worldline_revision_hash_surfaces_do_not_use_default_str() -> None:
