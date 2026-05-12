@@ -49,7 +49,7 @@ def validate_concepts(
     *,
     forms_dir=None,
     form_registry=None,
-    claim_reference_lookup=None,
+    claim_index=None,
 ) -> _ConceptValidationResult:
     result = run_concept_pipeline(
         concepts,
@@ -57,7 +57,7 @@ def validate_concepts(
             claims_dir=claims_dir,
             forms_dir=forms_dir,
             form_registry=form_registry,
-            claim_reference_lookup=claim_reference_lookup,
+            claim_index=claim_index,
         ),
     )
     return _ConceptValidationResult(
