@@ -242,3 +242,26 @@ This paper is directly relevant to `bridgman`, `physgen`, and `propstore`. `brid
 
 ## Provenance
 Read directly from page images `pngs/page-000.png` through `pngs/page-014.png` on 2026-05-12 using the `research-papers:paper-reader` workflow. No PDF text extraction was used.
+
+## Collection Cross-References
+
+### Already in Collection
+- (none found among Kennedy's key citations)
+
+### New Leads (Not Yet in Collection)
+- Kennedy (1994) — "Dimension types" — earlier implementation-oriented account of dimension types and the nearest predecessor to this paper's unit-polymorphic semantics.
+- Kennedy (1995) — "Programming Languages and Dimensions" — PhD thesis likely containing the full version of the dimension/unit language and proof development.
+- Wand and O'Keefe (1991) — "Automatic dimensional inference" — prior dimensional inference work cited as part of the compiler/type-inference lineage.
+- Rittri (1995) — "Dimension inference under polymorphic recursion" — source for the relative-definability trick used in Kennedy's geometric-mean discussion.
+- Wadler (1989) — "Theorems for free!" — conceptual basis for deriving semantic properties from polymorphic types.
+- Birkhoff (1960) — "Hydrodynamics: A Study in Logic, Fact and Similitude" — cited source for the classical Pi theorem.
+
+### Supersedes or Recontextualizes
+- (none)
+
+### Cited By (in Collection)
+- (none found)
+
+### Conceptual Links (not citation-based)
+- [Relational Lenses: A Language for Updatable Views](../Bohannon_2006_RelationalLensesLanguageUpdatable/notes.md) — Moderate link: both papers use typed language design to attach semantic laws to programs. Kennedy's unit-polymorphic types imply scale-invariance laws; Bohannon, Pierce, and Vaughan's lens types enforce view-update laws.
+- [A Nanopass Infrastructure for Compiler Education](../Sarkar_2004_Nanopass/notes.md) — Moderate link: both papers are useful for propstore's compiler-middle-end design. Kennedy supplies proof-carrying unit semantics for numeric expressions, while Sarkar supplies the pass-by-pass typed transformation discipline needed to preserve such invariants across compiler stages.
