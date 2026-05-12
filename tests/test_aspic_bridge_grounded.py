@@ -1,14 +1,14 @@
-"""Tests for ASPIC+ bridge T2.5 — grounded_rules_to_rules (RED).
+"""Tests for ASPIC+ bridge T2.5 — project_grounded_rules.
 
 Chunk 1.7a of the gunray grounding workstream. Pins the contract for
-``propstore.aspic_bridge.grounded_rules_to_rules``: a function that
+``propstore.aspic_bridge.project_grounded_rules``: a function that
 walks every ``RuleDocument`` in a ``GroundedRulesBundle``, enumerates
 ground variable substitutions against the fact base drawn from
 ``sections["definitely"]`` and ``sections["defeasibly"]``, and emits
 one ASPIC+ ``Rule`` per valid substitution.
 
 The target function does NOT exist yet — every import of
-``propstore.aspic_bridge.grounded_rules_to_rules`` is deferred into
+``propstore.aspic_bridge.project_grounded_rules`` is deferred into
 the test body so pytest can *collect* this file cleanly while every
 test fails at runtime with ``AttributeError`` (or, for any symbol
 that has not yet been introduced elsewhere, ``ImportError``). That is
@@ -16,7 +16,7 @@ the RED contract for this chunk.
 
 Target signature per prompts/gunray-chunk-1-7a-bridge-tests.md::
 
-    def grounded_rules_to_rules(
+    def project_grounded_rules(
         bundle: GroundedRulesBundle,
         literals: dict[LiteralKey, Literal],
     ) -> tuple[
@@ -198,6 +198,12 @@ def _bundle(rules=(), yes=None):
     )
 
 
+def _project(bundle, literals=None):
+    from propstore.aspic_bridge import project_grounded_rules
+
+    return project_grounded_rules(bundle, {} if literals is None else literals)
+
+
 # ---------------------------------------------------------------------------
 # Hypothesis strategies.
 # Every strategy body does deferred imports of project modules so
@@ -258,23 +264,19 @@ def test_empty_bundle_produces_empty_rule_sets(bundle) -> None:
     leave the input literals dict unchanged in content.
     """
 
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
-    strict, defeasible, out_literals = grounded_rules_to_rules(bundle, {})
-    assert strict == frozenset()
-    assert defeasible == frozenset()
-    assert out_literals == {}
+    projection = _project(bundle)
+    assert projection.strict_rules == frozenset()
+    assert projection.defeasible_rules == frozenset()
+    assert projection.literals == {}
 
 
 def test_project_grounded_rules_exposes_structured_origins() -> None:
-    from propstore.aspic_bridge import project_grounded_rules
-
     body = (_atom("bird", (_var("X"),)),)
     head = _atom("flies", (_var("X"),))
     rule = _rule_doc("rule:birds-fly", "defeasible", head, body=body)
     bundle = _bundle(rules=(rule,), yes={"bird": frozenset({("tweety",)})})
 
-    projection = project_grounded_rules(bundle, {})
+    projection = _project(bundle)
     (ground_rule,) = tuple(projection.defeasible_rules)
     origin = projection.origins[ground_rule]
 
@@ -298,12 +300,10 @@ def test_grounded_rules_kind_is_defeasible_in_phase1(payload) -> None:
     always empty on return.
     """
 
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
     bundle, _constants = payload
-    strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    assert strict == frozenset()
-    for rule in defeasible:
+    projection = _project(bundle)
+    assert projection.strict_rules == frozenset()
+    for rule in projection.defeasible_rules:
         assert rule.kind == "defeasible"
 
 
@@ -320,11 +320,9 @@ def test_grounded_rules_names_are_unique(payload) -> None:
     must therefore mint a unique instance name per substitution.
     """
 
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
     bundle, _constants = payload
-    _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    names = [r.name for r in defeasible]
+    projection = _project(bundle)
+    names = [r.name for r in projection.defeasible_rules]
     assert len(set(names)) == len(names)
 
 
@@ -340,11 +338,9 @@ def test_grounded_rules_head_predicate_matches_schema(payload) -> None:
     instance is therefore equal to the head predicate of the schema.
     """
 
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
     bundle, _constants = payload
-    _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    for rule in defeasible:
+    projection = _project(bundle)
+    for rule in projection.defeasible_rules:
         assert rule.consequent.atom.predicate == "flies"
 
 
@@ -361,11 +357,9 @@ def test_grounded_rules_antecedents_length_matches_schema_body(payload) -> None:
     position-preserving substitution of the schema body.
     """
 
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
     bundle, _constants = payload
-    _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    for rule in defeasible:
+    projection = _project(bundle)
+    for rule in projection.defeasible_rules:
         assert len(rule.antecedents) == 1  # body = (bird(X),)
 
 
@@ -383,7 +377,6 @@ def test_literals_dict_extended_not_replaced(payload) -> None:
     """
 
     from argumentation.aspic import GroundAtom, Literal
-    from propstore.aspic_bridge import grounded_rules_to_rules
 
     bundle, _constants = payload
     from propstore.core.literal_keys import claim_key
@@ -391,9 +384,7 @@ def test_literals_dict_extended_not_replaced(payload) -> None:
     seed_key = claim_key("claim-alpha")
     seed_lit = Literal(atom=GroundAtom("claim-alpha"), negated=False)
     literals_in: dict[LiteralKey, Literal] = {seed_key: seed_lit}
-    _strict, _defeasible, out_literals = grounded_rules_to_rules(
-        bundle, literals_in
-    )
+    out_literals = _project(bundle, literals_in).literals
     assert seed_key in out_literals
     assert out_literals[seed_key] == seed_lit
 
@@ -411,11 +402,9 @@ def test_grounded_literals_contrary_involution(payload) -> None:
     ``Literal`` dataclass).
     """
 
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
     bundle, _constants = payload
-    _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    for rule in defeasible:
+    projection = _project(bundle)
+    for rule in projection.defeasible_rules:
         assert rule.consequent.contrary.contrary == rule.consequent
         for ante in rule.antecedents:
             assert ante.contrary.contrary == ante
@@ -437,7 +426,6 @@ def test_delp_birds_fly_tweety_produces_one_rule_instance() -> None:
     """
 
     from argumentation.aspic import GroundAtom, Literal
-    from propstore.aspic_bridge import grounded_rules_to_rules
 
     rule = _rule_doc(
         "rule:birds-fly",
@@ -449,10 +437,10 @@ def test_delp_birds_fly_tweety_produces_one_rule_instance() -> None:
         rules=(rule,),
         yes={"bird": frozenset([("tweety",)])},
     )
-    strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    assert strict == frozenset()
-    assert len(defeasible) == 1
-    emitted = next(iter(defeasible))
+    projection = _project(bundle)
+    assert projection.strict_rules == frozenset()
+    assert len(projection.defeasible_rules) == 1
+    emitted = next(iter(projection.defeasible_rules))
     assert emitted.kind == "defeasible"
     assert emitted.consequent == Literal(
         atom=GroundAtom("flies", ("tweety",)),
@@ -462,7 +450,8 @@ def test_delp_birds_fly_tweety_produces_one_rule_instance() -> None:
         Literal(atom=GroundAtom("bird", ("tweety",)), negated=False),
     )
     assert emitted.name is not None
-    assert emitted.name.startswith("rule:birds-fly")
+    assert emitted.name.startswith("gr")
+    assert projection.origins[emitted].source_rule_id == "rule:birds-fly"
 
 
 def test_delp_birds_fly_two_birds_produces_two_rule_instances() -> None:
@@ -475,8 +464,6 @@ def test_delp_birds_fly_two_birds_produces_two_rule_instances() -> None:
     Prakken 2018 Def 2, p.8 — unique n(r) per defeasible rule).
     """
 
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
     rule = _rule_doc(
         "rule:birds-fly",
         "defeasible",
@@ -487,11 +474,11 @@ def test_delp_birds_fly_two_birds_produces_two_rule_instances() -> None:
         rules=(rule,),
         yes={"bird": frozenset([("tweety",), ("opus",)])},
     )
-    _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    assert len(defeasible) == 2
-    names = {r.name for r in defeasible}
+    projection = _project(bundle)
+    assert len(projection.defeasible_rules) == 2
+    names = {r.name for r in projection.defeasible_rules}
     assert len(names) == 2
-    consequents = {r.consequent.atom.arguments for r in defeasible}
+    consequents = {r.consequent.atom.arguments for r in projection.defeasible_rules}
     assert consequents == {("tweety",), ("opus",)}
 
 
@@ -504,8 +491,6 @@ def test_rule_with_no_matching_fact_produces_zero_instances() -> None:
     yields the empty set.
     """
 
-    from propstore.aspic_bridge import grounded_rules_to_rules
-
     rule = _rule_doc(
         "rule:birds-fly",
         "defeasible",
@@ -516,9 +501,9 @@ def test_rule_with_no_matching_fact_produces_zero_instances() -> None:
         rules=(rule,),
         yes={"mammal": frozenset([("fido",)])},
     )
-    strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    assert strict == frozenset()
-    assert defeasible == frozenset()
+    projection = _project(bundle)
+    assert projection.strict_rules == frozenset()
+    assert projection.defeasible_rules == frozenset()
 
 
 def test_multi_body_rule_requires_all_atoms_to_ground() -> None:
@@ -531,8 +516,6 @@ def test_multi_body_rule_requires_all_atoms_to_ground() -> None:
     ``{bird(tweety), feathered(tweety), bird(opus)}`` the join
     produces exactly one instance for tweety and zero for opus.
     """
-
-    from propstore.aspic_bridge import grounded_rules_to_rules
 
     rule = _rule_doc(
         "rule:feathered-birds-fly",
@@ -550,9 +533,9 @@ def test_multi_body_rule_requires_all_atoms_to_ground() -> None:
             "feathered": frozenset([("tweety",)]),
         },
     )
-    _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    assert len(defeasible) == 1
-    emitted = next(iter(defeasible))
+    projection = _project(bundle)
+    assert len(projection.defeasible_rules) == 1
+    emitted = next(iter(projection.defeasible_rules))
     assert emitted.consequent.atom.arguments == ("tweety",)
     # body preserves schema arity and position
     assert len(emitted.antecedents) == 2
@@ -573,7 +556,6 @@ def test_nullary_predicate_rule_produces_one_instance() -> None:
     """
 
     from argumentation.aspic import GroundAtom, Literal
-    from propstore.aspic_bridge import grounded_rules_to_rules
 
     rule = _rule_doc(
         "rule:p-from-q",
@@ -585,9 +567,9 @@ def test_nullary_predicate_rule_produces_one_instance() -> None:
         rules=(rule,),
         yes={"q": frozenset([()])},
     )
-    _strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    assert len(defeasible) == 1
-    emitted = next(iter(defeasible))
+    projection = _project(bundle)
+    assert len(projection.defeasible_rules) == 1
+    emitted = next(iter(projection.defeasible_rules))
     assert emitted.consequent == Literal(atom=GroundAtom("p", ()), negated=False)
     assert emitted.antecedents == (
         Literal(atom=GroundAtom("q", ()), negated=False),
@@ -607,7 +589,6 @@ def test_output_literals_include_grounded_atoms() -> None:
     """
 
     from argumentation.aspic import GroundAtom
-    from propstore.aspic_bridge import grounded_rules_to_rules
     from propstore.core.literal_keys import ground_key
 
     rule = _rule_doc(
@@ -620,7 +601,9 @@ def test_output_literals_include_grounded_atoms() -> None:
         rules=(rule,),
         yes={"bird": frozenset([("tweety",)])},
     )
-    _strict, defeasible, out_literals = grounded_rules_to_rules(bundle, {})
+    projection = _project(bundle)
+    defeasible = projection.defeasible_rules
+    out_literals = projection.literals
     # Every literal appearing in an emitted rule must be reachable
     # from the returned literals dict by its canonical structured key.
     for rule_obj in defeasible:
@@ -648,7 +631,6 @@ def test_existing_claim_literals_preserved() -> None:
     """
 
     from argumentation.aspic import GroundAtom, Literal
-    from propstore.aspic_bridge import grounded_rules_to_rules
     from propstore.core.literal_keys import ground_key
 
     rule = _rule_doc(
@@ -667,9 +649,7 @@ def test_existing_claim_literals_preserved() -> None:
         claim_key("claim-1"): Literal(atom=GroundAtom("claim-1"), negated=False),
         claim_key("claim-2"): Literal(atom=GroundAtom("claim-2"), negated=False),
     }
-    _strict, _defeasible, out_literals = grounded_rules_to_rules(
-        bundle, dict(claim_lits)
-    )
+    out_literals = _project(bundle, dict(claim_lits)).literals
     for cid, lit in claim_lits.items():
         assert cid in out_literals
         assert out_literals[cid] == lit
@@ -687,7 +667,6 @@ def test_strict_rule_in_bundle_resolves_to_axiom() -> None:
     """A fact-only strict RuleDocument is simplified into the axiom base."""
 
     from argumentation.aspic import GroundAtom, Literal
-    from propstore.aspic_bridge import grounded_rules_to_rules
     from propstore.aspic_bridge.grounding import _ground_facts_to_axioms
 
     rule = _rule_doc(
@@ -700,9 +679,9 @@ def test_strict_rule_in_bundle_resolves_to_axiom() -> None:
         rules=(rule,),
         yes={"bird": frozenset([("tweety",)])},
     )
-    strict, defeasible, _out = grounded_rules_to_rules(bundle, {})
-    assert strict == frozenset()
-    assert defeasible == frozenset()
+    projection = _project(bundle)
+    assert projection.strict_rules == frozenset()
+    assert projection.defeasible_rules == frozenset()
     from argumentation.aspic import KnowledgeBase
     from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER
 
@@ -719,7 +698,6 @@ def test_defeater_rule_in_bundle_emits_undercutter_rule() -> None:
     """A defeater grounds to a negated rule-name literal that undercuts."""
 
     from argumentation.aspic import GroundAtom, Literal
-    from propstore.aspic_bridge import grounded_rules_to_rules
     from propstore.core.literal_keys import ground_key
 
     defeater_head = _atom("flies", (_var("X"),))
@@ -743,16 +721,21 @@ def test_defeater_rule_in_bundle_emits_undercutter_rule() -> None:
             "penguin": frozenset([("opus",)]),
         },
     )
-    _strict, defeasible, out = grounded_rules_to_rules(bundle, {})
-    emitted = {rule.name: rule for rule in defeasible if rule.name is not None}
-    target_name = next(name for name in emitted if name.startswith("rule:birds-fly#"))
-    defeater_name = next(name for name in emitted if name.startswith("rule:penguins-block-flight#"))
-    assert emitted[target_name].consequent == Literal(
+    projection = _project(bundle)
+    emitted = {
+        projection.origins[rule].source_rule_id: rule
+        for rule in projection.defeasible_rules
+        if rule.name is not None
+    }
+    target_rule = emitted["rule:birds-fly"]
+    defeater_rule = emitted["rule:penguins-block-flight"]
+    assert target_rule.name is not None
+    assert target_rule.consequent == Literal(
         atom=GroundAtom("flies", ("opus",)),
         negated=False,
     )
-    assert emitted[defeater_name].consequent == Literal(
-        atom=GroundAtom(target_name),
+    assert defeater_rule.consequent == Literal(
+        atom=GroundAtom(target_rule.name),
         negated=True,
     )
-    assert out[ground_key(GroundAtom(target_name), True)] == emitted[defeater_name].consequent
+    assert projection.literals[ground_key(GroundAtom(target_rule.name), True)] == defeater_rule.consequent

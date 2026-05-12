@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 
 from argumentation.aspic import (
@@ -23,6 +23,7 @@ from argumentation.aspic import (
     compute_defeats,
     transposition_closure,
 )
+from argumentation.datalog_grounding import GroundRuleOrigin
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.context_lifting import LiftingDecision
 from propstore.core.justifications import CanonicalJustification
@@ -34,8 +35,7 @@ from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER
 
 from .grounding import (
     _ground_facts_to_axioms,
-    grounded_rule_order_from_bundle,
-    grounded_rules_to_rules,
+    project_grounded_rules,
 )
 from .lifting_projection import LiftingProjection, project_lifting_decisions
 from .translate import (
@@ -59,6 +59,7 @@ class BridgeCompilation:
     pref: PreferenceConfig
     system: ArgumentationSystem
     lifting_projection: LiftingProjection
+    grounded_rule_origins: Mapping[Rule, GroundRuleOrigin]
 
 
 def _build_language(
@@ -116,16 +117,22 @@ def compile_bridge_context(
     strict_rules, defeasible_rules = justifications_to_rules(justifications, literals)
     strict_rules |= lifting_projection.strict_rules
     defeasible_rules |= lifting_projection.defeasible_rules
-    grounded_strict, grounded_defeasible, literals = grounded_rules_to_rules(
+    grounded_projection = project_grounded_rules(
         bundle,
         literals,
         complement_encoder=GUNRAY_COMPLEMENT_ENCODER,
     )
-    strict_rules |= grounded_strict
-    defeasible_rules |= grounded_defeasible
-    grounded_rule_order = grounded_rule_order_from_bundle(bundle, defeasible_rules)
+    literals = grounded_projection.literals
+    strict_rules |= grounded_projection.strict_rules
+    defeasible_rules |= grounded_projection.defeasible_rules
+    grounded_rule_order = grounded_projection.rule_order
 
-    contrariness = stances_to_contrariness(stances, literals, defeasible_rules)
+    contrariness = stances_to_contrariness(
+        stances,
+        literals,
+        defeasible_rules,
+        rule_origins=grounded_projection.origins,
+    )
     kb = claims_to_kb(normalized_claims, justifications, literals)
     kb = _ground_facts_to_axioms(
         bundle,
@@ -165,6 +172,7 @@ def compile_bridge_context(
         pref=pref,
         system=system,
         lifting_projection=lifting_projection,
+        grounded_rule_origins=grounded_projection.origins,
     )
 
 

@@ -41,8 +41,8 @@ formal kernel. The formal kernel is not allowed to import this package.
   - runs goal-directed ASPIC+ argument construction for one claim conclusion.
 - `build_aspic_projection(...)`
   - maps formal arguments back into propstore structured projection records.
-- `grounded_rules_to_rules(...)`
-  - converts grounded rule bundles into ASPIC+ rules.
+- `project_grounded_rules(...)`
+  - converts grounded rule bundles into ASPIC+ rules with structured origins.
 
 ## Related Plan
 

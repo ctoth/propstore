@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
+from dataclasses import dataclass
 
 from argumentation.aspic import (
     ArgumentationSystem,
@@ -15,15 +16,24 @@ from argumentation.aspic import (
     Rule,
 )
 from argumentation.datalog_grounding import (
+    GroundRuleOrigin,
     GroundedDatalogTheory,
     grounding_inspection_to_aspic,
 )
-from argumentation.preference import strict_partial_order_closure
 from propstore.core.literal_keys import LiteralKey, ground_key
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.complement import ComplementEncoder
 
 _GroundFactKey = tuple[str, bool]
+
+
+@dataclass(frozen=True)
+class GroundedAspicProjection:
+    strict_rules: frozenset[Rule]
+    defeasible_rules: frozenset[Rule]
+    literals: dict[LiteralKey, Literal]
+    origins: Mapping[Rule, GroundRuleOrigin]
+    rule_order: frozenset[tuple[Rule, Rule]]
 
 
 def _typed_scalar_key(value: object) -> dict[str, object]:
@@ -116,6 +126,7 @@ def _empty_grounded_theory() -> GroundedDatalogTheory:
         ),
         inspection=None,  # type: ignore[arg-type]
         source_to_ground_rules={},
+        rule_origins={},
         non_approximated_predicates=frozenset(),
     )
 
@@ -140,12 +151,12 @@ def _extend_literals(
     return literals
 
 
-def grounded_rules_to_rules(
+def project_grounded_rules(
     bundle: GroundedRulesBundle,
     literals: dict[LiteralKey, Literal],
     *,
     complement_encoder: ComplementEncoder,
-) -> tuple[frozenset[Rule], frozenset[Rule], dict[LiteralKey, Literal]]:
+) -> GroundedAspicProjection:
     """Translate a grounded Gunray bundle into ASPIC+ rules.
 
     The projection lives in ``argumentation.datalog_grounding``; propstore only
@@ -158,43 +169,13 @@ def grounded_rules_to_rules(
     strict_rules = grounded.system.strict_rules
     defeasible_rules = grounded.system.defeasible_rules
     all_rules = strict_rules | defeasible_rules
-    return (
-        strict_rules,
-        defeasible_rules,
-        _extend_literals(literals, all_rules, grounded.kb.axioms),
+    return GroundedAspicProjection(
+        strict_rules=strict_rules,
+        defeasible_rules=defeasible_rules,
+        literals=_extend_literals(literals, all_rules, grounded.kb.axioms),
+        origins=grounded.rule_origins,
+        rule_order=grounded.pref.rule_order,
     )
-
-
-def grounded_rule_order_from_bundle(
-    bundle: GroundedRulesBundle,
-    defeasible_rules: frozenset[Rule],
-) -> frozenset[tuple[Rule, Rule]]:
-    """Project authored superiority onto grounded ASPIC+ rule objects."""
-
-    authored_pairs = _source_superiority(bundle)
-    if not authored_pairs:
-        return frozenset()
-
-    by_source_id: dict[str, list[Rule]] = {}
-    for rule in defeasible_rules:
-        if rule.name is None:
-            continue
-        by_source_id.setdefault(_source_rule_id(rule.name), []).append(rule)
-
-    projected: set[tuple[Rule, Rule]] = set()
-    for superior_id, inferior_id in authored_pairs:
-        stronger_rules = by_source_id.get(superior_id, [])
-        weaker_rules = by_source_id.get(inferior_id, [])
-        for weaker in weaker_rules:
-            for stronger in stronger_rules:
-                if weaker != stronger:
-                    projected.add((weaker, stronger))
-
-    return strict_partial_order_closure(projected)
-
-
-def _source_rule_id(rule_name: str) -> str:
-    return rule_name.split("#", 1)[0]
 
 
 def _ground_facts_to_axioms(
@@ -216,6 +197,6 @@ def _ground_facts_to_axioms(
 
 
 __all__ = [
-    "grounded_rule_order_from_bundle",
-    "grounded_rules_to_rules",
+    "GroundedAspicProjection",
+    "project_grounded_rules",
 ]

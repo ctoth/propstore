@@ -20,8 +20,8 @@ from propstore.aspic_bridge import (
     build_preference_config,
     claims_to_literals,
     csaf_to_projection,
-    grounded_rules_to_rules,
     justifications_to_rules,
+    project_grounded_rules,
     query_claim,
     stances_to_contrariness,
 )
@@ -396,7 +396,7 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         return_arguments=True,
     )
 
-    projection = grounded_rules_to_rules(bundle, {})
+    projection = project_grounded_rules(bundle, {})
     defeasible = projection.defeasible_rules
 
     target_rule = next(

@@ -8,7 +8,7 @@ backward-chained argument construction via ``query_claim`` /
 
 This is the Phase-1 MVP proof for the tweety-the-bird canonical
 example. Every test in this file is **expected to fail** at run time
-until Chunk 1.8b wires ``grounded_rules_to_rules`` through
+until Chunk 1.8b wires ``project_grounded_rules`` through
 ``build_bridge_csaf`` / ``build_aspic_projection`` / ``query_claim``.
 
 Construction of every input is inline here (no shared fixtures, no
@@ -449,13 +449,12 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     assert isinstance(argument, DefeasibleArg)
 
     # Modgil & Prakken 2018 Def 2 (p.8): the defeasible-rule name
-    # n(r) must be unique per ground instance. The grounder bridge now
-    # encodes the substitution structurally after ``<rule_id>#`` so
-    # delimiter characters inside constants cannot collide.
+    # n(r) must be unique per ground instance. Source rule identity and
+    # substitutions are carried separately as structured origin data.
     assert argument.rule.name is not None
-    assert argument.rule.name.startswith('r_flies_bird#{"X":')
-    assert '"type":"str"' in argument.rule.name
-    assert '"value":"tweety"' in argument.rule.name
+    assert argument.rule.name.startswith("gr")
+    assert "#" not in argument.rule.name
+    assert "r_flies_bird" not in argument.rule.name
 
     # No attackers in this world: ``arguments_against`` is empty.
     assert result.arguments_against == frozenset()

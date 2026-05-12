@@ -635,7 +635,7 @@ class TestGroundedRuleInterventions:
         defended = collect_grounded_rule_interventions(defended_bundle)[0]
         undercut = next(
             item for item in collect_grounded_rule_interventions(undercut_bundle)
-            if item.target.payload.rule_name.startswith("rule:birds-fly#")
+            if item.target.provenance.source_ids == ("rule:birds-fly",)
         )
         assert undercut.local_fragility > defended.local_fragility
         assert "undercut_count=1" in undercut.score_explanation
@@ -665,8 +665,14 @@ class TestBridgeUndercutInterventions:
         first = collect_bridge_undercut_interventions(bundle, (), [], ())
         second = collect_bridge_undercut_interventions(bundle, (), [], ())
         assert {item.target.intervention_id for item in first} == {
-            'bridge_undercut:rule:broken-wing#{"X":{"type":"str","value":"tweety"}}->rule:birds-fly#{"X":{"type":"str","value":"tweety"}}'
+            "bridge_undercut:uc0"
         }
+        assert first[0].target.provenance.source_ids == (
+            "rule:broken-wing",
+            "rule:birds-fly",
+        )
+        assert first[0].target.payload.defeater_rule_name == "uc0"
+        assert first[0].target.payload.target_rule_name == "gr0"
         assert {item.target.intervention_id for item in first} == {
             item.target.intervention_id for item in second
         }

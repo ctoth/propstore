@@ -13,6 +13,7 @@ from argumentation.aspic import (
     PreferenceConfig,
     Rule,
 )
+from argumentation.datalog_grounding import GroundRuleOrigin
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import (
@@ -150,6 +151,8 @@ def stances_to_contrariness(
     stances: Sequence[StanceRowInput],
     literals: dict[LiteralKey, Literal],
     defeasible_rules: frozenset[Rule],
+    *,
+    rule_origins: Mapping[Rule, GroundRuleOrigin] | None = None,
 ) -> ContrarinessFn:
     """Build the ASPIC+ contrariness function from attack stances."""
 
@@ -163,6 +166,7 @@ def stances_to_contrariness(
         contradictory_pairs.add((rule_lit, rule_lit.contrary))
 
     contrary_pairs: set[tuple[Literal, Literal]] = set()
+    origins = {} if rule_origins is None else rule_origins
 
     authored_rebuts: set[tuple[Literal, Literal]] = set()
     authored_directional: set[tuple[Literal, Literal]] = set()
@@ -200,8 +204,11 @@ def stances_to_contrariness(
                     matching_rules = [
                         rule
                         for rule in matching_rules
-                        if rule.name is not None
-                        and rule.name.partition("#")[0] == target_justification_id
+                        if (
+                            origin := origins.get(rule)
+                        ) is not None
+                        and origin.role == "ground"
+                        and origin.source_rule_id == target_justification_id
                     ]
                 if not matching_rules:
                     raise ValueError(

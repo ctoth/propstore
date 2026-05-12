@@ -7,10 +7,11 @@ import warnings
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from argumentation.aspic import conc, top_rule
+from argumentation.aspic import Rule, conc, top_rule
+from argumentation.datalog_grounding import GroundRuleOrigin
 from propstore.aspic_bridge.build import build_bridge_csaf, compile_bridge_context
 from propstore.aspic_bridge.extract import _extract_justifications, _extract_stance_rows
-from propstore.aspic_bridge.grounding import _decode_grounded_predicate, grounded_rules_to_rules
+from propstore.aspic_bridge.grounding import _decode_grounded_predicate, project_grounded_rules
 from propstore.core.row_types import coerce_parameterization_row
 from propstore.fragility_scoring import FragilityWarning, score_conflict, support_derivative_fragility
 from propstore.fragility_types import (
@@ -103,6 +104,17 @@ def _typed_scalar_key(value: object) -> dict[str, object]:
 def _typed_row_key(row: Sequence[object]) -> str:
     return json.dumps(
         [_typed_scalar_key(item) for item in row],
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+
+
+def _typed_substitution_key(substitution: Sequence[tuple[str, object]]) -> str:
+    return json.dumps(
+        {
+            name: _typed_scalar_key(value)
+            for name, value in sorted(substitution, key=lambda item: item[0])
+        },
         sort_keys=True,
         separators=(",", ":"),
     )
@@ -410,14 +422,15 @@ def _coefficient_provenance_notes(*, formula: str, citation: str) -> tuple[str, 
 
 
 def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
-    _strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(
+    projection = project_grounded_rules(
         bundle,
         {},
         complement_encoder=GUNRAY_COMPLEMENT_ENCODER,
     )
     dependency_counts: dict[tuple[str, bool, tuple[object, ...]], int] = {}
-    for rule in defeasible_rules:
-        if "->" in (rule.name or ""):
+    for rule in projection.defeasible_rules:
+        origin = projection.origins.get(rule)
+        if origin is not None and origin.role == "undercut":
             continue
         for antecedent in rule.antecedents:
             dependency_key = (
@@ -486,32 +499,33 @@ def collect_ground_fact_interventions(bundle) -> tuple[RankedIntervention, ...]:
 
 
 def collect_grounded_rule_interventions(bundle) -> tuple[RankedIntervention, ...]:
-    strict_rules, defeasible_rules, _literals = grounded_rules_to_rules(
+    projection = project_grounded_rules(
         bundle,
         {},
         complement_encoder=GUNRAY_COMPLEMENT_ENCODER,
     )
-    del strict_rules
-    undercut_counts: dict[str, int] = {}
-    for rule in defeasible_rules:
-        if rule.name is None or "->" not in rule.name:
+    undercut_counts: dict[Rule, int] = {}
+    for _rule, origin in projection.origins.items():
+        if origin.role != "undercut" or origin.target_rule is None:
             continue
-        _defeater, _separator, target_rule_name = rule.name.partition("->")
-        undercut_counts[target_rule_name] = undercut_counts.get(target_rule_name, 0) + 1
+        undercut_counts[origin.target_rule] = undercut_counts.get(origin.target_rule, 0) + 1
 
     ranked: list[RankedIntervention] = []
-    for rule in sorted(defeasible_rules, key=lambda candidate: candidate.name or ""):
-        if rule.name is None or "->" in rule.name:
+    for rule in sorted(projection.defeasible_rules, key=lambda candidate: candidate.name or ""):
+        if rule.name is None:
             continue
-        _base, _, substitution_key = rule.name.partition("#")
-        undercut_count = undercut_counts.get(rule.name, 0)
+        origin = projection.origins.get(rule)
+        if origin is None or origin.role != "ground":
+            continue
+        substitution_key = _typed_substitution_key(origin.substitution)
+        undercut_count = undercut_counts.get(rule, 0)
         local_fragility = min(
             1.0,
             0.3 + (0.1 * len(rule.antecedents)) + (0.25 * min(undercut_count, 2)),
         )
         head_literal = repr(rule.consequent)
         target = InterventionTarget(
-            intervention_id=f"grounded_rule:{rule.name}",
+            intervention_id=f"grounded_rule:{origin.source_rule_id}:{substitution_key}",
             kind=InterventionKind.GROUNDED_RULE,
             family=InterventionFamily.GROUNDING,
             subject_id=None,
@@ -519,7 +533,7 @@ def collect_grounded_rule_interventions(bundle) -> tuple[RankedIntervention, ...
             cost_tier=2,
             provenance=InterventionProvenance(
                 family=InterventionFamily.GROUNDING,
-                source_ids=(rule.name,),
+                source_ids=(origin.source_rule_id,),
                 subject_concept_ids=(),
                 notes=_coefficient_provenance_notes(
                     formula="0.3 + 0.1 * antecedent_count + 0.25 * min(undercut_count, 2)",
@@ -567,28 +581,41 @@ def collect_bridge_undercut_interventions(
         stance_rows,
         bundle=bundle,
     )
-    attack_counts: dict[str, int] = {}
-    defeat_counts: dict[str, int] = {}
+    origins = compiled.grounded_rule_origins
+    attack_counts: dict[Rule, int] = {}
+    defeat_counts: dict[Rule, int] = {}
     for attack in csaf.attacks:
         attacker_top = top_rule(attack.attacker)
-        if attacker_top is None or attacker_top.name is None or "->" not in attacker_top.name:
+        if (
+            attacker_top is None
+            or origins.get(attacker_top, GroundRuleOrigin("", (), "ground")).role != "undercut"
+        ):
             continue
-        attack_counts[attacker_top.name] = attack_counts.get(attacker_top.name, 0) + 1
+        attack_counts[attacker_top] = attack_counts.get(attacker_top, 0) + 1
     for attacker, _target in csaf.defeats:
         attacker_top = top_rule(attacker)
-        if attacker_top is None or attacker_top.name is None or "->" not in attacker_top.name:
+        if (
+            attacker_top is None
+            or origins.get(attacker_top, GroundRuleOrigin("", (), "ground")).role != "undercut"
+        ):
             continue
-        defeat_counts[attacker_top.name] = defeat_counts.get(attacker_top.name, 0) + 1
+        defeat_counts[attacker_top] = defeat_counts.get(attacker_top, 0) + 1
 
     ranked: list[RankedIntervention] = []
     for rule in sorted(compiled.system.defeasible_rules, key=lambda candidate: candidate.name or ""):
-        if rule.name is None or "->" not in rule.name or not rule.consequent.negated:
+        if rule.name is None or not rule.consequent.negated:
             continue
-        defeater_name, _, target_rule_name = rule.name.partition("->")
+        origin = origins.get(rule)
+        if origin is None or origin.role != "undercut" or origin.target_rule is None:
+            continue
         undercut_literal_key = str(rule.consequent.atom.predicate)
-        attack_count = attack_counts.get(rule.name, 0)
-        defeat_count = defeat_counts.get(rule.name, 0)
+        attack_count = attack_counts.get(rule, 0)
+        defeat_count = defeat_counts.get(rule, 0)
         local_fragility = min(1.0, 0.3 + (0.25 * min(attack_count, 2)) + (0.35 * min(defeat_count, 2)))
+        target_origin = origins.get(origin.target_rule)
+        source_ids = (origin.source_rule_id,)
+        if target_origin is not None:
+            source_ids = (origin.source_rule_id, target_origin.source_rule_id)
         target = InterventionTarget(
             intervention_id=f"bridge_undercut:{rule.name}",
             kind=InterventionKind.BRIDGE_UNDERCUT,
@@ -598,7 +625,7 @@ def collect_bridge_undercut_interventions(
             cost_tier=2,
             provenance=InterventionProvenance(
                 family=InterventionFamily.BRIDGE,
-                source_ids=(rule.name,),
+                source_ids=source_ids,
                 subject_concept_ids=(),
                 notes=_coefficient_provenance_notes(
                     formula="0.3 + 0.25 * min(attack_count, 2) + 0.35 * min(defeat_count, 2)",
@@ -609,8 +636,8 @@ def collect_bridge_undercut_interventions(
                 ),
             ),
             payload=BridgeUndercutTarget(
-                defeater_rule_name=defeater_name,
-                target_rule_name=target_rule_name,
+                defeater_rule_name=rule.name,
+                target_rule_name=origin.target_rule.name or "",
                 undercut_literal_key=undercut_literal_key,
             ),
         )

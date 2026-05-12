@@ -8,8 +8,8 @@ from propstore.aspic_bridge import (
     build_bridge_csaf,
     csaf_to_projection,
     claims_to_literals,
-    grounded_rules_to_rules,
     justifications_to_rules,
+    project_grounded_rules,
     query_claim,
     stances_to_contrariness,
 )
@@ -367,7 +367,9 @@ def test_undercut_target_justification_id_matches_grounded_rule_base_id() -> Non
         ),
         yes={"bird": {("tweety",)}},
     )
-    _strict, defeasible, literals = grounded_rules_to_rules(bundle, literals)
+    projection = project_grounded_rules(bundle, literals)
+    defeasible = projection.defeasible_rules
+    literals = projection.literals
 
     cfn = stances_to_contrariness(
         [
@@ -380,6 +382,7 @@ def test_undercut_target_justification_id_matches_grounded_rule_base_id() -> Non
         ],
         literals,
         defeasible,
+        rule_origins=projection.origins,
     )
 
     grounded_rule = next(iter(defeasible))
