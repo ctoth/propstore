@@ -22,6 +22,14 @@ class SourceConceptProjectionReference:
     handles: tuple[str, ...]
 
 
+def _source_concept_projection_artifact_id(record: SourceConceptProjectionReference) -> str:
+    return record.artifact_id
+
+
+def _source_concept_projection_handles(record: SourceConceptProjectionReference) -> tuple[str, ...]:
+    return record.handles
+
+
 def _derived_concept_artifact_id(handle: str) -> str:
     artifact_id = normalize_canonical_concept_payload(
         {"canonical_name": handle},
@@ -140,8 +148,8 @@ def projected_source_concepts(
     source_local_concept_index = FamilyReferenceIndex.from_records(
         projected_reference_records,
         family="source_concepts",
-        artifact_id=lambda record: record.artifact_id,
-        keys=(lambda record: record.handles,),
+        artifact_id=_source_concept_projection_artifact_id,
+        keys=(_source_concept_projection_handles,),
     )
 
     for projected_entry, raw_entry in zip(projected, concept_entries, strict=False):
