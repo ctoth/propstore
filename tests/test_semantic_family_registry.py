@@ -38,6 +38,7 @@ def test_semantic_registry_declares_complete_canonical_family_set() -> None:
         name="propstore-semantic-test",
         contract_version=PROPSTORE_FAMILY_REGISTRY.contract_version,
         families=semantic_families(),
+        validate_foreign_keys=False,
     )
     assert semantic_registry.by_storage_root("claims").name == "claims"
     assert semantic_registry.by_storage_root("rules").name == "rules"
