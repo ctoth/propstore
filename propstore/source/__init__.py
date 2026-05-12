@@ -8,10 +8,6 @@ from .alignment import (
     promote_alignment,
     save_alignment_artifact,
 )
-from propstore.claim_references import (
-    load_primary_branch_claim_reference_index,
-    load_source_claim_reference_index,
-)
 from .claims import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
@@ -75,10 +71,8 @@ __all__ = [
     "initial_source_document",
     "load_alignment_artifact",
     "load_finalize_report",
-    "load_primary_branch_claim_reference_index",
     "load_primary_branch_concept_docs",
     "load_primary_branch_concepts",
-    "load_source_claim_reference_index",
     "load_source_document",
     "normalize_source_claims_payload",
     "normalize_source_concepts_document",
