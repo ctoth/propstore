@@ -306,6 +306,27 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
+  name: rule_superiority
+  contract_version: 2026.04.27
+  body:
+    coerce_payload: null
+    decode_bytes: null
+    doc_type: propstore.families.documents.rules.RuleSuperiorityDocument
+    document_payload: null
+    encode_document: null
+    normalize_for_write: null
+    placement:
+      branch:
+        policy: primary
+      codec: stem
+      extension: .yaml
+      kind: flat-yaml
+      namespace: rule_superiority
+      ref_field: artifact_id
+    render_document: null
+    scan_type: null
+    validate_for_write: null
+- kind: artifact_family
   name: same_as_assertion
   contract_version: 2026.04.27
   body:
@@ -2047,6 +2068,27 @@ contracts:
       type: str
     module: propstore.families.documents.rules
 - kind: document_schema
+  name: RuleSuperiorityDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: superior_rule_id
+      required: true
+      type: str
+    - name: inferior_rule_id
+      required: true
+      type: str
+    - name: source
+      required: true
+      type: RuleSourceDocument | None
+    - name: authoring_group
+      required: true
+      type: str | None
+    - name: promoted_from_sha
+      required: true
+      type: str | None
+    module: propstore.families.documents.rules
+- kind: document_schema
   name: SameAsAssertionDocument
   contract_version: 2026.04.30
   body:
@@ -3155,7 +3197,7 @@ contracts:
     module: propstore.families.documents.stances
 - kind: family-registry
   name: propstore
-  contract_version: 2026.05.11
+  contract_version: 2026.05.12
   body:
     families:
     - contract_version: 2026.04.29
@@ -3176,6 +3218,9 @@ contracts:
     - contract_version: 2026.05.11
       key: rules
       name: rules
+    - contract_version: 2026.05.11
+      key: rule_superiority
+      name: rule_superiority
     - contract_version: 2026.04.27
       key: stances
       name: stances
@@ -3591,6 +3636,31 @@ contracts:
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: proposal_stances
+- kind: family
+  name: rule_superiority
+  contract_version: 2026.05.11
+  body:
+    accessor: rule_superiority
+    artifact_family: rule_superiority
+    artifact_family_contract:
+      doc_type: propstore.families.documents.rules.RuleSuperiorityDocument
+      placement:
+        branch:
+          policy: primary
+        codec: stem
+        extension: .yaml
+        kind: flat-yaml
+        namespace: rule_superiority
+        ref_field: artifact_id
+    artifact_family_contract_version: 2026.04.27
+    foreign_keys: []
+    key: rule_superiority
+    metadata:
+      collection_field: null
+      import_order: 55
+      importable: true
+      init_directory: true
+      semantic: true
 - kind: family
   name: rules
   contract_version: 2026.05.11
@@ -4204,4 +4274,4 @@ contracts:
     invariants: []
 registry:
   name: propstore
-  contract_version: 2026.05.11
+  contract_version: 2026.05.12
