@@ -19,7 +19,7 @@ from propstore.claims import (
 )
 from propstore.compiler.ir import SemanticClaim
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
-from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.claim_types import ClaimType
 from propstore.core.conditions import checked_condition_set_to_json
 from propstore.dimensions import normalize_to_si

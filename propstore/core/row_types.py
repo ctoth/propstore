@@ -9,7 +9,7 @@ from typing import Any
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
-from propstore.core.claim_concept_link_roles import (
+from propstore.core.relations import (
     ClaimConceptLinkRole,
     coerce_claim_concept_link_role,
 )

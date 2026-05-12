@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.documents import (
     ClaimSemanticCheck,
     claim_type_contract_for,

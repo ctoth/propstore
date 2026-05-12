@@ -9,7 +9,7 @@ import bridgman
 
 from ast_equiv import AlgorithmParseError, extract_free_variables, parse_algorithm
 
-from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.documents import (
     AlgorithmParseCheck,
     AlgorithmUnboundNamesCheck,

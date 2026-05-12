@@ -8,7 +8,7 @@ from typing import Any, ClassVar
 
 from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
-from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.claim_types import ClaimType
 from quire.documents import DocumentStruct
 from quire.versions import VersionId

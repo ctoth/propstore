@@ -9,7 +9,7 @@ from typing import Any, Callable, Mapping, cast
 
 from propstore.conflict_detector import ConflictClass
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
-from propstore.core.claim_concept_link_roles import ClaimConceptLinkRole
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.claim_types import ClaimType
 from propstore.core.conditions import (
     CheckedConditionSet,

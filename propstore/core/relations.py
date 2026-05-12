@@ -1,8 +1,9 @@
-"""Small bootstrap vocabulary for relation concepts.
+"""Small bootstrap vocabulary for relation concepts and semantic link roles.
 
 The kernel intentionally owns only the circular minimum: relation concepts,
-role names, role bindings, and validation of complete binding sets. Higher
-relation definitions can then be represented as ordinary propstore content.
+role names, role bindings, relation properties, and validation of complete
+binding sets. Higher relation definitions can then be represented as ordinary
+propstore content.
 
 Design basis:
     Buitelaar et al. 2011 and Cimiano et al. 2016 separate lexical entries and
@@ -39,6 +40,21 @@ BOOTSTRAP_RELATION_IDS: frozenset[str] = frozenset({
     "calibrates",
     "published_in",
 })
+
+
+class ClaimConceptLinkRole(StrEnum):
+    ABOUT = "about"
+    OUTPUT = "output"
+    TARGET = "target"
+    INPUT = "input"
+
+
+def coerce_claim_concept_link_role(
+    value: object | None,
+) -> ClaimConceptLinkRole | None:
+    if value is None:
+        return None
+    return ClaimConceptLinkRole(str(value))
 
 
 @dataclass(frozen=True, order=True)
