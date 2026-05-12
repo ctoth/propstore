@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from html import escape
 from pathlib import Path
 from typing import NamedTuple
 from urllib.parse import quote
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup, escape
 
 from propstore.app.claim_views import ClaimSummaryReport, ClaimViewReport
 from propstore.app.concepts import ConceptListReport, ConceptSearchReport
@@ -32,16 +34,16 @@ from propstore.app.repository_overview import (
 )
 
 _TEMPLATE_DIR = Path(__file__).with_name("templates")
+_TEMPLATE_ENV = Environment(
+    loader=FileSystemLoader(_TEMPLATE_DIR),
+    autoescape=select_autoescape(("html",)),
+)
 
 
 class LinkRow(NamedTuple):
     link_text: str
     href: str
     cells: tuple[str, ...]
-
-
-class HtmlFragment(str):
-    """Escaped or template-owned HTML that can be inserted without re-escaping."""
 
 
 def render_claim_index_page(
@@ -298,7 +300,7 @@ def _inventory_table(rows: tuple[InventoryRow, ...]) -> str:
             ("Kind", "Count", "State", "Sentence"),
             [("none", "not applicable", "not applicable", "not applicable")],
         )
-    mixed_rows: list[HtmlFragment] = []
+    mixed_rows: list[Markup] = []
     for row in rows:
         cells = (str(row.count), _state_label(row.state), row.sentence)
         if row.href is not None:
@@ -369,11 +371,11 @@ def _provenance_summary_section(summary: ProvenanceSummary) -> str:
 
 def _page(title: str, body: str, *, main_labelledby: str | None = None) -> str:
     main_attrs = (
-        HtmlFragment("")
+        Markup("")
         if main_labelledby is None
-        else HtmlFragment(f' aria-labelledby="{_text(main_labelledby)}"')
+        else Markup(f' aria-labelledby="{_text(main_labelledby)}"')
     )
-    return _template("layout.html", title=title, body=HtmlFragment(body), main_attrs=main_attrs)
+    return str(_template("layout.html", title=title, body=Markup(body), main_attrs=main_attrs))
 
 
 def _dl(rows: list[tuple[str, str]]) -> str:
@@ -486,7 +488,7 @@ def _link_table(headers: tuple[str, ...], rows: list[LinkRow]) -> str:
     return _table_from_body(headers, rendered_rows)
 
 
-def _table_from_body(headers: tuple[str, ...], rows: list[HtmlFragment]) -> str:
+def _table_from_body(headers: tuple[str, ...], rows: list[Markup]) -> str:
     head = _join_fragments(
         [_template("components/table_header.html", header=header) for header in headers]
     )
@@ -497,7 +499,7 @@ def _table_from_body(headers: tuple[str, ...], rows: list[HtmlFragment]) -> str:
     )
 
 
-def _plain_row(cells: tuple[str, ...]) -> HtmlFragment:
+def _plain_row(cells: tuple[str, ...]) -> Markup:
     return _template(
         "components/table_row.html",
         cells=_join_fragments(
@@ -506,7 +508,7 @@ def _plain_row(cells: tuple[str, ...]) -> HtmlFragment:
     )
 
 
-def _link_row(link_text: str, href: str, cells: tuple[str, ...]) -> HtmlFragment:
+def _link_row(link_text: str, href: str, cells: tuple[str, ...]) -> Markup:
     rendered_cells = [
         _template("components/link_table_cell.html", href=href, text=link_text),
         *[_template("components/table_cell.html", cell=cell) for cell in cells],
@@ -589,19 +591,12 @@ def _bool_text(value: bool) -> str:
 
 
 def _text(value: str) -> str:
-    return escape(value, quote=True)
+    return str(escape(value))
 
 
-def _join_fragments(fragments: list[str]) -> HtmlFragment:
-    return HtmlFragment("\n".join(fragments))
+def _join_fragments(fragments: list[str]) -> Markup:
+    return Markup("\n").join(Markup(fragment) for fragment in fragments)
 
 
-def _template(name: str, **context: str | HtmlFragment) -> HtmlFragment:
-    rendered = (_TEMPLATE_DIR / name).read_text(encoding="utf-8")
-    escaped_context = {
-        key: value if isinstance(value, HtmlFragment) else _text(value)
-        for key, value in context.items()
-    }
-    for key, value in escaped_context.items():
-        rendered = rendered.replace("{{ " + key + " }}", value)
-    return HtmlFragment(rendered)
+def _template(name: str, **context: str | Markup) -> Markup:
+    return Markup(_TEMPLATE_ENV.get_template(name).render(**context))
