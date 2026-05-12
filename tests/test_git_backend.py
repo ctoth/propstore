@@ -1147,11 +1147,28 @@ def test_promote_commits(tmp_path):
     """Promoting proposal-branch stance files creates a master commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
+    from propstore.families.claims.documents import ClaimDocument
+    from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
+    from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
     from propstore.proposals import commit_stance_proposals
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
+    repo.families.contexts.save(
+        ContextRef("ctx"),
+        ContextDocument(id="ctx", name="Test context"),
+        message="Seed stance proposal context",
+    )
+    for claim_id in ("claim_a", "claim_b"):
+        repo.families.claims.save(
+            ClaimRef(claim_id),
+            ClaimDocument(
+                artifact_id=claim_id,
+                context=ContextReferenceDocument(id="ctx"),
+            ),
+            message="Seed stance proposal claims",
+        )
 
     git = repo.git
     _, relpaths = commit_stance_proposals(
@@ -1187,11 +1204,28 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     """Promotion must not change master if the promote commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
+    from propstore.families.claims.documents import ClaimDocument
+    from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
+    from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
     from propstore.proposals import commit_stance_proposals, stance_proposal_branch
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
+    repo.families.contexts.save(
+        ContextRef("ctx"),
+        ContextDocument(id="ctx", name="Test context"),
+        message="Seed stance proposal context",
+    )
+    for claim_id in ("claim_a", "claim_b"):
+        repo.families.claims.save(
+            ClaimRef(claim_id),
+            ClaimDocument(
+                artifact_id=claim_id,
+                context=ContextReferenceDocument(id="ctx"),
+            ),
+            message="Seed stance proposal claims",
+        )
 
     git = repo.git
     _, relpaths = commit_stance_proposals(
