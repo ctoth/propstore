@@ -164,19 +164,8 @@ def _build_registry(predicates):
     """Wrap predicate documents in a populated PredicateRegistry."""
 
     from propstore.grounding.predicates import PredicateRegistry
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.predicates import PredicatesFileDocument
-    from propstore.predicate_files import LoadedPredicateFile
 
-    file_doc = PredicatesFileDocument(predicates=tuple(predicates))
-    loaded = LoadedDocument(
-        filename="generated",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    file = LoadedPredicateFile.from_loaded_document(loaded)
-    return PredicateRegistry.from_files([file])
+    return PredicateRegistry.from_documents(tuple(predicates))
 
 
 def _fact_inputs(concepts=(), claim_files=()):

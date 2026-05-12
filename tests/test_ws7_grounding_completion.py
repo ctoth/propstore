@@ -6,7 +6,6 @@ import sqlite3
 from pathlib import Path
 
 from argumentation.aspic import GroundAtom
-from quire.documents import LoadedDocument
 
 
 def _build_predicate_document(
@@ -27,19 +26,9 @@ def _build_predicate_document(
 
 
 def _build_registry(predicates):
-    from propstore.families.documents.predicates import PredicatesFileDocument
     from propstore.grounding.predicates import PredicateRegistry
-    from propstore.predicate_files import LoadedPredicateFile
 
-    loaded = LoadedDocument(
-        filename="generated.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=PredicatesFileDocument(predicates=tuple(predicates)),
-    )
-    return PredicateRegistry.from_files(
-        (LoadedPredicateFile.from_loaded_document(loaded),)
-    )
+    return PredicateRegistry.from_documents(tuple(predicates))
 
 
 def _claim_file_from_payload(payload: dict):

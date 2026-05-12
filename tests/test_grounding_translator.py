@@ -536,7 +536,7 @@ def test_translate_fact_atoms_preserved(facts) -> None:
 
 
 def test_translate_empty_inputs_produces_empty_theory() -> None:
-    """Empty rule files and empty facts produce a ``DefeasibleTheory``
+    """Empty rule artifacts and empty facts produce a ``DefeasibleTheory``
     with empty fact and rule sets.
 
     Degenerate case — pins the boundary. Diller, Borg, Bex 2025 §3:

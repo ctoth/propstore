@@ -3,14 +3,11 @@ from __future__ import annotations
 from itertools import chain
 
 from argumentation.aspic import GroundAtom
-from quire.documents import LoadedDocument
 
 from propstore.families.documents.rules import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,
-    RuleSourceDocument,
-    RulesFileDocument,
     TermDocument,
 )
 from propstore.fragility_contributors import (
@@ -21,7 +18,6 @@ from propstore.fragility_contributors import (
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.rule_files import LoadedRuleFile
 
 
 def _var(name: str) -> TermDocument:
@@ -44,19 +40,6 @@ def _rule_doc(rule_id: str, kind: str, head: AtomDocument, *, body=()) -> RuleDo
     )
 
 
-def _rule_file(rules: tuple[RuleDocument, ...]) -> LoadedRuleFile:
-    loaded = LoadedDocument(
-        filename="fragility-coefficients.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=RulesFileDocument(
-            source=RuleSourceDocument(paper="T3.9"),
-            rules=rules,
-        ),
-    )
-    return LoadedRuleFile.from_loaded_document(loaded)
-
-
 def _bundle(*, rules=(), yes=None) -> GroundedRulesBundle:
     source_facts = tuple(
         GroundAtom(predicate, tuple(row))
@@ -64,7 +47,7 @@ def _bundle(*, rules=(), yes=None) -> GroundedRulesBundle:
         for row in rows
     )
     return ground(
-        tuple([_rule_file(tuple(rules))] if rules else []),
+        tuple(rules),
         source_facts,
         PredicateRegistry(()),
         return_arguments=True,

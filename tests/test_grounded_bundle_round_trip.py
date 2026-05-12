@@ -3,19 +3,15 @@ from __future__ import annotations
 import sqlite3
 
 from argumentation.aspic import GroundAtom
-from quire.documents import LoadedDocument
 
 from propstore.families.documents.rules import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,
-    RuleSourceDocument,
-    RulesFileDocument,
     TermDocument,
 )
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.rule_files import LoadedRuleFile
 from propstore.sidecar.rules import (
     create_grounded_fact_table,
     populate_grounded_facts,
@@ -25,31 +21,19 @@ from propstore.sidecar.rules import (
 
 def _birds_fly_bundle():
     variable = TermDocument(kind="var", name="X")
-    rule_file = LoadedRuleFile.from_loaded_document(
-        LoadedDocument(
-            filename="rules.yaml",
-            artifact_path=None,
-            store_root=None,
-            document=RulesFileDocument(
-                source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
-                rules=(
-                    RuleDocument(
-                        id="flies_if_bird",
-                        kind="defeasible",
-                        head=AtomDocument(predicate="flies", terms=(variable,)),
-                        body=(
-                            BodyLiteralDocument(
-                                kind="positive",
-                                atom=AtomDocument(predicate="bird", terms=(variable,)),
-                            ),
-                        ),
-                    ),
-                ),
+    rule = RuleDocument(
+        id="flies_if_bird",
+        kind="defeasible",
+        head=AtomDocument(predicate="flies", terms=(variable,)),
+        body=(
+            BodyLiteralDocument(
+                kind="positive",
+                atom=AtomDocument(predicate="bird", terms=(variable,)),
             ),
-        )
+        ),
     )
     return ground(
-        (rule_file,),
+        (rule,),
         (GroundAtom("bird", ("tweety",)),),
         PredicateRegistry(()),
         return_arguments=True,

@@ -479,7 +479,7 @@ def test_grounder_all_four_sections_present(rule_files, facts) -> None:
 
 
 def test_grounder_empty_everything() -> None:
-    """Empty rule files and empty facts produce a bundle with all four
+    """Empty rule artifacts and empty facts produce a bundle with all four
     sections present and empty.
 
     Diller, Borg, Bex 2025 §3: the empty program has an empty

@@ -509,24 +509,6 @@ def _rule_doc(rule_id: str, kind: str, head, *, body=()):
     )
 
 
-def _rule_file(rules):
-    from propstore.families.documents.rules import RuleSourceDocument, RulesFileDocument
-    from quire.documents import LoadedDocument
-    from propstore.rule_files import LoadedRuleFile
-
-    file_doc = RulesFileDocument(
-        source=RuleSourceDocument(paper="fragility-test"),
-        rules=tuple(rules),
-    )
-    loaded = LoadedDocument(
-        filename="generated.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    return LoadedRuleFile.from_loaded_document(loaded)
-
-
 def _bundle(
     *,
     rules=(),
@@ -545,7 +527,7 @@ def _bundle(
         for row in rows
     )
     return ground(
-        tuple([_rule_file(rules)] if rules else []),
+        tuple(rules),
         source_facts,
         PredicateRegistry(()),
         return_arguments=True,

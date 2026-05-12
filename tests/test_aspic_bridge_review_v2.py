@@ -78,23 +78,6 @@ def _make_rule_document(
     )
 
 
-def _make_rule_file(rules):
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import RuleSourceDocument, RulesFileDocument
-    from propstore.rule_files import LoadedRuleFile
-
-    loaded = LoadedDocument(
-        filename="generated.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=RulesFileDocument(
-            source=RuleSourceDocument(paper="review_v2"),
-            rules=tuple(rules),
-        ),
-    )
-    return LoadedRuleFile.from_loaded_document(loaded)
-
-
 def _make_grounded_bundle(rules=(), *, yes=None):
     from propstore.grounding.grounder import ground
     from propstore.grounding.predicates import PredicateRegistry
@@ -106,7 +89,7 @@ def _make_grounded_bundle(rules=(), *, yes=None):
     )
 
     return ground(
-        () if not rules else (_make_rule_file(rules),),
+        tuple(rules),
         source_facts,
         PredicateRegistry(()),
         return_arguments=True,

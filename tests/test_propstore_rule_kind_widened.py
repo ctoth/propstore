@@ -88,10 +88,6 @@ def test_default_negation_body_literal_round_trips_distinct_from_strong_negation
 
 
 def test_translate_default_negation_to_gunray_not_surface() -> None:
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import RuleSourceDocument, RulesFileDocument
-    from propstore.rule_files import LoadedRuleFile
-
     rule = RuleDocument(
         id="rule:default-negation",
         kind="defeasible",
@@ -102,19 +98,8 @@ def test_translate_default_negation_to_gunray_not_surface() -> None:
             BodyLiteralDocument(kind="positive", atom=_atom("grounded", negated=True)),
         ),
     )
-    loaded = LoadedRuleFile.from_loaded_document(
-        LoadedDocument(
-            filename="rules",
-            artifact_path=None,
-            store_root=None,
-            document=RulesFileDocument(
-                source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
-                rules=(rule,),
-            ),
-        )
-    )
 
-    theory = translate_to_theory([loaded], (), registry=None)  # type: ignore[arg-type]
+    theory = translate_to_theory([rule], (), registry=None)  # type: ignore[arg-type]
 
     assert theory.defeasible_rules[0].body == (
         "bird(X)",

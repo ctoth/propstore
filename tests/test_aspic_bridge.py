@@ -732,9 +732,9 @@ class TestPreferenceConfig:
             )
 
     def test_grounded_rule_superiority_reaches_preference_config(self):
-        """Rule-file superiority becomes ASPIC+ ``rule_order``.
+        """Rule-superiority artifacts become ASPIC+ ``rule_order``.
 
-        The rule-file surface uses ``(superior, inferior)`` pairs as in
+        The rule-superiority surface uses ``superior > inferior`` pairs as in
         Garcia & Simari's DeLP superiority relation; ASPIC+ stores
         ``(weaker, stronger)`` pairs in ``PreferenceConfig.rule_order``.
         """
@@ -742,12 +742,9 @@ class TestPreferenceConfig:
             AtomDocument,
             BodyLiteralDocument,
             RuleDocument,
-            RuleSourceDocument,
-            RulesFileDocument,
+            RuleSuperiorityDocument,
             TermDocument,
         )
-        from quire.documents import LoadedDocument
-        from propstore.rule_files import LoadedRuleFile
 
         variable = TermDocument(kind="var", name="X")
         generic = RuleDocument(
@@ -772,28 +769,17 @@ class TestPreferenceConfig:
                 ),
             ),
         )
-        rule_file = LoadedRuleFile.from_loaded_document(
-            LoadedDocument(
-                filename="superiority.yaml",
-                artifact_path=None,
-                store_root=None,
-                document=RulesFileDocument(
-                    source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
-                    rules=(generic, specific),
-                    superiority=(("r2", "r1"),),
-                ),
-            )
-        )
         from propstore.grounding.grounder import ground
         from propstore.grounding.predicates import PredicateRegistry
 
         bundle = ground(
-            (rule_file,),
+            (generic, specific),
             (
                 GroundAtom("bird", ("tweety",)),
                 GroundAtom("penguin", ("tweety",)),
             ),
             PredicateRegistry(()),
+            superiority=(RuleSuperiorityDocument(superior_rule_id="r2", inferior_rule_id="r1"),),
             return_arguments=True,
         )
 

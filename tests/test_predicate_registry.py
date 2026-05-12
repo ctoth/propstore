@@ -130,29 +130,6 @@ def predicate_documents() -> st.SearchStrategy:
     return _build()
 
 
-def loaded_predicate_files_from(docs) -> "list":
-    """Wrap a list of PredicateDocument values in a single LoadedPredicateFile.
-
-    The registry's public ``from_files`` constructor consumes a sequence
-    of LoadedPredicateFile envelopes (one per authored YAML file). For
-    Hypothesis tests we synthesise a single envelope holding the drawn
-    documents so the registry sees the entire population at once.
-    """
-
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.predicates import PredicatesFileDocument  # noqa: E402
-    from propstore.predicate_files import LoadedPredicateFile  # noqa: E402
-
-    file_doc = PredicatesFileDocument(predicates=tuple(docs))
-    loaded = LoadedDocument(
-        filename="generated",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    return [LoadedPredicateFile.from_loaded_document(loaded)]
-
-
 # ── Property tests: PredicateRegistry ──────────────────────────────
 
 
@@ -179,7 +156,7 @@ def test_registry_lookup_returns_matching_document(docs) -> None:
 
     from propstore.grounding.predicates import PredicateRegistry  # noqa: E402
 
-    registry = PredicateRegistry.from_files(loaded_predicate_files_from(docs))
+    registry = PredicateRegistry.from_documents(tuple(docs))
     for doc in docs:
         assert registry.lookup(doc.id) == doc
 
@@ -210,7 +187,7 @@ def test_registry_lookup_missing_predicate_raises(docs) -> None:
 
     from propstore.grounding.predicates import PredicateRegistry  # noqa: E402
 
-    registry = PredicateRegistry.from_files(loaded_predicate_files_from(docs))
+    registry = PredicateRegistry.from_documents(tuple(docs))
     known_ids = {d.id for d in docs}
     missing_id = "definitely_not_a_real_predicate_xyz_404"
     assume(missing_id not in known_ids)
@@ -244,7 +221,7 @@ def test_registry_validate_atom_rejects_wrong_arity(docs, wrong_arity) -> None:
 
     from propstore.grounding.predicates import PredicateAtom, PredicateRegistry  # noqa: E402
 
-    registry = PredicateRegistry.from_files(loaded_predicate_files_from(docs))
+    registry = PredicateRegistry.from_documents(tuple(docs))
     target = docs[0]
     assume(wrong_arity != target.arity)
     atom = PredicateAtom(
@@ -279,7 +256,7 @@ def test_registry_validate_atom_accepts_matching_arity(docs) -> None:
 
     from propstore.grounding.predicates import PredicateAtom, PredicateRegistry  # noqa: E402
 
-    registry = PredicateRegistry.from_files(loaded_predicate_files_from(docs))
+    registry = PredicateRegistry.from_documents(tuple(docs))
     for doc in docs:
         # Should not raise.
         registry.validate_atom(
@@ -314,13 +291,13 @@ def test_registry_all_predicates_returns_every_declaration(docs) -> None:
 
     from propstore.grounding.predicates import PredicateRegistry  # noqa: E402
 
-    registry = PredicateRegistry.from_files(loaded_predicate_files_from(docs))
+    registry = PredicateRegistry.from_documents(tuple(docs))
     all_ids = {p.id for p in registry.all_predicates()}
     assert all_ids == {d.id for d in docs}
 
 
 def test_registry_duplicate_predicate_id_rejected() -> None:
-    """Two files declaring the same predicate id must raise on build.
+    """Two predicate artifacts declaring the same predicate id must raise on build.
 
     Diller et al. 2025 §3 makes the predicate id the unique key into the
     Datalog schema; two declarations for the same id are ambiguous
@@ -331,12 +308,7 @@ def test_registry_duplicate_predicate_id_rejected() -> None:
     """
 
     from propstore.grounding.predicates import PredicateRegistry  # noqa: E402
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.predicates import (  # noqa: E402
-        PredicateDocument,
-        PredicatesFileDocument,
-    )
-    from propstore.predicate_files import LoadedPredicateFile  # noqa: E402
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
     duplicate_id = "bird"
     doc_a = PredicateDocument(
@@ -354,19 +326,8 @@ def test_registry_duplicate_predicate_id_rejected() -> None:
         description=None,
     )
 
-    def _wrap(doc: PredicateDocument, name: str) -> LoadedPredicateFile:
-        file_doc = PredicatesFileDocument(predicates=(doc,))
-        loaded = LoadedDocument(
-            filename=name,
-            artifact_path=None,
-            store_root=None,
-            document=file_doc,
-        )
-        return LoadedPredicateFile.from_loaded_document(loaded)
-
-    files = [_wrap(doc_a, "first"), _wrap(doc_b, "second")]
     with pytest.raises(Exception):
-        PredicateRegistry.from_files(files)
+        PredicateRegistry.from_documents((doc_a, doc_b))
 
 
 # ── Property tests: parse_derived_from DSL ─────────────────────────

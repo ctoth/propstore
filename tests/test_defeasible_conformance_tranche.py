@@ -376,10 +376,8 @@ def _build_rule_document(rule: SuiteRule, *, kind: str):
     )
 
 
-def _build_rule_file(theory: SuiteTheory):
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import RuleSourceDocument, RulesFileDocument
-    from propstore.rule_files import LoadedRuleFile
+def _build_rule_documents(theory: SuiteTheory):
+    from propstore.families.documents.rules import RuleSuperiorityDocument
 
     rule_documents = [
         *(_build_rule_document(rule, kind="strict") for rule in theory.strict_rules),
@@ -389,17 +387,14 @@ def _build_rule_file(theory: SuiteTheory):
             for rule in theory.defeaters
         ),
     ]
-    loaded_document = LoadedDocument(
-        filename="suite-derived.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=RulesFileDocument(
-            source=RuleSourceDocument(paper="datalog-conformance-suite"),
-            rules=tuple(rule_documents),
-            superiority=tuple(theory.superiority),
-        ),
+    superiority = tuple(
+        RuleSuperiorityDocument(
+            superior_rule_id=superior,
+            inferior_rule_id=inferior,
+        )
+        for superior, inferior in theory.superiority
     )
-    return LoadedRuleFile.from_loaded_document(loaded_document)
+    return tuple(rule_documents), superiority
 
 
 def _build_fact_atoms(theory: SuiteTheory):
@@ -420,12 +415,7 @@ def _build_fact_atoms(theory: SuiteTheory):
 
 def _build_registry(theory: SuiteTheory):
     from propstore.grounding.predicates import PredicateRegistry
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.predicates import (
-        PredicateDocument,
-        PredicatesFileDocument,
-    )
-    from propstore.predicate_files import LoadedPredicateFile
+    from propstore.families.documents.predicates import PredicateDocument
 
     arities: dict[str, int] = {}
     for predicate, rows in theory.facts.items():
@@ -443,25 +433,17 @@ def _build_registry(theory: SuiteTheory):
             body_positive, _ = _decode_gunray_predicate_token(body_atom.predicate)
             arities[body_positive] = body_atom.arity
 
-    loaded_document = LoadedDocument(
-        filename="suite-derived-predicates.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=PredicatesFileDocument(
-            predicates=tuple(
-                PredicateDocument(
-                    id=predicate,
-                    arity=arity,
-                    arg_types=tuple("Concept" for _ in range(arity)),
-                    derived_from=None,
-                    description=None,
-                )
-                for predicate, arity in sorted(arities.items())
+    return PredicateRegistry.from_documents(
+        tuple(
+            PredicateDocument(
+                id=predicate,
+                arity=arity,
+                arg_types=tuple("Concept" for _ in range(arity)),
+                derived_from=None,
+                description=None,
             )
-        ),
-    )
-    return PredicateRegistry.from_files(
-        [LoadedPredicateFile.from_loaded_document(loaded_document)]
+            for predicate, arity in sorted(arities.items())
+        )
     )
 
 
@@ -469,10 +451,10 @@ def _evaluate_translated_suite_theory(case: SuiteCase, *, policy_name: str | Non
     from propstore.grounding.translator import translate_to_theory
 
     assert case.theory is not None
-    rule_file = _build_rule_file(case.theory)
+    rules, superiority = _build_rule_documents(case.theory)
     facts = _build_fact_atoms(case.theory)
     registry = _build_registry(case.theory)
-    translated = translate_to_theory([rule_file], facts, registry)
+    translated = translate_to_theory(rules, facts, registry, superiority=superiority)
     if policy_name is None:
         return GunrayEvaluator().evaluate(
             translated,

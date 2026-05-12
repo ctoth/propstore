@@ -166,28 +166,12 @@ def _build_predicate_document(
 def _build_registry(predicates):
     """Wrap predicates in a populated ``PredicateRegistry``.
 
-    Mirrors the envelope-building pattern used in
-    ``tests/test_grounding_facts.py`` — go through
-    ``LoadedPredicateFile.from_loaded_document`` so the registry sees
-    the same authoring order it would see from disk.
+    Predicate artifacts are already the canonical registry input.
     """
 
     from propstore.grounding.predicates import PredicateRegistry
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.predicates import (
-        PredicatesFileDocument,
-    )
-    from propstore.predicate_files import LoadedPredicateFile
 
-    file_doc = PredicatesFileDocument(predicates=tuple(predicates))
-    loaded = LoadedDocument(
-        filename="generated.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    predicate_file = LoadedPredicateFile.from_loaded_document(loaded)
-    return PredicateRegistry.from_files([predicate_file])
+    return PredicateRegistry.from_documents(tuple(predicates))
 
 
 def _fact_inputs(concepts=(), claim_files=()):
@@ -249,39 +233,13 @@ def _build_defeasible_rule(rule_id: str, head, body):
     )
 
 
-def _build_rule_file(rules):
-    """Wrap rule documents in a ``LoadedRuleFile``.
-
-    Garcia & Simari 2004 §3: a rules file is a flat tuple of rules
-    anchored to a paper source; order is preserved because Modgil &
-    Prakken 2018 Def 13 (last-link preference) can read meaning out
-    of authored order.
-    """
-
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import RulesFileDocument, RuleSourceDocument
-    from propstore.rule_files import LoadedRuleFile
-
-    file_doc = RulesFileDocument(
-        source=RuleSourceDocument(paper="gunray_integration_test"),
-        rules=tuple(rules),
-    )
-    loaded = LoadedDocument(
-        filename="generated.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    return LoadedRuleFile.from_loaded_document(loaded)
-
-
 def _build_tweety_world():
     """Construct the canonical tweety inputs.
 
     Garcia & Simari 2004 §3 (p.3-4): the textbook defeasible-reasoning
     example is a single-concept fact base ``bird(tweety)`` together
     with the single defeasible rule ``flies(X) -< bird(X)``. The
-    returned tuple is ``(concepts, registry, rule_files)`` — exactly
+    returned tuple is ``(concepts, registry, rules)`` — exactly
     the shape the fact extractor and the grounder consume.
     """
 
@@ -323,9 +281,9 @@ def _build_tweety_world():
     head = _build_atom("flies", [variable_x])
     body = [_build_atom("bird", [variable_x])]
     rule = _build_defeasible_rule("r_flies_bird", head, body)
-    rule_files = [_build_rule_file([rule])]
+    rules = [rule]
 
-    return concepts, registry, rule_files
+    return concepts, registry, rules
 
 
 # ── Signature-pinning tests ────────────────────────────────────────
@@ -421,10 +379,10 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     sub-argument is a PremiseArg for ``bird(tweety)``.
 
     Pipeline:
-        1. Build concept graph, predicate registry, and rule files
+        1. Build concept graph, predicate registry, and rule artifacts
            via the inline helpers above.
         2. ``extract_facts(GroundingFactInputs(...), registry)`` -> ``(bird(tweety),)``.
-        3. ``ground(rule_files, facts, registry)`` -> bundle whose
+        3. ``ground(rules, facts, registry)`` -> bundle whose
            ``definitely`` section contains ``{'bird': {('tweety',)}}``
            and whose ``defeasibly`` section contains
            ``{'flies': {('tweety',)}}``.
@@ -449,7 +407,7 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     from propstore.grounding.facts import extract_facts
     from propstore.grounding.grounder import ground
 
-    concepts, registry, rule_files = _build_tweety_world()
+    concepts, registry, rules = _build_tweety_world()
 
     facts = extract_facts(_fact_inputs(concepts), registry)
     # Garcia & Simari 2004 §3: the fact extractor must materialise
@@ -457,7 +415,7 @@ def test_tweety_end_to_end_via_query_claim() -> None:
     assert len(facts) == 1
     assert facts[0] == GroundAtom(predicate="bird", arguments=("tweety",))
 
-    bundle = ground(rule_files, facts, registry)
+    bundle = ground(rules, facts, registry)
     # Diller, Borg, Bex 2025 §3: the bundle must carry the four
     # sections; the definitely section echoes the input facts and the
     # defeasibly section contains the ground rule head.
@@ -507,10 +465,10 @@ def test_tweety_end_to_end_via_query_claim() -> None:
 
 
 def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
-    """Empty rule file pins the zero-rules edge case.
+    """Empty rule input pins the zero-rules edge case.
 
     Same fact base as the primary test (one concept with an
-    ``is_a:Bird`` edge) but zero rules in the rule file. Diller, Borg,
+    ``is_a:Bird`` edge) but zero rule artifacts. Diller, Borg,
     Bex 2025 §3 Def 7: the empty Datalog program is legal and
     produces only the input fact base. Garcia & Simari 2004 §3
     treats an empty rule set as a trivial program; no defeasible
@@ -534,13 +492,11 @@ def test_tweety_no_rules_produces_no_grounded_arguments() -> None:
     from propstore.grounding.facts import extract_facts
     from propstore.grounding.grounder import ground
 
-    concepts, registry, _original_rule_files = _build_tweety_world()
-    # Rebuild the rule file with zero rules; all other inputs are
-    # identical to the canonical tweety setup.
-    empty_rule_files = [_build_rule_file([])]
+    concepts, registry, _original_rules = _build_tweety_world()
+    empty_rules = []
 
     facts = extract_facts(_fact_inputs(concepts), registry)
-    bundle = ground(empty_rule_files, facts, registry)
+    bundle = ground(empty_rules, facts, registry)
 
     # Facts are still present: Diller, Borg, Bex 2025 §3 Def 7.
     assert ("tweety",) in bundle.sections["yes"].get(

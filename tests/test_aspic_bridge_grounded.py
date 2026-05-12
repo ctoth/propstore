@@ -147,32 +147,6 @@ def _rule_doc(rule_id: str, kind: str, head, body=()):
     )
 
 
-def _rule_file(rules):
-    """Wrap ``RuleDocument`` sequence in a ``LoadedRuleFile``.
-
-    Mirrors the envelope pattern at
-    ``propstore/rule_documents.py:LoadedRuleFile.from_loaded_document``.
-    Garcia & Simari 2004 §3: a DeLP program's rule component is a flat
-    tuple of rules anchored to a source.
-    """
-
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import RulesFileDocument, RuleSourceDocument
-    from propstore.rule_files import LoadedRuleFile
-
-    file_doc = RulesFileDocument(
-        source=RuleSourceDocument(paper="test_chunk_1_7a"),
-        rules=tuple(rules),
-    )
-    loaded = LoadedDocument(
-        filename="generated.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    return LoadedRuleFile.from_loaded_document(loaded)
-
-
 def _bundle(rules=(), yes=None):
     """Construct a ``GroundedRulesBundle`` with explicit section content.
 
@@ -188,10 +162,6 @@ def _bundle(rules=(), yes=None):
     """
 
     from propstore.grounding.bundle import GroundedRulesBundle
-
-    loaded_files: list = []
-    if rules:
-        loaded_files.append(_rule_file(rules))
 
     def _freeze(section: Mapping[str, frozenset[tuple]] | None):
         if section is None:
@@ -221,7 +191,7 @@ def _bundle(rules=(), yes=None):
     from propstore.grounding.predicates import PredicateRegistry
 
     return ground(
-        tuple(loaded_files),
+        tuple(rules),
         source_facts,
         PredicateRegistry(()),
         return_arguments=True,

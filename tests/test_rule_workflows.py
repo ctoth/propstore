@@ -225,7 +225,7 @@ def test_rule_owner_list_and_show(tmp_path) -> None:
     except RuleNotFoundError as exc:
         assert "missing" in str(exc)
     else:
-        raise AssertionError("expected missing rule file failure")
+        raise AssertionError("expected missing rule artifact failure")
 
 
 def test_rule_cli_list_and_show(tmp_path) -> None:

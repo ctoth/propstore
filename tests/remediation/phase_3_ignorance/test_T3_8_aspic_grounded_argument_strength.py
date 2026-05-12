@@ -1,33 +1,16 @@
 from __future__ import annotations
 
 from argumentation.aspic import GroundAtom
-from quire.documents import LoadedDocument
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from propstore.families.documents.rules import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,
-    RuleSourceDocument,
-    RulesFileDocument,
     TermDocument,
 )
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.rule_files import LoadedRuleFile
-
-
-def _rule_file(rule: RuleDocument) -> LoadedRuleFile:
-    loaded = LoadedDocument(
-        filename="grounded-strength.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=RulesFileDocument(
-            source=RuleSourceDocument(paper="T3.8"),
-            rules=(rule,),
-        ),
-    )
-    return LoadedRuleFile.from_loaded_document(loaded)
 
 
 def test_grounded_argument_strength_not_zero() -> None:
@@ -49,7 +32,7 @@ def test_grounded_argument_strength_not_zero() -> None:
         ),
     )
     bundle = ground(
-        (_rule_file(rule),),
+        (rule,),
         (GroundAtom("bird", ("tweety",)),),
         PredicateRegistry(()),
         return_arguments=True,
