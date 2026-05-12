@@ -1,40 +1,69 @@
+"""Check that a workstream's phase headings satisfy its dependency order."""
+
 from __future__ import annotations
 
-import argparse
 import re
 import sys
 from pathlib import Path
 
 
-PHASE_RE = re.compile(r"^## Phase (-?\d+) - ")
-EXPECTED_ORDER = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8]
+DEPENDENCIES = {
+    "Relations module consolidation": (),
+    "Predicate canonical artifact cutover": ("Relations module consolidation",),
+    "Rule canonical artifact cutover": ("Predicate canonical artifact cutover",),
+    "Rule-superiority artifact cutover": ("Rule canonical artifact cutover",),
+    "Research-papers plugin and `pks` workflow updates": (
+        "Rule-superiority artifact cutover",
+    ),
+    "Boilerplate standardization": (
+        "Research-papers plugin and `pks` workflow updates",
+    ),
+    "Contract, manifest, documentation, and full-suite closure": (
+        "Boilerplate standardization",
+    ),
+}
+
+PHASE_RE = re.compile(r"^## Phase \d+: (?P<title>.+)$", re.MULTILINE)
 
 
-def phase_order(plan_path: Path) -> list[int]:
-    phases: list[int] = []
-    for line in plan_path.read_text(encoding="utf-8").splitlines():
-        match = PHASE_RE.match(line)
-        if match:
-            phases.append(int(match.group(1)))
-    return phases
+def normalize(title: str) -> str:
+    return title.strip().lower().replace("and", "and").replace("`", "")
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Verify that a workstream plan's phase headings are topologically ordered.",
-    )
-    parser.add_argument("plan", type=Path)
-    args = parser.parse_args()
+    if len(sys.argv) != 2:
+        print("usage: check_workstream_order.py <workstream.md>", file=sys.stderr)
+        return 2
 
-    actual_order = phase_order(args.plan)
-    if actual_order != EXPECTED_ORDER:
-        print(
-            f"phase order mismatch: expected {EXPECTED_ORDER}, got {actual_order}",
-            file=sys.stderr,
-        )
+    workstream = Path(sys.argv[1])
+    text = workstream.read_text(encoding="utf-8")
+    phase_titles = [match.group("title").strip() for match in PHASE_RE.finditer(text)]
+    phase_by_normalized = {normalize(title): index for index, title in enumerate(phase_titles)}
+
+    missing = [
+        title
+        for title in DEPENDENCIES
+        if normalize(title) not in phase_by_normalized
+    ]
+    if missing:
+        for title in missing:
+            print(f"missing phase heading: {title}", file=sys.stderr)
         return 1
 
-    print(f"phase order ok: {' -> '.join(str(phase) for phase in actual_order)}")
+    failures: list[str] = []
+    for dependent, prerequisites in DEPENDENCIES.items():
+        dependent_index = phase_by_normalized[normalize(dependent)]
+        for prerequisite in prerequisites:
+            prerequisite_index = phase_by_normalized[normalize(prerequisite)]
+            if prerequisite_index >= dependent_index:
+                failures.append(f"{dependent!r} must appear after {prerequisite!r}")
+
+    if failures:
+        for failure in failures:
+            print(failure, file=sys.stderr)
+        return 1
+
+    print(f"workstream order ok: {workstream}")
     return 0
 
 
