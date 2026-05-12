@@ -573,7 +573,7 @@ Search gates:
 
 Required gates:
 
-- `powershell -File scripts/run_logged_pytest.ps1 -Label concept-refs tests/test_source_registry.py tests/test_concept_mutation.py tests/test_semantic_family_registry.py`
+- `powershell -File scripts/run_logged_pytest.ps1 -Label concept-refs tests/test_alias_collision_rejected.py tests/test_source_propose.py tests/test_source_claim_concept_rewrite.py tests/test_concept_workflows.py tests/test_semantic_family_registry.py`
 - `uv run pyright propstore`
 
 ## Phase 12 - Propstore Docs and Contributor Guidance
