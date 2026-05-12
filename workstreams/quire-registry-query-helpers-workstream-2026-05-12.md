@@ -49,7 +49,7 @@ The phases below are topologically ordered.
 4. Propstore semantic helper deletion
 5. Contract, docs, and gates
 
-## Phase 1 - Quire Registry Query Primitives
+## Phase 1: Quire Registry Query Primitives
 
 Repository: `../quire`
 
@@ -89,7 +89,7 @@ Required gates:
 - `uv run pytest tests/test_families.py`
 - `uv run pytest`
 
-## Phase 2 - Quire Placement Namespace/Root Introspection
+## Phase 2: Quire Placement Namespace/Root Introspection
 
 Repository: `../quire`
 
@@ -125,7 +125,7 @@ Required gates:
 - `uv run pytest tests/test_artifacts.py tests/test_families.py`
 - `uv run pytest`
 
-## Phase 3 - Propstore Dependency Pin
+## Phase 3: Propstore Dependency Pin
 
 Repository: `propstore`
 
@@ -146,7 +146,7 @@ Required gate:
 
 - `uv run pyright propstore`
 
-## Phase 4 - Propstore Semantic Helper Deletion
+## Phase 4: Propstore Semantic Helper Deletion
 
 Repository: `propstore`
 
@@ -196,7 +196,7 @@ Required gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label registry-query-helpers tests/test_semantic_family_registry.py tests/test_import_repo.py tests/test_artifact_store.py`
 - `uv run pyright propstore`
 
-## Phase 5 - Contract, Docs, and Final Gates
+## Phase 5: Contract, Docs, and Gates
 
 Repository: both
 
