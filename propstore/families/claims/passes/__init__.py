@@ -28,8 +28,8 @@ from propstore.families.claims.passes.checks import (
 from propstore.compiler.context import (
     CompilationContext,
     build_compiler_claim_index,
-    resolve_context_claim,
-    resolve_context_concept,
+    compiler_claim_match_kind,
+    compiler_concept_match_kind,
 )
 from propstore.compiler.ir import (
     ClaimCompilationBundle,
@@ -66,11 +66,17 @@ def _bind_claim(
     authored_claim = claim.to_payload()
     resolved_claim = copy.deepcopy(authored_claim)
 
-    output_concept_ref = resolve_context_concept(context, claim.output_concept)
+    output_concept_ref = context.concept_index.resolve(
+        claim.output_concept,
+        match_kind=compiler_concept_match_kind,
+    )
     if output_concept_ref is not None and output_concept_ref.resolved_id is not None:
         resolved_claim["output_concept"] = output_concept_ref.resolved_id
 
-    target_concept_ref = resolve_context_concept(context, claim.target_concept)
+    target_concept_ref = context.concept_index.resolve(
+        claim.target_concept,
+        match_kind=compiler_concept_match_kind,
+    )
     if target_concept_ref is not None and target_concept_ref.resolved_id is not None:
         resolved_claim["target_concept"] = target_concept_ref.resolved_id
 
@@ -78,7 +84,10 @@ def _bind_claim(
     if claim.concepts:
         rewritten_concepts: list[object] = []
         for concept_value in claim.concepts:
-            concept_binding = resolve_context_concept(context, concept_value)
+            concept_binding = context.concept_index.resolve(
+                concept_value,
+                match_kind=compiler_concept_match_kind,
+            )
             if concept_binding is not None:
                 concept_refs.append(concept_binding)
                 rewritten_concepts.append(concept_binding.resolved_id or concept_binding.raw_text)
@@ -91,7 +100,10 @@ def _bind_claim(
         if isinstance(claim.variables, dict):
             rewritten_variables: dict[str, object] = {}
             for variable_name, concept_value in claim.variables.items():
-                binding = resolve_context_concept(context, concept_value)
+                binding = context.concept_index.resolve(
+                    concept_value,
+                    match_kind=compiler_concept_match_kind,
+                )
                 if binding is not None:
                     variable_refs.append(binding)
                     rewritten_variables[variable_name] = (
@@ -104,7 +116,10 @@ def _bind_claim(
             rewritten_variables_list: list[object] = []
             for variable in claim.variables:
                 updated = variable.to_payload()
-                binding = resolve_context_concept(context, variable.concept)
+                binding = context.concept_index.resolve(
+                    variable.concept,
+                    match_kind=compiler_concept_match_kind,
+                )
                 if binding is not None:
                     variable_refs.append(binding)
                     updated["concept"] = binding.resolved_id or binding.raw_text
@@ -116,7 +131,10 @@ def _bind_claim(
         rewritten_parameters: list[object] = []
         for parameter in claim.parameters:
             updated = parameter.to_payload()
-            binding = resolve_context_concept(context, parameter.concept)
+            binding = context.concept_index.resolve(
+                parameter.concept,
+                match_kind=compiler_concept_match_kind,
+            )
             if binding is not None:
                 parameter_refs.append(binding)
                 updated["concept"] = binding.resolved_id or binding.raw_text
@@ -128,7 +146,10 @@ def _bind_claim(
         rewritten_stances: list[object] = []
         for stance in claim.stances:
             updated = stance.to_payload()
-            target_ref = resolve_context_claim(context, stance.target)
+            target_ref = context.claim_index.resolve(
+                stance.target,
+                match_kind=compiler_claim_match_kind,
+            )
             if target_ref is None:
                 rewritten_stances.append(updated)
                 continue
