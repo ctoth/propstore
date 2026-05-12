@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 def test_proposal_rules_family_is_registered(tmp_path) -> None:
-    from propstore.families.registry import PROPOSAL_RULES_FAMILY, RuleProposalRef
+    from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PropstoreFamily, RuleProposalRef
     from propstore.repository import Repository
 
     repo = Repository.init(tmp_path / "knowledge")
@@ -11,7 +11,9 @@ def test_proposal_rules_family_is_registered(tmp_path) -> None:
         rule_id="rule-001",
     )
 
-    assert repo.families.proposal_rules.family is PROPOSAL_RULES_FAMILY
+    assert repo.families.proposal_rules.family is (
+        PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.PROPOSAL_RULES).artifact_family
+    )
     assert repo.families.proposal_rules.address(ref).require_path() == (
         "rules/Ioannidis_2005_WhyMostPublishedResearch/rule-001.yaml"
     )
