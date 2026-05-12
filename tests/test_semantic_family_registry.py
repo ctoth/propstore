@@ -29,6 +29,7 @@ def test_semantic_registry_declares_complete_canonical_family_set() -> None:
         "contexts",
         "forms",
         "predicates",
+        "rule_superiority",
         "rules",
         "sameas",
         "stances",
@@ -66,6 +67,22 @@ def test_rule_family_target_model_is_one_semantic_artifact_per_file() -> None:
     assert artifact_family.placement.ref_factory is RuleRef
     assert placement["namespace"] == "rules"
     assert placement["ref_field"] == "rule_id"
+    assert placement["codec"] == "stem"
+    assert canonical.metadata and canonical.metadata["collection_field"] is None
+
+
+def test_rule_superiority_family_target_model_is_one_semantic_artifact_per_file() -> None:
+    from propstore.families.documents.rules import RuleSuperiorityDocument
+    from propstore.families.registry import RuleSuperiorityRef
+
+    canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.RULE_SUPERIORITY)
+    artifact_family = canonical.artifact_family
+    placement = artifact_family.placement.contract_body()
+
+    assert artifact_family.doc_type is RuleSuperiorityDocument
+    assert artifact_family.placement.ref_factory is RuleSuperiorityRef
+    assert placement["namespace"] == "rule_superiority"
+    assert placement["ref_field"] == "artifact_id"
     assert placement["codec"] == "stem"
     assert canonical.metadata and canonical.metadata["collection_field"] is None
 
