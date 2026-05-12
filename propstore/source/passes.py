@@ -59,6 +59,7 @@ def _semantic_import_registry() -> FamilyRegistry["Repository", PropstoreFamily]
         name="propstore-semantic-import",
         contract_version=PROPSTORE_FAMILY_REGISTRY.contract_version,
         families=semantic_import_families(),
+        validate_foreign_keys=False,
     )
 
 
