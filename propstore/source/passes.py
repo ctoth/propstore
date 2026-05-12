@@ -25,6 +25,10 @@ from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassResult, PipelineResult
 from propstore.source.claim_concepts import normalize_imported_claim_artifact
+from propstore.source.reference_indexes import (
+    ImportedClaimHandle,
+    imported_claim_handle_index,
+)
 from propstore.source.stages import (
     PlannedSemanticWrite,
     SourceImportAuthoredWrites,
@@ -104,6 +108,12 @@ def _rewrite_reference(value: Any, reference_map: Mapping[str, str]) -> Any:
     if not isinstance(value, str):
         return value
     return reference_map.get(value, value)
+
+
+def _rewrite_indexed_reference(value: Any, index) -> Any:
+    if not isinstance(value, str):
+        return value
+    return index.resolve_id(value) or value
 
 
 def _rewrite_concept_payload_refs(
@@ -222,10 +232,9 @@ def _normalize_claim_batch(
         planned_write = _planned_claim_document_write(store, normalized_claim.document, source=path)
         normalized[planned_write.relpath] = planned_write
         for local_id, artifact_id in normalized_claim.local_handle_map.items():
-            if state.local_handle_index.record(local_id, artifact_id):
-                state.warnings.append(
-                    f"ambiguous imported claim handle {local_id!r}; stance files must use artifact IDs"
-                )
+            state.imported_claim_handles.append(
+                ImportedClaimHandle(handle=local_id, artifact_id=artifact_id)
+            )
     return normalized
 
 
@@ -236,10 +245,34 @@ def _normalize_stance_batch(
     state: SourceImportState,
 ) -> Mapping[str, PlannedSemanticWrite]:
     normalized: dict[str, PlannedSemanticWrite] = {}
+    claim_index = imported_claim_handle_index(state.imported_claim_handles)
     for path in paths:
-        payload = state.local_handle_index.rewrite_stance_payload(_decode_yaml(writes[path], path=path), path=path)
+        payload = dict(_decode_yaml(writes[path], path=path))
+        payload["source_claim"] = _rewrite_indexed_reference(
+            payload.get("source_claim"),
+            claim_index,
+        )
+        raw_stances = payload.get("stances")
+        if isinstance(raw_stances, list):
+            payload["stances"] = [
+                (
+                    {
+                        **stance,
+                        "target": _rewrite_indexed_reference(
+                            stance.get("target"),
+                            claim_index,
+                        ),
+                    }
+                    if isinstance(stance, dict)
+                    else stance
+                )
+                for stance in raw_stances
+            ]
         if isinstance(payload.get("target"), str):
-            payload["target"] = state.local_handle_index.resolve(payload.get("target"), path=path, role="target")
+            payload["target"] = _rewrite_indexed_reference(
+                payload.get("target"),
+                claim_index,
+            )
         normalized[path] = _planned_write(store, path, payload)
     return normalized
 
