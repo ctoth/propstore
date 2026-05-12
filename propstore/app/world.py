@@ -215,10 +215,7 @@ def _authored_world_counts(repo: Repository) -> dict[str, int]:
         "sources": sum(1 for _ in repo.families.sources.iter_handles()),
         "contexts": sum(1 for _ in repo.families.contexts.iter_handles()),
         "predicates": sum(1 for _ in repo.families.predicates.iter_handles()),
-        "rules": sum(
-            len(handle.document.rules)
-            for handle in repo.families.rules.iter_handles()
-        ),
+        "rules": sum(1 for _ in repo.families.rules.iter_handles()),
         "stances": sum(1 for _ in repo.families.stances.iter_handles()),
     }
 

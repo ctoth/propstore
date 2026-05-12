@@ -23,8 +23,8 @@ def test_grounding_status_report_classifies_ready_surface(tmp_path) -> None:
 
     assert report.surface_state == "ready"
     assert report.message is None
-    assert report.surface.predicate_files == ("reasoning_demo.yaml",)
-    assert report.surface.rule_files == ("reasoning_demo.yaml",)
+    assert report.surface.predicate_files == ("bird.yaml", "flies.yaml")
+    assert report.surface.rule_files == ("r_flies_from_bird.yaml",)
     assert report.facts_count == 1
     assert dict(report.section_counts)["yes"] == 2
 

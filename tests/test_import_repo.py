@@ -27,6 +27,8 @@ SEMANTIC_DIRS = (
     "concepts",
     "contexts",
     "forms",
+    "predicates",
+    "rules",
     "stances",
     "worldlines",
 )
@@ -315,40 +317,32 @@ def test_repository_import_includes_registered_rules_and_predicates_from_committ
 
     source_git.commit_files(
         {
-            "predicates/base.yaml": yaml.safe_dump(
+            "predicates/bird.yaml": yaml.safe_dump(
                 {
-                    "predicates": [
-                        {
-                            "id": "bird",
-                            "arity": 1,
-                            "arg_types": ["concept"],
-                        }
-                    ]
+                    "id": "bird",
+                    "arity": 1,
+                    "arg_types": ["concept"],
                 },
                 sort_keys=False,
             ).encode(),
-            "rules/base.yaml": yaml.safe_dump(
+            "rules/r1.yaml": yaml.safe_dump(
                 {
-                    "source": {"paper": "repo-b"},
-                    "rules": [
+                    "id": "r1",
+                    "kind": "defeasible",
+                    "head": {
+                        "predicate": "flies",
+                        "terms": [{"kind": "var", "name": "X"}],
+                    },
+                    "body": [
                         {
-                            "id": "r1",
-                            "kind": "defeasible",
-                            "head": {
-                                "predicate": "flies",
+                            "kind": "positive",
+                            "atom": {
+                                "predicate": "bird",
                                 "terms": [{"kind": "var", "name": "X"}],
                             },
-                            "body": [
-                                {
-                                    "kind": "positive",
-                                    "atom": {
-                                        "predicate": "bird",
-                                        "terms": [{"kind": "var", "name": "X"}],
-                                    },
-                                }
-                            ],
                         }
                     ],
+                    "source": {"paper": "repo-b"},
                 },
                 sort_keys=False,
             ).encode(),
@@ -358,25 +352,35 @@ def test_repository_import_includes_registered_rules_and_predicates_from_committ
     source_git.sync_worktree()
     _write_source_file(
         source.root.parent,
-        "rules/base.yaml",
-        yaml.safe_dump({"source": {"paper": "uncommitted"}, "rules": []}, sort_keys=False).encode(),
+        "rules/r1.yaml",
+        yaml.safe_dump(
+            {
+                "id": "r1",
+                "kind": "strict",
+                "head": {
+                    "predicate": "uncommitted",
+                    "terms": [{"kind": "var", "name": "X"}],
+                },
+                "body": [],
+                "source": {"paper": "uncommitted"},
+            },
+            sort_keys=False,
+        ).encode(),
     )
 
     plan = plan_repository_import(destination, source.root.parent)
     result = commit_repository_import(destination, plan)
 
-    assert "predicates/base.yaml" in result.touched_paths
-    assert "rules/base.yaml" in result.touched_paths
-    assert yaml.safe_load(destination.git.read_file("predicates/base.yaml", commit=result.commit_sha)) == {
-        "predicates": [
-            {
-                "id": "bird",
-                "arity": 1,
-                "arg_types": ["concept"],
-            }
-        ]
+    assert "predicates/bird.yaml" in result.touched_paths
+    assert "rules/r1.yaml" in result.touched_paths
+    assert yaml.safe_load(
+        destination.git.read_file("predicates/bird.yaml", commit=result.commit_sha)
+    ) == {
+        "id": "bird",
+        "arity": 1,
+        "arg_types": ["concept"],
     }
-    assert yaml.safe_load(destination.git.read_file("rules/base.yaml", commit=result.commit_sha))["source"] == {
+    assert yaml.safe_load(destination.git.read_file("rules/r1.yaml", commit=result.commit_sha))["source"] == {
         "paper": "repo-b"
     }
 
