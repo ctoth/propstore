@@ -44,14 +44,13 @@ CONTRACT_MANIFEST_PATH = (
 
 
 def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any, Any], ...]:
-    import propstore.families.registry as families
+    from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 
-    discovered = [
-        value
-        for value in vars(families).values()
-        if isinstance(value, ArtifactFamily)
-    ]
-    return tuple(sorted(discovered, key=lambda family: family.name))
+    discovered = {
+        family.artifact_family.name: family.artifact_family
+        for family in PROPSTORE_FAMILY_REGISTRY.families
+    }
+    return tuple(sorted(discovered.values(), key=lambda family: family.name))
 
 
 def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
