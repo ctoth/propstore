@@ -116,10 +116,11 @@ production code.
 1. Phase 0: Prerequisite Check.
 2. Phase 1: Argumentation Origin Contract Red Tests.
 3. Phase 2: Argumentation Deletion-First Origin Implementation.
-4. Phase 3: Propstore Projection Contract Red Tests.
-5. Phase 4: Propstore Deletion-First Projection API Replacement.
-6. Phase 5: Propstore Fragility And Undercut Consumers.
-7. Phase 6: Dependency Pin And Boundary Closure.
+4. Phase 3: Argumentation Origin Gates And Pushed Dependency Commit.
+5. Phase 4: Propstore Projection Contract Red Tests.
+6. Phase 5: Propstore Deletion-First Projection API Replacement.
+7. Phase 6: Propstore Fragility And Undercut Consumers.
+8. Phase 7: Dependency Pin And Boundary Closure.
 
 ## Phase 0: Prerequisite Check
 
@@ -228,6 +229,13 @@ Do not:
 - Preserve generated names containing source ids "for debugging".
 - Add a helper that parses old generated names.
 
+## Phase 3: Argumentation Origin Gates And Pushed Dependency Commit
+
+Repository: `../argumentation`
+
+Goal: prove the argumentation boundary is complete and push an immutable SHA
+that Propstore can later pin.
+
 Search gates:
 
 ```powershell
@@ -260,7 +268,22 @@ Commit and push:
 - Push it.
 - Record the pushed immutable SHA for Propstore Phase 7.
 
-## Phase 3: Propstore Projection Contract Red Tests
+Completed pre-Propstore evidence, 2026-05-12:
+
+- Red contract commit: `63eb6d5`.
+- Implementation commit, pushed to `origin/main`:
+  `90dcbe29895337d593dfc681f2a60bfe8cb71718`.
+- Search gates passed with no hits:
+  `_substitution_key`, `split("#"`, `partition("#"`,
+  `startswith("d1#"`.
+- Targeted gates passed:
+  `uv run pytest tests/test_datalog_grounding.py -q`;
+  `uv run pyright src`.
+- Full argumentation gates passed:
+  `uv run pytest` (`802 passed, 2 skipped`);
+  `uv run pyright src`.
+
+## Phase 4: Propstore Projection Contract Red Tests
 
 Repository: `propstore`
 
@@ -314,7 +337,7 @@ powershell -File scripts/run_logged_pytest.ps1 -Label grounded-origin-red `
   tests/test_fragility.py
 ```
 
-## Phase 4: Propstore Deletion-First Projection API Replacement
+## Phase 5: Propstore Deletion-First Projection API Replacement
 
 Repository: `propstore`
 
@@ -381,7 +404,7 @@ powershell -File scripts/run_logged_pytest.ps1 -Label grounded-origin-projection
 uv run pyright propstore
 ```
 
-## Phase 5: Propstore Fragility And Undercut Consumers
+## Phase 6: Propstore Fragility And Undercut Consumers
 
 Repository: `propstore`
 
@@ -438,7 +461,7 @@ powershell -File scripts/run_logged_pytest.ps1 -Label grounded-origin-consumers 
 uv run pyright propstore
 ```
 
-## Phase 6: Dependency Pin And Boundary Closure
+## Phase 7: Dependency Pin And Boundary Closure
 
 Repository: `propstore`
 
