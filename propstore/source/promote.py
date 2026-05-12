@@ -519,12 +519,23 @@ def resolve_source_concept_promotions(
     source_name: str,
 ) -> SourceConceptPromotionResolution:
     concepts_doc = load_source_concepts_document(repo, source_name)
-    concepts_by_artifact, handle_to_artifact = load_primary_branch_concepts(repo)
+    concepts_by_artifact = load_primary_branch_concepts(repo)
+    primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+    primary_concept_index = (
+        None
+        if primary_tip is None
+        else repo.families.concepts.reference_index(commit=primary_tip)
+    )
     mapping: dict[str, str] = {}
     concept_documents: dict[str, ConceptDocument] = {}
     new_concepts: dict[str, tuple[SourceConceptEntryDocument, str, str, str]] = {}
     seen_new_artifacts: dict[str, str] = {}
     blocked_concept_refs: dict[str, str] = {}
+
+    def resolve_primary_concept_id(reference: object) -> str | None:
+        if primary_concept_index is None:
+            return None
+        return primary_concept_index.resolve_id(reference)
 
     def entry_handles(entry: SourceConceptEntryDocument, fallback: str) -> set[str]:
         handles = {
@@ -550,8 +561,10 @@ def resolve_source_concept_promotions(
                 continue
         matched_artifact_id: str | None = None
         for handle in (entry.local_name, entry.proposed_name):
-            if isinstance(handle, str) and handle in handle_to_artifact:
-                matched_artifact_id = handle_to_artifact[handle]
+            if not isinstance(handle, str) or not handle:
+                continue
+            matched_artifact_id = resolve_primary_concept_id(handle)
+            if matched_artifact_id is not None:
                 mapping[handle] = matched_artifact_id
         if matched_artifact_id is not None:
             continue
@@ -607,7 +620,7 @@ def resolve_source_concept_promotions(
                 if input_ref.startswith("ps:concept:") or input_ref.startswith("tag:"):
                     normalized_inputs.append(input_ref)
                     continue
-                resolved = mapping.get(input_ref) or handle_to_artifact.get(input_ref)
+                resolved = mapping.get(input_ref) or resolve_primary_concept_id(input_ref)
                 if resolved is None:
                     raise ValueError(
                         f"Cannot promote source {source_name!r}; unresolved parameterization concept: {input_ref}"
