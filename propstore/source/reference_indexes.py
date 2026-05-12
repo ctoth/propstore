@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex, ReferenceKey
 
@@ -62,8 +62,8 @@ def imported_claim_handle_index(
 def resolve_source_or_primary_claim_id(
     reference: object,
     *,
-    source: FamilyReferenceIndex[object],
-    primary: FamilyReferenceIndex[object] | None = None,
+    source: FamilyReferenceIndex[Any],
+    primary: FamilyReferenceIndex[Any] | None = None,
 ) -> str | None:
     resolved = source.resolve_id(reference)
     if resolved is not None:
