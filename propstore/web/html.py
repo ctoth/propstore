@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple
 from urllib.parse import quote
@@ -594,7 +595,7 @@ def _text(value: str) -> str:
     return str(escape(value))
 
 
-def _join_fragments(fragments: list[str]) -> Markup:
+def _join_fragments(fragments: Sequence[str | Markup]) -> Markup:
     return Markup("\n").join(Markup(fragment) for fragment in fragments)
 
 
