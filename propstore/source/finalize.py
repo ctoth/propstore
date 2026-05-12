@@ -1,11 +1,6 @@
 from __future__ import annotations
 
 from propstore.artifact_codes import stamp_source_artifact_codes
-from propstore.claim_references import (
-    ClaimReferenceResolver,
-    load_primary_branch_claim_reference_index,
-    load_source_claim_reference_index,
-)
 from propstore.families.identity.micropubs import (
     micropub_artifact_id,
     micropub_version_id,
@@ -38,6 +33,11 @@ from propstore.families.documents.micropubs import (
     MicropublicationDocument,
     MicropublicationEvidenceDocument,
     MicropublicationsFileDocument,
+)
+from .reference_indexes import (
+    primary_claim_index as build_primary_claim_index,
+    resolve_source_or_primary_claim_id,
+    source_claim_index as build_source_claim_index,
 )
 from .registry import preview_source_parameterization_group_merges
 
@@ -122,12 +122,8 @@ def finalize_source_branch(
     stances_doc = load_source_stances_document(repo, source_name)
     concepts_doc = load_source_concepts_document(repo, source_name)
 
-    source_claim_index = load_source_claim_reference_index(repo, source_name)
-    primary_claim_index = load_primary_branch_claim_reference_index(repo)
-    resolver = ClaimReferenceResolver(
-        source=source_claim_index,
-        primary=primary_claim_index,
-    )
+    source_claim_index = build_source_claim_index(repo, source_name)
+    primary_claim_index = build_primary_claim_index(repo)
 
     claim_errors: list[str] = []
     micropub_coverage_errors: list[str] = []
@@ -142,22 +138,26 @@ def finalize_source_branch(
     justification_errors: list[str] = []
     for justification in (() if justifications_doc is None else justifications_doc.justifications):
         conclusion = justification.conclusion
-        if not source_claim_index.has_artifact(conclusion):
+        if not source_claim_index.exists(conclusion):
             justification_errors.append(str(conclusion))
         for premise in justification.premises:
-            if not source_claim_index.has_artifact(premise):
+            if not source_claim_index.exists(premise):
                 justification_errors.append(str(premise))
 
     stance_errors: list[str] = []
     for stance in (() if stances_doc is None else stances_doc.stances):
         source_claim = stance.source_claim
-        if not source_claim_index.has_artifact(source_claim):
+        if not source_claim_index.exists(source_claim):
             stance_errors.append(str(source_claim))
         target = stance.target
         if not isinstance(target, str) or not target:
             stance_errors.append(str(target))
             continue
-        if not resolver.target_is_known(target):
+        if resolve_source_or_primary_claim_id(
+            target,
+            source=source_claim_index,
+            primary=primary_claim_index,
+        ) is None:
             stance_errors.append(target)
 
     concept_alignment_candidates = sorted(
