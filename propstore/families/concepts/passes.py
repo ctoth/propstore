@@ -58,10 +58,8 @@ from propstore.families.concepts.stages import (
     normalize_loaded_concepts,
     concept_payload_registry,
 )
-from propstore.compiler.context import (
-    CompilerClaimReference,
-    build_compiler_claim_index,
-)
+from propstore.compiler.context import build_compiler_claim_index
+from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.registry import PropstoreFamily
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
@@ -245,7 +243,7 @@ def _validate_lemon_document(
 
 def _load_claim_reference_index(
     claims_dir: KnowledgePath | None,
-) -> FamilyReferenceIndex[CompilerClaimReference]:
+) -> FamilyReferenceIndex[ClaimReferenceRecord]:
     """Load claim artifact and logical reference keys from claim YAML files."""
     if claims_dir is None:
         return build_compiler_claim_index(())
@@ -329,7 +327,7 @@ def _check_concepts(
     *,
     forms_dir: KnowledgePath | None = None,
     form_registry: Mapping[str, FormDefinition] | None = None,
-    claim_index: FamilyReferenceIndex[CompilerClaimReference] | None = None,
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord] | None = None,
 ) -> _ConceptCheckResult:
     """Run all compiler contract validation checks.
 
@@ -768,7 +766,7 @@ class ConceptPipelineContext:
     claims_dir: KnowledgePath | None = None
     forms_dir: KnowledgePath | None = None
     form_registry: Mapping[str, FormDefinition] | None = None
-    claim_index: FamilyReferenceIndex[CompilerClaimReference] | None = None
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord] | None = None
 
 
 class ConceptNormalizePass:
