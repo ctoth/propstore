@@ -163,6 +163,7 @@ def ground(
         return GroundedRulesBundle(
             source_rules=tuple(rules),
             source_facts=facts,
+            source_superiority=tuple(superiority),
             sections=_normalise_sections({}),
             arguments=_sort_arguments(tuple(exc.partial_arguments)),
             grounding_inspection=(
@@ -202,6 +203,7 @@ def ground(
     return GroundedRulesBundle(
         source_rules=tuple(rules),
         source_facts=facts,
+        source_superiority=tuple(superiority),
         sections=normalized_sections,
         arguments=sorted_arguments,
         grounding_inspection=grounding_inspection,

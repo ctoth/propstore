@@ -42,7 +42,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.families.documents.rules import RuleDocument
+from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
 
 if TYPE_CHECKING:
     from gunray import Argument, GroundingInspection
@@ -114,6 +114,8 @@ class GroundedRulesBundle:
             identity; the bundle therefore carries it alongside the
             derived model so downstream consumers can reach back to the
             authored input.
+        source_superiority: Rule-priority artifacts that were fed to the
+            grounding translator.
         source_facts: The ground-atom fact base that was fed to the
             grounder, stored verbatim. Diller, Borg, Bex 2025 §3
             Definition 7: a Datalog fact base is a finite set of ground
@@ -143,6 +145,7 @@ class GroundedRulesBundle:
     source_rules: tuple[RuleDocument, ...]
     source_facts: tuple[GroundAtom, ...]
     sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]
+    source_superiority: tuple[RuleSuperiorityDocument, ...] = ()
     arguments: tuple["Argument", ...] = field(default_factory=tuple)
     grounding_inspection: "GroundingInspection | None" = None
     projection_frames: tuple[GroundingProjectionFrame, ...] = field(default_factory=tuple)

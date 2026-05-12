@@ -76,7 +76,10 @@ def _decode_grounded_predicate(
 def _source_superiority(
     bundle: GroundedRulesBundle,
 ) -> tuple[tuple[str, str], ...]:
-    return ()
+    return tuple(
+        (document.superior_rule_id, document.inferior_rule_id)
+        for document in bundle.source_superiority
+    )
 
 
 def _project_bundle(bundle: GroundedRulesBundle) -> GroundedDatalogTheory:

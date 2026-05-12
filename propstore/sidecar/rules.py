@@ -65,7 +65,7 @@ import gunray
 import msgspec
 from argumentation.aspic import Scalar
 from argumentation.aspic import GroundAtom as AspicGroundAtom
-from propstore.families.documents.rules import RuleDocument
+from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
@@ -237,6 +237,7 @@ def populate_grounded_facts(
 def _persist_bundle_inputs(conn: sqlite3.Connection, bundle: GroundedRulesBundle) -> None:
     rows = (
         ("source_rule", bundle.source_rules),
+        ("source_superiority", bundle.source_superiority),
         ("source_fact", bundle.source_facts),
         ("argument", bundle.arguments),
     )
@@ -288,6 +289,10 @@ def _decode_bundle_input(kind: str, payload: bytes) -> object:
         if not isinstance(value, dict):
             raise ValueError("rule document payload must be an object")
         return msgspec.convert(value, type=RuleDocument)
+    if tag == "rule_superiority_document":
+        if not isinstance(value, dict):
+            raise ValueError("rule superiority document payload must be an object")
+        return msgspec.convert(value, type=RuleSuperiorityDocument)
     raise ValueError(f"unsupported grounded bundle input tag {tag!r}")
 
 
@@ -319,6 +324,12 @@ def _bundle_input_payload(kind: str, value: object) -> dict[str, object]:
         return {
             "kind": kind,
             "tag": "rule_document",
+            "value": msgspec.to_builtins(value),
+        }
+    if isinstance(value, RuleSuperiorityDocument):
+        return {
+            "kind": kind,
+            "tag": "rule_superiority_document",
             "value": msgspec.to_builtins(value),
         }
     raise TypeError(f"cannot persist grounded bundle {kind} input {type(value).__name__}")
@@ -467,6 +478,7 @@ def read_grounded_bundle(conn: sqlite3.Connection) -> GroundedRulesBundle:
         _read_source_rules(conn),
         _read_source_facts(conn),
         PredicateRegistry(()),
+        superiority=_read_source_superiority(conn),
         return_arguments=True,
     )
     if bundle.sections != stored_sections:
@@ -479,6 +491,13 @@ def _read_source_rules(conn: sqlite3.Connection) -> tuple[RuleDocument, ...]:
     if not all(isinstance(value, RuleDocument) for value in values):
         raise TypeError("grounded source_rule inputs must be RuleDocument values")
     return tuple(value for value in values if isinstance(value, RuleDocument))
+
+
+def _read_source_superiority(conn: sqlite3.Connection) -> tuple[RuleSuperiorityDocument, ...]:
+    values = _read_bundle_inputs(conn, "source_superiority")
+    if not all(isinstance(value, RuleSuperiorityDocument) for value in values):
+        raise TypeError("grounded source_superiority inputs must be RuleSuperiorityDocument values")
+    return tuple(value for value in values if isinstance(value, RuleSuperiorityDocument))
 
 
 def _read_source_facts(conn: sqlite3.Connection) -> tuple[AspicGroundAtom, ...]:

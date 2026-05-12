@@ -9,7 +9,6 @@ from tests.test_grounding_grounder import (
     _bird_registry,
     _build_atom,
     _build_rule_document,
-    _build_rule_file,
     _build_term_var,
 )
 
@@ -60,10 +59,9 @@ def test_ws6_grounder_bundle_carries_typed_grounding_substitutions() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
     facts = (GroundAtom("bird", ("tweety",)),)
 
-    bundle = ground([rule_file], facts, _bird_registry())
+    bundle = ground([rule], facts, _bird_registry())
 
     assert bundle.grounding_inspection is not None
     instances = bundle.grounding_inspection.defeasible_rules

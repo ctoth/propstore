@@ -577,7 +577,7 @@ def test_tweety_multiple_birds_produces_multiple_arguments() -> None:
         _build_atom("flies", [variable_x]),
         [_build_atom("bird", [variable_x])],
     )
-    rule_files = [_build_rule_file([rule])]
+    rules = [rule]
 
     facts = extract_facts(_fact_inputs(concepts), registry)
     # Both birds show up as facts (deterministic sorted order —
@@ -585,7 +585,7 @@ def test_tweety_multiple_birds_produces_multiple_arguments() -> None:
     assert GroundAtom(predicate="bird", arguments=("opus",)) in facts
     assert GroundAtom(predicate="bird", arguments=("tweety",)) in facts
 
-    bundle = ground(rule_files, facts, registry)
+    bundle = ground(rules, facts, registry)
     flies_rows = bundle.sections["yes"].get("flies", frozenset())
     assert ("tweety",) in flies_rows
     assert ("opus",) in flies_rows
@@ -678,14 +678,14 @@ def test_tweety_rule_body_fact_missing_produces_zero_arguments() -> None:
         _build_atom("flies", [variable_x]),
         [_build_atom("bird", [variable_x])],
     )
-    rule_files = [_build_rule_file([rule])]
+    rules = [rule]
 
     facts = extract_facts(_fact_inputs(concepts), registry)
     # No fact matches ``is_a:Bird`` — Diller, Borg, Bex 2025 §3 Def 7:
     # the empty fact base is legal.
     assert facts == ()
 
-    bundle = ground(rule_files, facts, registry)
+    bundle = ground(rules, facts, registry)
     # The defeasibly section has no ``flies`` entry because there is
     # nothing to substitute ``X`` with.
     assert bundle.sections["yes"].get("flies", frozenset()) == frozenset()
