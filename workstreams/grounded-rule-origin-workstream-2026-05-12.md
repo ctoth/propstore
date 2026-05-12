@@ -468,7 +468,7 @@ Repository: `propstore`
 Tasks:
 
 - Update Propstore dependency pin for `formal-argumentation` or
-  `argumentation` to the pushed SHA from Phase 2.
+  `argumentation` to the pushed SHA from Phase 3.
 - Inspect `pyproject.toml` and `uv.lock` before editing to reject any local path
   or local repository pin.
 - Regenerate lockfile only through `uv`.
