@@ -9,12 +9,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
-from quire.artifacts import encode_ref_value
 from quire.documents import encode_document
-from propstore.families.registry import PROPOSAL_STANCE_BRANCH
-from propstore.families.registry import PROPOSAL_STANCE_PLACEMENT
+from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PROPOSAL_STANCE_BRANCH, PropstoreFamily
 from propstore.families.registry import StanceRef
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
@@ -35,11 +33,8 @@ def stance_proposal_filename(artifact_id: str) -> str:
 
 def stance_proposal_relpath(artifact_id: str) -> str:
     """Return the repo-relative stance proposal path."""
-    stem = encode_ref_value(artifact_id, PROPOSAL_STANCE_PLACEMENT.codec)
-    return (
-        f"{PROPOSAL_STANCE_PLACEMENT.namespace}/"
-        f"{stem}{PROPOSAL_STANCE_PLACEMENT.extension}"
-    )
+    family = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.PROPOSAL_STANCES).artifact_family
+    return family.address_for(cast(Any, object()), StanceRef(artifact_id)).require_path()
 
 
 def stance_proposal_branch() -> str:
