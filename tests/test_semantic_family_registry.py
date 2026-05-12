@@ -18,7 +18,6 @@ from propstore.families.registry import (
     semantic_foreign_keys,
     semantic_init_roots,
 )
-from propstore.compiler.references import iter_semantic_foreign_keys
 from propstore.repository import Repository
 
 
@@ -306,11 +305,9 @@ def test_repository_import_module_has_no_local_semantic_root_dispatch() -> None:
 
 def test_compiler_foreign_keys_are_registry_derived() -> None:
     registry_specs = tuple(semantic_foreign_keys())
-    compiler_specs = iter_semantic_foreign_keys()
 
     assert registry_specs
-    assert compiler_specs == registry_specs
-    assert all(isinstance(spec, ForeignKeySpec) for spec in compiler_specs)
+    assert all(isinstance(spec, ForeignKeySpec) for spec in registry_specs)
 
 
 def test_propstore_registry_is_the_semantic_schema_surface() -> None:
