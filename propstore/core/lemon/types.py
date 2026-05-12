@@ -74,4 +74,4 @@ def lexical_entry_identity_key(entry: LexicalEntry) -> tuple[str, str, str, str 
     """Return exact lexical-entry identity without collapsing homographs."""
 
     form_key = lexical_form_identity_key(entry)
-    return (fold_text(entry.identifier), form_key[0], form_key[1], form_key[2])
+    return (entry.identifier, form_key[0], form_key[1], form_key[2])
