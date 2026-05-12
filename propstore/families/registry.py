@@ -29,7 +29,7 @@ from quire.documents import (
     identity_text_document,
     render_json_mapping,
 )
-from quire.references import ForeignKeySpec
+from quire.references import ForeignKeySpec, ReferenceKey
 from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
@@ -223,6 +223,7 @@ PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
 INTENTIONAL_SET_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.12")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.04.22")
+REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION = VersionId("2026.05.12")
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
 
@@ -610,54 +611,60 @@ MERGE_MANIFEST_FAMILY = ArtifactFamily["Repository", MergeManifestRef, MergeMani
 
 CLAIM_FOREIGN_KEYS = (
     ForeignKeySpec(
-        name="claim_concept",
+        name="claim_output_concept",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="concept",
-        target_family="concept",
+        source_family=PropstoreFamily.CLAIMS.value,
+        source_field="output_concept",
+        target_family=PropstoreFamily.CONCEPTS.value,
+        required=False,
     ),
     ForeignKeySpec(
         name="claim_concepts",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
+        source_family=PropstoreFamily.CLAIMS.value,
         source_field="concepts",
-        target_family="concept",
+        target_family=PropstoreFamily.CONCEPTS.value,
         many=True,
+        required=False,
     ),
     ForeignKeySpec(
         name="claim_variable_concept",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
+        source_family=PropstoreFamily.CLAIMS.value,
         source_field="variables[].concept",
-        target_family="concept",
+        target_family=PropstoreFamily.CONCEPTS.value,
+        required=False,
     ),
     ForeignKeySpec(
         name="claim_parameter_concept",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
+        source_family=PropstoreFamily.CLAIMS.value,
         source_field="parameters[].concept",
-        target_family="concept",
+        target_family=PropstoreFamily.CONCEPTS.value,
+        required=False,
     ),
     ForeignKeySpec(
         name="claim_measurement_target_concept",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
+        source_family=PropstoreFamily.CLAIMS.value,
         source_field="target_concept",
-        target_family="concept",
+        target_family=PropstoreFamily.CONCEPTS.value,
+        required=False,
     ),
     ForeignKeySpec(
         name="claim_stance_target",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
+        source_family=PropstoreFamily.CLAIMS.value,
         source_field="stances[].target",
-        target_family="claim",
+        target_family=PropstoreFamily.CLAIMS.value,
+        required=False,
     ),
     ForeignKeySpec(
         name="claim_context",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="claim",
-        source_field="context",
-        target_family="context",
+        source_family=PropstoreFamily.CLAIMS.value,
+        source_field="context.id",
+        target_family=PropstoreFamily.CONTEXTS.value,
     ),
 )
 
@@ -666,42 +673,126 @@ CONCEPT_FOREIGN_KEYS = (
     ForeignKeySpec(
         name="concept_parameterization_input",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
+        source_family=PropstoreFamily.CONCEPTS.value,
         source_field="parameterization_relationships[].inputs[]",
-        target_family="concept",
+        target_family=PropstoreFamily.CONCEPTS.value,
         many=True,
+        required=False,
     ),
     ForeignKeySpec(
         name="concept_parameterization_canonical_claim",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
+        source_family=PropstoreFamily.CONCEPTS.value,
         source_field="parameterization_relationships[].canonical_claim",
-        target_family="claim",
+        target_family=PropstoreFamily.CLAIMS.value,
         required=False,
     ),
     ForeignKeySpec(
         name="concept_replaced_by",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
+        source_family=PropstoreFamily.CONCEPTS.value,
         source_field="replaced_by",
-        target_family="concept",
+        target_family=PropstoreFamily.CONCEPTS.value,
         required=False,
     ),
     ForeignKeySpec(
         name="concept_relationship_target",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
+        source_family=PropstoreFamily.CONCEPTS.value,
         source_field="relationships[].target",
-        target_family="concept",
+        target_family=PropstoreFamily.CONCEPTS.value,
         many=True,
+        required=False,
     ),
     ForeignKeySpec(
         name="concept_form",
         contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-        source_family="concept",
-        source_field="form",
-        target_family="form",
+        source_family=PropstoreFamily.CONCEPTS.value,
+        source_field="lexical_entry.physical_dimension_form",
+        target_family=PropstoreFamily.FORMS.value,
     ),
+)
+
+
+STANCE_FOREIGN_KEYS = (
+    ForeignKeySpec(
+        name="stance_source_claim",
+        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+        source_family=PropstoreFamily.STANCES.value,
+        source_field="source_claim",
+        target_family=PropstoreFamily.CLAIMS.value,
+        required=False,
+    ),
+    ForeignKeySpec(
+        name="stance_target_claim",
+        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+        source_family=PropstoreFamily.STANCES.value,
+        source_field="target",
+        target_family=PropstoreFamily.CLAIMS.value,
+        required=False,
+    ),
+    ForeignKeySpec(
+        name="stance_target_justification",
+        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+        source_family=PropstoreFamily.STANCES.value,
+        source_field="target_justification_id",
+        target_family=PropstoreFamily.JUSTIFICATIONS.value,
+        required=False,
+    ),
+)
+
+
+JUSTIFICATION_FOREIGN_KEYS = (
+    ForeignKeySpec(
+        name="justification_conclusion",
+        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+        source_family=PropstoreFamily.JUSTIFICATIONS.value,
+        source_field="conclusion",
+        target_family=PropstoreFamily.CLAIMS.value,
+        required=False,
+    ),
+    ForeignKeySpec(
+        name="justification_premises",
+        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+        source_family=PropstoreFamily.JUSTIFICATIONS.value,
+        source_field="premises[]",
+        target_family=PropstoreFamily.CLAIMS.value,
+        many=True,
+        required=False,
+    ),
+)
+
+
+MICROPUBLICATION_FOREIGN_KEYS = (
+    ForeignKeySpec(
+        name="micropub_context",
+        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+        source_family=PropstoreFamily.MICROPUBS.value,
+        source_field="context.id",
+        target_family=PropstoreFamily.CONTEXTS.value,
+    ),
+    ForeignKeySpec(
+        name="micropub_claims",
+        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+        source_family=PropstoreFamily.MICROPUBS.value,
+        source_field="claims[]",
+        target_family=PropstoreFamily.CLAIMS.value,
+        many=True,
+    ),
+)
+
+
+CLAIM_REFERENCE_KEYS = (
+    ReferenceKey.field("artifact_id"),
+    ReferenceKey.field("logical_ids[].formatted"),
+    ReferenceKey.field("logical_ids[].value"),
+)
+
+CONCEPT_REFERENCE_KEYS = (
+    ReferenceKey.field("artifact_id"),
+    ReferenceKey.field("logical_ids[].value"),
+    ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+    ReferenceKey.field("aliases[].name"),
 )
 
 
@@ -735,33 +826,40 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.CLAIMS,
             name=PropstoreFamily.CLAIMS.value,
-            contract_version=IDENTITY_POLICY_FAMILY_CONTRACT_VERSION,
+            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
             artifact_family=CLAIM_FAMILY,
             foreign_keys=CLAIM_FOREIGN_KEYS,
             identity_policy=CLAIM_IDENTITY_POLICY,
+            identity_field="artifact_id",
+            reference_keys=CLAIM_REFERENCE_KEYS,
             metadata=_semantic_metadata(importable=True, import_order=20),
         ),
         FamilyDefinition(
             key=PropstoreFamily.CONCEPTS,
             name=PropstoreFamily.CONCEPTS.value,
-            contract_version=IDENTITY_POLICY_FAMILY_CONTRACT_VERSION,
+            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
             artifact_family=CONCEPT_FILE_FAMILY,
             foreign_keys=CONCEPT_FOREIGN_KEYS,
             identity_policy=CONCEPT_IDENTITY_POLICY,
+            identity_field="artifact_id",
+            reference_keys=CONCEPT_REFERENCE_KEYS,
             metadata=_semantic_metadata(importable=True, import_order=10),
         ),
         FamilyDefinition(
             key=PropstoreFamily.CONTEXTS,
             name=PropstoreFamily.CONTEXTS.value,
-            contract_version=CONTEXT_FAMILY.contract_version,
+            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
             artifact_family=CONTEXT_FAMILY,
+            identity_field="id",
+            reference_keys=(ReferenceKey.field("name"),),
             metadata=_semantic_metadata(importable=True, import_order=30),
         ),
         FamilyDefinition(
             key=PropstoreFamily.FORMS,
             name=PropstoreFamily.FORMS.value,
-            contract_version=FORM_FAMILY.contract_version,
+            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
             artifact_family=FORM_FAMILY,
+            identity_field="name",
             metadata=_semantic_metadata(importable=True, import_order=30),
         ),
         FamilyDefinition(
@@ -797,8 +895,10 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.STANCES,
             name=PropstoreFamily.STANCES.value,
-            contract_version=STANCE_FAMILY.contract_version,
+            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
             artifact_family=STANCE_FAMILY,
+            foreign_keys=STANCE_FOREIGN_KEYS,
+            identity_field="artifact_code",
             metadata=_semantic_metadata(importable=True, import_order=60),
         ),
         FamilyDefinition(
@@ -821,20 +921,26 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.SOURCES,
             name=PropstoreFamily.SOURCES.value,
-            contract_version=CANONICAL_SOURCE_FAMILY.contract_version,
+            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
             artifact_family=CANONICAL_SOURCE_FAMILY,
+            identity_field="id",
         ),
         FamilyDefinition(
             key=PropstoreFamily.MICROPUBS,
             name=PropstoreFamily.MICROPUBS.value,
-            contract_version=MICROPUBLICATION_FAMILY.contract_version,
+            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
             artifact_family=MICROPUBLICATION_FAMILY,
+            foreign_keys=MICROPUBLICATION_FOREIGN_KEYS,
+            identity_field="artifact_id",
         ),
         FamilyDefinition(
             key=PropstoreFamily.JUSTIFICATIONS,
             name=PropstoreFamily.JUSTIFICATIONS.value,
-            contract_version=JUSTIFICATION_FAMILY.contract_version,
+            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
             artifact_family=JUSTIFICATION_FAMILY,
+            foreign_keys=JUSTIFICATION_FOREIGN_KEYS,
+            identity_field="artifact_code",
+            reference_keys=(ReferenceKey.field("id"),),
         ),
         FamilyDefinition(
             key=PropstoreFamily.SOURCE_DOCUMENTS,
