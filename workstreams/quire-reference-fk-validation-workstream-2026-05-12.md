@@ -512,7 +512,7 @@ Search gates:
 
 Required gates:
 
-- `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-refs tests/test_build_sidecar.py tests/test_sidecar_grounded_facts.py tests/test_sidecar.py`
+- `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-refs tests/test_build_sidecar.py tests/test_sidecar_grounded_facts.py tests/test_sidecar_query_read_only.py tests/test_sidecar_contexts.py`
 - `uv run pyright propstore`
 
 ## Phase 11 - Propstore Concept Registry Map Deletion
