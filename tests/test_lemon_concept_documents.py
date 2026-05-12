@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.families.registry import ConceptFileRef
+from propstore.families.forms.documents import FormDocument
+from propstore.families.registry import ConceptFileRef, FormRef
 from quire.documents import DocumentSchemaError
 from propstore.families.concepts.stages import concept_document_to_payload, parse_concept_record_document
 from propstore.repository import Repository
@@ -185,6 +186,11 @@ def test_concept_document_rejects_flat_pre_lemon_shape(tmp_path) -> None:
 
 def test_concept_document_round_trips_lemon_entry_and_reference(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    repo.families.forms.save(
+        FormRef("temperature"),
+        FormDocument(name="temperature", dimensionless=False),
+        message="Write temperature form",
+    )
     ref = ConceptFileRef("temperature")
     document = repo.families.concepts.coerce(
         _lemon_concept_payload(),
