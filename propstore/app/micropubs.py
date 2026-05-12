@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Iterator
 
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.registry import MicropublicationRef
@@ -48,11 +47,6 @@ class MicropubListItem:
     artifact_id: str
     context_id: str
     source: str | None
-
-
-def iter_micropubs(repo: Repository) -> Iterator[MicropubEntry]:
-    for handle in repo.families.micropubs.iter_handles():
-        yield MicropubEntry(ref=handle.ref, document=handle.document)
 
 
 def find_micropub(repo: Repository, artifact_id: str) -> MicropubEntry:
@@ -109,9 +103,9 @@ def inspect_micropub_lift(
 def list_micropubs(repo: Repository) -> tuple[MicropubListItem, ...]:
     return tuple(
         MicropubListItem(
-            artifact_id=entry.document.artifact_id,
-            context_id=entry.document.context.id,
-            source=entry.document.source,
+            artifact_id=handle.document.artifact_id,
+            context_id=handle.document.context.id,
+            source=handle.document.source,
         )
-        for entry in iter_micropubs(repo)
+        for handle in repo.families.micropubs.iter_handles()
     )
