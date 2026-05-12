@@ -353,12 +353,8 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         AtomDocument,
         BodyLiteralDocument,
         RuleDocument,
-        RuleSourceDocument,
-        RulesFileDocument,
         TermDocument,
     )
-    from propstore.rule_files import LoadedRuleFile
-    from quire.documents import LoadedDocument
 
     x = TermDocument(kind="var", name="X")
     target = RuleDocument(
@@ -387,20 +383,11 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
             ),
         ),
     )
-    loaded = LoadedDocument(
-        filename="rules.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=RulesFileDocument(
-            source=RuleSourceDocument(paper="ws-f"),
-            rules=(target, defeater),
-        ),
-    )
     from propstore.grounding.grounder import ground
     from propstore.grounding.predicates import PredicateRegistry
 
     bundle = ground(
-        (LoadedRuleFile.from_loaded_document(loaded),),
+        (target, defeater),
         (
             GroundAtom("bird", ("tweety",)),
             GroundAtom("exception", ("tweety",)),

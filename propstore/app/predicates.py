@@ -119,7 +119,10 @@ def reject_predicate_document_conflicts(
         )
 
     existing = repo.families.predicates.load(target_ref, commit=commit)
-    if existing is not None and existing.promoted_from_sha != document.promoted_from_sha:
+    if existing is not None and (
+        document.promoted_from_sha is None
+        or existing.promoted_from_sha != document.promoted_from_sha
+    ):
         relpath = repo.families.predicates.address(target_ref).require_path()
         raise PredicateWorkflowError(
             f"predicate {document.id!r} already declared in {relpath}"

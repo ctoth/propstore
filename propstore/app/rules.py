@@ -235,7 +235,10 @@ def reject_rule_document_conflicts(
         )
 
     existing = repo.families.rules.load(target_ref, commit=commit)
-    if existing is not None and existing.promoted_from_sha != document.promoted_from_sha:
+    if existing is not None and (
+        document.promoted_from_sha is None
+        or existing.promoted_from_sha != document.promoted_from_sha
+    ):
         relpath = repo.families.rules.address(target_ref).require_path()
         raise RuleWorkflowError(f"rule {document.id!r} already declared in {relpath}")
 

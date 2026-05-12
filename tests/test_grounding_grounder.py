@@ -796,7 +796,7 @@ def test_ground_return_arguments_populates_tuple() -> None:
     rules = _build_rule_batch([rule])
     facts = (GroundAtom("bird", ("tweety",)),)
 
-    bundle = ground([rule_file], facts, _bird_registry(), return_arguments=True)
+    bundle = ground(rules, facts, _bird_registry(), return_arguments=True)
     assert isinstance(bundle.arguments, tuple)
     assert len(bundle.arguments) > 0
     for arg in bundle.arguments:

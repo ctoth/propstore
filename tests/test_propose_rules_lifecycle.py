@@ -17,12 +17,14 @@ def _seed_predicates(repo: Repository) -> None:
             arity=2,
             arg_types=("paper_id", "int"),
             description="Paper-level sample size.",
+            authoring_group=PAPER,
         ),
         PredicateDocument(
             id="bias",
             arity=2,
             arg_types=("paper_id", "float"),
             description="Study-setting bias.",
+            authoring_group=PAPER,
         ),
     ):
         repo.families.predicates.save(

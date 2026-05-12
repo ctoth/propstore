@@ -32,24 +32,28 @@ def _seed_predicates(repo: Repository) -> None:
             arity=2,
             arg_types=("paper_id", "int"),
             description="Paper-level sample size.",
+            authoring_group=PAPER,
         ),
         PredicateDocument(
             id="bias",
             arity=2,
             arg_types=("paper_id", "float"),
             description="Study-setting bias.",
+            authoring_group=PAPER,
         ),
         PredicateDocument(
             id="low_trust",
             arity=1,
             arg_types=("paper_id",),
             description="Low trust classification.",
+            authoring_group=PAPER,
         ),
         PredicateDocument(
             id="high_trust",
             arity=1,
             arg_types=("paper_id",),
             description="High trust classification.",
+            authoring_group=PAPER,
         ),
     ):
         repo.families.predicates.save(
