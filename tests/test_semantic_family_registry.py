@@ -302,3 +302,49 @@ def test_propstore_registry_is_the_semantic_schema_surface() -> None:
     assert concepts.name == "concepts"
     assert concepts.artifact_family.doc_type.__name__ == "ConceptDocument"
     assert concepts.metadata and concepts.metadata["semantic"] is True
+
+
+def test_typed_family_handles_preserve_ref_and_document_types(tmp_path: Path) -> None:
+    from propstore.families.contexts.documents import ContextReferenceDocument
+    from propstore.families.documents.micropubs import MicropublicationDocument
+    from propstore.families.documents.predicates import PredicateDocument
+    from propstore.families.documents.rules import AtomDocument, RuleDocument
+    from propstore.families.registry import MicropublicationRef, PredicateRef, RuleRef
+
+    repo = Repository.init(tmp_path / "knowledge")
+    repo.families.predicates.save(
+        PredicateRef("p"),
+        PredicateDocument(id="p", arity=0),
+        message="seed predicate",
+    )
+    repo.families.rules.save(
+        RuleRef("r"),
+        RuleDocument(id="r", kind="defeasible", head=AtomDocument(predicate="p")),
+        message="seed rule",
+    )
+    repo.families.micropubs.save(
+        MicropublicationRef("mp"),
+        MicropublicationDocument(
+            artifact_id="mp",
+            context=ContextReferenceDocument(id="ctx"),
+            claims=("claim:one",),
+        ),
+        message="seed micropub",
+    )
+
+    predicate_handle = next(repo.families.predicates.iter_handles())
+    rule_handle = next(repo.families.rules.iter_handles())
+    micropub_handle = next(repo.families.micropubs.iter_handles())
+
+    assert isinstance(predicate_handle.ref, PredicateRef)
+    assert isinstance(predicate_handle.document, PredicateDocument)
+    assert isinstance(rule_handle.ref, RuleRef)
+    assert isinstance(rule_handle.document, RuleDocument)
+    assert isinstance(micropub_handle.ref, MicropublicationRef)
+    assert isinstance(micropub_handle.document, MicropublicationDocument)
+
+
+def test_thin_micropub_iteration_wrapper_is_deleted() -> None:
+    import propstore.app.micropubs as micropubs
+
+    assert not hasattr(micropubs, "iter_micropubs")
