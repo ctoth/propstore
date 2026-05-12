@@ -1,0 +1,15 @@
+<h1>{{ heading }}</h1>
+<section aria-labelledby="summary-heading">
+  <h2 id="summary-heading">Summary</h2>
+  {{ summary }}
+</section>
+{{ render_policy }}
+<section aria-labelledby="provenance-heading">
+  <h2 id="provenance-heading">Provenance</h2>
+  {{ provenance }}
+</section>
+<section aria-labelledby="neighborhood-heading">
+  <h2 id="neighborhood-heading">Neighborhood</h2>
+  <p><a href="{{ neighborhood_href }}">Open semantic neighborhood for this claim</a></p>
+</section>
+{{ machine_ids }}

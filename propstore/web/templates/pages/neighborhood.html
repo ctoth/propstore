@@ -1,0 +1,37 @@
+<h1>Neighborhood for {{ display_id }}</h1>
+<section aria-labelledby="focus-heading">
+  <h2 id="focus-heading">Focus</h2>
+  <p>{{ focus_sentence }}</p>
+  {{ focus }}
+  <p><a href="{{ claim_href }}">Open claim view for this focus claim</a></p>
+</section>
+<section aria-labelledby="moves-heading">
+  <h2 id="moves-heading">Available Moves</h2>
+  {{ moves }}
+</section>
+<section aria-labelledby="supporters-heading">
+  <h2 id="supporters-heading">Supporters</h2>
+  {{ supporters }}
+</section>
+<section aria-labelledby="attackers-heading">
+  <h2 id="attackers-heading">Attackers</h2>
+  {{ attackers }}
+</section>
+<section aria-labelledby="conditions-heading">
+  <h2 id="conditions-heading">Conditions</h2>
+  {{ conditions }}
+</section>
+<section aria-labelledby="provenance-heading">
+  <h2 id="provenance-heading">Provenance</h2>
+  {{ provenance }}
+</section>
+<section aria-labelledby="shared-concept-heading">
+  <h2 id="shared-concept-heading">Shared Concept</h2>
+  {{ shared_concept }}
+</section>
+<section aria-labelledby="graph-heading">
+  <h2 id="graph-heading">Raw Graph Projection</h2>
+  {{ edges }}
+  {{ nodes }}
+</section>
+{{ render_policy }}
