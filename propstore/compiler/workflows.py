@@ -11,11 +11,11 @@ from pathlib import Path
 from quire.documents import DocumentSchemaError
 from propstore.claims import ClaimFileEntry, claim_file_payload
 from propstore.compiler.context import (
+    build_compiler_claim_index,
     build_compilation_context_from_loaded,
     build_compilation_context_from_repo,
 )
 from propstore.compiler.errors import CompilerWorkflowError
-from propstore.compiler.references import build_claim_reference_lookup
 from propstore.families.claims.passes import run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle, ClaimStage
 from propstore.families.concepts.passes import (
@@ -273,7 +273,7 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
         concepts,
         context=ConceptPipelineContext(
             form_registry=form_registry,
-            claim_reference_lookup=build_claim_reference_lookup(files),
+            claim_index=build_compiler_claim_index(files),
         ),
     )
     messages.extend(_messages_from_pipeline_result(concept_result))
@@ -459,7 +459,7 @@ def build_repository(
         concepts,
         context=ConceptPipelineContext(
             form_registry=form_registry,
-            claim_reference_lookup=build_claim_reference_lookup(files),
+            claim_index=build_compiler_claim_index(files),
         ),
     )
     concept_messages = list(concept_schema_messages)
