@@ -68,6 +68,7 @@ from propstore.families.documents.rules import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,
+    RuleSuperiorityDocument,
     TermDocument,
 )
 from propstore.grounding.predicates import PredicateRegistry
@@ -83,6 +84,8 @@ def translate_to_theory(
     rules: Sequence[RuleDocument],
     facts: tuple[GroundAtom, ...],
     registry: PredicateRegistry,
+    *,
+    superiority: Sequence[RuleSuperiorityDocument] = (),
 ) -> gunray.DefeasibleTheory:
     """Translate propstore rule/fact inputs into a gunray DefeasibleTheory.
 
@@ -131,7 +134,10 @@ def translate_to_theory(
     strict_rules: list[gunray.Rule] = []
     defeasible_rules: list[gunray.Rule] = []
     defeaters: list[gunray.Rule] = []
-    authored_superiority: list[tuple[str, str]] = []
+    authored_superiority = [
+        (document.superior_rule_id, document.inferior_rule_id)
+        for document in superiority
+    ]
     non_strict_rule_ids: set[str] = set()
     for rule_doc in rules:
         schema_rule = gunray.Rule(

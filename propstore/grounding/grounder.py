@@ -47,7 +47,7 @@ from types import MappingProxyType
 import gunray
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.families.documents.rules import RuleDocument
+from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
 from propstore.grounding.bundle import GroundedRulesBundle, GroundingProjectionFrame
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import translate_to_theory
@@ -71,6 +71,7 @@ def ground(
     facts: tuple[GroundAtom, ...],
     registry: PredicateRegistry,
     *,
+    superiority: Sequence[RuleSuperiorityDocument] = (),
     marking_policy: gunray.MarkingPolicy = gunray.MarkingPolicy.BLOCKING,
     closure_policy: gunray.ClosurePolicy | None = None,
     return_arguments: bool = True,
@@ -144,7 +145,7 @@ def ground(
 
     # Step 1: translate propstore documents into the gunray schema.
     # Diller, Borg, Bex 2025 §3 Definition 7 shape.
-    theory = translate_to_theory(rules, facts, registry)
+    theory = translate_to_theory(rules, facts, registry, superiority=superiority)
 
     # Step 2: run gunray. Garcia & Simari 2004 §4 (p.25) computes the
     # four-valued answer system here; the ``policy`` keyword selects

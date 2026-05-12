@@ -128,6 +128,20 @@ class RuleDocument(DocumentStruct):
     promoted_from_sha: str | None = None
 
 
+class RuleSuperiorityDocument(DocumentStruct):
+    """A first-class DeLP rule-priority assertion artifact.
+
+    Pairs are oriented ``superior_rule_id > inferior_rule_id`` following
+    Garcia and Simari's DeLP priority relation.
+    """
+
+    superior_rule_id: str
+    inferior_rule_id: str
+    source: RuleSourceDocument | None = None
+    authoring_group: str | None = None
+    promoted_from_sha: str | None = None
+
+
 class RuleExtractionProvenance(DocumentStruct):
     """Prompt, source, and predicate-vocabulary provenance for a proposed rule."""
 
@@ -151,4 +165,3 @@ class RuleProposalDocument(DocumentStruct):
     extraction_date: str
     page_reference: str | None = None
     promoted_from_sha: str | None = None
-

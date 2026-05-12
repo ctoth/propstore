@@ -54,7 +54,7 @@ def test_add_rule_superiority_writes_one_artifact(tmp_path) -> None:
     assert document.superior_rule_id == "r_b"
     assert document.inferior_rule_id == "r_a"
     assert document.authoring_group == "paper-group"
-    assert repo.families.rules.require_ref_path("rules/r_b.yaml").rule_id == "r_b"
+    assert repo.families.rules.ref_from_path("rules/r_b.yaml").rule_id == "r_b"
 
 
 def test_list_and_remove_rule_superiority_operate_on_artifacts(tmp_path) -> None:

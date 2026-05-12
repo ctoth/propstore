@@ -14,9 +14,10 @@ from propstore.families.documents.rules import (
     BodyLiteralDocument,
     RuleDocument,
     RuleSourceDocument,
+    RuleSuperiorityDocument,
     TermDocument,
 )
-from propstore.families.registry import RuleRef
+from propstore.families.registry import RuleRef, RuleSuperiorityRef
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.repository import Repository
 
@@ -105,6 +106,14 @@ class RuleSuperiorityRemoveRequest:
 @dataclass(frozen=True)
 class RuleSuperiorityReport:
     filepath: Path
+    superior_rule_id: str
+    inferior_rule_id: str
+
+
+@dataclass(frozen=True)
+class RuleSuperiorityListItem:
+    artifact_id: str
+    authoring_group: str | None
     superior_rule_id: str
     inferior_rule_id: str
 
@@ -220,6 +229,10 @@ def _predicate_registry_at_head(repo: Repository, commit: str | None) -> Predica
 
 def _rule_atoms(rule: RuleDocument) -> tuple[AtomDocument, ...]:
     return (rule.head,) + tuple(literal.atom for literal in rule.body)
+
+
+def _rule_superiority_artifact_id(superior_rule_id: str, inferior_rule_id: str) -> str:
+    return f"{superior_rule_id}__gt__{inferior_rule_id}"
 
 
 def reject_rule_document_conflicts(
@@ -350,15 +363,131 @@ def remove_rule(
     return RuleRemoveReport(filepath=filepath, rule_id=request.rule_id, removed=True)
 
 
+def _load_rule_for_superiority(repo: Repository, rule_id: str) -> RuleDocument:
+    document = repo.families.rules.load(RuleRef(rule_id))
+    if document is None:
+        raise RuleWorkflowError(f"rule {rule_id!r} not found")
+    if document.kind == "strict":
+        raise RuleWorkflowError(f"strict rule {rule_id!r} cannot participate in superiority")
+    return document
+
+
+def _superiority_pairs(repo: Repository) -> tuple[tuple[str, str], ...]:
+    return tuple(
+        (handle.document.superior_rule_id, handle.document.inferior_rule_id)
+        for handle in repo.families.rule_superiority.iter_handles()
+    )
+
+
+def _assert_superiority_acyclic(pairs: tuple[tuple[str, str], ...]) -> None:
+    edges: dict[str, set[str]] = {}
+    for superior, inferior in pairs:
+        edges.setdefault(superior, set()).add(inferior)
+
+    visiting: set[str] = set()
+    visited: set[str] = set()
+
+    def visit(node: str) -> bool:
+        if node in visiting:
+            return False
+        if node in visited:
+            return True
+        visiting.add(node)
+        for child in edges.get(node, ()):
+            if not visit(child):
+                return False
+        visiting.remove(node)
+        visited.add(node)
+        return True
+
+    for node in tuple(edges):
+        if not visit(node):
+            raise RuleWorkflowError("rule superiority relation must remain acyclic")
+
+
 def add_rule_superiority(
     repo: Repository,
     request: RuleSuperiorityAddRequest,
 ) -> RuleSuperiorityReport:
-    raise RuleWorkflowError("rule superiority artifacts are not implemented yet")
+    if request.superior_rule_id == request.inferior_rule_id:
+        raise RuleWorkflowError("rule superiority relation must remain acyclic")
+
+    ref = RuleSuperiorityRef(
+        _rule_superiority_artifact_id(request.superior_rule_id, request.inferior_rule_id)
+    )
+    filepath = repo.root / repo.families.rule_superiority.address(ref).require_path()
+
+    with _RULE_MUTATION_LOCK, repo.mutation_guard():
+        _load_rule_for_superiority(repo, request.superior_rule_id)
+        _load_rule_for_superiority(repo, request.inferior_rule_id)
+        if repo.families.rule_superiority.load(ref) is not None:
+            raise RuleWorkflowError(
+                f"rule superiority {request.superior_rule_id!r} > "
+                f"{request.inferior_rule_id!r} already declared"
+            )
+        pairs = _superiority_pairs(repo) + (
+            (request.superior_rule_id, request.inferior_rule_id),
+        )
+        _assert_superiority_acyclic(pairs)
+        document = RuleSuperiorityDocument(
+            superior_rule_id=request.superior_rule_id,
+            inferior_rule_id=request.inferior_rule_id,
+            authoring_group=request.file,
+        )
+        repo.families.rule_superiority.save(
+            ref,
+            document,
+            message=(
+                f"Declare rule superiority {request.superior_rule_id} > "
+                f"{request.inferior_rule_id}"
+            ),
+        )
+
+    return RuleSuperiorityReport(
+        filepath=filepath,
+        superior_rule_id=request.superior_rule_id,
+        inferior_rule_id=request.inferior_rule_id,
+    )
 
 
 def remove_rule_superiority(
     repo: Repository,
     request: RuleSuperiorityRemoveRequest,
 ) -> RuleSuperiorityReport:
-    raise RuleWorkflowError("rule superiority artifacts are not implemented yet")
+    ref = RuleSuperiorityRef(
+        _rule_superiority_artifact_id(request.superior_rule_id, request.inferior_rule_id)
+    )
+    with _RULE_MUTATION_LOCK, repo.mutation_guard():
+        existing = repo.families.rule_superiority.load(ref)
+        if existing is None:
+            raise RuleSuperiorityPairNotFoundError(
+                f"rule superiority {request.superior_rule_id!r} > "
+                f"{request.inferior_rule_id!r} not found"
+            )
+        filepath = repo.root / repo.families.rule_superiority.address(ref).require_path()
+        repo.families.rule_superiority.delete(
+            ref,
+            message=(
+                f"Remove rule superiority {request.superior_rule_id} > "
+                f"{request.inferior_rule_id}"
+            ),
+        )
+
+    return RuleSuperiorityReport(
+        filepath=filepath,
+        superior_rule_id=request.superior_rule_id,
+        inferior_rule_id=request.inferior_rule_id,
+    )
+
+
+def list_rule_superiority(repo: Repository) -> tuple[RuleSuperiorityListItem, ...]:
+    items = [
+        RuleSuperiorityListItem(
+            artifact_id=handle.ref.artifact_id,
+            authoring_group=handle.document.authoring_group,
+            superior_rule_id=handle.document.superior_rule_id,
+            inferior_rule_id=handle.document.inferior_rule_id,
+        )
+        for handle in repo.families.rule_superiority.iter_handles()
+    ]
+    return tuple(sorted(items, key=lambda item: item.artifact_id))

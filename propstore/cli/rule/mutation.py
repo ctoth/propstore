@@ -10,11 +10,12 @@ from propstore.app.rules import (
     RuleWorkflowError,
     add_rule,
     add_rule_superiority,
+    list_rule_superiority,
     remove_rule,
     remove_rule_superiority,
 )
 from propstore.cli.helpers import fail
-from propstore.cli.output import emit, emit_success
+from propstore.cli.output import emit, emit_success, emit_table
 from propstore.cli.rule import rule
 from propstore.repository import Repository
 
@@ -118,8 +119,9 @@ def superiority() -> None:
 @click.option(
     "--file",
     "file_name",
-    required=True,
-    help="File stem in rules/ (e.g. ikeda_2014).",
+    required=False,
+    default=None,
+    help="Optional authoring group metadata (e.g. ikeda_2014).",
 )
 @click.option(
     "--superior",
@@ -140,7 +142,7 @@ def superiority_add(
     superior_rule_id: str,
     inferior_rule_id: str,
 ) -> None:
-    """Add a superiority pair to rules/<file>.yaml."""
+    """Add a rule-superiority artifact."""
     repo: Repository = obj["repo"]
     request = RuleSuperiorityAddRequest(
         file=file_name,
@@ -154,7 +156,30 @@ def superiority_add(
 
     emit_success(
         f"Added superiority {report.superior_rule_id} > "
-        f"{report.inferior_rule_id} to {report.filepath}"
+        f"{report.inferior_rule_id} at {report.filepath}"
+    )
+
+
+@superiority.command("list")
+@click.pass_obj
+def superiority_list(obj: dict) -> None:
+    """List rule-superiority artifacts."""
+    repo: Repository = obj["repo"]
+    items = list_rule_superiority(repo)
+    if not items:
+        emit("No rule superiority artifacts.")
+        return
+    emit_table(
+        ("GROUP", "SUPERIOR", "INFERIOR", "ARTIFACT"),
+        [
+            (
+                item.authoring_group or "",
+                item.superior_rule_id,
+                item.inferior_rule_id,
+                item.artifact_id,
+            )
+            for item in items
+        ],
     )
 
 
@@ -162,8 +187,9 @@ def superiority_add(
 @click.option(
     "--file",
     "file_name",
-    required=True,
-    help="File stem in rules/ (e.g. ikeda_2014).",
+    required=False,
+    default=None,
+    help="Ignored authoring metadata retained for command symmetry.",
 )
 @click.option(
     "--superior",
@@ -184,7 +210,7 @@ def superiority_remove(
     superior_rule_id: str,
     inferior_rule_id: str,
 ) -> None:
-    """Remove a superiority pair from rules/<file>.yaml."""
+    """Remove a rule-superiority artifact."""
     repo: Repository = obj["repo"]
     request = RuleSuperiorityRemoveRequest(
         file=file_name,

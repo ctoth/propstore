@@ -42,7 +42,7 @@ from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
 from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
 from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
-from propstore.families.documents.rules import RuleDocument, RuleProposalDocument
+from propstore.families.documents.rules import RuleDocument, RuleProposalDocument, RuleSuperiorityDocument
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
 from propstore.families.documents.sources import (
     SourceClaimsDocument,
@@ -125,6 +125,10 @@ if TYPE_CHECKING:
         rule_id: str
 
     @dataclass(frozen=True)
+    class RuleSuperiorityRef:
+        artifact_id: str
+
+    @dataclass(frozen=True)
     class PredicateProposalRef:
         source_paper: str
 
@@ -157,6 +161,7 @@ class PropstoreFamily(str, Enum):
     FORMS = "forms"
     PREDICATES = "predicates"
     RULES = "rules"
+    RULE_SUPERIORITY = "rule_superiority"
     STANCES = "stances"
     SAMEAS = "sameas"
     WORLDLINES = "worldlines"
@@ -191,6 +196,7 @@ if not TYPE_CHECKING:
     JustificationRef = single_field_ref_type("JustificationRef", "artifact_id", module=__name__)
     PredicateRef = single_field_ref_type("PredicateRef", "predicate_id", module=__name__)
     RuleRef = single_field_ref_type("RuleRef", "rule_id", module=__name__)
+    RuleSuperiorityRef = single_field_ref_type("RuleSuperiorityRef", "artifact_id", module=__name__)
 
     @dataclass(frozen=True)
     class PredicateProposalRef:
@@ -296,6 +302,12 @@ RULE_PLACEMENT = FlatYamlPlacement["Repository", RuleRef](
     namespace=PropstoreFamily.RULES.value,
     ref_factory=RuleRef,
     ref_field="rule_id",
+    branch=PRIMARY_ARTIFACT_BRANCH,
+)
+RULE_SUPERIORITY_PLACEMENT = FlatYamlPlacement["Repository", RuleSuperiorityRef](
+    namespace=PropstoreFamily.RULE_SUPERIORITY.value,
+    ref_factory=RuleSuperiorityRef,
+    ref_field="artifact_id",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
 STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
@@ -431,6 +443,13 @@ RULE_FAMILY = ArtifactFamily["Repository", RuleRef, RuleDocument](
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=RuleDocument,
     placement=RULE_PLACEMENT,
+)
+
+RULE_SUPERIORITY_FAMILY = ArtifactFamily["Repository", RuleSuperiorityRef, RuleSuperiorityDocument](
+    name="rule_superiority",
+    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    doc_type=RuleSuperiorityDocument,
+    placement=RULE_SUPERIORITY_PLACEMENT,
 )
 
 STANCE_FAMILY = ArtifactFamily["Repository", StanceRef, StanceDocument](
@@ -763,6 +782,16 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             metadata=_semantic_metadata(
                 importable=True,
                 import_order=50,
+            ),
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.RULE_SUPERIORITY,
+            name=PropstoreFamily.RULE_SUPERIORITY.value,
+            contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
+            artifact_family=RULE_SUPERIORITY_FAMILY,
+            metadata=_semantic_metadata(
+                importable=True,
+                import_order=55,
             ),
         ),
         FamilyDefinition(
