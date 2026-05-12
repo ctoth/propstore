@@ -14,9 +14,8 @@ from propstore.families.documents.predicates import (
     PredicateDocument,
     PredicateExtractionProvenance,
     PredicateProposalDocument,
-    PredicatesFileDocument,
 )
-from propstore.families.registry import PredicateFileRef, PredicateProposalRef
+from propstore.families.registry import PredicateProposalRef, PredicateRef
 from propstore.heuristic.predicate_extraction import predicate_proposal_branch
 from propstore.proposals import UnknownProposalPath
 from propstore.repository import Repository
@@ -110,16 +109,13 @@ def _seed_direct_proposal(repo: Repository, *, paper: str, predicate_id: str) ->
 
 def _seed_canonical_predicate(repo: Repository, *, file_name: str, predicate_id: str) -> None:
     repo.families.predicates.save(
-        PredicateFileRef(file_name),
-        PredicatesFileDocument(
-            predicates=(
-                PredicateDocument(
-                    id=predicate_id,
-                    arity=1,
-                    arg_types=("paper_id",),
-                    description="Existing predicate.",
-                ),
-            )
+        PredicateRef(predicate_id),
+        PredicateDocument(
+            id=predicate_id,
+            arity=1,
+            arg_types=("paper_id",),
+            description="Existing predicate.",
+            authoring_group=file_name,
         ),
         message=f"Seed {predicate_id}",
     )
@@ -140,15 +136,17 @@ def test_promote_predicate_proposal_writes_canonical_and_is_idempotent(
     plan = plan_predicate_proposal_promotion(repo, source_paper=PAPER)
     result = promote_predicate_proposals(repo, plan)
 
-    assert result.moved == 1
-    document = repo.families.predicates.require(PredicateFileRef(PAPER))
-    assert [entry.id for entry in document.predicates] == [
+    assert result.moved == 4
+    for predicate_id in (
         "sample_size",
         "statistical_power",
         "pre_study_odds",
         "bias",
-    ]
-    assert document.promoted_from_sha == proposal_sha
+    ):
+        document = repo.families.predicates.require(PredicateRef(predicate_id))
+        assert document.id == predicate_id
+        assert document.authoring_group == PAPER
+        assert document.promoted_from_sha == proposal_sha
 
     second = plan_predicate_proposal_promotion(repo, source_paper=PAPER)
     assert second.items == ()
@@ -195,4 +193,4 @@ def test_generated_predicate_proposal_promotion_rejects_global_duplicates(
             promote_predicate_proposals(repo, plan)
 
         assert repo.snapshot.branch_head(repo.snapshot.primary_branch_name()) == master_before
-        assert repo.families.predicates.load(PredicateFileRef(proposed_file)) is None
+        assert repo.families.predicates.load(PredicateRef(predicate_id)) is not None

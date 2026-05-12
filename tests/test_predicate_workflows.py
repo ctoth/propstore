@@ -8,23 +8,23 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.app.predicates import (
     PredicateAddRequest,
-    PredicateFileNotFoundError,
     PredicateNotFoundError,
     PredicateRemoveRequest,
     PredicateWorkflowError,
     add_predicate,
     list_predicates,
     remove_predicate,
-    show_predicate_file,
+    show_predicate,
 )
+from propstore.families.registry import PredicateRef
 from propstore.repository import Repository
 
 
-def _read_predicate_file(repo: Repository, file: str) -> dict:
-    return yaml.safe_load(repo.git.read_file(f"predicates/{file}.yaml"))
+def _read_predicate_artifact(repo: Repository, predicate_id: str) -> dict:
+    return yaml.safe_load(repo.git.read_file(f"predicates/{predicate_id}.yaml"))
 
 
-def test_add_predicate_creates_file_and_appends(tmp_path) -> None:
+def test_add_predicate_writes_one_artifact_per_predicate(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     first = add_predicate(
@@ -40,7 +40,7 @@ def test_add_predicate_creates_file_and_appends(tmp_path) -> None:
     second = add_predicate(
         repo,
         PredicateAddRequest(
-            file="ikeda_2014",
+            file="other_authoring_batch",
             predicate_id="reduces_mi",
             arity=1,
             arg_types=("person",),
@@ -48,11 +48,14 @@ def test_add_predicate_creates_file_and_appends(tmp_path) -> None:
     )
 
     assert first.created is True
-    assert second.created is False
+    assert second.created is True
     assert not first.filepath.exists()
-    data = _read_predicate_file(repo, "ikeda_2014")
-    ids = [entry["id"] for entry in data["predicates"]]
-    assert ids == ["aspirin_user", "reduces_mi"]
+    first_data = _read_predicate_artifact(repo, "aspirin_user")
+    second_data = _read_predicate_artifact(repo, "reduces_mi")
+    assert first_data["id"] == "aspirin_user"
+    assert first_data["authoring_group"] == "ikeda_2014"
+    assert second_data["id"] == "reduces_mi"
+    assert repo.families.predicates.require(PredicateRef("aspirin_user")).id == "aspirin_user"
 
 
 def test_add_predicate_rejects_arity_mismatch(tmp_path) -> None:
@@ -115,15 +118,16 @@ def test_predicate_cli_add_creates_file(tmp_path) -> None:
     )
 
     assert result.exit_code == 0, result.output
-    target = repo.root / "predicates" / "ikeda_2014.yaml"
+    target = repo.root / "predicates" / "aspirin_user.yaml"
     assert not target.exists()
-    data = _read_predicate_file(repo, "ikeda_2014")
-    assert data["predicates"][0]["id"] == "aspirin_user"
-    assert data["predicates"][0]["arity"] == 1
-    assert data["predicates"][0]["arg_types"] == ["person"]
+    data = _read_predicate_artifact(repo, "aspirin_user")
+    assert data["id"] == "aspirin_user"
+    assert data["arity"] == 1
+    assert data["arg_types"] == ["person"]
+    assert data["authoring_group"] == "ikeda_2014"
 
 
-def test_predicate_cli_appends_to_existing_file(tmp_path) -> None:
+def test_predicate_cli_file_option_does_not_determine_storage(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     runner = CliRunner()
 
@@ -162,9 +166,8 @@ def test_predicate_cli_appends_to_existing_file(tmp_path) -> None:
 
     assert first.exit_code == 0, first.output
     assert second.exit_code == 0, second.output
-    data = _read_predicate_file(repo, "ikeda_2014")
-    ids = [entry["id"] for entry in data["predicates"]]
-    assert ids == ["p1", "p2"]
+    assert _read_predicate_artifact(repo, "p1")["id"] == "p1"
+    assert _read_predicate_artifact(repo, "p2")["id"] == "p2"
 
 
 def test_predicate_owner_list_and_show(tmp_path) -> None:
@@ -175,17 +178,17 @@ def test_predicate_owner_list_and_show(tmp_path) -> None:
     )
 
     items = list_predicates(repo)
-    shown = show_predicate_file(repo, "ikeda_2014")
+    shown = show_predicate(repo, "p1")
 
-    assert [(item.file, item.predicate_id) for item in items] == [("ikeda_2014", "p1")]
-    assert "predicates:" in shown.rendered
+    assert [(item.authoring_group, item.predicate_id) for item in items] == [("ikeda_2014", "p1")]
+    assert "id: p1" in shown.rendered
 
     try:
-        show_predicate_file(repo, "missing")
-    except PredicateFileNotFoundError as exc:
+        show_predicate(repo, "missing")
+    except PredicateNotFoundError as exc:
         assert "missing" in str(exc)
     else:
-        raise AssertionError("expected missing predicate file failure")
+        raise AssertionError("expected missing predicate failure")
 
 
 def test_predicate_cli_list_and_show(tmp_path) -> None:
@@ -197,26 +200,26 @@ def test_predicate_cli_list_and_show(tmp_path) -> None:
     runner = CliRunner()
 
     listed = runner.invoke(cli, ["-C", str(repo.root), "predicate", "list"])
-    shown = runner.invoke(cli, ["-C", str(repo.root), "predicate", "show", "ikeda_2014"])
+    shown = runner.invoke(cli, ["-C", str(repo.root), "predicate", "show", "p1"])
 
     assert listed.exit_code == 0, listed.output
     assert "ikeda_2014" in listed.output
     assert "p1" in listed.output
     assert shown.exit_code == 0, shown.output
-    assert "predicates:" in shown.output
+    assert "id: p1" in shown.output
 
 
-def test_remove_predicate_rejects_missing_file(tmp_path) -> None:
+def test_remove_predicate_rejects_missing_artifact(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     try:
         remove_predicate(
             repo,
-            PredicateRemoveRequest(file="missing", predicate_id="p1"),
+            PredicateRemoveRequest(predicate_id="p1"),
         )
-    except PredicateFileNotFoundError as exc:
-        assert "missing" in str(exc)
+    except PredicateNotFoundError as exc:
+        assert "p1" in str(exc)
     else:
-        raise AssertionError("expected missing-file failure")
+        raise AssertionError("expected missing-artifact failure")
 
 
 def test_remove_predicate_rejects_unknown_id(tmp_path) -> None:
@@ -228,11 +231,10 @@ def test_remove_predicate_rejects_unknown_id(tmp_path) -> None:
     try:
         remove_predicate(
             repo,
-            PredicateRemoveRequest(file="ikeda_2014", predicate_id="nope"),
+            PredicateRemoveRequest(predicate_id="nope"),
         )
     except PredicateNotFoundError as exc:
         assert "nope" in str(exc)
-        assert "ikeda_2014" in str(exc)
     else:
         raise AssertionError("expected unknown-id failure")
 
@@ -250,12 +252,11 @@ def test_remove_predicate_removes_and_preserves_others(tmp_path) -> None:
 
     report = remove_predicate(
         repo,
-        PredicateRemoveRequest(file="ikeda_2014", predicate_id="p1"),
+        PredicateRemoveRequest(predicate_id="p1"),
     )
     assert report.removed is True
-    data = _read_predicate_file(repo, "ikeda_2014")
-    ids = [entry["id"] for entry in data["predicates"]]
-    assert ids == ["p2"]
+    assert repo.families.predicates.load(PredicateRef("p1")) is None
+    assert _read_predicate_artifact(repo, "p2")["id"] == "p2"
 
 
 def test_predicate_cli_remove(tmp_path) -> None:
@@ -273,13 +274,10 @@ def test_predicate_cli_remove(tmp_path) -> None:
             str(repo.root),
             "predicate",
             "remove",
-            "--file",
-            "ikeda_2014",
             "--id",
             "p1",
         ],
     )
 
     assert result.exit_code == 0, result.output
-    data = _read_predicate_file(repo, "ikeda_2014")
-    assert data.get("predicates") in (None, [])
+    assert repo.families.predicates.load(PredicateRef("p1")) is None

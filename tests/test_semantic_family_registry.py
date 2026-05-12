@@ -49,11 +49,26 @@ def test_semantic_registry_exposes_artifact_families_for_rules_and_predicates() 
     assert rule.artifact_family.placement.contract_body()["namespace"] == "rules"
     assert predicate.artifact_family.placement.contract_body()["namespace"] == "predicates"
     assert rule.metadata and rule.metadata["collection_field"] == "rules"
-    assert predicate.metadata and predicate.metadata["collection_field"] == "predicates"
+    assert predicate.metadata and predicate.metadata["collection_field"] is None
     assert rule.metadata["aggregate_decision"] == "intentional_set"
     assert "superiority relation" in str(rule.metadata["aggregate_reason"])
-    assert predicate.metadata["aggregate_decision"] == "intentional_set"
-    assert "Datalog schema" in str(predicate.metadata["aggregate_reason"])
+    assert "aggregate_decision" not in predicate.metadata
+
+
+def test_predicate_family_target_model_is_one_semantic_artifact_per_file() -> None:
+    from propstore.families.documents.predicates import PredicateDocument
+    from propstore.families.registry import PredicateRef
+
+    canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.PREDICATES)
+    artifact_family = canonical.artifact_family
+    placement = artifact_family.placement.contract_body()
+
+    assert artifact_family.doc_type is PredicateDocument
+    assert artifact_family.placement.ref_factory is PredicateRef
+    assert placement["namespace"] == "predicates"
+    assert placement["ref_field"] == "predicate_id"
+    assert placement["codec"] == "stem"
+    assert canonical.metadata and canonical.metadata["collection_field"] is None
 
 
 def test_semantic_family_contract_includes_path_schema() -> None:
