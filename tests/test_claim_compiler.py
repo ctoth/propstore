@@ -176,7 +176,8 @@ def test_compilation_context_exposes_quire_reference_indexes(tmp_path):
         f"{payload['claims'][0]['logical_ids'][0]['value']}"
     )
 
-    assert context.concept_index.exists("F0")
+    assert context.concept_index.exists("fundamental_frequency")
+    assert context.concept_index.exists("propstore:concept1")
     assert context.claim_index.exists(claim_logical_id)
     assert context.claim_index.resolve_id(claim_logical_id) == payload["claims"][0]["artifact_id"]
     assert {spec.name for spec in semantic_foreign_keys()} >= {
