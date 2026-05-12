@@ -23,9 +23,11 @@ from propstore.claims import (
     loaded_claim_file_from_payload,
 )
 from propstore.canonical_namespaces import assert_alias_does_not_target_reserved_namespace
-from propstore.compiler.context import build_compilation_context_from_loaded
+from propstore.compiler.context import (
+    build_compiler_claim_index,
+    build_compilation_context_from_loaded,
+)
 from propstore.families.claims.passes import validate_claims
-from propstore.compiler.references import build_claim_reference_lookup
 from propstore.concept_ids import candidate_concept_id_for_repo, reserve_concept_id_candidate
 from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.families.concepts.passes import (
@@ -1029,7 +1031,7 @@ def _run_concept_validation(
         concepts,
         context=ConceptPipelineContext(
             form_registry=_form_registry(repo),
-            claim_reference_lookup=build_claim_reference_lookup(claim_files),
+            claim_index=build_compiler_claim_index(claim_files),
         ),
     )
 
