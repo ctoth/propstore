@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 import yaml
+from quire.references import AmbiguousReferenceError
 
 from propstore.repository import Repository
-from propstore.source.registry import ConceptAliasCollisionError, load_primary_branch_concepts
 from tests.conftest import normalize_concept_payloads
 
 
@@ -53,8 +53,8 @@ def test_primary_branch_alias_collision_is_rejected(tmp_path: Path) -> None:
         branch="master",
     )
 
-    with pytest.raises(ConceptAliasCollisionError) as exc_info:
-        load_primary_branch_concepts(repo)
+    with pytest.raises(AmbiguousReferenceError) as exc_info:
+        repo.families.concepts.reference_index()
 
     message = str(exc_info.value)
     assert "rate" in message
