@@ -68,6 +68,10 @@ from propstore.provenance import (
 )
 from propstore.repository import Repository
 from propstore.sidecar.sqlite import connect_sidecar
+from propstore.source.claim_concepts import (
+    rewrite_claim_concept_refs,
+    source_concept_ref_requires_mapping,
+)
 from quire.documents import convert_document_value
 from propstore.families.documents.sources import (
     SourceClaimDocument,
@@ -244,62 +248,6 @@ def _freeze_blocked_diagnostics(
     reasons: dict[str, list[tuple[str, str]]],
 ) -> dict[str, tuple[tuple[str, str], ...]]:
     return {claim_id: tuple(entries) for claim_id, entries in reasons.items()}
-
-
-def _source_concept_ref_requires_mapping(value: str) -> bool:
-    return not (value.startswith("ps:concept:") or value.startswith("tag:"))
-
-
-def rewrite_claim_concept_refs(
-    claim: dict[str, Any],
-    concept_map: dict[str, str],
-    *,
-    unresolved: set[str],
-) -> dict[str, Any]:
-    normalized = copy.deepcopy(claim)
-
-    def resolve(value: object) -> object:
-        if not isinstance(value, str):
-            return value
-        if not _source_concept_ref_requires_mapping(value):
-            return value
-        resolved = concept_map.get(value)
-        if resolved is None:
-            unresolved.add(value)
-            return value
-        return resolved
-
-    if "concept" in normalized:
-        concept = resolve(normalized.pop("concept"))
-        _place_promoted_singular_concept(normalized, concept)
-    if "target_concept" in normalized:
-        normalized["target_concept"] = resolve(normalized.get("target_concept"))
-    if isinstance(normalized.get("concepts"), list):
-        normalized["concepts"] = [resolve(value) for value in normalized["concepts"]]
-    if isinstance(normalized.get("variables"), list):
-        for variable in normalized["variables"]:
-            if isinstance(variable, dict):
-                variable["concept"] = resolve(variable.get("concept"))
-    if isinstance(normalized.get("parameters"), list):
-        for parameter in normalized["parameters"]:
-            if isinstance(parameter, dict):
-                parameter["concept"] = resolve(parameter.get("concept"))
-    return normalize_canonical_claim_payload(normalized)
-
-
-def _place_promoted_singular_concept(claim: dict[str, Any], concept: object) -> None:
-    claim_type = claim.get("type")
-    if claim_type in {"parameter", "algorithm"} and "output_concept" not in claim:
-        claim["output_concept"] = concept
-        return
-    if claim_type == "measurement" and "target_concept" not in claim:
-        claim["target_concept"] = concept
-        return
-    concepts = claim.get("concepts")
-    merged_concepts = list(concepts) if isinstance(concepts, list) else []
-    if concept not in merged_concepts:
-        merged_concepts.insert(0, concept)
-    claim["concepts"] = merged_concepts
 
 
 def _source_claim_concept_refs(claim) -> tuple[str, ...]:
@@ -528,7 +476,7 @@ def _compute_blocked_claim_artifact_ids(
             detail = blocked_concept_refs.get(concept_ref)
             if (
                 detail is None
-                and _source_concept_ref_requires_mapping(concept_ref)
+                and source_concept_ref_requires_mapping(concept_ref)
                 and concept_ref not in concept_map
             ):
                 detail = f"unresolved concept mappings: {concept_ref}"
@@ -858,7 +806,7 @@ def promote_source_branch(
         )
 
     promoted_claims = [
-        rewrite_claim_concept_refs(claim.to_payload(), concept_map, unresolved=unresolved_concepts)
+        rewrite_claim_concept_refs(claim, concept_map, unresolved=unresolved_concepts)
         for claim in valid_claims
     ]
     if unresolved_concepts:
