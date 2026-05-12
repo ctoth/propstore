@@ -48,11 +48,26 @@ def test_semantic_registry_exposes_artifact_families_for_rules_and_predicates() 
     assert isinstance(predicate.artifact_family, ArtifactFamily)
     assert rule.artifact_family.placement.contract_body()["namespace"] == "rules"
     assert predicate.artifact_family.placement.contract_body()["namespace"] == "predicates"
-    assert rule.metadata and rule.metadata["collection_field"] == "rules"
+    assert rule.metadata and rule.metadata["collection_field"] is None
     assert predicate.metadata and predicate.metadata["collection_field"] is None
-    assert rule.metadata["aggregate_decision"] == "intentional_set"
-    assert "superiority relation" in str(rule.metadata["aggregate_reason"])
+    assert "aggregate_decision" not in rule.metadata
     assert "aggregate_decision" not in predicate.metadata
+
+
+def test_rule_family_target_model_is_one_semantic_artifact_per_file() -> None:
+    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.registry import RuleRef
+
+    canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.RULES)
+    artifact_family = canonical.artifact_family
+    placement = artifact_family.placement.contract_body()
+
+    assert artifact_family.doc_type is RuleDocument
+    assert artifact_family.placement.ref_factory is RuleRef
+    assert placement["namespace"] == "rules"
+    assert placement["ref_field"] == "rule_id"
+    assert placement["codec"] == "stem"
+    assert canonical.metadata and canonical.metadata["collection_field"] is None
 
 
 def test_predicate_family_target_model_is_one_semantic_artifact_per_file() -> None:

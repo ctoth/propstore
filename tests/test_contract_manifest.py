@@ -57,11 +57,11 @@ def test_contract_manifest_covers_documents_and_artifact_families() -> None:
     assert "document_schema:ConceptDocument" in keys
     assert "document_schema:ClaimsFileDocument" in keys
     assert "document_schema:PredicateDocument" in keys
-    assert "document_schema:RulesFileDocument" in keys
+    assert "document_schema:RuleDocument" in keys
     assert "artifact_family:concept_file" in keys
     assert "artifact_family:source_document" in keys
     assert "artifact_family:predicate" in keys
-    assert "artifact_family:rule_file" in keys
+    assert "artifact_family:rule" in keys
     assert "family-registry:propstore" in keys
     assert "family:concepts" in keys
     assert "family:claims" in keys

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
@@ -10,25 +9,20 @@ from propstore.repository import Repository
 from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import (
     RuleAddRequest,
-    RuleFileNotFoundError,
     RuleNotFoundError,
-    RuleReferencedError,
     RuleRemoveRequest,
-    RuleSuperiorityAddRequest,
-    RuleSuperiorityRemoveRequest,
     RuleWorkflowError,
     add_rule,
-    add_rule_superiority,
     list_rules,
     parse_atom,
     remove_rule,
-    remove_rule_superiority,
-    show_rule_file,
+    show_rule,
 )
+from propstore.families.registry import RuleRef
 
 
-def _read_rule_file(repo: Repository, file: str) -> dict:
-    return yaml.safe_load(repo.git.read_file(f"rules/{file}.yaml"))
+def _read_rule_artifact(repo: Repository, rule_id: str):
+    return repo.families.rules.require(RuleRef(rule_id))
 
 
 def _declare_rule_predicates(repo: Repository, file: str = "ikeda_2014") -> None:
@@ -81,7 +75,7 @@ def test_parse_atom_zero_arity() -> None:
     assert atom.terms == ()
 
 
-def test_add_rule_creates_and_appends(tmp_path) -> None:
+def test_add_rule_creates_one_artifact_per_rule(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     _declare_rule_predicates(repo)
 
@@ -109,17 +103,17 @@ def test_add_rule_creates_and_appends(tmp_path) -> None:
     )
 
     assert first.created is True
-    assert second.created is False
-    data = _read_rule_file(repo, "ikeda_2014")
-    assert data["source"]["paper"] == "Ikeda_2014_Low-doseAspirinPrimaryPrevention"
-    ids = [entry["id"] for entry in data["rules"]]
-    assert ids == ["r_mi", "r_bleed"]
-    bleed = data["rules"][1]
-    assert bleed["head"]["negated"] is True
-    assert bleed["head"]["predicate"] == "safe"
+    assert second.created is True
+    mi = _read_rule_artifact(repo, "r_mi")
+    bleed = _read_rule_artifact(repo, "r_bleed")
+    assert mi.source is not None
+    assert mi.source.paper == "Ikeda_2014_Low-doseAspirinPrimaryPrevention"
+    assert mi.authoring_group == "ikeda_2014"
+    assert bleed.head.negated is True
+    assert bleed.head.predicate == "safe"
 
 
-def test_add_rule_rejects_mismatched_paper(tmp_path) -> None:
+def test_add_rule_rejects_duplicate_id_with_different_paper(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     _declare_rule_predicates(repo, "foo")
     add_rule(
@@ -138,13 +132,13 @@ def test_add_rule_rejects_mismatched_paper(tmp_path) -> None:
             RuleAddRequest(
                 file="foo",
                 paper="PaperB",
-                rule_id="r2",
+                rule_id="r1",
                 kind="strict",
                 head="b",
             ),
         )
     except RuleWorkflowError as exc:
-        assert "paper" in str(exc)
+        assert "already declared" in str(exc)
     else:
         raise AssertionError("expected paper-mismatch failure")
 
@@ -198,11 +192,12 @@ def test_rule_cli_add(tmp_path) -> None:
     assert result.exit_code == 0, result.output
     target = repo.root / "rules" / "ikeda_2014.yaml"
     assert not target.exists()
-    data = _read_rule_file(repo, "ikeda_2014")
-    assert data["source"]["paper"] == "Ikeda_2014"
-    assert data["rules"][0]["id"] == "r_mi"
-    assert data["rules"][0]["kind"] == "defeasible"
-    assert data["rules"][0]["head"]["predicate"] == "reduces_mi"
+    artifact = _read_rule_artifact(repo, "r_mi")
+    assert artifact.source is not None
+    assert artifact.source.paper == "Ikeda_2014"
+    assert artifact.id == "r_mi"
+    assert artifact.kind == "defeasible"
+    assert artifact.head.predicate == "reduces_mi"
 
 
 def test_rule_owner_list_and_show(tmp_path) -> None:
@@ -220,14 +215,14 @@ def test_rule_owner_list_and_show(tmp_path) -> None:
     )
 
     items = list_rules(repo)
-    shown = show_rule_file(repo, "ikeda_2014")
+    shown = show_rule(repo, "r_mi")
 
-    assert [(item.file, item.rule_id) for item in items] == [("ikeda_2014", "r_mi")]
-    assert "rules:" in shown.rendered
+    assert [(item.authoring_group, item.rule_id) for item in items] == [("ikeda_2014", "r_mi")]
+    assert "id: r_mi" in shown.rendered
 
     try:
-        show_rule_file(repo, "missing")
-    except RuleFileNotFoundError as exc:
+        show_rule(repo, "missing")
+    except RuleNotFoundError as exc:
         assert "missing" in str(exc)
     else:
         raise AssertionError("expected missing rule file failure")
@@ -249,24 +244,24 @@ def test_rule_cli_list_and_show(tmp_path) -> None:
     runner = CliRunner()
 
     listed = runner.invoke(cli, ["-C", str(repo.root), "rule", "list"])
-    shown = runner.invoke(cli, ["-C", str(repo.root), "rule", "show", "ikeda_2014"])
+    shown = runner.invoke(cli, ["-C", str(repo.root), "rule", "show", "r_mi"])
 
     assert listed.exit_code == 0, listed.output
     assert "ikeda_2014" in listed.output
     assert "r_mi" in listed.output
     assert shown.exit_code == 0, shown.output
-    assert "rules:" in shown.output
+    assert "id: r_mi" in shown.output
 
 
-def test_remove_rule_rejects_missing_file(tmp_path) -> None:
+def test_remove_rule_rejects_missing_rule(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     try:
         remove_rule(
             repo,
-            RuleRemoveRequest(file="missing", rule_id="r_mi"),
+            RuleRemoveRequest(rule_id="r_mi"),
         )
-    except RuleFileNotFoundError as exc:
-        assert "missing" in str(exc)
+    except RuleNotFoundError as exc:
+        assert "r_mi" in str(exc)
     else:
         raise AssertionError("expected missing-file failure")
 
@@ -287,11 +282,10 @@ def test_remove_rule_rejects_unknown_id(tmp_path) -> None:
     try:
         remove_rule(
             repo,
-            RuleRemoveRequest(file="ikeda_2014", rule_id="r_nope"),
+            RuleRemoveRequest(rule_id="r_nope"),
         )
     except RuleNotFoundError as exc:
         assert "r_nope" in str(exc)
-        assert "ikeda_2014" in str(exc)
     else:
         raise AssertionError("expected unknown-id failure")
 
@@ -324,216 +318,12 @@ def test_remove_rule_removes_and_preserves_others(tmp_path) -> None:
 
     report = remove_rule(
         repo,
-        RuleRemoveRequest(file="ikeda_2014", rule_id="r_mi"),
+        RuleRemoveRequest(rule_id="r_mi"),
     )
     assert report.removed is True
 
-    data = _read_rule_file(repo, "ikeda_2014")
-    ids = [entry["id"] for entry in data["rules"]]
-    assert ids == ["r_bleed"]
-    assert data["source"]["paper"] == "Ikeda_2014"
-
-
-def test_remove_rule_rejects_when_referenced_by_superiority(tmp_path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    _declare_rule_predicates(repo)
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_a",
-            kind="defeasible",
-            head="a",
-        ),
-    )
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_b",
-            kind="defeasible",
-            head="b",
-        ),
-    )
-    # Mutate the file to install a superiority pair.
-    from propstore.families.documents.rules import RulesFileDocument
-    from propstore.families.registry import RuleFileRef
-
-    ref = RuleFileRef("ikeda_2014")
-    document = repo.families.rules.require(ref)
-    updated = RulesFileDocument(
-        source=document.source,
-        rules=document.rules,
-        superiority=(("r_a", "r_b"),),
-    )
-    repo.families.rules.save(ref, updated, message="install superiority")
-    repo.snapshot.sync_worktree()
-
-    try:
-        remove_rule(
-            repo,
-            RuleRemoveRequest(file="ikeda_2014", rule_id="r_a"),
-        )
-    except RuleReferencedError as exc:
-        assert "r_a" in str(exc)
-        assert "superiority" in str(exc)
-    else:
-        raise AssertionError("expected superiority-reference failure")
-
-
-def test_add_rule_superiority_adds_pair(tmp_path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    _declare_rule_predicates(repo)
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_a",
-            kind="defeasible",
-            head="a",
-        ),
-    )
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_b",
-            kind="proper_defeater",
-            head="~a",
-        ),
-    )
-
-    add_rule_superiority(
-        repo,
-        RuleSuperiorityAddRequest(
-            file="ikeda_2014",
-            superior_rule_id="r_b",
-            inferior_rule_id="r_a",
-        ),
-    )
-
-    data = _read_rule_file(repo, "ikeda_2014")
-    assert data["superiority"] == [["r_b", "r_a"]]
-
-
-def test_add_rule_superiority_rejects_strict_and_cycles(tmp_path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    _declare_rule_predicates(repo)
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_strict",
-            kind="strict",
-            head="a",
-        ),
-    )
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_defeasible",
-            kind="defeasible",
-            head="b",
-        ),
-    )
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_defeater",
-            kind="blocking_defeater",
-            head="~b",
-        ),
-    )
-
-    try:
-        add_rule_superiority(
-            repo,
-            RuleSuperiorityAddRequest(
-                file="ikeda_2014",
-                superior_rule_id="r_defeasible",
-                inferior_rule_id="r_strict",
-            ),
-        )
-    except RuleWorkflowError as exc:
-        assert "strict" in str(exc)
-    else:
-        raise AssertionError("expected strict-rule superiority failure")
-
-    add_rule_superiority(
-        repo,
-        RuleSuperiorityAddRequest(
-            file="ikeda_2014",
-            superior_rule_id="r_defeater",
-            inferior_rule_id="r_defeasible",
-        ),
-    )
-    try:
-        add_rule_superiority(
-            repo,
-            RuleSuperiorityAddRequest(
-                file="ikeda_2014",
-                superior_rule_id="r_defeasible",
-                inferior_rule_id="r_defeater",
-            ),
-        )
-    except RuleWorkflowError as exc:
-        assert "acyclic" in str(exc)
-    else:
-        raise AssertionError("expected cyclic superiority failure")
-
-
-def test_remove_rule_superiority_removes_pair(tmp_path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    _declare_rule_predicates(repo)
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_a",
-            kind="defeasible",
-            head="a",
-        ),
-    )
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_b",
-            kind="defeasible",
-            head="b",
-        ),
-    )
-    add_rule_superiority(
-        repo,
-        RuleSuperiorityAddRequest(
-            file="ikeda_2014",
-            superior_rule_id="r_b",
-            inferior_rule_id="r_a",
-        ),
-    )
-
-    remove_rule_superiority(
-        repo,
-        RuleSuperiorityRemoveRequest(
-            file="ikeda_2014",
-            superior_rule_id="r_b",
-            inferior_rule_id="r_a",
-        ),
-    )
-
-    data = _read_rule_file(repo, "ikeda_2014")
-    assert data["superiority"] == []
+    assert repo.families.rules.load(RuleRef("r_mi")) is None
+    assert repo.families.rules.load(RuleRef("r_bleed")) is not None
 
 
 def test_rule_cli_remove(tmp_path) -> None:
@@ -558,77 +348,10 @@ def test_rule_cli_remove(tmp_path) -> None:
             str(repo.root),
             "rule",
             "remove",
-            "--file",
-            "ikeda_2014",
             "--id",
             "r_mi",
         ],
     )
 
     assert result.exit_code == 0, result.output
-    data = _read_rule_file(repo, "ikeda_2014")
-    assert data["rules"] == [] or data.get("rules") is None
-
-
-def test_rule_cli_superiority_add_and_remove(tmp_path) -> None:
-    repo = Repository.init(tmp_path / "knowledge")
-    _declare_rule_predicates(repo)
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_a",
-            kind="defeasible",
-            head="a",
-        ),
-    )
-    add_rule(
-        repo,
-        RuleAddRequest(
-            file="ikeda_2014",
-            paper="Ikeda_2014",
-            rule_id="r_b",
-            kind="defeasible",
-            head="b",
-        ),
-    )
-    runner = CliRunner()
-
-    added = runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "rule",
-            "superiority",
-            "add",
-            "--file",
-            "ikeda_2014",
-            "--superior",
-            "r_b",
-            "--inferior",
-            "r_a",
-        ],
-    )
-    assert added.exit_code == 0, added.output
-    assert _read_rule_file(repo, "ikeda_2014")["superiority"] == [["r_b", "r_a"]]
-
-    removed = runner.invoke(
-        cli,
-        [
-            "-C",
-            str(repo.root),
-            "rule",
-            "superiority",
-            "remove",
-            "--file",
-            "ikeda_2014",
-            "--superior",
-            "r_b",
-            "--inferior",
-            "r_a",
-        ],
-    )
-    assert removed.exit_code == 0, removed.output
-    assert _read_rule_file(repo, "ikeda_2014")["superiority"] == []
+    assert repo.families.rules.load(RuleRef("r_mi")) is None

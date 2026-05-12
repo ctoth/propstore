@@ -9,14 +9,13 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.app.rules import RuleWorkflowError, parse_atom
-from propstore.families.documents.predicates import PredicateDocument, PredicatesFileDocument
+from propstore.families.documents.predicates import PredicateDocument
 from propstore.families.documents.rules import (
     RuleDocument,
     RuleExtractionProvenance,
     RuleProposalDocument,
 )
-from propstore.families.registry import PredicateFileRef, RuleFileRef
-from propstore.families.registry import RuleProposalRef
+from propstore.families.registry import PredicateRef, RuleProposalRef, RuleRef
 from propstore.heuristic.rule_extraction import rule_proposal_branch
 from propstore.proposals import UnknownProposalPath
 from propstore.repository import Repository
@@ -27,38 +26,37 @@ _NAME = st.from_regex(r"[a-z][a-z0-9_]{0,10}", fullmatch=True)
 
 
 def _seed_predicates(repo: Repository) -> None:
-    repo.families.predicates.save(
-        PredicateFileRef(PAPER),
-        PredicatesFileDocument(
-            predicates=(
-                PredicateDocument(
-                    id="sample_size",
-                    arity=2,
-                    arg_types=("paper_id", "int"),
-                    description="Paper-level sample size.",
-                ),
-                PredicateDocument(
-                    id="bias",
-                    arity=2,
-                    arg_types=("paper_id", "float"),
-                    description="Study-setting bias.",
-                ),
-                PredicateDocument(
-                    id="low_trust",
-                    arity=1,
-                    arg_types=("paper_id",),
-                    description="Low trust classification.",
-                ),
-                PredicateDocument(
-                    id="high_trust",
-                    arity=1,
-                    arg_types=("paper_id",),
-                    description="High trust classification.",
-                ),
-            )
+    for predicate in (
+        PredicateDocument(
+            id="sample_size",
+            arity=2,
+            arg_types=("paper_id", "int"),
+            description="Paper-level sample size.",
         ),
-        message="Seed predicate vocabulary",
-    )
+        PredicateDocument(
+            id="bias",
+            arity=2,
+            arg_types=("paper_id", "float"),
+            description="Study-setting bias.",
+        ),
+        PredicateDocument(
+            id="low_trust",
+            arity=1,
+            arg_types=("paper_id",),
+            description="Low trust classification.",
+        ),
+        PredicateDocument(
+            id="high_trust",
+            arity=1,
+            arg_types=("paper_id",),
+            description="High trust classification.",
+        ),
+    ):
+        repo.families.predicates.save(
+            PredicateRef(predicate.id),
+            predicate,
+            message=f"Seed predicate {predicate.id}",
+        )
 
 
 def _rule_fixture() -> str:
@@ -148,11 +146,12 @@ def test_promote_rule_proposals_selective_and_idempotent(monkeypatch, tmp_path) 
     result = promote_rule_proposals(repo, plan)
 
     assert result.moved == 1
-    promoted = repo.families.rules.require(RuleFileRef(f"{PAPER}/rule-001"))
+    promoted = repo.families.rules.require(RuleRef("rule-001"))
+    assert promoted.source is not None
     assert promoted.source.paper == PAPER
-    assert promoted.rules[0].id == "rule-001"
+    assert promoted.id == "rule-001"
     assert promoted.promoted_from_sha == proposal_sha
-    assert repo.families.rules.load(RuleFileRef(f"{PAPER}/rule-003")) is None
+    assert repo.families.rules.load(RuleRef("rule-003")) is None
 
     second = plan_rule_proposal_promotion(repo, source_paper=PAPER, rule_ids=("rule-001",))
     assert second.items == ()
@@ -197,4 +196,4 @@ def test_generated_rule_proposal_promotion_rejects_undeclared_predicates(
             promote_rule_proposals(repo, plan)
 
         assert repo.snapshot.branch_head(repo.snapshot.primary_branch_name()) == master_before
-        assert repo.families.rules.load(RuleFileRef(f"{paper}/{rule_id}")) is None
+        assert repo.families.rules.load(RuleRef(rule_id)) is None

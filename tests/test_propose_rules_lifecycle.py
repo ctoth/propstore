@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import json
 
-from propstore.families.documents.predicates import PredicateDocument, PredicatesFileDocument
-from propstore.families.registry import PredicateFileRef, RuleProposalRef
+from propstore.families.documents.predicates import PredicateDocument
+from propstore.families.registry import PredicateRef, RuleProposalRef
 from propstore.repository import Repository
 
 
@@ -11,26 +11,25 @@ PAPER = "Ioannidis_2005_WhyMostPublishedResearch"
 
 
 def _seed_predicates(repo: Repository) -> None:
-    repo.families.predicates.save(
-        PredicateFileRef(PAPER),
-        PredicatesFileDocument(
-            predicates=(
-                PredicateDocument(
-                    id="sample_size",
-                    arity=2,
-                    arg_types=("paper_id", "int"),
-                    description="Paper-level sample size.",
-                ),
-                PredicateDocument(
-                    id="bias",
-                    arity=2,
-                    arg_types=("paper_id", "float"),
-                    description="Study-setting bias.",
-                ),
-            )
+    for predicate in (
+        PredicateDocument(
+            id="sample_size",
+            arity=2,
+            arg_types=("paper_id", "int"),
+            description="Paper-level sample size.",
         ),
-        message="Seed predicate vocabulary",
-    )
+        PredicateDocument(
+            id="bias",
+            arity=2,
+            arg_types=("paper_id", "float"),
+            description="Study-setting bias.",
+        ),
+    ):
+        repo.families.predicates.save(
+            PredicateRef(predicate.id),
+            predicate,
+            message=f"Seed predicate {predicate.id}",
+        )
 
 
 def _rule_fixture() -> str:

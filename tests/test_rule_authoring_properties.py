@@ -9,7 +9,7 @@ from hypothesis import strategies as st
 
 from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, RuleWorkflowError, add_rule
-from propstore.families.registry import RuleFileRef
+from propstore.families.registry import RuleRef
 from propstore.repository import Repository
 
 
@@ -41,7 +41,7 @@ def test_generated_rule_add_rejects_undeclared_predicates(
             )
 
         assert repo.snapshot.branch_head(repo.snapshot.primary_branch_name()) == master_before
-        assert repo.families.rules.load(RuleFileRef(rule_file)) is None
+        assert repo.families.rules.load(RuleRef("r1")) is None
 
 
 @pytest.mark.property
@@ -74,8 +74,8 @@ def test_generated_rule_add_accepts_declared_predicate_arity(
             ),
         )
 
-        document = repo.families.rules.require(RuleFileRef(rule_file))
-        assert document.rules[0].head.predicate == predicate_id
+        document = repo.families.rules.require(RuleRef("r1"))
+        assert document.head.predicate == predicate_id
 
 
 @pytest.mark.property
@@ -111,4 +111,4 @@ def test_generated_rule_add_rejects_declared_predicate_wrong_arity(
             )
 
         assert repo.snapshot.branch_head(repo.snapshot.primary_branch_name()) == master_before
-        assert repo.families.rules.load(RuleFileRef(rule_file)) is None
+        assert repo.families.rules.load(RuleRef("r1")) is None

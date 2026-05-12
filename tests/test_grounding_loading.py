@@ -21,16 +21,12 @@ def test_build_grounded_bundle_rejects_rules_without_predicates(tmp_path) -> Non
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.commit_files(
         {
-            "rules/rules.yaml": yaml.dump(
+            "rules/r1.yaml": yaml.dump(
                 {
+                    "id": "r1",
+                    "kind": "defeasible",
+                    "head": {"predicate": "p"},
                     "source": {"paper": "test"},
-                    "rules": [
-                        {
-                            "id": "r1",
-                            "kind": "defeasible",
-                            "head": {"predicate": "p"},
-                        }
-                    ],
                 },
                 sort_keys=False,
             ).encode("utf-8")

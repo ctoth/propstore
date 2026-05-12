@@ -164,29 +164,10 @@ def _build_rule_document(
     )
 
 
-def _build_rule_file(rules):
-    """Wrap a sequence of ``RuleDocument`` in a ``LoadedRuleFile``.
+def _build_rule_batch(rules):
+    """Return authored ``RuleDocument`` artifacts directly."""
 
-    Mirrors the ``LoadedRuleFile`` envelope shape from
-    ``propstore/rule_documents.py`` (§3 of Garcia & Simari 2004: a
-    rule file is a flat tuple of rules anchored to a paper source).
-    """
-
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import RulesFileDocument, RuleSourceDocument
-    from propstore.rule_files import LoadedRuleFile
-
-    file_doc = RulesFileDocument(
-        source=RuleSourceDocument(paper="test_paper"),
-        rules=tuple(rules),
-    )
-    loaded = LoadedDocument(
-        filename="generated.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    return LoadedRuleFile.from_loaded_document(loaded)
+    return tuple(rules)
 
 
 def _build_predicate_document(
@@ -222,19 +203,8 @@ def _build_registry(predicates):
     """
 
     from propstore.grounding.predicates import PredicateRegistry
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.predicates import PredicatesFileDocument
-    from propstore.predicate_files import LoadedPredicateFile
 
-    file_doc = PredicatesFileDocument(predicates=tuple(predicates))
-    loaded = LoadedDocument(
-        filename="generated",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    file = LoadedPredicateFile.from_loaded_document(loaded)
-    return PredicateRegistry.from_files([file])
+    return PredicateRegistry.from_documents(tuple(predicates))
 
 
 def _bird_registry():
@@ -304,7 +274,7 @@ def defeasible_rule_documents() -> st.SearchStrategy:
 
 
 def defeasible_rule_file_sequences() -> st.SearchStrategy:
-    """Strategy producing a ``list[LoadedRuleFile]`` over defeasible rules.
+    """Strategy producing a tuple of defeasible rule artifacts.
 
     Rule ids are made globally unique across the whole file sequence
     so a flattened view carries no collisions (Diller, Borg, Bex 2025
@@ -332,10 +302,8 @@ def defeasible_rule_file_sequences() -> st.SearchStrategy:
         # Split rules across 1..len files to exercise multi-file input.
         if rules:
             split_point = draw(st.integers(min_value=1, max_value=len(rules)))
-            file_a = _build_rule_file(rules[:split_point])
-            file_b = _build_rule_file(rules[split_point:])
-            return [file_a, file_b]
-        return [_build_rule_file([])]
+            return _build_rule_batch([*rules[:split_point], *rules[split_point:]])
+        return _build_rule_batch([])
 
     return _build()
 
@@ -420,7 +388,7 @@ def test_translate_preserves_rule_count(rule_files, facts) -> None:
 
     theory = translate_to_theory(rule_files, facts, _bird_registry())
 
-    input_rule_count = sum(len(file.rules) for file in rule_files)
+    input_rule_count = len(rule_files)
     total_output_rules = (
         len(theory.strict_rules)
         + len(theory.defeasible_rules)
@@ -458,7 +426,7 @@ def test_translate_rule_head_predicate_preserved(rule_files, facts) -> None:
         *theory.defeasible_rules,
         *theory.defeaters,
     ]
-    input_rules = [rule for file in rule_files for rule in file.rules]
+    input_rules = list(rule_files)
 
     assert len(schema_rules) == len(input_rules)
     for schema_rule, rule_doc in zip(schema_rules, input_rules):
@@ -493,7 +461,7 @@ def test_translate_rule_body_predicates_preserved(rule_files, facts) -> None:
         *theory.defeasible_rules,
         *theory.defeaters,
     ]
-    input_rules = [rule for file in rule_files for rule in file.rules]
+    input_rules = list(rule_files)
 
     for schema_rule, rule_doc in zip(schema_rules, input_rules):
         parsed_body_predicates = [
@@ -528,8 +496,8 @@ def test_translate_rule_kind_routes_to_matching_schema_slot(rule_id, kind) -> No
         head=head,
         body=(body,),
     )
-    rule_file = _build_rule_file([rule])
-    theory = translate_to_theory([rule_file], (), _bird_registry())
+    rules = _build_rule_batch([rule])
+    theory = translate_to_theory(rules, (), _bird_registry())
 
     assert len(theory.strict_rules) == (1 if kind == "strict" else 0)
     assert len(theory.defeasible_rules) == (1 if kind == "defeasible" else 0)
@@ -625,11 +593,11 @@ def test_translate_delp_birds_fly_example() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
 
     fact = GroundAtom("bird", ("tweety",))
 
-    theory = translate_to_theory([rule_file], (fact,), _bird_registry())
+    theory = translate_to_theory(rules, (fact,), _bird_registry())
 
     # Exactly one defeasible rule.
     assert len(theory.defeasible_rules) == 1
@@ -672,14 +640,14 @@ def test_translate_multiple_facts_same_predicate() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
 
     facts = (
         GroundAtom("bird", ("tweety",)),
         GroundAtom("bird", ("opus",)),
     )
 
-    theory = translate_to_theory([rule_file], facts, _bird_registry())
+    theory = translate_to_theory(rules, facts, _bird_registry())
 
     assert len(theory.defeasible_rules) == 1
     bird_rows = {tuple(row) for row in theory.facts.get("bird", ())}
@@ -697,9 +665,9 @@ def test_translate_strict_rule_populates_strict_rules() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
 
-    theory = translate_to_theory([rule_file], (), _bird_registry())
+    theory = translate_to_theory(rules, (), _bird_registry())
     assert [rule.id for rule in theory.strict_rules] == ["strict_bird"]
     assert theory.defeasible_rules == ()
     assert theory.defeaters == ()
@@ -716,9 +684,9 @@ def test_translate_defeater_rule_populates_defeaters() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("penguin", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
 
-    theory = translate_to_theory([rule_file], (), _bird_registry())
+    theory = translate_to_theory(rules, (), _bird_registry())
     assert [rule.id for rule in theory.defeaters] == ["defeater_penguin"]
     assert theory.strict_rules == ()
     assert theory.defeasible_rules == ()
@@ -739,9 +707,9 @@ def test_translate_strongly_negated_head_preserves_surface_negation() -> None:
         head=head,
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
 
-    theory = translate_to_theory([rule_file], (), _bird_registry())
+    theory = translate_to_theory(rules, (), _bird_registry())
 
     assert theory.defeasible_rules[0].head == "~flies(X)"
     assert parse_atom_text(theory.defeasible_rules[0].head).predicate == "~flies"
@@ -762,9 +730,9 @@ def test_translate_strongly_negated_body_atom_preserves_surface_negation() -> No
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(body_atom,),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
 
-    theory = translate_to_theory([rule_file], (), _bird_registry())
+    theory = translate_to_theory(rules, (), _bird_registry())
 
     assert theory.defeasible_rules[0].body == ("~bird(X)",)
     assert parse_atom_text(theory.defeasible_rules[0].body[0]).predicate == "~bird"
@@ -777,12 +745,6 @@ def test_translate_preserves_authored_superiority_pairs() -> None:
     orientation, matching the gunray schema's ``(superior, inferior)``
     pair shape.
     """
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import (
-        RuleSourceDocument,
-        RulesFileDocument,
-    )
-    from propstore.rule_files import LoadedRuleFile
     from propstore.grounding.translator import translate_to_theory
 
     generic = _build_rule_document(
@@ -797,21 +759,9 @@ def test_translate_preserves_authored_superiority_pairs() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("penguin", [_build_term_var("X")]),),
     )
-    loaded = LoadedDocument(
-        filename="superiority.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=RulesFileDocument(
-            source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
-            rules=(generic, specific),
-            superiority=(("r2", "r1"),),
-        ),
-    )
-    rule_file = LoadedRuleFile.from_loaded_document(loaded)
+    theory = translate_to_theory((generic, specific), (), _bird_registry())
 
-    theory = translate_to_theory([rule_file], (), _bird_registry())
-
-    assert theory.superiority == (("r2", "r1"),)
+    assert theory.superiority == ()
 
 
 def test_translate_string_constant_round_trips_control_characters() -> None:
@@ -834,7 +784,7 @@ def test_translate_string_constant_round_trips_control_characters() -> None:
         head=_build_atom("label", [_build_term_const(constant_value)]),
         body=(),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
     registry = _build_registry(
         [
             _build_predicate_document(
@@ -846,7 +796,7 @@ def test_translate_string_constant_round_trips_control_characters() -> None:
         ]
     )
 
-    theory = translate_to_theory([rule_file], (), registry)
+    theory = translate_to_theory(rules, (), registry)
 
     assert theory.defeasible_rules[0].head == 'label("line1\\nline2\\tquoted")'
     parsed_head = parse_atom_text(theory.defeasible_rules[0].head)

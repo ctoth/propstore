@@ -140,29 +140,10 @@ def _build_rule_document(
     )
 
 
-def _build_rule_file(rules):
-    """Wrap a sequence of ``RuleDocument`` in a ``LoadedRuleFile``.
+def _build_rule_batch(rules):
+    """Return authored ``RuleDocument`` artifacts directly."""
 
-    Mirrors the envelope shape from
-    ``propstore/rule_documents.py`` (Garcia & Simari 2004 §3: a rule
-    file is a flat tuple of rules anchored to a paper source).
-    """
-
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import RulesFileDocument, RuleSourceDocument
-    from propstore.rule_files import LoadedRuleFile
-
-    file_doc = RulesFileDocument(
-        source=RuleSourceDocument(paper="test_paper"),
-        rules=tuple(rules),
-    )
-    loaded = LoadedDocument(
-        filename="generated.yaml",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    return LoadedRuleFile.from_loaded_document(loaded)
+    return tuple(rules)
 
 
 def _build_predicate_document(
@@ -198,19 +179,8 @@ def _build_registry(predicates):
     """
 
     from propstore.grounding.predicates import PredicateRegistry
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.predicates import PredicatesFileDocument
-    from propstore.predicate_files import LoadedPredicateFile
 
-    file_doc = PredicatesFileDocument(predicates=tuple(predicates))
-    loaded = LoadedDocument(
-        filename="generated",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    file = LoadedPredicateFile.from_loaded_document(loaded)
-    return PredicateRegistry.from_files([file])
+    return PredicateRegistry.from_documents(tuple(predicates))
 
 
 def _bird_registry():
@@ -284,7 +254,7 @@ def ground_atom_tuples() -> st.SearchStrategy:
 
 
 def defeasible_rule_file_batches() -> st.SearchStrategy:
-    """Strategy producing a small ``list[LoadedRuleFile]`` of defeasible rules.
+    """Strategy producing a small tuple of defeasible rule artifacts.
 
     Rules are safe-by-construction — the head variable is drawn from
     the same pool as the body variable (Garcia & Simari 2004 §3.3,
@@ -314,15 +284,8 @@ def defeasible_rule_file_batches() -> st.SearchStrategy:
                 )
             )
         if not rules:
-            return [_build_rule_file([])]
-        # Split across 1..len files to exercise multi-file input
-        # (Diller, Borg, Bex 2025 §3: rule files are a compositional
-        # surface — the grounder must be invariant over how they are
-        # split at authoring time).
-        split_point = draw(st.integers(min_value=1, max_value=len(rules)))
-        file_a = _build_rule_file(rules[:split_point])
-        file_b = _build_rule_file(rules[split_point:])
-        return [file_a, file_b]
+            return _build_rule_batch([])
+        return _build_rule_batch(rules)
 
     return _build()
 
@@ -566,11 +529,11 @@ def test_grounder_delp_birds_fly_tweety() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
 
     facts = (GroundAtom("bird", ("tweety",)),)
 
-    bundle = ground([rule_file], facts, _bird_registry())
+    bundle = ground(rules, facts, _bird_registry())
 
     # bird(tweety) is warranted.
     bird_rows = bundle.sections["yes"].get("bird", frozenset())
@@ -602,14 +565,14 @@ def test_grounder_multiple_facts_same_predicate_all_grounded() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
 
     facts = (
         GroundAtom("bird", ("tweety",)),
         GroundAtom("bird", ("opus",)),
     )
 
-    bundle = ground([rule_file], facts, _bird_registry())
+    bundle = ground(rules, facts, _bird_registry())
 
     flies_rows = {
         tuple(row)
@@ -650,11 +613,11 @@ def test_grounder_marking_policy_is_configurable() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
     facts = (GroundAtom("bird", ("tweety",)),)
 
     bundle_blocking = ground(
-        [rule_file],
+        rules,
         facts,
         _bird_registry(),
         marking_policy=MarkingPolicy.BLOCKING,
@@ -670,7 +633,7 @@ def test_grounder_marking_policy_is_configurable() -> None:
 
     # Default policy (BLOCKING) also works; both runs populate the
     # canonical warranted row.
-    bundle_default = ground([rule_file], facts, _bird_registry())
+    bundle_default = ground(rules, facts, _bird_registry())
     default_flies_rows = {
         tuple(row)
         for row in bundle_default.sections["yes"].get(
@@ -773,10 +736,10 @@ def test_ground_default_arguments_field_is_populated() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
     facts = (GroundAtom("bird", ("tweety",)),)
 
-    bundle = ground([rule_file], facts, _bird_registry())
+    bundle = ground(rules, facts, _bird_registry())
     assert bundle.arguments
 
 
@@ -792,10 +755,10 @@ def test_ground_projection_frames_preserve_backend_atom_and_sources() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
     facts = (GroundAtom("bird", ("tweety",)),)
 
-    bundle = ground([rule_file], facts, _bird_registry())
+    bundle = ground(rules, facts, _bird_registry())
 
     by_predicate = {
         frame.backend_atom.predicate: frame
@@ -830,7 +793,7 @@ def test_ground_return_arguments_populates_tuple() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
     facts = (GroundAtom("bird", ("tweety",)),)
 
     bundle = ground([rule_file], facts, _bird_registry(), return_arguments=True)
@@ -863,14 +826,14 @@ def test_ground_return_arguments_is_deterministic() -> None:
         head=_build_atom("flies", [_build_term_var("X")]),
         body=(_build_atom("bird", [_build_term_var("X")]),),
     )
-    rule_file = _build_rule_file([rule])
+    rules = _build_rule_batch([rule])
     facts = (
         GroundAtom("bird", ("tweety",)),
         GroundAtom("bird", ("opus",)),
     )
 
-    first = ground([rule_file], facts, _bird_registry(), return_arguments=True)
-    second = ground([rule_file], facts, _bird_registry(), return_arguments=True)
+    first = ground(rules, facts, _bird_registry(), return_arguments=True)
+    second = ground(rules, facts, _bird_registry(), return_arguments=True)
     assert first.arguments == second.arguments
 
 
