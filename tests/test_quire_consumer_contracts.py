@@ -104,6 +104,10 @@ def test_repository_import_uses_committed_semantic_snapshot_only(
     assert source_git is not None
     source_git.commit_files(
         {
+            "contexts/ctx-default.yaml": yaml.safe_dump(
+                {"id": "ctx-default", "name": "Default context"},
+                sort_keys=False,
+            ).encode("utf-8"),
             **{
                 f"claims/{claim_id}.yaml": _raw_claim_yaml(claim_id)
                 for claim_id in claim_ids
@@ -130,10 +134,12 @@ def test_repository_import_uses_committed_semantic_snapshot_only(
         )
     }
 
-    assert imported_paths == {
+    expected_imported_paths = {
         _claim_artifact_path(claim_id, namespace=repository_name)
         for claim_id in claim_ids
     }
+    expected_imported_paths.add("contexts/ctx-default.yaml")
+    assert imported_paths == expected_imported_paths
     assert "README.md" not in plan.touched_paths
     assert "sidecar/propstore.sqlite" not in plan.touched_paths
     assert "claims/uncommitted.yaml" not in plan.touched_paths
