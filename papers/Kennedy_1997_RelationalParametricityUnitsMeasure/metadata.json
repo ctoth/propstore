@@ -1,14 +1,12 @@
 {
-  "title": "Relational parametricity and units of measure",
+  "title": "Relational Parametricity and Units of Measure",
   "authors": [
-    "A. Kennedy"
+    "Andrew J. Kennedy"
   ],
   "year": "1997",
+  "arxiv_id": null,
   "doi": "10.1145/263699.263761",
+  "abstract": "Type systems for programming languages with numeric types can be extended to support the checking of units of measure. Quantification over units then introduces a new kind of parametric polymorphism with a corresponding Reynolds-style representation independence principle that the behaviour of programs is invariant under changes to the units used. We prove this 'dimensional invariance' result and describe four consequences. The first is that the type of an expression can be used to derive equations which describe its properties with respect to scaling (akin to Wadler's 'theorems for free' for System F). Secondly there are certain types which are inhabited only by trivial terms. For example, we prove that a fully polymorphic square root function cannot be written using just the usual arithmetic primitives. Thirdly we exhibit interesting isomorphisms between types and for first-order types relate these to the central theorem of classical dimensional analysis. Finally we suggest that for any expression whose behaviour is dimensionally invariant there exists some equivalent expression whose type reflects this behaviour, a consequence of which would be a full abstraction result for a model of the language.",
   "url": "https://www.semanticscholar.org/paper/870011878e7432baa0419113fe45e422b7d7e370",
-  "pdf_url": "",
-  "bibtex": "@Article{Kennedy1997RelationalPA,\n author = {A. Kennedy},\n booktitle = {ACM-SIGACT Symposium on Principles of Programming Languages},\n pages = {442-455},\n title = {Relational parametricity and units of measure},\n year = {1997}\n}\n",
-  "venue": "ACM-SIGACT Symposium on Principles of Programming Languages",
-  "venue_type": "conference",
-  "pages": "442-455"
+  "pdf_url": null
 }
