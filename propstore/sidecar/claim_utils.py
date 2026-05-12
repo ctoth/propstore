@@ -7,16 +7,10 @@ import json
 import logging
 import sqlite3
 from dataclasses import dataclass
-from typing import Sequence
 
 from ast_equiv import canonical_dump
+from quire.references import FamilyReferenceIndex
 
-from propstore.claims import (
-    ClaimFileEntry,
-    claim_file_claims,
-    claim_file_filename,
-    claim_file_source_paper,
-)
 from propstore.compiler.ir import SemanticClaim
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.relations import ClaimConceptLinkRole
@@ -27,8 +21,8 @@ from propstore.families.claims.documents import (
     ClaimConceptLinkDeclaration,
     claim_type_contract_for,
 )
+from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.identity.logical_ids import (
-    normalize_identity_namespace,
     normalize_logical_value,
     primary_logical_id,
 )
@@ -211,56 +205,6 @@ def insert_claim_stance_row(conn: sqlite3.Connection, stance_row: tuple) -> None
             stance_row[16],
         ),
     )
-
-
-def collect_claim_reference_map(claim_files: Sequence[ClaimFileEntry]) -> dict[str, str]:
-    claim_reference_map: dict[str, str] = {}
-    for claim_file in claim_files:
-        source_paper = claim_file_source_paper(claim_file) or claim_file_filename(claim_file)
-        for claim in claim_file_claims(claim_file):
-            claim_id = claim.artifact_id
-            if not isinstance(claim_id, str) or not claim_id:
-                raw_id = claim.id
-                if isinstance(raw_id, str) and raw_id:
-                    claim_id = derive_claim_artifact_id(
-                        str(source_paper),
-                        normalize_logical_value(raw_id),
-                    )
-            if isinstance(claim_id, str) and claim_id:
-                claim_reference_map[claim_id] = claim_id
-
-            raw_id = claim.id
-            if isinstance(raw_id, str) and raw_id and isinstance(claim_id, str) and claim_id:
-                claim_reference_map[raw_id] = claim_id
-                claim_reference_map[
-                    f"{normalize_identity_namespace(str(source_paper))}:{normalize_logical_value(raw_id)}"
-                ] = claim_id
-
-            for logical_id in claim.logical_ids:
-                if isinstance(claim_id, str) and claim_id:
-                    claim_reference_map[logical_id.formatted] = claim_id
-                    claim_reference_map[logical_id.value] = claim_id
-    return claim_reference_map
-
-
-def resolve_claim_reference(
-    claim_ref: object,
-    claim_reference_map: dict[str, str],
-    *,
-    source_paper: str | None = None,
-) -> str | None:
-    if not isinstance(claim_ref, str) or not claim_ref:
-        return None
-    resolved = claim_reference_map.get(claim_ref)
-    if isinstance(resolved, str) and resolved:
-        return resolved
-    if source_paper:
-        derived = claim_reference_map.get(
-            f"{normalize_identity_namespace(str(source_paper))}:{normalize_logical_value(claim_ref)}"
-        )
-        if isinstance(derived, str) and derived:
-            return derived
-    return claim_ref
 
 
 def insert_claim_row(conn: sqlite3.Connection, row: dict[str, object]) -> None:
@@ -548,9 +492,7 @@ def resolve_algorithm_storage(
 
 def extract_deferred_stance_rows_with_diagnostics(
     claim: dict | SemanticClaim,
-    claim_reference_map: dict[str, str],
-    *,
-    source_paper: str,
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[list[tuple], tuple[QuarantineDiagnostic, ...]]:
     filename: str | None = None
     if isinstance(claim, SemanticClaim):
@@ -571,25 +513,23 @@ def extract_deferred_stance_rows_with_diagnostics(
         ]
     else:
         claim_data = claim
-        claim_id = resolve_claim_reference(
-            claim_data.get("artifact_id") or claim_data.get("id"),
-            claim_reference_map,
-            source_paper=source_paper,
-        )
+        claim_ref = claim_data.get("artifact_id") or claim_data.get("id")
+        claim_id = claim_index.resolve_id(claim_ref)
+        if claim_id is None and isinstance(claim_ref, str):
+            claim_id = claim_ref
         stance_inputs = []
         for stance in claim_data.get("stances", []) or []:
             if not isinstance(stance, dict):
                 continue
-            target_claim_id = resolve_claim_reference(
-                stance.get("target"),
-                claim_reference_map,
-                source_paper=source_paper,
-            )
+            target_ref = stance.get("target")
+            target_claim_id = claim_index.resolve_id(target_ref)
+            if target_claim_id is None and isinstance(target_ref, str):
+                target_claim_id = target_ref
             stance_inputs.append((stance, target_claim_id))
 
     rows: list[tuple] = []
     diagnostics: list[QuarantineDiagnostic] = []
-    valid_claim_ids = set(claim_reference_map.values())
+    valid_claim_ids = set(claim_index.ids())
     for stance, target_claim_id in stance_inputs:
         stance_type = stance.get("type")
         if not target_claim_id or not stance_type:
