@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from propstore.canonical_json import canonical_dumps
+import rfc8785
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
@@ -316,7 +316,7 @@ def _capture_praf(
 
 
 def _stance_dependency_key(row: StanceRow) -> str:
-    return canonical_dumps(row.to_dict())
+    return rfc8785.dumps(row.to_dict()).decode("utf-8")
 
 
 def active_stance_dependencies(

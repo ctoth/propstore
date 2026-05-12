@@ -1,0 +1,30 @@
+<h1>{{ heading }}</h1>
+<p>{{ summary }}</p>
+{{ render_policy }}
+<section aria-labelledby="inventory-heading">
+  <h2 id="inventory-heading">Inventory</h2>
+  {{ inventory }}
+</section>
+<section aria-labelledby="sources-heading">
+  <h2 id="sources-heading">Sources</h2>
+  {{ sources }}
+</section>
+<section aria-labelledby="recent-activity-heading">
+  <h2 id="recent-activity-heading">Recent Activity</h2>
+  {{ recent_activity }}
+</section>
+<section aria-labelledby="notable-conflicts-heading">
+  <h2 id="notable-conflicts-heading">Notable Conflicts</h2>
+  {{ notable_conflicts }}
+</section>
+<section aria-labelledby="provenance-heading">
+  <h2 id="provenance-heading">Provenance</h2>
+  {{ provenance }}
+</section>
+<section aria-labelledby="navigation-heading">
+  <h2 id="navigation-heading">Navigation</h2>
+  <ul>
+    <li><a href="/claims">Open the claim inventory</a></li>
+    <li><a href="/concepts">Open the concept inventory</a></li>
+  </ul>
+</section>

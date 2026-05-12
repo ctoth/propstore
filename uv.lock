@@ -220,7 +220,7 @@ wheels = [
 [[package]]
 name = "bridgman"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/bridgman?rev=f4ecfa842d7d9913b20ee9a10fcfda77973962aa#f4ecfa842d7d9913b20ee9a10fcfda77973962aa" }
+source = { git = "https://github.com/ctoth/bridgman?rev=5eb6118bb2e346122aae6f7e3e9cd8581ec6c781#5eb6118bb2e346122aae6f7e3e9cd8581ec6c781" }
 
 [[package]]
 name = "cel-parser"
@@ -2020,6 +2020,7 @@ dependencies = [
     { name = "formal-belief-set" },
     { name = "graphviz" },
     { name = "gunray" },
+    { name = "jinja2" },
     { name = "lark" },
     { name = "linkml" },
     { name = "linkml-runtime" },
@@ -2027,6 +2028,7 @@ dependencies = [
     { name = "pint" },
     { name = "pyyaml" },
     { name = "quire" },
+    { name = "rfc8785" },
     { name = "rich" },
     { name = "sympy" },
     { name = "uvicorn" },
@@ -2055,7 +2057,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "ast-equiv", git = "https://github.com/ctoth/ast-equiv?rev=b7423889daef74154193317099ae9992ecbcd958" },
-    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=f4ecfa842d7d9913b20ee9a10fcfda77973962aa" },
+    { name = "bridgman", git = "https://github.com/ctoth/bridgman?rev=5eb6118bb2e346122aae6f7e3e9cd8581ec6c781" },
     { name = "cel-parser", git = "https://github.com/ctoth/cel-parser.git?rev=96fc4808ef78257ea03549e6298629a9583865c8" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "dulwich", specifier = ">=1.1.0" },
@@ -2064,6 +2066,7 @@ requires-dist = [
     { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=d958095ac70db88c26feb1db7798b4dd1b9d5976" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=a06da9c06a8c20262edec56f8a1f55dc1901781d" },
+    { name = "jinja2", specifier = ">=3.1" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "linkml", specifier = ">=1.9.3,<1.10" },
     { name = "linkml-runtime", specifier = ">=1.9.3,<1.10" },
@@ -2072,6 +2075,7 @@ requires-dist = [
     { name = "pint", specifier = ">=0.25.3" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "quire", git = "https://github.com/ctoth/quire?rev=618e4ca58f152775bc50defbe129db8b639437ce" },
+    { name = "rfc8785", specifier = ">=0.1.4" },
     { name = "rich", specifier = ">=13.7" },
     { name = "sqlite-vec", marker = "extra == 'embeddings'", specifier = ">=0.1" },
     { name = "sympy", specifier = ">=1.14.0" },
@@ -2672,6 +2676,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/14/bb/f1395c4b62f251a1cb503ff884500ebd248eed593f41b469f89caa3547bd/rfc3987-1.3.8.tar.gz", hash = "sha256:d3c4d257a560d544e9826b38bc81db676890c79ab9d7ac92b39c7a253d5ca733", size = 20700, upload-time = "2018-07-29T17:23:47.954Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/65/d4/f7407c3d15d5ac779c3dd34fbbc6ea2090f77bd7dd12f207ccf881551208/rfc3987-1.3.8-py2.py3-none-any.whl", hash = "sha256:10702b1e51e5658843460b189b185c0366d2cf4cff716f13111b0ea9fd2dce53", size = 13377, upload-time = "2018-07-29T17:23:45.313Z" },
+]
+
+[[package]]
+name = "rfc8785"
+version = "0.1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/ef/2f/fa1d2e740c490191b572d33dbca5daa180cb423c24396b856f5886371d8b/rfc8785-0.1.4.tar.gz", hash = "sha256:e545841329fe0eee4f6a3b44e7034343100c12b4ec566dc06ca9735681deb4da", size = 14321, upload-time = "2024-09-27T16:33:31.206Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/4d/78/119878110660b2ad709888c8a1614fce7e2fab39080ab960656dc8605bf6/rfc8785-0.1.4-py3-none-any.whl", hash = "sha256:520d690b448ecf0703691c76e1a34a24ddcd4fc5bc41d589cb7c58ec651bcd48", size = 9240, upload-time = "2024-09-27T16:33:29.683Z" },
 ]
 
 [[package]]

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from html import unescape
 from typing import cast
 
 from fastapi.testclient import TestClient
@@ -186,7 +187,7 @@ def test_concept_route_maps_unknown_concept_to_accessible_error(
 
     assert html_response.status_code == 404
     assert "<h1 id=\"error-heading\">Concept Not Found</h1>" in html_response.text
-    assert "Concept &#x27;missing&#x27; not found." in html_response.text
+    assert "Concept 'missing' not found." in unescape(html_response.text)
     assert json_response.status_code == 404
     assert json_response.json()["error"]["title"] == "Concept Not Found"
 
