@@ -1,16 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
-from propstore.claim_references import (
-    ClaimReferenceIndex,
-    ClaimReferenceResolver,
-    load_primary_branch_claim_reference_index,
-    load_source_claim_reference_index,
-)
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_path
+from quire.references import FamilyReferenceIndex
 from propstore.stances import StanceType, coerce_stance_type
 
 from .common import (
@@ -29,6 +25,11 @@ from propstore.families.documents.sources import (
     SourceProvenanceDocument,
     SourceStanceEntryDocument,
     SourceStancesDocument,
+)
+from .reference_indexes import (
+    primary_claim_index as build_primary_claim_index,
+    resolve_source_or_primary_claim_id,
+    source_claim_index as build_source_claim_index,
 )
 
 _ALLOWED_JUSTIFICATION_RULE_KINDS = frozenset({
@@ -68,22 +69,22 @@ def _validate_justification_rule_fields(
 def normalize_source_justifications_payload(
     data: SourceJustificationsDocument,
     *,
-    claim_index: ClaimReferenceIndex,
+    claim_index: FamilyReferenceIndex[SourceClaimDocument],
 ) -> SourceJustificationsDocument:
     normalized_justifications: list[SourceJustificationDocument] = []
     for index, justification in enumerate(data.justifications, start=1):
         if justification.conclusion is None:
             raise ValueError("justification conclusion must be a non-empty string")
         normalized = justification.to_payload()
-        normalized["conclusion"] = claim_index.resolve_local(justification.conclusion)
+        normalized["conclusion"] = claim_index.require_id(justification.conclusion)
         normalized["premises"] = [
-            claim_index.resolve_local(premise)
+            claim_index.require_id(premise)
             for premise in justification.premises
         ]
         attack_target = justification.attack_target
         if attack_target is not None and attack_target.target_claim is not None:
             updated_target = attack_target.to_payload()
-            updated_target["target_claim"] = claim_index.resolve_local(attack_target.target_claim)
+            updated_target["target_claim"] = claim_index.require_id(attack_target.target_claim)
             normalized["attack_target"] = updated_target
         normalized_justifications.append(
             convert_document_value(
@@ -109,7 +110,7 @@ def commit_source_justifications_batch(
 ) -> str:
     from datetime import datetime, timezone
 
-    claim_index = load_source_claim_reference_index(repo, source_name)
+    claim_index = build_source_claim_index(repo, source_name)
     raw = decode_document_path(justifications_file, SourceJustificationsDocument)
     if reader is not None:
         raw = SourceJustificationsDocument(
@@ -135,22 +136,23 @@ def commit_source_justifications_batch(
 def normalize_source_stances_payload(
     data: SourceStancesDocument,
     *,
-    claim_index: ClaimReferenceIndex,
-    primary_claim_index: ClaimReferenceIndex | None = None,
+    claim_index: FamilyReferenceIndex[SourceClaimDocument],
+    primary_claim_index: FamilyReferenceIndex[Any] | None = None,
 ) -> SourceStancesDocument:
-    resolver = ClaimReferenceResolver(
-        source=claim_index,
-        primary=primary_claim_index or ClaimReferenceIndex(),
-    )
     normalized_stances: list[SourceStanceEntryDocument] = []
     for index, stance in enumerate(data.stances, start=1):
         if stance.source_claim is None:
             raise ValueError("stance source_claim must be a non-empty string")
         normalized = stance.to_payload()
-        normalized["source_claim"] = claim_index.resolve_local(stance.source_claim)
-        if not resolver.target_is_known(stance.target):
+        normalized["source_claim"] = claim_index.require_id(stance.source_claim)
+        target = resolve_source_or_primary_claim_id(
+            stance.target,
+            source=claim_index,
+            primary=primary_claim_index,
+        )
+        if target is None:
             raise ValueError(f"unresolved stance target: {stance.target}")
-        normalized["target"] = resolver.resolve_promoted_target(stance.target)
+        normalized["target"] = target
         normalized_stances.append(
             convert_document_value(
                 normalized,
@@ -175,8 +177,8 @@ def commit_source_stances_batch(
 ) -> str:
     from datetime import datetime, timezone
 
-    claim_index = load_source_claim_reference_index(repo, source_name)
-    primary_claim_index = load_primary_branch_claim_reference_index(repo)
+    claim_index = build_source_claim_index(repo, source_name)
+    primary_claim_index = build_primary_claim_index(repo)
     raw = decode_document_path(stances_file, SourceStancesDocument)
     if reader is not None:
         raw = SourceStancesDocument(
@@ -226,7 +228,7 @@ def commit_source_justification_proposal(
     last_normalized: SourceJustificationsDocument | None = None
     for attempt in range(8):
         expected_head = current_source_branch_head(repo, source_name)
-        claim_index = load_source_claim_reference_index(repo, source_name)
+        claim_index = build_source_claim_index(repo, source_name)
         existing = load_source_justifications_document(repo, source_name) or SourceJustificationsDocument(justifications=())
         justifications = [entry for entry in existing.justifications if entry.id != just_id]
 
@@ -317,8 +319,8 @@ def commit_source_stance_proposal(
     last_normalized: SourceStancesDocument | None = None
     for attempt in range(8):
         expected_head = current_source_branch_head(repo, source_name)
-        claim_index = load_source_claim_reference_index(repo, source_name)
-        primary_claim_index = load_primary_branch_claim_reference_index(repo)
+        claim_index = build_source_claim_index(repo, source_name)
+        primary_claim_index = build_primary_claim_index(repo)
         existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(stances=())
         stances = list(existing.stances)
 
