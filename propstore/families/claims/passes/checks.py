@@ -408,7 +408,7 @@ def _has_concepts(context: CompilationContext) -> bool:
     return bool(context.concepts_by_id or context.concept_index.lookup)
 
 
-def _concept_exists(concept_ref: object, context: CompilationContext) -> bool:
+def _concept_resolves(concept_ref: object, context: CompilationContext) -> bool:
     return context.concept_index.exists(concept_ref)
 
 
@@ -527,7 +527,7 @@ def _validate_concept_link_declaration(
 ) -> None:
     if source == "scalar":
         concept_ref = claim.get(field)
-        if concept_ref and _has_concepts(context) and not _concept_exists(concept_ref, context):
+        if concept_ref and _has_concepts(context) and not _concept_resolves(concept_ref, context):
             _record(
                 diagnostics,
                 message=f"{label} claim '{cid}' references nonexistent concept '{concept_ref}'",
@@ -541,7 +541,7 @@ def _validate_concept_link_declaration(
         if not isinstance(values, list):
             return
         for concept_ref in values:
-            if _has_concepts(context) and not _concept_exists(concept_ref, context):
+            if _has_concepts(context) and not _concept_resolves(concept_ref, context):
                 _record(
                     diagnostics,
                     message=(
@@ -561,7 +561,7 @@ def _validate_concept_link_declaration(
             if not isinstance(entry, dict):
                 continue
             concept_ref = entry.get("concept")
-            if concept_ref and _has_concepts(context) and not _concept_exists(concept_ref, context):
+            if concept_ref and _has_concepts(context) and not _concept_resolves(concept_ref, context):
                 subject = "" if message_subject is None else f" {message_subject}"
                 _record(
                     diagnostics,
@@ -615,7 +615,7 @@ def _validate_value_bounds_against_form(
         return
     if not _has_concepts(context):
         return
-    if not _concept_exists(concept_ref, context):
+    if not _concept_resolves(concept_ref, context):
         return
     form_def = _concept_form_definition(concept_ref, context)
     if form_def is None:
@@ -695,7 +695,7 @@ def _validate_unit_policy(
     if (
         unit
         and unit_policy.form_concept_field is not None
-        and _concept_exists(concept_ref, context)
+        and _concept_resolves(concept_ref, context)
     ):
         if form_def is None:
             _record(
@@ -809,7 +809,7 @@ def _validate_equation_dimensional_consistency(
                 continue
             var_concept = var.get("concept")
             var_symbol = var.get("symbol")
-            if not var_concept or not _has_concepts(context) or not _concept_exists(var_concept, context):
+            if not var_concept or not _has_concepts(context) or not _concept_resolves(var_concept, context):
                 continue
             form_def = _concept_form_definition(var_concept, context)
             if form_def is None:
@@ -825,7 +825,7 @@ def _validate_equation_dimensional_consistency(
             dim_map[var_concept] = dims
 
         for cid_ref in re.findall(r"concept\d+", sympy_str):
-            if cid_ref not in dim_map and _concept_exists(cid_ref, context):
+            if cid_ref not in dim_map and _concept_resolves(cid_ref, context):
                 form_def = _concept_form_definition(cid_ref, context)
                 if form_def is not None:
                     if form_def.dimensions is not None:
