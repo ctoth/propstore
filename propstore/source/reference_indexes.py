@@ -51,11 +51,14 @@ def primary_claim_index(repo: Repository) -> FamilyReferenceIndex[ClaimDocument]
 def imported_claim_handle_index(
     handles: Iterable[ImportedClaimHandle],
 ) -> FamilyReferenceIndex[ImportedClaimHandle]:
+    def handle_reference_keys(record: ImportedClaimHandle) -> tuple[str]:
+        return (record.handle,)
+
     return FamilyReferenceIndex.from_records(
         handles,
         family="imported_claims",
         artifact_id=lambda handle: handle.artifact_id,
-        keys=(lambda handle: (handle.handle,),),
+        keys=(handle_reference_keys,),
     )
 
 
