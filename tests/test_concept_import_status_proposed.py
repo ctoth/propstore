@@ -13,6 +13,10 @@ def test_imported_concept_without_status_defaults_to_proposed(tmp_path: Path) ->
     source = Repository.init(tmp_path / "source" / "knowledge")
     source.git.commit_files(
         {
+            "forms/structural.yaml": yaml.safe_dump(
+                {"name": "structural", "dimensionless": True},
+                sort_keys=False,
+            ).encode("utf-8"),
             "concepts/novel.yaml": yaml.safe_dump(
                 {
                     "canonical_name": "novel",
