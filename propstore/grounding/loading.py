@@ -5,18 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom
+from propstore.families.documents.rules import RuleDocument
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record_document
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import GroundingFactInputs, extract_facts
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.repository import Repository
-from propstore.rule_files import LoadedRuleFile
 
 
 @dataclass(frozen=True)
 class GroundingInputs:
-    rule_files: tuple[LoadedRuleFile, ...]
+    rules: tuple[RuleDocument, ...]
     facts: tuple[GroundAtom, ...]
     registry: PredicateRegistry | None
 
@@ -33,18 +33,13 @@ def load_grounding_inputs(
         handle.document
         for handle in repo.families.predicates.iter_handles(commit=commit)
     )
-    rule_files: tuple[LoadedRuleFile, ...] = tuple(
-        LoadedRuleFile(
-            filename=handle.ref.name,
-            artifact_path=tree / handle.address.require_path(),
-            store_root=tree,
-            document=handle.document,
-        )
+    rules = tuple(
+        handle.document
         for handle in repo.families.rules.iter_handles(commit=commit)
     )
 
     if not predicates:
-        return GroundingInputs(rule_files=rule_files, facts=(), registry=None)
+        return GroundingInputs(rules=rules, facts=(), registry=None)
 
     registry = PredicateRegistry.from_documents(predicates)
     concepts = [
@@ -69,7 +64,7 @@ def load_grounding_inputs(
         registry,
     )
     return GroundingInputs(
-        rule_files=rule_files,
+        rules=rules,
         facts=facts,
         registry=registry,
     )
@@ -92,7 +87,7 @@ def build_grounded_bundle(
     inputs = load_grounding_inputs(repo, commit=commit)
 
     if inputs.registry is None:
-        if inputs.rule_files:
+        if inputs.rules:
             raise ValueError(
                 "knowledge root has rules/ but no predicates/; grounding requires "
                 "declared predicates"
@@ -100,7 +95,7 @@ def build_grounded_bundle(
         return GroundedRulesBundle.empty()
 
     return ground(
-        inputs.rule_files,
+        inputs.rules,
         inputs.facts,
         inputs.registry,
         return_arguments=return_arguments,

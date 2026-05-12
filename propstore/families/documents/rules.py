@@ -1,6 +1,6 @@
-"""Typed document models for DeLP-style rule YAML files.
+"""Typed document models for DeLP-style rule artifacts.
 
-This module hosts the authored-file schema for Defeasible Logic Programming
+This module hosts the authored artifact schema for Defeasible Logic Programming
 (DeLP) rules. Rules express strict (``<-``), defeasible (``-<``), proper
 defeater, or blocking defeater implications, with strong negation ``~`` on
 literals and default negation ``not`` as a distinct body-literal kind.
@@ -80,6 +80,12 @@ class BodyLiteralDocument(DocumentStruct):
     atom: AtomDocument
 
 
+class RuleSourceDocument(DocumentStruct):
+    """Provenance block for a rule artifact."""
+
+    paper: str
+
+
 class RuleDocument(DocumentStruct):
     """A DeLP rule — strict, defeasible, proper defeater, or blocking defeater.
 
@@ -106,12 +112,20 @@ class RuleDocument(DocumentStruct):
         head: The head atom (may carry strong negation via ``negated``).
         body: Ordered body literals. Default-negated literals have
             ``BodyLiteralDocument.kind == "default_negated"``.
+        source: Optional source-paper provenance.
+        authoring_group: Optional source/workflow grouping metadata. This
+            does not participate in canonical storage identity.
+        promoted_from_sha: Optional proposal branch commit that produced
+            this canonical rule artifact.
     """
 
     id: str
     kind: Literal["strict", "defeasible", "proper_defeater", "blocking_defeater"]
     head: AtomDocument
     body: tuple[BodyLiteralDocument, ...] = ()
+    source: RuleSourceDocument | None = None
+    authoring_group: str | None = None
+    promoted_from_sha: str | None = None
 
 
 class RuleExtractionProvenance(DocumentStruct):
@@ -138,43 +152,3 @@ class RuleProposalDocument(DocumentStruct):
     page_reference: str | None = None
     promoted_from_sha: str | None = None
 
-
-class RuleSourceDocument(DocumentStruct):
-    """Provenance block for a rules file.
-
-    Mirrors ``ClaimSourceDocument`` from
-    ``propstore.families.claims.documents``
-    but scoped to the minimal fields the rule-authoring workflow needs
-    today. Garcia & Simari 2004 rules are authored per-paper; the
-    ``paper`` field anchors a rules file to the theory source it is
-    encoding.
-
-    Attributes:
-        paper: The paper directory name (slug) this rules file derives
-            its DeLP content from.
-    """
-
-    paper: str
-
-
-class RulesFileDocument(DocumentStruct):
-    """Top-level envelope for an authored DeLP rules YAML file.
-
-    Parallels ``ClaimsFileDocument`` from
-    ``propstore.families.claims.documents``: a ``source`` block plus an
-    ordered tuple of rules. Rule priority is authored explicitly through
-    ``superiority`` pairs, oriented ``(superior_rule_id, inferior_rule_id)``
-    to match Garcia & Simari's DeLP superiority relation. YAML order stays
-    stable for reproducibility, not as an implicit priority channel.
-
-    Attributes:
-        source: Provenance block identifying the originating paper.
-        rules: Ordered tuple of rule documents.
-        superiority: Explicit rule-priority pairs. Each pair is
-            ``(superior_rule_id, inferior_rule_id)``.
-    """
-
-    source: RuleSourceDocument
-    rules: tuple[RuleDocument, ...] = ()
-    superiority: tuple[tuple[str, str], ...] = ()
-    promoted_from_sha: str | None = None

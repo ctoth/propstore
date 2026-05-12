@@ -42,7 +42,7 @@ from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
 from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
 from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
-from propstore.families.documents.rules import RuleProposalDocument, RulesFileDocument
+from propstore.families.documents.rules import RuleDocument, RuleProposalDocument
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
 from propstore.families.documents.sources import (
     SourceClaimsDocument,
@@ -121,8 +121,8 @@ if TYPE_CHECKING:
         predicate_id: str
 
     @dataclass(frozen=True)
-    class RuleFileRef:
-        name: str
+    class RuleRef:
+        rule_id: str
 
     @dataclass(frozen=True)
     class PredicateProposalRef:
@@ -190,7 +190,7 @@ if not TYPE_CHECKING:
     ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
     JustificationRef = single_field_ref_type("JustificationRef", "artifact_id", module=__name__)
     PredicateRef = single_field_ref_type("PredicateRef", "predicate_id", module=__name__)
-    RuleFileRef = single_field_ref_type("RuleFileRef", "name", module=__name__)
+    RuleRef = single_field_ref_type("RuleRef", "rule_id", module=__name__)
 
     @dataclass(frozen=True)
     class PredicateProposalRef:
@@ -292,10 +292,10 @@ PREDICATE_PLACEMENT = FlatYamlPlacement["Repository", PredicateRef](
     ref_field="predicate_id",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-RULE_PLACEMENT = FlatYamlPlacement["Repository", RuleFileRef](
+RULE_PLACEMENT = FlatYamlPlacement["Repository", RuleRef](
     namespace=PropstoreFamily.RULES.value,
-    ref_factory=RuleFileRef,
-    ref_field="name",
+    ref_factory=RuleRef,
+    ref_field="rule_id",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
 STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
@@ -426,10 +426,10 @@ PREDICATE_FAMILY = ArtifactFamily["Repository", PredicateRef, PredicateDocument]
     placement=PREDICATE_PLACEMENT,
 )
 
-RULE_FILE_FAMILY = ArtifactFamily["Repository", RuleFileRef, RulesFileDocument](
-    name="rule_file",
+RULE_FAMILY = ArtifactFamily["Repository", RuleRef, RuleDocument](
+    name="rule",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=RulesFileDocument,
+    doc_type=RuleDocument,
     placement=RULE_PLACEMENT,
 )
 
@@ -759,17 +759,10 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             key=PropstoreFamily.RULES,
             name=PropstoreFamily.RULES.value,
             contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
-            artifact_family=RULE_FILE_FAMILY,
+            artifact_family=RULE_FAMILY,
             metadata=_semantic_metadata(
                 importable=True,
                 import_order=50,
-                collection_field="rules",
-                aggregate_decision="intentional_set",
-                aggregate_reason=(
-                    "Rules are authored and evaluated as a source theory: the "
-                    "file-level source block, ordered rules, and superiority "
-                    "relation are one semantic rule set."
-                ),
             ),
         ),
         FamilyDefinition(

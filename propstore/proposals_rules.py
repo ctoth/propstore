@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.families.documents.rules import RuleSourceDocument, RulesFileDocument
-from propstore.families.registry import RuleFileRef, RuleProposalRef
+from propstore.families.documents.rules import RuleDocument, RuleSourceDocument
+from propstore.families.registry import RuleProposalRef, RuleRef
 from propstore.proposals import UnknownProposalPath
 from propstore.app.rules import _RULE_MUTATION_LOCK, reject_rule_document_conflicts
 
@@ -48,8 +48,8 @@ def _proposal_branch() -> str:
     return rule_proposal_branch()
 
 
-def _canonical_ref(source_paper: str, rule_id: str) -> RuleFileRef:
-    return RuleFileRef(f"{source_paper}/{rule_id}")
+def _canonical_ref(_source_paper: str, rule_id: str) -> RuleRef:
+    return RuleRef(rule_id)
 
 
 def plan_rule_proposal_promotion(
@@ -118,7 +118,7 @@ def promote_rule_proposals(
     if plan.proposal_tip is None:
         raise ValueError("rule proposal promotion requires a proposal tip")
 
-    documents: list[tuple[RuleFileRef, RulesFileDocument]] = []
+    documents: list[tuple[RuleRef, RuleDocument]] = []
     for item in plan.items:
         proposal_ref = RuleProposalRef(item.source_paper, item.rule_id)
         proposal = repo.families.proposal_rules.require(
@@ -126,12 +126,17 @@ def promote_rule_proposals(
             commit=plan.proposal_tip,
         )
         canonical_ref = _canonical_ref(item.source_paper, item.rule_id)
+        proposed = proposal.proposed_rule
         documents.append(
             (
                 canonical_ref,
-                RulesFileDocument(
+                RuleDocument(
+                    id=proposed.id,
+                    kind=proposed.kind,
+                    head=proposed.head,
+                    body=proposed.body,
                     source=RuleSourceDocument(paper=item.source_paper),
-                    rules=(proposal.proposed_rule,),
+                    authoring_group=item.source_paper,
                     promoted_from_sha=plan.proposal_tip,
                 ),
             )
@@ -141,15 +146,16 @@ def promote_rule_proposals(
         repo.snapshot.primary_branch_name(),
         path="proposal.rules.promote",
     ) as head_txn:
-        for _ref, document in documents:
+        for ref, document in documents:
             reject_rule_document_conflicts(
                 repo,
                 commit=head_txn.expected_head,
+                target_ref=ref,
                 document=document,
             )
 
         with head_txn.families_transact(
-            message=f"Promote {len(plan.items)} rule proposal file(s) from {plan.branch}",
+            message=f"Promote {len(plan.items)} rule proposal(s) from {plan.branch}",
         ) as transaction:
             for canonical_ref, document in documents:
                 transaction.rules.save(canonical_ref, document)

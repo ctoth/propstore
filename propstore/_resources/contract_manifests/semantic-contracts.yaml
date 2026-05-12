@@ -285,12 +285,12 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
-  name: rule_file
+  name: rule
   contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.rules.RulesFileDocument
+    doc_type: propstore.families.documents.rules.RuleDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -301,7 +301,7 @@ contracts:
       extension: .yaml
       kind: flat-yaml
       namespace: rules
-      ref_field: name
+      ref_field: rule_id
     render_document: null
     scan_type: null
     validate_for_write: null
@@ -1955,7 +1955,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: RuleDocument
-  contract_version: 2026.05.01
+  contract_version: 2026.05.12
   body:
     fields:
     - name: id
@@ -1970,6 +1970,15 @@ contracts:
     - name: body
       required: true
       type: tuple[BodyLiteralDocument, ...]
+    - name: source
+      required: true
+      type: RuleSourceDocument | None
+    - name: authoring_group
+      required: true
+      type: str | None
+    - name: promoted_from_sha
+      required: true
+      type: str | None
     module: propstore.families.documents.rules
 - kind: document_schema
   name: RuleExtractionProvenance
@@ -2036,24 +2045,6 @@ contracts:
     - name: paper
       required: true
       type: str
-    module: propstore.families.documents.rules
-- kind: document_schema
-  name: RulesFileDocument
-  contract_version: 2026.05.01
-  body:
-    fields:
-    - name: source
-      required: true
-      type: RuleSourceDocument
-    - name: rules
-      required: true
-      type: tuple[RuleDocument, ...]
-    - name: superiority
-      required: true
-      type: tuple[tuple[str, str], ...]
-    - name: promoted_from_sha
-      required: true
-      type: str | None
     module: propstore.families.documents.rules
 - kind: document_schema
   name: SameAsAssertionDocument
@@ -3605,9 +3596,9 @@ contracts:
   contract_version: 2026.05.11
   body:
     accessor: rules
-    artifact_family: rule_file
+    artifact_family: rule
     artifact_family_contract:
-      doc_type: propstore.families.documents.rules.RulesFileDocument
+      doc_type: propstore.families.documents.rules.RuleDocument
       placement:
         branch:
           policy: primary
@@ -3615,16 +3606,12 @@ contracts:
         extension: .yaml
         kind: flat-yaml
         namespace: rules
-        ref_field: name
+        ref_field: rule_id
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: rules
     metadata:
-      aggregate_decision: intentional_set
-      aggregate_reason: 'Rules are authored and evaluated as a source theory: the
-        file-level source block, ordered rules, and superiority relation are one semantic
-        rule set.'
-      collection_field: rules
+      collection_field: null
       import_order: 50
       importable: true
       init_directory: true

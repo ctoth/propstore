@@ -67,10 +67,10 @@ from argumentation.preference import strict_partial_order_closure
 from propstore.families.documents.rules import (
     AtomDocument,
     BodyLiteralDocument,
+    RuleDocument,
     TermDocument,
 )
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.rule_files import LoadedRuleFile
 
 # ``gunray.schema.Scalar`` and ``argumentation.aspic.Scalar`` are both
 # ``str | int | float | bool``; use the gunray alias here because the
@@ -80,7 +80,7 @@ _FactTuple = tuple[gunray.Scalar, ...]
 
 
 def translate_to_theory(
-    rule_files: Sequence[LoadedRuleFile],
+    rules: Sequence[RuleDocument],
     facts: tuple[GroundAtom, ...],
     registry: PredicateRegistry,
 ) -> gunray.DefeasibleTheory:
@@ -110,11 +110,8 @@ def translate_to_theory(
       interaction in this chunk.
 
     Args:
-        rule_files: Sequence of ``LoadedRuleFile`` envelopes — each
-            carries an ordered tuple of ``RuleDocument`` values
-            (``propstore.families.documents.rules``). Rule order within a file is
-            preserved across the YAML round-trip because authored order
-            can carry preference information downstream.
+        rules: Sequence of ``RuleDocument`` artifacts
+            (``propstore.families.documents.rules``).
         facts: Tuple of ``GroundAtom`` values as produced by
             ``propstore.grounding.facts.extract_facts`` — ground atoms
             ``p(c_1,...,c_n)`` drawn from the propstore concept graph
@@ -136,27 +133,25 @@ def translate_to_theory(
     defeaters: list[gunray.Rule] = []
     authored_superiority: list[tuple[str, str]] = []
     non_strict_rule_ids: set[str] = set()
-    for rule_file in rule_files:
-        for rule_doc in rule_file.rules:
-            schema_rule = gunray.Rule(
-                id=rule_doc.id,
-                head=_stringify_atom(rule_doc.head),
-                body=tuple(
-                    _stringify_body_literal(literal)
-                    for literal in rule_doc.body
-                ),
-            )
-            if rule_doc.kind == "strict":
-                strict_rules.append(schema_rule)
-            elif rule_doc.kind == "defeasible":
-                non_strict_rule_ids.add(rule_doc.id)
-                defeasible_rules.append(schema_rule)
-            elif rule_doc.kind in ("proper_defeater", "blocking_defeater"):
-                non_strict_rule_ids.add(rule_doc.id)
-                defeaters.append(schema_rule)
-            else:
-                raise ValueError(f"Unknown rule kind {rule_doc.kind!r}")
-        authored_superiority.extend(rule_file.document.superiority)
+    for rule_doc in rules:
+        schema_rule = gunray.Rule(
+            id=rule_doc.id,
+            head=_stringify_atom(rule_doc.head),
+            body=tuple(
+                _stringify_body_literal(literal)
+                for literal in rule_doc.body
+            ),
+        )
+        if rule_doc.kind == "strict":
+            strict_rules.append(schema_rule)
+        elif rule_doc.kind == "defeasible":
+            non_strict_rule_ids.add(rule_doc.id)
+            defeasible_rules.append(schema_rule)
+        elif rule_doc.kind in ("proper_defeater", "blocking_defeater"):
+            non_strict_rule_ids.add(rule_doc.id)
+            defeaters.append(schema_rule)
+        else:
+            raise ValueError(f"Unknown rule kind {rule_doc.kind!r}")
 
     # Group facts by predicate id. Diller, Borg, Bex 2025 §3
     # Definition 7 shape: ``PredicateFacts`` maps each predicate id to

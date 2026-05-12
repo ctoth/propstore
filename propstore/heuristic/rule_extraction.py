@@ -22,7 +22,7 @@ from propstore.families.documents.rules import (
 )
 from propstore.families.registry import (
     PROPOSAL_RULE_BRANCH,
-    RuleFileRef,
+    RuleRef,
     RuleProposalRef,
 )
 from propstore.resources import load_package_resource_text
@@ -61,8 +61,8 @@ def rule_proposal_branch() -> str:
     return branch
 
 
-def canonical_rule_ref(source_paper: str, rule_id: str) -> RuleFileRef:
-    return RuleFileRef(f"{source_paper}/{rule_id}")
+def canonical_rule_ref(_source_paper: str, rule_id: str) -> RuleRef:
+    return RuleRef(rule_id)
 
 
 def _paper_notes(source_paper: str) -> str:

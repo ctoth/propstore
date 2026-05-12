@@ -42,7 +42,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.rule_files import LoadedRuleFile
+from propstore.families.documents.rules import RuleDocument
 
 if TYPE_CHECKING:
     from gunray import Argument, GroundingInspection
@@ -108,7 +108,7 @@ class GroundedRulesBundle:
     """Immutable record of one grounding-pipeline invocation.
 
     Attributes:
-        source_rules: The ``LoadedRuleFile`` envelopes that were fed to
+        source_rules: The ``RuleDocument`` artifacts that were fed to
             the grounder, stored verbatim as a tuple. Diller, Borg, Bex
             2025 §3 keeps the rule base as part of the program
             identity; the bundle therefore carries it alongside the
@@ -140,7 +140,7 @@ class GroundedRulesBundle:
             alongside the legacy section projection.
     """
 
-    source_rules: tuple[LoadedRuleFile, ...]
+    source_rules: tuple[RuleDocument, ...]
     source_facts: tuple[GroundAtom, ...]
     sections: Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]
     arguments: tuple["Argument", ...] = field(default_factory=tuple)

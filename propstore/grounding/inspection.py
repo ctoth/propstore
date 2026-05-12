@@ -100,7 +100,7 @@ def inspect_grounding_surface(repo: "Repository") -> GroundingSurface:
         ),
         rule_files=tuple(
             sorted(
-                f"{ref.name}.yaml"
+                f"{ref.rule_id}.yaml"
                 for ref in repo.families.rules.iter()
             )
         ),
@@ -338,7 +338,7 @@ def inspect_grounding_explain(repo: "Repository", atom: str) -> GroundingExplain
         )
 
     explanation = build_grounding_text_explanation(
-        inputs.rule_files,
+        inputs.rules,
         inputs.facts,
         inputs.registry,
         query_atom,

@@ -65,11 +65,10 @@ import gunray
 import msgspec
 from argumentation.aspic import Scalar
 from argumentation.aspic import GroundAtom as AspicGroundAtom
-from propstore.families.documents.rules import RulesFileDocument
+from propstore.families.documents.rules import RuleDocument
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.rule_files import LoadedRuleFile
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
 # tuple order is the deterministic iteration order used by
@@ -285,18 +284,10 @@ def _decode_bundle_input(kind: str, payload: bytes) -> object:
             rules=frozenset(_decode_gunray_rule(rule) for rule in value["rules"]),
             conclusion=_decode_gunray_atom(value["conclusion"]),
         )
-    if tag == "loaded_rule_file":
+    if tag == "rule_document":
         if not isinstance(value, dict):
-            raise ValueError("loaded rule file payload must be an object")
-        document = msgspec.convert(value["document"], type=RulesFileDocument)
-        artifact_path = value.get("artifact_path")
-        store_root = value.get("store_root")
-        return LoadedRuleFile(
-            filename=str(value["filename"]),
-            artifact_path=None if artifact_path is None else Path(str(artifact_path)),
-            store_root=None if store_root is None else Path(str(store_root)),
-            document=document,
-        )
+            raise ValueError("rule document payload must be an object")
+        return msgspec.convert(value, type=RuleDocument)
     raise ValueError(f"unsupported grounded bundle input tag {tag!r}")
 
 
@@ -324,18 +315,11 @@ def _bundle_input_payload(kind: str, value: object) -> dict[str, object]:
                 "conclusion": _encode_gunray_atom(value.conclusion),
             },
         }
-    if isinstance(value, LoadedRuleFile):
+    if isinstance(value, RuleDocument):
         return {
             "kind": kind,
-            "tag": "loaded_rule_file",
-            "value": {
-                "filename": value.filename,
-                "artifact_path": (
-                    None if value.artifact_path is None else str(value.artifact_path)
-                ),
-                "store_root": None if value.store_root is None else str(value.store_root),
-                "document": msgspec.to_builtins(value.document),
-            },
+            "tag": "rule_document",
+            "value": msgspec.to_builtins(value),
         }
     raise TypeError(f"cannot persist grounded bundle {kind} input {type(value).__name__}")
 
@@ -490,11 +474,11 @@ def read_grounded_bundle(conn: sqlite3.Connection) -> GroundedRulesBundle:
     return bundle
 
 
-def _read_source_rules(conn: sqlite3.Connection) -> tuple[LoadedRuleFile, ...]:
+def _read_source_rules(conn: sqlite3.Connection) -> tuple[RuleDocument, ...]:
     values = _read_bundle_inputs(conn, "source_rule")
-    if not all(isinstance(value, LoadedRuleFile) for value in values):
-        raise TypeError("grounded source_rule inputs must be LoadedRuleFile values")
-    return tuple(value for value in values if isinstance(value, LoadedRuleFile))
+    if not all(isinstance(value, RuleDocument) for value in values):
+        raise TypeError("grounded source_rule inputs must be RuleDocument values")
+    return tuple(value for value in values if isinstance(value, RuleDocument))
 
 
 def _read_source_facts(conn: sqlite3.Connection) -> tuple[AspicGroundAtom, ...]:

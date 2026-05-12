@@ -14,7 +14,7 @@ from propstore.families.registry import (
     ConceptFileRef,
     ContextRef,
     PredicateRef,
-    RuleFileRef,
+    RuleRef,
     StanceRef,
 )
 from propstore.app.project_init import _seed_form_documents
@@ -129,27 +129,24 @@ def materialize_reasoning_demo(root: Path) -> Repository:
             "authoring_group": "reasoning_demo",
         },
     )
-    rules_payload = {
-        "source": {"paper": "reasoning_demo"},
-        "rules": [
+    rule_payload = {
+        "id": "r_flies_from_bird",
+        "kind": "defeasible",
+        "head": {
+            "predicate": "flies",
+            "terms": [{"kind": "var", "name": "X"}],
+        },
+        "body": [
             {
-                "id": "r_flies_from_bird",
-                "kind": "defeasible",
-                "head": {
-                    "predicate": "flies",
+                "kind": "positive",
+                "atom": {
+                    "predicate": "bird",
                     "terms": [{"kind": "var", "name": "X"}],
                 },
-                "body": [
-                    {
-                        "kind": "positive",
-                        "atom": {
-                            "predicate": "bird",
-                            "terms": [{"kind": "var", "name": "X"}],
-                        },
-                    }
-                ],
             }
         ],
+        "source": {"paper": "reasoning_demo"},
+        "authoring_group": "reasoning_demo",
     }
     stance_against_yes = stamp_stance_artifact_id({
         "source_claim": claim_map["claim_cannot_fly"],
@@ -214,11 +211,11 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                     source=repo.families.predicates.address(predicates_ref).require_path(),
                 ),
             )
-        rules_ref = RuleFileRef("reasoning_demo")
+        rules_ref = RuleRef("r_flies_from_bird")
         transaction.rules.save(
             rules_ref,
             transaction.rules.coerce(
-                rules_payload,
+                rule_payload,
                 source=repo.families.rules.address(rules_ref).require_path(),
             ),
         )

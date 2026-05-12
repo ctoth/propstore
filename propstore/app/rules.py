@@ -1,35 +1,4 @@
-"""Rule authoring workflows used by CLI adapters.
-
-Authors DeLP strict, defeasible, proper defeater, and blocking defeater rules into
-``knowledge/rules/<name>.yaml`` files. Uses the existing
-``RULE_FILE_FAMILY`` plumbing so rules appear on the primary branch.
-
-Theoretical source:
-    Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
-    An Argumentative Approach. §3 p.3 partitions rule-like objects into
-    strict ``L_0 <- L_1,...,L_n``, defeasible ``L_0 -< L_1,...,L_n``,
-    and defeaters; literals may carry strong negation ``~`` and body
-    literals may carry default negation ``not``.
-
-Atom DSL
---------
-
-The CLI accepts atom strings of the form::
-
-    [~]predicate(term1, term2, ...)
-
-- A leading ``~`` marks strong negation on the literal.
-- Terms whose first character is uppercase are treated as variables;
-  everything else is a constant. Quoted string literals
-  (``"foo"``) and numeric literals are coerced to ``str``, ``int``, or
-  ``float``.
-- Empty parentheses ``()`` and zero-arity atoms ``predicate`` are both
-  accepted as nullary.
-
-The DSL is intentionally minimal; paper authors typically want a few
-rules per file, so a quoted-literal / variable convention covers the
-common case without introducing a lark grammar.
-"""
+"""Rule authoring workflows used by CLI adapters."""
 
 from __future__ import annotations
 
@@ -45,10 +14,9 @@ from propstore.families.documents.rules import (
     BodyLiteralDocument,
     RuleDocument,
     RuleSourceDocument,
-    RulesFileDocument,
     TermDocument,
 )
-from propstore.families.registry import RuleFileRef
+from propstore.families.registry import RuleRef
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.repository import Repository
 
@@ -70,72 +38,30 @@ class RuleFileNotFoundError(RuleWorkflowError):
 
 
 class RuleNotFoundError(RuleWorkflowError):
-    """Raised when a named rule id is absent from a rules file."""
+    """Raised when a named rule artifact is absent."""
 
-    def __init__(self, file: str, rule_id: str) -> None:
-        super().__init__(f"Rule '{rule_id}' not found in rules file '{file}'")
-        self.file = file
+    def __init__(self, rule_id: str) -> None:
+        super().__init__(f"Rule '{rule_id}' not found")
         self.rule_id = rule_id
 
 
 class RuleReferencedError(RuleWorkflowError):
-    """Raised when a rule id is still referenced by a superiority pair."""
-
-    def __init__(
-        self,
-        file: str,
-        rule_id: str,
-        pairs: tuple[tuple[str, str], ...],
-    ) -> None:
-        rendered = ", ".join(f"({a}, {b})" for a, b in pairs)
-        super().__init__(
-            f"cannot remove rule '{rule_id}' from '{file}'; still referenced "
-            f"in superiority pair(s): {rendered}. Remove the superiority "
-            f"pair(s) first."
-        )
-        self.file = file
-        self.rule_id = rule_id
-        self.pairs = pairs
+    """Raised when a rule id is still referenced by a superiority artifact."""
 
 
 class RuleSuperiorityPairNotFoundError(RuleWorkflowError):
-    """Raised when a requested superiority pair is absent."""
-
-    def __init__(self, file: str, superior_rule_id: str, inferior_rule_id: str) -> None:
-        super().__init__(
-            f"superiority pair ({superior_rule_id}, {inferior_rule_id}) "
-            f"not found in rules file '{file}'"
-        )
-        self.file = file
-        self.superior_rule_id = superior_rule_id
-        self.inferior_rule_id = inferior_rule_id
+    """Raised when a requested superiority artifact is absent."""
 
 
 @dataclass(frozen=True)
 class RuleAddRequest:
-    """CLI request to add a rule to ``rules/<file>.yaml``.
+    """CLI request to add a rule artifact.
 
-    The authored YAML is a ``RulesFileDocument`` envelope with a
-    ``source.paper`` block plus a flat tuple of rules. ``superiority``
-    is preserved across appends but not mutated by this workflow; use
-    the schema directly (or a future ``pks rule superior`` command) to
-    declare rule-priority pairs.
-
-    Attributes:
-        file: File stem (e.g. ``"ikeda_2014"``) — determines target path
-            ``rules/<file>.yaml``.
-        paper: Slug of the source paper, written into
-            ``source.paper``. When appending to an existing file, the
-            request's paper must match the stored paper.
-        rule_id: Authoring id for the rule (e.g. ``"r_ikeda_mi"``).
-        kind: One of ``"strict"``, ``"defeasible"``, ``"proper_defeater"``,
-            ``"blocking_defeater"``.
-        head: Atom DSL string for the head literal. A leading ``~`` is
-            strong negation.
-        body: Ordered tuple of atom DSL strings for the body literals.
+    ``file`` is optional authoring metadata only and never determines the
+    canonical storage path.
     """
 
-    file: str
+    file: str | None
     paper: str
     rule_id: str
     kind: str
@@ -146,20 +72,12 @@ class RuleAddRequest:
 @dataclass(frozen=True)
 class RuleAddReport:
     filepath: Path
-    document: RulesFileDocument
+    document: RuleDocument
     created: bool
 
 
 @dataclass(frozen=True)
 class RuleRemoveRequest:
-    """CLI request to remove a rule from ``rules/<file>.yaml``.
-
-    Attributes:
-        file: File stem (e.g. ``"ikeda_2014"``).
-        rule_id: Authoring id of the rule to remove.
-    """
-
-    file: str
     rule_id: str
 
 
@@ -172,18 +90,14 @@ class RuleRemoveReport:
 
 @dataclass(frozen=True)
 class RuleSuperiorityAddRequest:
-    """CLI request to add a superiority pair to ``rules/<file>.yaml``."""
-
-    file: str
+    file: str | None
     superior_rule_id: str
     inferior_rule_id: str
 
 
 @dataclass(frozen=True)
 class RuleSuperiorityRemoveRequest:
-    """CLI request to remove a superiority pair from ``rules/<file>.yaml``."""
-
-    file: str
+    file: str | None
     superior_rule_id: str
     inferior_rule_id: str
 
@@ -197,7 +111,7 @@ class RuleSuperiorityReport:
 
 @dataclass(frozen=True)
 class RuleListItem:
-    file: str
+    authoring_group: str | None
     rule_id: str
     kind: str
     paper: str | None
@@ -216,10 +130,8 @@ def _coerce_term(raw: str) -> TermDocument:
     token = raw.strip()
     if not token:
         raise RuleWorkflowError("empty term in atom")
-    # Quoted string literal.
     if len(token) >= 2 and token[0] == token[-1] and token[0] in ("'", '"'):
         return TermDocument(kind="const", value=token[1:-1])
-    # Numeric literals.
     if token.lstrip("+-").isdigit():
         return TermDocument(kind="const", value=int(token))
     try:
@@ -227,29 +139,20 @@ def _coerce_term(raw: str) -> TermDocument:
             return TermDocument(kind="const", value=float(token))
     except ValueError:
         pass
-    # Uppercase head -> variable.
     if token[0].isupper():
         return TermDocument(kind="var", name=token)
     return TermDocument(kind="const", value=token)
 
 
 def parse_atom(raw: str) -> AtomDocument:
-    """Parse an atom DSL string into an ``AtomDocument``.
-
-    See module docstring for the accepted syntax.
-    """
     if not isinstance(raw, str) or not raw.strip():
         raise RuleWorkflowError("atom string must be non-empty")
     match = _ATOM_RE.match(raw)
     if match is None:
         raise RuleWorkflowError(f"cannot parse atom: {raw!r}")
     negated_tok, predicate, _parens, inner = match.groups()
-    if not predicate:
-        raise RuleWorkflowError(f"atom missing predicate: {raw!r}")
     terms: tuple[TermDocument, ...] = ()
     if inner is not None and inner.strip():
-        # Split on top-level commas. Nested parens or quoted commas are
-        # not supported — the DSL is intentionally shallow.
         parts = [part for part in (piece.strip() for piece in inner.split(",")) if part]
         terms = tuple(_coerce_term(part) for part in parts)
     return AtomDocument(
@@ -297,16 +200,16 @@ def _body_literal_payload(literal: BodyLiteralDocument) -> dict[str, object]:
 def _rule_document_payload(request: RuleAddRequest) -> dict[str, object]:
     head_atom = parse_atom(request.head)
     body_literals = tuple(parse_body_literal(entry) for entry in request.body)
-    return {
+    data: dict[str, object] = {
         "id": request.rule_id,
         "kind": request.kind,
         "head": _atom_payload(head_atom),
         "body": [_body_literal_payload(literal) for literal in body_literals],
+        "source": {"paper": request.paper},
     }
-
-
-def _rule_kind_by_id(document: RulesFileDocument) -> dict[str, str]:
-    return {entry.id: entry.kind for entry in document.rules}
+    if request.file:
+        data["authoring_group"] = request.file
+    return data
 
 
 def _predicate_registry_at_head(repo: Repository, commit: str | None) -> PredicateRegistry:
@@ -323,94 +226,40 @@ def reject_rule_document_conflicts(
     repo: Repository,
     *,
     commit: str | None,
-    document: RulesFileDocument,
+    target_ref: RuleRef,
+    document: RuleDocument,
 ) -> None:
+    if document.id != target_ref.rule_id:
+        raise RuleWorkflowError(
+            f"rule artifact id {target_ref.rule_id!r} must match document id {document.id!r}"
+        )
+
+    existing = repo.families.rules.load(target_ref, commit=commit)
+    if existing is not None and existing.promoted_from_sha != document.promoted_from_sha:
+        relpath = repo.families.rules.address(target_ref).require_path()
+        raise RuleWorkflowError(f"rule {document.id!r} already declared in {relpath}")
+
     registry = _predicate_registry_at_head(repo, commit)
-    for rule in document.rules:
-        for atom in _rule_atoms(rule):
-            try:
-                declaration = registry.lookup(atom.predicate)
-            except KeyError as exc:
-                raise RuleWorkflowError(
-                    f"rule {rule.id!r} references undeclared predicate {atom.predicate!r}"
-                ) from exc
-            if declaration.arity != len(atom.terms):
-                raise RuleWorkflowError(
-                    f"rule {rule.id!r} references predicate {atom.predicate!r} "
-                    f"with arity {len(atom.terms)}, declared arity is {declaration.arity}"
-                )
-
-
-def _validate_superiority_pair(
-    document: RulesFileDocument,
-    superior_rule_id: str,
-    inferior_rule_id: str,
-) -> None:
-    if not superior_rule_id or not inferior_rule_id:
-        raise RuleWorkflowError("superiority rule ids must be non-empty strings")
-    if superior_rule_id == inferior_rule_id:
-        raise RuleWorkflowError("superiority cannot relate a rule to itself")
-
-    kinds = _rule_kind_by_id(document)
-    missing = [
-        rule_id
-        for rule_id in (superior_rule_id, inferior_rule_id)
-        if rule_id not in kinds
-    ]
-    if missing:
-        raise RuleWorkflowError(
-            "superiority references unknown rule id(s): "
-            + ", ".join(sorted(missing))
-        )
-
-    strict = [
-        rule_id
-        for rule_id in (superior_rule_id, inferior_rule_id)
-        if kinds[rule_id] == "strict"
-    ]
-    if strict:
-        raise RuleWorkflowError(
-            "superiority cannot reference strict rule id(s): "
-            + ", ".join(sorted(strict))
-        )
-
-
-def _reject_superiority_cycle(pairs: tuple[tuple[str, str], ...]) -> None:
-    graph: dict[str, set[str]] = {}
-    for superior, inferior in pairs:
-        graph.setdefault(superior, set()).add(inferior)
-        graph.setdefault(inferior, set())
-
-    visiting: set[str] = set()
-    visited: set[str] = set()
-
-    def visit(rule_id: str) -> bool:
-        if rule_id in visiting:
-            return True
-        if rule_id in visited:
-            return False
-        visiting.add(rule_id)
-        for child in graph.get(rule_id, ()):
-            if visit(child):
-                return True
-        visiting.remove(rule_id)
-        visited.add(rule_id)
-        return False
-
-    if any(visit(rule_id) for rule_id in graph):
-        raise RuleWorkflowError("superiority pairs must be acyclic")
+    for atom in _rule_atoms(document):
+        try:
+            declaration = registry.lookup(atom.predicate)
+        except KeyError as exc:
+            raise RuleWorkflowError(
+                f"rule {document.id!r} references undeclared predicate {atom.predicate!r}"
+            ) from exc
+        if declaration.arity != len(atom.terms):
+            raise RuleWorkflowError(
+                f"rule {document.id!r} references predicate {atom.predicate!r} "
+                f"with arity {len(atom.terms)}, declared arity is {declaration.arity}"
+            )
 
 
 def add_rule(
     repo: Repository,
     request: RuleAddRequest,
 ) -> RuleAddReport:
-    """Add a rule to ``rules/<file>.yaml``.
+    """Add a rule as ``rules/<rule-id>.yaml``."""
 
-    Creates the file if absent, with ``source.paper = request.paper``.
-    When appending to an existing file, the request's paper must match
-    the stored paper.
-    """
     if not isinstance(request.rule_id, str) or not request.rule_id:
         raise RuleWorkflowError("rule id must be a non-empty string")
     if request.kind not in _RULE_KINDS:
@@ -420,7 +269,7 @@ def add_rule(
     if not isinstance(request.paper, str) or not request.paper:
         raise RuleWorkflowError("rule paper slug must be a non-empty string")
 
-    ref = RuleFileRef(request.file)
+    ref = RuleRef(request.rule_id)
     relpath = repo.families.rules.address(ref).require_path()
     filepath = repo.root / relpath
 
@@ -428,136 +277,47 @@ def add_rule(
         repo.snapshot.primary_branch_name(),
         path="rule.add",
     ) as head_txn:
-        existing = repo.families.rules.load(ref)
-        entries: list[RuleDocument] = []
-        superiority: tuple[tuple[str, str], ...] = ()
-        created = True
-        source_block = RuleSourceDocument(paper=request.paper)
-
-        if existing is not None:
-            created = False
-            existing_paper = existing.source.paper if existing.source is not None else None
-            if existing_paper != request.paper:
-                raise RuleWorkflowError(
-                    f"rules file {relpath} already exists for paper "
-                    f"{existing_paper!r}; cannot append under paper {request.paper!r}"
-                )
-            source_block = existing.source
-            superiority = existing.superiority
-            for entry in existing.rules:
-                if entry.id == request.rule_id:
-                    raise RuleWorkflowError(
-                        f"rule {request.rule_id!r} already declared in {relpath}"
-                    )
-                entries.append(entry)
-
-        new_entry = convert_document_value(
+        document = convert_document_value(
             _rule_document_payload(request),
             RuleDocument,
-            source=f"{relpath}:{request.rule_id}",
-        )
-        entries.append(new_entry)
-
-        document = RulesFileDocument(
-            source=source_block,
-            rules=tuple(entries),
-            superiority=superiority,
+            source=relpath,
         )
         reject_rule_document_conflicts(
             repo,
             commit=head_txn.expected_head,
+            target_ref=ref,
             document=document,
         )
 
         with head_txn.families_transact(
-            message=(
-                f"Add rule {request.rule_id} to {request.file}"
-                if not created
-                else f"Declare rules for {request.file}"
-            ),
+            message=f"Declare rule {request.rule_id}",
         ) as transaction:
             transaction.rules.save(ref, document)
 
-    return RuleAddReport(
-        filepath=filepath,
-        document=document,
-        created=created,
-    )
-
-
-def add_rule_superiority(
-    repo: Repository,
-    request: RuleSuperiorityAddRequest,
-) -> RuleSuperiorityReport:
-    """Add a ``(superior, inferior)`` rule-priority pair."""
-    ref = RuleFileRef(request.file)
-    with _RULE_MUTATION_LOCK, repo.mutation_guard():
-        existing = repo.families.rules.load(ref)
-        if existing is None:
-            raise RuleFileNotFoundError(request.file)
-
-        _validate_superiority_pair(
-            existing,
-            request.superior_rule_id,
-            request.inferior_rule_id,
-        )
-        pair = (request.superior_rule_id, request.inferior_rule_id)
-        if pair in existing.superiority:
-            raise RuleWorkflowError(
-                f"superiority pair ({pair[0]}, {pair[1]}) already declared"
-            )
-
-        superiority = existing.superiority + (pair,)
-        _reject_superiority_cycle(superiority)
-        document = RulesFileDocument(
-            source=existing.source,
-            rules=existing.rules,
-            superiority=superiority,
-            promoted_from_sha=existing.promoted_from_sha,
-        )
-
-        repo.families.rules.save(
-            ref,
-            document,
-            message=(
-                f"Add superiority {request.superior_rule_id} > "
-                f"{request.inferior_rule_id} to {request.file}"
-            ),
-        )
-
-        filepath = repo.root / repo.families.rules.address(ref).require_path()
-    return RuleSuperiorityReport(
-        filepath=filepath,
-        superior_rule_id=request.superior_rule_id,
-        inferior_rule_id=request.inferior_rule_id,
-    )
+    return RuleAddReport(filepath=filepath, document=document, created=True)
 
 
 def list_rules(repo: Repository) -> tuple[RuleListItem, ...]:
     items: list[RuleListItem] = []
     for handle in repo.families.rules.iter_handles():
-        document = handle.document
-        paper = None if document.source is None else document.source.paper
-        for rule in document.rules:
-            items.append(
-                RuleListItem(
-                    file=handle.ref.name,
-                    rule_id=rule.id,
-                    kind=rule.kind,
-                    paper=paper,
-                )
+        rule = handle.document
+        paper = None if rule.source is None else rule.source.paper
+        items.append(
+            RuleListItem(
+                authoring_group=rule.authoring_group,
+                rule_id=rule.id,
+                kind=rule.kind,
+                paper=paper,
             )
-    return tuple(items)
+        )
+    return tuple(sorted(items, key=lambda item: item.rule_id))
 
 
-def show_rule_file(
-    repo: Repository,
-    file: str,
-) -> RuleShowReport:
-    ref = RuleFileRef(file)
+def show_rule(repo: Repository, rule_id: str) -> RuleShowReport:
+    ref = RuleRef(rule_id)
     document = repo.families.rules.load(ref)
     if document is None:
-        raise RuleFileNotFoundError(file)
+        raise RuleNotFoundError(rule_id)
     filepath = repo.root / repo.families.rules.address(ref).require_path()
     return RuleShowReport(
         filepath=filepath,
@@ -569,103 +329,33 @@ def remove_rule(
     repo: Repository,
     request: RuleRemoveRequest,
 ) -> RuleRemoveReport:
-    """Remove a rule from ``rules/<file>.yaml``.
-
-    Raises ``RuleFileNotFoundError`` if the file does not exist,
-    ``RuleNotFoundError`` if the rule id is absent, or
-    ``RuleReferencedError`` if the rule id still participates in a
-    ``superiority`` pair. On success the file is rewritten via the
-    existing family ``save`` path (same commit pattern as
-    ``add_rule``); if the removal leaves zero rules the file is kept
-    as a stub so downstream tooling can continue to observe the
-    ``source`` block, matching ``remove_context_lifting_rule``'s
-    behaviour for emptied lifting-rule blocks.
-    """
     if not isinstance(request.rule_id, str) or not request.rule_id:
         raise RuleWorkflowError("rule id must be a non-empty string")
 
-    ref = RuleFileRef(request.file)
+    ref = RuleRef(request.rule_id)
     with _RULE_MUTATION_LOCK, repo.mutation_guard():
         existing = repo.families.rules.load(ref)
         if existing is None:
-            raise RuleFileNotFoundError(request.file)
+            raise RuleNotFoundError(request.rule_id)
 
-        relpath = repo.families.rules.address(ref).require_path()
-        filepath = repo.root / relpath
-
-        if not any(entry.id == request.rule_id for entry in existing.rules):
-            raise RuleNotFoundError(request.file, request.rule_id)
-
-        referencing_pairs = tuple(
-            pair for pair in existing.superiority if request.rule_id in pair
-        )
-        if referencing_pairs:
-            raise RuleReferencedError(
-                request.file, request.rule_id, referencing_pairs
-            )
-
-        remaining = tuple(
-            entry for entry in existing.rules if entry.id != request.rule_id
-        )
-        document = RulesFileDocument(
-            source=existing.source,
-            rules=remaining,
-            superiority=existing.superiority,
-        )
-
-        repo.families.rules.save(
+        filepath = repo.root / repo.families.rules.address(ref).require_path()
+        repo.families.rules.delete(
             ref,
-            document,
-            message=f"Remove rule {request.rule_id} from {request.file}",
+            message=f"Remove rule {request.rule_id}",
         )
 
-    return RuleRemoveReport(
-        filepath=filepath,
-        rule_id=request.rule_id,
-        removed=True,
-    )
+    return RuleRemoveReport(filepath=filepath, rule_id=request.rule_id, removed=True)
+
+
+def add_rule_superiority(
+    repo: Repository,
+    request: RuleSuperiorityAddRequest,
+) -> RuleSuperiorityReport:
+    raise RuleWorkflowError("rule superiority artifacts are not implemented yet")
 
 
 def remove_rule_superiority(
     repo: Repository,
     request: RuleSuperiorityRemoveRequest,
 ) -> RuleSuperiorityReport:
-    """Remove a ``(superior, inferior)`` rule-priority pair."""
-    ref = RuleFileRef(request.file)
-    with _RULE_MUTATION_LOCK, repo.mutation_guard():
-        existing = repo.families.rules.load(ref)
-        if existing is None:
-            raise RuleFileNotFoundError(request.file)
-
-        pair = (request.superior_rule_id, request.inferior_rule_id)
-        if pair not in existing.superiority:
-            raise RuleSuperiorityPairNotFoundError(
-                request.file,
-                request.superior_rule_id,
-                request.inferior_rule_id,
-            )
-
-        document = RulesFileDocument(
-            source=existing.source,
-            rules=existing.rules,
-            superiority=tuple(
-                entry for entry in existing.superiority if entry != pair
-            ),
-            promoted_from_sha=existing.promoted_from_sha,
-        )
-
-        repo.families.rules.save(
-            ref,
-            document,
-            message=(
-                f"Remove superiority {request.superior_rule_id} > "
-                f"{request.inferior_rule_id} from {request.file}"
-            ),
-        )
-
-        filepath = repo.root / repo.families.rules.address(ref).require_path()
-    return RuleSuperiorityReport(
-        filepath=filepath,
-        superior_rule_id=request.superior_rule_id,
-        inferior_rule_id=request.inferior_rule_id,
-    )
+    raise RuleWorkflowError("rule superiority artifacts are not implemented yet")

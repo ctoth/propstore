@@ -47,10 +47,10 @@ from types import MappingProxyType
 import gunray
 
 from argumentation.aspic import GroundAtom, Scalar
+from propstore.families.documents.rules import RuleDocument
 from propstore.grounding.bundle import GroundedRulesBundle, GroundingProjectionFrame
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import translate_to_theory
-from propstore.rule_files import LoadedRuleFile
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system
 # ``{YES, NO, UNDECIDED, UNKNOWN}`` maps onto gunray's four named
@@ -67,7 +67,7 @@ _FOUR_SECTIONS: tuple[str, ...] = (
 
 
 def ground(
-    rule_files: Sequence[LoadedRuleFile],
+    rules: Sequence[RuleDocument],
     facts: tuple[GroundAtom, ...],
     registry: PredicateRegistry,
     *,
@@ -106,10 +106,8 @@ def ground(
        and the ground model travel together through the pipeline).
 
     Args:
-        rule_files: Sequence of ``LoadedRuleFile`` envelopes. Each
-            carries an ordered tuple of ``RuleDocument`` values; rule
-            order is preserved across the YAML round-trip because
-            authored order can carry preference information downstream.
+        rules: Sequence of ``RuleDocument`` artifacts. Rule order is
+            the repository iteration order.
             May be empty — Diller, Borg, Bex 2025 §3: the empty program
             is a valid Datalog input.
         facts: Tuple of ``GroundAtom`` values as produced by
@@ -146,7 +144,7 @@ def ground(
 
     # Step 1: translate propstore documents into the gunray schema.
     # Diller, Borg, Bex 2025 §3 Definition 7 shape.
-    theory = translate_to_theory(rule_files, facts, registry)
+    theory = translate_to_theory(rules, facts, registry)
 
     # Step 2: run gunray. Garcia & Simari 2004 §4 (p.25) computes the
     # four-valued answer system here; the ``policy`` keyword selects
@@ -162,7 +160,7 @@ def ground(
     except gunray.EnumerationExceeded as exc:
         partial_trace = exc.partial_trace
         return GroundedRulesBundle(
-            source_rules=tuple(rule_files),
+            source_rules=tuple(rules),
             source_facts=facts,
             sections=_normalise_sections({}),
             arguments=_sort_arguments(tuple(exc.partial_arguments)),
@@ -201,7 +199,7 @@ def ground(
     # 2025 §3: the rule base and fact base travel with the model so
     # downstream consumers retain full provenance.
     return GroundedRulesBundle(
-        source_rules=tuple(rule_files),
+        source_rules=tuple(rules),
         source_facts=facts,
         sections=normalized_sections,
         arguments=sorted_arguments,

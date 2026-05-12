@@ -7,9 +7,9 @@ from dataclasses import dataclass
 import gunray
 from argumentation.aspic import GroundAtom, Scalar
 
+from propstore.families.documents.rules import RuleDocument
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import translate_to_theory
-from propstore.rule_files import LoadedRuleFile
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class GroundingTextExplanation:
 
 
 def build_grounding_text_explanation(
-    rule_files: tuple[LoadedRuleFile, ...],
+    rules: tuple[RuleDocument, ...],
     facts: tuple[GroundAtom, ...],
     registry: PredicateRegistry,
     atom: GroundAtom,
@@ -36,7 +36,7 @@ def build_grounding_text_explanation(
     and typed report envelope.
     """
 
-    theory = translate_to_theory(rule_files, facts, registry)
+    theory = translate_to_theory(rules, facts, registry)
     evaluator = gunray.GunrayEvaluator()
     _, trace = evaluator.evaluate_with_trace(theory, marking_policy=marking_policy)
 
