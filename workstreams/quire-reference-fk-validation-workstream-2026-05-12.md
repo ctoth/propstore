@@ -134,6 +134,10 @@ index = FamilyReferenceIndex.from_records(
 
 artifact_id = index.require_id("claim:local-handle")
 maybe_id = index.resolve_id("claim:local-handle")
+resolution = index.resolve(
+    "claim:local-handle",
+    match_kind=lambda key, requested, record: ("logical_id", "source-local"),
+)
 ```
 
 Add:
@@ -150,6 +154,9 @@ Rules:
 - callback keys are explicit and local to the caller
 - Quire does not know about Propstore claims, concepts, sources, or handles
 - the index maps references to artifact ids, not loaded artifact objects
+- `FamilyReferenceIndex.resolve(..., match_kind=...)` exposes the same optional
+  provenance callback as the lower-level reference index, so consumers do not
+  add per-type wrapper functions solely to preserve match provenance
 
 Hypothesis properties:
 
@@ -422,6 +429,8 @@ Delete or replace:
 - `propstore/compiler/references.py::claim_exists`
 - `propstore/compiler/references.py::resolve_claim_reference`
 - `propstore/compiler/references.py::resolve_concept_reference`
+- `propstore/compiler/context.py::resolve_context_concept`
+- `propstore/compiler/context.py::resolve_context_claim`
 
 Relocate any non-reference semantic helper, such as concept-form lookup, to the
 owning compiler/context module instead of keeping `compiler/references.py` alive
@@ -431,7 +440,8 @@ Target replacement:
 
 - `CompilationContext` receives or builds Quire family reference indexes for
   canonical claims and concepts
-- compiler checks call Quire `require_id` or `resolve_id`
+- compiler checks call Quire `require_id`, `resolve_id`, or
+  `resolve(..., match_kind=...)` directly
 - FK extraction comes from Quire family declarations, not a Propstore duplicate
   table
 
@@ -450,6 +460,8 @@ Search gates:
 - `rg -F "foreign_keys_from_context" propstore tests` returns no refs
 - `rg -F "concept_exists" propstore tests` returns no production refs
 - `rg -F "claim_exists" propstore tests` returns no production refs
+- `rg -F "resolve_context_concept" propstore tests` returns no refs
+- `rg -F "resolve_context_claim" propstore tests` returns no refs
 
 Required gates:
 
@@ -467,6 +479,9 @@ Delete or replace:
 
 - `propstore/sidecar/claim_utils.py::collect_claim_reference_map`
 - `propstore/sidecar/claim_utils.py::resolve_claim_reference`
+- `propstore/sidecar/claim_utils.py::extract_deferred_stance_rows_with_diagnostics`
+  map-based claim resolution and `valid_claim_ids = set(...)` validation
+- `propstore/sidecar/passes.py::compile_claim_reference_map`
 - `claim_reference_map` parameters in sidecar build passes
 - `valid_claims = set(claim_reference_map.values())` style validation
 
@@ -476,6 +491,10 @@ Target replacement:
   from canonical loaded claim artifacts
 - sidecar passes use index resolution for storage references
 - sidecar runtime query indexes remain sidecar-owned
+- sidecar row-shaping helpers such as `prepare_claim_insert_row` remain, but
+  any storage-reference resolution in `claim_utils.py` moves to Quire indexes
+- concept registry resolution in `claim_utils.py` is Phase 11 scope when it is
+  storage identity lookup rather than row description/rendering metadata
 
 Hypothesis tests:
 
@@ -521,6 +540,8 @@ Known areas:
 
 - `propstore/source/registry.py`
 - `propstore/app/concepts/mutation.py`
+- `propstore/sidecar/claim_utils.py`
+- `propstore/sidecar/concept_utils.py`
 - any source concept tests that assert bespoke alias collision errors
 
 Target replacement:
