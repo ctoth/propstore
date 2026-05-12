@@ -785,23 +785,24 @@ class TestPreferenceConfig:
 
         csaf = build_bridge_csaf([], [], [], bundle=bundle)
 
-        rule_order_names = {
-            (weaker.name, stronger.name)
-            for weaker, stronger in csaf.pref.rule_order
-        }
+        assert all(
+            rule.name is not None and "#" not in rule.name
+            for pair in csaf.pref.rule_order
+            for rule in pair
+        )
         assert any(
-            weaker is not None
-            and stronger is not None
-            and weaker.startswith("r1#")
-            and stronger.startswith("r2#")
-            for weaker, stronger in rule_order_names
+            weaker.consequent.atom.predicate == "flies"
+            and not weaker.consequent.negated
+            and stronger.consequent.atom.predicate == "flies"
+            and stronger.consequent.negated
+            for weaker, stronger in csaf.pref.rule_order
         )
         assert not any(
-            weaker is not None
-            and stronger is not None
-            and weaker.startswith("r2#")
-            and stronger.startswith("r1#")
-            for weaker, stronger in rule_order_names
+            weaker.consequent.atom.predicate == "flies"
+            and weaker.consequent.negated
+            and stronger.consequent.atom.predicate == "flies"
+            and not stronger.consequent.negated
+            for weaker, stronger in csaf.pref.rule_order
         )
 
 
