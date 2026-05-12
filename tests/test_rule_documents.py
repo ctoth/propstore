@@ -1,9 +1,7 @@
-"""Property tests for RuleDocument / RulesFileDocument YAML schema.
+"""Property tests for rule and rule-superiority artifact YAML schemas.
 
-These tests describe the contract for the DeLP-style rule document types
-that will live in `propstore/rule_documents.py`. The module does not yet
-exist — imports are deferred into the test bodies so pytest can collect
-this file cleanly while every test fails at run time with ImportError.
+These tests describe the contract for the DeLP-style rule artifact document
+types in `propstore.families.documents.rules`.
 
 Theoretical source:
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
@@ -181,28 +179,32 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
     return _build()
 
 
-def rules_file_documents() -> st.SearchStrategy:
-    """Strategy producing well-formed RulesFileDocument envelopes.
-
-    Mirrors the ClaimsFileDocument shape from
-    `propstore/artifacts/documents/claims.py`: a source block plus an
-    ordered tuple of rule documents.
-    """
+def rule_superiority_documents() -> st.SearchStrategy:
+    """Strategy producing first-class rule-superiority artifacts."""
     from propstore.families.documents.rules import (  # noqa: E402
-        RulesFileDocument,
         RuleSourceDocument,
+        RuleSuperiorityDocument,
     )
 
-    source_strategy = st.builds(
-        RuleSourceDocument,
-        paper=st.sampled_from(
-            ["Garcia_2004_DefeasibleLogicProgramming", "example/paper", "test/fixture"]
+    source_strategy = st.one_of(
+        st.none(),
+        st.builds(
+            RuleSourceDocument,
+            paper=st.sampled_from(
+                ["Garcia_2004_DefeasibleLogicProgramming", "example/paper", "test/fixture"]
+            ),
         ),
     )
+    rule_ids = st.text(
+        alphabet=st.characters(whitelist_categories=("Ll", "Nd")),
+        min_size=1,
+        max_size=10,
+    ).map(lambda s: f"rule:{s}")
     return st.builds(
-        RulesFileDocument,
+        RuleSuperiorityDocument,
+        superior_rule_id=rule_ids,
+        inferior_rule_id=rule_ids,
         source=source_strategy,
-        rules=st.lists(rule_documents(), min_size=0, max_size=4).map(tuple),
     )
 
 
@@ -229,20 +231,14 @@ def test_rule_document_yaml_round_trip(doc) -> None:
 
 
 @pytest.mark.property
-@given(doc=st.deferred(rules_file_documents))
+@given(doc=st.deferred(rule_superiority_documents))
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_rules_file_document_yaml_round_trip(doc) -> None:
-    """Same round-trip property at the file-envelope level.
-
-    The RulesFileDocument envelope parallels ClaimsFileDocument
-    (``propstore/artifacts/documents/claims.py``). Round-tripping a whole
-    file must be idempotent under strict decoding so authored YAML and
-    re-encoded YAML agree structurally.
-    """
-    from propstore.families.documents.rules import RulesFileDocument  # noqa: E402
+def test_rule_superiority_document_yaml_round_trip(doc) -> None:
+    """Encoding then decoding a RuleSuperiorityDocument is idempotent."""
+    from propstore.families.documents.rules import RuleSuperiorityDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
-    decoded = msgspec.yaml.decode(encoded, type=RulesFileDocument, strict=True)
+    decoded = msgspec.yaml.decode(encoded, type=RuleSuperiorityDocument, strict=True)
     assert decoded == doc
 
 
@@ -435,127 +431,39 @@ body:
     assert doc.head.predicate == "flies"
 
 
-@pytest.mark.property
-@given(file_doc=st.deferred(rules_file_documents))
-@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_rules_file_document_preserves_rule_order(file_doc) -> None:
-    """Rules in a file preserve their declared order across round-trip.
-
-    Rule order matters for preference construction in structured
-    argumentation: Modgil & Prakken 2018 (§Def 13) invokes last-link
-    over the last defeasible rule in an argument, so the authored order
-    in a rules file can carry implicit preference information that must
-    not be scrambled by YAML encoding.
-    """
-    from propstore.families.documents.rules import RulesFileDocument  # noqa: E402
-
-    encoded = msgspec.yaml.encode(file_doc)
-    decoded = msgspec.yaml.decode(encoded, type=RulesFileDocument, strict=True)
-    assert tuple(r.id for r in decoded.rules) == tuple(r.id for r in file_doc.rules)
-
-
-def test_rules_file_document_preserves_authored_superiority() -> None:
-    """Authored superiority pairs round-trip at the file-envelope level.
-
-    Garcia & Simari 2004 §3 includes a superiority relation over rules.
-    The rule-file surface carries it explicitly as ``[superior, inferior]``
-    pairs so priority semantics do not depend on incidental YAML order.
-    """
+def test_rule_superiority_document_preserves_authored_pair() -> None:
+    """Authored priority pairs round-trip as first-class artifacts."""
     from propstore.families.documents.rules import (  # noqa: E402
-        AtomDocument,
-        BodyLiteralDocument,
-        RuleDocument,
-        RulesFileDocument,
         RuleSourceDocument,
+        RuleSuperiorityDocument,
     )
 
-    head = AtomDocument(predicate="flies")
-    file_doc = RulesFileDocument(
+    document = RuleSuperiorityDocument(
+        superior_rule_id="r2",
+        inferior_rule_id="r1",
         source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
-        rules=(
-            RuleDocument(id="r1", kind="defeasible", head=head),
-            RuleDocument(id="r2", kind="defeasible", head=head),
-        ),
-        superiority=(("r2", "r1"),),
     )
 
-    encoded = msgspec.yaml.encode(file_doc)
-    decoded = msgspec.yaml.decode(encoded, type=RulesFileDocument, strict=True)
+    encoded = msgspec.yaml.encode(document)
+    decoded = msgspec.yaml.decode(encoded, type=RuleSuperiorityDocument, strict=True)
 
-    assert decoded.superiority == (("r2", "r1"),)
+    assert decoded.superior_rule_id == "r2"
+    assert decoded.inferior_rule_id == "r1"
+    assert decoded.source == document.source
 
 
-def test_rules_file_document_rejects_malformed_superiority_pair() -> None:
-    """A superiority entry must be exactly two rule ids."""
-    from propstore.families.documents.rules import RulesFileDocument  # noqa: E402
+def test_rule_superiority_document_rejects_unknown_fields() -> None:
+    """Rule-superiority artifacts do not carry hidden bucket fields."""
+    from propstore.families.documents.rules import RuleSuperiorityDocument  # noqa: E402
 
     invalid_yaml = b"""
-source:
-  paper: Garcia_2004_DefeasibleLogicProgramming
-rules: []
+superior_rule_id: r2
+inferior_rule_id: r1
 superiority:
-  - [r2, r1, extra]
+  - [r2, r1]
 """
     with pytest.raises(msgspec.ValidationError):
-        msgspec.yaml.decode(invalid_yaml, type=RulesFileDocument, strict=True)
-
-
-def test_loaded_rule_file_from_loaded_document() -> None:
-    """LoadedRuleFile wraps LoadedDocument[RulesFileDocument].
-
-    Mirrors the typed loaded-document wrapper pattern used by the document
-    loaders. Constructing a
-    ``LoadedDocument[RulesFileDocument]`` manually and wrapping it via
-    ``LoadedRuleFile.from_loaded_document`` must expose:
-      - ``filename`` / ``source_path`` / ``knowledge_root`` metadata
-        carried over from the underlying LoadedDocument
-      - ``.rules`` property returning the underlying tuple unchanged
-    """
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.rules import (  # noqa: E402
-        AtomDocument,
-        BodyLiteralDocument,
-        RuleDocument,
-        RulesFileDocument,
-        RuleSourceDocument,
-        TermDocument,
-    )
-    from propstore.rule_files import LoadedRuleFile
-
-    rule = RuleDocument(
-        id="rule:birds-fly",
-        kind="defeasible",
-        head=AtomDocument(
-            predicate="flies",
-            terms=(TermDocument(kind="var", name="X"),),
-            negated=False,
-        ),
-        body=(
-            BodyLiteralDocument(
-                kind="positive",
-                atom=AtomDocument(
-                    predicate="bird",
-                    terms=(TermDocument(kind="var", name="X"),),
-                    negated=False,
-                ),
-            ),
-        ),
-    )
-    file_doc = RulesFileDocument(
-        source=RuleSourceDocument(paper="Garcia_2004_DefeasibleLogicProgramming"),
-        rules=(rule,),
-    )
-    loaded = LoadedDocument(
-        filename="birds",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    wrapped = LoadedRuleFile.from_loaded_document(loaded)
-
-    assert wrapped.filename == "birds"
-    assert wrapped.rules == (rule,)
-    assert wrapped.document is file_doc
+        msgspec.yaml.decode(invalid_yaml, type=RuleSuperiorityDocument, strict=True)
 
 
 def test_rule_document_fact_is_strict_rule_with_empty_body() -> None:

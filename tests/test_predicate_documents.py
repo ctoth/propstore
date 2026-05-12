@@ -1,4 +1,4 @@
-"""Property tests for PredicateDocument / PredicatesFileDocument YAML schema.
+"""Property tests for PredicateDocument artifact YAML schema.
 
 These tests describe the contract for the typed predicate-declaration
 documents that live in
@@ -142,23 +142,6 @@ def predicate_documents() -> st.SearchStrategy:
     return _build()
 
 
-def predicates_file_documents() -> st.SearchStrategy:
-    """Strategy producing well-formed PredicatesFileDocument envelopes.
-
-    Mirrors the ``RulesFileDocument`` envelope shape from
-    ``propstore/rule_documents.py``: a flat ordered tuple of predicate
-    documents. Order matters because authored order is the only stable
-    way to anchor authoring intent across re-encoding.
-    """
-
-    from propstore.families.documents.predicates import PredicatesFileDocument  # noqa: E402
-
-    return st.builds(
-        PredicatesFileDocument,
-        predicates=st.lists(predicate_documents(), min_size=0, max_size=4).map(tuple),
-    )
-
-
 # ── Property tests ─────────────────────────────────────────────────
 
 
@@ -177,24 +160,6 @@ def test_predicate_document_yaml_round_trip(doc) -> None:
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=PredicateDocument, strict=True)
-    assert decoded == doc
-
-
-@pytest.mark.property
-@given(doc=st.deferred(predicates_file_documents))
-@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_predicates_file_document_yaml_round_trip(doc) -> None:
-    """File envelope round-trip is idempotent.
-
-    Mirrors the ``RulesFileDocument`` round-trip property
-    (``tests/test_rule_documents.py``); a fully-loaded predicates file
-    must re-encode to a payload that decodes back to an equal document.
-    """
-
-    from propstore.families.documents.predicates import PredicatesFileDocument  # noqa: E402
-
-    encoded = msgspec.yaml.encode(doc)
-    decoded = msgspec.yaml.decode(encoded, type=PredicatesFileDocument, strict=True)
     assert decoded == doc
 
 
@@ -324,58 +289,16 @@ arg_types: [Bird]
     assert doc.description is None
 
 
-def test_loaded_predicate_file_from_loaded_document() -> None:
-    """LoadedPredicateFile wraps ``LoadedDocument[PredicatesFileDocument]``.
+def test_predicate_document_rejects_bucket_fields() -> None:
+    """A predicate artifact is one declaration, not a bucket envelope."""
 
-    Mirrors the ``LoadedRuleFile.from_loaded_document`` pattern from
-    ``propstore/rule_files.py``: build a ``LoadedDocument`` directly,
-    wrap it via the classmethod, and confirm metadata propagates plus
-    the ``.predicates`` accessor returns the inner tuple unchanged. The
-    Garcia & Simari 2004 §3 ``bird/1`` predicate is the payload.
-    """
+    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
 
-    from quire.documents import LoadedDocument
-    from propstore.families.documents.predicates import (  # noqa: E402
-        PredicateDocument,
-        PredicatesFileDocument,
-    )
-    from propstore.predicate_files import LoadedPredicateFile  # noqa: E402
-
-    predicate = PredicateDocument(
-        id="bird",
-        arity=1,
-        arg_types=("Bird",),
-        derived_from="concept.relation:is_a:Bird",
-        description="Unary predicate: X is a bird",
-    )
-    file_doc = PredicatesFileDocument(predicates=(predicate,))
-    loaded = LoadedDocument(
-        filename="birds",
-        artifact_path=None,
-        store_root=None,
-        document=file_doc,
-    )
-    wrapped = LoadedPredicateFile.from_loaded_document(loaded)
-
-    assert wrapped.filename == "birds"
-    assert wrapped.predicates == (predicate,)
-    assert wrapped.document is file_doc
-
-
-@pytest.mark.property
-@given(file_doc=st.deferred(predicates_file_documents))
-@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-def test_predicates_file_document_preserves_order(file_doc) -> None:
-    """Authored order of predicates survives YAML round-trip.
-
-    Diller et al. 2025 §3 builds the Datalog schema in the order
-    declarations are encountered; the file envelope therefore must
-    preserve order across encode/decode so authoring intent does not
-    silently scramble.
-    """
-
-    from propstore.families.documents.predicates import PredicatesFileDocument  # noqa: E402
-
-    encoded = msgspec.yaml.encode(file_doc)
-    decoded = msgspec.yaml.decode(encoded, type=PredicatesFileDocument, strict=True)
-    assert tuple(p.id for p in decoded.predicates) == tuple(p.id for p in file_doc.predicates)
+    yaml_with_bucket_field = b"""
+id: bird
+arity: 1
+arg_types: [Bird]
+predicates: []
+"""
+    with pytest.raises(msgspec.ValidationError):
+        msgspec.yaml.decode(yaml_with_bucket_field, type=PredicateDocument, strict=True)

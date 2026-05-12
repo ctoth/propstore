@@ -6,7 +6,7 @@ from pathlib import Path
 from propstore.app.contexts import ContextAddRequest, ContextWorkflowError, add_context
 from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
-from propstore.families.registry import ContextRef, PredicateFileRef, RuleFileRef
+from propstore.families.registry import ContextRef, PredicateRef, RuleRef
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from propstore.source import promote_source_branch
@@ -117,7 +117,7 @@ def test_concurrent_context_add_duplicate_name_loses_cleanly(tmp_path: Path) -> 
     assert repo.families.contexts.require(ContextRef("race")).id == "race"
 
 
-def test_concurrent_predicate_adds_to_same_file_both_commit(tmp_path: Path) -> None:
+def test_concurrent_predicate_adds_to_same_authoring_group_both_commit(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     start = threading.Barrier(3)
     failures: list[BaseException] = []
@@ -148,11 +148,11 @@ def test_concurrent_predicate_adds_to_same_file_both_commit(tmp_path: Path) -> N
         thread.join(timeout=5)
 
     assert failures == []
-    document = repo.families.predicates.require(PredicateFileRef("race"))
-    assert {entry.id for entry in document.predicates} == {"p_first", "p_second"}
+    assert repo.families.predicates.require(PredicateRef("p_first")).id == "p_first"
+    assert repo.families.predicates.require(PredicateRef("p_second")).id == "p_second"
 
 
-def test_concurrent_rule_adds_to_same_file_both_commit(tmp_path: Path) -> None:
+def test_concurrent_rule_adds_to_same_authoring_group_both_commit(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     add_predicate(
         repo,
@@ -193,8 +193,8 @@ def test_concurrent_rule_adds_to_same_file_both_commit(tmp_path: Path) -> None:
         thread.join(timeout=5)
 
     assert failures == []
-    document = repo.families.rules.require(RuleFileRef("race"))
-    assert {entry.id for entry in document.rules} == {"r_first", "r_second"}
+    assert repo.families.rules.require(RuleRef("r_first")).id == "r_first"
+    assert repo.families.rules.require(RuleRef("r_second")).id == "r_second"
 
 
 def test_sidecar_build_serializes_with_source_promote(
