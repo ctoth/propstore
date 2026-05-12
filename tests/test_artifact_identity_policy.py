@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from propstore.families.registry import ConceptFileRef
+from propstore.families.forms.documents import FormDocument
 from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,
 )
+from propstore.families.registry import ConceptFileRef, FormRef
 from propstore.repository import Repository
 
 
@@ -29,6 +30,11 @@ def test_normalize_canonical_concept_payload_preserves_propstore_handle_and_upda
 
 def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    repo.families.forms.save(
+        FormRef("structural"),
+        FormDocument(name="structural", dimensionless=True),
+        message="Seed structural form",
+    )
     ref = ConceptFileRef("demo")
     document = repo.families.concepts.coerce(
         normalize_canonical_concept_payload({
