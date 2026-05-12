@@ -21,11 +21,7 @@ _NAME = st.from_regex(r"[a-z][a-z0-9_]{0,10}", fullmatch=True)
 
 
 def _predicate_ids(repo: Repository) -> list[str]:
-    ids: list[str] = []
-    for handle in repo.families.predicates.iter_handles():
-        for predicate in handle.document.predicates:
-            ids.append(predicate.id)
-    return ids
+    return [handle.document.id for handle in repo.families.predicates.iter_handles()]
 
 
 @pytest.mark.property
@@ -58,7 +54,7 @@ def test_generated_predicate_add_rejects_global_duplicate_ids(
             )
 
         assert _predicate_ids(repo).count(predicate_id) == 1
-        PredicateRegistry.from_files(
+        PredicateRegistry.from_documents(
             tuple(handle.document for handle in repo.families.predicates.iter_handles())
         )
 
@@ -111,6 +107,6 @@ def test_generated_concurrent_predicate_adds_do_not_leave_duplicate_ids(
         assert len(outcomes) == 2
         assert outcomes.count("success") == 1
         assert _predicate_ids(repo).count(predicate_id) == 1
-        PredicateRegistry.from_files(
+        PredicateRegistry.from_documents(
             tuple(handle.document for handle in repo.families.predicates.iter_handles())
         )
