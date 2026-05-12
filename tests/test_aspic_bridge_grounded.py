@@ -266,6 +266,26 @@ def test_empty_bundle_produces_empty_rule_sets(bundle) -> None:
     assert out_literals == {}
 
 
+def test_project_grounded_rules_exposes_structured_origins() -> None:
+    from propstore.aspic_bridge import project_grounded_rules
+
+    body = (_atom("bird", (_var("X"),)),)
+    head = _atom("flies", (_var("X"),))
+    rule = _rule_doc("rule:birds-fly", "defeasible", head, body=body)
+    bundle = _bundle(rules=(rule,), yes={"bird": frozenset({("tweety",)})})
+
+    projection = project_grounded_rules(bundle, {})
+    (ground_rule,) = tuple(projection.defeasible_rules)
+    origin = projection.origins[ground_rule]
+
+    assert ground_rule.name == "gr0"
+    assert "#" not in ground_rule.name
+    assert "rule:birds-fly" not in ground_rule.name
+    assert origin.source_rule_id == "rule:birds-fly"
+    assert origin.substitution == (("X", "tweety"),)
+    assert origin.role == "ground"
+
+
 @pytest.mark.property
 @given(_single_unary_rule_bundle())
 @settings(deadline=None, suppress_health_check=[HealthCheck.function_scoped_fixture])

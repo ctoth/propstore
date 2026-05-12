@@ -396,13 +396,22 @@ def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
         return_arguments=True,
     )
 
-    _strict, defeasible, _literals = grounded_rules_to_rules(bundle, {})
+    projection = grounded_rules_to_rules(bundle, {})
+    defeasible = projection.defeasible_rules
 
-    target_name = next(rule.name for rule in defeasible if rule.name and rule.name.startswith("birds_fly#"))
-    assert any(
-        rule.consequent == Literal(GroundAtom(target_name), negated=True)
+    target_rule = next(
+        rule
         for rule in defeasible
-        if rule.name and rule.name.startswith("named-defeater#")
+        if projection.origins[rule].source_rule_id == "birds_fly"
+        and projection.origins[rule].role == "ground"
+    )
+    assert target_rule.name is not None
+    assert "#" not in target_rule.name
+    assert any(
+        rule.consequent == Literal(GroundAtom(target_rule.name), negated=True)
+        and projection.origins[rule].source_rule_id == "named-defeater"
+        and projection.origins[rule].role == "undercut"
+        for rule in defeasible
     )
 
 

@@ -601,6 +601,11 @@ class TestGroundedRuleInterventions:
         ids = {item.target.intervention_id for item in ranked}
         assert any("tweety" in intervention_id for intervention_id in ids)
         assert any("opus" in intervention_id for intervention_id in ids)
+        assert all("#" not in item.target.payload.rule_name for item in ranked)
+        assert {
+            item.target.provenance.source_ids
+            for item in ranked
+        } == {("rule:birds-fly",)}
         assert all(item.target.kind is InterventionKind.GROUNDED_RULE for item in ranked)
 
     def test_grounded_rule_score_increases_when_undercuttable(self) -> None:
