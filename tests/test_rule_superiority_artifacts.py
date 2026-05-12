@@ -192,3 +192,20 @@ def test_translate_to_theory_consumes_rule_superiority_artifacts() -> None:
     theory = translate_to_theory((generic, specific), (), PredicateRegistry(()), superiority=(superiority,))
 
     assert theory.superiority == (("r2", "r1"),)
+
+
+def test_grounding_inputs_load_rule_superiority_artifacts(tmp_path) -> None:
+    from propstore.grounding.loading import load_grounding_inputs
+
+    repo = Repository.init(tmp_path / "knowledge")
+    _declare_rules(repo)
+    add_rule_superiority(
+        repo,
+        RuleSuperiorityAddRequest(file=None, superior_rule_id="r_b", inferior_rule_id="r_a"),
+    )
+
+    inputs = load_grounding_inputs(repo)
+
+    assert [(item.superior_rule_id, item.inferior_rule_id) for item in inputs.superiority] == [
+        ("r_b", "r_a")
+    ]
