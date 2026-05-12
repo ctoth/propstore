@@ -10,16 +10,16 @@ dependencies = [
     "pyyaml>=6.0",
     "rich>=13.7",
     "lark>=1.2.2",
-    "cel-parser",
+    "cel-parser @ git+https://github.com/ctoth/cel-parser.git@96fc4808ef78257ea03549e6298629a9583865c8",
     "sympy>=1.14.0",
     "z3-solver>=4.12",
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@b7423889daef74154193317099ae9992ecbcd958",
-    "formal-argumentation",
+    "formal-argumentation @ git+https://github.com/ctoth/argumentation.git@90dcbe29895337d593dfc681f2a60bfe8cb71718",
     "bridgman @ git+https://github.com/ctoth/bridgman@5eb6118bb2e346122aae6f7e3e9cd8581ec6c781",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
-    "gunray",
+    "gunray @ git+https://github.com/ctoth/gunray.git@a06da9c06a8c20262edec56f8a1f55dc1901781d",
     "quire @ git+https://github.com/ctoth/quire@618e4ca58f152775bc50defbe129db8b639437ce",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
@@ -37,11 +37,6 @@ embeddings = [
 
 [project.scripts]
 pks = "propstore.cli:cli"
-
-[tool.uv.sources]
-cel-parser = { git = "https://github.com/ctoth/cel-parser.git", rev = "96fc4808ef78257ea03549e6298629a9583865c8" }
-formal-argumentation = { git = "https://github.com/ctoth/argumentation.git", rev = "90dcbe29895337d593dfc681f2a60bfe8cb71718" }
-gunray = { git = "https://github.com/ctoth/gunray.git", rev = "a06da9c06a8c20262edec56f8a1f55dc1901781d" }
 
 [build-system]
 requires = ["hatchling"]
