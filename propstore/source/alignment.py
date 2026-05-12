@@ -8,8 +8,9 @@ from itertools import product
 from typing import Any, cast
 
 from propstore.families.registry import (
-    CONCEPT_ALIGNMENT_FAMILY,
     CONCEPT_FILE_FAMILY,
+    PROPSTORE_FAMILY_REGISTRY,
+    PropstoreFamily,
     ConceptAlignmentRef,
     ConceptFileRef,
 )
@@ -58,7 +59,8 @@ def alignment_slug(value: str) -> str:
 
 
 def concept_proposal_branch(repo: Repository | None = None) -> str:
-    return CONCEPT_ALIGNMENT_FAMILY.address_for(
+    family = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.CONCEPT_ALIGNMENTS).artifact_family
+    return family.address_for(
         cast(Repository, object()) if repo is None else repo,
         ConceptAlignmentRef("placeholder"),
     ).branch
