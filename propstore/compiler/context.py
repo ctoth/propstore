@@ -2,21 +2,23 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping, cast
 
+from quire.references import FamilyReferenceIndex
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.cel_registry import build_canonical_cel_registry
-from propstore.claims import ClaimFileEntry
-from quire.references import (
-    extend_reference_lookup,
-    finalize_reference_lookup,
+from propstore.claims import (
+    ClaimFileEntry,
+    claim_file_claims,
+    claim_file_filename,
+    claim_file_source_paper,
 )
-from propstore.compiler.references import build_claim_reference_lookup
+from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.stages import (
     ConceptRecord,
     LoadedConcept,
@@ -40,17 +42,78 @@ class CompilationContext:
     form_registry: Mapping[str, FormDefinition]
     context_ids: frozenset[str]
     concepts_by_id: Mapping[str, ConceptRecord]
-    concept_lookup: Mapping[str, tuple[str, ...]]
-    claim_lookup: Mapping[str, tuple[str, ...]]
+    concept_index: FamilyReferenceIndex[ConceptRecord]
+    claim_index: FamilyReferenceIndex[CompilerClaimReference]
     cel_registry: Mapping[str, ConceptInfo]
+
+
+@dataclass(frozen=True)
+class CompilerClaimReference:
+    claim: ClaimDocument
+    source_paper: str
+
+    @property
+    def artifact_id(self) -> str | None:
+        return self.claim.artifact_id
 
 
 def _freeze_mapping(data: Mapping[str, Any]) -> Mapping[str, Any]:
     return MappingProxyType(dict(data))
 
 
-def _build_claim_lookup(claim_files: Sequence[ClaimFileEntry]) -> Mapping[str, tuple[str, ...]]:
-    return build_claim_reference_lookup(claim_files)
+def _compiler_claim_records(
+    claim_files: Sequence[ClaimFileEntry],
+) -> tuple[CompilerClaimReference, ...]:
+    records: list[CompilerClaimReference] = []
+    for claim_file in claim_files:
+        source_paper = claim_file_source_paper(claim_file) or claim_file_filename(claim_file)
+        records.extend(
+            CompilerClaimReference(claim=claim, source_paper=str(source_paper))
+            for claim in claim_file_claims(claim_file)
+        )
+    return tuple(records)
+
+
+def _claim_reference_keys(record: CompilerClaimReference) -> tuple[str, ...]:
+    keys: list[str] = []
+    raw_id = record.claim.id
+    if isinstance(raw_id, str) and raw_id:
+        from propstore.families.identity.logical_ids import (
+            normalize_identity_namespace,
+            normalize_logical_value,
+        )
+
+        keys.append(raw_id)
+        keys.append(
+            f"{normalize_identity_namespace(record.source_paper)}:"
+            f"{normalize_logical_value(raw_id)}"
+        )
+    for logical_id in record.claim.logical_ids:
+        keys.append(logical_id.formatted)
+        keys.append(logical_id.value)
+    return tuple(keys)
+
+
+def build_compiler_claim_index(
+    claim_files: Sequence[ClaimFileEntry],
+) -> FamilyReferenceIndex[CompilerClaimReference]:
+    return FamilyReferenceIndex.from_records(
+        _compiler_claim_records(claim_files),
+        family="claim",
+        artifact_id=lambda record: record.artifact_id,
+        keys=(_claim_reference_keys,),
+    )
+
+
+def _concept_reference_index(
+    records: Iterable[ConceptRecord],
+) -> FamilyReferenceIndex[ConceptRecord]:
+    return FamilyReferenceIndex.from_records(
+        records,
+        family="concept",
+        artifact_id=lambda record: str(record.artifact_id),
+        keys=(concept_reference_keys,),
+    )
 
 
 def _build_context_from_concepts(
@@ -61,25 +124,22 @@ def _build_context_from_concepts(
     context_ids: set[str] | None,
 ) -> CompilationContext:
     concepts_by_id: dict[str, ConceptRecord] = {}
-    concept_lookup: dict[str, list[str]] = {}
 
     for concept in concepts:
         record = concept.record
         artifact_id = str(record.artifact_id)
         concepts_by_id[artifact_id] = record
-        for key in concept_reference_keys(record):
-            extend_reference_lookup(concept_lookup, key, artifact_id)
 
-    finalized_lookup = finalize_reference_lookup(concept_lookup)
+    concept_index = _concept_reference_index(concepts_by_id.values())
     return CompilationContext(
         form_registry=_freeze_mapping(form_registry),
         context_ids=frozenset(context_ids or set()),
         concepts_by_id=MappingProxyType(dict(concepts_by_id)),
-        concept_lookup=finalized_lookup,
-        claim_lookup=(
-            MappingProxyType({})
+        concept_index=concept_index,
+        claim_index=(
+            build_compiler_claim_index(())
             if claim_files is None
-            else _build_claim_lookup(claim_files)
+            else build_compiler_claim_index(claim_files)
         ),
         cel_registry=_freeze_mapping(
             with_standard_synthetic_bindings(
@@ -159,14 +219,14 @@ def concept_registry_for_context(
 ) -> dict[str, dict[str, Any]]:
     return concept_registry_for_context_payloads(
         context.concepts_by_id,
-        context.concept_lookup,
+        context.concept_index,
         form_registry=context.form_registry,
     )
 
 
 def concept_registry_for_context_payloads(
     concepts_by_id: Mapping[str, ConceptRecord],
-    concept_lookup: Mapping[str, tuple[str, ...]],
+    concept_index: FamilyReferenceIndex[ConceptRecord],
     *,
     form_registry: Mapping[str, FormDefinition] | None = None,
 ) -> dict[str, dict[str, Any]]:
@@ -179,7 +239,7 @@ def concept_registry_for_context_payloads(
             payload["_form_definition"] = form_definition
         payloads_by_id[artifact_id] = payload
     registry.update(payloads_by_id)
-    for key, candidates in concept_lookup.items():
+    for key, candidates in concept_index.lookup.items():
         if len(candidates) != 1:
             continue
         payload = payloads_by_id.get(candidates[0])
