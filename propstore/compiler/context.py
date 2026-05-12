@@ -8,7 +8,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping, cast
 
-from quire.references import FamilyReferenceIndex, ReferenceIndex, ReferenceResolution
+from quire.references import FamilyReferenceIndex
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.cel_registry import build_canonical_cel_registry
@@ -156,34 +156,6 @@ def compiler_claim_match_kind(
         if logical_id.value == raw_text:
             return "logical_value", raw_text
     return None, None
-
-
-def resolve_context_concept(
-    context: CompilationContext,
-    reference: object,
-) -> ReferenceResolution | None:
-    return ReferenceIndex(
-        family=context.concept_index.family,
-        records_by_id=context.concept_index.records_by_id,
-        lookup=context.concept_index.lookup,
-    ).resolve(
-        reference,
-        match_kind=compiler_concept_match_kind,
-    )
-
-
-def resolve_context_claim(
-    context: CompilationContext,
-    reference: object,
-) -> ReferenceResolution | None:
-    return ReferenceIndex(
-        family=context.claim_index.family,
-        records_by_id=context.claim_index.records_by_id,
-        lookup=context.claim_index.lookup,
-    ).resolve(
-        reference,
-        match_kind=compiler_claim_match_kind,
-    )
 
 
 def _concept_reference_index(
