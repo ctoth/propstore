@@ -5,16 +5,15 @@ import importlib.util
 from pathlib import Path
 
 from quire.artifacts import ArtifactFamily
+from quire.families import FamilyRegistry
 from quire.references import ForeignKeySpec
 
 from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY,
     PropstoreFamily,
     semantic_address_path,
+    semantic_families,
     semantic_family_by_name,
-    semantic_family_by_root,
-    semantic_family_for_path,
-    semantic_family_names,
     semantic_foreign_keys,
     semantic_init_roots,
 )
@@ -22,7 +21,7 @@ from propstore.repository import Repository
 
 
 def test_semantic_registry_declares_complete_canonical_family_set() -> None:
-    assert set(semantic_family_names()) == {
+    assert {family.name for family in semantic_families()} == {
         "claims",
         "concepts",
         "contexts",
@@ -35,9 +34,14 @@ def test_semantic_registry_declares_complete_canonical_family_set() -> None:
         "worldlines",
     }
 
-    assert semantic_family_by_root("claims").name == "claims"
-    assert semantic_family_by_root("rules").name == "rules"
-    assert semantic_family_for_path("predicates/base.yaml").name == "predicates"
+    semantic_registry = FamilyRegistry(
+        name="propstore-semantic-test",
+        contract_version=PROPSTORE_FAMILY_REGISTRY.contract_version,
+        families=semantic_families(),
+    )
+    assert semantic_registry.by_storage_root("claims").name == "claims"
+    assert semantic_registry.by_storage_root("rules").name == "rules"
+    assert semantic_registry.family_for_path("predicates/base.yaml").name == "predicates"
 
 
 def test_semantic_registry_exposes_artifact_families_for_rules_and_predicates() -> None:
@@ -46,8 +50,8 @@ def test_semantic_registry_exposes_artifact_families_for_rules_and_predicates() 
 
     assert isinstance(rule.artifact_family, ArtifactFamily)
     assert isinstance(predicate.artifact_family, ArtifactFamily)
-    assert rule.artifact_family.placement.contract_body()["namespace"] == "rules"
-    assert predicate.artifact_family.placement.contract_body()["namespace"] == "predicates"
+    assert rule.storage_root() == "rules"
+    assert predicate.storage_root() == "predicates"
     assert rule.metadata and rule.metadata["collection_field"] is None
     assert predicate.metadata and predicate.metadata["collection_field"] is None
     assert "aggregate_decision" not in rule.metadata
@@ -64,7 +68,7 @@ def test_rule_family_target_model_is_one_semantic_artifact_per_file() -> None:
 
     assert artifact_family.doc_type is RuleDocument
     assert artifact_family.placement.ref_factory is RuleRef
-    assert placement["namespace"] == "rules"
+    assert canonical.storage_root() == "rules"
     assert placement["ref_field"] == "rule_id"
     assert placement["codec"] == "stem"
     assert canonical.metadata and canonical.metadata["collection_field"] is None
@@ -80,7 +84,7 @@ def test_rule_superiority_family_target_model_is_one_semantic_artifact_per_file(
 
     assert artifact_family.doc_type is RuleSuperiorityDocument
     assert artifact_family.placement.ref_factory is RuleSuperiorityRef
-    assert placement["namespace"] == "rule_superiority"
+    assert canonical.storage_root() == "rule_superiority"
     assert placement["ref_field"] == "artifact_id"
     assert placement["codec"] == "stem"
     assert canonical.metadata and canonical.metadata["collection_field"] is None
@@ -96,7 +100,7 @@ def test_predicate_family_target_model_is_one_semantic_artifact_per_file() -> No
 
     assert artifact_family.doc_type is PredicateDocument
     assert artifact_family.placement.ref_factory is PredicateRef
-    assert placement["namespace"] == "predicates"
+    assert canonical.storage_root() == "predicates"
     assert placement["ref_field"] == "predicate_id"
     assert placement["codec"] == "stem"
     assert canonical.metadata and canonical.metadata["collection_field"] is None
@@ -134,7 +138,7 @@ def test_stance_family_target_model_is_one_semantic_artifact_per_file() -> None:
 
         assert artifact_family.doc_type is StanceDocument
         assert artifact_family.placement.ref_factory is StanceRef
-        assert placement["namespace"] == "stances"
+        assert family.storage_root() == "stances"
         assert placement["ref_field"] == "artifact_id"
         assert placement["codec"] == "colon_to_double_underscore"
 
@@ -151,7 +155,7 @@ def test_justification_family_target_model_is_one_semantic_artifact_per_file() -
 
     assert artifact_family.doc_type is JustificationDocument
     assert artifact_family.placement.ref_factory is JustificationRef
-    assert placement["namespace"] == "justifications"
+    assert canonical.storage_root() == "justifications"
     assert placement["ref_field"] == "artifact_id"
     assert placement["codec"] == "colon_to_double_underscore"
     assert canonical.metadata is None or canonical.metadata.get("collection_field") is None
@@ -168,7 +172,7 @@ def test_micropub_family_target_model_is_one_semantic_artifact_per_file() -> Non
     assert artifact_family.doc_type is MicropublicationDocument
     assert artifact_family.placement.ref_factory is MicropublicationRef
     assert placement["kind"] == "hash-scattered-yaml"
-    assert placement["namespace"] == "micropubs"
+    assert canonical.storage_root() == "micropubs"
     assert placement["ref_field"] == "artifact_id"
     assert placement["codec"] == "base64url"
     assert placement["filename_mode"] == "encoded_ref"
@@ -185,7 +189,7 @@ def test_claim_family_target_model_is_one_semantic_artifact_per_file() -> None:
 
     assert artifact_family.doc_type is ClaimDocument
     assert artifact_family.placement.ref_factory is ClaimRef
-    assert placement["namespace"] == "claims"
+    assert canonical.storage_root() == "claims"
     assert placement["ref_field"] == "artifact_id"
     assert placement["codec"] == "colon_to_double_underscore"
     assert canonical.metadata and canonical.metadata["collection_field"] is None
@@ -201,7 +205,7 @@ def test_sameas_family_target_model_is_one_semantic_artifact_per_file() -> None:
 
     assert artifact_family.doc_type is SameAsAssertionDocument
     assert artifact_family.placement.ref_factory is SameAsAssertionRef
-    assert placement["namespace"] == "sameas"
+    assert canonical.storage_root() == "sameas"
     assert placement["ref_field"] == "artifact_id"
     assert placement["codec"] == "colon_to_double_underscore"
     assert canonical.metadata and canonical.metadata["collection_field"] is None
