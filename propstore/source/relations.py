@@ -70,6 +70,7 @@ def normalize_source_justifications_payload(
     data: SourceJustificationsDocument,
     *,
     claim_index: FamilyReferenceIndex[SourceClaimDocument],
+    primary_claim_index: FamilyReferenceIndex[Any] | None = None,
 ) -> SourceJustificationsDocument:
     normalized_justifications: list[SourceJustificationDocument] = []
     for index, justification in enumerate(data.justifications, start=1):
@@ -78,13 +79,21 @@ def normalize_source_justifications_payload(
         normalized = justification.to_payload()
         normalized["conclusion"] = claim_index.require_id(justification.conclusion)
         normalized["premises"] = [
-            claim_index.require_id(premise)
+            _require_source_or_primary_claim_id(
+                premise,
+                source=claim_index,
+                primary=primary_claim_index,
+            )
             for premise in justification.premises
         ]
         attack_target = justification.attack_target
         if attack_target is not None and attack_target.target_claim is not None:
             updated_target = attack_target.to_payload()
-            updated_target["target_claim"] = claim_index.require_id(attack_target.target_claim)
+            updated_target["target_claim"] = _require_source_or_primary_claim_id(
+                attack_target.target_claim,
+                source=claim_index,
+                primary=primary_claim_index,
+            )
             normalized["attack_target"] = updated_target
         normalized_justifications.append(
             convert_document_value(
@@ -111,6 +120,7 @@ def commit_source_justifications_batch(
     from datetime import datetime, timezone
 
     claim_index = build_source_claim_index(repo, source_name)
+    primary_claim_index = build_primary_claim_index(repo)
     raw = decode_document_path(justifications_file, SourceJustificationsDocument)
     if reader is not None:
         raw = SourceJustificationsDocument(
@@ -125,6 +135,7 @@ def commit_source_justifications_batch(
     normalized = normalize_source_justifications_payload(
         raw,
         claim_index=claim_index,
+        primary_claim_index=primary_claim_index,
     )
     return repo.families.source_justifications.save(
         SourceRef(source_name),
@@ -165,6 +176,25 @@ def normalize_source_stances_payload(
         stances=tuple(normalized_stances),
         produced_by=data.produced_by,
     )
+
+
+def _require_source_or_primary_claim_id(
+    reference: object,
+    *,
+    source: FamilyReferenceIndex[SourceClaimDocument],
+    primary: FamilyReferenceIndex[Any] | None,
+) -> str:
+    resolved = resolve_source_or_primary_claim_id(
+        reference,
+        source=source,
+        primary=primary,
+    )
+    if resolved is None:
+        if not isinstance(reference, str) or not reference:
+            raise ValueError("claim reference must be a non-empty string")
+        source.require_id(reference)  # raises Quire's typed missing error
+        raise AssertionError("unreachable")
+    return resolved
 
 
 def commit_source_stances_batch(
@@ -229,6 +259,7 @@ def commit_source_justification_proposal(
     for attempt in range(8):
         expected_head = current_source_branch_head(repo, source_name)
         claim_index = build_source_claim_index(repo, source_name)
+        primary_claim_index = build_primary_claim_index(repo)
         existing = load_source_justifications_document(repo, source_name) or SourceJustificationsDocument(justifications=())
         justifications = [entry for entry in existing.justifications if entry.id != just_id]
 
@@ -279,6 +310,7 @@ def commit_source_justification_proposal(
         normalized = normalize_source_justifications_payload(
             SourceJustificationsDocument(source=existing.source, justifications=tuple(justifications)),
             claim_index=claim_index,
+            primary_claim_index=primary_claim_index,
         )
 
         try:
