@@ -8,11 +8,10 @@ from typing import TYPE_CHECKING
 
 from propstore.families.documents.predicates import (
     PredicateDocument,
-    PredicatesFileDocument,
 )
 from propstore.families.registry import (
-    PredicateFileRef,
     PredicateProposalRef,
+    PredicateRef,
 )
 from propstore.proposals import UnknownProposalPath
 from propstore.app.predicates import (
@@ -27,6 +26,7 @@ if TYPE_CHECKING:
 @dataclass(frozen=True)
 class PredicateProposalPromotionItem:
     source_paper: str
+    predicate_id: str
     source_relpath: str
     target_path: Path
     filename: str
@@ -77,23 +77,32 @@ def plan_predicate_proposal_promotion(
     if ref is None:
         raise UnknownProposalPath(source_paper, tuple(sorted(available_by_paper)))
 
-    canonical_ref = PredicateFileRef(source_paper)
-    existing = repo.families.predicates.load(canonical_ref)
-    if existing is not None and existing.promoted_from_sha == proposal_tip:
+    proposal = repo.families.proposal_predicates.require(ref, commit=proposal_tip)
+    proposed_declarations = tuple(proposal.proposed_declarations)
+    existing = tuple(
+        repo.families.predicates.load(PredicateRef(declaration.name))
+        for declaration in proposed_declarations
+    )
+    if proposed_declarations and all(
+        document is not None and document.promoted_from_sha == proposal_tip
+        for document in existing
+    ):
         return PredicateProposalPromotionPlan(proposal_branch, proposal_tip, ())
 
     proposal_path = repo.families.proposal_predicates.address(ref).require_path()
-    target_path = repo.root / repo.families.predicates.address(canonical_ref).require_path()
     return PredicateProposalPromotionPlan(
         branch=proposal_branch,
         proposal_tip=proposal_tip,
-        items=(
+        items=tuple(
             PredicateProposalPromotionItem(
                 source_paper=source_paper,
+                predicate_id=declaration.name,
                 source_relpath=f"{proposal_branch}:{proposal_path}",
-                target_path=target_path,
-                filename="declarations.yaml",
-            ),
+                target_path=repo.root
+                / repo.families.predicates.address(PredicateRef(declaration.name)).require_path(),
+                filename=f"{declaration.name}.yaml",
+            )
+            for declaration in proposed_declarations
         ),
     )
 
@@ -107,27 +116,28 @@ def promote_predicate_proposals(
     if plan.proposal_tip is None:
         raise ValueError("predicate proposal promotion requires a proposal tip")
 
-    documents: list[tuple[PredicateFileRef, PredicatesFileDocument]] = []
+    documents: list[tuple[PredicateRef, PredicateDocument]] = []
     for item in plan.items:
         proposal_ref = PredicateProposalRef(item.source_paper)
         proposal = repo.families.proposal_predicates.require(
             proposal_ref,
             commit=plan.proposal_tip,
         )
-        canonical_ref = PredicateFileRef(item.source_paper)
+        declarations = {
+            declaration.name: declaration
+            for declaration in proposal.proposed_declarations
+        }
+        declaration = declarations[item.predicate_id]
+        canonical_ref = PredicateRef(item.predicate_id)
         documents.append(
             (
                 canonical_ref,
-                PredicatesFileDocument(
-                    predicates=tuple(
-                        PredicateDocument(
-                            id=declaration.name,
-                            arity=declaration.arity,
-                            arg_types=tuple(str(arg_type) for arg_type in declaration.arg_types),
-                            description=declaration.description,
-                        )
-                        for declaration in proposal.proposed_declarations
-                    ),
+                PredicateDocument(
+                    id=declaration.name,
+                    arity=declaration.arity,
+                    arg_types=tuple(str(arg_type) for arg_type in declaration.arg_types),
+                    description=declaration.description,
+                    authoring_group=item.source_paper,
                     promoted_from_sha=plan.proposal_tip,
                 ),
             )
@@ -146,7 +156,7 @@ def promote_predicate_proposals(
             )
 
         with head_txn.families_transact(
-            message=f"Promote {len(plan.items)} predicate proposal file(s) from {plan.branch}",
+            message=f"Promote {len(plan.items)} predicate proposal(s) from {plan.branch}",
         ) as transaction:
             for canonical_ref, document in documents:
                 transaction.predicates.save(canonical_ref, document)

@@ -1,7 +1,7 @@
-"""Typed document models for DeLP/Datalog predicate declaration files.
+"""Typed document models for DeLP/Datalog predicate declarations.
 
-This module hosts the authored-file schema for typed predicate
-declarations consumed by the grounding pipeline. Each predicate names a
+This module hosts the authored schema for typed predicate declarations
+consumed by the grounding pipeline. Each predicate artifact names a
 relation symbol, fixes its arity, and tags every argument position with
 a sort/concept that the grounder will use to enumerate well-typed
 substitutions.
@@ -29,11 +29,9 @@ Theoretical sources:
       ranges variables over.
 
 DocumentStruct conventions mirrored from
-``propstore.families.documents.rules`` and
 ``propstore.families.claims.documents``: ``msgspec.Struct`` with
-``kw_only=True, forbid_unknown_fields=True``, list-valued fields use
-``tuple[T, ...] = ()``, and round-tripping through ``msgspec.yaml`` is
-idempotent under strict decoding.
+``kw_only=True, forbid_unknown_fields=True`` and round-tripping through
+``msgspec.yaml`` is idempotent under strict decoding.
 """
 
 from __future__ import annotations
@@ -86,6 +84,10 @@ class PredicateDocument(DocumentStruct):
             propstore data materialises this predicate's ground atoms.
             Recognised forms live in ``propstore.grounding.predicates``.
         description: Human-readable explanation of the predicate.
+        authoring_group: Optional source/workflow grouping metadata. This
+            does not participate in canonical storage identity.
+        promoted_from_sha: Optional proposal branch commit that produced
+            this canonical predicate artifact.
     """
 
     id: str
@@ -93,6 +95,8 @@ class PredicateDocument(DocumentStruct):
     arg_types: tuple[str, ...] = ()
     derived_from: str | None = None
     description: str | None = None
+    authoring_group: str | None = None
+    promoted_from_sha: str | None = None
 
 
 class PredicateDeclaration(DocumentStruct):
@@ -135,20 +139,3 @@ class PredicateProposalDocument(DocumentStruct):
     extraction_date: str
     promoted_from_sha: str | None = None
 
-
-class PredicatesFileDocument(DocumentStruct):
-    """Top-level envelope for an authored predicates YAML file.
-
-    Mirrors the ``RulesFileDocument`` envelope shape from
-    ``propstore.families.documents.rules``: a flat ordered tuple of
-    predicate declarations. Order is preserved across YAML round-trip
-    because Diller, Borg, Bex 2025 §3 builds the Datalog schema in
-    declaration order — authored order is the only stable way to anchor
-    authoring intent across re-encoding.
-
-    Attributes:
-        predicates: Ordered tuple of predicate declarations.
-    """
-
-    predicates: tuple[PredicateDocument, ...] = ()
-    promoted_from_sha: str | None = None

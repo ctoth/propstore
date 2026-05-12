@@ -94,7 +94,7 @@ def inspect_grounding_surface(repo: "Repository") -> GroundingSurface:
     return GroundingSurface(
         predicate_files=tuple(
             sorted(
-                f"{ref.name}.yaml"
+                f"{ref.predicate_id}.yaml"
                 for ref in repo.families.predicates.iter()
             )
         ),

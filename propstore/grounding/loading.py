@@ -10,7 +10,6 @@ from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import GroundingFactInputs, extract_facts
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.predicate_files import LoadedPredicateFile
 from propstore.repository import Repository
 from propstore.rule_files import LoadedRuleFile
 
@@ -30,13 +29,8 @@ def load_grounding_inputs(
     """Load the repository inputs consumed by the grounding pipeline."""
 
     tree = repo.tree(commit=commit)
-    predicate_files = tuple(
-        LoadedPredicateFile(
-            filename=handle.ref.name,
-            artifact_path=tree / handle.address.require_path(),
-            store_root=tree,
-            document=handle.document,
-        )
+    predicates = tuple(
+        handle.document
         for handle in repo.families.predicates.iter_handles(commit=commit)
     )
     rule_files: tuple[LoadedRuleFile, ...] = tuple(
@@ -49,10 +43,10 @@ def load_grounding_inputs(
         for handle in repo.families.rules.iter_handles(commit=commit)
     )
 
-    if not predicate_files:
+    if not predicates:
         return GroundingInputs(rule_files=rule_files, facts=(), registry=None)
 
-    registry = PredicateRegistry.from_files(predicate_files)
+    registry = PredicateRegistry.from_documents(predicates)
     concepts = [
         LoadedConcept(
             filename=handle.ref.name,

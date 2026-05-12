@@ -196,12 +196,12 @@ contracts:
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
-  name: predicate_file
+  name: predicate
   contract_version: 2026.04.27
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.predicates.PredicatesFileDocument
+    doc_type: propstore.families.documents.predicates.PredicateDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -212,7 +212,7 @@ contracts:
       extension: .yaml
       kind: flat-yaml
       namespace: predicates
-      ref_field: name
+      ref_field: predicate_id
     render_document: null
     scan_type: null
     validate_for_write: null
@@ -1826,7 +1826,7 @@ contracts:
     module: propstore.families.documents.predicates
 - kind: document_schema
   name: PredicateDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.12
   body:
     fields:
     - name: id
@@ -1842,6 +1842,12 @@ contracts:
       required: true
       type: str | None
     - name: description
+      required: true
+      type: str | None
+    - name: authoring_group
+      required: true
+      type: str | None
+    - name: promoted_from_sha
       required: true
       type: str | None
     module: propstore.families.documents.predicates
@@ -1886,18 +1892,6 @@ contracts:
     - name: extraction_date
       required: true
       type: str
-    - name: promoted_from_sha
-      required: true
-      type: str | None
-    module: propstore.families.documents.predicates
-- kind: document_schema
-  name: PredicatesFileDocument
-  contract_version: 2026.05.01
-  body:
-    fields:
-    - name: predicates
-      required: true
-      type: tuple[PredicateDocument, ...]
     - name: promoted_from_sha
       required: true
       type: str | None
@@ -3524,9 +3518,9 @@ contracts:
   contract_version: 2026.05.11
   body:
     accessor: predicates
-    artifact_family: predicate_file
+    artifact_family: predicate
     artifact_family_contract:
-      doc_type: propstore.families.documents.predicates.PredicatesFileDocument
+      doc_type: propstore.families.documents.predicates.PredicateDocument
       placement:
         branch:
           policy: primary
@@ -3534,16 +3528,12 @@ contracts:
         extension: .yaml
         kind: flat-yaml
         namespace: predicates
-        ref_field: name
+        ref_field: predicate_id
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
     key: predicates
     metadata:
-      aggregate_decision: intentional_set
-      aggregate_reason: Predicate declarations form the Datalog schema for a theory;
-        identity and validation are defined over the declaration set, including global
-        duplicate checks and authored order.
-      collection_field: predicates
+      collection_field: null
       import_order: 40
       importable: true
       init_directory: true

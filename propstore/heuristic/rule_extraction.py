@@ -22,7 +22,6 @@ from propstore.families.documents.rules import (
 )
 from propstore.families.registry import (
     PROPOSAL_RULE_BRANCH,
-    PredicateFileRef,
     RuleFileRef,
     RuleProposalRef,
 )
@@ -137,8 +136,12 @@ def _rule_kind(raw: object) -> str:
 
 
 def _registered_predicates(repo: Repository, source_paper: str) -> tuple[set[str], str]:
-    document = repo.families.predicates.require(PredicateFileRef(source_paper))
-    refs = {f"{predicate.id}/{predicate.arity}" for predicate in document.predicates}
+    predicates = tuple(
+        handle.document
+        for handle in repo.families.predicates.iter_handles()
+        if handle.document.authoring_group == source_paper
+    )
+    refs = {f"{predicate.id}/{predicate.arity}" for predicate in predicates}
     payload = json.dumps(
         [
             {
@@ -146,7 +149,7 @@ def _registered_predicates(repo: Repository, source_paper: str) -> tuple[set[str
                 "arity": predicate.arity,
                 "arg_types": list(predicate.arg_types),
             }
-            for predicate in document.predicates
+            for predicate in predicates
         ],
         sort_keys=True,
         separators=(",", ":"),

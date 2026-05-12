@@ -19,8 +19,9 @@ from propstore.repository import Repository
 @click.option(
     "--file",
     "file_name",
-    required=True,
-    help="File stem in predicates/ (e.g. ikeda_2014). Creates or appends.",
+    required=False,
+    default=None,
+    help="Optional authoring group metadata (e.g. ikeda_2014).",
 )
 @click.option(
     "--id",
@@ -61,12 +62,7 @@ def add(
     derived_from: str | None,
     description: str | None,
 ) -> None:
-    """Add a predicate declaration to predicates/<file>.yaml.
-
-    Creates the file if it does not exist, or appends an entry
-    otherwise. Duplicate predicate ids inside a single file are
-    rejected.
-    """
+    """Add a predicate declaration artifact."""
     repo: Repository = obj["repo"]
     request = PredicateAddRequest(
         file=file_name,
@@ -90,25 +86,16 @@ def add(
 
 @predicate.command("remove")
 @click.option(
-    "--file",
-    "file_name",
-    required=True,
-    help="File stem in predicates/ (e.g. ikeda_2014).",
-)
-@click.option(
     "--id",
     "predicate_id",
     required=True,
     help="Predicate name to remove (e.g. aspirin_user).",
 )
 @click.pass_obj
-def remove(obj: dict, file_name: str, predicate_id: str) -> None:
-    """Remove a predicate from predicates/<file>.yaml.
-
-    Rejects if the file does not exist or the predicate id is absent.
-    """
+def remove(obj: dict, predicate_id: str) -> None:
+    """Remove a predicate artifact."""
     repo: Repository = obj["repo"]
-    request = PredicateRemoveRequest(file=file_name, predicate_id=predicate_id)
+    request = PredicateRemoveRequest(predicate_id=predicate_id)
     try:
         report = remove_predicate(repo, request)
     except PredicateWorkflowError as exc:

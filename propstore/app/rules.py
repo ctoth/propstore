@@ -310,7 +310,7 @@ def _rule_kind_by_id(document: RulesFileDocument) -> dict[str, str]:
 
 
 def _predicate_registry_at_head(repo: Repository, commit: str | None) -> PredicateRegistry:
-    return PredicateRegistry.from_files(
+    return PredicateRegistry.from_documents(
         tuple(handle.document for handle in repo.families.predicates.iter_handles(commit=commit))
     )
 

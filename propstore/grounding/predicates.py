@@ -40,7 +40,6 @@ from typing import Literal
 
 from propstore.core.conditions.registry import KindType
 from propstore.families.documents.predicates import PredicateDocument
-from propstore.predicate_files import LoadedPredicateFile
 
 
 DerivedFromKind = Literal[
@@ -327,9 +326,9 @@ class PredicateRegistry:
 
     Materialises the Datalog predicate schema (Diller, Borg, Bex 2025
     §3) so downstream pipeline stages can query the typed signature for
-    any declared predicate by id. Built once from a sequence of loaded
-    predicate files; raises on duplicate ids so authoring collisions
-    surface immediately.
+    any declared predicate by id. Built once from a sequence of predicate
+    artifacts; raises on duplicate ids so authoring collisions surface
+    immediately.
 
     Garcia & Simari 2004 §3.2 treats the predicate signature as a flat
     function from id to arity; this registry provides exactly that
@@ -344,11 +343,11 @@ class PredicateRegistry:
         }
 
     @classmethod
-    def from_files(
+    def from_documents(
         cls,
-        files: Sequence[LoadedPredicateFile],
+        predicates: Sequence[PredicateDocument],
     ) -> PredicateRegistry:
-        """Build a registry from loaded predicate files.
+        """Build a registry from predicate documents.
 
         Iterates declarations in file-then-authored order and rejects
         any predicate id seen more than once with
@@ -358,9 +357,8 @@ class PredicateRegistry:
         decide which signature to use.
 
         Args:
-            files: Loaded predicate-file envelopes whose
-                ``.predicates`` tuples will be flattened into the
-                registry's id->declaration map.
+            predicates: Predicate artifacts for the registry's
+                id->declaration map.
 
         Returns:
             A populated ``PredicateRegistry``.
@@ -371,15 +369,13 @@ class PredicateRegistry:
 
         seen: dict[str, PredicateDocument] = {}
         ordered: list[PredicateDocument] = []
-        for predicate_file in files:
-            for doc in predicate_file.predicates:
-                if doc.id in seen:
-                    raise DuplicatePredicateError(
-                        f"duplicate predicate id {doc.id!r} declared in "
-                        f"multiple predicate files"
-                    )
-                seen[doc.id] = doc
-                ordered.append(doc)
+        for doc in predicates:
+            if doc.id in seen:
+                raise DuplicatePredicateError(
+                    f"duplicate predicate id {doc.id!r} declared in multiple predicate artifacts"
+                )
+            seen[doc.id] = doc
+            ordered.append(doc)
         return cls(ordered)
 
     def lookup(self, predicate_id: str) -> PredicateDocument:

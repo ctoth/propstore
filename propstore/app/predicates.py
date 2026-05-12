@@ -1,20 +1,9 @@
 """Predicate authoring workflows used by CLI adapters.
 
-Declares DeLP/Datalog predicates into ``knowledge/predicates/<name>.yaml``
-files. Mirrors the context-authoring workflow pattern
-(``propstore.app.contexts``) and uses the existing
-``PREDICATE_FILE_FAMILY`` plumbing so predicates appear on the primary
-branch alongside other canonical artifacts.
-
-Theoretical source:
-    Diller, M., Borg, A., & Bex, F. (2025). Grounding Rule-Based
-    Argumentation Using Datalog. §3-4: a Datalog schema is a set of
-    declared predicates indexed by id; each predicate fixes its arity
-    and per-position argument type.
-
-    Garcia & Simari 2004 §3 p.3-4: predicate symbols have a fixed
-    arity; ground literals substitute variables with constants of
-    matching sort.
+Each canonical predicate declaration is one ``PredicateDocument`` artifact
+under ``predicates/<predicate-id>.yaml``. The optional ``--file`` CLI input is
+retained only as authoring-group metadata; it does not determine canonical
+storage identity.
 """
 
 from __future__ import annotations
@@ -25,11 +14,8 @@ from threading import Lock
 
 from quire.documents import convert_document_value, encode_document
 
-from propstore.families.documents.predicates import (
-    PredicateDocument,
-    PredicatesFileDocument,
-)
-from propstore.families.registry import PredicateFileRef
+from propstore.families.documents.predicates import PredicateDocument
+from propstore.families.registry import PredicateRef
 from propstore.repository import Repository
 
 
@@ -40,45 +26,30 @@ class PredicateWorkflowError(Exception):
 _PREDICATE_MUTATION_LOCK = Lock()
 
 
-class PredicateFileNotFoundError(PredicateWorkflowError):
-    def __init__(self, file: str) -> None:
-        super().__init__(f"Predicate file '{file}' not found")
-        self.file = file
-
-
 class PredicateNotFoundError(PredicateWorkflowError):
-    """Raised when a named predicate id is absent from a predicates file."""
+    """Raised when a named predicate artifact is absent."""
 
-    def __init__(self, file: str, predicate_id: str) -> None:
-        super().__init__(
-            f"Predicate '{predicate_id}' not found in predicates file '{file}'"
-        )
-        self.file = file
+    def __init__(self, predicate_id: str) -> None:
+        super().__init__(f"Predicate '{predicate_id}' not found")
         self.predicate_id = predicate_id
 
 
 @dataclass(frozen=True)
 class PredicateAddRequest:
-    """CLI request to declare a predicate in ``predicates/<file>.yaml``.
-
-    The authored YAML is a ``PredicatesFileDocument`` envelope with a
-    flat, ordered tuple of ``PredicateDocument`` entries. Authoring order
-    is preserved because Diller, Borg, Bex 2025 §3 builds the Datalog
-    schema in declaration order.
+    """CLI request to declare a predicate artifact.
 
     Attributes:
-        file: File stem (e.g. ``"ikeda_2014"``) — determines the target
-            YAML path ``predicates/<file>.yaml``.
+        file: Optional authoring group carried into metadata. It never
+            determines the canonical storage path.
         predicate_id: The predicate name (e.g. ``"aspirin_user"``).
         arity: Non-negative integer number of argument positions.
-        arg_types: Tuple of length ``arity`` declaring per-position
-            sorts.
+        arg_types: Tuple of length ``arity`` declaring per-position sorts.
         derived_from: Optional ``derived_from`` DSL string describing how
             propstore data materialises this predicate's ground atoms.
         description: Optional human-readable explanation.
     """
 
-    file: str
+    file: str | None
     predicate_id: str
     arity: int
     arg_types: tuple[str, ...] = ()
@@ -89,22 +60,12 @@ class PredicateAddRequest:
 @dataclass(frozen=True)
 class PredicateAddReport:
     filepath: Path
-    document: PredicatesFileDocument
+    document: PredicateDocument
     created: bool
-    """``True`` when the file was newly created; ``False`` when an
-    existing predicates file was extended with an additional entry."""
 
 
 @dataclass(frozen=True)
 class PredicateRemoveRequest:
-    """CLI request to remove a predicate from ``predicates/<file>.yaml``.
-
-    Attributes:
-        file: File stem (e.g. ``"ikeda_2014"``).
-        predicate_id: Predicate name to remove.
-    """
-
-    file: str
     predicate_id: str
 
 
@@ -117,7 +78,7 @@ class PredicateRemoveReport:
 
 @dataclass(frozen=True)
 class PredicateListItem:
-    file: str
+    authoring_group: str | None
     predicate_id: str
     arity: int
     arg_types: tuple[str, ...]
@@ -140,74 +101,39 @@ def _predicate_document_payload(request: PredicateAddRequest) -> dict[str, objec
         data["derived_from"] = request.derived_from
     if request.description is not None:
         data["description"] = request.description
+    if request.file:
+        data["authoring_group"] = request.file
     return data
-
-
-def _predicate_files_by_ref_at_head(
-    repo: Repository,
-    commit: str | None,
-) -> dict[PredicateFileRef, PredicatesFileDocument]:
-    return {
-        handle.ref: handle.document
-        for handle in repo.families.predicates.iter_handles(commit=commit)
-    }
-
-
-def _reject_global_duplicate_predicate_id(
-    files: dict[PredicateFileRef, PredicatesFileDocument],
-    *,
-    target_ref: PredicateFileRef,
-    predicate_id: str,
-) -> None:
-    for ref, document in files.items():
-        if ref == target_ref:
-            continue
-        for entry in document.predicates:
-            if entry.id == predicate_id:
-                relpath = f"predicates/{ref.name}.yaml"
-                raise PredicateWorkflowError(
-                    f"predicate {predicate_id!r} already declared in {relpath}"
-                )
 
 
 def reject_predicate_document_conflicts(
     repo: Repository,
     *,
     commit: str | None,
-    target_ref: PredicateFileRef,
-    document: PredicatesFileDocument,
+    target_ref: PredicateRef,
+    document: PredicateDocument,
 ) -> None:
-    seen: set[str] = set()
-    duplicates: set[str] = set()
-    for entry in document.predicates:
-        if entry.id in seen:
-            duplicates.add(entry.id)
-        seen.add(entry.id)
-    if duplicates:
-        formatted = ", ".join(sorted(duplicates))
+    if document.id != target_ref.predicate_id:
         raise PredicateWorkflowError(
-            f"predicate file predicates/{target_ref.name}.yaml declares duplicate id(s): {formatted}"
+            f"predicate artifact id {target_ref.predicate_id!r} must match document id {document.id!r}"
         )
 
-    predicate_files = _predicate_files_by_ref_at_head(repo, commit)
-    for entry in document.predicates:
-        _reject_global_duplicate_predicate_id(
-            predicate_files,
-            target_ref=target_ref,
-            predicate_id=entry.id,
-        )
+    for handle in repo.families.predicates.iter_handles(commit=commit):
+        if handle.ref == target_ref:
+            continue
+        if handle.document.id == document.id:
+            relpath = handle.address.require_path()
+            raise PredicateWorkflowError(
+                f"predicate {document.id!r} already declared in {relpath}"
+            )
 
 
 def add_predicate(
     repo: Repository,
     request: PredicateAddRequest,
 ) -> PredicateAddReport:
-    """Declare a predicate in ``predicates/<file>.yaml``.
+    """Declare a predicate as ``predicates/<predicate-id>.yaml``."""
 
-    Creates the file if absent, or appends to the existing envelope
-    otherwise. Raises ``PredicateWorkflowError`` on arity/arg_types
-    mismatch, empty id, or duplicate predicate id in the same file.
-    """
     if not isinstance(request.predicate_id, str) or not request.predicate_id:
         raise PredicateWorkflowError("predicate id must be a non-empty string")
     if request.arity < 0:
@@ -220,7 +146,7 @@ def add_predicate(
             f"{len(request.arg_types)} does not match arity {request.arity}"
         )
 
-    ref = PredicateFileRef(request.file)
+    ref = PredicateRef(request.predicate_id)
     relpath = repo.families.predicates.address(ref).require_path()
     filepath = repo.root / relpath
 
@@ -228,28 +154,16 @@ def add_predicate(
         repo.snapshot.primary_branch_name(),
         path="predicate.add",
     ) as head_txn:
-        predicate_files = _predicate_files_by_ref_at_head(repo, head_txn.expected_head)
+        if repo.families.predicates.load(ref, commit=head_txn.expected_head) is not None:
+            raise PredicateWorkflowError(
+                f"predicate {request.predicate_id!r} already declared in {relpath}"
+            )
 
-        existing = predicate_files.get(ref)
-        entries: list[PredicateDocument] = []
-        created = True
-        if existing is not None:
-            for entry in existing.predicates:
-                if entry.id == request.predicate_id:
-                    raise PredicateWorkflowError(
-                        f"predicate {request.predicate_id!r} already declared in {relpath}"
-                    )
-                entries.append(entry)
-            created = False
-
-        new_entry = convert_document_value(
+        document = convert_document_value(
             _predicate_document_payload(request),
             PredicateDocument,
-            source=f"{relpath}:{request.predicate_id}",
+            source=relpath,
         )
-        entries.append(new_entry)
-
-        document = PredicatesFileDocument(predicates=tuple(entries))
         reject_predicate_document_conflicts(
             repo,
             commit=head_txn.expected_head,
@@ -258,45 +172,40 @@ def add_predicate(
         )
 
         with head_txn.families_transact(
-            message=(
-                f"Add predicate {request.predicate_id} to {request.file}"
-                if not created
-                else f"Declare predicates for {request.file}"
-            ),
+            message=f"Declare predicate {request.predicate_id}",
         ) as transaction:
             transaction.predicates.save(ref, document)
 
     return PredicateAddReport(
         filepath=filepath,
         document=document,
-        created=created,
+        created=True,
     )
 
 
 def list_predicates(repo: Repository) -> tuple[PredicateListItem, ...]:
     items: list[PredicateListItem] = []
     for handle in repo.families.predicates.iter_handles():
-        document = handle.document
-        for predicate in document.predicates:
-            items.append(
-                PredicateListItem(
-                    file=handle.ref.name,
-                    predicate_id=predicate.id,
-                    arity=predicate.arity,
-                    arg_types=tuple(predicate.arg_types),
-                )
+        predicate = handle.document
+        items.append(
+            PredicateListItem(
+                authoring_group=predicate.authoring_group,
+                predicate_id=predicate.id,
+                arity=predicate.arity,
+                arg_types=tuple(predicate.arg_types),
             )
-    return tuple(items)
+        )
+    return tuple(sorted(items, key=lambda item: item.predicate_id))
 
 
-def show_predicate_file(
+def show_predicate(
     repo: Repository,
-    file: str,
+    predicate_id: str,
 ) -> PredicateShowReport:
-    ref = PredicateFileRef(file)
+    ref = PredicateRef(predicate_id)
     document = repo.families.predicates.load(ref)
     if document is None:
-        raise PredicateFileNotFoundError(file)
+        raise PredicateNotFoundError(predicate_id)
     filepath = repo.root / repo.families.predicates.address(ref).require_path()
     return PredicateShowReport(
         filepath=filepath,
@@ -308,41 +217,21 @@ def remove_predicate(
     repo: Repository,
     request: PredicateRemoveRequest,
 ) -> PredicateRemoveReport:
-    """Remove a predicate from ``predicates/<file>.yaml``.
+    """Remove a predicate artifact."""
 
-    Raises ``PredicateFileNotFoundError`` if the file does not exist or
-    ``PredicateNotFoundError`` if the predicate id is absent. On success
-    the file is rewritten via the family ``save`` path (same commit
-    pattern as ``add_predicate``); if the removal leaves zero
-    predicates the file is kept as a stub so downstream tooling can
-    continue to observe the envelope, matching
-    ``remove_context_lifting_rule``'s behaviour for emptied
-    lifting-rule blocks.
-    """
     if not isinstance(request.predicate_id, str) or not request.predicate_id:
         raise PredicateWorkflowError("predicate id must be a non-empty string")
 
-    ref = PredicateFileRef(request.file)
+    ref = PredicateRef(request.predicate_id)
     with _PREDICATE_MUTATION_LOCK, repo.mutation_guard():
         existing = repo.families.predicates.load(ref)
         if existing is None:
-            raise PredicateFileNotFoundError(request.file)
+            raise PredicateNotFoundError(request.predicate_id)
 
-        relpath = repo.families.predicates.address(ref).require_path()
-        filepath = repo.root / relpath
-
-        if not any(entry.id == request.predicate_id for entry in existing.predicates):
-            raise PredicateNotFoundError(request.file, request.predicate_id)
-
-        remaining = tuple(
-            entry for entry in existing.predicates if entry.id != request.predicate_id
-        )
-        document = PredicatesFileDocument(predicates=remaining)
-
-        repo.families.predicates.save(
+        filepath = repo.root / repo.families.predicates.address(ref).require_path()
+        repo.families.predicates.delete(
             ref,
-            document,
-            message=f"Remove predicate {request.predicate_id} from {request.file}",
+            message=f"Remove predicate {request.predicate_id}",
         )
 
     return PredicateRemoveReport(

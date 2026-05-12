@@ -13,7 +13,7 @@ from propstore.families.registry import (
     ClaimRef,
     ConceptFileRef,
     ContextRef,
-    PredicateFileRef,
+    PredicateRef,
     RuleFileRef,
     StanceRef,
 )
@@ -112,23 +112,23 @@ def materialize_reasoning_demo(root: Path) -> Repository:
         }
     )
 
-    predicates_payload = {
-        "predicates": [
-            {
-                "id": "bird",
-                "arity": 1,
-                "arg_types": ["entity"],
-                "derived_from": f"concept.relation:related:{bird_class['artifact_id']}",
-                "description": "Ground unary fact for bird instances.",
-            },
-            {
-                "id": "flies",
-                "arity": 1,
-                "arg_types": ["entity"],
-                "description": "Defeasible flight conclusion.",
-            },
-        ]
-    }
+    predicate_payloads = (
+        {
+            "id": "bird",
+            "arity": 1,
+            "arg_types": ["entity"],
+            "derived_from": f"concept.relation:related:{bird_class['artifact_id']}",
+            "description": "Ground unary fact for bird instances.",
+            "authoring_group": "reasoning_demo",
+        },
+        {
+            "id": "flies",
+            "arity": 1,
+            "arg_types": ["entity"],
+            "description": "Defeasible flight conclusion.",
+            "authoring_group": "reasoning_demo",
+        },
+    )
     rules_payload = {
         "source": {"paper": "reasoning_demo"},
         "rules": [
@@ -205,14 +205,15 @@ def materialize_reasoning_demo(root: Path) -> Repository:
                     source=repo.families.stances.address(stance_ref).require_path(),
                 ),
             )
-        predicates_ref = PredicateFileRef("reasoning_demo")
-        transaction.predicates.save(
-            predicates_ref,
-            transaction.predicates.coerce(
-                predicates_payload,
-                source=repo.families.predicates.address(predicates_ref).require_path(),
-            ),
-        )
+        for predicate_payload in predicate_payloads:
+            predicates_ref = PredicateRef(str(predicate_payload["id"]))
+            transaction.predicates.save(
+                predicates_ref,
+                transaction.predicates.coerce(
+                    predicate_payload,
+                    source=repo.families.predicates.address(predicates_ref).require_path(),
+                ),
+            )
         rules_ref = RuleFileRef("reasoning_demo")
         transaction.rules.save(
             rules_ref,

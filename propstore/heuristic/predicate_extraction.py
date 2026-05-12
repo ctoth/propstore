@@ -18,7 +18,7 @@ from propstore.families.documents.predicates import (
 )
 from propstore.families.registry import (
     PROPOSAL_PREDICATE_BRANCH,
-    PredicateFileRef,
+    PredicateRef,
     PredicateProposalRef,
 )
 from propstore.resources import load_package_resource_text
@@ -47,8 +47,8 @@ def predicate_proposal_branch() -> str:
     return branch
 
 
-def canonical_predicate_ref(source_paper: str) -> PredicateFileRef:
-    return PredicateFileRef(source_paper)
+def canonical_predicate_ref(predicate_id: str) -> PredicateRef:
+    return PredicateRef(predicate_id)
 
 
 def _paper_notes(source_paper: str) -> str:

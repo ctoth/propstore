@@ -41,7 +41,7 @@ from propstore.families.forms.documents import FormDocument
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
 from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
-from propstore.families.documents.predicates import PredicateProposalDocument, PredicatesFileDocument
+from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
 from propstore.families.documents.rules import RuleProposalDocument, RulesFileDocument
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
 from propstore.families.documents.sources import (
@@ -117,8 +117,8 @@ if TYPE_CHECKING:
         artifact_id: str
 
     @dataclass(frozen=True)
-    class PredicateFileRef:
-        name: str
+    class PredicateRef:
+        predicate_id: str
 
     @dataclass(frozen=True)
     class RuleFileRef:
@@ -189,7 +189,7 @@ if not TYPE_CHECKING:
     MicropublicationRef = single_field_ref_type("MicropublicationRef", "artifact_id", module=__name__)
     ConceptFileRef = single_field_ref_type("ConceptFileRef", "name", module=__name__)
     JustificationRef = single_field_ref_type("JustificationRef", "artifact_id", module=__name__)
-    PredicateFileRef = single_field_ref_type("PredicateFileRef", "name", module=__name__)
+    PredicateRef = single_field_ref_type("PredicateRef", "predicate_id", module=__name__)
     RuleFileRef = single_field_ref_type("RuleFileRef", "name", module=__name__)
 
     @dataclass(frozen=True)
@@ -286,10 +286,10 @@ FORM_PLACEMENT = FlatYamlPlacement["Repository", FormRef](
     ref_field="name",
     branch=CURRENT_ARTIFACT_BRANCH,
 )
-PREDICATE_PLACEMENT = FlatYamlPlacement["Repository", PredicateFileRef](
+PREDICATE_PLACEMENT = FlatYamlPlacement["Repository", PredicateRef](
     namespace=PropstoreFamily.PREDICATES.value,
-    ref_factory=PredicateFileRef,
-    ref_field="name",
+    ref_factory=PredicateRef,
+    ref_field="predicate_id",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
 RULE_PLACEMENT = FlatYamlPlacement["Repository", RuleFileRef](
@@ -419,10 +419,10 @@ CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocume
     normalize_for_write=normalize_concept_document_for_write,
 )
 
-PREDICATE_FILE_FAMILY = ArtifactFamily["Repository", PredicateFileRef, PredicatesFileDocument](
-    name="predicate_file",
+PREDICATE_FAMILY = ArtifactFamily["Repository", PredicateRef, PredicateDocument](
+    name="predicate",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=PredicatesFileDocument,
+    doc_type=PredicateDocument,
     placement=PREDICATE_PLACEMENT,
 )
 
@@ -749,17 +749,10 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             key=PropstoreFamily.PREDICATES,
             name=PropstoreFamily.PREDICATES.value,
             contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
-            artifact_family=PREDICATE_FILE_FAMILY,
+            artifact_family=PREDICATE_FAMILY,
             metadata=_semantic_metadata(
                 importable=True,
                 import_order=40,
-                collection_field="predicates",
-                aggregate_decision="intentional_set",
-                aggregate_reason=(
-                    "Predicate declarations form the Datalog schema for a theory; "
-                    "identity and validation are defined over the declaration set, "
-                    "including global duplicate checks and authored order."
-                ),
             ),
         ),
         FamilyDefinition(
