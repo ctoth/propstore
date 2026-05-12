@@ -24,6 +24,8 @@ In this project:
 - Canonical/master surfaces must reject source-local-only fields and shapes.
 - Source-local readability metadata must not leak into canonical identity or canonical runtime paths.
 - Storage artifact identity and cross-family references must use Quire family reference/FK APIs; source-local handles are lowered explicitly inside the source subsystem before canonical writes.
+- Propstore owns `PropstoreFamily`, `PROPSTORE_FAMILY_REGISTRY`, semantic family declarations, and the meaning of semantic metadata such as `semantic`, `importable`, `import_order`, and `init_directory`.
+- Generic family-registry querying, metadata lookup mechanics, and placement-backed storage-root lookup belong in Quire. Propstore code should use Quire registry query APIs instead of inspecting placement contract dictionaries for roots.
 - In this project, `legacy` is not implied by age or by yesterday's git state.
 - Treat something as legacy only when explicitly told an older repo, older data surface, or compatibility target must be supported.
 - Otherwise, delete the old path rather than carrying it forward.
