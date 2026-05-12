@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import ast
+import importlib
 from pathlib import Path
 
+import pytest
 
-RELATION_KERNEL = Path("propstore/core/relations/kernel.py")
+RELATIONS_MODULE = Path("propstore/core/relations.py")
 ASSERTION_REFS = Path("propstore/core/assertions/refs.py")
 ASSERTION_SITUATED = Path("propstore/core/assertions/situated.py")
 ASSERTION_CONVERSION = Path("propstore/core/assertions/conversion.py")
@@ -50,12 +52,12 @@ def _imported_modules(path: Path) -> set[str]:
     return imports
 
 
-def test_relation_kernel_exists_as_shallow_owner_module() -> None:
-    assert RELATION_KERNEL.exists()
+def test_relations_exists_as_shallow_owner_module() -> None:
+    assert RELATIONS_MODULE.exists()
 
 
-def test_relation_kernel_does_not_import_downstream_semantic_layers() -> None:
-    imports = _imported_modules(RELATION_KERNEL)
+def test_relations_does_not_import_downstream_semantic_layers() -> None:
+    imports = _imported_modules(RELATIONS_MODULE)
 
     forbidden = {
         imported
@@ -65,6 +67,27 @@ def test_relation_kernel_does_not_import_downstream_semantic_layers() -> None:
     }
 
     assert forbidden == set()
+
+
+def test_relation_kernel_import_path_is_not_public() -> None:
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("propstore.core.relations.kernel")
+
+
+def test_claim_concept_link_roles_import_path_is_not_public() -> None:
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("propstore.core.claim_concept_link_roles")
+
+
+def test_relations_public_surface_includes_claim_link_roles() -> None:
+    relations = importlib.import_module("propstore.core.relations")
+
+    assert relations.ClaimConceptLinkRole.ABOUT.value == "about"
+    assert relations.RelationConceptRef("supports").identity_key() == (
+        "relation_concept",
+        "supports",
+    )
+    assert relations.RoleBindingSet(())
 
 
 def test_assertion_refs_exist_as_shallow_owner_module() -> None:

@@ -4,7 +4,7 @@ import ast
 from pathlib import Path
 
 
-RELATION_KERNEL = Path("propstore/core/relations/kernel.py")
+RELATIONS_MODULE = Path("propstore/core/relations.py")
 ASSERTION_REFS = Path("propstore/core/assertions/refs.py")
 ASSERTION_SITUATED = Path("propstore/core/assertions/situated.py")
 ASSERTION_CONVERSION = Path("propstore/core/assertions/conversion.py")
@@ -82,8 +82,8 @@ FORBIDDEN_PROVENANCE_RECORD_FIELD_NAMES = {
 }
 
 
-def _kernel_tree() -> ast.AST:
-    return ast.parse(RELATION_KERNEL.read_text(encoding="utf-8"))
+def _relations_tree() -> ast.AST:
+    return ast.parse(RELATIONS_MODULE.read_text(encoding="utf-8"))
 
 
 def _assertion_refs_tree() -> ast.AST:
@@ -126,8 +126,8 @@ def _structured_merge_tree() -> ast.AST:
     return ast.parse(STRUCTURED_MERGE.read_text(encoding="utf-8"))
 
 
-def test_relation_kernel_does_not_name_relation_identity_as_predicate() -> None:
-    tree = _kernel_tree()
+def test_relations_does_not_name_relation_identity_as_predicate() -> None:
+    tree = _relations_tree()
     observed: set[str] = set()
 
     for node in ast.walk(tree):
@@ -144,7 +144,7 @@ def test_relation_kernel_does_not_name_relation_identity_as_predicate() -> None:
 
 
 def test_relation_concept_ref_is_not_a_string_alias() -> None:
-    tree = _kernel_tree()
+    tree = _relations_tree()
 
     for node in ast.walk(tree):
         if not isinstance(node, ast.Assign):
