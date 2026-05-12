@@ -24,6 +24,10 @@ def test_repository_import_attaches_import_provenance_note(tmp_path) -> None:
     assert source_git is not None
     source_git.commit_files(
         {
+            "contexts/ctx.yaml": yaml.safe_dump(
+                {"id": "ctx", "name": "Repository import context"},
+                sort_keys=False,
+            ).encode(),
             "claims/source.yaml": yaml.safe_dump(
                 {"id": "claim_one", "context": {"id": "ctx"}},
                 sort_keys=False,
