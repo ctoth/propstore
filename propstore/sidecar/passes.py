@@ -8,6 +8,7 @@ from collections.abc import Iterable, Sequence
 
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
+from quire.references import FamilyReferenceIndex
 
 from propstore.claims import (
     ClaimFileEntry,
@@ -36,6 +37,10 @@ from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.sources import SourceDocument
 from propstore.families.claims.stages import RawIdQuarantineRecord
+from propstore.families.claims.references import (
+    ClaimReferenceRecord,
+    build_claim_file_reference_index,
+)
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.forms.stages import (
     FormDefinition,
@@ -44,7 +49,6 @@ from propstore.families.forms.stages import (
 from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols
 from propstore.sidecar.claim_utils import (
-    collect_claim_reference_map,
     extract_deferred_stance_rows_with_diagnostics,
     prepare_claim_insert_row,
     prepare_claim_concept_link_rows,
@@ -87,7 +91,6 @@ from propstore.sidecar.stages import (
 from propstore.sidecar.claim_utils import (
     coerce_stance_resolution,
     resolution_opinion_columns,
-    resolve_claim_reference,
 )
 from propstore.stances import VALID_STANCE_TYPES
 
@@ -560,7 +563,7 @@ def compile_claim_sidecar_rows(
     claim_link_rows: list[ClaimConceptLinkInsertRow] = []
     stance_rows: list[ClaimStanceInsertRow] = []
     quarantine_diagnostics: list[QuarantineDiagnostic] = []
-    claim_reference_map = collect_claim_reference_map(
+    claim_index = build_claim_file_reference_index(
         claim_bundle.normalized_claim_files
     )
     file_stage_by_filename: dict[str, str | None] = {
@@ -591,8 +594,7 @@ def compile_claim_sidecar_rows(
             deferred_stance_rows, deferred_stance_diagnostics = (
                 extract_deferred_stance_rows_with_diagnostics(
                     semantic_claim,
-                    claim_reference_map,
-                    source_paper=semantic_claim.source_paper,
+                    claim_index,
                 )
             )
             stance_rows.extend(
@@ -609,19 +611,13 @@ def compile_claim_sidecar_rows(
     )
 
 
-def compile_claim_reference_map(
-    claim_files: Sequence[ClaimFileEntry],
-) -> dict[str, str]:
-    return collect_claim_reference_map(claim_files)
-
-
 def compile_authored_stance_sidecar_rows(
     stance_entries: Iterable[tuple[str, StanceDocument]],
-    claim_reference_map: dict[str, str],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[ClaimStanceInsertRow, ...]:
     rows, diagnostics = _compile_authored_stance_sidecar_rows_with_diagnostics(
         stance_entries,
-        claim_reference_map,
+        claim_index,
     )
     if diagnostics:
         raise sqlite3.IntegrityError(diagnostics[0].message)
@@ -630,25 +626,23 @@ def compile_authored_stance_sidecar_rows(
 
 def _compile_authored_stance_sidecar_rows_with_diagnostics(
     stance_entries: Iterable[tuple[str, StanceDocument]],
-    claim_reference_map: dict[str, str],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[tuple[ClaimStanceInsertRow, ...], tuple[QuarantineDiagnostic, ...]]:
-    valid_claims = set(claim_reference_map.values())
+    valid_claims = set(claim_index.ids())
     rows: list[ClaimStanceInsertRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, stance in stance_entries:
-        source_claim = resolve_claim_reference(
-            stance.source_claim,
-            claim_reference_map,
-        ) or ""
-        if source_claim not in valid_claims:
+        source_claim = claim_index.resolve_id(stance.source_claim)
+        if source_claim is None or source_claim not in valid_claims:
+            missing_source = stance.source_claim or filename
             message = (
                 f"stance artifact {filename} references nonexistent source claim "
-                f"'{source_claim}'"
+                f"'{missing_source}'"
             )
             diagnostics.append(
                 QuarantineDiagnostic(
-                    artifact_id=source_claim or stance.source_claim or filename,
+                    artifact_id=missing_source,
                     kind="stance",
                     diagnostic_kind="stance_validation",
                     message=message,
@@ -658,19 +652,17 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
             continue
 
         stance_payload = stance.to_payload()
-        target = resolve_claim_reference(
-            stance.target or "",
-            claim_reference_map,
-        ) or ""
+        target = claim_index.resolve_id(stance.target or "")
         stance_type = stance_payload.get("type") or ""
-        if target not in valid_claims:
+        if target is None or target not in valid_claims:
+            missing_target = stance.target or filename
             message = (
                 f"stance artifact {filename} references nonexistent target claim "
-                f"'{target}'"
+                f"'{missing_target}'"
             )
             diagnostics.append(
                 QuarantineDiagnostic(
-                    artifact_id=target or stance.target or filename,
+                    artifact_id=missing_target,
                     kind="stance",
                     diagnostic_kind="stance_validation",
                     message=message,
@@ -689,10 +681,12 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
             f"stance artifact {filename}",
         )
         opinion_columns = resolution_opinion_columns(resolution)
-        perspective_source_claim = resolve_claim_reference(
-            stance.perspective_source_claim_id or stance.source_claim,
-            claim_reference_map,
-        ) or source_claim
+        perspective_source_claim = (
+            claim_index.resolve_id(
+                stance.perspective_source_claim_id or stance.source_claim
+            )
+            or source_claim
+        )
         rows.append(
             ClaimStanceInsertRow(
                 (
@@ -722,11 +716,11 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
 
 def compile_authored_justification_sidecar_rows(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
-    claim_reference_map: dict[str, str],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[JustificationInsertRow, ...]:
     rows, diagnostics = _compile_authored_justification_sidecar_rows_with_diagnostics(
         justification_entries,
-        claim_reference_map,
+        claim_index,
     )
     if diagnostics:
         raise sqlite3.IntegrityError(diagnostics[0].message)
@@ -735,19 +729,16 @@ def compile_authored_justification_sidecar_rows(
 
 def _compile_authored_justification_sidecar_rows_with_diagnostics(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
-    claim_reference_map: dict[str, str],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[tuple[JustificationInsertRow, ...], tuple[QuarantineDiagnostic, ...]]:
-    valid_claims = set(claim_reference_map.values())
+    valid_claims = set(claim_index.ids())
     rows: list[JustificationInsertRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, justification in justification_entries:
         justification_payload = justification.to_payload()
         justification_id = justification.id
-        conclusion = resolve_claim_reference(
-            justification.conclusion,
-            claim_reference_map,
-        )
+        conclusion = claim_index.resolve_id(justification.conclusion)
         if not isinstance(justification_id, str) or not justification_id:
             raise ValueError(
                 f"justification artifact {filename} missing id"
@@ -770,7 +761,7 @@ def _compile_authored_justification_sidecar_rows_with_diagnostics(
         resolved_premises: list[str] = []
         missing_premise_ref: str | None = None
         for premise in justification.premises:
-            resolved_premise = resolve_claim_reference(premise, claim_reference_map)
+            resolved_premise = claim_index.resolve_id(premise)
             if (
                 not isinstance(resolved_premise, str)
                 or resolved_premise not in valid_claims
@@ -941,11 +932,11 @@ def compile_raw_id_quarantine_sidecar_rows(
 
 def compile_micropublication_sidecar_rows(
     micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
-    claim_reference_map: dict[str, str],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> MicropublicationSidecarRows:
     rows, diagnostics = _compile_micropublication_sidecar_rows_with_diagnostics(
         micropub_entries,
-        claim_reference_map,
+        claim_index,
     )
     if diagnostics:
         raise sqlite3.IntegrityError(diagnostics[0].message)
@@ -954,9 +945,9 @@ def compile_micropublication_sidecar_rows(
 
 def _compile_micropublication_sidecar_rows_with_diagnostics(
     micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
-    claim_reference_map: dict[str, str],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[MicropublicationSidecarRows, tuple[QuarantineDiagnostic, ...]]:
-    valid_claim_ids = set(claim_reference_map.values())
+    valid_claim_ids = set(claim_index.ids())
     micropublication_rows: list[MicropublicationInsertRow] = []
     claim_rows: list[MicropublicationClaimInsertRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
@@ -965,7 +956,7 @@ def _compile_micropublication_sidecar_rows_with_diagnostics(
         resolved_claims: list[str] = []
         missing_claim_ref: str | None = None
         for claim_id in micropub.claims:
-            resolved_claim = resolve_claim_reference(claim_id, claim_reference_map)
+            resolved_claim = claim_index.resolve_id(claim_id)
             if (
                 not isinstance(resolved_claim, str)
                 or resolved_claim not in valid_claim_ids
@@ -1049,14 +1040,14 @@ def compile_sidecar_build_plan(
     stance_rows: tuple[ClaimStanceInsertRow, ...] = ()
     justification_rows: tuple[JustificationInsertRow, ...] = ()
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...] = ()
-    claim_reference_map: dict[str, str] = {}
+    claim_index = build_claim_file_reference_index(())
 
     if repository_checked_bundle.normalized_claim_files is not None:
         checked_claims = repository_checked_bundle.claim_checked_bundle
         if checked_claims is None:
             raise ValueError("checked claim bundle is required to populate claims")
         normalized_claim_files = repository_checked_bundle.normalized_claim_files
-        claim_reference_map = compile_claim_reference_map(normalized_claim_files)
+        claim_index = build_claim_file_reference_index(normalized_claim_files)
         claim_rows = compile_claim_sidecar_rows(
             checked_claims.bundle,
             repository_checked_bundle.concept_registry,
@@ -1083,13 +1074,13 @@ def compile_sidecar_build_plan(
         stance_rows, stance_quarantine_diagnostics = (
             _compile_authored_stance_sidecar_rows_with_diagnostics(
                 stance_entries,
-                claim_reference_map,
+                claim_index,
             )
         )
         justification_rows, justification_quarantine_diagnostics = (
             _compile_authored_justification_sidecar_rows_with_diagnostics(
                 justification_entries,
-                claim_reference_map,
+                claim_index,
             )
         )
         quarantine_diagnostics = (
@@ -1101,7 +1092,7 @@ def compile_sidecar_build_plan(
     micropublication_rows, micropublication_quarantine_diagnostics = (
         _compile_micropublication_sidecar_rows_with_diagnostics(
             micropub_entries,
-            claim_reference_map,
+            claim_index,
         )
     )
     quarantine_diagnostics = (
