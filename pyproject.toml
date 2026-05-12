@@ -26,6 +26,7 @@ dependencies = [
     "linkml-runtime>=1.9.3,<1.10",
     "formal-belief-set @ git+https://github.com/ctoth/belief-set@d958095ac70db88c26feb1db7798b4dd1b9d5976",
     "rfc8785>=0.1.4",
+    "jinja2>=3.1",
 ]
 
 [project.optional-dependencies]
