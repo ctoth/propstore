@@ -48,6 +48,18 @@ dependencies are complete. Each implementation phase starts with failing tests,
 keeps the old production surface deleted before caller repair where the phase is
 a replacement, and ends with the listed search and test gates.
 
+Coordination with `typed-source-promotion-cleanup-workstream-2026-05-12.md`:
+
+- Quire phases 1-5 may run in parallel with typed source-promotion cleanup.
+- Propstore Phase 8 must start after typed source-promotion cleanup completes,
+  because that workstream reshapes source import, source finalize, and source
+  promotion around typed documents and typed promotion plans.
+- Phase 8 must target the completed typed source-local lowering and typed
+  promotion-plan boundaries, not pre-cleanup loose payload helper names.
+- Phase 11 must reuse the shared claim concept-reference rewrite policy created
+  by typed source-promotion cleanup; it must not introduce another concept
+  lowering path.
+
 1. Quire RED tests for declarative reference keys
 2. Quire generic family reference index
 3. Quire family declaration metadata
@@ -331,6 +343,12 @@ Required gates:
 
 Repository: `propstore`
 
+Dependency:
+
+- Complete `typed-source-promotion-cleanup-workstream-2026-05-12.md` first.
+  This phase works against the resulting typed source-local documents, typed
+  source-finalize outputs, and typed source-promotion plan builder.
+
 Delete first:
 
 - `propstore/claim_references.py`
@@ -340,18 +358,21 @@ Then use failures and literal references as the work queue.
 Known callers to update:
 
 - `propstore/source/__init__.py`
-- `propstore/source/relations.py`
-- `propstore/source/finalize.py`
-- `propstore/source/promote.py`
-- `propstore/source/stages.py`
+- source-local relation validation at the typed source authoring boundary
+- typed source-finalize composition if it still resolves claim references there
+- typed source-promotion plan assembly
+- canonical family write paths that still pass pre-resolved claim maps
 - tests importing `ClaimReferenceIndex`, `ClaimReferenceResolver`, or
   `ImportedClaimHandleIndex`
 
 Target replacement:
 
 - source workflows build an explicit temporary source-local
-  `FamilyReferenceIndex.from_records(...)` for authoring handles
-- source finalization lowers source-local handles into canonical artifact ids
+  `FamilyReferenceIndex.from_records(...)` for source authoring handles
+- typed source-local documents are lowered through that index before canonical
+  typed promotion-plan artifacts are built
+- typed canonical promotion-plan artifacts carry canonical artifact ids and
+  canonical references only
 - canonical writes rely on Quire FK validation
 - missing or ambiguous canonical references raise Quire errors directly unless a
   Propstore semantic boundary needs to attach source-location context
@@ -367,11 +388,13 @@ Remove these names completely:
 
 Hypothesis tests:
 
-- generated source-local handles lower to canonical claim artifact ids when
-  source relations are valid
-- generated dangling source-local references fail before promotion
+- generated source-local handles lower to canonical claim artifact ids before
+  typed canonical promotion-plan artifacts are built
+- generated dangling source-local references fail before typed canonical writes
 - generated duplicate imported handles fail with Quire ambiguity
 - generated canonical references written by promotion satisfy Quire FK validation
+- generated typed promotion plans contain no source-local-only handles after
+  lowering
 
 Search gates:
 
@@ -480,6 +503,13 @@ Repository: `propstore`
 Replace storage identity maps in source concept registration with Quire
 reference indexes and explicit source-local lowering.
 
+Dependency:
+
+- Complete typed source-promotion cleanup Phase 2 first. This phase must reuse
+  the shared claim concept-reference rewrite policy from that workstream and
+  supply it with Quire-backed canonical/source-local resolution. Do not add a
+  second concept-reference rewrite path.
+
 Delete or replace:
 
 - `handle_to_artifact`
@@ -498,6 +528,9 @@ Target replacement:
 - canonical concept aliases resolve through Quire concept family indexes
 - source-local concept handles lower through an explicit temporary source-local
   index before canonical writes
+- the shared source/promotion claim concept-reference rewrite policy receives a
+  Quire-backed resolver and remains the single placement policy for `concept`,
+  `target_concept`, `output_concept`, and `concepts`
 - canonical writes rely on Quire FK validation and ambiguity errors
 
 Hypothesis tests:
@@ -506,6 +539,9 @@ Hypothesis tests:
 - generated duplicate canonical concept aliases fail with Quire ambiguity
 - generated source-local-only fields are rejected from canonical concept writes
 - generated concept mutation requests cannot create dangling canonical FKs
+- generated source import and source promotion cases use the same Quire-backed
+  resolver and produce identical concept placement for the same typed claim
+  inputs
 
 Search gates:
 
@@ -532,6 +568,10 @@ Docs:
   source-local handles are lowered explicitly inside the source subsystem before
   canonical writes
 - `CLAUDE.md`: add the same operational rule if the file exists
+- source architecture docs: state that source-local batch files remain
+  source-local authoring state, typed source promotion lowers references before
+  canonical artifact construction, and Quire FK validation begins at canonical
+  family writes
 - any contributor or architecture doc that still recommends resolver maps,
   `whatever_id` scans, or hand-rolled FK validation
 
