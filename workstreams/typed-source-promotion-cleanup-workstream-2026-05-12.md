@@ -222,11 +222,19 @@ Delete-first targets:
 - Delete `promoted_stances: list[dict[str, Any]]`.
 - Delete `filtered_justifications_payload`.
 - Delete `normalized_promoted_claims: list[JsonValue]`.
+- Delete promotion-plan `JsonObject`/`JsonValue` typing from
+  `propstore/source/promote.py`.
 - Delete promotion-time loops that convert typed source entries to payload dicts
   only to convert them back into typed canonical documents.
 
 Target shape:
 
+- `propstore/source/promote.py` assembles typed promotion documents. It must not
+  expose `JsonObject`, `JsonValue`, or similar payload aliases in the plan
+  builder.
+- The remaining claim payload normalization required by canonical claim identity
+  lives behind the source claim-concept/claim-normalization helper and returns a
+  typed `ClaimDocument`.
 - Add typed promotion-plan assembly functions that return:
   - `dict[ClaimRef, ClaimDocument]`
   - `dict[StanceRef, StanceDocument]`
@@ -255,6 +263,8 @@ Tests first:
 Gate:
 
 - `rg -n "promoted_stances: list\\[dict|filtered_justifications_payload|normalized_promoted_claims|valid_justification_entries: list\\[dict" propstore/source/promote.py`
+  has no hits.
+- `rg -n "JsonObject|JsonValue" propstore/source/promote.py`
   has no hits.
 - `rg -n "dict\\[str, Any\\]|dict\\[str, object\\]" propstore/source/promote.py`
   shows only IO-boundary or explicitly documented source-local payload use.

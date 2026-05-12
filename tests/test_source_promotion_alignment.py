@@ -274,6 +274,17 @@ def test_promote_source_branch_writes_canonical_artifact_families(tmp_path: Path
     assert concept_file.artifact_id == derive_concept_artifact_id("propstore", "gravity")
 
 
+def test_source_promotion_dict_conveyor_variables_are_deleted() -> None:
+    source = Path("propstore/source/promote.py").read_text(encoding="utf-8")
+
+    assert "promoted_stances: list[dict" not in source
+    assert "filtered_justifications_payload" not in source
+    assert "normalized_promoted_claims" not in source
+    assert "valid_justification_entries: list[dict" not in source
+    assert "JsonObject" not in source
+    assert "JsonValue" not in source
+
+
 def test_source_promote_rejects_invalid_promoted_claim_before_master_commit(
     tmp_path: Path,
 ) -> None:

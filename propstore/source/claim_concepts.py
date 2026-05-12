@@ -24,6 +24,11 @@ class NormalizedImportedClaimArtifact:
     local_handle_map: dict[str, str]
 
 
+@dataclass(frozen=True)
+class NormalizedPromotedClaimArtifact:
+    document: ClaimDocument
+
+
 def source_concept_ref_requires_mapping(value: str) -> bool:
     return not (value.startswith("ps:concept:") or value.startswith("tag:"))
 
@@ -108,6 +113,42 @@ def normalize_imported_claim_artifact(
             source=source,
         ),
         local_handle_map=local_map,
+    )
+
+
+def normalize_promoted_source_claim_artifact(
+    claim: SourceClaimDocument,
+    *,
+    source_paper: str,
+    concept_map: Mapping[str, str],
+    unresolved: set[str],
+    source: str,
+) -> NormalizedPromotedClaimArtifact:
+    rewritten_payload = rewrite_claim_concept_refs(
+        claim,
+        concept_map,
+        unresolved=unresolved,
+    )
+    provenance = rewritten_payload.get("provenance")
+    if isinstance(provenance, dict) and not isinstance(provenance.get("paper"), str):
+        rewritten_payload["provenance"] = {
+            **provenance,
+            "paper": source_paper,
+        }
+    context = rewritten_payload.get("context")
+    if isinstance(context, str):
+        rewritten_payload["context"] = {"id": context}
+    normalized_payload = normalize_canonical_claim_payload(
+        rewritten_payload,
+        strip_source_local=True,
+    )
+    normalized_payload.setdefault("source", {"paper": source_paper})
+    return NormalizedPromotedClaimArtifact(
+        document=convert_document_value(
+            normalized_payload,
+            ClaimDocument,
+            source=source,
+        ),
     )
 
 

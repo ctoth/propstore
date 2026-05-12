@@ -18,7 +18,6 @@ behavioral change.
 
 from __future__ import annotations
 
-import copy
 import json
 import os
 import shutil
@@ -29,7 +28,6 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from propstore.artifact_codes import stamp_canonical_artifact_codes
-from propstore.families.identity.claims import normalize_canonical_claim_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.claim_references import (
     ClaimReferenceResolver,
@@ -69,17 +67,19 @@ from propstore.provenance import (
 from propstore.repository import Repository
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.claim_concepts import (
-    rewrite_claim_concept_refs,
+    normalize_promoted_source_claim_artifact,
     source_concept_ref_requires_mapping,
 )
 from quire.documents import convert_document_value
 from propstore.families.documents.sources import (
     SourceClaimDocument,
+    SourceClaimsDocument,
     SourceConceptEntryDocument,
     SourceDocument,
+    SourceJustificationsDocument,
+    SourceStancesDocument,
     SourceTrustDocument,
 )
-from propstore.json_types import JsonObject, JsonValue
 from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.justifications import derive_justification_artifact_id
@@ -207,7 +207,7 @@ def _validate_promoted_claims_before_commit(
         )
 
 
-def _source_trust_payload(result: SourceTrustResult) -> JsonObject:
+def _source_trust_payload(result: SourceTrustResult) -> dict[str, Any]:
     trust = SourceTrustDocument(
         status=result.status,
         prior_base_rate=result.prior_base_rate,
@@ -271,12 +271,35 @@ def _source_claim_concept_refs(claim) -> tuple[str, ...]:
     return tuple(refs)
 
 
-def _normalize_promoted_claim_context(claim: dict[str, Any]) -> dict[str, Any]:
-    normalized = copy.deepcopy(claim)
-    context = normalized.get("context")
-    if isinstance(context, str):
-        normalized["context"] = {"id": context}
-    return normalized
+def _promoted_claim_source_paper(
+    claims_doc: SourceClaimsDocument | None,
+    *,
+    fallback_slug: str,
+) -> str:
+    if claims_doc is None or claims_doc.source is None:
+        return fallback_slug
+    return str(claims_doc.source.paper or fallback_slug)
+
+
+def _promoted_claim_document(
+    repo: Repository,
+    claim: SourceClaimDocument,
+    *,
+    concept_map: dict[str, str],
+    unresolved_concepts: set[str],
+    source_paper: str,
+) -> ClaimDocument:
+    artifact_id = claim.artifact_id
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise ValueError("promoted claim is missing artifact_id")
+    claim_ref = ClaimRef(artifact_id)
+    return normalize_promoted_source_claim_artifact(
+        claim,
+        source_paper=source_paper,
+        concept_map=concept_map,
+        unresolved=unresolved_concepts,
+        source=repo.families.claims.address(claim_ref).require_path(),
+    ).document
 
 
 def _filter_promoted_micropubs(
@@ -292,6 +315,200 @@ def _filter_promoted_micropubs(
         if all(claim_id in valid_artifact_ids for claim_id in micropub.claims)
     )
     return kept
+
+
+def _promoted_stance_documents(
+    stances_doc: SourceStancesDocument | None,
+    *,
+    reference_resolves_to_promoted_or_primary,
+    resolver: ClaimReferenceResolver,
+) -> tuple[StanceDocument, ...]:
+    promoted: list[StanceDocument] = []
+    for stance in (() if stances_doc is None else stances_doc.stances):
+        source_claim = stance.source_claim
+        if not isinstance(source_claim, str) or not source_claim:
+            raise ValueError("stance source_claim must be normalized before promotion")
+        if not reference_resolves_to_promoted_or_primary(source_claim):
+            continue
+        if not resolver.target_is_known(stance.target):
+            continue
+        promoted.append(
+            StanceDocument(
+                source_claim=source_claim,
+                perspective_source_claim_id=stance.perspective_source_claim_id,
+                target=resolver.resolve_promoted_target(stance.target),
+                type=stance.type,
+                strength=stance.strength,
+                note=stance.note,
+                conditions_differ=stance.conditions_differ,
+                resolution=stance.resolution,
+                target_justification_id=stance.target_justification_id,
+                artifact_code=stance.artifact_code,
+            )
+        )
+    return tuple(promoted)
+
+
+def _promoted_justification_documents(
+    justifications_doc: SourceJustificationsDocument | None,
+    *,
+    reference_resolves_to_promoted_or_primary,
+) -> tuple[JustificationDocument, ...]:
+    if justifications_doc is None:
+        return ()
+    promoted: list[JustificationDocument] = []
+    for justification in justifications_doc.justifications:
+        conclusion = justification.conclusion
+        if not isinstance(conclusion, str):
+            continue
+        if not reference_resolves_to_promoted_or_primary(conclusion):
+            continue
+        if any(
+            not reference_resolves_to_promoted_or_primary(premise)
+            for premise in justification.premises
+        ):
+            continue
+        promoted.append(
+            JustificationDocument(
+                id=justification.id,
+                conclusion=conclusion,
+                premises=justification.premises,
+                rule_kind=justification.rule_kind,
+                rule_strength=justification.rule_strength,
+                provenance=justification.provenance,
+                attack_target=justification.attack_target,
+                artifact_code=justification.artifact_code,
+            )
+        )
+    return tuple(promoted)
+
+
+def _assemble_source_promotion_plan(
+    repo: Repository,
+    *,
+    source_name: str,
+    slug: str,
+    source_doc: SourceDocument,
+    claims_doc: SourceClaimsDocument | None,
+    micropubs_doc: MicropublicationsFileDocument | None,
+    justifications_doc: SourceJustificationsDocument | None,
+    stances_doc: SourceStancesDocument | None,
+    concept_map: dict[str, str],
+    promoted_concept_documents: dict[str, ConceptDocument],
+    valid_claims: list[SourceClaimDocument],
+    blocked_claims: list[SourceClaimDocument],
+    blocked_reasons: dict[str, list[tuple[str, str]]],
+    resolver: ClaimReferenceResolver,
+    source_claim_index,
+    primary_claim_index,
+) -> SourcePromotionPlan:
+    source_paper = _promoted_claim_source_paper(
+        claims_doc,
+        fallback_slug=slug,
+    )
+    unresolved_concepts: set[str] = set()
+    unstamped_claim_documents = [
+        _promoted_claim_document(
+            repo,
+            claim,
+            concept_map=concept_map,
+            unresolved_concepts=unresolved_concepts,
+            source_paper=source_paper,
+        )
+        for claim in valid_claims
+    ]
+    if unresolved_concepts:
+        formatted = ", ".join(sorted(unresolved_concepts))
+        raise ValueError(f"Cannot promote source {source_name!r}; unresolved concept mappings: {formatted}")
+
+    valid_artifact_ids = {
+        claim.artifact_id
+        for claim in valid_claims
+        if isinstance(claim.artifact_id, str)
+    }
+    valid_promotion_reference_ids = valid_artifact_ids | primary_claim_index.artifact_ids
+
+    def reference_resolves_to_promoted_or_primary(reference: object) -> bool:
+        if not isinstance(reference, str) or not reference:
+            return False
+        if reference in valid_promotion_reference_ids:
+            return True
+        source_logical_target = source_claim_index.logical_to_artifact.get(reference)
+        if source_logical_target is not None:
+            return source_logical_target in valid_artifact_ids
+        return reference in primary_claim_index.logical_to_artifact
+
+    unstamped_justification_documents = _promoted_justification_documents(
+        justifications_doc,
+        reference_resolves_to_promoted_or_primary=reference_resolves_to_promoted_or_primary,
+    )
+    unstamped_stance_documents = _promoted_stance_documents(
+        stances_doc,
+        reference_resolves_to_promoted_or_primary=reference_resolves_to_promoted_or_primary,
+        resolver=resolver,
+    )
+    promoted_micropubs = _filter_promoted_micropubs(
+        micropubs_doc,
+        valid_artifact_ids=valid_artifact_ids,
+    )
+
+    (
+        promoted_source_document,
+        stamped_claim_documents,
+        stamped_justification_documents,
+        stamped_stance_documents,
+    ) = stamp_canonical_artifact_codes(
+        source_doc,
+        unstamped_claim_documents,
+        unstamped_justification_documents,
+        unstamped_stance_documents,
+    )
+
+    promoted_claim_documents: dict[ClaimRef, ClaimDocument] = {}
+    for claim_document in stamped_claim_documents:
+        artifact_id = claim_document.artifact_id
+        if not isinstance(artifact_id, str) or not artifact_id:
+            raise ValueError("promoted claim is missing artifact_id")
+        promoted_claim_documents[ClaimRef(artifact_id)] = claim_document
+
+    promoted_concept_plan_documents = {
+        ConceptFileRef(concept_slug): concept_document
+        for concept_slug, concept_document in promoted_concept_documents.items()
+    }
+    _validate_promoted_claims_before_commit(
+        repo,
+        promoted_claim_documents=promoted_claim_documents,
+        promoted_concept_documents=promoted_concept_plan_documents,
+    )
+
+    promoted_stance_documents: dict[StanceRef, StanceDocument] = {}
+    for stance_document in stamped_stance_documents:
+        artifact_id = derive_stance_artifact_id(stance_document.to_payload())
+        promoted_stance_documents[StanceRef(artifact_id)] = stance_document
+
+    promoted_justification_documents: dict[JustificationRef, JustificationDocument] = {}
+    for justification_document in stamped_justification_documents:
+        artifact_id = derive_justification_artifact_id(justification_document.to_payload())
+        promoted_justification_documents[JustificationRef(artifact_id)] = justification_document
+
+    promoted_micropub_documents = {
+        MicropublicationRef(micropub.artifact_id): micropub
+        for micropub in promoted_micropubs
+    }
+    return SourcePromotionPlan(
+        source_name=source_name,
+        slug=slug,
+        source_branch=source_branch_name(source_name),
+        source_ref=CanonicalSourceRef(slug),
+        promoted_source_document=promoted_source_document,
+        promoted_claim_documents=promoted_claim_documents,
+        promoted_micropub_documents=promoted_micropub_documents,
+        promoted_concept_documents=promoted_concept_plan_documents,
+        promoted_justification_documents=promoted_justification_documents,
+        promoted_stance_documents=promoted_stance_documents,
+        blocked_claims=tuple(blocked_claims),
+        blocked_reasons=blocked_reasons,
+    )
 
 
 def resolve_source_concept_promotions(
@@ -805,222 +1022,23 @@ def promote_source_branch(
             f"from promotion; see build_diagnostics for details{detail_suffix}"
         )
 
-    promoted_claims = [
-        rewrite_claim_concept_refs(claim, concept_map, unresolved=unresolved_concepts)
-        for claim in valid_claims
-    ]
-    if unresolved_concepts:
-        formatted = ", ".join(sorted(unresolved_concepts))
-        raise ValueError(f"Cannot promote source {source_name!r}; unresolved concept mappings: {formatted}")
-
-    # Filter justifications and stances to those referencing only valid claims.
-    valid_artifact_ids = {
-        claim.artifact_id
-        for claim in valid_claims
-        if isinstance(claim.artifact_id, str)
-    }
-    valid_promotion_reference_ids = valid_artifact_ids | primary_claim_index.artifact_ids
-
-    def reference_resolves_to_promoted_or_primary(reference: object) -> bool:
-        if not isinstance(reference, str) or not reference:
-            return False
-        if reference in valid_promotion_reference_ids:
-            return True
-        source_logical_target = source_claim_index.logical_to_artifact.get(reference)
-        if source_logical_target is not None:
-            return source_logical_target in valid_artifact_ids
-        return reference in primary_claim_index.logical_to_artifact
-
-    promoted_micropubs = _filter_promoted_micropubs(
-        micropubs_doc,
-        valid_artifact_ids=valid_artifact_ids,
-    )
-
-    promoted_stances: list[dict[str, Any]] = []
-    for stance in (() if stances_doc is None else stances_doc.stances):
-        source_claim = stance.source_claim
-        if not isinstance(source_claim, str) or not source_claim:
-            raise ValueError("stance source_claim must be normalized before promotion")
-        # Skip stances whose source_claim is blocked or whose target
-        # cannot be resolved under the current resolver.
-        if not reference_resolves_to_promoted_or_primary(source_claim):
-            continue
-        if not resolver.target_is_known(stance.target):
-            continue
-        target = resolver.resolve_promoted_target(stance.target)
-        normalized = stance.to_payload()
-        normalized["target"] = target
-        promoted_stances.append(normalized)
-
-    promoted_claims_doc = {
-        "source": (
-            {"paper": slug}
-            if claims_doc is None or claims_doc.source is None
-            else claims_doc.source.to_payload()
-        ),
-        "claims": promoted_claims,
-    }
-
-    # Per axis-1 finding 3.3: filter justifications to those whose
-    # conclusion and all premises resolve to valid (non-blocked) source
-    # claims. Blocked justifications stay on the source branch.
-    if justifications_doc is None:
-        filtered_justifications_payload = None
-    else:
-        valid_justification_entries: list[dict[str, Any]] = []
-        for justification in justifications_doc.justifications:
-            conclusion = justification.conclusion
-            if not isinstance(conclusion, str):
-                continue
-            if not reference_resolves_to_promoted_or_primary(conclusion):
-                continue
-            if any(
-                not reference_resolves_to_promoted_or_primary(premise)
-                for premise in justification.premises
-            ):
-                continue
-            valid_justification_entries.append(justification.to_payload())
-        justifications_payload = justifications_doc.to_payload()
-        justifications_payload["justifications"] = valid_justification_entries
-        filtered_justifications_payload = justifications_payload
-
-    raw_promoted_claims = promoted_claims_doc.get("claims")
-    promoted_claims = raw_promoted_claims if isinstance(raw_promoted_claims, list) else []
-    promoted_claims_source = promoted_claims_doc.get("source")
-    promoted_source_paper = (
-        str(promoted_claims_source.get("paper") or slug)
-        if isinstance(promoted_claims_source, dict)
-        else slug
-    )
-
-    normalized_promoted_claims: list[JsonValue] = []
-    for claim in promoted_claims:
-        if not isinstance(claim, dict):
-            normalized_promoted_claims.append(claim)
-            continue
-        normalized_input = dict(claim)
-        provenance = normalized_input.get("provenance")
-        if isinstance(provenance, dict) and not isinstance(provenance.get("paper"), str):
-            updated_provenance = dict(provenance)
-            updated_provenance["paper"] = promoted_source_paper
-            normalized_input["provenance"] = updated_provenance
-        normalized_claim = _normalize_promoted_claim_context(normalized_input)
-        normalized_promoted_claims.append(
-            normalize_canonical_claim_payload(
-                normalized_claim,
-                strip_source_local=True,
-            )
-        )
-    promoted_claims_doc["claims"] = normalized_promoted_claims
-
-    source_ref = CanonicalSourceRef(slug)
-    unstamped_claim_documents: list[ClaimDocument] = []
-    for claim in normalized_promoted_claims:
-        if not isinstance(claim, dict):
-            continue
-        artifact_id = claim.get("artifact_id")
-        if not isinstance(artifact_id, str) or not artifact_id:
-            raise ValueError("promoted claim is missing artifact_id")
-        claim_payload = dict(claim)
-        claim_payload.setdefault("source", {"paper": promoted_source_paper})
-        claim_ref = ClaimRef(artifact_id)
-        unstamped_claim_documents.append(
-            convert_document_value(
-                claim_payload,
-                ClaimDocument,
-                source=repo.families.claims.address(claim_ref).require_path(),
-            )
-        )
-
-    unstamped_stance_documents: list[StanceDocument] = []
-    for stance in promoted_stances:
-        stance_document = convert_document_value(
-            stance,
-            StanceDocument,
-            source="source-promote:stance",
-        )
-        unstamped_stance_documents.append(stance_document)
-
-    unstamped_justification_documents: list[JustificationDocument] = []
-    raw_promoted_justifications = (
-        []
-        if filtered_justifications_payload is None
-        else filtered_justifications_payload.get("justifications")
-    )
-    promoted_justification_entries = (
-        raw_promoted_justifications
-        if isinstance(raw_promoted_justifications, list)
-        else []
-    )
-    for justification in promoted_justification_entries:
-        if not isinstance(justification, dict):
-            continue
-        unstamped_justification_documents.append(
-            convert_document_value(
-                justification,
-                JustificationDocument,
-                source="source-promote:justification",
-            )
-        )
-
-    (
-        promoted_source_document,
-        stamped_claim_documents,
-        stamped_justification_documents,
-        stamped_stance_documents,
-    ) = stamp_canonical_artifact_codes(
-        source_doc,
-        unstamped_claim_documents,
-        unstamped_justification_documents,
-        unstamped_stance_documents,
-    )
-
-    promoted_claim_documents: dict[ClaimRef, ClaimDocument] = {}
-    for claim_document in stamped_claim_documents:
-        artifact_id = claim_document.artifact_id
-        if not isinstance(artifact_id, str) or not artifact_id:
-            raise ValueError("promoted claim is missing artifact_id")
-        promoted_claim_documents[ClaimRef(artifact_id)] = claim_document
-
-    promoted_concept_plan_documents = {
-        ConceptFileRef(concept_slug): concept_document
-        for concept_slug, concept_document in promoted_concept_documents.items()
-    }
-    _validate_promoted_claims_before_commit(
+    promotion_plan = _assemble_source_promotion_plan(
         repo,
-        promoted_claim_documents=promoted_claim_documents,
-        promoted_concept_documents=promoted_concept_plan_documents,
-    )
-    promoted_stance_documents: dict[StanceRef, StanceDocument] = {}
-    for stance_document in stamped_stance_documents:
-        artifact_id = derive_stance_artifact_id(stance_document.to_payload())
-        promoted_stance_documents[StanceRef(artifact_id)] = stance_document
-
-    promoted_justification_documents: dict[JustificationRef, JustificationDocument] = {}
-    for justification_document in stamped_justification_documents:
-        artifact_id = derive_justification_artifact_id(justification_document.to_payload())
-        promoted_justification_documents[JustificationRef(artifact_id)] = justification_document
-    promoted_micropub_documents: dict[MicropublicationRef, MicropublicationDocument] = {}
-    for micropub in promoted_micropubs:
-        micropub_ref = MicropublicationRef(micropub.artifact_id)
-        promoted_micropub_documents[micropub_ref] = convert_document_value(
-            micropub.to_payload(),
-            MicropublicationDocument,
-            source=repo.families.micropubs.address(micropub_ref).require_path(),
-        )
-    promotion_plan = SourcePromotionPlan(
         source_name=source_name,
         slug=slug,
-        source_branch=source_branch_name(source_name),
-        source_ref=source_ref,
-        promoted_source_document=promoted_source_document,
-        promoted_claim_documents=promoted_claim_documents,
-        promoted_micropub_documents=promoted_micropub_documents,
-        promoted_concept_documents=promoted_concept_plan_documents,
-        promoted_justification_documents=promoted_justification_documents,
-        promoted_stance_documents=promoted_stance_documents,
-        blocked_claims=tuple(blocked_claims),
+        source_doc=source_doc,
+        claims_doc=claims_doc,
+        micropubs_doc=micropubs_doc,
+        justifications_doc=justifications_doc,
+        stances_doc=stances_doc,
+        concept_map=concept_map,
+        promoted_concept_documents=promoted_concept_documents,
+        valid_claims=valid_claims,
+        blocked_claims=blocked_claims,
         blocked_reasons=blocked_reasons,
+        resolver=resolver,
+        source_claim_index=source_claim_index,
+        primary_claim_index=primary_claim_index,
     )
 
     prepared_sidecar_path: Path | None = None
