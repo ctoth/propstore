@@ -292,6 +292,25 @@ Gate:
 Goal: remove duplicated family CRUD and proposal boilerplate after all semantic
 families have one-artifact shape.
 
+Target helper shape:
+
+- Put the shared artifact iteration/load/save/delete helper on the typed family
+  abstraction, not in per-family owner modules.
+- The practical target is a generically typed family surface:
+  `FamilyStore[RefT, DocT].iter_handles() -> Iterator[ArtifactHandle[RefT, DocT]]`,
+  plus the existing typed `load`, `save`, `delete`, `address`, and
+  `ref_from_path` operations.
+- The conceptual invariant is dependent: the family key determines its exact
+  ref and document types. In Python, enforce that with typed bound-family
+  attributes and generic fallback APIs, not with untyped dynamic payloads.
+- Do not replace `iter_micropubs`, `iter_rules`, `iter_predicates`, or similar
+  wrappers with renamed per-family wrappers. If a wrapper only forwards to the
+  family artifact store, delete it and call the typed family helper directly.
+- Keep family-specific functions only when they encode real domain policy
+  beyond iteration, such as canonical/source filtering, validation, report
+  projection, or semantic ordering. Rename those as policy, not as generic
+  `iter_*` plumbing.
+
 Tasks:
 
 - Identify repeated list/show/remove/add-artifact patterns across:
@@ -303,8 +322,11 @@ Tasks:
   - predicates
   - rules
   - rule-superiority
-- Extract only abstractions that remove real duplication and preserve typed
-  owner-layer APIs.
+- Identify thin `iter_*` helpers, including `iter_micropubs`-style functions,
+  and delete the ones that merely duplicate typed family iteration.
+- Extract only family-level generic helpers that remove real duplication and
+  preserve typed owner-layer APIs. Do not add wrapper/facade layers for their
+  own sake.
 - Standardize proposal promotion for one proposal artifact to one canonical
   artifact.
 - Standardize test fixture helpers for artifact commit payloads.
@@ -315,12 +337,18 @@ Tests first:
 
 - Add or update family-registry tests that prove canonical semantic families
   use one artifact document, not bucket documents.
+- Add typed family-helper tests that prove the generic family surface preserves
+  the concrete ref/document types for at least rules, predicates, and one
+  non-rule semantic family such as micropublications.
+- Add deletion tests for thin `iter_*` wrappers that should no longer exist.
 - Add regression tests for generic helpers only after at least two real
   families use them.
 
 Gate:
 
 - No duplicated bucket-style helper remains for canonical semantic families.
+- No thin per-family `iter_*` wrapper remains when the typed family helper
+  already expresses the same operation.
 - CLI modules do not own mutation semantics.
 - Logged contract, CLI, proposal, import, merge, build, and world tests pass.
 - `uv run pyright propstore` passes.
