@@ -39,7 +39,7 @@ Do not add compatibility wrappers. When a Propstore helper is replaced, delete
 the old production helper first and use the resulting failures as the caller
 work queue.
 
-## Workstream Order
+## Dependency Order
 
 The phases below are topologically ordered.
 
