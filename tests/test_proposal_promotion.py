@@ -7,6 +7,9 @@ from click.testing import CliRunner
 
 from propstore.app.proposals import ProposalPromotionItem, ProposalPromotionPlanReport
 from propstore.cli.proposal import promote
+from propstore.families.claims.documents import ClaimDocument
+from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
+from propstore.families.registry import ClaimRef, ContextRef
 from propstore.proposals import (
     commit_stance_proposals,
     plan_stance_proposal_promotion,
@@ -20,7 +23,25 @@ from propstore.proposal_promotion import (
 from propstore.repository import Repository
 
 
+def _seed_claim_targets(repo: Repository) -> None:
+    repo.families.contexts.save(
+        ContextRef("ctx"),
+        ContextDocument(id="ctx", name="Test context"),
+        message="Seed stance proposal context",
+    )
+    for claim_id in ("claim_a", "claim_b"):
+        repo.families.claims.save(
+            ClaimRef(claim_id),
+            ClaimDocument(
+                artifact_id=claim_id,
+                context=ContextReferenceDocument(id="ctx"),
+            ),
+            message="Seed stance proposal claims",
+        )
+
+
 def _seed_stance_proposal(repo: Repository) -> None:
+    _seed_claim_targets(repo)
     commit_stance_proposals(
         repo,
         {
