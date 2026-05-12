@@ -38,7 +38,7 @@ Do not move these into Quire:
 Do not create Propstore compatibility aliases such as renamed placement
 constants or wrapper factory functions. The kept code should be smaller.
 
-## Workstream Order
+## Dependency Order
 
 The phases below are topologically ordered.
 
@@ -49,7 +49,7 @@ The phases below are topologically ordered.
 5. Propstore source/proposal-family declaration collapse
 6. Contract and final gates
 
-## Phase 1 - Quire Family Declaration Spec Tests
+## Phase 1: Quire Family Declaration Spec Tests
 
 Repository: `../quire`
 
@@ -79,7 +79,7 @@ Required gates:
 
 - `uv run pytest tests/test_families.py tests/test_artifacts.py`
 
-## Phase 2 - Quire Generic Declaration Builder
+## Phase 2: Quire Generic Declaration Builder
 
 Repository: `../quire`
 
@@ -120,7 +120,7 @@ Required gates:
 - `uv run pytest tests/test_families.py tests/test_family_store.py tests/test_artifacts.py`
 - `uv run pytest`
 
-## Phase 3 - Propstore Dependency Pin
+## Phase 3: Propstore Dependency Pin
 
 Repository: `propstore`
 
@@ -141,7 +141,7 @@ Required gate:
 
 - `uv run pyright propstore`
 
-## Phase 4 - Propstore Simple-Family Declaration Collapse
+## Phase 4: Propstore Simple-Family Declaration Collapse
 
 Repository: `propstore`
 
@@ -180,7 +180,7 @@ Required gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label family-declare-simple tests/test_semantic_family_registry.py tests/test_artifact_store.py tests/test_contract_manifest.py`
 - `uv run pyright propstore`
 
-## Phase 5 - Propstore Source/Proposal-Family Declaration Collapse
+## Phase 5: Propstore Source/Proposal-Family Declaration Collapse
 
 Repository: `propstore`
 
@@ -205,7 +205,7 @@ Required gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label family-declare-source-proposal tests/test_artifact_store.py tests/test_proposal_predicates_family.py tests/test_proposal_rules_family.py tests/test_semantic_family_registry.py tests/test_contract_manifest.py`
 - `uv run pyright propstore`
 
-## Phase 6 - Contract and Final Gates
+## Phase 6: Contract and Final Gates
 
 Repository: both
 
