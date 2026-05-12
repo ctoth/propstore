@@ -20,9 +20,8 @@ from propstore.families.claims.documents import (
     SympyGenerationCheck,
     claim_type_contract_for,
 )
-from propstore.compiler.context import CompilationContext
-from propstore.compiler.references import (
-    concept_exists,
+from propstore.compiler.context import (
+    CompilationContext,
     concept_form_definition,
 )
 from propstore.dimensions import can_convert_unit_to
@@ -406,11 +405,11 @@ def _validate_value_fields(
 
 
 def _has_concepts(context: CompilationContext) -> bool:
-    return bool(context.concepts_by_id or context.concept_lookup)
+    return bool(context.concepts_by_id or context.concept_index.lookup)
 
 
 def _concept_exists(concept_ref: object, context: CompilationContext) -> bool:
-    return concept_exists(concept_ref, context)
+    return context.concept_index.exists(concept_ref)
 
 
 def _concept_form_definition(
