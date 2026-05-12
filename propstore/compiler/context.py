@@ -8,7 +8,7 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Mapping, cast
 
-from quire.references import FamilyReferenceIndex
+from quire.references import FamilyReferenceIndex, ReferenceIndex, ReferenceResolution
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.cel_registry import build_canonical_cel_registry
@@ -102,6 +102,87 @@ def build_compiler_claim_index(
         family="claim",
         artifact_id=lambda record: record.artifact_id,
         keys=(_claim_reference_keys,),
+    )
+
+
+def concept_form_definition(
+    concept_ref: object,
+    context: CompilationContext,
+) -> FormDefinition | None:
+    concept_id = context.concept_index.resolve_id(concept_ref)
+    if concept_id is None:
+        return None
+    record = context.concepts_by_id.get(concept_id)
+    if record is None:
+        return None
+    form_definition = context.form_registry.get(record.form)
+    return form_definition if isinstance(form_definition, FormDefinition) else None
+
+
+def compiler_concept_match_kind(
+    raw_text: str,
+    resolved_id: str,
+    record: ConceptRecord | None,
+) -> tuple[str | None, str | None]:
+    if raw_text == resolved_id:
+        return "artifact_id", raw_text
+    if record is None:
+        return None, None
+    if record.canonical_name == raw_text:
+        return "canonical_name", raw_text
+    for logical_id in record.logical_ids:
+        if logical_id.formatted == raw_text:
+            return "logical_id", raw_text
+        if logical_id.value == raw_text:
+            return "logical_value", raw_text
+    for alias in record.aliases:
+        if alias.name == raw_text:
+            return "alias", raw_text
+    return None, None
+
+
+def compiler_claim_match_kind(
+    raw_text: str,
+    resolved_id: str,
+    record: CompilerClaimReference | None,
+) -> tuple[str | None, str | None]:
+    if raw_text == resolved_id:
+        return "artifact_id", raw_text
+    if record is None:
+        return None, None
+    for logical_id in record.claim.logical_ids:
+        if logical_id.formatted == raw_text:
+            return "logical_id", raw_text
+        if logical_id.value == raw_text:
+            return "logical_value", raw_text
+    return None, None
+
+
+def resolve_context_concept(
+    context: CompilationContext,
+    reference: object,
+) -> ReferenceResolution | None:
+    return ReferenceIndex(
+        family=context.concept_index.family,
+        records_by_id=context.concept_index.records_by_id,
+        lookup=context.concept_index.lookup,
+    ).resolve(
+        reference,
+        match_kind=compiler_concept_match_kind,
+    )
+
+
+def resolve_context_claim(
+    context: CompilationContext,
+    reference: object,
+) -> ReferenceResolution | None:
+    return ReferenceIndex(
+        family=context.claim_index.family,
+        records_by_id=context.claim_index.records_by_id,
+        lookup=context.claim_index.lookup,
+    ).resolve(
+        reference,
+        match_kind=compiler_claim_match_kind,
     )
 
 
