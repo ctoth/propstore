@@ -8,14 +8,15 @@ from typing import TYPE_CHECKING, Any, cast
 
 from quire.documents import decode_yaml_mapping
 from quire.family_store import DocumentFamilyStore
+from quire.families import FamilyRegistry
 from quire.references import AmbiguousReferenceError
 
 from propstore.families.addresses import SemanticFamilyAddress
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.registry import (
     ClaimRef,
+    PROPSTORE_FAMILY_REGISTRY,
     PropstoreFamily,
-    semantic_family_for_path,
     semantic_import_families,
 )
 from propstore.families.identity.concepts import (
@@ -53,6 +54,14 @@ SemanticImportBatch = Callable[
 ]
 
 
+def _semantic_import_registry() -> FamilyRegistry["Repository", PropstoreFamily]:
+    return FamilyRegistry(
+        name="propstore-semantic-import",
+        contract_version=PROPSTORE_FAMILY_REGISTRY.contract_version,
+        families=semantic_import_families(),
+    )
+
+
 def _decode_yaml(content: bytes, *, path: str) -> dict[str, Any]:
     return decode_yaml_mapping(content, source=path)
 
@@ -62,7 +71,7 @@ def _planned_write(
     path: str,
     payload: object,
 ) -> PlannedSemanticWrite:
-    family = semantic_family_for_path(path).artifact_family
+    family = _semantic_import_registry().family_for_path(path).artifact_family
     ref = store.ref_from_path(cast(Any, family), path)
     document = store.coerce(cast(Any, family), payload, source=path)
     address = store.address(cast(Any, family), ref)
@@ -83,7 +92,7 @@ def _planned_claim_document_write(
     artifact_id = getattr(document, "artifact_id", None)
     if not isinstance(artifact_id, str) or not artifact_id:
         raise ValueError(f"Imported claim {source!r} is missing artifact_id after normalization")
-    family = semantic_family_for_path("claims/__placeholder__.yaml").artifact_family
+    family = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.CLAIMS).artifact_family
     ref = ClaimRef(artifact_id)
     address = store.address(cast(Any, family), ref)
     return PlannedSemanticWrite(
@@ -316,11 +325,12 @@ def _normalize_semantic_import_writes(
 ) -> SourceImportNormalizedWrites:
     normalized: dict[str, PlannedSemanticWrite] = {}
     state = SourceImportState(repository_name=repository_name)
+    import_registry = _semantic_import_registry()
     for family in semantic_import_families():
         family_paths = [
             path
             for path in sorted(writes)
-            if semantic_family_for_path(path).name == family.name
+            if import_registry.family_for_path(path).name == family.name
         ]
         if not family_paths:
             continue
