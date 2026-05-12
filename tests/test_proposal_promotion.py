@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 from click.testing import CliRunner
@@ -11,6 +12,10 @@ from propstore.proposals import (
     plan_stance_proposal_promotion,
     promote_stance_proposals,
     stance_proposal_branch,
+)
+from propstore.proposal_promotion import (
+    PlannedCanonicalArtifact,
+    commit_planned_canonical_artifacts,
 )
 from propstore.repository import Repository
 
@@ -62,6 +67,69 @@ def test_stance_proposal_promotion_commits_to_master(tmp_path) -> None:
 
     assert result.moved == 1
     assert plan.items[0].filename in repo.git.iter_dir("stances")
+
+
+def test_commit_planned_canonical_artifacts_saves_multiple_refs_in_one_transaction() -> None:
+    class FakeWriter:
+        def __init__(self) -> None:
+            self.saved: list[tuple[str, str]] = []
+
+        def save(self, ref: str, document: str) -> None:
+            self.saved.append((ref, document))
+
+    class FakeTransaction:
+        def __init__(self) -> None:
+            self.writer = FakeWriter()
+
+    class FakeTransact:
+        def __init__(self) -> None:
+            self.messages: list[str] = []
+            self.entered = 0
+            self.exited = 0
+            self.transaction = FakeTransaction()
+
+        def __call__(self, *, message: str):
+            self.messages.append(message)
+            return self
+
+        def __enter__(self) -> FakeTransaction:
+            self.entered += 1
+            return self.transaction
+
+        def __exit__(self, exc_type, exc, tb) -> None:
+            self.exited += 1
+
+    transact = FakeTransact()
+
+    count = commit_planned_canonical_artifacts(
+        transact,
+        message="Promote planned artifacts",
+        family=lambda transaction: transaction.writer,
+        artifacts=(
+            PlannedCanonicalArtifact("ref-a", "doc-a"),
+            PlannedCanonicalArtifact("ref-b", "doc-b"),
+        ),
+    )
+
+    assert count == 2
+    assert transact.messages == ["Promote planned artifacts"]
+    assert transact.entered == 1
+    assert transact.exited == 1
+    assert transact.transaction.writer.saved == [("ref-a", "doc-a"), ("ref-b", "doc-b")]
+
+
+def test_proposal_promotion_modules_use_shared_transaction_helper() -> None:
+    proposal_sources = {
+        "stances": Path("propstore/proposals.py").read_text(encoding="utf-8"),
+        "predicates": Path("propstore/proposals_predicates.py").read_text(encoding="utf-8"),
+        "rules": Path("propstore/proposals_rules.py").read_text(encoding="utf-8"),
+    }
+
+    for source in proposal_sources.values():
+        assert "commit_planned_canonical_artifacts(" in source
+    assert "transaction.stances.save(" not in proposal_sources["stances"]
+    assert "transaction.predicates.save(" not in proposal_sources["predicates"]
+    assert "transaction.rules.save(" not in proposal_sources["rules"]
 
 
 def test_stance_proposal_promotion_reports_missing_branch(tmp_path) -> None:

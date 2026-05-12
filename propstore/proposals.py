@@ -18,6 +18,10 @@ from propstore.families.registry import PROPOSAL_STANCE_PLACEMENT
 from propstore.families.registry import StanceRef
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
+from propstore.proposal_promotion import (
+    PlannedCanonicalArtifact,
+    commit_planned_canonical_artifacts,
+)
 from quire.documents import convert_document_value
 
 if TYPE_CHECKING:
@@ -158,35 +162,49 @@ def promote_stance_proposals(
     if moved > 0:
         if plan.proposal_tip is None:
             raise ValueError("stance proposal promotion requires a proposal tip")
-        with repo.families.transact(
-            message=f"Promote {moved} stance proposal file(s) from {plan.branch}",
-        ) as transaction:
-            for item in plan.items:
-                ref = StanceRef(item.artifact_id)
-                existing = repo.families.stances.load(ref)
-                if (
-                    existing is not None
-                    and existing.promoted_from_sha is not None
-                    and not force
-                ):
-                    raise ProposalAlreadyPromoted(
-                        item.artifact_id,
-                        existing.promoted_from_sha,
-                    )
-                proposal_document = repo.families.proposal_stances.require(
-                    ref,
-                    commit=plan.proposal_tip,
+        artifacts: list[PlannedCanonicalArtifact[StanceRef, StanceDocument]] = []
+        for item in plan.items:
+            ref = StanceRef(item.artifact_id)
+            existing = repo.families.stances.load(ref)
+            if (
+                existing is not None
+                and existing.promoted_from_sha is not None
+                and not force
+            ):
+                raise ProposalAlreadyPromoted(
+                    item.artifact_id,
+                    existing.promoted_from_sha,
                 )
-                proposal_payload = proposal_document.to_payload()
-                proposal_payload["promoted_from_sha"] = plan.proposal_tip
-                transaction.stances.save(
+            proposal_document = repo.families.proposal_stances.require(
+                ref,
+                commit=plan.proposal_tip,
+            )
+            artifacts.append(
+                PlannedCanonicalArtifact(
                     ref,
-                    convert_document_value(
-                        proposal_payload,
-                        StanceDocument,
-                        source=repo.families.stances.address(ref).require_path(),
+                    StanceDocument(
+                        source_claim=proposal_document.source_claim,
+                        perspective_source_claim_id=proposal_document.perspective_source_claim_id,
+                        target=proposal_document.target,
+                        type=proposal_document.type,
+                        strength=proposal_document.strength,
+                        note=proposal_document.note,
+                        conditions_differ=proposal_document.conditions_differ,
+                        resolution=proposal_document.resolution,
+                        target_justification_id=proposal_document.target_justification_id,
+                        artifact_code=proposal_document.artifact_code,
+                        classification_model=proposal_document.classification_model,
+                        classification_date=proposal_document.classification_date,
+                        promoted_from_sha=plan.proposal_tip,
                     ),
                 )
+            )
+        commit_planned_canonical_artifacts(
+            repo.families.transact,
+            message=f"Promote {moved} stance proposal file(s) from {plan.branch}",
+            family=lambda transaction: transaction.stances,
+            artifacts=artifacts,
+        )
     return StanceProposalPromotionResult(
         moved=moved,
         branch=plan.branch,

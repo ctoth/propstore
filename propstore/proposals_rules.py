@@ -9,6 +9,10 @@ from typing import TYPE_CHECKING
 from propstore.families.documents.rules import RuleDocument, RuleSourceDocument
 from propstore.families.registry import RuleProposalRef, RuleRef
 from propstore.proposals import UnknownProposalPath
+from propstore.proposal_promotion import (
+    PlannedCanonicalArtifact,
+    commit_planned_canonical_artifacts,
+)
 from propstore.app.rules import _RULE_MUTATION_LOCK, reject_rule_document_conflicts
 
 if TYPE_CHECKING:
@@ -118,7 +122,7 @@ def promote_rule_proposals(
     if plan.proposal_tip is None:
         raise ValueError("rule proposal promotion requires a proposal tip")
 
-    documents: list[tuple[RuleRef, RuleDocument]] = []
+    artifacts: list[PlannedCanonicalArtifact[RuleRef, RuleDocument]] = []
     for item in plan.items:
         proposal_ref = RuleProposalRef(item.source_paper, item.rule_id)
         proposal = repo.families.proposal_rules.require(
@@ -127,8 +131,8 @@ def promote_rule_proposals(
         )
         canonical_ref = _canonical_ref(item.source_paper, item.rule_id)
         proposed = proposal.proposed_rule
-        documents.append(
-            (
+        artifacts.append(
+            PlannedCanonicalArtifact(
                 canonical_ref,
                 RuleDocument(
                     id=proposed.id,
@@ -146,17 +150,18 @@ def promote_rule_proposals(
         repo.snapshot.primary_branch_name(),
         path="proposal.rules.promote",
     ) as head_txn:
-        for ref, document in documents:
+        for artifact in artifacts:
             reject_rule_document_conflicts(
                 repo,
                 commit=head_txn.expected_head,
-                target_ref=ref,
-                document=document,
+                target_ref=artifact.ref,
+                document=artifact.document,
             )
 
-        with head_txn.families_transact(
+        commit_planned_canonical_artifacts(
+            head_txn.families_transact,
             message=f"Promote {len(plan.items)} rule proposal(s) from {plan.branch}",
-        ) as transaction:
-            for canonical_ref, document in documents:
-                transaction.rules.save(canonical_ref, document)
+            family=lambda transaction: transaction.rules,
+            artifacts=artifacts,
+        )
     return RuleProposalPromotionResult(len(plan.items), plan.branch, plan.items)

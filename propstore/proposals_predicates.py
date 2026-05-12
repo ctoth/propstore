@@ -14,6 +14,10 @@ from propstore.families.registry import (
     PredicateRef,
 )
 from propstore.proposals import UnknownProposalPath
+from propstore.proposal_promotion import (
+    PlannedCanonicalArtifact,
+    commit_planned_canonical_artifacts,
+)
 from propstore.app.predicates import (
     _PREDICATE_MUTATION_LOCK,
     reject_predicate_document_conflicts,
@@ -116,7 +120,7 @@ def promote_predicate_proposals(
     if plan.proposal_tip is None:
         raise ValueError("predicate proposal promotion requires a proposal tip")
 
-    documents: list[tuple[PredicateRef, PredicateDocument]] = []
+    artifacts: list[PlannedCanonicalArtifact[PredicateRef, PredicateDocument]] = []
     for item in plan.items:
         proposal_ref = PredicateProposalRef(item.source_paper)
         proposal = repo.families.proposal_predicates.require(
@@ -129,8 +133,8 @@ def promote_predicate_proposals(
         }
         declaration = declarations[item.predicate_id]
         canonical_ref = PredicateRef(item.predicate_id)
-        documents.append(
-            (
+        artifacts.append(
+            PlannedCanonicalArtifact(
                 canonical_ref,
                 PredicateDocument(
                     id=declaration.name,
@@ -147,17 +151,18 @@ def promote_predicate_proposals(
         repo.snapshot.primary_branch_name(),
         path="proposal.predicates.promote",
     ) as head_txn:
-        for canonical_ref, document in documents:
+        for artifact in artifacts:
             reject_predicate_document_conflicts(
                 repo,
                 commit=head_txn.expected_head,
-                target_ref=canonical_ref,
-                document=document,
+                target_ref=artifact.ref,
+                document=artifact.document,
             )
 
-        with head_txn.families_transact(
+        commit_planned_canonical_artifacts(
+            head_txn.families_transact,
             message=f"Promote {len(plan.items)} predicate proposal(s) from {plan.branch}",
-        ) as transaction:
-            for canonical_ref, document in documents:
-                transaction.predicates.save(canonical_ref, document)
+            family=lambda transaction: transaction.predicates,
+            artifacts=artifacts,
+        )
     return PredicateProposalPromotionResult(len(plan.items), plan.branch, plan.items)
