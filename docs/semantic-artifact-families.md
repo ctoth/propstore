@@ -15,6 +15,10 @@ These files are source branch authoring state:
 They support ingestion, paper review, and source-local validation. They do not
 define canonical artifact identity.
 
+Typed source promotion lowers source-local handles through explicit source
+subsystem indexes before canonical artifact construction. Source-local batch
+fields and readability handles must not appear in canonical artifacts.
+
 ## Canonical Semantic Artifacts
 
 Canonical/master storage uses one family artifact per semantic unit:
@@ -27,6 +31,8 @@ Canonical/master storage uses one family artifact per semantic unit:
 
 Sidecar compilation and verification read these first-class family artifacts
 directly. They must not flatten entries hidden inside canonical bucket files.
+Canonical family writes are the boundary where Quire reference indexes and
+foreign-key validation begin.
 
 ## Intentional Sets
 
@@ -43,7 +49,8 @@ the reason in contract metadata.
 ## Ownership Boundary
 
 Quire owns schema-blind artifact mechanics: typed family stores, placements,
-document codecs, canonical JSON, hashing, and contract manifests.
+document codecs, canonical JSON, hashing, contract manifests, family reference
+indexes, and mandatory cross-family FK validation.
 
 Propstore owns semantic identity: artifact id derivation, version payloads,
-source-local field exclusion, cross-family verification, and source promotion.
+source-local field exclusion, semantic FK declarations, and source promotion.
