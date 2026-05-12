@@ -67,7 +67,7 @@ def test_contract_manifest_covers_documents_and_artifact_families() -> None:
     assert "family:claims" in keys
     assert "family:predicates" in keys
     assert "family:rules" in keys
-    assert "foreign_key:claim_concept" in keys
+    assert "foreign_key:claim_output_concept" in keys
     assert "foreign_key:concept_parameterization_canonical_claim" in keys
     assert "claim_type_contract:parameter" in keys
     assert "claim_type_contract:algorithm" in keys

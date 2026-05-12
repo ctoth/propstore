@@ -3197,19 +3197,19 @@ contracts:
     module: propstore.families.documents.stances
 - kind: family-registry
   name: propstore
-  contract_version: 2026.05.12
+  contract_version: 2026.05.13
   body:
     families:
-    - contract_version: 2026.04.29
+    - contract_version: 2026.05.12
       key: claims
       name: claims
-    - contract_version: 2026.04.29
+    - contract_version: 2026.05.12
       key: concepts
       name: concepts
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.12
       key: contexts
       name: contexts
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.12
       key: forms
       name: forms
     - contract_version: 2026.05.11
@@ -3221,7 +3221,7 @@ contracts:
     - contract_version: 2026.05.11
       key: rule_superiority
       name: rule_superiority
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.12
       key: stances
       name: stances
     - contract_version: 2026.04.27
@@ -3230,13 +3230,13 @@ contracts:
     - contract_version: 2026.05.04
       key: worldlines
       name: worldlines
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.12
       key: sources
       name: sources
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.12
       key: micropubs
       name: micropubs
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.12
       key: justifications
       name: justifications
     - contract_version: 2026.05.02
@@ -3283,7 +3283,7 @@ contracts:
       name: merge_manifests
 - kind: family
   name: claims
-  contract_version: 2026.04.29
+  contract_version: 2026.05.12
   body:
     accessor: claims
     artifact_family: claim
@@ -3300,40 +3300,41 @@ contracts:
     artifact_family_contract_version: 2026.04.27
     foreign_keys:
     - many: false
-      required: true
-      source_family: claim
-      source_field: concept
-      target_family: concept
+      required: false
+      source_family: claims
+      source_field: output_concept
+      target_family: concepts
     - many: true
-      required: true
-      source_family: claim
-      source_field: concepts
-      target_family: concept
+      required: false
+      source_family: claims
+      source_field: concepts[]
+      target_family: concepts
     - many: false
-      required: true
-      source_family: claim
+      required: false
+      source_family: claims
       source_field: variables[].concept
-      target_family: concept
+      target_family: concepts
     - many: false
-      required: true
-      source_family: claim
+      required: false
+      source_family: claims
       source_field: parameters[].concept
-      target_family: concept
+      target_family: concepts
     - many: false
-      required: true
-      source_family: claim
+      required: false
+      source_family: claims
       source_field: target_concept
-      target_family: concept
+      target_family: concepts
     - many: false
-      required: true
-      source_family: claim
+      required: false
+      source_family: claims
       source_field: stances[].target
-      target_family: claim
+      target_family: claims
     - many: false
       required: true
-      source_family: claim
-      source_field: context
-      target_family: context
+      source_family: claims
+      source_field: context.id
+      target_family: contexts
+    identity_field: artifact_id
     identity_policy:
       artifact_id_function: propstore.families.identity.claims.derive_claim_artifact_id
       canonical_payload_function: propstore.families.identity.claims.canonicalize_claim_for_version
@@ -3358,6 +3359,13 @@ contracts:
       importable: true
       init_directory: true
       semantic: true
+    reference_keys:
+    - field: artifact_id
+      kind: field
+    - field: logical_ids[].formatted
+      kind: field
+    - field: logical_ids[].value
+      kind: field
 - kind: family
   name: concept_alignments
   contract_version: 2026.04.27
@@ -3380,7 +3388,7 @@ contracts:
     key: concept_alignments
 - kind: family
   name: concepts
-  contract_version: 2026.04.29
+  contract_version: 2026.05.12
   body:
     accessor: concepts
     artifact_family: concept_file
@@ -3397,30 +3405,31 @@ contracts:
     artifact_family_contract_version: 2026.04.28
     foreign_keys:
     - many: true
-      required: true
-      source_family: concept
+      required: false
+      source_family: concepts
       source_field: parameterization_relationships[].inputs[]
-      target_family: concept
+      target_family: concepts
     - many: false
       required: false
-      source_family: concept
+      source_family: concepts
       source_field: parameterization_relationships[].canonical_claim
-      target_family: claim
+      target_family: claims
     - many: false
       required: false
-      source_family: concept
+      source_family: concepts
       source_field: replaced_by
-      target_family: concept
+      target_family: concepts
     - many: true
-      required: true
-      source_family: concept
+      required: false
+      source_family: concepts
       source_field: relationships[].target
-      target_family: concept
+      target_family: concepts
     - many: false
       required: true
-      source_family: concept
-      source_field: form
-      target_family: form
+      source_family: concepts
+      source_field: lexical_entry.physical_dimension_form
+      target_family: forms
+    identity_field: artifact_id
     identity_policy:
       artifact_id_function: propstore.families.identity.concepts.derive_concept_artifact_id
       canonical_payload_function: propstore.families.identity.concepts.canonicalize_concept_for_version
@@ -3440,9 +3449,19 @@ contracts:
       importable: true
       init_directory: true
       semantic: true
+    reference_keys:
+    - field: artifact_id
+      kind: field
+    - field: logical_ids[].value
+      kind: field
+    - from_field: logical_ids[]
+      kind: format
+      template: '{namespace}:{value}'
+    - field: aliases[].name
+      kind: field
 - kind: family
   name: contexts
-  contract_version: 2026.04.27
+  contract_version: 2026.05.12
   body:
     accessor: contexts
     artifact_family: context
@@ -3458,6 +3477,7 @@ contracts:
         ref_field: name
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
+    identity_field: id
     key: contexts
     metadata:
       collection_field: null
@@ -3465,9 +3485,12 @@ contracts:
       importable: true
       init_directory: true
       semantic: true
+    reference_keys:
+    - field: name
+      kind: field
 - kind: family
   name: forms
-  contract_version: 2026.04.27
+  contract_version: 2026.05.12
   body:
     accessor: forms
     artifact_family: form
@@ -3483,6 +3506,7 @@ contracts:
         ref_field: name
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
+    identity_field: name
     key: forms
     metadata:
       collection_field: null
@@ -3492,7 +3516,7 @@ contracts:
       semantic: true
 - kind: family
   name: justifications
-  contract_version: 2026.04.27
+  contract_version: 2026.05.12
   body:
     accessor: justifications
     artifact_family: justification
@@ -3507,8 +3531,22 @@ contracts:
         namespace: justifications
         ref_field: artifact_id
     artifact_family_contract_version: 2026.04.27
-    foreign_keys: []
+    foreign_keys:
+    - many: false
+      required: false
+      source_family: justifications
+      source_field: conclusion
+      target_family: claims
+    - many: true
+      required: false
+      source_family: justifications
+      source_field: premises[]
+      target_family: claims
+    identity_field: artifact_code
     key: justifications
+    reference_keys:
+    - field: id
+      kind: field
 - kind: family
   name: merge_manifests
   contract_version: 2026.04.27
@@ -3527,7 +3565,7 @@ contracts:
     key: merge_manifests
 - kind: family
   name: micropubs
-  contract_version: 2026.04.27
+  contract_version: 2026.05.12
   body:
     accessor: micropubs
     artifact_family: micropublication
@@ -3547,7 +3585,18 @@ contracts:
         namespace: micropubs
         ref_field: artifact_id
     artifact_family_contract_version: 2026.04.27
-    foreign_keys: []
+    foreign_keys:
+    - many: false
+      required: true
+      source_family: micropubs
+      source_field: context.id
+      target_family: contexts
+    - many: true
+      required: true
+      source_family: micropubs
+      source_field: claims[]
+      target_family: claims
+    identity_field: artifact_id
     key: micropubs
 - kind: family
   name: predicates
@@ -3895,7 +3944,7 @@ contracts:
     key: source_stances
 - kind: family
   name: sources
-  contract_version: 2026.04.27
+  contract_version: 2026.05.12
   body:
     accessor: sources
     artifact_family: canonical_source
@@ -3911,10 +3960,11 @@ contracts:
         ref_field: name
     artifact_family_contract_version: 2026.04.27
     foreign_keys: []
+    identity_field: id
     key: sources
 - kind: family
   name: stances
-  contract_version: 2026.04.27
+  contract_version: 2026.05.12
   body:
     accessor: stances
     artifact_family: stance
@@ -3929,7 +3979,23 @@ contracts:
         namespace: stances
         ref_field: artifact_id
     artifact_family_contract_version: 2026.04.27
-    foreign_keys: []
+    foreign_keys:
+    - many: false
+      required: false
+      source_family: stances
+      source_field: source_claim
+      target_family: claims
+    - many: false
+      required: false
+      source_family: stances
+      source_field: target
+      target_family: claims
+    - many: false
+      required: false
+      source_family: stances
+      source_field: target_justification_id
+      target_family: justifications
+    identity_field: artifact_code
     key: stances
     metadata:
       collection_field: null
@@ -3964,113 +4030,140 @@ contracts:
       semantic: true
       trajectory_field: journal
 - kind: foreign_key
-  name: claim_concept
-  contract_version: 2026.04.22
-  body:
-    many: false
-    required: true
-    source_family: claim
-    source_field: concept
-    target_family: concept
-- kind: foreign_key
   name: claim_concepts
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: true
-    required: true
-    source_family: claim
-    source_field: concepts
-    target_family: concept
+    required: false
+    source_family: claims
+    source_field: concepts[]
+    target_family: concepts
 - kind: foreign_key
   name: claim_context
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: false
     required: true
-    source_family: claim
-    source_field: context
-    target_family: context
+    source_family: claims
+    source_field: context.id
+    target_family: contexts
 - kind: foreign_key
   name: claim_measurement_target_concept
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: false
-    required: true
-    source_family: claim
+    required: false
+    source_family: claims
     source_field: target_concept
-    target_family: concept
+    target_family: concepts
+- kind: foreign_key
+  name: claim_output_concept
+  contract_version: 2026.05.12
+  body:
+    many: false
+    required: false
+    source_family: claims
+    source_field: output_concept
+    target_family: concepts
 - kind: foreign_key
   name: claim_parameter_concept
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: false
-    required: true
-    source_family: claim
+    required: false
+    source_family: claims
     source_field: parameters[].concept
-    target_family: concept
+    target_family: concepts
 - kind: foreign_key
   name: claim_stance_target
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: false
-    required: true
-    source_family: claim
+    required: false
+    source_family: claims
     source_field: stances[].target
-    target_family: claim
+    target_family: claims
 - kind: foreign_key
   name: claim_variable_concept
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: false
-    required: true
-    source_family: claim
+    required: false
+    source_family: claims
     source_field: variables[].concept
-    target_family: concept
+    target_family: concepts
 - kind: foreign_key
   name: concept_form
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: false
     required: true
-    source_family: concept
-    source_field: form
-    target_family: form
+    source_family: concepts
+    source_field: lexical_entry.physical_dimension_form
+    target_family: forms
 - kind: foreign_key
   name: concept_parameterization_canonical_claim
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: false
     required: false
-    source_family: concept
+    source_family: concepts
     source_field: parameterization_relationships[].canonical_claim
-    target_family: claim
+    target_family: claims
 - kind: foreign_key
   name: concept_parameterization_input
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: true
-    required: true
-    source_family: concept
+    required: false
+    source_family: concepts
     source_field: parameterization_relationships[].inputs[]
-    target_family: concept
+    target_family: concepts
 - kind: foreign_key
   name: concept_relationship_target
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: true
-    required: true
-    source_family: concept
+    required: false
+    source_family: concepts
     source_field: relationships[].target
-    target_family: concept
+    target_family: concepts
 - kind: foreign_key
   name: concept_replaced_by
-  contract_version: 2026.04.22
+  contract_version: 2026.05.12
   body:
     many: false
     required: false
-    source_family: concept
+    source_family: concepts
     source_field: replaced_by
-    target_family: concept
+    target_family: concepts
+- kind: foreign_key
+  name: stance_source_claim
+  contract_version: 2026.05.12
+  body:
+    many: false
+    required: false
+    source_family: stances
+    source_field: source_claim
+    target_family: claims
+- kind: foreign_key
+  name: stance_target_claim
+  contract_version: 2026.05.12
+  body:
+    many: false
+    required: false
+    source_family: stances
+    source_field: target
+    target_family: claims
+- kind: foreign_key
+  name: stance_target_justification
+  contract_version: 2026.05.12
+  body:
+    many: false
+    required: false
+    source_family: stances
+    source_field: target_justification_id
+    target_family: justifications
 - kind: semantic_pass
   name: claim.compile
   contract_version: 2026.04.20
@@ -4274,4 +4367,4 @@ contracts:
     invariants: []
 registry:
   name: propstore
-  contract_version: 2026.05.12
+  contract_version: 2026.05.13
