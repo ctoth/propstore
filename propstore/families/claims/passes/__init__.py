@@ -27,11 +27,9 @@ from propstore.families.claims.passes.checks import (
 )
 from propstore.compiler.context import (
     CompilationContext,
-    _build_claim_lookup,
-)
-from propstore.compiler.references import (
-    resolve_claim_reference,
-    resolve_concept_reference,
+    build_compiler_claim_index,
+    resolve_context_claim,
+    resolve_context_concept,
 )
 from propstore.compiler.ir import (
     ClaimCompilationBundle,
@@ -64,16 +62,15 @@ def _bind_claim(
     filename: str,
     source_paper: str,
     context: CompilationContext,
-    normalized_claim_files: Sequence[ClaimFileEntry],
 ) -> SemanticClaim:
     authored_claim = claim.to_payload()
     resolved_claim = copy.deepcopy(authored_claim)
 
-    output_concept_ref = resolve_concept_reference(claim.output_concept, context)
+    output_concept_ref = resolve_context_concept(context, claim.output_concept)
     if output_concept_ref is not None and output_concept_ref.resolved_id is not None:
         resolved_claim["output_concept"] = output_concept_ref.resolved_id
 
-    target_concept_ref = resolve_concept_reference(claim.target_concept, context)
+    target_concept_ref = resolve_context_concept(context, claim.target_concept)
     if target_concept_ref is not None and target_concept_ref.resolved_id is not None:
         resolved_claim["target_concept"] = target_concept_ref.resolved_id
 
@@ -81,7 +78,7 @@ def _bind_claim(
     if claim.concepts:
         rewritten_concepts: list[object] = []
         for concept_value in claim.concepts:
-            concept_binding = resolve_concept_reference(concept_value, context)
+            concept_binding = resolve_context_concept(context, concept_value)
             if concept_binding is not None:
                 concept_refs.append(concept_binding)
                 rewritten_concepts.append(concept_binding.resolved_id or concept_binding.raw_text)
@@ -94,7 +91,7 @@ def _bind_claim(
         if isinstance(claim.variables, dict):
             rewritten_variables: dict[str, object] = {}
             for variable_name, concept_value in claim.variables.items():
-                binding = resolve_concept_reference(concept_value, context)
+                binding = resolve_context_concept(context, concept_value)
                 if binding is not None:
                     variable_refs.append(binding)
                     rewritten_variables[variable_name] = (
@@ -107,7 +104,7 @@ def _bind_claim(
             rewritten_variables_list: list[object] = []
             for variable in claim.variables:
                 updated = variable.to_payload()
-                binding = resolve_concept_reference(variable.concept, context)
+                binding = resolve_context_concept(context, variable.concept)
                 if binding is not None:
                     variable_refs.append(binding)
                     updated["concept"] = binding.resolved_id or binding.raw_text
@@ -119,7 +116,7 @@ def _bind_claim(
         rewritten_parameters: list[object] = []
         for parameter in claim.parameters:
             updated = parameter.to_payload()
-            binding = resolve_concept_reference(parameter.concept, context)
+            binding = resolve_context_concept(context, parameter.concept)
             if binding is not None:
                 parameter_refs.append(binding)
                 updated["concept"] = binding.resolved_id or binding.raw_text
@@ -131,11 +128,7 @@ def _bind_claim(
         rewritten_stances: list[object] = []
         for stance in claim.stances:
             updated = stance.to_payload()
-            target_ref = resolve_claim_reference(
-                stance.target,
-                context,
-                normalized_claim_files,
-            )
+            target_ref = resolve_context_claim(context, stance.target)
             if target_ref is None:
                 rewritten_stances.append(updated)
                 continue
@@ -172,8 +165,8 @@ def compile_claim_files(
 ) -> ClaimCompilationBundle:
     """Run normalization, binding, and semantic validation over claim files."""
     normalized_claim_files = list(claim_files)
-    claim_lookup = _build_claim_lookup(normalized_claim_files)
-    effective_context = replace(context, claim_lookup=claim_lookup)
+    claim_index = build_compiler_claim_index(normalized_claim_files)
+    effective_context = replace(context, claim_index=claim_index)
 
     diagnostics: list[PassDiagnostic] = []
     semantic_files: list[SemanticClaimFile] = []
@@ -230,7 +223,6 @@ def compile_claim_files(
                 filename=filename,
                 source_paper=source_paper,
                 context=effective_context,
-                normalized_claim_files=normalized_claim_files,
             )
             semantic_claims.append(semantic_claim)
             resolved_claim = semantic_claim.resolved_claim.to_payload()
