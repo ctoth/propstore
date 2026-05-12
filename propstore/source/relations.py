@@ -19,6 +19,7 @@ from .common import (
 )
 from propstore.families.documents.sources import (
     ExtractionProvenanceDocument,
+    SourceClaimDocument,
     SourceAttackTargetDocument,
     SourceJustificationDocument,
     SourceJustificationsDocument,
