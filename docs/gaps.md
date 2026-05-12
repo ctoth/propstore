@@ -57,6 +57,10 @@ This file is the source of truth for gaps between propstore's rhetoric / cited p
 
 ## Closed gaps (reference only — kept for traceability)
 
+### Closed 2026-05-12 (grounded ASPIC rule origins)
+
+- Grounded ASPIC rule names are now opaque formal identifiers (`gr*` / `uc*`) rather than carriers for source rule ids or substitution JSON. `formal-argumentation` exposes structured `GroundRuleOrigin` data at pushed commit `90dcbe29895337d593dfc681f2a60bfe8cb71718`; Propstore pins that SHA and consumes origins through `GroundedAspicProjection` for fragility scoring, undercut target resolution, intervention provenance, diagnostics, and grounded rule superiority projection. Evidence: Propstore commits `f248ee90`, `0795d936`, `b14c5243`, `2d605708`; tests `tests/test_aspic_bridge_grounded.py`, `tests/test_ws_f_aspic_bridge.py`, `tests/test_fragility.py`, `tests/test_gunray_integration.py`, `tests/test_gunray_boundary_ws6.py`, `tests/test_grounding_grounder.py`; targeted log `logs/test-runs/grounded-origin-boundary-20260511-230648.log`; full log `logs/test-runs/grounded-origin-full-rerun-20260511-231035.log`.
+
 ### Closed 2026-05-02 (WS-P2 condition semantics surface)
 
 - WS-P2 closed `c5464445` — CEL is now an authoring frontend only; checked semantic conditions are carried as `CheckedConditionSet` / `ConditionIR`; `propstore/z3_conditions.py` and `propstore/cel_checker.py` are deleted; public condition queries use `propstore.core.conditions.solver.ConditionSolver`; raw `z3` imports are confined to the condition solver/backend boundary; sidecar/graph runtime paths consume encoded condition IR rather than reparsing CEL; condition architecture docs name the new `core.conditions` owner surface. Evidence: `reviews/2026-04-26-claude/workstreams/reports/WS-P2-closure.md`, final full-suite log `logs/test-runs/WS-P2-full-final2-20260502-143135.log`, and final `uv run pyright propstore` with 0 errors.
