@@ -2,14 +2,26 @@ from __future__ import annotations
 
 import copy
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any
+
+from quire.documents import convert_document_value
 
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.documents.sources import SourceClaimDocument
-from propstore.families.identity.claims import normalize_canonical_claim_payload
+from propstore.families.identity.claims import (
+    normalize_canonical_claim_payload,
+    normalize_claim_file_payload,
+)
 
 
 ClaimConceptSource = ClaimDocument | SourceClaimDocument | Mapping[str, Any]
+
+
+@dataclass(frozen=True)
+class NormalizedImportedClaimArtifact:
+    document: ClaimDocument
+    local_handle_map: dict[str, str]
 
 
 def source_concept_ref_requires_mapping(value: str) -> bool:
@@ -53,6 +65,50 @@ def rewrite_claim_concept_refs(
             if isinstance(parameter, dict):
                 parameter["concept"] = resolve(parameter.get("concept"))
     return normalize_canonical_claim_payload(normalized)
+
+
+def normalize_imported_claim_artifact(
+    payload: Mapping[str, Any],
+    *,
+    default_namespace: str,
+    default_source: Mapping[str, str] | None,
+    concept_map: Mapping[str, str],
+    source: str,
+) -> NormalizedImportedClaimArtifact:
+    normalized_input: dict[str, Any] = {"claims": [dict(payload)]}
+    source_payload = payload.get("source")
+    has_source = (
+        isinstance(source_payload, dict)
+        and isinstance(source_payload.get("paper"), str)
+        and bool(source_payload.get("paper"))
+    )
+    if has_source:
+        normalized_input["source"] = source_payload
+    normalized_payload, local_map = normalize_claim_file_payload(
+        normalized_input,
+        default_namespace=default_namespace,
+    )
+    normalized_claims = normalized_payload.get("claims")
+    if not isinstance(normalized_claims, list) or len(normalized_claims) != 1:
+        raise ValueError(f"Imported claim path {source!r} did not normalize to one claim artifact")
+    normalized_claim = normalized_claims[0]
+    if not isinstance(normalized_claim, dict):
+        raise ValueError(f"Imported claim path {source!r} did not normalize to a claim mapping")
+    if not has_source and default_source is not None:
+        normalized_claim["source"] = dict(default_source)
+    rewritten_payload = rewrite_claim_concept_refs(
+        normalized_claim,
+        concept_map,
+        unresolved=set(),
+    )
+    return NormalizedImportedClaimArtifact(
+        document=convert_document_value(
+            rewritten_payload,
+            ClaimDocument,
+            source=source,
+        ),
+        local_handle_map=local_map,
+    )
 
 
 def _claim_payload(claim: ClaimConceptSource) -> dict[str, Any]:

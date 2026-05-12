@@ -10,14 +10,12 @@ from quire.documents import decode_yaml_mapping
 from quire.family_store import DocumentFamilyStore
 
 from propstore.families.addresses import SemanticFamilyAddress
+from propstore.families.claims.documents import ClaimDocument
 from propstore.families.registry import (
     ClaimRef,
     PropstoreFamily,
     semantic_family_for_path,
     semantic_import_families,
-)
-from propstore.families.identity.claims import (
-    normalize_claim_file_payload,
 )
 from propstore.families.identity.concepts import (
     concept_reference_keys,
@@ -26,7 +24,7 @@ from propstore.families.identity.concepts import (
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassResult, PipelineResult
-from propstore.source.claim_concepts import rewrite_claim_concept_refs
+from propstore.source.claim_concepts import normalize_imported_claim_artifact
 from propstore.source.stages import (
     PlannedSemanticWrite,
     SourceImportAuthoredWrites,
@@ -71,18 +69,17 @@ def _planned_write(
     )
 
 
-def _planned_claim_write(
+def _planned_claim_document_write(
     store: DocumentFamilyStore["Repository"],
-    payload: dict[str, Any],
+    document: ClaimDocument,
     *,
     source: str,
 ) -> PlannedSemanticWrite:
-    artifact_id = payload.get("artifact_id")
+    artifact_id = getattr(document, "artifact_id", None)
     if not isinstance(artifact_id, str) or not artifact_id:
         raise ValueError(f"Imported claim {source!r} is missing artifact_id after normalization")
     family = semantic_family_for_path("claims/__placeholder__.yaml").artifact_family
     ref = ClaimRef(artifact_id)
-    document = store.coerce(cast(Any, family), payload, source=source)
     address = store.address(cast(Any, family), ref)
     return PlannedSemanticWrite(
         family=family,
@@ -215,31 +212,16 @@ def _normalize_claim_batch(
                 f"Imported claim path {path!r} is an aggregate; "
                 "canonical repository imports require one claim artifact per file"
             )
-        source = payload.get("source")
-        has_source = isinstance(source, dict) and isinstance(source.get("paper"), str) and bool(source.get("paper"))
-        normalization_input: dict[str, Any] = {"claims": [payload]}
-        if has_source:
-            normalization_input["source"] = source
-        normalized_payload, local_map = normalize_claim_file_payload(
-            normalization_input,
+        normalized_claim = normalize_imported_claim_artifact(
+            payload,
             default_namespace=state.repository_name,
+            default_source=_claim_source_from_import_path(path),
+            concept_map=state.concept_ref_map,
+            source=path,
         )
-        normalized_claims = normalized_payload.get("claims")
-        if not isinstance(normalized_claims, list) or len(normalized_claims) != 1:
-            raise ValueError(f"Imported claim path {path!r} did not normalize to one claim artifact")
-        normalized_claim = normalized_claims[0]
-        if not isinstance(normalized_claim, dict):
-            raise ValueError(f"Imported claim path {path!r} did not normalize to a claim mapping")
-        if not has_source:
-            normalized_claim["source"] = _claim_source_from_import_path(path)
-        rewritten_payload = rewrite_claim_concept_refs(
-            normalized_claim,
-            state.concept_ref_map,
-            unresolved=set(),
-        )
-        planned_write = _planned_claim_write(store, rewritten_payload, source=path)
+        planned_write = _planned_claim_document_write(store, normalized_claim.document, source=path)
         normalized[planned_write.relpath] = planned_write
-        for local_id, artifact_id in local_map.items():
+        for local_id, artifact_id in normalized_claim.local_handle_map.items():
             if state.local_handle_index.record(local_id, artifact_id):
                 state.warnings.append(
                     f"ambiguous imported claim handle {local_id!r}; stance files must use artifact IDs"

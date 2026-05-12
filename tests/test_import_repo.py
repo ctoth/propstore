@@ -630,6 +630,7 @@ def test_import_repo_normalizes_concepts_and_rewrites_internal_concept_refs(tmp_
 
 def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_ids(tmp_path):
     from propstore.importing.repository_import import commit_repository_import, plan_repository_import
+    from propstore.families.claims.documents import ClaimDocument
 
     destination = _init_project(tmp_path / "dest")
     source = _init_project(tmp_path / "repo-b")
@@ -672,6 +673,13 @@ def test_import_repo_rewrites_claim_concept_refs_to_imported_concept_artifact_id
     )
 
     plan = plan_repository_import(destination, source.root.parent)
+    claim_b_write = plan.writes[_claim_artifact_path("claim_b", namespace="repo-b")]
+    assert isinstance(claim_b_write.document, ClaimDocument)
+    assert claim_b_write.document.output_concept == make_concept_identity(
+        "concept_a",
+        domain="speech",
+        canonical_name="concept_a",
+    )["artifact_id"]
     result = commit_repository_import(destination, plan)
 
     concept_a_id = make_concept_identity("concept_a", domain="speech", canonical_name="concept_a")["artifact_id"]
