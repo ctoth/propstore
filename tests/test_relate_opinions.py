@@ -20,6 +20,7 @@ import pytest
 import yaml
 
 from quire.documents import decode_document_path
+from quire.references import FamilyReferenceIndex
 
 from propstore.heuristic.calibrate import (
     CalibrationSource,
@@ -35,6 +36,28 @@ from propstore.provenance import Provenance, ProvenanceStatus
 
 def _vacuous_provenance_payload() -> dict:
     return {"status": "vacuous", "witnesses": []}
+
+
+def _claim_reference_index() -> FamilyReferenceIndex[dict[str, object]]:
+    records: tuple[dict[str, object], ...] = (
+        {"artifact_id": "c1", "aliases": ("test:c1",)},
+        {"artifact_id": "c2", "aliases": ("test:c2",)},
+    )
+
+    def artifact_id(record: dict[str, object]) -> str | None:
+        value = record["artifact_id"]
+        return value if isinstance(value, str) else None
+
+    def aliases(record: dict[str, object]) -> tuple[str, ...]:
+        value = record["aliases"]
+        return value if isinstance(value, tuple) else ()
+
+    return FamilyReferenceIndex.from_records(
+        records,
+        family="claim",
+        artifact_id=artifact_id,
+        keys=(aliases,),
+    )
 
 
 def _category_prior(category: str, value: float = 0.5) -> CategoryPrior:
@@ -390,7 +413,7 @@ class TestSidecarPopulatesOpinionColumns:
             conn,
             compile_authored_stance_sidecar_rows(
                 [("c1", stance_document)],
-                {"c1": "c1", "c2": "c2", "test:c1": "c1", "test:c2": "c2"},
+                _claim_reference_index(),
             ),
         )
 
@@ -503,7 +526,7 @@ class TestSidecarHandlesOldFormatYaml:
             conn,
             compile_authored_stance_sidecar_rows(
                 [("c1", stance_document)],
-                {"c1": "c1", "c2": "c2", "test:c1": "c1", "test:c2": "c2"},
+                _claim_reference_index(),
             ),
         )
 
