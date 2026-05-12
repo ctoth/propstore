@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import copy
+from dataclasses import dataclass
 from typing import Any
 
+from quire.references import FamilyReferenceIndex
+
+from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.concepts.stages import parse_concept_record_document
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.repository import Repository
@@ -12,8 +16,10 @@ from .common import normalize_source_slug
 from propstore.families.documents.sources import SourceConceptsDocument
 
 
-class ConceptAliasCollisionError(ValueError):
-    """Raised when a primary-branch concept handle names multiple artifacts."""
+@dataclass(frozen=True)
+class SourceConceptProjectionReference:
+    artifact_id: str
+    handles: tuple[str, ...]
 
 
 def _derived_concept_artifact_id(handle: str) -> str:
@@ -26,22 +32,12 @@ def _derived_concept_artifact_id(handle: str) -> str:
     return artifact_id
 
 
-def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
+def load_primary_branch_concepts(repo: Repository) -> dict[str, dict[str, Any]]:
     primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
     if primary_tip is None:
-        return {}, {}
+        return {}
 
     concepts_by_artifact: dict[str, dict[str, Any]] = {}
-    handle_to_artifact: dict[str, str] = {}
-
-    def record_handle(handle_name: str, artifact_id: str) -> None:
-        existing = handle_to_artifact.get(handle_name)
-        if existing is not None and existing != artifact_id:
-            raise ConceptAliasCollisionError(
-                f"concept handle {handle_name!r} maps to multiple artifacts: "
-                f"{existing!r}, {artifact_id!r}"
-            )
-        handle_to_artifact[handle_name] = artifact_id
 
     for handle in repo.families.concepts.iter_handles(commit=primary_tip):
         document = handle.document
@@ -50,16 +46,7 @@ def load_primary_branch_concepts(repo: Repository) -> tuple[dict[str, dict[str, 
         if not isinstance(artifact_id, str) or not artifact_id:
             continue
         concepts_by_artifact[artifact_id] = concept
-        canonical_name = concept.get("canonical_name")
-        if isinstance(canonical_name, str) and canonical_name:
-            record_handle(canonical_name, artifact_id)
-        for alias in concept.get("aliases") or []:
-            if not isinstance(alias, dict):
-                continue
-            alias_name = alias.get("name")
-            if isinstance(alias_name, str) and alias_name:
-                record_handle(alias_name, artifact_id)
-    return concepts_by_artifact, handle_to_artifact
+    return concepts_by_artifact
 
 
 def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
@@ -75,12 +62,17 @@ def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
 
 
 def primary_branch_concept_match(repo: Repository, handle: str) -> dict[str, str] | None:
-    concepts_by_artifact, handle_to_artifact = load_primary_branch_concepts(repo)
-    artifact_id = handle_to_artifact.get(handle)
+    primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+    if primary_tip is None:
+        return None
+    concept_index = repo.families.concepts.reference_index(commit=primary_tip)
+    artifact_id = concept_index.resolve_id(handle)
     if artifact_id is None:
         return None
-    concept = concepts_by_artifact[artifact_id]
-    canonical_name = concept.get("canonical_name")
+    concept = concept_index.records_by_id.get(artifact_id)
+    if concept is None:
+        return None
+    canonical_name = concept.lexical_entry.canonical_form.written_rep
     if not isinstance(canonical_name, str) or not canonical_name:
         return None
     return {
@@ -93,9 +85,18 @@ def projected_source_concepts(
     repo: Repository,
     concepts_doc: SourceConceptsDocument | None,
 ) -> tuple[list[dict[str, Any]], set[str]]:
-    _concepts_by_artifact, primary_handle_to_artifact = load_primary_branch_concepts(repo)
+    primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+    primary_concept_index: FamilyReferenceIndex[ConceptDocument]
+    if primary_tip is None:
+        primary_concept_index = FamilyReferenceIndex.from_records(
+            (),
+            family="concepts",
+            artifact_id=lambda _record: None,
+        )
+    else:
+        primary_concept_index = repo.families.concepts.reference_index(commit=primary_tip)
     projected: list[dict[str, Any]] = []
-    local_handle_to_artifact: dict[str, str] = {}
+    projected_reference_records: list[SourceConceptProjectionReference] = []
     parameterized_artifacts: set[str] = set()
     concept_entries = () if concepts_doc is None else concepts_doc.concepts
 
@@ -107,8 +108,11 @@ def projected_source_concepts(
         if artifact_id is None:
             for key in ("local_name", "proposed_name"):
                 handle = getattr(entry, key)
-                if isinstance(handle, str) and handle in primary_handle_to_artifact:
-                    artifact_id = primary_handle_to_artifact[handle]
+                if not isinstance(handle, str) or not handle:
+                    continue
+                resolved_artifact_id = primary_concept_index.resolve_id(handle)
+                if resolved_artifact_id is not None:
+                    artifact_id = resolved_artifact_id
                     break
         handle_seed = str(entry.proposed_name or entry.local_name or "concept")
         if artifact_id is None:
@@ -121,10 +125,24 @@ def projected_source_concepts(
             "parameterization_relationships": [],
         }
         projected.append(projected_entry)
+        handles: list[str] = []
         for key in ("local_name", "proposed_name"):
             handle = getattr(entry, key)
             if isinstance(handle, str) and handle:
-                local_handle_to_artifact[handle] = artifact_id
+                handles.append(handle)
+        projected_reference_records.append(
+            SourceConceptProjectionReference(
+                artifact_id=artifact_id,
+                handles=tuple(handles),
+            )
+        )
+
+    source_local_concept_index = FamilyReferenceIndex.from_records(
+        projected_reference_records,
+        family="source_concepts",
+        artifact_id=lambda record: record.artifact_id,
+        keys=(lambda record: record.handles,),
+    )
 
     for projected_entry, raw_entry in zip(projected, concept_entries, strict=False):
         params: list[dict[str, Any]] = []
@@ -137,7 +155,9 @@ def projected_source_concepts(
                 if input_ref.startswith("ps:concept:") or input_ref.startswith("tag:"):
                     inputs.append(input_ref)
                     continue
-                artifact_id = local_handle_to_artifact.get(input_ref) or primary_handle_to_artifact.get(input_ref)
+                artifact_id = source_local_concept_index.resolve_id(input_ref)
+                if artifact_id is None:
+                    artifact_id = primary_concept_index.resolve_id(input_ref)
                 if artifact_id is None:
                     artifact_id = _derived_concept_artifact_id(input_ref)
                 inputs.append(artifact_id)
