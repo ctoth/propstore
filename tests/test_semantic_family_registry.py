@@ -322,13 +322,28 @@ def test_propstore_registry_is_the_semantic_schema_surface() -> None:
 
 
 def test_typed_family_handles_preserve_ref_and_document_types(tmp_path: Path) -> None:
+    from propstore.families.claims.documents import ClaimDocument
+    from propstore.families.contexts.documents import ContextDocument
     from propstore.families.contexts.documents import ContextReferenceDocument
     from propstore.families.documents.micropubs import MicropublicationDocument
     from propstore.families.documents.predicates import PredicateDocument
     from propstore.families.documents.rules import AtomDocument, RuleDocument
-    from propstore.families.registry import MicropublicationRef, PredicateRef, RuleRef
+    from propstore.families.registry import ClaimRef, ContextRef, MicropublicationRef, PredicateRef, RuleRef
 
     repo = Repository.init(tmp_path / "knowledge")
+    repo.families.contexts.save(
+        ContextRef("ctx"),
+        ContextDocument(id="ctx", name="Context"),
+        message="seed context",
+    )
+    repo.families.claims.save(
+        ClaimRef("claim:one"),
+        ClaimDocument(
+            artifact_id="claim:one",
+            context=ContextReferenceDocument(id="ctx"),
+        ),
+        message="seed claim",
+    )
     repo.families.predicates.save(
         PredicateRef("p"),
         PredicateDocument(id="p", arity=0),
