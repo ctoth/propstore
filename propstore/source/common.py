@@ -8,7 +8,7 @@ from typing import TypeVar, cast
 
 from quire.git_store import HeadMismatchError
 
-from propstore.families.registry import SOURCE_DOCUMENT_FAMILY, SourceRef
+from propstore.families.registry import SOURCE_BRANCH, SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus
@@ -90,7 +90,7 @@ def source_paper_slug(name: str) -> str:
 
 
 def source_branch_name(name: str) -> str:
-    return SOURCE_DOCUMENT_FAMILY.address_for(cast(Repository, object()), SourceRef(name)).branch
+    return SOURCE_BRANCH.branch_name(cast(Repository, object()), SourceRef(name))
 
 
 def utc_now() -> str:
