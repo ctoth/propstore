@@ -90,6 +90,30 @@ def test_relations_public_surface_includes_claim_link_roles() -> None:
     assert relations.RoleBindingSet(())
 
 
+def test_rule_predicate_bucket_document_symbols_are_not_public() -> None:
+    rule_documents = importlib.import_module("propstore.families.documents.rules")
+    predicate_documents = importlib.import_module("propstore.families.documents.predicates")
+
+    assert "RulesFileDocument" not in vars(rule_documents)
+    assert "PredicatesFileDocument" not in vars(predicate_documents)
+
+
+def test_rule_predicate_bucket_refs_and_families_are_not_public() -> None:
+    registry = importlib.import_module("propstore.families.registry")
+
+    assert "RuleFileRef" not in vars(registry)
+    assert "PredicateFileRef" not in vars(registry)
+    assert "RULE_FILE_FAMILY" not in vars(registry)
+    assert "PREDICATE_FILE_FAMILY" not in vars(registry)
+
+
+def test_rule_document_does_not_hide_superiority_bucket_entries() -> None:
+    rules = importlib.import_module("propstore.families.documents.rules")
+
+    assert "superiority" not in rules.RuleDocument.__struct_fields__
+    assert "RuleSuperiorityDocument" in vars(rules)
+
+
 def test_assertion_refs_exist_as_shallow_owner_module() -> None:
     assert ASSERTION_REFS.exists()
 
