@@ -128,7 +128,7 @@ def propose_rules(
     dry_run: bool,
     mock_llm_fixture: str | None,
 ) -> None:
-    """Propose rule files for a meta-paper."""
+    """Propose rule artifacts for a meta-paper."""
     from propstore.heuristic.rule_extraction import propose_rules_for_paper
 
     repo = ctx.obj["repo"]

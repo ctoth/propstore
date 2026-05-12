@@ -31,7 +31,7 @@ from propstore.repository import Repository
 @click.option(
     "--paper",
     required=True,
-    help="Source paper slug for the rules file (source.paper in YAML).",
+    help="Source paper slug for rule provenance (source.paper in YAML).",
 )
 @click.option(
     "--id",

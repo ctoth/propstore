@@ -86,7 +86,7 @@ def ground(
     enumeration lives in gunray. The grounder's own responsibilities
     are:
 
-    1. Hand the rule files, facts and registry to
+    1. Hand the rule artifacts, facts and registry to
        ``translate_to_theory`` to build a
        ``gunray.schema.DefeasibleTheory`` (the translator stringifies
        atoms, groups facts by predicate id, and refuses Phase-2+
@@ -102,7 +102,7 @@ def ground(
        silently collapses a grounded classification, so the render layer always sees
        the full shape.
     4. Package the normalised sections together with the original
-       ``rule_files`` and ``facts`` into a frozen
+       ``rules`` and ``facts`` into a frozen
        ``GroundedRulesBundle`` (Diller, Borg, Bex 2025 §3: the program
        and the ground model travel together through the pipeline).
 

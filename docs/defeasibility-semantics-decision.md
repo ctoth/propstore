@@ -151,10 +151,10 @@ ABA remains relevant background for structured argumentation and proof procedure
 
 ### C-2 priority pipeline
 
-Rule files need an explicit authored priority/superiority surface. The data must flow:
+Rule artifacts need an explicit authored priority/superiority surface. The data must flow:
 
 ```text
-rule file -> typed rule document -> grounding translator superiority -> aspic_bridge rule_order -> ASPIC+ defeat calculation
+rule artifact + rule-superiority artifact -> grounding translator superiority -> aspic_bridge rule_order -> ASPIC+ defeat calculation
 ```
 
 The priority relation must be validated as a strict partial order:

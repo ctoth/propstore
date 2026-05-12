@@ -85,7 +85,7 @@ class PredicateArgKindError(ValueError):
 
 
 class DuplicatePredicateError(ValueError):
-    """Raised when two predicate files declare the same predicate id.
+    """Raised when two predicate artifacts declare the same predicate id.
 
     Diller, Borg, Bex 2025 §3 treats the predicate id as the unique key
     into the Datalog schema; two declarations for the same id are

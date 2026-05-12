@@ -736,11 +736,11 @@ uv run pks context lifting remove ctx_argumentation lift_dung_to_argumentation
 
 ## Predicates (`pks predicate`)
 
-Declare DeLP/Datalog predicates into `predicates/<file>.yaml`. Each
-predicate names a relation symbol, fixes its arity, and tags every
-argument position with a sort that the grounder uses to enumerate
-well-typed substitutions (Diller, Borg, Bex 2025 §3-4; Garcia & Simari
-2004 §3).
+Declare DeLP/Datalog predicate artifacts. Each predicate names a relation
+symbol, fixes its arity, and tags every argument position with a sort that the
+grounder uses to enumerate well-typed substitutions (Diller, Borg, Bex 2025
+§3-4; Garcia & Simari 2004 §3). Canonical storage is one artifact per
+predicate id; `--file` is optional authoring-group metadata.
 
 ### `pks predicate list`
 
@@ -760,13 +760,12 @@ uv run pks predicate show aspirin_user
 
 ### `pks predicate add`
 
-Add a predicate declaration. Creates the target file if absent, or
-appends an entry otherwise. Duplicate predicate ids within a single
-file are rejected.
+Add a predicate declaration artifact. Duplicate predicate ids across canonical
+predicate artifacts are rejected.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--file` | TEXT | -- | File stem in `predicates/` (e.g. `ikeda_2014`) (required) |
+| `--file` | TEXT | -- | Optional authoring group metadata (e.g. `ikeda_2014`) |
 | `--id` | TEXT | -- | Predicate name (e.g. `aspirin_user`) (required) |
 | `--arity` | INT | -- | Non-negative argument count (required) |
 | `--arg-type` | TEXT | -- | Per-position sort; repeat for each position (must total `arity`) |
@@ -781,11 +780,11 @@ uv run pks predicate add --file ikeda_2014 --id aspirin_user --arity 1 --arg-typ
 
 ## Rules (`pks rule`)
 
-Author DeLP strict, defeasible, and defeater rules into
-`rules/<file>.yaml`. Rules use a shallow atom DSL for the CLI surface
-while the underlying schema (`RuleDocument`, `AtomDocument`) remains the
-canonical form. Paper-priority pairs (`superiority`) are authored as
-explicit `(superior_rule_id, inferior_rule_id)` pairs.
+Author DeLP strict, defeasible, and defeater rule artifacts. Rules use a
+shallow atom DSL for the CLI surface while the underlying schema
+(`RuleDocument`, `AtomDocument`) remains the canonical form. Canonical storage
+is one artifact per rule id; `--file` is optional authoring-group metadata.
+Rule-priority pairs are separate rule-superiority artifacts.
 
 ### `pks rule list`
 
@@ -805,9 +804,7 @@ uv run pks rule show r_mi
 
 ### `pks rule add`
 
-Add a rule to `rules/<file>.yaml`. Creates the file if absent (stamping
-`source.paper = --paper`), or appends otherwise (appending requires the
-paper to match).
+Add one rule artifact. The `--paper` value is stored as rule provenance.
 
 Atom DSL:
 
@@ -818,7 +815,7 @@ Atom DSL:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--file` | TEXT | -- | File stem in `rules/` (required) |
+| `--file` | TEXT | -- | Optional authoring group metadata |
 | `--paper` | TEXT | -- | Source paper slug for `source.paper` (required) |
 | `--id` | TEXT | -- | Authoring rule id (e.g. `r_ikeda_mi`) (required) |
 | `--kind` | CHOICE | -- | One of `strict`, `defeasible`, `proper_defeater`, `blocking_defeater` (required) |
@@ -837,14 +834,14 @@ uv run pks rule add --file ikeda_2014 --paper Ikeda_2014_Low-doseAspirinPrimaryP
 
 ### `pks rule superiority add`
 
-Add an authored rule-priority pair to `rules/<file>.yaml`. The pair is
-oriented `--superior > --inferior`. Both rule ids must already exist in
-the file, neither may be a strict rule, duplicate pairs are rejected, and
-the resulting superiority relation must remain acyclic.
+Add an authored rule-superiority artifact. The pair is oriented
+`--superior > --inferior`. Both rule ids must already exist, neither may be a
+strict rule, duplicate pairs are rejected, and the resulting superiority
+relation must remain acyclic.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--file` | TEXT | -- | File stem in `rules/` (required) |
+| `--file` | TEXT | -- | Optional authoring group metadata |
 | `--superior` | TEXT | -- | Rule id that has priority (required) |
 | `--inferior` | TEXT | -- | Rule id that yields to the superior rule (required) |
 
@@ -855,11 +852,11 @@ uv run pks rule superiority add --file ikeda_2014 \
 
 ### `pks rule superiority remove`
 
-Remove an authored rule-priority pair from `rules/<file>.yaml`.
+Remove an authored rule-superiority artifact.
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `--file` | TEXT | -- | File stem in `rules/` (required) |
+| `--file` | TEXT | -- | Optional authoring group metadata |
 | `--superior` | TEXT | -- | Rule id that has priority (required) |
 | `--inferior` | TEXT | -- | Rule id that yields to the superior rule (required) |
 
