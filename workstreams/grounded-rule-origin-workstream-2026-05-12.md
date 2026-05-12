@@ -111,6 +111,16 @@ write or run an order check proving each dependent phase appears after its
 prerequisites. If the check fails, repair this workstream before editing
 production code.
 
+## Dependency-Sorted Execution Order
+
+1. Phase 0: Prerequisite Check.
+2. Phase 1: Argumentation Origin Contract Red Tests.
+3. Phase 2: Argumentation Deletion-First Origin Implementation.
+4. Phase 3: Propstore Projection Contract Red Tests.
+5. Phase 4: Propstore Deletion-First Projection API Replacement.
+6. Phase 5: Propstore Fragility And Undercut Consumers.
+7. Phase 6: Dependency Pin And Boundary Closure.
+
 ## Phase 0: Prerequisite Check
 
 Repository: `propstore`
