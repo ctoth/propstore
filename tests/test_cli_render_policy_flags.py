@@ -34,12 +34,15 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
+from propstore.families.claims.documents import ClaimDocument
+from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
 from propstore.families.documents.sources import (
+    ClaimSourceDocument,
     SourceJustificationDocument,
 )
 from propstore.families.identity.justifications import stamp_justification_artifact_id
 from propstore.families.identity.stances import stamp_stance_artifact_id
-from propstore.families.registry import JustificationRef, StanceRef
+from propstore.families.registry import ClaimRef, ContextRef, JustificationRef, StanceRef
 from propstore.repository import Repository
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
@@ -212,6 +215,23 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
 
 
 def _seed_authored_reasoning(repo: Repository) -> None:
+    context_ref = ContextRef("ctx_fixture")
+    repo.families.contexts.save(
+        context_ref,
+        ContextDocument(id=str(context_ref), name="Fixture context"),
+        message="Seed world status context",
+    )
+    for claim_id in ("claim_fixture_final", "claim_fixture_draft"):
+        repo.families.claims.save(
+            ClaimRef(claim_id),
+            ClaimDocument(
+                artifact_id=claim_id,
+                source=ClaimSourceDocument(paper="fixture_paper"),
+                context=ContextReferenceDocument(id=str(context_ref)),
+                statement=claim_id,
+            ),
+            message="Seed world status claims",
+        )
     add_predicate(
         repo,
         PredicateAddRequest(
