@@ -486,15 +486,17 @@ class TestConceptAlias:
         alias_names = [a["name"] for a in data["aliases"]]
         assert "f_zero" in alias_names
 
-    def test_warns_on_name_collision(self, workspace: Path) -> None:
+    def test_rejects_name_collision(self, workspace: Path) -> None:
         runner = CliRunner()
         # "task" is a canonical_name of concept2
         result = runner.invoke(cli, [
             "concept", "alias", "speech:fundamental_frequency",
             "--name", "task", "--source", "test",
         ])
-        assert result.exit_code == 0
-        assert "WARNING" in result.output
+        assert result.exit_code != 0
+        data = _read_repo_yaml(workspace, "concepts/fundamental_frequency.yaml")
+        alias_names = [a["name"] for a in data.get("aliases", [])]
+        assert "task" not in alias_names
 
 
 # ── concept rename ───────────────────────────────────────────────────
