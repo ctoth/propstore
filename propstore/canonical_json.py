@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import json
+import rfc8785
 
 from propstore.json_types import JsonValue
 
@@ -15,12 +15,6 @@ def canonical_dumps(payload: JsonValue) -> str:
     """Encode JSON-native payloads deterministically and fail on unknown values."""
 
     try:
-        return json.dumps(
-            payload,
-            sort_keys=True,
-            separators=(",", ":"),
-            ensure_ascii=True,
-            allow_nan=False,
-        )
-    except (TypeError, ValueError) as exc:
+        return rfc8785.dumps(payload).decode("utf-8")
+    except rfc8785.CanonicalizationError as exc:
         raise CanonicalEncodingError(str(exc)) from exc

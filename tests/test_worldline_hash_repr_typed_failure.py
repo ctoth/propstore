@@ -15,7 +15,11 @@ class _NotJsonNative:
     value: int
 
 
-_JSON_SCALARS = st.none() | st.booleans() | st.integers() | st.text(max_size=12)
+_RFC8785_SAFE_INTEGERS = st.integers(
+    min_value=-(2**53) + 1,
+    max_value=2**53 - 1,
+)
+_JSON_SCALARS = st.none() | st.booleans() | _RFC8785_SAFE_INTEGERS | st.text(max_size=12)
 _JSON_VALUES = st.recursive(
     _JSON_SCALARS,
     lambda children: st.lists(children, max_size=4)
@@ -55,6 +59,16 @@ def test_ws_j_canonical_dumps_rejects_non_json_native_payloads(value: object) ->
         canonical_dumps({"value": value})
 
     assert type(value).__name__ in str(exc_info.value)
+
+
+@pytest.mark.parametrize("value", [-(2**53), 2**53])
+def test_ws_j_canonical_dumps_rejects_integers_outside_rfc8785_domain(
+    value: int,
+) -> None:
+    from propstore.canonical_json import CanonicalEncodingError, canonical_dumps
+
+    with pytest.raises(CanonicalEncodingError):
+        canonical_dumps(value)
 
 
 def test_ws_j_worldline_revision_hash_surfaces_do_not_use_default_str() -> None:
