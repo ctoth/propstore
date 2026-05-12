@@ -12,13 +12,11 @@ from quire.references import FamilyReferenceIndex
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.cel_registry import build_canonical_cel_registry
-from propstore.claims import (
-    ClaimFileEntry,
-    claim_file_claims,
-    claim_file_filename,
-    claim_file_source_paper,
+from propstore.claims import ClaimFileEntry
+from propstore.families.claims.references import (
+    ClaimReferenceRecord,
+    build_claim_file_reference_index,
 )
-from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.stages import (
     ConceptRecord,
     LoadedConcept,
@@ -43,66 +41,18 @@ class CompilationContext:
     context_ids: frozenset[str]
     concepts_by_id: Mapping[str, ConceptRecord]
     concept_index: FamilyReferenceIndex[ConceptRecord]
-    claim_index: FamilyReferenceIndex[CompilerClaimReference]
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord]
     cel_registry: Mapping[str, ConceptInfo]
-
-
-@dataclass(frozen=True)
-class CompilerClaimReference:
-    claim: ClaimDocument
-    source_paper: str
-
-    @property
-    def artifact_id(self) -> str | None:
-        return self.claim.artifact_id
 
 
 def _freeze_mapping(data: Mapping[str, Any]) -> Mapping[str, Any]:
     return MappingProxyType(dict(data))
 
 
-def _compiler_claim_records(
-    claim_files: Sequence[ClaimFileEntry],
-) -> tuple[CompilerClaimReference, ...]:
-    records: list[CompilerClaimReference] = []
-    for claim_file in claim_files:
-        source_paper = claim_file_source_paper(claim_file) or claim_file_filename(claim_file)
-        records.extend(
-            CompilerClaimReference(claim=claim, source_paper=str(source_paper))
-            for claim in claim_file_claims(claim_file)
-        )
-    return tuple(records)
-
-
-def _claim_reference_keys(record: CompilerClaimReference) -> tuple[str, ...]:
-    keys: list[str] = []
-    raw_id = record.claim.id
-    if isinstance(raw_id, str) and raw_id:
-        from propstore.families.identity.logical_ids import (
-            normalize_identity_namespace,
-            normalize_logical_value,
-        )
-
-        keys.append(raw_id)
-        keys.append(
-            f"{normalize_identity_namespace(record.source_paper)}:"
-            f"{normalize_logical_value(raw_id)}"
-        )
-    for logical_id in record.claim.logical_ids:
-        keys.append(logical_id.formatted)
-        keys.append(logical_id.value)
-    return tuple(keys)
-
-
 def build_compiler_claim_index(
     claim_files: Sequence[ClaimFileEntry],
-) -> FamilyReferenceIndex[CompilerClaimReference]:
-    return FamilyReferenceIndex.from_records(
-        _compiler_claim_records(claim_files),
-        family="claim",
-        artifact_id=lambda record: record.artifact_id,
-        keys=(_claim_reference_keys,),
-    )
+) -> FamilyReferenceIndex[ClaimReferenceRecord]:
+    return build_claim_file_reference_index(claim_files)
 
 
 def concept_form_definition(
@@ -144,7 +94,7 @@ def compiler_concept_match_kind(
 def compiler_claim_match_kind(
     raw_text: str,
     resolved_id: str,
-    record: CompilerClaimReference | None,
+    record: ClaimReferenceRecord | None,
 ) -> tuple[str | None, str | None]:
     if raw_text == resolved_id:
         return "artifact_id", raw_text
