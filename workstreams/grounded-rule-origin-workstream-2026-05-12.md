@@ -58,6 +58,26 @@ split or partition `Rule.name` to recover source identity.
 - Do not change Gunray unless a hard API gap is discovered. Gunray already
   exposes `GroundingInspection` with typed substitutions.
 
+## Active Prerequisite
+
+Propstore phases of this workstream depend on
+`workstreams/relations-rules-predicates-standardization-workstream-2026-05-12.md`
+through Phase 4.
+
+That prerequisite owns the canonical rule and rule-superiority surfaces:
+
+- rules are one `RuleDocument` artifact per authored rule;
+- rule-superiority assertions are first-class artifacts;
+- grounding loads `Sequence[RuleDocument]`, not `LoadedRuleFile` or
+  `RulesFileDocument` buckets;
+- superiority consumed by grounding/ASPIC is read from rule-superiority
+  artifacts, not from `RulesFileDocument.superiority`.
+
+Do not start Propstore phases here while the prerequisite still has unfinished
+rule artifact or rule-superiority artifact work. Running the argumentation
+phases early is allowed, but Propstore must not be pinned to the new
+argumentation SHA until the prerequisite has completed Phase 4.
+
 ## Execution Rules
 
 - Work test-first and deletion-first.
@@ -77,6 +97,7 @@ split or partition `Rule.name` to recover source identity.
 
 Execute in this order:
 
+0. Prerequisite check: relations/rules/predicates workstream Phase 4 complete
 1. Argumentation origin contract red tests
 2. Argumentation deletion-first origin implementation
 3. Argumentation origin gates and pushed dependency commit
@@ -89,6 +110,42 @@ Before implementation, make this dependency order mechanically executable:
 write or run an order check proving each dependent phase appears after its
 prerequisites. If the check fails, repair this workstream before editing
 production code.
+
+## Phase 0: Prerequisite Check
+
+Repository: `propstore`
+
+Goal: prove this workstream is running on the final rule-artifact and
+rule-superiority-artifact surface.
+
+Required checks:
+
+- Read
+  `workstreams/relations-rules-predicates-standardization-workstream-2026-05-12.md`.
+- Verify Phase 3 and Phase 4 are complete or explicitly deferred by the user.
+- Verify production grounding inputs are `RuleDocument` artifacts:
+
+```powershell
+rg -n -F "LoadedRuleFile" propstore
+rg -n -F "RulesFileDocument" propstore
+```
+
+Both commands must have no production hits.
+
+- Verify rule-superiority is no longer bucket-owned:
+
+```powershell
+rg -n -F "RulesFileDocument.superiority" propstore tests
+rg -n -F "_source_superiority" propstore\aspic_bridge propstore\grounding
+```
+
+Any `_source_superiority` hit must read the final rule-superiority artifact
+surface, not return `()` and not read a rules bucket.
+
+Stop condition:
+
+- If the prerequisite is incomplete, stop and continue that workstream instead
+  of starting Propstore phases here.
 
 ## Phase 1: Argumentation Origin Contract Red Tests
 
@@ -199,6 +256,12 @@ Repository: `propstore`
 
 Goal: make Propstore fail wherever it still treats rule names as provenance.
 
+Prerequisite:
+
+- Phase 0 is complete.
+- Existing tests and helpers use `RuleDocument` artifacts directly, not
+  `LoadedRuleFile` / `RulesFileDocument` buckets.
+
 Tests first:
 
 - Add or update a boundary test asserting production Propstore has no:
@@ -214,6 +277,8 @@ Tests first:
   `target_justification_id="birds_fly"` resolves the generated ground rule via
   `origin.source_rule_id == "birds_fly"`, even though no rule name starts with
   `birds_fly#`.
+- Add or update a superiority test where rule-superiority artifacts project
+  through structured origins to the correct generated ground-rule order.
 - Update existing tests that assert `rule.name.startswith("...#")` so they
   assert structured origin fields instead.
 
@@ -225,6 +290,8 @@ Expected red:
   matching partitions rule names.
 - Tests fail at older integration assertions expecting `rule.name` to contain
   substitution JSON.
+- Tests fail if `_source_superiority(...)` still returns `()` or reads an old
+  rules bucket instead of rule-superiority artifacts.
 
 Gate:
 
@@ -276,15 +343,22 @@ class GroundedAspicProjection:
   source/fact frame surface. Do not move it into `argumentation`.
 - Keep `argumentation.datalog_grounding` as the formal reduction over Gunray
   public types. Do not move it in this workstream.
+- Read rule-superiority artifacts through the final prerequisite-owned surface
+  when building Propstore's ASPIC projection. Do not resurrect
+  `RulesFileDocument.superiority`.
 
 Search gate:
 
 ```powershell
 rg -n -F "grounded_rules_to_rules(" propstore tests
+rg -n -F "LoadedRuleFile" propstore
+rg -n -F "RulesFileDocument" propstore
 ```
 
 Every hit must either call the new object-returning API or be renamed to the
-new API. No tuple unpacking of grounded rule projection remains.
+new API. No tuple unpacking of grounded rule projection remains. `LoadedRuleFile`
+and `RulesFileDocument` may appear only in historical docs or tests that have
+not yet been migrated by the prerequisite; they must not appear in production.
 
 Targeted gates:
 
