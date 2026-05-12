@@ -15,7 +15,7 @@ from quire.artifacts import (
     SubdirFixedFilePlacement,
     TemplateFilePlacement,
 )
-from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
+from quire.families import FamilyDeclaration, FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
 from quire.documents import (
     coerce_json_mapping,
     coerce_text_document,
@@ -279,56 +279,6 @@ CONCEPT_PLACEMENT = FlatYamlPlacement["Repository", ConceptFileRef](
     ref_field="name",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
-CONTEXT_PLACEMENT = FlatYamlPlacement["Repository", ContextRef](
-    namespace=PropstoreFamily.CONTEXTS.value,
-    ref_factory=ContextRef,
-    ref_field="name",
-    branch=CURRENT_ARTIFACT_BRANCH,
-)
-FORM_PLACEMENT = FlatYamlPlacement["Repository", FormRef](
-    namespace=PropstoreFamily.FORMS.value,
-    ref_factory=FormRef,
-    ref_field="name",
-    branch=CURRENT_ARTIFACT_BRANCH,
-)
-PREDICATE_PLACEMENT = FlatYamlPlacement["Repository", PredicateRef](
-    namespace=PropstoreFamily.PREDICATES.value,
-    ref_factory=PredicateRef,
-    ref_field="predicate_id",
-    branch=PRIMARY_ARTIFACT_BRANCH,
-)
-RULE_PLACEMENT = FlatYamlPlacement["Repository", RuleRef](
-    namespace=PropstoreFamily.RULES.value,
-    ref_factory=RuleRef,
-    ref_field="rule_id",
-    branch=PRIMARY_ARTIFACT_BRANCH,
-)
-RULE_SUPERIORITY_PLACEMENT = FlatYamlPlacement["Repository", RuleSuperiorityRef](
-    namespace=PropstoreFamily.RULE_SUPERIORITY.value,
-    ref_factory=RuleSuperiorityRef,
-    ref_field="artifact_id",
-    branch=PRIMARY_ARTIFACT_BRANCH,
-)
-STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
-    namespace=PropstoreFamily.STANCES.value,
-    ref_factory=StanceRef,
-    ref_field="artifact_id",
-    codec="colon_to_double_underscore",
-    branch=PRIMARY_ARTIFACT_BRANCH,
-)
-SAMEAS_PLACEMENT = FlatYamlPlacement["Repository", SameAsAssertionRef](
-    namespace=PropstoreFamily.SAMEAS.value,
-    ref_factory=SameAsAssertionRef,
-    ref_field="artifact_id",
-    codec="colon_to_double_underscore",
-    branch=PRIMARY_ARTIFACT_BRANCH,
-)
-WORLDLINE_PLACEMENT = FlatYamlPlacement["Repository", WorldlineRef](
-    namespace=PropstoreFamily.WORLDLINES.value,
-    ref_factory=WorldlineRef,
-    ref_field="name",
-    branch=CURRENT_ARTIFACT_BRANCH,
-)
 SOURCE_DOCUMENT_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("source.yaml", branch=SOURCE_BRANCH)
 SOURCE_NOTES_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("notes.md", branch=SOURCE_BRANCH)
 SOURCE_METADATA_PLACEMENT = FixedFilePlacement["Repository", SourceRef]("metadata.json", branch=SOURCE_BRANCH)
@@ -355,13 +305,6 @@ MICROPUBLICATION_PLACEMENT = HashScatteredYamlPlacement["Repository", Micropubli
     ref_field="artifact_id",
     codec="base64url",
     filename_mode="encoded_ref",
-    branch=PRIMARY_ARTIFACT_BRANCH,
-)
-JUSTIFICATION_PLACEMENT = FlatYamlPlacement["Repository", JustificationRef](
-    "justifications",
-    JustificationRef,
-    ref_field="artifact_id",
-    codec="colon_to_double_underscore",
     branch=PRIMARY_ARTIFACT_BRANCH,
 )
 PROPOSAL_STANCE_PLACEMENT = FlatYamlPlacement["Repository", StanceRef](
@@ -398,20 +341,6 @@ MERGE_MANIFEST_PLACEMENT = SingletonFilePlacement["Repository", MergeManifestRef
 )
 
 
-CONTEXT_FAMILY = ArtifactFamily["Repository", ContextRef, ContextDocument](
-    name="context",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=ContextDocument,
-    placement=CONTEXT_PLACEMENT,
-)
-
-FORM_FAMILY = ArtifactFamily["Repository", FormRef, FormDocument](
-    name="form",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=FormDocument,
-    placement=FORM_PLACEMENT,
-)
-
 CLAIM_FAMILY = ArtifactFamily["Repository", ClaimRef, ClaimDocument](
     name="claim",
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -429,49 +358,6 @@ CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocume
     document_payload=concept_document_to_payload,
     normalize_for_write=normalize_concept_document_for_write,
 )
-
-PREDICATE_FAMILY = ArtifactFamily["Repository", PredicateRef, PredicateDocument](
-    name="predicate",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=PredicateDocument,
-    placement=PREDICATE_PLACEMENT,
-)
-
-RULE_FAMILY = ArtifactFamily["Repository", RuleRef, RuleDocument](
-    name="rule",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=RuleDocument,
-    placement=RULE_PLACEMENT,
-)
-
-RULE_SUPERIORITY_FAMILY = ArtifactFamily["Repository", RuleSuperiorityRef, RuleSuperiorityDocument](
-    name="rule_superiority",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=RuleSuperiorityDocument,
-    placement=RULE_SUPERIORITY_PLACEMENT,
-)
-
-STANCE_FAMILY = ArtifactFamily["Repository", StanceRef, StanceDocument](
-    name="stance",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=StanceDocument,
-    placement=STANCE_PLACEMENT,
-)
-
-SAMEAS_ASSERTION_FAMILY = ArtifactFamily["Repository", SameAsAssertionRef, SameAsAssertionDocument](
-    name="same_as_assertion",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=SameAsAssertionDocument,
-    placement=SAMEAS_PLACEMENT,
-)
-
-WORLDLINE_FAMILY = ArtifactFamily["Repository", WorldlineRef, WorldlineDefinitionDocument](
-    name="worldline",
-    contract_version=WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=WorldlineDefinitionDocument,
-    placement=WORLDLINE_PLACEMENT,
-)
-
 
 SOURCE_DOCUMENT_FAMILY = ArtifactFamily["Repository", SourceRef, SourceDocument](
     name="source_document",
@@ -560,13 +446,6 @@ MICROPUBLICATION_FAMILY = ArtifactFamily["Repository", MicropublicationRef, Micr
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MicropublicationDocument,
     placement=MICROPUBLICATION_PLACEMENT,
-)
-
-JUSTIFICATION_FAMILY = ArtifactFamily["Repository", JustificationRef, JustificationDocument](
-    name="justification",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-    doc_type=JustificationDocument,
-    placement=JUSTIFICATION_PLACEMENT,
 )
 
 PROPOSAL_STANCE_FAMILY = ArtifactFamily["Repository", StanceRef, StanceDocument](
@@ -843,79 +722,143 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             reference_keys=CONCEPT_REFERENCE_KEYS,
             metadata=_semantic_metadata(importable=True, import_order=10),
         ),
-        FamilyDefinition(
+        FamilyDeclaration(
             key=PropstoreFamily.CONTEXTS,
             name=PropstoreFamily.CONTEXTS.value,
             contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
-            artifact_family=CONTEXT_FAMILY,
+            artifact_name="context",
+            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=ContextDocument,
+            placement=FlatYamlPlacement(
+                namespace=PropstoreFamily.CONTEXTS.value,
+                ref_factory=ContextRef,
+                ref_field="name",
+                branch=CURRENT_ARTIFACT_BRANCH,
+            ),
             identity_field="id",
             reference_keys=(ReferenceKey.field("name"),),
             metadata=_semantic_metadata(importable=True, import_order=30),
-        ),
-        FamilyDefinition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.FORMS,
             name=PropstoreFamily.FORMS.value,
             contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
-            artifact_family=FORM_FAMILY,
+            artifact_name="form",
+            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=FormDocument,
+            placement=FlatYamlPlacement(
+                namespace=PropstoreFamily.FORMS.value,
+                ref_factory=FormRef,
+                ref_field="name",
+                branch=CURRENT_ARTIFACT_BRANCH,
+            ),
             identity_field="name",
             metadata=_semantic_metadata(importable=True, import_order=30),
-        ),
-        FamilyDefinition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.PREDICATES,
             name=PropstoreFamily.PREDICATES.value,
             contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
-            artifact_family=PREDICATE_FAMILY,
+            artifact_name="predicate",
+            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=PredicateDocument,
+            placement=FlatYamlPlacement(
+                namespace=PropstoreFamily.PREDICATES.value,
+                ref_factory=PredicateRef,
+                ref_field="predicate_id",
+                branch=PRIMARY_ARTIFACT_BRANCH,
+            ),
             metadata=_semantic_metadata(
                 importable=True,
                 import_order=40,
             ),
-        ),
-        FamilyDefinition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.RULES,
             name=PropstoreFamily.RULES.value,
             contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
-            artifact_family=RULE_FAMILY,
+            artifact_name="rule",
+            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=RuleDocument,
+            placement=FlatYamlPlacement(
+                namespace=PropstoreFamily.RULES.value,
+                ref_factory=RuleRef,
+                ref_field="rule_id",
+                branch=PRIMARY_ARTIFACT_BRANCH,
+            ),
             metadata=_semantic_metadata(
                 importable=True,
                 import_order=50,
             ),
-        ),
-        FamilyDefinition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.RULE_SUPERIORITY,
             name=PropstoreFamily.RULE_SUPERIORITY.value,
             contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
-            artifact_family=RULE_SUPERIORITY_FAMILY,
+            artifact_name="rule_superiority",
+            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=RuleSuperiorityDocument,
+            placement=FlatYamlPlacement(
+                namespace=PropstoreFamily.RULE_SUPERIORITY.value,
+                ref_factory=RuleSuperiorityRef,
+                ref_field="artifact_id",
+                branch=PRIMARY_ARTIFACT_BRANCH,
+            ),
             metadata=_semantic_metadata(
                 importable=True,
                 import_order=55,
             ),
-        ),
-        FamilyDefinition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.STANCES,
             name=PropstoreFamily.STANCES.value,
             contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
-            artifact_family=STANCE_FAMILY,
+            artifact_name="stance",
+            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=StanceDocument,
+            placement=FlatYamlPlacement(
+                namespace=PropstoreFamily.STANCES.value,
+                ref_factory=StanceRef,
+                ref_field="artifact_id",
+                codec="colon_to_double_underscore",
+                branch=PRIMARY_ARTIFACT_BRANCH,
+            ),
             foreign_keys=STANCE_FOREIGN_KEYS,
             identity_field="artifact_code",
             metadata=_semantic_metadata(importable=True, import_order=60),
-        ),
-        FamilyDefinition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.SAMEAS,
             name=PropstoreFamily.SAMEAS.value,
-            contract_version=SAMEAS_ASSERTION_FAMILY.contract_version,
-            artifact_family=SAMEAS_ASSERTION_FAMILY,
+            contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="same_as_assertion",
+            doc_type=SameAsAssertionDocument,
+            placement=FlatYamlPlacement(
+                namespace=PropstoreFamily.SAMEAS.value,
+                ref_factory=SameAsAssertionRef,
+                ref_field="artifact_id",
+                codec="colon_to_double_underscore",
+                branch=PRIMARY_ARTIFACT_BRANCH,
+            ),
             metadata=_semantic_metadata(importable=True, import_order=65),
-        ),
-        FamilyDefinition(
+        ).to_definition(),
+        FamilyDeclaration(
             key=PropstoreFamily.WORLDLINES,
             name=PropstoreFamily.WORLDLINES.value,
-            contract_version=WORLDLINE_FAMILY.contract_version,
-            artifact_family=WORLDLINE_FAMILY,
+            contract_version=WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_name="worldline",
+            doc_type=WorldlineDefinitionDocument,
+            placement=FlatYamlPlacement(
+                namespace=PropstoreFamily.WORLDLINES.value,
+                ref_factory=WorldlineRef,
+                ref_field="name",
+                branch=CURRENT_ARTIFACT_BRANCH,
+            ),
             metadata={
                 **_semantic_metadata(importable=True, import_order=70),
                 "trajectory_field": "journal",
             },
-        ),
+        ).to_definition(),
         FamilyDefinition(
             key=PropstoreFamily.SOURCES,
             name=PropstoreFamily.SOURCES.value,
@@ -931,15 +874,24 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             foreign_keys=MICROPUBLICATION_FOREIGN_KEYS,
             identity_field="artifact_id",
         ),
-        FamilyDefinition(
+        FamilyDeclaration(
             key=PropstoreFamily.JUSTIFICATIONS,
             name=PropstoreFamily.JUSTIFICATIONS.value,
             contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
-            artifact_family=JUSTIFICATION_FAMILY,
+            artifact_name="justification",
+            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=JustificationDocument,
+            placement=FlatYamlPlacement(
+                "justifications",
+                JustificationRef,
+                ref_field="artifact_id",
+                codec="colon_to_double_underscore",
+                branch=PRIMARY_ARTIFACT_BRANCH,
+            ),
             foreign_keys=JUSTIFICATION_FOREIGN_KEYS,
             identity_field="artifact_code",
             reference_keys=(ReferenceKey.field("id"),),
-        ),
+        ).to_definition(),
         FamilyDefinition(
             key=PropstoreFamily.SOURCE_DOCUMENTS,
             name=PropstoreFamily.SOURCE_DOCUMENTS.value,
