@@ -29,11 +29,6 @@ from typing import Any
 
 from propstore.artifact_codes import stamp_canonical_artifact_codes
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
-from propstore.claim_references import (
-    ClaimReferenceResolver,
-    load_primary_branch_claim_reference_index,
-    load_source_claim_reference_index,
-)
 from propstore.claims import ClaimFileEntry, loaded_claim_file_from_payload
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.compiler.errors import CompilerWorkflowError
@@ -99,6 +94,11 @@ from .common import (
     source_paper_slug,
 )
 from .registry import load_primary_branch_concepts
+from .reference_indexes import (
+    primary_claim_index as build_primary_claim_index,
+    resolve_source_or_primary_claim_id,
+    source_claim_index as build_source_claim_index,
+)
 from .stages import SourcePromotionPlan
 
 
@@ -321,7 +321,8 @@ def _promoted_stance_documents(
     stances_doc: SourceStancesDocument | None,
     *,
     reference_resolves_to_promoted_or_primary,
-    resolver: ClaimReferenceResolver,
+    source_claim_index,
+    primary_claim_index,
 ) -> tuple[StanceDocument, ...]:
     promoted: list[StanceDocument] = []
     for stance in (() if stances_doc is None else stances_doc.stances):
@@ -330,13 +331,18 @@ def _promoted_stance_documents(
             raise ValueError("stance source_claim must be normalized before promotion")
         if not reference_resolves_to_promoted_or_primary(source_claim):
             continue
-        if not resolver.target_is_known(stance.target):
+        target = resolve_source_or_primary_claim_id(
+            stance.target,
+            source=source_claim_index,
+            primary=primary_claim_index,
+        )
+        if target is None or not reference_resolves_to_promoted_or_primary(target):
             continue
         promoted.append(
             StanceDocument(
                 source_claim=source_claim,
                 perspective_source_claim_id=stance.perspective_source_claim_id,
-                target=resolver.resolve_promoted_target(stance.target),
+                target=target,
                 type=stance.type,
                 strength=stance.strength,
                 note=stance.note,
@@ -398,7 +404,6 @@ def _assemble_source_promotion_plan(
     valid_claims: list[SourceClaimDocument],
     blocked_claims: list[SourceClaimDocument],
     blocked_reasons: dict[str, list[tuple[str, str]]],
-    resolver: ClaimReferenceResolver,
     source_claim_index,
     primary_claim_index,
 ) -> SourcePromotionPlan:
@@ -426,17 +431,14 @@ def _assemble_source_promotion_plan(
         for claim in valid_claims
         if isinstance(claim.artifact_id, str)
     }
-    valid_promotion_reference_ids = valid_artifact_ids | primary_claim_index.artifact_ids
 
     def reference_resolves_to_promoted_or_primary(reference: object) -> bool:
         if not isinstance(reference, str) or not reference:
             return False
-        if reference in valid_promotion_reference_ids:
-            return True
-        source_logical_target = source_claim_index.logical_to_artifact.get(reference)
-        if source_logical_target is not None:
-            return source_logical_target in valid_artifact_ids
-        return reference in primary_claim_index.logical_to_artifact
+        source_target = source_claim_index.resolve_id(reference)
+        if source_target is not None:
+            return source_target in valid_artifact_ids
+        return primary_claim_index.resolve_id(reference) is not None
 
     unstamped_justification_documents = _promoted_justification_documents(
         justifications_doc,
@@ -445,7 +447,8 @@ def _assemble_source_promotion_plan(
     unstamped_stance_documents = _promoted_stance_documents(
         stances_doc,
         reference_resolves_to_promoted_or_primary=reference_resolves_to_promoted_or_primary,
-        resolver=resolver,
+        source_claim_index=source_claim_index,
+        primary_claim_index=primary_claim_index,
     )
     promoted_micropubs = _filter_promoted_micropubs(
         micropubs_doc,
@@ -649,7 +652,6 @@ def _compute_blocked_claim_artifact_ids(
     claims_doc,
     justifications_doc,
     stances_doc,
-    resolver: ClaimReferenceResolver,
     source_claim_index,
     *,
     concept_map: dict[str, str],
@@ -709,14 +711,14 @@ def _compute_blocked_claim_artifact_ids(
     # artifact ids on the source branch).
     for justification in () if justifications_doc is None else justifications_doc.justifications:
         conclusion = justification.conclusion
-        if isinstance(conclusion, str) and not source_claim_index.has_artifact(conclusion):
+        if isinstance(conclusion, str) and not source_claim_index.exists(conclusion):
             _record(
                 conclusion,
                 "justification_reference",
                 f"justification conclusion {conclusion!r} unresolved",
             )
         for premise in justification.premises:
-            if isinstance(premise, str) and not source_claim_index.has_artifact(premise):
+            if isinstance(premise, str) and not source_claim_index.exists(premise):
                 _record(
                     premise,
                     "justification_reference",
@@ -968,18 +970,13 @@ def promote_source_branch(
     promoted_concept_documents = concept_resolution.promoted_concept_documents
     unresolved_concepts: set[str] = set()
 
-    source_claim_index = load_source_claim_reference_index(repo, source_name)
-    primary_claim_index = load_primary_branch_claim_reference_index(repo)
-    resolver = ClaimReferenceResolver(
-        source=source_claim_index,
-        primary=primary_claim_index,
-    )
+    source_claim_index = build_source_claim_index(repo, source_name)
+    primary_claim_index = build_primary_claim_index(repo)
 
     blocked_artifact_ids, blocked_reasons = _compute_blocked_claim_artifact_ids(
         claims_doc,
         justifications_doc,
         stances_doc,
-        resolver,
         source_claim_index,
         concept_map=concept_map,
         blocked_concept_refs=concept_resolution.blocked_concept_refs,
@@ -1036,7 +1033,6 @@ def promote_source_branch(
         valid_claims=valid_claims,
         blocked_claims=blocked_claims,
         blocked_reasons=blocked_reasons,
-        resolver=resolver,
         source_claim_index=source_claim_index,
         primary_claim_index=primary_claim_index,
     )
