@@ -38,8 +38,8 @@ These notes cite the processed paper artifacts under `papers/`. This closure sli
 Source branches author and finalize micropublication bundles:
 
 1. `pks source propose-claim ... --context CTX` writes context-qualified source claims.
-2. `pks source finalize SOURCE` composes `micropubs.yaml` from the source-local claim, evidence, stance, assumption, and provenance material.
-3. `pks source promote SOURCE` writes canonical `micropubs/{source}.yaml` atomically with valid promoted claim members.
+2. `pks source finalize SOURCE` composes source-local `micropubs.yaml` from the source-local claim, evidence, stance, assumption, and provenance material.
+3. `pks source promote SOURCE` writes typed canonical `MicropublicationDocument` artifacts atomically with valid promoted claim members.
 4. The sidecar build creates `micropublication` and `micropublication_claim` tables from canonical micropublication artifacts.
 5. `WorldQuery.all_micropublications()` returns typed `ActiveMicropublication` objects for runtime reasoning.
 
