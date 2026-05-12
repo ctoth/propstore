@@ -23,6 +23,7 @@ In this project:
 - Source-local authoring state belongs only in the source subsystem.
 - Canonical/master surfaces must reject source-local-only fields and shapes.
 - Source-local readability metadata must not leak into canonical identity or canonical runtime paths.
+- Storage artifact identity and cross-family references must use Quire family reference/FK APIs; source-local handles are lowered explicitly inside the source subsystem before canonical writes.
 - In this project, `legacy` is not implied by age or by yesterday's git state.
 - Treat something as legacy only when explicitly told an older repo, older data surface, or compatibility target must be supported.
 - Otherwise, delete the old path rather than carrying it forward.
