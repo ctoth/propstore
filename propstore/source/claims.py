@@ -327,8 +327,10 @@ def validate_source_claim_value_bounds(
     the form declares ``min`` or ``max``, every numeric value/lower_bound/
     upper_bound on the claim must lie within those bounds.
     """
-    from propstore.compiler.context import build_compilation_context_from_repo
-    from propstore.compiler.references import concept_form_definition
+    from propstore.compiler.context import (
+        build_compilation_context_from_repo,
+        concept_form_definition,
+    )
 
     compilation_context = build_compilation_context_from_repo(repo)
     form_registry = compilation_context.form_registry
