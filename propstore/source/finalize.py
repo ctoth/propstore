@@ -13,6 +13,8 @@ from propstore.families.identity.micropubs import (
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value
+from propstore.families.claims.documents import ClaimSourceDocument, ProvenanceDocument
+from propstore.families.contexts.documents import ContextReferenceDocument
 
 from .common import (
     load_source_claims_document,
@@ -34,21 +36,24 @@ from propstore.families.documents.sources import (
 )
 from propstore.families.documents.micropubs import (
     MicropublicationDocument,
+    MicropublicationEvidenceDocument,
     MicropublicationsFileDocument,
 )
 from .registry import preview_source_parameterization_group_merges
 
 
-def _stamp_micropub_identity(payload: dict[str, object]) -> dict[str, object]:
-    document = convert_document_value(
-        {**payload, "artifact_id": ""},
-        MicropublicationDocument,
-        source="source-finalize:micropub-identity",
+def _with_micropub_identity(document: MicropublicationDocument) -> MicropublicationDocument:
+    return MicropublicationDocument(
+        artifact_id=micropub_artifact_id(document),
+        context=document.context,
+        claims=document.claims,
+        version_id=micropub_version_id(document),
+        evidence=document.evidence,
+        assumptions=document.assumptions,
+        stance=document.stance,
+        provenance=document.provenance,
+        source=document.source,
     )
-    stamped = dict(payload)
-    stamped["artifact_id"] = micropub_artifact_id(document)
-    stamped["version_id"] = micropub_version_id(document)
-    return stamped
 
 
 def _compose_source_micropubs(
@@ -59,7 +64,7 @@ def _compose_source_micropubs(
 ) -> MicropublicationsFileDocument | None:
     if claims_doc is None or not claims_doc.claims:
         return None
-    micropubs: list[dict[str, object]] = []
+    micropubs: list[MicropublicationDocument] = []
     for claim in claims_doc.claims:
         if not isinstance(claim.artifact_id, str) or not claim.artifact_id:
             continue
@@ -68,40 +73,39 @@ def _compose_source_micropubs(
                 f"claim {claim.source_local_id or claim.id or claim.artifact_id!r} "
                 "is missing required context"
             )
-        evidence: list[dict[str, str]] = []
-        provenance_payload: dict[str, object] | None = None
+        evidence: list[MicropublicationEvidenceDocument] = []
+        provenance: ProvenanceDocument | None = None
         if claim.provenance is not None:
             paper = claim.provenance.paper or source_slug
             if claim.provenance.page is not None:
-                evidence.append({
-                    "kind": "paper_page",
-                    "reference": f"{paper}:{claim.provenance.page}",
-                })
-                provenance_payload = {
-                    "paper": paper,
-                    "page": claim.provenance.page,
-                }
-        payload: dict[str, object] = {
-            "context": {"id": claim.context},
-            "claims": [claim.artifact_id],
-            "source": source_id,
-        }
-        if evidence:
-            payload["evidence"] = evidence
-        if claim.conditions:
-            payload["assumptions"] = list(claim.conditions)
-        if provenance_payload is not None:
-            payload["provenance"] = provenance_payload
-        micropubs.append(_stamp_micropub_identity(payload))
+                evidence.append(
+                    MicropublicationEvidenceDocument(
+                        kind="paper_page",
+                        reference=f"{paper}:{claim.provenance.page}",
+                    )
+                )
+                provenance = ProvenanceDocument(
+                    paper=paper,
+                    page=claim.provenance.page,
+                )
+        micropubs.append(
+            _with_micropub_identity(
+                MicropublicationDocument(
+                    artifact_id="",
+                    context=ContextReferenceDocument(id=claim.context),
+                    claims=(claim.artifact_id,),
+                    evidence=tuple(evidence),
+                    assumptions=tuple(claim.conditions),
+                    provenance=provenance,
+                    source=source_id,
+                )
+            )
+        )
     if not micropubs:
         return None
-    return convert_document_value(
-        {
-            "source": {"paper": source_slug},
-            "micropubs": micropubs,
-        },
-        MicropublicationsFileDocument,
-        source=f"{source_branch_name(source_slug)}:micropubs.yaml",
+    return MicropublicationsFileDocument(
+        source=ClaimSourceDocument(paper=source_slug),
+        micropubs=tuple(micropubs),
     )
 
 
