@@ -8,9 +8,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from quire.families import FamilyRegistry
+
 from propstore.families.registry import (
-    semantic_family_for_path,
+    PROPSTORE_FAMILY_REGISTRY,
+    PropstoreFamily,
     semantic_import_roots,
+    semantic_import_families,
 )
 from propstore.source.passes import run_source_import_pipeline
 from propstore.source.stages import (
@@ -32,6 +36,14 @@ from propstore.provenance.records import (
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
+
+
+def _semantic_import_registry() -> FamilyRegistry["Repository", PropstoreFamily]:
+    return FamilyRegistry(
+        name="propstore-semantic-import",
+        contract_version=PROPSTORE_FAMILY_REGISTRY.contract_version,
+        families=semantic_import_families(),
+    )
 
 
 @dataclass(frozen=True)
@@ -183,13 +195,14 @@ def commit_repository_import(
         with head_txn.families_transact(
             message=message or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
         ) as transaction:
+            import_registry = _semantic_import_registry()
             for planned_write in plan.writes.values():
                 transaction.by_artifact_family(cast(Any, planned_write.family)).save(
                     cast(Any, planned_write.ref),
                     cast(Any, planned_write.document),
                 )
             for path in plan.deletes:
-                semantic_family = semantic_family_for_path(path)
+                semantic_family = import_registry.family_for_path(path)
                 bound_family = transaction.by_artifact_family(cast(Any, semantic_family.artifact_family))
                 bound_family.delete(bound_family.ref_from_path(path))
         commit_sha = head_txn.commit_sha
