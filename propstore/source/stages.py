@@ -11,7 +11,6 @@ from quire.artifacts import ArtifactFamily
 from quire.family_store import DocumentFamilyStore
 
 from propstore.families.addresses import SemanticFamilyAddress
-from propstore.claim_references import ImportedClaimHandleIndex
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
@@ -29,6 +28,7 @@ from propstore.families.registry import (
     MicropublicationRef,
     StanceRef,
 )
+from propstore.source.reference_indexes import ImportedClaimHandle
 
 
 class SourceStage(StrEnum):
@@ -61,9 +61,7 @@ class SourceImportNormalizedWrites:
 class SourceImportState:
     repository_name: str
     concept_ref_map: dict[str, str] = field(default_factory=dict)
-    local_handle_index: ImportedClaimHandleIndex = field(
-        default_factory=ImportedClaimHandleIndex
-    )
+    imported_claim_handles: list[ImportedClaimHandle] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
 
 
