@@ -15,6 +15,7 @@ from types import MappingProxyType
 
 import pytest
 from hypothesis import settings
+from quire.references import FamilyReferenceIndex
 
 from quire.documents import convert_document_value as convert_document
 from propstore.families.registry import CONCEPT_FILE_FAMILY
@@ -679,21 +680,12 @@ def make_concept_registry():
 
 def make_compilation_context(registry: dict[str, dict] | None = None, *, claim_files=None, context_ids=None):
     from propstore.cel_registry import build_canonical_cel_registry
-    from propstore.compiler.context import CompilationContext
-    from propstore.compiler.references import build_claim_reference_lookup
+    from propstore.compiler.context import CompilationContext, build_compiler_claim_index
     from propstore.families.concepts.stages import concept_reference_keys, parse_concept_record
 
     source_registry = make_concept_registry() if registry is None else registry
     concepts_by_id = {}
-    concept_lookup: dict[str, list[str]] = {}
     form_registry = {}
-
-    def extend_lookup(key: object, target_id: str) -> None:
-        if not isinstance(key, str) or not key:
-            return
-        values = concept_lookup.setdefault(key, [])
-        if target_id not in values:
-            values.append(target_id)
 
     for key, payload in source_registry.items():
         if not isinstance(payload, dict):
@@ -701,25 +693,25 @@ def make_compilation_context(registry: dict[str, dict] | None = None, *, claim_f
         record = parse_concept_record(payload)
         artifact_id = str(record.artifact_id)
         concepts_by_id.setdefault(artifact_id, record)
-        extend_lookup(key, artifact_id)
-        for reference_key in concept_reference_keys(record):
-            extend_lookup(reference_key, artifact_id)
         form_definition = payload.get("_form_definition")
         if isinstance(form_definition, FormDefinition):
             form_registry.setdefault(record.form, form_definition)
 
+    concept_index = FamilyReferenceIndex.from_records(
+        concepts_by_id.values(),
+        family="concept",
+        artifact_id=lambda record: str(record.artifact_id),
+        keys=(concept_reference_keys,),
+    )
     return CompilationContext(
         form_registry=MappingProxyType(dict(form_registry)),
         context_ids=frozenset(context_ids or set()),
         concepts_by_id=MappingProxyType(dict(concepts_by_id)),
-        concept_lookup=MappingProxyType({
-            key: tuple(values)
-            for key, values in concept_lookup.items()
-        }),
-        claim_lookup=(
-            MappingProxyType({})
+        concept_index=concept_index,
+        claim_index=(
+            build_compiler_claim_index(())
             if claim_files is None
-            else build_claim_reference_lookup(list(claim_files))
+            else build_compiler_claim_index(list(claim_files))
         ),
         cel_registry=MappingProxyType(dict(build_canonical_cel_registry(concepts_by_id.values()))),
     )
