@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from quire.documents import decode_yaml_mapping
 from quire.family_store import DocumentFamilyStore
+from quire.references import AmbiguousReferenceError
 
 from propstore.families.addresses import SemanticFamilyAddress
 from propstore.families.claims.documents import ClaimDocument
@@ -238,6 +239,16 @@ def _normalize_claim_batch(
     return normalized
 
 
+def _record_imported_claim_handle_ambiguities(state: SourceImportState) -> None:
+    try:
+        imported_claim_handle_index(state.imported_claim_handles)
+    except AmbiguousReferenceError as exc:
+        state.warnings.append(
+            "ambiguous imported claim handle "
+            f"{exc.reference!r}: {', '.join(exc.candidates)}"
+        )
+
+
 def _normalize_stance_batch(
     store: DocumentFamilyStore["Repository"],
     paths: Sequence[str],
@@ -315,6 +326,8 @@ def _normalize_semantic_import_writes(
             continue
         normalizer = _SEMANTIC_IMPORT_NORMALIZERS.get(cast(PropstoreFamily, family.key), _normalize_passthrough_batch)
         normalized.update(normalizer(store, family_paths, writes, state))
+        if family.key is PropstoreFamily.CLAIMS:
+            _record_imported_claim_handle_ambiguities(state)
     return SourceImportNormalizedWrites(
         writes=normalized,
         warnings=tuple(state.warnings),
