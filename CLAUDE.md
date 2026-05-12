@@ -16,6 +16,8 @@ Do not collapse disagreement in storage unless the user explicitly requests a mi
 
 This principle governs every design decision. The system is lazy until rendering. Everything flows into storage with provenance. The render layer filters based on policy.
 
+Storage artifact identity and cross-family references must use Quire family reference/FK APIs; source-local handles are lowered explicitly inside the source subsystem before canonical writes.
+
 ### Design checklist (before any data-flow decision)
 
 1. Does this prevent ANY data from reaching the sidecar? If yes → WRONG.
