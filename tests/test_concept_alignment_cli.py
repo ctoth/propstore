@@ -9,9 +9,18 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
-from propstore.families.registry import ConceptFileRef
+from propstore.families.forms.documents import FormDocument
+from propstore.families.registry import ConceptFileRef, FormRef
 from propstore.repository import Repository
 from propstore.source import build_alignment_artifact, classify_relation
+
+
+def _seed_structural_form(repo: Repository) -> None:
+    repo.families.forms.save(
+        FormRef("structural"),
+        FormDocument(name="structural", dimensionless=True),
+        message="Seed structural form",
+    )
 
 
 def _init_source(runner: CliRunner, repo: Repository, name: str) -> None:
@@ -130,6 +139,7 @@ def test_alignment_does_not_infer_from_definition_token_overlap(shared_token: st
 
 def test_concept_align_creates_proposal_artifact_and_promote(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
+    _seed_structural_form(repo)
     runner = CliRunner()
     _init_source(runner, repo, "a")
     _init_source(runner, repo, "b")
