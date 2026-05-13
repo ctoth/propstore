@@ -36,7 +36,7 @@ Do not move these into Quire:
 Do not keep Propstore pass-through methods around as aliases. If callers can use
 `repo.git` or Quire directly, update them and delete the pass-through.
 
-## Workstream Order
+## Dependency Order
 
 The phases below are topologically ordered.
 
@@ -48,7 +48,7 @@ The phases below are topologically ordered.
 6. Propstore semantic clean adapter
 7. Final gates
 
-## Phase 1 - Quire Materialization Tests
+## Phase 1: Quire Materialization Tests
 
 Repository: `../quire`
 
@@ -75,7 +75,7 @@ Required gate:
 
 - `uv run pytest tests/test_git_store.py tests/test_git_properties.py`
 
-## Phase 2 - Quire Generic Materialize/File-Walk Implementation
+## Phase 2: Quire Generic Materialize/File-Walk Implementation
 
 Repository: `../quire`
 
@@ -109,7 +109,7 @@ Required gates:
 - `uv run pytest tests/test_git_store.py tests/test_git_properties.py`
 - `uv run pytest`
 
-## Phase 3 - Propstore Dependency Pin
+## Phase 3: Propstore Dependency Pin
 
 Repository: `propstore`
 
@@ -130,7 +130,7 @@ Required gate:
 
 - `uv run pyright propstore`
 
-## Phase 4 - Propstore Git-Policy Wrapper Deletion
+## Phase 4: Propstore Git-Policy Wrapper Deletion
 
 Repository: `propstore`
 
@@ -166,7 +166,7 @@ Required gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label git-policy-delete tests/test_init.py tests/test_git_backend.py tests/test_import_repo.py`
 - `uv run pyright propstore`
 
-## Phase 5 - Propstore Snapshot Pass-Through Deletion
+## Phase 5: Propstore Snapshot Pass-Through Deletion
 
 Repository: `propstore`
 
@@ -213,7 +213,7 @@ Required gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label snapshot-pass-through-delete tests/test_git_backend.py tests/test_import_repo.py tests/test_repo_branch.py tests/test_repo_merge_object.py`
 - `uv run pyright propstore`
 
-## Phase 6 - Propstore Semantic Clean Adapter
+## Phase 6: Propstore Semantic Clean Adapter
 
 Repository: `propstore`
 
@@ -240,7 +240,7 @@ Required gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label materialize-adapter tests/test_worldline.py tests/test_import_repo.py tests/test_git_backend.py`
 - `uv run pyright propstore`
 
-## Phase 7 - Final Gates
+## Phase 7: Final Gates
 
 Repository: both
 
