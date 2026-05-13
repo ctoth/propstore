@@ -6,7 +6,7 @@ import yaml
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from quire.git_store import GitStore
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_report import summarize_merge_framework
@@ -93,7 +93,7 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_merge_report_surfaces_conflict_query_state(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     concept_id = derive_concept_artifact_id("propstore", "concept_x")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
@@ -146,7 +146,7 @@ def test_merge_report_surfaces_conflict_query_state(tmp_path):
 
 
 def test_merge_report_surfaces_ignorance_query_state(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",

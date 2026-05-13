@@ -7,11 +7,13 @@ from functools import cached_property
 from pathlib import Path
 
 from quire.documents import DocumentStruct, decode_document_bytes
+from quire.git_store import GitStore
 from quire.refs import RefName
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
 from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
 )
+from propstore.storage import PROPSTORE_GIT_POLICY
 from propstore.uri import DEFAULT_URI_AUTHORITY
 from propstore.uri_authority import TaggingAuthority, parse_tagging_authority
 
@@ -86,9 +88,8 @@ class Repository:
     @cached_property
     def git(self):
         """Return the GitStore if this directory is git-backed, else None."""
-        from propstore.storage import is_git_repo, open_git_store
-        if is_git_repo(self._root):
-            return open_git_store(self._root)
+        if GitStore.is_repo(self._root):
+            return GitStore.open(self._root, policy=PROPSTORE_GIT_POLICY)
         return None
 
     @cached_property
@@ -115,11 +116,9 @@ class Repository:
     @classmethod
     def is_propstore_repo(cls, root: Path) -> bool:
         """Return whether *root* is a git store with propstore bootstrap state."""
-        from propstore.storage import is_git_repo, open_git_store
-
-        if not is_git_repo(root):
+        if not GitStore.is_repo(root):
             return False
-        return _read_bootstrap_manifest(open_git_store(root)) is not None
+        return _read_bootstrap_manifest(GitStore.open(root, policy=PROPSTORE_GIT_POLICY)) is not None
 
     def write_bootstrap_manifest(self, *, seed_commit: str | None = None) -> None:
         _write_bootstrap_manifest(self.git, seed_commit=seed_commit)
@@ -139,10 +138,8 @@ class Repository:
         Also recognises *start* itself as a repository root when it is a
         git-backed propstore store.
         """
-        from propstore.storage import is_git_repo
-
         current = (start or Path.cwd()).resolve()
-        if is_git_repo(current) and cls.is_propstore_repo(current):
+        if GitStore.is_repo(current) and cls.is_propstore_repo(current):
             return cls(current)
 
         # Walk up looking for knowledge/
@@ -150,7 +147,7 @@ class Repository:
             candidate = ancestor / "knowledge"
             if not candidate.is_dir():
                 continue
-            if not is_git_repo(candidate):
+            if not GitStore.is_repo(candidate):
                 continue
             if cls.is_propstore_repo(candidate):
                 return cls(candidate)
@@ -158,7 +155,7 @@ class Repository:
                 f"Git repository at {candidate} is not a propstore repository. "
                 f"Run 'pks init' to create one."
             )
-        if is_git_repo(current):
+        if GitStore.is_repo(current):
             raise RepositoryNotFound(
                 f"Git repository at {current} is not a propstore repository. "
                 f"Run 'pks init' to create one."
@@ -171,9 +168,7 @@ class Repository:
     @classmethod
     def init(cls, root: Path) -> Repository:
         """Create a store-only propstore repository and return it."""
-        from propstore.storage import init_git_store
-
-        init_git_store(root)
+        GitStore.init(root, policy=PROPSTORE_GIT_POLICY)
         repo = cls(root)
         repo.write_bootstrap_manifest()
         return repo

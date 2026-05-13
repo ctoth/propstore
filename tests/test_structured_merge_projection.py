@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 
 from quire.git_store import GitStore
 from propstore.families.identity.stances import stamp_stance_artifact_id
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from propstore.repository import Repository
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.merge.structured_merge import (
@@ -82,7 +82,7 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     kr.commit_files(
         {
             **_claim_payloads(kr, [
@@ -129,7 +129,7 @@ def test_branch_structured_summary_reads_branch_snapshot_stances(tmp_path):
 
 
 def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/structured"
     kr.create_branch(branch_name, source_commit=base_sha)
@@ -156,7 +156,7 @@ def test_structured_merge_candidates_reuse_identical_branch_summaries(tmp_path):
 
 
 def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     kr.commit_files(
         {
             **_claim_payloads(kr, [
@@ -181,7 +181,7 @@ def test_branch_structured_summary_is_stable_on_repeated_builds(tmp_path):
 
 
 def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/local-only"
     kr.create_branch(branch_name, source_commit=base_sha)
@@ -214,7 +214,7 @@ def test_branch_structured_summary_stays_local_to_branch_scope(tmp_path):
 
 
 def test_branch_structured_summary_explicitly_marks_lossy_relation_boundary(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     kr.commit_files(
         _claim_payloads(kr, [
             _obs_claim("claim_a", "A"),
@@ -248,7 +248,7 @@ def test_branch_structured_summary_ignores_out_of_scope_stances_in_identity(
     extra_targets: list[str],
 ):
     with TemporaryDirectory() as temp_dir:
-        kr = init_git_store(Path(temp_dir) / "knowledge")
+        kr = init_store(Path(temp_dir) / "knowledge")
         base_sha = kr.commit_files({}, "seed")
         branch_name = "paper/out_of_scope"
         kr.create_branch(branch_name, source_commit=base_sha)
@@ -307,7 +307,7 @@ def test_branch_structured_summary_is_order_invariant(
     stance_order: tuple[str, ...],
 ):
     with TemporaryDirectory() as temp_dir:
-        kr = init_git_store(Path(temp_dir) / "knowledge")
+        kr = init_store(Path(temp_dir) / "knowledge")
         base_sha = kr.commit_files({}, "seed")
         branch_name = "paper/order_invariant"
         kr.create_branch(branch_name, source_commit=base_sha)

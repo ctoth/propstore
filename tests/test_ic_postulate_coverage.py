@@ -11,12 +11,12 @@ from hypothesis import strategies as st
 
 from propstore.families.identity.claims import derive_claim_artifact_id
 from propstore.merge.merge_classifier import IntegrityConstraint, build_merge_framework
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from tests.ws_l_merge_helpers import claim_payloads, obs_claim, snapshot
 
 
 def test_integrity_constraint_prunes_forbidden_artifact_ids(tmp_path) -> None:
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/right"
     kr.create_branch(branch_name, source_commit=base_sha)
@@ -57,7 +57,7 @@ def test_nary_merge_profile_preserves_disjoint_branch_additions(
 ) -> None:
     with TemporaryDirectory() as temp_dir:
         root = Path(temp_dir) / "knowledge"
-        kr = init_git_store(root)
+        kr = init_store(root)
         base_sha = kr.commit_files({}, "seed")
         right_branch = "paper/right"
         third_branch = "paper/third"

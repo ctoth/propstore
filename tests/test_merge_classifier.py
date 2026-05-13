@@ -12,7 +12,7 @@ from hypothesis import strategies as st
 
 from propstore.families.identity.claims import compute_claim_version_id
 from quire.git_store import GitStore
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_commit import create_merge_commit
@@ -139,7 +139,7 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_obs_claim("claim1", "Base", ["concept_x"])]),
         "seed",
@@ -156,7 +156,7 @@ def test_identical_claims_collapse_to_one_emitted_argument(tmp_path):
 
 
 def test_syntax_independence_claim_order(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     claim_a = _obs_claim("claimA", "A", ["concept_a"])
     claim_b = _obs_claim("claimB", "B", ["concept_b"])
     base_sha = kr.commit_files(
@@ -178,7 +178,7 @@ def test_syntax_independence_claim_order(tmp_path):
 
 
 def test_syntax_independence_filename(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     claims = [_obs_claim("claimA", "Observation A", ["concept_a"])]
     base_sha = kr.commit_files(
         _claim_payloads(kr, claims),
@@ -200,7 +200,7 @@ def test_syntax_independence_filename(tmp_path):
 
 
 def test_merge_commit_has_two_parents(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_obs_claim("claim1", "Base", ["concept_x"])]),
         "seed",
@@ -223,7 +223,7 @@ def test_merge_commit_has_two_parents(tmp_path):
 
 
 def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_obs_claim("claim1", "Base", ["concept_x"])]),
         "seed",
@@ -257,7 +257,7 @@ def test_merge_commit_preserves_both_disjoint_additions(tmp_path):
 
 
 def test_merge_commit_valid_claims(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_obs_claim("claim1", "Base", ["concept_x"])]),
         "seed",
@@ -289,7 +289,7 @@ def test_merge_commit_valid_claims(tmp_path):
 
 
 def test_conflict_merge_is_deterministic(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
@@ -313,7 +313,7 @@ def test_conflict_merge_is_deterministic(tmp_path):
 
 
 def test_merge_commit_preserves_branch_origin_provenance(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
@@ -376,7 +376,7 @@ def test_merge_commit_materializes_exact_union_of_disjoint_branch_additions(
 
     with TemporaryDirectory() as temp_dir:
         root = Path(temp_dir) / "knowledge"
-        kr = init_git_store(root)
+        kr = init_store(root)
         base_sha = kr.commit_files({}, "seed")
         branch_name = "paper/property_preserve"
         kr.create_branch(branch_name, source_commit=base_sha)

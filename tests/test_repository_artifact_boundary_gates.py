@@ -119,8 +119,7 @@ def test_storage_package_exports_policy_constructors_not_gitstore_shim() -> None
     contents = path.read_text(encoding="utf-8")
 
     assert "GitStore" not in contents
-    assert "init_git_store" in contents
-    assert "open_git_store" in contents
+    assert "PROPSTORE_GIT_POLICY" in contents
     assert "KnowledgeRepo" not in contents
 
 
@@ -133,8 +132,7 @@ def test_git_storage_surface_is_not_named_repo_or_gitstore_shim() -> None:
 
     contents = storage.read_text(encoding="utf-8")
     assert "GitStore" not in contents
-    assert "init_git_store" in contents
-    assert "open_git_store" in contents
+    assert "PROPSTORE_GIT_POLICY" in contents
     assert "KnowledgeRepo" not in contents
 
 

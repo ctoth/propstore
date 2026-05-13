@@ -6,7 +6,7 @@ import yaml
 import propstore.storage as repo_module
 from propstore.families.identity.claims import compute_claim_version_id
 from quire.git_store import GitStore
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from propstore.repository import Repository
 from propstore.merge.merge_classifier import build_merge_framework
 from propstore.merge.merge_commit import create_merge_commit
@@ -113,7 +113,7 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
@@ -146,7 +146,7 @@ def test_build_merge_framework_conflict_emits_mutual_attack(tmp_path):
 
 
 def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
@@ -185,7 +185,7 @@ def test_build_merge_framework_phi_node_emits_ignorance(tmp_path):
 def test_build_merge_framework_compatible_one_sided_modification_emits_single_argument(
     tmp_path,
 ):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",
@@ -212,7 +212,7 @@ def test_build_merge_framework_compatible_one_sided_modification_emits_single_ar
 
 
 def test_create_merge_commit_materializes_divergent_same_artifact_versions_as_rivals(tmp_path):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(
         _claim_payloads(kr, [_param_claim("claim1", "concept_x", 250.0)]),
         "seed",

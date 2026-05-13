@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Iterator, TypeVar
 
 from quire.documents import decode_document_bytes
 from propstore.families.registry import semantic_init_roots
-from propstore.storage.git_policy import _is_ignored_runtime_path
+from propstore.storage import PROPSTORE_GIT_POLICY
 
 if TYPE_CHECKING:
     from quire.git_store import GitStore
@@ -57,6 +57,13 @@ class MaterializeReport:
 
 class MaterializeConflictError(Exception):
     pass
+
+
+def _is_propstore_ignored_runtime_path(relpath: str) -> bool:
+    normalized = relpath.replace("\\", "/")
+    return normalized.startswith(PROPSTORE_GIT_POLICY.ignored_path_prefixes) or normalized.endswith(
+        PROPSTORE_GIT_POLICY.ignored_path_suffixes
+    )
 
 
 def _branch_kind(name: str) -> str:
@@ -270,7 +277,7 @@ class RepositorySnapshot:
                 continue
             if relpath in tracked_paths:
                 continue
-            if _is_ignored_runtime_path(relpath):
+            if _is_propstore_ignored_runtime_path(relpath):
                 skipped.append(relpath)
                 continue
             deletion_candidates.append((disk_file, relpath))
@@ -289,7 +296,7 @@ class RepositorySnapshot:
             relpath = directory.relative_to(self.repo.root).as_posix()
             if relpath.startswith(".git/") or relpath == ".git":
                 continue
-            if _is_ignored_runtime_path(relpath):
+            if _is_propstore_ignored_runtime_path(relpath):
                 continue
             try:
                 directory.rmdir()

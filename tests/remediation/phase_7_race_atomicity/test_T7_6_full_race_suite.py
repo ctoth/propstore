@@ -15,7 +15,7 @@ from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.ws_l_merge_helpers import claim_payloads
 
@@ -59,7 +59,7 @@ class FullRaceMachine(RuleBasedStateMachine):
 
     @rule()
     def concurrent_merges_guard_target_head(self) -> None:
-        kr = init_git_store(self._next_path("merge"))
+        kr = init_store(self._next_path("merge"))
         base_sha = kr.commit_files(_claim_payloads(kr, "base", "Base"), "seed")
         branch_name = "paper/race"
         kr.create_branch(branch_name, source_commit=base_sha)

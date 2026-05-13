@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from propstore.merge.merge_classifier import build_merge_framework
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from tests.ws_l_merge_helpers import claim_payloads, param_claim, snapshot
 
 
 def test_regime_split_same_value_claims_remain_distinct_with_ignorance(tmp_path) -> None:
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/regime-right"
     kr.create_branch(branch_name, source_commit=base_sha)

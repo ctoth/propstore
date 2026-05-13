@@ -4,7 +4,7 @@ import pytest
 
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot
 from quire.git_store import GitStore, HeadMismatchError
 from tests.ws_l_merge_helpers import claim_payloads
@@ -33,7 +33,7 @@ def _snapshot(kr: GitStore) -> RepositorySnapshot:
 
 
 def test_merge_commit_rejects_target_branch_moved_before_materialization(tmp_path, monkeypatch):
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files(_claim_payloads(kr, "base", "Base"), "seed")
     branch_name = "paper/race"
     kr.create_branch(branch_name, source_commit=base_sha)

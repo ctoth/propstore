@@ -4,13 +4,13 @@ import yaml
 
 from propstore.claims import claim_file_claims
 from propstore.merge.merge_commit import create_merge_commit
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from tests.family_helpers import load_claim_files
 from tests.ws_l_merge_helpers import claim_payloads, param_claim, snapshot
 
 
 def test_rival_materialized_claims_keep_artifact_id_and_full_provenance(tmp_path) -> None:
-    kr = init_git_store(tmp_path / "knowledge")
+    kr = init_store(tmp_path / "knowledge")
     base_sha = kr.commit_files({}, "seed")
     branch_name = "paper/right"
     kr.create_branch(branch_name, source_commit=base_sha)

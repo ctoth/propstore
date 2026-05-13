@@ -26,7 +26,7 @@ from tests.family_helpers import build_sidecar, claim_artifact_commit_payloads
 from propstore.cli.worldline import _parse_kv_args
 from quire.tree_path import GitTreePath as GitKnowledgePath
 from quire.git_store import GitStore
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from propstore.world import Environment, RenderPolicy
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.world import WorldQuery
@@ -72,7 +72,7 @@ class _FakeWorldlineRepo:
             f"worldlines/{path.name}": path.read_bytes()
             for path in sorted(worldlines_dir.glob("*.yaml"))
         }
-        self.git = init_git_store(self._root)
+        self.git = init_store(self._root)
         if existing_worldlines:
             self.git.commit_files(existing_worldlines, "Seed fake worldlines")
             self.git.sync_worktree()

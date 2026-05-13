@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 
 from propstore.claims import claim_file_payload
 from propstore.repository import Repository
-from propstore.storage import init_git_store
+from tests.git_store_helpers import init_store
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.family_helpers import load_claim_files
@@ -46,7 +46,7 @@ def test_merge_preserves_rival_bodies(left_body: str, right_body: str) -> None:
 
     with TemporaryDirectory() as temp_dir:
         root = Path(temp_dir) / "knowledge"
-        kr = init_git_store(root)
+        kr = init_store(root)
         base_sha = kr.commit_files({}, "seed")
         branch_name = "paper/rival_body"
         kr.create_branch(branch_name, source_commit=base_sha)

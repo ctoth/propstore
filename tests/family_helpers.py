@@ -33,8 +33,8 @@ from propstore.families.registry import JustificationRef, StanceRef
 from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
 from propstore.sidecar.build import build_sidecar as _build_sidecar
-from propstore.storage import is_git_repo
-from propstore.storage.git_policy import _PROPSTORE_POLICY
+from propstore.storage import PROPSTORE_GIT_POLICY
+from tests.git_store_helpers import is_store
 
 
 def load_claim_files(claims_dir: TreePath | Path) -> list[LoadedClaimsFile]:
@@ -209,8 +209,8 @@ def _materialize_claim_fixture_batches(repo: Repository) -> None:
 
 
 def _init_git_without_sync(root: Path) -> None:
-    if not is_git_repo(root):
-        GitStore.init(root, policy=_PROPSTORE_POLICY)
+    if not is_store(root):
+        GitStore.init(root, policy=PROPSTORE_GIT_POLICY)
 
 
 def _commit_worktree(repo: Repository, message: str = "Update test knowledge") -> str:
