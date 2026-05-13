@@ -52,16 +52,16 @@ def test_cas_rejection_is_not_silently_retried(
     attempts = 0
 
     if path_name == "materialize":
-        original_files = repo.snapshot._files
+        original_iter_tree_files = type(repo.git).iter_tree_files
 
-        def files_and_race(*args, **kwargs):
+        def iter_tree_files_and_race(self, *args, **kwargs):
             nonlocal attempts
             attempts += 1
-            result = original_files(*args, **kwargs)
+            result = tuple(original_iter_tree_files(self, *args, **kwargs))
             _advance_branch(repo, branch)
-            return result
+            return iter(result)
 
-        monkeypatch.setattr(repo.snapshot, "_files", files_and_race)
+        monkeypatch.setattr(type(repo.git), "iter_tree_files", iter_tree_files_and_race)
     else:
         original_commit_batch = type(repo.git).commit_batch
 
