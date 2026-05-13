@@ -5,8 +5,9 @@ from pathlib import Path
 
 import pytest
 from hypothesis import assume, given, strategies as st
+from quire.git_store import HeadMismatchError
 
-from propstore.repository import Repository, StaleHeadError
+from propstore.repository import Repository
 
 
 _SAFE_NAME = st.text(
@@ -31,14 +32,16 @@ def test_ws_q_generated_stale_expected_heads_fail_before_mutation(
 def _assert_stale_expected_head_fails(repo: Repository, *, name: str, payload: bytes) -> None:
     path = f"contexts/{name}.yaml"
 
-    with repo.head_bound_transaction("master", path="property") as stale_txn:
-        advanced_head = repo.git.commit_batch(
+    git = repo.git
+    assert git is not None
+    with git.head_bound_transaction("master") as stale_txn:
+        advanced_head = git.commit_batch(
             adds={"contexts/winner.yaml": b"id: winner\nname: Winner\n"},
             deletes=(),
             message="Concurrent winner",
             branch="master",
         )
-        with pytest.raises(StaleHeadError):
+        with pytest.raises(HeadMismatchError):
             stale_txn.commit_batch(
                 adds={path: payload},
                 deletes=(),
@@ -72,8 +75,10 @@ def _assert_serialized_writers_both_commit(
 ) -> None:
     first_path = f"contexts/{first}.yaml"
     second_path = f"contexts/{second}.yaml"
-    first_txn = repo.head_bound_transaction("master", path="property")
-    second_txn = repo.head_bound_transaction("master", path="property")
+    git = repo.git
+    assert git is not None
+    first_txn = git.head_bound_transaction("master")
+    second_txn = git.head_bound_transaction("master")
 
     with first_txn:
         first_commit = first_txn.commit_batch(

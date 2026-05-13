@@ -1055,7 +1055,10 @@ def promote_source_branch(
     sidecar_mirror_error: str | None = None
     sha: str | None = None
     try:
-        with repo.head_bound_transaction(repo.snapshot.primary_branch_name(), path="promote") as head_txn:
+        git = repo.git
+        if git is None:
+            raise ValueError("source promotion requires a git-backed repository")
+        with git.head_bound_transaction(repo.snapshot.primary_branch_name()) as head_txn:
             if promotion_plan.blocked_claims:
                 head_txn.assert_current()
                 prepared_sidecar_path = _prepare_promotion_blocked_sidecar(
@@ -1066,7 +1069,7 @@ def promote_source_branch(
                     promotion_plan.blocked_reasons,
                 )
 
-            with head_txn.families_transact(message=f"Promote source {slug}") as transaction:
+            with head_txn.families_transact(repo.families, message=f"Promote source {slug}") as transaction:
                 transaction.sources.save(
                     promotion_plan.source_ref,
                     promotion_plan.promoted_source_document,
@@ -1109,9 +1112,6 @@ def promote_source_branch(
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
     source_branch_tip = repo.snapshot.branch_head(promotion_plan.source_branch)
-    git = repo.git
-    if git is None:
-        raise ValueError("source promotion provenance requires a git-backed repository")
     write_provenance_note(
         git.raw_repo,
         sha,

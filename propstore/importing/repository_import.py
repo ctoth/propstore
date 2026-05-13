@@ -191,9 +191,13 @@ def commit_repository_import(
     if repository.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
         repository.snapshot.ensure_branch(plan.target_branch)
 
+    git = repository.git
+    if git is None:
+        raise ValueError("repository import requires a git-backed repository")
     commit_sha: str | None = None
-    with repository.head_bound_transaction(plan.target_branch, path="repository_import") as head_txn:
+    with git.head_bound_transaction(plan.target_branch) as head_txn:
         with head_txn.families_transact(
+            repository.families,
             message=message or f"Import {plan.repository_name} at {plan.source_commit[:12]}",
         ) as transaction:
             import_registry = _semantic_import_registry()
@@ -209,9 +213,6 @@ def commit_repository_import(
         commit_sha = head_txn.commit_sha
     if commit_sha is None:
         raise ValueError("repo import transaction did not produce a commit")
-    git = repository.git
-    if git is None:
-        raise ValueError("repository import provenance requires a git-backed repository")
     write_provenance_note(
         git.raw_repo,
         commit_sha,

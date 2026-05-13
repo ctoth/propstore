@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from quire.git_store import HeadMismatchError
 
 from propstore.app.predicates import (
     PredicateAddRequest,
@@ -14,7 +15,7 @@ from propstore.app.predicates import (
     add_predicate,
 )
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.repository import Repository, StaleHeadError
+from propstore.repository import Repository
 
 
 _NAME = st.from_regex(r"[a-z][a-z0-9_]{0,10}", fullmatch=True)
@@ -88,7 +89,7 @@ def test_generated_concurrent_predicate_adds_do_not_leave_duplicate_ids(
                     local_repo,
                     PredicateAddRequest(file=file_name, predicate_id=predicate_id, arity=1),
                 )
-            except (PredicateWorkflowError, StaleHeadError) as exc:
+            except (PredicateWorkflowError, HeadMismatchError) as exc:
                 with lock:
                     outcomes.append(type(exc).__name__)
                 return

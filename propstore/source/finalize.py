@@ -189,8 +189,11 @@ def finalize_source_branch(
         micropub_status = "complete" if micropubs_doc is not None else "empty"
     branch = source_branch_name(source_name)
     sha: str | None = None
-    with repo.head_bound_transaction(branch, path="finalize") as head_txn:
-        with head_txn.families_transact(message=f"Finalize {source_slug}") as transaction:
+    git = repo.git
+    if git is None:
+        raise ValueError("source finalize requires a git-backed repository")
+    with git.head_bound_transaction(branch) as head_txn:
+        with head_txn.families_transact(repo.families, message=f"Finalize {source_slug}") as transaction:
             ref = SourceRef(source_name)
             if (
                 not claim_errors

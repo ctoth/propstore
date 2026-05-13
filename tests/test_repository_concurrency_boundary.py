@@ -31,7 +31,9 @@ def test_head_bound_transactions_serialize_head_capture_and_commit(
 
     def first_writer() -> None:
         try:
-            with repo.head_bound_transaction("master", path="first") as txn:
+            git = repo.git
+            assert git is not None
+            with git.head_bound_transaction("master") as txn:
                 observed_heads["first"] = txn.expected_head
                 first_entered.set()
                 release_first.wait(timeout=5)
@@ -48,7 +50,9 @@ def test_head_bound_transactions_serialize_head_capture_and_commit(
     def second_writer() -> None:
         try:
             first_entered.wait(timeout=5)
-            with repo.head_bound_transaction("master", path="second") as txn:
+            git = repo.git
+            assert git is not None
+            with git.head_bound_transaction("master") as txn:
                 second_entered.set()
                 observed_heads["second"] = txn.expected_head
                 commits["second"] = txn.commit_batch(

@@ -6,7 +6,6 @@ from pathlib import Path
 import pytest
 from quire.git_store import HeadMismatchError
 
-from propstore.repository import StaleHeadError
 from propstore.source import finalize_source_branch, promote_source_branch
 from tests.family_helpers import build_sidecar
 from tests.test_source_promotion_alignment import _setup_source_with_partial_validity
@@ -42,7 +41,7 @@ def test_promote_cas_rejection_does_not_write_blocked_sidecar_rows(
     expected_head_at_start = expected_head
     monkeypatch.setattr(type(repo.git), "commit_batch", stale_commit_batch)
 
-    with pytest.raises(StaleHeadError):
+    with pytest.raises(HeadMismatchError):
         promote_source_branch(repo, source_name)
 
     conn = sqlite3.connect(repo.sidecar_path)

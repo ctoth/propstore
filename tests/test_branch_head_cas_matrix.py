@@ -12,7 +12,7 @@ from propstore.families.documents.sources import (
     SourceFinalizeReportDocument,
 )
 from propstore.families.registry import SourceRef
-from propstore.repository import Repository, StaleHeadError
+from propstore.repository import Repository
 from propstore.source import (
     finalize_source_branch,
     initial_source_document,
@@ -177,9 +177,8 @@ def test_concurrent_writer_loses_cleanly(
         path_name_branch = branch
         monkeypatch.setattr(type(repo.git), "commit_batch", stale_commit_batch)
 
-    with pytest.raises(StaleHeadError) as exc_info:
+    with pytest.raises(HeadMismatchError) as exc_info:
         runner(repo)
 
-    assert exc_info.value.path == path_name
     assert exc_info.value.branch == branch
     assert exc_info.value.expected_head == head_at_start

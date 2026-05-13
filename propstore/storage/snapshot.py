@@ -201,7 +201,7 @@ class RepositorySnapshot:
         head_txn = None
         if commit is None:
             branch_name = branch or self.current_branch_name() or self.primary_branch_name()
-            head_txn = self.repo.head_bound_transaction(branch_name, path="materialize")
+            head_txn = self.git.head_bound_transaction(branch_name)
 
         with head_txn if head_txn is not None else nullcontext():
             if commit is None:

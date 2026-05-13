@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import FrozenInstanceError
 from pathlib import Path
 
 import pytest
 from quire.git_store import HeadMismatchError
 
-from propstore.repository import Repository, StaleHeadError
+from propstore.repository import Repository
 
 
 def test_head_bound_transaction_captures_head_and_threads_expected_head(
@@ -31,10 +30,10 @@ def test_head_bound_transaction_captures_head_and_threads_expected_head(
 
     monkeypatch.setattr(type(repo.git), "commit_batch", commit_batch_spy)
 
-    with repo.head_bound_transaction("master") as txn:
+    git = repo.git
+    assert git is not None
+    with git.head_bound_transaction("master") as txn:
         assert txn.expected_head == captured_head
-        with pytest.raises(FrozenInstanceError):
-            txn.expected_head = "not-the-captured-head"
         txn.commit_batch(
             adds={"contexts/demo.yaml": b"id: demo\nname: Demo\n"},
             deletes=(),
@@ -50,8 +49,10 @@ def test_head_bound_transaction_flushes_sidecar_writes_only_after_commit(
     repo = Repository.init(tmp_path / "knowledge")
     applied: list[str | None] = []
 
-    with repo.head_bound_transaction("master") as txn:
-        txn.sidecar_write(lambda: applied.append(txn.commit_sha))
+    git = repo.git
+    assert git is not None
+    with git.head_bound_transaction("master") as txn:
+        txn.after_commit(applied.append)
         assert applied == []
         txn.commit_batch(
             adds={"contexts/demo.yaml": b"id: demo\nname: Demo\n"},
@@ -79,9 +80,11 @@ def test_head_bound_transaction_discards_sidecar_writes_on_stale_head(
 
     monkeypatch.setattr(type(repo.git), "commit_batch", stale_commit_batch)
 
-    with pytest.raises(StaleHeadError) as exc_info:
-        with repo.head_bound_transaction("master") as txn:
-            txn.sidecar_write(lambda: applied.append("sidecar-write-leaked"))
+    git = repo.git
+    assert git is not None
+    with pytest.raises(HeadMismatchError) as exc_info:
+        with git.head_bound_transaction("master") as txn:
+            txn.after_commit(lambda _commit: applied.append("sidecar-write-leaked"))
             txn.commit_batch(
                 adds={"contexts/demo.yaml": b"id: demo\nname: Demo\n"},
                 deletes=(),

@@ -289,9 +289,11 @@ def add_rule(
     relpath = repo.families.rules.address(ref).require_path()
     filepath = repo.root / relpath
 
-    with _RULE_MUTATION_LOCK, repo.head_bound_transaction(
+    git = repo.git
+    if git is None:
+        raise ValueError("rule authoring requires a git-backed repository")
+    with _RULE_MUTATION_LOCK, git.head_bound_transaction(
         repo.snapshot.primary_branch_name(),
-        path="rule.add",
     ) as head_txn:
         document = convert_document_value(
             _rule_document_payload(request),
@@ -306,6 +308,7 @@ def add_rule(
         )
 
         with head_txn.families_transact(
+            repo.families,
             message=f"Declare rule {request.rule_id}",
         ) as transaction:
             transaction.rules.save(ref, document)

@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from quire.git_store import HeadMismatchError
 
-from propstore.repository import Repository, StaleHeadError
+from propstore.repository import Repository
 from tests.test_branch_head_cas_matrix import (
     MutationRunner,
     _advance_branch,
@@ -87,7 +87,7 @@ def test_cas_rejection_is_not_silently_retried(
         target_branch = branch
         monkeypatch.setattr(type(repo.git), "commit_batch", stale_once_then_succeed)
 
-    with pytest.raises(StaleHeadError):
+    with pytest.raises(HeadMismatchError):
         runner(repo)
 
     assert attempts == 1

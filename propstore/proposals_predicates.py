@@ -147,9 +147,11 @@ def promote_predicate_proposals(
             )
         )
 
-    with _PREDICATE_MUTATION_LOCK, repo.head_bound_transaction(
+    git = repo.git
+    if git is None:
+        raise ValueError("predicate proposal promotion requires a git-backed repository")
+    with _PREDICATE_MUTATION_LOCK, git.head_bound_transaction(
         repo.snapshot.primary_branch_name(),
-        path="proposal.predicates.promote",
     ) as head_txn:
         for artifact in artifacts:
             reject_predicate_document_conflicts(
@@ -160,7 +162,7 @@ def promote_predicate_proposals(
             )
 
         commit_planned_canonical_artifacts(
-            head_txn.families_transact,
+            lambda **kwargs: head_txn.families_transact(repo.families, **kwargs),
             message=f"Promote {len(plan.items)} predicate proposal(s) from {plan.branch}",
             family=lambda transaction: transaction.predicates,
             artifacts=artifacts,

@@ -2,15 +2,11 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Callable, Mapping, Sequence
 from contextlib import contextmanager
-from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import Any
 
 from quire.documents import DocumentStruct, decode_document_bytes
-from quire.git_store import HeadMismatchError
 from quire.refs import RefName
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
 from propstore.families.registry import (
@@ -26,128 +22,6 @@ REPOSITORY_CONFIG_PATH = "propstore.yaml"
 
 class RepositoryNotFound(Exception):
     """Raised when no knowledge/ directory can be found."""
-
-
-class StaleHeadError(RuntimeError):
-    """Raised when a branch-head CAS check rejects a stale mutation."""
-
-    def __init__(
-        self,
-        *,
-        branch: str,
-        expected_head: str | None,
-        actual_head: str | None,
-        path: str,
-    ) -> None:
-        super().__init__(
-            f"{path} saw stale branch {branch!r}: "
-            f"expected {expected_head}, got {actual_head}"
-        )
-        self.branch = branch
-        self.expected_head = expected_head
-        self.actual_head = actual_head
-        self.path = path
-
-
-@dataclass(frozen=True)
-class HeadBoundTransaction:
-    repo: Repository
-    branch: str
-    expected_head: str | None = None
-    path: str = "head_bound_transaction"
-    _sidecar_writes: list[Callable[[], None]] = field(default_factory=list)
-    _commit_sha: str | None = None
-    _mutation_guard: Any | None = field(default=None, init=False, repr=False)
-
-    @property
-    def commit_sha(self) -> str | None:
-        return self._commit_sha
-
-    def __enter__(self) -> HeadBoundTransaction:
-        guard = self.repo.mutation_guard()
-        guard.__enter__()
-        object.__setattr__(self, "_mutation_guard", guard)
-        object.__setattr__(self, "expected_head", self.repo.snapshot.branch_head(self.branch))
-        return self
-
-    def __exit__(self, exc_type: type[BaseException] | None, exc: BaseException | None, tb: Any) -> None:
-        try:
-            if exc_type is not None:
-                self._sidecar_writes.clear()
-                return None
-            if self._commit_sha is None:
-                self._sidecar_writes.clear()
-                return None
-            for write in self._sidecar_writes:
-                write()
-        finally:
-            self._sidecar_writes.clear()
-            guard = self._mutation_guard
-            object.__setattr__(self, "_mutation_guard", None)
-            if guard is not None:
-                guard.__exit__(exc_type, exc, tb)
-        return None
-
-    def commit_batch(
-        self,
-        *,
-        adds: Mapping[str | Path, bytes],
-        deletes: Sequence[str | Path],
-        message: str,
-    ) -> str:
-        if self._commit_sha is not None:
-            return self._commit_sha
-        git = self.repo.git
-        if git is None:
-            raise ValueError("head-bound transactions require a git-backed repository")
-        try:
-            commit_sha = git.commit_batch(
-                adds=adds,
-                deletes=deletes,
-                message=message,
-                branch=self.branch,
-                expected_head=self.expected_head,
-            )
-        except HeadMismatchError as exc:
-            raise StaleHeadError(
-                branch=self.branch,
-                expected_head=exc.expected_head,
-                actual_head=exc.actual_head,
-                path=self.path,
-            ) from exc
-        object.__setattr__(self, "_commit_sha", commit_sha)
-        return commit_sha
-
-    def assert_current(self) -> None:
-        actual_head = self.repo.snapshot.branch_head(self.branch)
-        if actual_head != self.expected_head:
-            raise StaleHeadError(
-                branch=self.branch,
-                expected_head=self.expected_head,
-                actual_head=actual_head,
-                path=self.path,
-            )
-
-    def sidecar_write(self, write: Callable[[], None]) -> None:
-        self._sidecar_writes.append(write)
-
-    @contextmanager
-    def families_transact(self, *, message: str):
-        try:
-            with self.repo.families.transact(
-                message=message,
-                branch=self.branch,
-                expected_head=self.expected_head,
-            ) as transaction:
-                yield transaction
-            object.__setattr__(self, "_commit_sha", transaction.commit_sha)
-        except HeadMismatchError as exc:
-            raise StaleHeadError(
-                branch=self.branch,
-                expected_head=exc.expected_head,
-                actual_head=exc.actual_head,
-                path=self.path,
-            ) from exc
 
 
 class RepositoryConfigDocument(DocumentStruct):
@@ -257,18 +131,6 @@ class Repository:
             raise ValueError("repository mutations require a git-backed repository")
         with git._mutation_guard():
             yield
-
-    def head_bound_transaction(
-        self,
-        branch: str,
-        *,
-        path: str = "head_bound_transaction",
-    ) -> HeadBoundTransaction:
-        return HeadBoundTransaction(
-            repo=self,
-            branch=branch,
-            path=path,
-        )
 
     @classmethod
     def find(cls, start: Path | None = None) -> Repository:

@@ -146,9 +146,11 @@ def promote_rule_proposals(
             )
         )
 
-    with _RULE_MUTATION_LOCK, repo.head_bound_transaction(
+    git = repo.git
+    if git is None:
+        raise ValueError("rule proposal promotion requires a git-backed repository")
+    with _RULE_MUTATION_LOCK, git.head_bound_transaction(
         repo.snapshot.primary_branch_name(),
-        path="proposal.rules.promote",
     ) as head_txn:
         for artifact in artifacts:
             reject_rule_document_conflicts(
@@ -159,7 +161,7 @@ def promote_rule_proposals(
             )
 
         commit_planned_canonical_artifacts(
-            head_txn.families_transact,
+            lambda **kwargs: head_txn.families_transact(repo.families, **kwargs),
             message=f"Promote {len(plan.items)} rule proposal(s) from {plan.branch}",
             family=lambda transaction: transaction.rules,
             artifacts=artifacts,
