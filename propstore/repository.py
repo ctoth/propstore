@@ -92,6 +92,12 @@ class Repository:
             return GitStore.open(self._root, policy=PROPSTORE_GIT_POLICY)
         return None
 
+    def require_git(self) -> GitStore:
+        git = self.git
+        if git is None:
+            raise ValueError("operation requires a git-backed repository")
+        return git
+
     @cached_property
     def _family_store(self):
         from quire.family_store import DocumentFamilyStore

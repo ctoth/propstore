@@ -187,7 +187,7 @@ def test_generated_rule_proposal_promotion_rejects_undeclared_predicates(
         )
 
         repo = Repository.init(Path(tmp_dir.name) / "knowledge")
-        master_before = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+        master_before = repo.git.branch_sha(repo.git.primary_branch_name())
         _seed_direct_rule_proposal(
             repo,
             paper=paper,
@@ -199,5 +199,5 @@ def test_generated_rule_proposal_promotion_rejects_undeclared_predicates(
         with pytest.raises(RuleWorkflowError, match="undeclared predicate"):
             promote_rule_proposals(repo, plan)
 
-        assert repo.snapshot.branch_head(repo.snapshot.primary_branch_name()) == master_before
+        assert repo.git.branch_sha(repo.git.primary_branch_name()) == master_before
         assert repo.families.rules.load(RuleRef(rule_id)) is None

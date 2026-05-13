@@ -26,7 +26,7 @@ def test_generated_rule_add_rejects_undeclared_predicates(
     tmp_dir = tempfile.TemporaryDirectory()
     with tmp_dir:
         repo = Repository.init(Path(tmp_dir.name) / "knowledge")
-        master_before = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+        master_before = repo.git.branch_sha(repo.git.primary_branch_name())
 
         with pytest.raises(RuleWorkflowError, match="undeclared predicate"):
             add_rule(
@@ -40,7 +40,7 @@ def test_generated_rule_add_rejects_undeclared_predicates(
                 ),
             )
 
-        assert repo.snapshot.branch_head(repo.snapshot.primary_branch_name()) == master_before
+        assert repo.git.branch_sha(repo.git.primary_branch_name()) == master_before
         assert repo.families.rules.load(RuleRef("r1")) is None
 
 
@@ -96,7 +96,7 @@ def test_generated_rule_add_rejects_declared_predicate_wrong_arity(
                 arity=1,
             ),
         )
-        master_before = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+        master_before = repo.git.branch_sha(repo.git.primary_branch_name())
 
         with pytest.raises(RuleWorkflowError, match="declared arity"):
             add_rule(
@@ -110,5 +110,5 @@ def test_generated_rule_add_rejects_declared_predicate_wrong_arity(
                 ),
             )
 
-        assert repo.snapshot.branch_head(repo.snapshot.primary_branch_name()) == master_before
+        assert repo.git.branch_sha(repo.git.primary_branch_name()) == master_before
         assert repo.families.rules.load(RuleRef("r1")) is None

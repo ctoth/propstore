@@ -89,7 +89,7 @@ def test_propose_predicates_dry_run_does_not_commit(monkeypatch, tmp_path) -> No
     from propstore.heuristic import predicate_extraction
 
     repo = Repository.init(tmp_path / "knowledge")
-    before = repo.snapshot.branch_head(predicate_extraction.predicate_proposal_branch())
+    before = repo.git.branch_sha(predicate_extraction.predicate_proposal_branch())
     monkeypatch.setattr(
         predicate_extraction,
         "_llm_call",
@@ -105,4 +105,4 @@ def test_propose_predicates_dry_run_does_not_commit(monkeypatch, tmp_path) -> No
 
     assert result.commit_sha is None
     assert len(result.declarations) == 4
-    assert repo.snapshot.branch_head(predicate_extraction.predicate_proposal_branch()) == before
+    assert repo.git.branch_sha(predicate_extraction.predicate_proposal_branch()) == before

@@ -464,7 +464,7 @@ def _build_sidecar_locked(
     if commit_hash is not None:
         source_revision = commit_hash
     else:
-        source_revision = repo.snapshot.head_sha()
+        source_revision = repo.require_git().head_sha()
         if source_revision is None:
             raise ValueError("build_sidecar requires a committed git repository or an explicit commit_hash")
     content_hash = _sidecar_content_hash(source_revision)

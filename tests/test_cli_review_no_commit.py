@@ -6,8 +6,8 @@ from tests.ws_k2_cli_helpers import PAPER, init_repo, invoke, seed_rule_proposal
 def test_cli_promote_rules_review_mode_prints_plan_without_commit(tmp_path) -> None:
     repo = init_repo(tmp_path)
     seed_rule_proposals(repo)
-    proposal_before = repo.snapshot.branch_head("proposal/rules")
-    master_before = repo.snapshot.branch_head("master")
+    proposal_before = repo.git.branch_sha("proposal/rules")
+    master_before = repo.git.branch_sha("master")
 
     result = invoke(repo, ["proposal", "promote-rules", "--paper", PAPER])
 
@@ -17,5 +17,5 @@ def test_cli_promote_rules_review_mode_prints_plan_without_commit(tmp_path) -> N
     assert "low_trust" in result.output
     assert "sample_size/2" in result.output
     assert "Ioannidis 2005 p. 0697" in result.output
-    assert repo.snapshot.branch_head("proposal/rules") == proposal_before
-    assert repo.snapshot.branch_head("master") == master_before
+    assert repo.git.branch_sha("proposal/rules") == proposal_before
+    assert repo.git.branch_sha("master") == master_before

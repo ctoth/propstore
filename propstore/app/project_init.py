@@ -44,7 +44,7 @@ def initialize_project(root: Path) -> ProjectInitReport:
             **_render_seed_form_files(repo, form_documents),
             **_render_seed_concept_files(repo, concept_documents),
         }
-        seed_commit = repo.git.commit_files(seed_files, "Seed default forms and concepts")
+        seed_commit = repo.require_git().commit_files(seed_files, "Seed default forms and concepts")
         repo.write_bootstrap_manifest(seed_commit=seed_commit)
 
     return ProjectInitReport(root=root, initialized=True)

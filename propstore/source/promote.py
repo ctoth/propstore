@@ -126,7 +126,7 @@ def _validate_promoted_claims_before_commit(
 ) -> None:
     """Validate the canonical claim view that promotion is about to commit."""
 
-    head_sha = repo.snapshot.head_sha()
+    head_sha = repo.require_git().head_sha()
     tree = repo.snapshot.tree(commit=head_sha)
 
     concepts_by_name = {
@@ -520,7 +520,7 @@ def resolve_source_concept_promotions(
 ) -> SourceConceptPromotionResolution:
     concepts_doc = load_source_concepts_document(repo, source_name)
     concepts_by_artifact = load_primary_branch_concepts(repo)
-    primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
     primary_concept_index = (
         None
         if primary_tip is None
@@ -1058,7 +1058,7 @@ def promote_source_branch(
         git = repo.git
         if git is None:
             raise ValueError("source promotion requires a git-backed repository")
-        with git.head_bound_transaction(repo.snapshot.primary_branch_name()) as head_txn:
+        with git.head_bound_transaction(repo.require_git().primary_branch_name()) as head_txn:
             if promotion_plan.blocked_claims:
                 head_txn.assert_current()
                 prepared_sidecar_path = _prepare_promotion_blocked_sidecar(
@@ -1117,7 +1117,7 @@ def promote_source_branch(
             prepared_sidecar_path.unlink(missing_ok=True)
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
-    source_branch_tip = repo.snapshot.branch_head(promotion_plan.source_branch)
+    source_branch_tip = repo.require_git().branch_sha(promotion_plan.source_branch)
     write_provenance_note(
         git.raw_repo,
         sha,
@@ -1158,7 +1158,7 @@ def sync_source_branch(
     output_dir: Path | None = None,
 ) -> Path:
     branch = source_branch_name(source_name)
-    tip = repo.snapshot.branch_head(branch)
+    tip = repo.require_git().branch_sha(branch)
     if tip is None:
         raise ValueError(f"Source branch {branch!r} does not exist")
 
@@ -1169,17 +1169,10 @@ def sync_source_branch(
     destination.mkdir(parents=True, exist_ok=True)
     destination_root = destination.resolve()
 
-    def copy_tree(relpath: str = "") -> None:
-        for entry in repo.snapshot.iter_dir_entries(relpath, commit=tip):
-            target = _source_sync_target_path(destination_root, entry.relpath)
-            if entry.is_dir:
-                target.mkdir(parents=True, exist_ok=True)
-                copy_tree(entry.relpath)
-                continue
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(repo.snapshot.read_bytes(entry.relpath, commit=tip))
-
-    copy_tree("")
+    for tree_file in repo.require_git().iter_tree_files(commit=tip):
+        target = _source_sync_target_path(destination_root, tree_file.relpath)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(tree_file.content)
     return destination
 
 

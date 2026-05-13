@@ -66,7 +66,7 @@ def plan_predicate_proposal_promotion(
     source_paper: str,
 ) -> PredicateProposalPromotionPlan:
     proposal_branch = _proposal_branch(repo)
-    proposal_tip = repo.snapshot.branch_head(proposal_branch)
+    proposal_tip = repo.require_git().branch_sha(proposal_branch)
     if proposal_tip is None:
         return PredicateProposalPromotionPlan(proposal_branch, None, ())
 
@@ -151,7 +151,7 @@ def promote_predicate_proposals(
     if git is None:
         raise ValueError("predicate proposal promotion requires a git-backed repository")
     with _PREDICATE_MUTATION_LOCK, git.head_bound_transaction(
-        repo.snapshot.primary_branch_name(),
+        repo.require_git().primary_branch_name(),
     ) as head_txn:
         for artifact in artifacts:
             reject_predicate_document_conflicts(

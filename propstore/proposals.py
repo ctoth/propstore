@@ -97,7 +97,7 @@ def plan_stance_proposal_promotion(
     path: str | None = None,
 ) -> StanceProposalPromotionPlan:
     proposal_branch = stance_proposal_branch()
-    proposal_tip = repo.snapshot.branch_head(proposal_branch)
+    proposal_tip = repo.require_git().branch_sha(proposal_branch)
     if proposal_tip is None:
         return StanceProposalPromotionPlan(
             branch=proposal_branch,

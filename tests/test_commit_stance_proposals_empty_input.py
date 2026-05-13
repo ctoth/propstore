@@ -16,7 +16,7 @@ def test_commit_stance_proposals_empty_input_is_noop(tmp_path: Path) -> None:
 
     assert commit_sha is None
     assert relpaths == []
-    assert repo.snapshot.branch_head(stance_proposal_branch()) is None
+    assert repo.git.branch_sha(stance_proposal_branch()) is None
 
 
 def test_relate_claims_all_delegates_empty_proposals_to_owner_layer(

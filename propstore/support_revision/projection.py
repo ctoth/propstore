@@ -133,11 +133,10 @@ def _revision_scope_from_bound(bound) -> RevisionScope:
     commit: str | None = None
     merge_parent_commits: tuple[str, ...] = ()
     repo = getattr(getattr(bound, "_store", None), "_repo", None)
-    snapshot = getattr(repo, "snapshot", None)
     git = getattr(repo, "git", None)
-    if snapshot is not None and git is not None:
-        branch = snapshot.current_branch_name() or snapshot.primary_branch_name()
-        commit = None if branch is None else snapshot.branch_head(branch)
+    if git is not None:
+        branch = git.current_branch_name() or git.primary_branch_name()
+        commit = None if branch is None else git.branch_sha(branch)
         if commit is not None:
             merge_parent_commits = tuple(git.commit_parent_shas(commit))
 

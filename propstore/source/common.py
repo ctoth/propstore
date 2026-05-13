@@ -43,7 +43,7 @@ def current_source_branch_head(repo: Repository, name: str) -> str | None:
     """
     if repo.git is None:
         return None
-    return repo.git.branch_sha(source_branch_name(name))
+    return repo.require_git().branch_sha(source_branch_name(name))
 
 
 def normalize_source_slug(name: str) -> str:
@@ -146,7 +146,11 @@ def init_source_branch(
     content_file: Path | None = None,
 ) -> str:
     branch = source_branch_name(name)
-    repo.snapshot.ensure_branch(branch)
+    git = repo.git
+    if git is None:
+        raise ValueError("source branches require a git-backed repository")
+    if git.branch_sha(branch) is None:
+        git.create_branch(branch)
     source_doc = initial_source_document(
         repo,
         name,

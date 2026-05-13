@@ -13,7 +13,7 @@ def test_head_bound_transaction_captures_head_and_threads_expected_head(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    captured_head = repo.snapshot.branch_head("master")
+    captured_head = repo.git.branch_sha("master")
     seen: list[tuple[str | None, str | None]] = []
     original_commit_batch = type(repo.git).commit_batch
 
@@ -60,7 +60,7 @@ def test_head_bound_transaction_runs_post_commit_hooks_only_after_commit(
             message="Write demo context",
         )
 
-    assert applied == [repo.snapshot.branch_head("master")]
+    assert applied == [repo.git.branch_sha("master")]
 
 
 def test_head_bound_transaction_discards_post_commit_hooks_on_stale_head(
@@ -68,7 +68,7 @@ def test_head_bound_transaction_discards_post_commit_hooks_on_stale_head(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    captured_head = repo.snapshot.branch_head("master")
+    captured_head = repo.git.branch_sha("master")
     applied: list[str] = []
 
     def stale_commit_batch(self, adds, deletes, message, *, branch=None, expected_head=None):

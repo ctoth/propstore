@@ -41,7 +41,7 @@ def _derived_concept_artifact_id(handle: str) -> str:
 
 
 def load_primary_branch_concepts(repo: Repository) -> dict[str, dict[str, Any]]:
-    primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
     if primary_tip is None:
         return {}
 
@@ -58,7 +58,7 @@ def load_primary_branch_concepts(repo: Repository) -> dict[str, dict[str, Any]]:
 
 
 def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
-    primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
     if primary_tip is None:
         return []
 
@@ -70,7 +70,7 @@ def load_primary_branch_concept_docs(repo: Repository) -> list[dict[str, Any]]:
 
 
 def primary_branch_concept_match(repo: Repository, handle: str) -> dict[str, str] | None:
-    primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
     if primary_tip is None:
         return None
     concept_index = repo.families.concepts.reference_index(commit=primary_tip)
@@ -93,7 +93,7 @@ def projected_source_concepts(
     repo: Repository,
     concepts_doc: SourceConceptsDocument | None,
 ) -> tuple[list[dict[str, Any]], set[str]]:
-    primary_tip = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+    primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
     primary_concept_index: FamilyReferenceIndex[ConceptDocument]
     if primary_tip is None:
         primary_concept_index = FamilyReferenceIndex.from_records(

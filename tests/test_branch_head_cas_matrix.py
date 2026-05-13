@@ -30,7 +30,7 @@ MutationRunner = Callable[[Repository], None]
 
 def _seed_source_branch(repo: Repository, source_name: str) -> str:
     branch = source_branch_name(source_name)
-    repo.snapshot.ensure_branch(branch)
+    repo.git.create_branch(branch)
     source_doc = initial_source_document(
         repo,
         source_name,
@@ -142,19 +142,19 @@ def test_concurrent_writer_loses_cleanly(
     seed(repo, "race")
     runner = runner_factory(tmp_path)
     if branch.startswith("import/"):
-        repo.snapshot.ensure_branch(branch)
-    head_at_start = repo.snapshot.branch_head(branch)
+        repo.git.create_branch(branch)
+    head_at_start = repo.git.branch_sha(branch)
     assert head_at_start is not None
 
     if path_name == "materialize":
-        original_files = repo.snapshot.files
+        original_files = repo.snapshot._files
 
         def files_and_race(*args, **kwargs):
             result = original_files(*args, **kwargs)
             _advance_branch(repo, branch)
             return result
 
-        monkeypatch.setattr(repo.snapshot, "files", files_and_race)
+        monkeypatch.setattr(repo.snapshot, "_files", files_and_race)
     else:
         original_commit_batch = type(repo.git).commit_batch
 

@@ -46,13 +46,13 @@ def test_cas_rejection_is_not_silently_retried(
     seed(repo, "race")
     runner = runner_factory(tmp_path)
     if branch.startswith("import/"):
-        repo.snapshot.ensure_branch(branch)
-    head_at_start = repo.snapshot.branch_head(branch)
+        repo.git.create_branch(branch)
+    head_at_start = repo.git.branch_sha(branch)
     assert head_at_start is not None
     attempts = 0
 
     if path_name == "materialize":
-        original_files = repo.snapshot.files
+        original_files = repo.snapshot._files
 
         def files_and_race(*args, **kwargs):
             nonlocal attempts
@@ -61,7 +61,7 @@ def test_cas_rejection_is_not_silently_retried(
             _advance_branch(repo, branch)
             return result
 
-        monkeypatch.setattr(repo.snapshot, "files", files_and_race)
+        monkeypatch.setattr(repo.snapshot, "_files", files_and_race)
     else:
         original_commit_batch = type(repo.git).commit_batch
 

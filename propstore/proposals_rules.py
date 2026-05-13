@@ -63,7 +63,7 @@ def plan_rule_proposal_promotion(
     rule_ids: tuple[str, ...] | None = None,
 ) -> RuleProposalPromotionPlan:
     proposal_branch = _proposal_branch()
-    proposal_tip = repo.snapshot.branch_head(proposal_branch)
+    proposal_tip = repo.require_git().branch_sha(proposal_branch)
     if proposal_tip is None:
         return RuleProposalPromotionPlan(proposal_branch, None, ())
 
@@ -150,7 +150,7 @@ def promote_rule_proposals(
     if git is None:
         raise ValueError("rule proposal promotion requires a git-backed repository")
     with _RULE_MUTATION_LOCK, git.head_bound_transaction(
-        repo.snapshot.primary_branch_name(),
+        repo.require_git().primary_branch_name(),
     ) as head_txn:
         for artifact in artifacts:
             reject_rule_document_conflicts(

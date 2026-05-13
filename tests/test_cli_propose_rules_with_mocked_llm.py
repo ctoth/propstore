@@ -24,7 +24,7 @@ def test_cli_propose_rules_with_mock_fixture_commits_proposals(tmp_path) -> None
     )
 
     assert result.exit_code == 0, result.output
-    proposal_tip = repo.snapshot.branch_head("proposal/rules")
+    proposal_tip = repo.git.branch_sha("proposal/rules")
     assert proposal_tip is not None
     proposal = repo.families.proposal_rules.require(
         RuleProposalRef(PAPER, "rule-001"),

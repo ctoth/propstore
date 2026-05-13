@@ -60,7 +60,7 @@ def commit_merge(
 ) -> MergeCommitReport:
     from propstore.merge.merge_commit import create_merge_commit
 
-    target_branch = request.target_branch or repo.snapshot.primary_branch_name()
+    target_branch = request.target_branch or repo.require_git().primary_branch_name()
     commit_sha = create_merge_commit(
         repo.snapshot,
         request.branch_a,

@@ -229,7 +229,12 @@ def align_sources(
                 }
             )
     artifact = build_alignment_artifact(proposals, authority=repo.uri_authority)
-    repo.snapshot.ensure_branch(concept_proposal_branch(repo))
+    proposal_branch = concept_proposal_branch(repo)
+    git = repo.git
+    if git is None:
+        raise ValueError("concept alignment requires a git-backed repository")
+    if git.branch_sha(proposal_branch) is None:
+        git.create_branch(proposal_branch)
     slug = artifact.id.split(":", 1)[1]
     repo.families.concept_alignments.save(
         ConceptAlignmentRef(slug),

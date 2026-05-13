@@ -51,7 +51,7 @@ def _promoted_claims(repo: Repository):
 
 def _save_source(repo: Repository, source_name: str, concepts_payload: dict, claims_payload: dict | None = None) -> None:
     branch = source_branch_name(source_name)
-    repo.snapshot.ensure_branch(branch)
+    repo.git.create_branch(branch)
     for concept in concepts_payload.get("concepts", ()):
         if isinstance(concept, dict) and isinstance(concept.get("form"), str):
             _seed_form_via_git(repo, concept["form"])
@@ -126,7 +126,7 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
 
 def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.snapshot.ensure_branch(concept_proposal_branch(repo))
+    repo.git.create_branch(concept_proposal_branch(repo))
 
     _save_source(
         repo,
@@ -324,7 +324,7 @@ def test_source_promote_rejects_invalid_promoted_claim_before_master_commit(
             ],
         },
     )
-    before = repo.snapshot.branch_head("master")
+    before = repo.git.branch_sha("master")
 
     runner = CliRunner()
     result = runner.invoke(
@@ -340,7 +340,7 @@ def test_source_promote_rejects_invalid_promoted_claim_before_master_commit(
 
     assert result.exit_code != 0
     assert "uncertainty_type without uncertainty" in result.output
-    assert repo.snapshot.branch_head("master") == before
+    assert repo.git.branch_sha("master") == before
 
 
 def test_source_promote_cli_rebuilds_sidecar_for_immediate_claim_list(
@@ -634,7 +634,7 @@ def test_promote_source_branch_does_not_block_claim_for_invalid_stance(
     # Build the primary-branch sidecar BEFORE promote. The sidecar must
     # exist for ``promote_source_branch`` to write mirror rows for blocked
     # claims into it.
-    head = repo.snapshot.head_sha()
+    head = repo.git.head_sha()
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
 
     result = promote_source_branch(repo, source_name)
@@ -876,11 +876,11 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_prepare_fail
 
     from tests.family_helpers import build_sidecar
 
-    head_before_build = repo.snapshot.head_sha()
+    head_before_build = repo.git.head_sha()
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head_before_build)
 
-    master_branch = repo.snapshot.primary_branch_name()
-    master_head_before = repo.snapshot.branch_head(master_branch)
+    master_branch = repo.git.primary_branch_name()
+    master_head_before = repo.git.branch_sha(master_branch)
 
     # Arrange a pre-commit sidecar preparation failure.
     from propstore.source import promote as promote_module
@@ -897,7 +897,7 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_prepare_fail
     with pytest.raises(RuntimeError, match="simulated sidecar write failure"):
         promote_source_branch(repo, source_name)
 
-    master_head_after = repo.snapshot.branch_head(master_branch)
+    master_head_after = repo.git.branch_sha(master_branch)
     assert master_head_after == master_head_before, (
         "sidecar preparation failure must not advance master; atomicity broken"
     )

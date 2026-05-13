@@ -185,12 +185,12 @@ def test_generated_predicate_proposal_promotion_rejects_global_duplicates(
             file_name=existing_file,
             predicate_id=predicate_id,
         )
-        master_before = repo.snapshot.branch_head(repo.snapshot.primary_branch_name())
+        master_before = repo.git.branch_sha(repo.git.primary_branch_name())
         _seed_direct_proposal(repo, paper=proposed_file, predicate_id=predicate_id)
 
         plan = plan_predicate_proposal_promotion(repo, source_paper=proposed_file)
         with pytest.raises(PredicateWorkflowError, match="already declared"):
             promote_predicate_proposals(repo, plan)
 
-        assert repo.snapshot.branch_head(repo.snapshot.primary_branch_name()) == master_before
+        assert repo.git.branch_sha(repo.git.primary_branch_name()) == master_before
         assert repo.families.predicates.load(PredicateRef(predicate_id)) is not None

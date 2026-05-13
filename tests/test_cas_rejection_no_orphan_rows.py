@@ -18,8 +18,8 @@ def test_promote_cas_rejection_does_not_write_blocked_sidecar_rows(
     source_name = "mixed"
     repo = _setup_source_with_partial_validity(tmp_path, source_name=source_name)
     finalize_source_branch(repo, source_name)
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.snapshot.head_sha())
-    expected_head = repo.snapshot.branch_head("master")
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    expected_head = repo.git.branch_sha("master")
     original_commit_batch = type(repo.git).commit_batch
 
     def stale_commit_batch(self, adds, deletes, message, *, branch=None, expected_head=None):

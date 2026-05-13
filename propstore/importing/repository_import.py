@@ -85,7 +85,7 @@ def _infer_repository_name(repository: Repository) -> str:
 def _iter_semantic_paths(repository: Repository, *, commit: str) -> dict[str, bytes]:
     return {
         snapshot_file.relpath: snapshot_file.content
-        for snapshot_file in repository.snapshot.files(
+        for snapshot_file in repository.require_git().iter_tree_files(
             commit=commit,
             roots=semantic_import_roots(),
         )
@@ -131,11 +131,11 @@ def plan_repository_import(
     except RepositoryNotFound as exc:
         raise ValueError("Source repository must be git-backed") from exc
 
-    source_commit = source_repository.snapshot.head_sha()
+    source_commit = source_repository.require_git().head_sha()
     if source_commit is None:
         raise ValueError("Source repository has no committed HEAD")
 
-    primary_branch = destination_repository.snapshot.primary_branch_name()
+    primary_branch = destination_repository.require_git().primary_branch_name()
     repository_name = _infer_repository_name(source_repository)
     selected_branch = target_branch or f"import/{repository_name}"
     import_pipeline_result = run_source_import_pipeline(
@@ -153,7 +153,7 @@ def plan_repository_import(
     warnings = list(normalized_import.warnings)
 
     existing_paths: set[str] = set()
-    existing_branch_sha = destination_repository.snapshot.branch_head(selected_branch)
+    existing_branch_sha = destination_repository.require_git().branch_sha(selected_branch)
     if existing_branch_sha is not None:
         existing_paths = set(_iter_semantic_paths(destination_repository, commit=existing_branch_sha))
     deletes = sorted(existing_paths - set(writes))
@@ -187,13 +187,12 @@ def commit_repository_import(
     if plan.warnings:
         raise ValueError("; ".join(plan.warnings))
 
-    primary_branch = repository.snapshot.primary_branch_name()
-    if repository.snapshot.branch_head(plan.target_branch) is None and plan.target_branch != primary_branch:
-        repository.snapshot.ensure_branch(plan.target_branch)
-
     git = repository.git
     if git is None:
         raise ValueError("repository import requires a git-backed repository")
+    primary_branch = git.primary_branch_name()
+    if git.branch_sha(plan.target_branch) is None and plan.target_branch != primary_branch:
+        git.create_branch(plan.target_branch)
     commit_sha: str | None = None
     with git.head_bound_transaction(plan.target_branch) as head_txn:
         with head_txn.families_transact(

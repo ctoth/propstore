@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from propstore.families.registry import MergeManifestRef
@@ -147,7 +148,7 @@ def _string_tuple(value: object) -> tuple[str, ...]:
     return ()
 
 
-def _file_change_report(info: dict[str, object]) -> FileChangeReport:
+def _file_change_report(info: Mapping[str, object]) -> FileChangeReport:
     return FileChangeReport(
         added=_string_tuple(info.get("added", ())),
         modified=_string_tuple(info.get("modified", ())),
@@ -189,7 +190,7 @@ def build_log_record(
     modified: tuple[str, ...] = ()
     deleted: tuple[str, ...] = ()
     if show_files:
-        info = repo.snapshot.show_commit(sha)
+        info = repo.require_git().show_commit(sha)
         changes = _file_change_report(info)
         added = changes.added
         modified = changes.modified
@@ -215,13 +216,15 @@ def build_log_report(
     branch_name: str | None,
     show_files: bool,
 ) -> LogReport:
-    snapshot = repo.snapshot
+    git = repo.git
+    if git is None:
+        raise ValueError("repository history requires a git-backed repository")
     branch = branch_name
     if branch is None:
-        branch = snapshot.current_branch_name() or snapshot.primary_branch_name()
-    if snapshot.branch_head(branch) is None:
+        branch = git.current_branch_name() or git.primary_branch_name()
+    if git.branch_sha(branch) is None:
         raise BranchNotFoundError(f"Branch not found: {branch}")
-    entries = snapshot.log(max_count=count, branch=branch)
+    entries = git.log(max_count=count, branch=branch)
     return LogReport(
         branch=branch,
         entries=tuple(
@@ -237,12 +240,12 @@ def build_log_report(
 
 
 def build_diff_report(repo: Repository, commit: str | None) -> FileChangeReport:
-    return _file_change_report(repo.snapshot.diff(commit1=commit))
+    return _file_change_report(repo.require_git().diff_commits(commit1=commit))
 
 
 def build_commit_show_report(repo: Repository, commit: str) -> CommitShowReport:
     try:
-        info = repo.snapshot.show_commit(commit)
+        info = repo.require_git().show_commit(commit)
     except KeyError as exc:
         raise CommitNotFoundError(f"Commit not found: {commit}") from exc
     return CommitShowReport(
@@ -258,7 +261,7 @@ def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
     from propstore.sidecar.build import build_sidecar
 
     try:
-        repo.snapshot.show_commit(commit)
+        repo.require_git().show_commit(commit)
     except KeyError as exc:
         raise CommitNotFoundError(f"Commit not found: {commit}") from exc
 

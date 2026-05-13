@@ -164,7 +164,7 @@ def add_predicate(
     if git is None:
         raise ValueError("predicate authoring requires a git-backed repository")
     with _PREDICATE_MUTATION_LOCK, git.head_bound_transaction(
-        repo.snapshot.primary_branch_name(),
+        repo.require_git().primary_branch_name(),
     ) as head_txn:
         if repo.families.predicates.load(ref, commit=head_txn.expected_head) is not None:
             raise PredicateWorkflowError(

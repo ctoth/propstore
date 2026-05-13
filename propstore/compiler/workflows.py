@@ -372,7 +372,7 @@ def build_repository(
 ) -> RepositoryBuildReport:
     from propstore.sidecar.build import build_sidecar
 
-    hash_key = repo.snapshot.head_sha()
+    hash_key = repo.require_git().head_sha()
     tree = repo.snapshot.tree(commit=hash_key)
 
     concepts: list[LoadedConcept] = []

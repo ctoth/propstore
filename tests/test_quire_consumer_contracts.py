@@ -128,7 +128,7 @@ def test_repository_import_uses_committed_semantic_snapshot_only(
     full_committed_paths = set(destination.git.flat_tree_entries(result.commit_sha))
     imported_paths = {
         snapshot_file.relpath
-        for snapshot_file in destination.snapshot.files(
+        for snapshot_file in destination.git.iter_tree_files(
             commit=result.commit_sha,
             roots=semantic_import_roots(),
         )
@@ -165,8 +165,8 @@ def test_source_documents_with_same_path_are_isolated_by_source_branch(
 
     first_branch = source_branch_name(first)
     second_branch = source_branch_name(second)
-    repo.snapshot.ensure_branch(first_branch)
-    repo.snapshot.ensure_branch(second_branch)
+    repo.git.create_branch(first_branch)
+    repo.git.create_branch(second_branch)
     first_doc = initial_source_document(
         repo,
         first,

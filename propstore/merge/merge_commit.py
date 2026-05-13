@@ -69,12 +69,12 @@ def create_merge_commit(
     kr = snapshot.git
     families = snapshot.repo.families
     if target_branch is None:
-        target_branch = snapshot.primary_branch_name()
-    target_expected_head = snapshot.branch_head(target_branch)
+        target_branch = kr.primary_branch_name()
+    target_expected_head = kr.branch_sha(target_branch)
     merge = build_merge_framework(snapshot, branch_a, branch_b)
 
-    left_sha = snapshot.branch_head(branch_a)
-    right_sha = snapshot.branch_head(branch_b)
+    left_sha = kr.branch_sha(branch_a)
+    right_sha = kr.branch_sha(branch_b)
     if left_sha is None:
         raise ValueError(f"Branch {branch_a!r} does not exist")
     if right_sha is None:

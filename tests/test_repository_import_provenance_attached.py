@@ -42,5 +42,5 @@ def test_repository_import_attaches_import_provenance_note(tmp_path) -> None:
     provenance = read_provenance_note(destination.git.raw_repo, result.commit_sha)
     assert provenance is not None
     assert provenance.operations == ("repository-import",)
-    assert provenance.derived_from == (source.snapshot.head_sha(),)
+    assert provenance.derived_from == (source.git.head_sha(),)
     assert provenance.witnesses[0].method == "repository-import"

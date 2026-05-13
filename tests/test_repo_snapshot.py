@@ -14,7 +14,7 @@ def test_snapshot_can_read_typed_document_from_branch(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     source_name = "paper_source"
     branch = source_branch_name(source_name)
-    repo.snapshot.ensure_branch(branch)
+    repo.git.create_branch(branch)
 
     source_doc = initial_source_document(
         repo,
@@ -38,7 +38,7 @@ def test_snapshot_lists_directory_entries_with_relpaths(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     source_name = "paper_source"
     branch = source_branch_name(source_name)
-    repo.snapshot.ensure_branch(branch)
+    repo.git.create_branch(branch)
 
     source_doc = initial_source_document(
         repo,
@@ -53,10 +53,10 @@ def test_snapshot_lists_directory_entries_with_relpaths(tmp_path: Path) -> None:
         message=f"Init source {source_name}",
     )
 
-    tip = repo.snapshot.branch_head(branch)
+    tip = repo.git.branch_sha(branch)
     assert tip is not None
 
-    relpaths = {entry.relpath for entry in repo.snapshot.iter_dir_entries("", commit=tip)}
+    relpaths = {entry.relpath for entry in repo.git.iter_tree_files(commit=tip)}
     assert ".gitignore" in relpaths
     assert "source.yaml" in relpaths
 

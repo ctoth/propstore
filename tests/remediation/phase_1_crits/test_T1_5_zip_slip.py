@@ -5,29 +5,24 @@ from pathlib import Path
 import pytest
 
 from propstore.source.promote import sync_source_branch
-from propstore.storage.snapshot import SnapshotDirEntry
+from quire.git_store import TreeFile
 
 
-class _EscapingSnapshot:
+class _EscapingGit:
     def __init__(self, relpath: str) -> None:
         self.relpath = relpath
 
-    def branch_head(self, name: str) -> str | None:
+    def branch_sha(self, name: str) -> str | None:
         return "source-tip"
 
-    def iter_dir_entries(self, relpath: str, *, commit: str | None = None):
-        if relpath:
-            return
-        yield SnapshotDirEntry(name=Path(self.relpath).name, relpath=self.relpath, is_dir=False)
-
-    def read_bytes(self, relpath: str, *, commit: str) -> bytes:
-        return b"payload"
+    def iter_tree_files(self, *, commit: str | None = None, roots=()):
+        yield TreeFile(relpath=self.relpath, content=b"payload")
 
 
 class _Repository:
     def __init__(self, root: Path, relpath: str) -> None:
         self.root = root
-        self.snapshot = _EscapingSnapshot(relpath)
+        self.git = _EscapingGit(relpath)
 
 
 @pytest.mark.parametrize(

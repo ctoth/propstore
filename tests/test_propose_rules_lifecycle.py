@@ -92,7 +92,7 @@ def test_propose_rules_dry_run_does_not_commit(monkeypatch, tmp_path) -> None:
 
     repo = Repository.init(tmp_path / "knowledge")
     _seed_predicates(repo)
-    before = repo.snapshot.branch_head(rule_extraction.rule_proposal_branch())
+    before = repo.git.branch_sha(rule_extraction.rule_proposal_branch())
     monkeypatch.setattr(rule_extraction, "_llm_call", lambda **_kwargs: _rule_fixture())
 
     result = rule_extraction.propose_rules_for_paper(
@@ -104,4 +104,4 @@ def test_propose_rules_dry_run_does_not_commit(monkeypatch, tmp_path) -> None:
 
     assert result.commit_sha is None
     assert result.rule_ids == ("rule-001",)
-    assert repo.snapshot.branch_head(rule_extraction.rule_proposal_branch()) == before
+    assert repo.git.branch_sha(rule_extraction.rule_proposal_branch()) == before

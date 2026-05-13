@@ -48,7 +48,7 @@ def _assert_stale_expected_head_fails(repo: Repository, *, name: str, payload: b
                 message="Stale loser",
             )
 
-    assert repo.snapshot.branch_head("master") == advanced_head
+    assert repo.git.branch_sha("master") == advanced_head
     with pytest.raises(FileNotFoundError):
         repo.git.read_file(path, commit=advanced_head)
 
@@ -95,6 +95,6 @@ def _assert_serialized_writers_both_commit(
             message="Second writer",
         )
 
-    assert repo.snapshot.branch_head("master") == second_commit
+    assert repo.git.branch_sha("master") == second_commit
     assert repo.git.read_file(first_path, commit=second_commit) == payload
     assert repo.git.read_file(second_path, commit=second_commit) == payload

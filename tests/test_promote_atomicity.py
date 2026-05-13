@@ -110,7 +110,7 @@ def test_promote_returns_in_memory_blocked_diagnostics_after_committed_mirror(
     source_name = "ws_c_partial"
     repo = _setup_source_with_blocked_claim(tmp_path, source_name=source_name)
     finalize_source_branch(repo, source_name)
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.snapshot.head_sha())
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
 
     result = promote_source_branch(repo, source_name)
 

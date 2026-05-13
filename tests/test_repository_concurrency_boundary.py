@@ -17,7 +17,7 @@ def test_head_bound_transactions_serialize_head_capture_and_commit(
     tmp_path: Path,
 ) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    initial_head = repo.snapshot.branch_head("master")
+    initial_head = repo.git.branch_sha("master")
     assert initial_head is not None
 
     first_entered = threading.Event()
@@ -81,7 +81,7 @@ def test_head_bound_transactions_serialize_head_capture_and_commit(
     assert failures == []
     assert observed_heads["first"] == initial_head
     assert observed_heads["second"] == commits["first"]
-    assert repo.snapshot.branch_head("master") == commits["second"]
+    assert repo.git.branch_sha("master") == commits["second"]
     assert repo.git.read_file("contexts/first.yaml", commit=commits["second"])
     assert repo.git.read_file("contexts/second.yaml", commit=commits["second"])
 

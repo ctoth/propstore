@@ -155,7 +155,7 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     )
     assert finalize.exit_code == 0, finalize.output
 
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.snapshot.head_sha())
+    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
 
     promote = runner.invoke(
         cli,

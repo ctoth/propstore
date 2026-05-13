@@ -295,10 +295,10 @@ def build_merge_framework(
     additional_branches: Sequence[str] = (),
 ) -> RepositoryMergeFramework:
     """Build the direct repository merge object for a branch profile."""
-    base_sha = snapshot.merge_base(branch_a, branch_b)
+    base_sha = snapshot.git.merge_base(branch_a, branch_b)
     branch_names = (branch_a, branch_b, *tuple(additional_branches))
     branch_heads = {
-        branch_name: snapshot.branch_head(branch_name)
+        branch_name: snapshot.git.branch_sha(branch_name)
         for branch_name in branch_names
     }
 

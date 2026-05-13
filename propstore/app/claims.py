@@ -585,7 +585,7 @@ def relate_claims(
     from propstore.heuristic.relate import relate_claim
 
     try:
-        repo.snapshot.head_sha()
+        repo.require_git().head_sha()
     except ValueError as exc:
         raise ClaimWorkflowError(
             "claim relate requires a git-backed repository."

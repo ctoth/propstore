@@ -333,7 +333,7 @@ def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[
 
 
 def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -> BranchStructuredSummary:
-    commit = snapshot.branch_head(branch)
+    commit = snapshot.git.branch_sha(branch)
     active_claims = _load_branch_claims(snapshot, commit)
     raw_stance_rows = _inline_stance_rows(active_claims) + _file_stance_rows(snapshot, commit)
     stance_rows = _canonical_stance_rows(active_claims, raw_stance_rows)

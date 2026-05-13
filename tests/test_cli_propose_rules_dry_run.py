@@ -6,7 +6,7 @@ from tests.ws_k2_cli_helpers import FIXTURES, PAPER, init_repo, invoke, seed_pre
 def test_cli_propose_rules_dry_run_prints_without_commit(tmp_path) -> None:
     repo = init_repo(tmp_path)
     seed_predicates(repo)
-    before = repo.snapshot.branch_head("proposal/rules")
+    before = repo.git.branch_sha("proposal/rules")
 
     result = invoke(
         repo,
@@ -24,4 +24,4 @@ def test_cli_propose_rules_dry_run_prints_without_commit(tmp_path) -> None:
     assert result.exit_code == 0, result.output
     assert "rule-001" in result.output
     assert "rule-003" in result.output
-    assert repo.snapshot.branch_head("proposal/rules") == before
+    assert repo.git.branch_sha("proposal/rules") == before

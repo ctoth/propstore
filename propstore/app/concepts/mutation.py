@@ -706,7 +706,7 @@ def _required_int(result: Mapping[str, object], key: str) -> int:
 
 def _require_snapshot(repo: Repository):
     try:
-        repo.snapshot.head_sha()
+        repo.require_git().head_sha()
     except ValueError as exc:
         raise ConceptMutationError(
             "concept mutations require a git-backed repository"

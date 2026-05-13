@@ -194,7 +194,7 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
 
     from tests.family_helpers import build_sidecar
 
-    head = repo.snapshot.head_sha()
+    head = repo.git.head_sha()
     build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
     promote_source_branch(repo, source_name)
 

@@ -26,7 +26,7 @@ def import_repository(
     )
 
     try:
-        repo.snapshot.head_sha()
+        repo.require_git().head_sha()
     except ValueError as exc:
         raise RepositoryImportError(
             "import-repository requires a git-backed repository"

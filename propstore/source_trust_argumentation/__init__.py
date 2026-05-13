@@ -175,7 +175,7 @@ def calibrate_source_trust(
     rules = tuple(rule_corpus) if rule_corpus is not None else _load_rules_from_repo(repo)
     metadata_payload = repo.families.source_metadata.load(SourceRef(source_name)) or {}
     fired_rules = tuple(rule for rule in rules if _rule_matches(rule, metadata_payload))
-    repo_head = repo.git.head_sha() if repo.git is not None else None
+    repo_head = repo.require_git().head_sha() if repo.git is not None else None
     world_sha = str(world_snapshot or repo_head or "")
 
     if not fired_rules:

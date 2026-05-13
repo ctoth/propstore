@@ -293,7 +293,7 @@ def add_rule(
     if git is None:
         raise ValueError("rule authoring requires a git-backed repository")
     with _RULE_MUTATION_LOCK, git.head_bound_transaction(
-        repo.snapshot.primary_branch_name(),
+        repo.require_git().primary_branch_name(),
     ) as head_txn:
         document = convert_document_value(
             _rule_document_payload(request),
