@@ -36,7 +36,7 @@ Do not leave a Propstore wrapper class that duplicates Quire behavior under a
 new name. If an adapter remains, it should only supply Propstore-owned policy or
 be deleted.
 
-## Workstream Order
+## Dependency Order
 
 The phases below are topologically ordered.
 
@@ -47,7 +47,7 @@ The phases below are topologically ordered.
 5. Propstore sidecar hook adaptation
 6. Final gates
 
-## Phase 1 - Quire Head-Bound Transaction Tests
+## Phase 1: Quire Head-Bound Transaction Tests
 
 Repository: `../quire`
 
@@ -74,7 +74,7 @@ Required gate:
 
 - `uv run pytest tests/test_git_store.py tests/test_family_store.py tests/test_families.py`
 
-## Phase 2 - Quire Generic Transaction Implementation
+## Phase 2: Quire Generic Transaction Implementation
 
 Repository: `../quire`
 
@@ -108,7 +108,7 @@ Required gates:
 - `uv run pytest tests/test_git_store.py tests/test_family_store.py tests/test_families.py`
 - `uv run pytest`
 
-## Phase 3 - Propstore Dependency Pin
+## Phase 3: Propstore Dependency Pin
 
 Repository: `propstore`
 
@@ -129,7 +129,7 @@ Required gate:
 
 - `uv run pyright propstore`
 
-## Phase 4 - Propstore Transaction Deletion and Caller Repair
+## Phase 4: Propstore Transaction Deletion and Caller Repair
 
 Repository: `propstore`
 
@@ -173,7 +173,7 @@ Required gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label head-bound-transactions tests/test_branch_head_cas_matrix.py tests/test_repository_concurrency_boundary.py tests/test_cas_no_silent_retry.py tests/test_cas_rejection_no_orphan_rows.py`
 - `uv run pyright propstore`
 
-## Phase 5 - Propstore Sidecar Hook Adaptation
+## Phase 5: Propstore Sidecar Hook Adaptation
 
 Repository: `propstore`
 
@@ -205,7 +205,7 @@ Required gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label head-bound-sidecar tests/test_cas_rejection_no_orphan_rows.py tests/test_source_promotion_alignment.py tests/test_repository_concurrency_boundary.py`
 - `uv run pyright propstore`
 
-## Phase 6 - Final Gates
+## Phase 6: Final Gates
 
 Repository: both
 
