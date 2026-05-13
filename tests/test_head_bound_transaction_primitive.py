@@ -43,7 +43,7 @@ def test_head_bound_transaction_captures_head_and_threads_expected_head(
     assert seen == [("master", captured_head)]
 
 
-def test_head_bound_transaction_flushes_sidecar_writes_only_after_commit(
+def test_head_bound_transaction_runs_post_commit_hooks_only_after_commit(
     tmp_path: Path,
 ) -> None:
     repo = Repository.init(tmp_path / "knowledge")
@@ -63,7 +63,7 @@ def test_head_bound_transaction_flushes_sidecar_writes_only_after_commit(
     assert applied == [repo.snapshot.branch_head("master")]
 
 
-def test_head_bound_transaction_discards_sidecar_writes_on_stale_head(
+def test_head_bound_transaction_discards_post_commit_hooks_on_stale_head(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -84,7 +84,7 @@ def test_head_bound_transaction_discards_sidecar_writes_on_stale_head(
     assert git is not None
     with pytest.raises(HeadMismatchError) as exc_info:
         with git.head_bound_transaction("master") as txn:
-            txn.after_commit(lambda _commit: applied.append("sidecar-write-leaked"))
+            txn.after_commit(lambda _commit: applied.append("post-commit-hook-leaked"))
             txn.commit_batch(
                 adds={"contexts/demo.yaml": b"id: demo\nname: Demo\n"},
                 deletes=(),

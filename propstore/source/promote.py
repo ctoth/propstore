@@ -1068,6 +1068,18 @@ def promote_source_branch(
                     promotion_plan.blocked_claims,
                     promotion_plan.blocked_reasons,
                 )
+                if prepared_sidecar_path is not None:
+                    sidecar_path_to_publish = prepared_sidecar_path
+
+                    def publish_prepared_sidecar(_commit_sha: str) -> None:
+                        nonlocal sidecar_mirror_ok, sidecar_mirror_error
+                        try:
+                            sidecar_path_to_publish.replace(repo.sidecar_path)
+                        except OSError as exc:
+                            sidecar_mirror_ok = False
+                            sidecar_mirror_error = str(exc)
+
+                    head_txn.after_commit(publish_prepared_sidecar)
 
             with head_txn.families_transact(repo.families, message=f"Promote source {slug}") as transaction:
                 transaction.sources.save(
@@ -1099,12 +1111,6 @@ def promote_source_branch(
                         stance_ref,
                         stance_document,
                     )
-            if prepared_sidecar_path is not None:
-                try:
-                    prepared_sidecar_path.replace(repo.sidecar_path)
-                except OSError as exc:
-                    sidecar_mirror_ok = False
-                    sidecar_mirror_error = str(exc)
             sha = head_txn.commit_sha
     finally:
         if prepared_sidecar_path is not None and prepared_sidecar_path.exists():

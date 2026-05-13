@@ -815,7 +815,7 @@ def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
     )
 
 
-def test_promote_source_branch_does_not_advance_master_when_sidecar_write_fails(
+def test_promote_source_branch_does_not_advance_master_when_sidecar_prepare_fails(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -882,7 +882,7 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_write_fails(
     master_branch = repo.snapshot.primary_branch_name()
     master_head_before = repo.snapshot.branch_head(master_branch)
 
-    # Arrange a mid-flight sidecar failure.
+    # Arrange a pre-commit sidecar preparation failure.
     from propstore.source import promote as promote_module
 
     def _boom(*args, **kwargs):
@@ -899,5 +899,5 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_write_fails(
 
     master_head_after = repo.snapshot.branch_head(master_branch)
     assert master_head_after == master_head_before, (
-        "sidecar-write failure must not advance master; atomicity broken"
+        "sidecar preparation failure must not advance master; atomicity broken"
     )
