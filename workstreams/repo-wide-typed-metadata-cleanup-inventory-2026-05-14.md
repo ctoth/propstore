@@ -182,3 +182,98 @@ projection ordering, or one-off SQL query copies in app/source/heuristic layers.
   temporary bridges.
 - Test gates per slice, especially for load-bearing source promotion/status,
   world queries, embeddings, FTS, grounding, and render policy.
+
+## Second-Pass Notes
+
+`propstore/core/row_types.py` is a central cleanup target. It calls itself the
+typed storage-row boundary and manually mirrors sidecar field names:
+`ConceptRow.from_mapping` knows `id`, `canonical_name`, `status`,
+`definition`, `kind_type`, `form`, `domain`, `form_parameters`,
+`primary_logical_id`, and `logical_ids_json`. Those same names are declared in
+`propstore/sidecar/concepts.py`, consumed in `propstore/world/model.py`, and
+rendered again in app view/report code. That is exactly the duplicate
+single-declaration problem.
+
+`propstore/world/model.py` is the main direct read-model SQL owner today. It
+opens the derived store, sets `sqlite3.Row`, validates `meta`, validates
+`WORLD_SIDECAR_SCHEMA`, and issues direct SQL such as
+`SELECT schema_version FROM meta WHERE key = ?` and
+`SELECT id, canonical_name, kind_type, form_parameters FROM concept`. It then
+normalizes those rows through `ConceptRow.from_mapping`. The cleanup shape is
+not to move those SQL strings elsewhere one by one; it is to make typed query
+surfaces generated or owned by the declaration/read-model layer.
+
+`propstore/families/registry.py` already owns important single-declaration
+material: family identity policy, placement, FK declarations, source-local
+fields, version-excluded fields, and semantic metadata. The missing piece is
+that derived-store/read-model/search/vector metadata is not co-located with
+that semantic declaration. A likely beautiful abstraction extends the family
+declaration with typed projection/search/index metadata rather than maintaining
+sidecar projection modules as a parallel declaration system.
+
+The family/document/stage layer has large mapping duplication:
+
+- `propstore/families/concepts/stages.py` has concept document payload,
+  record payload, canonical normalization, record parsing, registry loading,
+  and `ConceptRecord.to_payload`.
+- `propstore/families/claims/documents.py` has many nested `to_payload`
+  methods for source, provenance, values, stances, opinion, resolution,
+  variables, context, proposition, fit, and full claim documents.
+- `propstore/families/documents/sources.py` repeats source-local concept,
+  claim, justification, stance, provenance, produced-by, calibration, and
+  merge payload shapes.
+- `propstore/source/claims.py`, `propstore/source/relations.py`, and
+  `propstore/source/registry.py` normalize source-local payloads and then
+  convert back to dictionaries.
+
+These may be legitimate IO-boundary codecs, but they become cleanup targets
+where the same semantic field is also declared in sidecar projection rows,
+core row types, app reports, or identity normalization.
+
+The non-sidecar mapping-heavy surfaces are probably a second workstream, not
+the first derived-store workstream:
+
+- `propstore/worldline/result_types.py`
+- `propstore/worldline/revision_types.py`
+- `propstore/support_revision/history.py`
+- `propstore/support_revision/snapshot_types.py`
+- `propstore/support_revision/explanation_types.py`
+- `propstore/support_revision/state.py`
+- `propstore/epistemic_process.py`
+
+Those files use explicit `from_mapping`/`to_dict` codecs. The smell is not
+serialization itself; the smell is untyped mapping payloads flowing between
+semantic subsystems instead of being converted immediately at the IO boundary.
+
+## Cleanup Slice Candidates
+
+1. Duplicate declaration ledger:
+   mechanically list every semantic field declared in projection columns, core
+   row types, family document payloads, app reports, and world query rows.
+   Gate: each repeated field has one proposed owner declaration or is marked
+   deliberate generated output.
+
+2. Read-model SQL boundary:
+   inventory every `.execute(...)` and table name outside the derived-store
+   owner. Gate: each direct query is assigned to a typed query API owned by
+   world/read-model/derived-store code, not app/CLI/source status.
+
+3. Family declaration consolidation:
+   start with concepts because `families/registry.py`,
+   `families/concepts/stages.py`, `core/row_types.py`,
+   `sidecar/concepts.py`, app concept views/mutation, FTS, and embeddings all
+   repeat concept fields. Gate: one concept declaration drives projection
+   columns, row decoding, FTS text, and vector text.
+
+4. Claims only after concepts:
+   claims have more load-bearing split payloads. Gate: preserve the core/text/
+   numeric/algorithm split unless a proof shows it can be collapsed.
+
+5. Embedding/FTS declaration consolidation:
+   search text and embedding text should be metadata on semantic declarations,
+   not independent SQL/index policy in app, heuristic, and sidecar modules.
+
+6. Source-local boundary audit:
+   source-local fields should be declared once and rejected by canonical/master
+   surfaces. Gate: source-local normalization remains in source subsystem and
+   canonical paths hard-fail on source-local-only shape.
