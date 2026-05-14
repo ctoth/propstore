@@ -7,6 +7,7 @@ from propstore.proposals import commit_stance_proposals, stance_proposal_branch
 from propstore.repository import Repository
 import propstore.heuristic.embed as embed_mod
 import propstore.heuristic.relate as relate_mod
+from tests.family_helpers import materialized_world_store_path
 
 
 def test_commit_stance_proposals_empty_input_is_noop(tmp_path: Path) -> None:
@@ -24,8 +25,7 @@ def test_relate_claims_all_delegates_empty_proposals_to_owner_layer(
     monkeypatch,
 ) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    repo.sidecar_path.touch()
+    materialized_world_store_path(repo, force=True)
     calls: list[dict[str, list[dict]]] = []
 
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn: None)

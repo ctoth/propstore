@@ -23,12 +23,12 @@ import propstore.heuristic.relate as relate_mod
 from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
 from propstore.app.world import WorldSidecarMissingError
+from tests.family_helpers import materialized_world_store_path
 
 
 def _repo_with_sidecar(tmp_path: Path) -> Repository:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    repo.sidecar_path.touch()
+    materialized_world_store_path(repo, force=True)
     return repo
 
 
