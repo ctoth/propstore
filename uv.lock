@@ -2074,7 +2074,7 @@ requires-dist = [
     { name = "msgspec", specifier = ">=0.19.0" },
     { name = "pint", specifier = ">=0.25.3" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "quire", git = "https://github.com/ctoth/quire?rev=c0590e2fe365815f5c6a9a2a65950b30d94fc12e" },
+    { name = "quire", git = "https://github.com/ctoth/quire?rev=63ce7a3098cc4face27531000ef0590fafa91eea" },
     { name = "rfc8785", specifier = ">=0.1.4" },
     { name = "rich", specifier = ">=13.7" },
     { name = "sqlite-vec", marker = "extra == 'embeddings'", specifier = ">=0.1" },
@@ -2480,7 +2480,7 @@ wheels = [
 [[package]]
 name = "quire"
 version = "0.2.0"
-source = { git = "https://github.com/ctoth/quire?rev=c0590e2fe365815f5c6a9a2a65950b30d94fc12e#c0590e2fe365815f5c6a9a2a65950b30d94fc12e" }
+source = { git = "https://github.com/ctoth/quire?rev=63ce7a3098cc4face27531000ef0590fafa91eea#63ce7a3098cc4face27531000ef0590fafa91eea" }
 dependencies = [
     { name = "dulwich" },
     { name = "msgspec" },
