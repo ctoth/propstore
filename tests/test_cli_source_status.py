@@ -32,6 +32,7 @@ from propstore.source import (
 )
 from propstore.source.common import load_source_document
 from tests.conftest import TEST_CONTEXT_ID, make_test_context_commit_entry, normalize_concept_payloads
+from tests.family_helpers import materialized_world_store_path
 
 
 def _init_cli_source(runner: CliRunner, repo: Repository, name: str) -> None:
@@ -204,7 +205,10 @@ def test_source_status_report_lists_blocked_promotion_rows(
 ) -> None:
     repo, source_name = promoted_partial
 
-    report = inspect_source_status(repo, source_name)
+    report = inspect_source_status(
+        materialized_world_store_path(repo, force=True),
+        source_name,
+    )
 
     assert report.state is SourceStatusState.HAS_ROWS
     assert report.branch == "source/mixed"
@@ -222,7 +226,10 @@ def test_source_status_report_lists_blocked_promotion_rows(
 def test_source_status_report_materializes_empty_store(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
-    report = inspect_source_status(repo, "clean")
+    report = inspect_source_status(
+        materialized_world_store_path(repo, force=True),
+        "clean",
+    )
 
     assert report.state is SourceStatusState.NO_ROWS
     assert report.rows == ()
