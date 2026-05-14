@@ -2769,6 +2769,7 @@ class TestWorldQuerySidecarPath:
         db_path = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(db_path)
         build_minimal_world_model_schema(conn)
+        conn.commit()
         conn.close()
 
         # This should work: construct WorldQuery from a Path to the sidecar db.
@@ -2874,8 +2875,8 @@ class TestWorldQuerySidecarPath:
                         f"propstore.cli at runtime: {exc}"
                     )
                 raise
-            except FileNotFoundError:
-                # Path doesn't exist — that's fine, the point is no CLI import
+            except (FileNotFoundError, ValueError):
+                # The path is not a usable repository; the point is no CLI import.
                 pass
         finally:
             sys.meta_path.remove(blocker)
