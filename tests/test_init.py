@@ -339,14 +339,11 @@ class TestInit:
         result = runner.invoke(cli, ["-C", str(root), "build"])
         assert result.exit_code == 0, result.output
         repo = Repository.find(root)
-        sidecar = repo.sidecar_path
-        hash_path = sidecar.with_suffix(".hash")
+        sidecar = next(repo.derived_stores.root.rglob("*.sqlite"))
         wal_path = sidecar.with_suffix(".sqlite-wal")
         provenance_path = sidecar.with_suffix(".provenance")
         assert sidecar.is_file()
-        assert hash_path.is_file()
         sidecar_bytes = sidecar.read_bytes()
-        hash_bytes = hash_path.read_bytes()
         wal_path.write_bytes(b"wal runtime\n")
         provenance_path.write_bytes(b"provenance runtime\n")
 
@@ -362,7 +359,6 @@ class TestInit:
         assert not stale.exists()
         assert ignored_provenance.read_bytes() == b"semantic runtime\n"
         assert sidecar.read_bytes() == sidecar_bytes
-        assert hash_path.read_bytes() == hash_bytes
         assert wal_path.read_bytes() == b"wal runtime\n"
         assert provenance_path.read_bytes() == b"provenance runtime\n"
 

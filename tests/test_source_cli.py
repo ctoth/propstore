@@ -847,7 +847,8 @@ def test_source_authoring_build_verify_and_worldline_flow(tmp_path: Path) -> Non
         ["-C", str(repo.root), "build", "--force"],
     )
     assert build_result.exit_code == 0, build_result.output
-    assert repo.sidecar_path.exists()
+    assert repo.derived_stores.root.exists()
+    assert not (repo.root / "sidecar").exists()
 
     verify_result = runner.invoke(
         cli,

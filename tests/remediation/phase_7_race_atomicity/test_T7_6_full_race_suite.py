@@ -155,7 +155,8 @@ class FullRaceMachine(RuleBasedStateMachine):
         def build_once() -> None:
             try:
                 barrier.wait(timeout=5)
-                build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
+                sidecar_path = repo.root / ".tmp-race-suite.sqlite"
+                build_sidecar(repo, sidecar_path, force=True, commit_hash=head)
             except BaseException as exc:  # pragma: no cover - surfaced below
                 with lock:
                     errors.append(exc)
@@ -168,9 +169,10 @@ class FullRaceMachine(RuleBasedStateMachine):
 
         assert not any(thread.is_alive() for thread in threads)
         assert errors == []
-        assert repo.sidecar_path.exists()
-        assert repo.sidecar_path.with_suffix(".hash").exists()
-        conn = connect_sidecar(repo.sidecar_path)
+        sidecar_path = repo.root / ".tmp-race-suite.sqlite"
+        assert sidecar_path.exists()
+        assert sidecar_path.with_suffix(".hash").exists()
+        conn = connect_sidecar(sidecar_path)
         try:
             schema_version = conn.execute(
                 "SELECT schema_version FROM meta WHERE key = 'sidecar'"

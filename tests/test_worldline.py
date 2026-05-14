@@ -22,7 +22,10 @@ from hypothesis import strategies as st
 from quire.documents import decode_document_path
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.repository import Repository
-from tests.family_helpers import build_sidecar, claim_artifact_commit_payloads
+from tests.family_helpers import (
+    claim_artifact_commit_payloads,
+    materialized_world_store_path,
+)
 from propstore.cli.worldline import _parse_kv_args
 from quire.tree_path import GitTreePath as GitKnowledgePath
 from quire.git_store import GitStore
@@ -299,9 +302,7 @@ def physics_knowledge(tmp_path_factory):
 def physics_world(physics_knowledge):
     """Build sidecar and create WorldQuery for physics knowledge."""
     repo = physics_knowledge
-    repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-
-    build_sidecar(repo, repo.sidecar_path)
+    materialized_world_store_path(repo)
     return WorldQuery(repo)
 
 
@@ -386,9 +387,7 @@ def chained_physics_knowledge(tmp_path_factory):
 def chained_physics_world(chained_physics_knowledge):
     """Build sidecar and create WorldQuery for chained-derivation testing."""
     repo = chained_physics_knowledge
-    repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-
-    build_sidecar(repo, repo.sidecar_path)
+    materialized_world_store_path(repo)
     return WorldQuery(repo)
 
 

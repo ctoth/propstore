@@ -15,7 +15,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 from propstore.world import OverlayWorld, WorldQuery
 from propstore.worldline import WorldlineDefinition, run_worldline
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
@@ -140,8 +140,7 @@ def property_kb(tmp_path_factory):
 def property_world(property_kb):
     from propstore.repository import Repository
     repo = Repository(property_kb)
-    repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    build_sidecar(property_kb, repo.sidecar_path)
+    materialized_world_store_path(repo)
     return WorldQuery(repo)
 
 

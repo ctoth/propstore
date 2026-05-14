@@ -60,7 +60,7 @@ from tests.conftest import (
     normalize_claims_payload,
     normalize_concept_payloads,
 )
-from tests.family_helpers import claim_artifact_commit_payloads
+from tests.family_helpers import claim_artifact_commit_payloads, materialized_world_store_path
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -1499,12 +1499,11 @@ class TestQueryReadOnly:
 
     @pytest.fixture()
     def built_workspace(self, workspace: Path) -> Path:
-        """Build a sidecar so `pks sidecar query` has something to query."""
+        """Build a derived store so `pks sidecar query` has something to query."""
         runner = CliRunner()
-        sidecar_dir = workspace / "knowledge" / "sidecar"
-        sidecar_dir.mkdir(parents=True, exist_ok=True)
-        result = runner.invoke(cli, ["build", "-o", str(sidecar_dir / "propstore.sqlite")])
+        result = runner.invoke(cli, ["build"])
         assert result.exit_code == 0, result.output
+        assert not (workspace / "knowledge" / "sidecar").exists()
         return workspace
 
     def test_select_works(self, built_workspace: Path) -> None:
@@ -1571,13 +1570,10 @@ class TestConnectionClosedOnError:
 
     @staticmethod
     def _make_repo_with_sidecar(tmp_path: Path) -> Path:
-        """Create minimal repo structure with a sidecar file."""
+        """Create minimal repo structure with a materialized derived store."""
         knowledge = tmp_path / "knowledge"
-        Repository.init(knowledge)
-        sidecar_dir = knowledge / "sidecar"
-        sidecar = sidecar_dir / "propstore.sqlite"
-        sidecar_dir.mkdir(parents=True, exist_ok=True)
-        sidecar.touch()
+        repo = Repository.init(knowledge)
+        materialized_world_store_path(repo, force=True)
         return tmp_path
 
     def test_claim_embed_closes_conn_on_error(self, tmp_path: Path) -> None:

@@ -873,11 +873,6 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_prepare_fail
     )
     finalize_source_branch(repo, source_name)
 
-    from tests.family_helpers import build_sidecar
-
-    head_before_build = repo.git.head_sha()
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head_before_build)
-
     master_branch = repo.git.primary_branch_name()
     master_head_before = repo.git.branch_sha(master_branch)
 

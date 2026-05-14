@@ -16,7 +16,7 @@ from propstore.families.registry import ClaimRef
 from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import NoCalibration, p_arg_from_claim
 from propstore.source.common import initial_source_document
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.world import WorldQuery
@@ -246,7 +246,11 @@ def _seed_calibration_claim(repo: Repository) -> None:
         message="Seed calibration claims",
         branch="master",
     )
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
+    )
 
 
 def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_path: Path) -> None:
@@ -379,7 +383,11 @@ def test_world_query_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) ->
     assert runner.invoke(cli, ["-C", str(repo.root), "source", "finalize", "demo"]).exit_code == 0
     assert runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"]).exit_code == 0
 
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
+    )
     claim_id = next(repo.families.claims.iter_handles()).ref.artifact_id
     wm = WorldQuery(repo)
     try:

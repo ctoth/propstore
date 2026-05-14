@@ -219,11 +219,11 @@ def test_sidecar_build_serializes_with_source_promote(
         release_build.wait(timeout=5)
         return True
 
-    monkeypatch.setattr(build_module, "_build_sidecar_locked", locked_build)
+    monkeypatch.setattr(build_module, "_build_sidecar_file", locked_build)
 
     def run_build() -> None:
         try:
-            build_sidecar(repo, repo.sidecar_path, force=True)
+            build_sidecar(repo, repo.root / ".tmp-concurrency.sqlite", force=True)
         except BaseException as exc:
             failures.append(exc)
 
