@@ -61,7 +61,6 @@ from propstore.sidecar.stages import (
     MicropublicationClaimInsertRow,
     MicropublicationInsertRow,
     MicropublicationSidecarRows,
-    BuildDiagnosticInsertRow,
     RawIdQuarantineSidecarRows,
     QuarantineDiagnostic,
     RepositoryCheckedBundle,
@@ -84,6 +83,7 @@ from propstore.sidecar.contexts import (
     ContextLiftingRuleProjectionRow,
     ContextProjectionRow,
 )
+from propstore.sidecar.diagnostics import BuildDiagnosticProjectionRow
 from propstore.sidecar.relations import RelationEdgeProjectionRow
 from propstore.sidecar.concepts import (
     AliasProjectionRow,
@@ -895,7 +895,7 @@ def compile_raw_id_quarantine_sidecar_rows(
     records: Sequence[RawIdQuarantineRecord],
 ) -> RawIdQuarantineSidecarRows:
     claim_rows: list[ClaimCoreProjectionRow] = []
-    diagnostic_rows: list[BuildDiagnosticInsertRow] = []
+    diagnostic_rows: list[BuildDiagnosticProjectionRow] = []
 
     for record in records:
         claim_rows.append(
@@ -923,7 +923,7 @@ def compile_raw_id_quarantine_sidecar_rows(
             )
         )
         diagnostic_rows.append(
-            BuildDiagnosticInsertRow(
+            BuildDiagnosticProjectionRow.from_values(
                 (
                     record.synthetic_id,
                     "claim",

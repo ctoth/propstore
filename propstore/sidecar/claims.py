@@ -24,6 +24,10 @@ from propstore.sidecar.projection import (
     ProjectionTable,
 )
 from propstore.sidecar.claim_utils import normalize_conditions_differ
+from propstore.sidecar.diagnostics import (
+    BuildDiagnosticProjectionRow,
+    insert_build_diagnostic,
+)
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.stages import (
     ClaimSidecarRows,
@@ -435,15 +439,7 @@ def populate_raw_id_quarantine_records(
     for row in rows.claim_rows:
         conn.execute(claim_core_insert_sql, row.as_insert_mapping())
     for row in rows.diagnostic_rows:
-        conn.execute(
-            """
-            INSERT INTO build_diagnostics (
-                claim_id, source_kind, source_ref, diagnostic_kind,
-                severity, blocking, message, file, detail_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            row.values,
-        )
+        insert_build_diagnostic(conn, row)
 
 
 def populate_claims(
@@ -527,29 +523,26 @@ def _insert_claim_version_conflict(
     new_version: str,
     source_ref: str,
 ) -> None:
-    conn.execute(
-        """
-        INSERT INTO build_diagnostics (
-            claim_id, source_kind, source_ref, diagnostic_kind,
-            severity, blocking, message, file, detail_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            claim_id,
-            "claim",
-            source_ref,
-            "claim_version_conflict",
-            "error",
-            1,
-            f"Claim logical id {claim_id!r} appears with multiple version_id values",
-            None,
-            json.dumps(
-                {
-                    "existing_version_id": existing_version,
-                    "new_version_id": new_version,
-                },
-                sort_keys=True,
-            ),
+    insert_build_diagnostic(
+        conn,
+        BuildDiagnosticProjectionRow.from_values(
+            (
+                claim_id,
+                "claim",
+                source_ref,
+                "claim_version_conflict",
+                "error",
+                1,
+                f"Claim logical id {claim_id!r} appears with multiple version_id values",
+                None,
+                json.dumps(
+                    {
+                        "existing_version_id": existing_version,
+                        "new_version_id": new_version,
+                    },
+                    sort_keys=True,
+                ),
+            )
         ),
     )
 

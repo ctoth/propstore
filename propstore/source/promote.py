@@ -61,6 +61,10 @@ from propstore.provenance import (
 )
 from propstore.repository import Repository
 from propstore.sidecar.claims import CLAIM_CORE_PROJECTION, ClaimCoreProjectionRow
+from propstore.sidecar.diagnostics import (
+    BuildDiagnosticProjectionRow,
+    insert_build_diagnostic,
+)
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.claim_concepts import (
     normalize_promoted_source_claim_artifact,
@@ -879,26 +883,26 @@ def _write_promotion_blocked_sidecar_rows(
             )
 
             for kind, detail in reasons.get(artifact_id, []):
-                conn.execute(
-                    """
-                    INSERT INTO build_diagnostics (
-                        claim_id, source_kind, source_ref, diagnostic_kind,
-                        severity, blocking, message, file, detail_json
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        artifact_id,
-                        "claim",
-                        source_ref,
-                        "promotion_blocked",
-                        "error",
-                        1,
-                        detail,
-                        None,
-                        json.dumps(
-                            {"reason_kind": kind, "source_branch": source_branch},
-                            sort_keys=True,
-                        ),
+                insert_build_diagnostic(
+                    conn,
+                    BuildDiagnosticProjectionRow.from_values(
+                        (
+                            artifact_id,
+                            "claim",
+                            source_ref,
+                            "promotion_blocked",
+                            "error",
+                            1,
+                            detail,
+                            None,
+                            json.dumps(
+                                {
+                                    "reason_kind": kind,
+                                    "source_branch": source_branch,
+                                },
+                                sort_keys=True,
+                            ),
+                        )
                     ),
                 )
         conn.commit()

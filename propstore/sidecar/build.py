@@ -53,6 +53,10 @@ from propstore.sidecar.claims import (
 from propstore.sidecar.passes import compile_sidecar_build_plan
 from propstore.sidecar.stages import ContextSidecarRows, RepositoryCheckedBundle
 from propstore.sidecar.concepts import populate_concept_sidecar_rows
+from propstore.sidecar.diagnostics import (
+    BuildDiagnosticProjectionRow,
+    insert_build_diagnostic,
+)
 from propstore.sidecar.schema import (
     create_build_diagnostics_table,
     create_claim_tables,
@@ -247,23 +251,20 @@ def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
     render time; the partial sidecar is evidence, not trash to unlink.
     """
     create_build_diagnostics_table(conn)
-    conn.execute(
-        """
-        INSERT INTO build_diagnostics (
-            claim_id, source_kind, source_ref, diagnostic_kind,
-            severity, blocking, message, file, detail_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            None,
-            "sidecar_build",
-            None,
-            "build_exception",
-            "error",
-            1,
-            str(exc),
-            None,
-            None,
+    insert_build_diagnostic(
+        conn,
+        BuildDiagnosticProjectionRow.from_values(
+            (
+                None,
+                "sidecar_build",
+                None,
+                "build_exception",
+                "error",
+                1,
+                str(exc),
+                None,
+                None,
+            )
         ),
     )
     conn.commit()
@@ -274,23 +275,20 @@ def _record_embedding_restore_diagnostic(
     exc: Exception,
 ) -> None:
     create_build_diagnostics_table(conn)
-    conn.execute(
-        """
-        INSERT INTO build_diagnostics (
-            claim_id, source_kind, source_ref, diagnostic_kind,
-            severity, blocking, message, file, detail_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            None,
-            "embedding",
-            "restore",
-            "embedding_restore",
-            "warning",
-            0,
-            f"embedding restore failed: {exc}",
-            None,
-            None,
+    insert_build_diagnostic(
+        conn,
+        BuildDiagnosticProjectionRow.from_values(
+            (
+                None,
+                "embedding",
+                "restore",
+                "embedding_restore",
+                "warning",
+                0,
+                f"embedding restore failed: {exc}",
+                None,
+                None,
+            )
         ),
     )
 
@@ -376,23 +374,20 @@ def _record_authoring_diagnostics(
     diagnostics: tuple[PassDiagnostic, ...],
 ) -> None:
     for diagnostic in diagnostics:
-        conn.execute(
-            """
-            INSERT INTO build_diagnostics (
-                claim_id, source_kind, source_ref, diagnostic_kind,
-                severity, blocking, message, file, detail_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                diagnostic.artifact_id,
-                "authoring",
-                diagnostic.artifact_id or diagnostic.filename,
-                diagnostic.code,
-                diagnostic.level,
-                1 if diagnostic.is_error else 0,
-                diagnostic.render(),
-                diagnostic.filename,
-                None,
+        insert_build_diagnostic(
+            conn,
+            BuildDiagnosticProjectionRow.from_values(
+                (
+                    diagnostic.artifact_id,
+                    "authoring",
+                    diagnostic.artifact_id or diagnostic.filename,
+                    diagnostic.code,
+                    diagnostic.level,
+                    1 if diagnostic.is_error else 0,
+                    diagnostic.render(),
+                    diagnostic.filename,
+                    None,
+                )
             ),
         )
 

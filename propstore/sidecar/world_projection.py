@@ -37,6 +37,7 @@ from propstore.sidecar.contexts import (
     CONTEXT_LIFTING_RULE_PROJECTION,
     CONTEXT_PROJECTION,
 )
+from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 
@@ -73,19 +74,7 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
     _required_table("grounded_fact_empty_predicate", "section", "predicate"),
     JUSTIFICATION_PROJECTION,
     CALIBRATION_COUNTS_PROJECTION,
-    _required_table(
-        "build_diagnostics",
-        "id",
-        "claim_id",
-        "source_kind",
-        "source_ref",
-        "diagnostic_kind",
-        "severity",
-        "blocking",
-        "message",
-        "file",
-        "detail_json",
-    ),
+    BUILD_DIAGNOSTICS_PROJECTION,
     metadata={"projection": "propstore.world"},
 )
 

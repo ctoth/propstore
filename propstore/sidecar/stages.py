@@ -31,6 +31,7 @@ if TYPE_CHECKING:
         ContextLiftingRuleProjectionRow,
         ContextProjectionRow,
     )
+    from propstore.sidecar.diagnostics import BuildDiagnosticProjectionRow
     from propstore.sidecar.concepts import (
         AliasProjectionRow,
         ConceptFtsProjectionRow,
@@ -56,14 +57,9 @@ class ClaimSidecarRows:
 
 
 @dataclass(frozen=True)
-class BuildDiagnosticInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
 class RawIdQuarantineSidecarRows:
     claim_rows: tuple["ClaimCoreProjectionRow", ...]
-    diagnostic_rows: tuple[BuildDiagnosticInsertRow, ...]
+    diagnostic_rows: tuple["BuildDiagnosticProjectionRow", ...]
 
 
 @dataclass(frozen=True)

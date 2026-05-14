@@ -69,6 +69,10 @@ from propstore.sidecar.contexts import (
     CONTEXT_LIFTING_RULE_PROJECTION,
     CONTEXT_PROJECTION,
 )
+from propstore.sidecar.diagnostics import (
+    BUILD_DIAGNOSTICS_PROJECTION,
+    create_build_diagnostics_table as create_build_diagnostics_projection_table,
+)
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
@@ -210,24 +214,7 @@ def populate_contexts(
 
 
 def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS build_diagnostics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            claim_id TEXT,
-            source_kind TEXT NOT NULL,
-            source_ref TEXT,
-            diagnostic_kind TEXT NOT NULL,
-            severity TEXT NOT NULL,
-            blocking INTEGER NOT NULL,
-            message TEXT NOT NULL,
-            file TEXT,
-            detail_json TEXT
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_build_diagnostics_claim ON build_diagnostics(claim_id);
-        CREATE INDEX IF NOT EXISTS idx_build_diagnostics_kind ON build_diagnostics(diagnostic_kind);
-        CREATE INDEX IF NOT EXISTS idx_build_diagnostics_source ON build_diagnostics(source_kind, source_ref);
-    """)
+    create_build_diagnostics_projection_table(conn)
 
 
 def create_claim_tables(conn: sqlite3.Connection) -> None:
@@ -269,24 +256,7 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
         CONFLICT_WITNESS_PROJECTION,
         JUSTIFICATION_PROJECTION,
         CLAIM_FTS_PROJECTION,
+        BUILD_DIAGNOSTICS_PROJECTION,
     ):
         for statement in projection.ddl_statements():
             conn.execute(statement)
-
-    conn.executescript("""
-        CREATE TABLE build_diagnostics (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            claim_id TEXT,
-            source_kind TEXT NOT NULL,
-            source_ref TEXT,
-            diagnostic_kind TEXT NOT NULL,
-            severity TEXT NOT NULL,
-            blocking INTEGER NOT NULL,
-            message TEXT NOT NULL,
-            file TEXT,
-            detail_json TEXT
-        );
-        CREATE INDEX idx_build_diagnostics_claim ON build_diagnostics(claim_id);
-        CREATE INDEX idx_build_diagnostics_kind ON build_diagnostics(diagnostic_kind);
-        CREATE INDEX idx_build_diagnostics_source ON build_diagnostics(source_kind, source_ref);
-    """)

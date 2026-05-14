@@ -15,7 +15,11 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from propstore.sidecar.schema import create_build_diagnostics_table
+from propstore.sidecar.diagnostics import (
+    BuildDiagnosticProjectionRow,
+    create_build_diagnostics_table,
+    insert_build_diagnostic,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,24 +101,20 @@ class QuarantinableWriter:
             sort_keys=True,
             separators=(",", ":"),
         )
-        cursor = self._conn.execute(
-            """
-            INSERT INTO build_diagnostics (
-                claim_id, source_kind, source_ref, diagnostic_kind,
-                severity, blocking, message, file, detail_json
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                artifact_id if kind == "claim" else None,
-                kind,
-                artifact_id,
-                diagnostic_kind,
-                "error",
-                1,
-                message,
-                file,
-                detail_json,
+        cursor = insert_build_diagnostic(
+            self._conn,
+            BuildDiagnosticProjectionRow.from_values(
+                (
+                    artifact_id if kind == "claim" else None,
+                    kind,
+                    artifact_id,
+                    diagnostic_kind,
+                    "error",
+                    1,
+                    message,
+                    file,
+                    detail_json,
+                )
             ),
         )
         if cursor.lastrowid is None:
