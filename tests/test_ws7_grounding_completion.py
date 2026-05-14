@@ -215,35 +215,14 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     tmp_path: Path,
 ) -> None:
     from propstore.sidecar.rules import (
-        create_grounded_fact_table,
         populate_grounded_facts,
     )
-    from propstore.sidecar.schema import (
-        create_claim_tables,
-        create_context_tables,
-        create_tables,
-        write_schema_metadata,
-    )
+    from propstore.sidecar.schema import build_minimal_world_model_schema
     from propstore.world.model import WorldQuery
 
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = sqlite3.connect(sidecar_path)
-    write_schema_metadata(conn)
-    create_tables(conn)
-    conn.execute(
-        """
-        CREATE VIRTUAL TABLE concept_fts USING fts5(
-            concept_id UNINDEXED,
-            canonical_name,
-            aliases,
-            definition,
-            conditions
-        )
-        """
-    )
-    create_context_tables(conn)
-    create_claim_tables(conn)
-    create_grounded_fact_table(conn)
+    build_minimal_world_model_schema(conn)
     populate_grounded_facts(conn, _runtime_grounded_bundle())
     conn.commit()
     conn.close()
