@@ -112,9 +112,7 @@ def revision_cli_workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> P
     repo.git.sync_worktree()
 
     runner = CliRunner()
-    sidecar = knowledge / "sidecar" / "propstore.sqlite"
-    sidecar.parent.mkdir(parents=True, exist_ok=True)
-    result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+    result = runner.invoke(cli, ["build"])
     assert result.exit_code == 0, result.output
     return tmp_path
 
