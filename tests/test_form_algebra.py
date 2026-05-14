@@ -434,9 +434,10 @@ def world_model(physics_project):
     """Build sidecar and return a WorldQuery."""
     from propstore.repository import Repository
     from propstore.world import WorldQuery
+    from tests.family_helpers import materialized_world_store_path
     knowledge = physics_project / "knowledge"
     repo = Repository(knowledge)
-    build_sidecar(knowledge, repo.sidecar_path, force=True)
+    materialized_world_store_path(repo, force=True)
     return WorldQuery(repo)
 
 

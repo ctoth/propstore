@@ -19,7 +19,6 @@ from propstore.families.documents.sources import (
     SourceStancesDocument,
 )
 from propstore.families.registry import ClaimRef
-from tests.family_helpers import build_sidecar
 from propstore.cli import cli
 from propstore.repository import Repository
 from tests.conftest import make_test_context_commit_entry
@@ -172,7 +171,6 @@ def _prepare_promoted_source(tmp_path: Path) -> tuple[Repository, str]:
         for handle in repo.families.claims.iter_handles()
         if handle.document.statement == "A second claim."
     )
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
     papers_dir = repo.root.parent / "papers" / "demo"
     papers_dir.mkdir(parents=True, exist_ok=True)
     (papers_dir / "paper.pdf").write_bytes(content_file.read_bytes())

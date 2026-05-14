@@ -7,7 +7,7 @@ import pytest
 from quire.git_store import HeadMismatchError
 
 from propstore.source import finalize_source_branch, promote_source_branch
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 from tests.test_source_promotion_alignment import _setup_source_with_partial_validity
 
 
@@ -18,7 +18,11 @@ def test_promote_cas_rejection_does_not_write_blocked_sidecar_rows(
     source_name = "mixed"
     repo = _setup_source_with_partial_validity(tmp_path, source_name=source_name)
     finalize_source_branch(repo, source_name)
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
+    sidecar_path = materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
+    )
     expected_head = repo.git.branch_sha("master")
     original_commit_batch = type(repo.git).commit_batch
 
@@ -44,7 +48,7 @@ def test_promote_cas_rejection_does_not_write_blocked_sidecar_rows(
     with pytest.raises(HeadMismatchError):
         promote_source_branch(repo, source_name)
 
-    conn = sqlite3.connect(repo.sidecar_path)
+    conn = sqlite3.connect(sidecar_path)
     try:
         blocked_rows = conn.execute(
             "SELECT id FROM claim_core WHERE promotion_status = 'blocked'"
