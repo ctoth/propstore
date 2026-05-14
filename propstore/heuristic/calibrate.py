@@ -18,6 +18,7 @@ from enum import StrEnum
 
 from propstore.core.base_rates import BaseRateUnresolved
 from propstore.core.id_types import AssertionId
+from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
 from propstore.opinion import Opinion, from_evidence, from_probability
 from propstore.provenance import (
     Provenance,
@@ -346,10 +347,7 @@ def load_calibration_counts(conn) -> dict[tuple[int, str], tuple[int, int]] | No
     Per Guo et al. (2017): raw outputs need calibration against validation data.
     """
     try:
-        rows = conn.execute(
-            "SELECT pass_number, category, correct_count, total_count "
-            "FROM calibration_counts"
-        ).fetchall()
+        rows = conn.execute(CALIBRATION_COUNTS_PROJECTION.select_all_sql()).fetchall()
     except sqlite3.OperationalError as exc:
         if "no such table" not in str(exc).lower():
             raise

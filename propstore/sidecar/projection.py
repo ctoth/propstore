@@ -234,6 +234,15 @@ class ProjectionTable:
         params = ", ".join(f":{column.name}" for column in self.insert_columns)
         return f"{verb} INTO {_quote_identifier(table_name)} ({columns}) VALUES ({params})"
 
+    def select_all_sql(
+        self,
+        *,
+        bindings: Mapping[str, str] | None = None,
+    ) -> str:
+        table_name = self.table_name(bindings)
+        columns = ", ".join(_quote_identifier(column.name) for column in self.columns)
+        return f"SELECT {columns} FROM {_quote_identifier(table_name)}"
+
     def encode_row(self, values: Mapping[str, Any]) -> dict[str, Any]:
         return {column.name: column.encode(values.get(column.name)) for column in self.columns}
 

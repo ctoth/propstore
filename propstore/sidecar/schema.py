@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
 from propstore.sidecar.concepts import (
     ALIAS_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
@@ -370,6 +371,9 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
       opt-in policy flags.
     """
 
+    for statement in CALIBRATION_COUNTS_PROJECTION.ddl_statements():
+        conn.execute(statement)
+
     conn.executescript("""
         CREATE TABLE claim_core (
             id TEXT PRIMARY KEY,
@@ -468,14 +472,6 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
             source_claim_id TEXT,
             provenance_json TEXT,
             rule_strength TEXT NOT NULL DEFAULT 'defeasible'
-        );
-
-        CREATE TABLE IF NOT EXISTS calibration_counts (
-            pass_number INTEGER NOT NULL,
-            category TEXT NOT NULL,
-            correct_count INTEGER NOT NULL,
-            total_count INTEGER NOT NULL,
-            PRIMARY KEY (pass_number, category)
         );
 
         CREATE TABLE build_diagnostics (

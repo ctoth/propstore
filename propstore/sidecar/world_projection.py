@@ -12,6 +12,7 @@ from propstore.sidecar.projection import (
     SemanticProjection,
     create_projection_schema,
 )
+from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
 from propstore.sidecar.concepts import (
     ALIAS_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
@@ -173,6 +174,7 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
         "provenance_json",
         "rule_strength",
     ),
+    CALIBRATION_COUNTS_PROJECTION,
     _required_table(
         "build_diagnostics",
         "id",
