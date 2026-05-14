@@ -19,7 +19,6 @@ behavioral change.
 from __future__ import annotations
 
 import json
-import sqlite3
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
@@ -57,13 +56,10 @@ from propstore.provenance import (
     write_provenance_note,
 )
 from propstore.repository import Repository
-from propstore.sidecar.claims import CLAIM_CORE_PROJECTION, ClaimCoreProjectionRow
+from propstore.sidecar.claims import ClaimCoreProjectionRow
 from propstore.sidecar.diagnostics import (
     BuildDiagnosticProjectionRow,
-    insert_build_diagnostic,
 )
-from propstore.sidecar.build import materialize_world_sidecar
-from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.claim_concepts import (
     normalize_promoted_source_claim_artifact,
     source_concept_ref_requires_mapping,
@@ -119,6 +115,12 @@ class PromotionResult:
     blocked_diagnostics: dict[str, tuple[tuple[str, str], ...]]
     sidecar_mirror_ok: bool
     sidecar_mirror_error: str | None = None
+
+
+@dataclass(frozen=True)
+class PromotionBlockedProjectionRows:
+    claim_rows: tuple[ClaimCoreProjectionRow, ...]
+    diagnostic_rows: tuple[BuildDiagnosticProjectionRow, ...]
 
 
 def _validate_promoted_claims_before_commit(
@@ -744,164 +746,114 @@ def _compute_blocked_claim_artifact_ids(
     return blocked, reasons
 
 
-def _write_promotion_blocked_sidecar_rows(
-    store_path: Path,
+def compile_promotion_blocked_projection_rows(
     source_branch: str,
     source_paper: str,
     blocked_claims,
     reasons: dict[str, list[tuple[str, str]]],
-) -> None:
-    """Mirror blocked claims into the derived SQL store with promotion_status='blocked'.
+) -> PromotionBlockedProjectionRows:
+    """Compile blocked source-claim promotion rows for the derived store.
 
     Each blocked claim becomes a row in ``claim_core`` with
     ``promotion_status='blocked'``, ``branch=<source_branch>``; each
     reason becomes a ``build_diagnostics`` row with
-    ``diagnostic_kind='promotion_blocked'``, ``blocking=1``. The render
-    layer joins these to surface per-claim promotion state under opt-in
-    policy flags (phase 4).
-
-    If the derived store file does not exist yet, the write is a no-op.
+    ``diagnostic_kind='promotion_blocked'``, ``blocking=1``.
     """
 
-    if not store_path.exists():
-        return
-
-    conn = connect_sidecar(store_path)
-    try:
-        child_claim_tables = {
-            row[0]
-            for row in conn.execute(
-                """
-                SELECT name
-                FROM sqlite_master
-                WHERE type = 'table'
-                  AND name IN (
-                      'claim_concept_link',
-                      'claim_numeric_payload',
-                      'claim_text_payload',
-                      'claim_algorithm_payload',
-                      'micropublication_claim'
-                  )
-                """
-            ).fetchall()
-        }
-        schema_tables = {
-            row[0]
-            for row in conn.execute(
-                "SELECT name FROM sqlite_master WHERE type = 'table'"
-            ).fetchall()
-        }
-        if "concept" not in schema_tables:
-            # Minimal tests may create claim_concept_link without its
-            # referenced concept table. In that schema there can be no
-            # valid claim_concept_link children to preserve or delete.
-            child_claim_tables.discard("claim_concept_link")
-        for claim in blocked_claims:
-            artifact_id = claim.artifact_id
-            if not isinstance(artifact_id, str) or not artifact_id:
-                # Fall back to raw id — upstream shouldn't produce this,
-                # but the path must not crash on a malformed claim.
-                artifact_id = str(claim.id or "?")
-            source_ref = f"{source_branch}:{artifact_id}"
-            # ``claim_core.id`` is PK. Delete by id alone so a prior
-            # mirror row from any source branch is replaced cleanly.
-            # (Scoping by (id, branch) left prior rows behind and the
-            # subsequent INSERT collided on PK — reproduction in
-            # ``tests/remediation/phase_7_race_atomicity/
-            # test_T7_5d_promotion_blocked_id_collision.py``.)
-            # The ``build_diagnostics`` DELETE stays scoped to this
-            # source_ref so other branches' diagnostics survive.
-            #
-            # Bug 4 (v0.3.2): the sidecar connection runs with
-            # ``PRAGMA foreign_keys = ON`` and four child tables FK to
-            # ``claim_core(id)`` — ``claim_concept_link``,
-            # ``claim_numeric_payload``, ``claim_text_payload``,
-            # ``claim_algorithm_payload``, and ``micropublication_claim``.
-            # If a sibling branch already
-            # ingested this claim its payload children exist, and a bare
-            # ``DELETE FROM claim_core`` raises
-            # ``sqlite3.IntegrityError: FOREIGN KEY constraint failed``.
-            # Drop the child rows first (they will not be re-inserted
-            # below — the blocked-mirror row has no payload), then the
-            # parent. Reproduction in
-            # ``tests/remediation/phase_7_race_atomicity/
-            # test_T7_5e_promotion_blocked_fk_payload.py``.
-            for table_name in (
-                "claim_concept_link",
-                "claim_numeric_payload",
-                "claim_text_payload",
-                "claim_algorithm_payload",
-                "micropublication_claim",
-            ):
-                if table_name not in child_claim_tables:
-                    continue
-                conn.execute(
-                    f"DELETE FROM {table_name} WHERE claim_id = ?",
-                    (artifact_id,),
+    claim_rows: list[ClaimCoreProjectionRow] = []
+    diagnostic_rows: list[BuildDiagnosticProjectionRow] = []
+    for claim in blocked_claims:
+        artifact_id = claim.artifact_id
+        if not isinstance(artifact_id, str) or not artifact_id:
+            artifact_id = str(claim.id or "?")
+        source_ref = f"{source_branch}:{artifact_id}"
+        claim_rows.append(
+            ClaimCoreProjectionRow.from_claim_mapping(
+                {
+                    "id": artifact_id,
+                    "primary_logical_id": "",
+                    "logical_ids_json": "[]",
+                    "version_id": "",
+                    "content_hash": "",
+                    "seq": 0,
+                    "type": "promotion_blocked",
+                    "target_concept": None,
+                    "source_slug": source_paper,
+                    "source_paper": source_paper,
+                    "provenance_page": 0,
+                    "provenance_json": None,
+                    "context_id": None,
+                    "premise_kind": "ordinary",
+                    "branch": source_branch,
+                    "build_status": "ingested",
+                    "stage": None,
+                    "promotion_status": "blocked",
+                }
+            )
+        )
+        for kind, detail in reasons.get(artifact_id, []):
+            diagnostic_rows.append(
+                BuildDiagnosticProjectionRow.from_values(
+                    (
+                        artifact_id,
+                        "claim",
+                        source_ref,
+                        "promotion_blocked",
+                        "error",
+                        1,
+                        detail,
+                        None,
+                        json.dumps(
+                            {
+                                "reason_kind": kind,
+                                "source_branch": source_branch,
+                            },
+                            sort_keys=True,
+                        ),
+                    )
                 )
-            conn.execute(
-                "DELETE FROM claim_core WHERE id = ?",
-                (artifact_id,),
             )
-            conn.execute(
-                "DELETE FROM build_diagnostics WHERE claim_id = ? "
-                "AND diagnostic_kind = 'promotion_blocked' "
-                "AND source_ref = ?",
-                (artifact_id, source_ref),
-            )
+    return PromotionBlockedProjectionRows(
+        claim_rows=tuple(claim_rows),
+        diagnostic_rows=tuple(diagnostic_rows),
+    )
 
-            conn.execute(
-                CLAIM_CORE_PROJECTION.insert_sql(),
-                ClaimCoreProjectionRow.from_claim_mapping(
-                    {
-                        "id": artifact_id,
-                        "primary_logical_id": "",
-                        "logical_ids_json": "[]",
-                        "version_id": "",
-                        "content_hash": "",
-                        "seq": 0,
-                        "type": "promotion_blocked",
-                        "target_concept": None,
-                        "source_slug": source_paper,
-                        "source_paper": source_paper,
-                        "provenance_page": 0,
-                        "provenance_json": None,
-                        "context_id": None,
-                        "premise_kind": "ordinary",
-                        "branch": source_branch,
-                        "build_status": "ingested",
-                        "stage": None,
-                        "promotion_status": "blocked",
-                    }
-                ).as_insert_mapping(),
-            )
 
-            for kind, detail in reasons.get(artifact_id, []):
-                insert_build_diagnostic(
-                    conn,
-                    BuildDiagnosticProjectionRow.from_values(
-                        (
-                            artifact_id,
-                            "claim",
-                            source_ref,
-                            "promotion_blocked",
-                            "error",
-                            1,
-                            detail,
-                            None,
-                            json.dumps(
-                                {
-                                    "reason_kind": kind,
-                                    "source_branch": source_branch,
-                                },
-                                sort_keys=True,
-                            ),
-                        )
-                    ),
-                )
-        conn.commit()
-    finally:
-        conn.close()
+def compile_source_promotion_blocked_projection_rows(
+    repo: Repository,
+    source_name: str,
+) -> PromotionBlockedProjectionRows:
+    claims_doc = load_source_claims_document(repo, source_name)
+    if claims_doc is None:
+        return PromotionBlockedProjectionRows((), ())
+    if load_finalize_report(repo, source_name) is None:
+        return PromotionBlockedProjectionRows((), ())
+
+    concept_resolution = resolve_source_concept_promotions(repo, source_name)
+    source_claim_index = build_source_claim_index(repo, source_name)
+    blocked_artifact_ids, blocked_reasons = _compute_blocked_claim_artifact_ids(
+        claims_doc,
+        load_source_justifications_document(repo, source_name),
+        load_source_stances_document(repo, source_name),
+        source_claim_index,
+        concept_map=concept_resolution.concept_map,
+        blocked_concept_refs=concept_resolution.blocked_concept_refs,
+    )
+    blocked_claims = [
+        claim
+        for claim in claims_doc.claims
+        if isinstance(claim.artifact_id, str)
+        and claim.artifact_id in blocked_artifact_ids
+    ]
+    if not blocked_claims:
+        return PromotionBlockedProjectionRows((), ())
+    slug = source_paper_slug(source_name)
+    return compile_promotion_blocked_projection_rows(
+        source_branch_name(source_name),
+        _promoted_claim_source_paper(claims_doc, fallback_slug=slug),
+        blocked_claims,
+        blocked_reasons,
+    )
 
 
 def promote_source_branch(
@@ -971,16 +923,9 @@ def promote_source_branch(
     ]
 
     if not valid_claims and blocked_claims:
-        # All items blocked — still write mirror rows so the render layer
-        # can surface them, then raise so the CLI can report exit code 1.
-        handle, _ = materialize_world_sidecar(repo, force=True)
-        _write_promotion_blocked_sidecar_rows(
-            handle.path,
-            source_branch_name(source_name),
-            slug,
-            blocked_claims,
-            blocked_reasons,
-        )
+        # All items blocked. The derived-store builder materializes the
+        # mirror rows from source-branch state; promote raises so the CLI
+        # can report exit code 1 without advancing master.
         details = sorted(
             {
                 detail
@@ -1019,30 +964,6 @@ def promote_source_branch(
     if git is None:
         raise ValueError("source promotion requires a git-backed repository")
     with git.head_bound_transaction(repo.require_git().primary_branch_name()) as head_txn:
-        if promotion_plan.blocked_claims:
-            head_txn.assert_current()
-
-            def write_blocked_rows_to_derived_store(commit_sha: str) -> None:
-                nonlocal sidecar_mirror_ok, sidecar_mirror_error
-                try:
-                    handle, _ = materialize_world_sidecar(
-                        repo,
-                        force=True,
-                        commit_hash=commit_sha,
-                    )
-                    _write_promotion_blocked_sidecar_rows(
-                        handle.path,
-                        promotion_plan.source_branch,
-                        promotion_plan.slug,
-                        promotion_plan.blocked_claims,
-                        promotion_plan.blocked_reasons,
-                    )
-                except OSError as exc:
-                    sidecar_mirror_ok = False
-                    sidecar_mirror_error = str(exc)
-
-            head_txn.after_commit(write_blocked_rows_to_derived_store)
-
         with head_txn.families_transact(repo.families, message=f"Promote source {slug}") as transaction:
             transaction.sources.save(
                 promotion_plan.source_ref,
