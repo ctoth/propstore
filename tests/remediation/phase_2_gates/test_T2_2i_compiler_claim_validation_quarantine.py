@@ -70,11 +70,11 @@ def test_build_repository_claim_validation_error_quarantines_not_raises(
         },
         "seed compiler workflow claim validation quarantine test",
     )
-    sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
-
-    report = build_repository(repo, output=str(sidecar_path), force=True)
+    report = build_repository(repo, force=True)
 
     assert report.rebuilt is True
+    assert report.derived_store is not None
+    sidecar_path = Path(report.derived_store.path)
     assert sidecar_path.exists()
 
     conn = sqlite3.connect(sidecar_path)
