@@ -48,7 +48,7 @@ def test_source_sidecar_serializes_prior_base_rate_as_opinion_json() -> None:
     )
 
     rows = compile_source_sidecar_rows([("demo", source_doc)])
-    prior_json = rows.source_rows[0].values[7]
+    prior_json = rows[0].prior_base_rate
 
     assert isinstance(prior_json, str)
     assert json.loads(prior_json) == PRIOR_PAYLOAD
