@@ -1150,12 +1150,12 @@ class TestConceptShow:
 
 
 class TestConceptSearch:
-    def test_search_requires_sidecar(self, workspace: Path) -> None:
-        """concept search should require a built sidecar."""
+    def test_search_materializes_derived_store(self, workspace: Path) -> None:
+        """concept search should materialize its derived store on demand."""
         runner = CliRunner()
         result = runner.invoke(cli, ["concept", "search", "fundamental"])
-        assert result.exit_code != 0
-        assert "requires a built sidecar" in result.output
+        assert result.exit_code == 0, result.output
+        assert "fundamental_frequency" in result.output
 
     def test_search_no_matches(self, workspace: Path) -> None:
         """concept search with no matches should report no matches."""
