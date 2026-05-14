@@ -115,6 +115,26 @@ PARAMETERIZATION_PROJECTION = ProjectionTable(
 )
 
 
+RELATIONSHIP_PROJECTION = ProjectionTable(
+    name="relationship",
+    columns=(
+        ProjectionColumn("source_id", "TEXT", nullable=False),
+        ProjectionColumn("type", "TEXT", nullable=False),
+        ProjectionColumn("target_id", "TEXT", nullable=False),
+        ProjectionColumn("conditions_cel", "TEXT"),
+        ProjectionColumn("note", "TEXT"),
+    ),
+    foreign_keys=(
+        ProjectionForeignKey(("source_id",), "concept", ("id",)),
+        ProjectionForeignKey(("target_id",), "concept", ("id",)),
+    ),
+    indexes=(
+        ProjectionIndex("idx_rel_source", ("source_id",)),
+        ProjectionIndex("idx_rel_target", ("target_id",)),
+    ),
+)
+
+
 CONCEPT_FTS_PROJECTION = FtsProjection(
     table="concept_fts",
     key_column="concept_id",
@@ -291,12 +311,17 @@ def populate_concept_sidecar_rows(
     for row in rows.alias_rows:
         conn.execute(alias_insert_sql, row.as_insert_mapping())
 
+    relationship_insert_sql = RELATIONSHIP_PROJECTION.insert_sql()
     for row in rows.relationship_rows:
         conn.execute(
-            "INSERT INTO relationship "
-            "(source_id, type, target_id, conditions_cel, note) "
-            "VALUES (?, ?, ?, ?, ?)",
-            row.values,
+            relationship_insert_sql,
+            {
+                "source_id": row.source_id,
+                "type": row.relationship_type,
+                "target_id": row.target_id,
+                "conditions_cel": row.conditions_cel,
+                "note": row.note,
+            },
         )
 
     relation_edge_insert_sql = RELATION_EDGE_PROJECTION.insert_sql()

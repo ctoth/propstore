@@ -56,7 +56,7 @@ from propstore.sidecar.claim_utils import (
 from propstore.sidecar.stages import (
     ClaimSidecarRows,
     ContextSidecarRows,
-    ConceptRelationshipInsertRow,
+    ConceptRelationshipProjectionRow,
     ConceptSidecarRows,
     MicropublicationSidecarRows,
     RawIdQuarantineSidecarRows,
@@ -263,7 +263,7 @@ def compile_concept_sidecar_rows(
     form_rows: list[FormProjectionRow] = []
     concept_rows: list[ConceptProjectionRow] = []
     alias_rows: list[AliasProjectionRow] = []
-    relationship_rows: list[ConceptRelationshipInsertRow] = []
+    relationship_rows: list[ConceptRelationshipProjectionRow] = []
     relation_edge_rows: list[RelationEdgeProjectionRow] = []
     parameterization_rows: list[ParameterizationProjectionRow] = []
     parameterization_group_rows: list[ParameterizationGroupProjectionRow] = []
@@ -354,14 +354,12 @@ def compile_concept_sidecar_rows(
             )
             target_id = str(relationship.target)
             relationship_rows.append(
-                ConceptRelationshipInsertRow(
-                    (
-                        concept_id,
-                        relationship.relationship_type,
-                        target_id,
-                        conditions_json,
-                        relationship.note,
-                    )
+                ConceptRelationshipProjectionRow(
+                    source_id=concept_id,
+                    relationship_type=relationship.relationship_type,
+                    target_id=target_id,
+                    conditions_cel=conditions_json,
+                    note=relationship.note,
                 )
             )
             relation_edge_rows.append(

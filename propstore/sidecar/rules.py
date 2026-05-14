@@ -10,8 +10,8 @@ sidecar is a durable boundary, not an in-process cache.
 The design follows the existing sidecar convention of *one topic
 module per subsystem* (``claims.py``, ``concepts.py``, ``sources.py``);
 grounded facts are their own topic and get their own module. The
-``CREATE TABLE`` helper is colocated here because the grounded-fact
-table does not cross-reference any other sidecar table, so keeping
+projection contracts are colocated here because the grounded-fact
+tables do not cross-reference any other sidecar table, so keeping
 schema and read/write functions physically next to one another makes
 the module self-contained.
 
@@ -159,24 +159,7 @@ class GroundedBundleInputProjectionRow:
 
 
 def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
-    """Create the grounded-fact tables if they do not already exist.
-
-    Two tables are created in this call:
-
-    .. code-block:: sql
-
-        CREATE TABLE IF NOT EXISTS grounded_fact (
-            predicate TEXT NOT NULL,
-            arguments TEXT NOT NULL,
-            section   TEXT NOT NULL,
-            PRIMARY KEY (predicate, arguments, section)
-        );
-
-        CREATE TABLE IF NOT EXISTS grounded_fact_empty_predicate (
-            section   TEXT NOT NULL,
-            predicate TEXT NOT NULL,
-            PRIMARY KEY (section, predicate)
-        );
+    """Create grounded-fact tables from their projection contracts.
 
     The ``grounded_fact`` composite primary key enforces set
     semantics per section while still permitting the same ground

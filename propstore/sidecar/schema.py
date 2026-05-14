@@ -62,6 +62,7 @@ from propstore.sidecar.concepts import (
     FORM_PROJECTION,
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
+    RELATIONSHIP_PROJECTION,
 )
 from propstore.sidecar.contexts import (
     CONTEXT_ASSUMPTION_PROJECTION,
@@ -77,6 +78,7 @@ from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.micropublications import (
     create_micropublication_tables as create_micropublication_projection_tables,
 )
+from propstore.sidecar.projection import ProjectionColumn, ProjectionTable
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
@@ -85,16 +87,20 @@ SCHEMA_VERSION = 6
 SIDECAR_META_KEY = "sidecar"
 
 
+META_PROJECTION = ProjectionTable(
+    name="meta",
+    columns=(
+        ProjectionColumn("key", "TEXT", primary_key=True),
+        ProjectionColumn("schema_version", "INTEGER", nullable=False),
+    ),
+    if_not_exists=True,
+)
+
+
 def create_meta_table(conn: sqlite3.Connection) -> None:
     """Create the sidecar metadata table."""
-    conn.execute(
-        """
-        CREATE TABLE IF NOT EXISTS meta (
-            key TEXT PRIMARY KEY,
-            schema_version INTEGER NOT NULL
-        )
-        """
-    )
+    for statement in META_PROJECTION.ddl_statements():
+        conn.execute(statement)
 
 
 def write_schema_metadata(conn: sqlite3.Connection) -> None:
@@ -124,25 +130,11 @@ def create_tables(conn: sqlite3.Connection) -> None:
         ALIAS_PROJECTION,
         PARAMETERIZATION_PROJECTION,
         PARAMETERIZATION_GROUP_PROJECTION,
+        RELATIONSHIP_PROJECTION,
         RELATION_EDGE_PROJECTION,
     ):
         for statement in projection.ddl_statements():
             conn.execute(statement)
-
-    conn.executescript("""
-        CREATE TABLE relationship (
-            source_id TEXT NOT NULL,
-            type TEXT NOT NULL,
-            target_id TEXT NOT NULL,
-            conditions_cel TEXT,
-            note TEXT,
-            FOREIGN KEY (source_id) REFERENCES concept(id),
-            FOREIGN KEY (target_id) REFERENCES concept(id)
-        );
-
-        CREATE INDEX idx_rel_source ON relationship(source_id);
-        CREATE INDEX idx_rel_target ON relationship(target_id);
-    """)
 
 
 def build_minimal_world_model_schema(conn: sqlite3.Connection) -> None:

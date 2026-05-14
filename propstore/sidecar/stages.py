@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
-from typing import Any
 
 from propstore.claims import ClaimFileEntry
 from propstore.families.claims.stages import ClaimCheckedBundle
@@ -90,8 +89,12 @@ class ContextSidecarRows:
 
 
 @dataclass(frozen=True)
-class ConceptRelationshipInsertRow:
-    values: tuple[Any, ...]
+class ConceptRelationshipProjectionRow:
+    source_id: str
+    relationship_type: str
+    target_id: str
+    conditions_cel: str | None
+    note: str | None
 
 
 @dataclass(frozen=True)
@@ -99,7 +102,7 @@ class ConceptSidecarRows:
     form_rows: tuple["FormProjectionRow", ...]
     concept_rows: tuple["ConceptProjectionRow", ...]
     alias_rows: tuple["AliasProjectionRow", ...]
-    relationship_rows: tuple[ConceptRelationshipInsertRow, ...]
+    relationship_rows: tuple[ConceptRelationshipProjectionRow, ...]
     relation_edge_rows: tuple["RelationEdgeProjectionRow", ...]
     parameterization_rows: tuple["ParameterizationProjectionRow", ...]
     parameterization_group_rows: tuple["ParameterizationGroupProjectionRow", ...]
