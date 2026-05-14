@@ -120,6 +120,58 @@ The phases below are topologically ordered.
 16. Propstore handle cutover
 17. Final deletions and gates
 
+## Execution Discipline
+
+This workstream is deletion-first.
+
+For each implementation slice:
+
+1. Reread this workstream and identify the exact current phase and table family.
+2. Delete the old production surface for that exact phase before adding the
+   replacement.
+3. Use compiler, type, test, and search failures as the repair queue.
+4. Run the focused gate for the slice.
+5. Commit the slice atomically.
+6. Immediately reread this workstream before choosing the next slice.
+
+Do not add wrappers, aliases, compatibility readers, fallback schemas,
+dual-path populators, or old/new bridge helpers. If a deletion reveals that the
+replacement contract is insufficient, stop and improve the contract rather than
+restoring the old path behind a new name.
+
+Do not continue from memory after a commit. The next action after every commit
+is to reread this workstream, identify the next unfinished phase, and continue
+from there unless blocked.
+
+## Expected Reduction Ledger
+
+The workstream must produce measurable deletion, not just relocation.
+
+Expected reductions:
+
+- `propstore/sidecar/stages.py` is deleted or reduced to non-row-layout bundle
+  types only. `*InsertRow(values=...)` and positional `*SidecarRows` wrappers
+  disappear.
+- `propstore/sidecar/schema.py` no longer hand-authors Propstore world-sidecar
+  DDL. It either disappears, becomes generated-schema glue, or becomes a
+  projection-registry adapter.
+- `propstore/sidecar/passes.py` stops owning row-layout bookkeeping and
+  positional tuple construction. Semantic lowering may remain, but table-shape
+  repetition must not.
+- `propstore/sidecar/{sources,concepts,claims,micropublications,rules}.py`
+  lose custom inserters and custom DDL. Any remaining code is semantic
+  projection logic or domain-specific read/write behavior that cannot be
+  generated.
+- `propstore/world/model.py` loses duplicate schema validation and no longer
+  knows hand-maintained required table/column sets.
+- production code no longer treats `repo.sidecar_path` as the sidecar identity.
+- normal build/query/history workflows no longer own a caller-selected sidecar
+  path.
+
+Completion requires showing which files shrank, which custom surfaces were
+deleted, and which remaining surfaces are intentionally semantic rather than
+table-layout machinery.
+
 ## Phase 1: Inventory and Invariants
 
 Repository: `propstore`
