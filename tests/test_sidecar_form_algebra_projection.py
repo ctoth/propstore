@@ -45,7 +45,6 @@ def test_form_algebra_rows_use_generated_insert_and_autoincrement_id() -> None:
                 dim_verified=1,
             ),
         ),
-        concept_fts_rows=(),
     )
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row

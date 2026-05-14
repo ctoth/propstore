@@ -137,9 +137,39 @@ CONCEPT_FTS_PROJECTION = FtsProjection(
     table="concept_fts",
     key_column="concept_id",
     columns=("canonical_name", "aliases", "definition", "conditions"),
-    row_plan=(
-        "Concept FTS rows are generated from compiled concept bundles in deterministic concept traversal order."
-    ),
+    source_query="""
+        SELECT
+            c.id AS concept_id,
+            c.canonical_name AS canonical_name,
+            COALESCE(
+                (
+                    SELECT group_concat(a.alias_name, ' ')
+                    FROM alias a
+                    WHERE a.concept_id = c.id
+                ),
+                ''
+            ) AS aliases,
+            c.definition AS definition,
+            COALESCE(
+                (
+                    SELECT group_concat(value, ' ')
+                    FROM (
+                        SELECT rel_condition.value AS value
+                        FROM relationship r, json_each(r.conditions_cel) AS rel_condition
+                        WHERE r.source_id = c.id
+                          AND r.conditions_cel IS NOT NULL
+                        UNION ALL
+                        SELECT param_condition.value AS value
+                        FROM parameterization p, json_each(p.conditions_cel) AS param_condition
+                        WHERE p.output_concept_id = c.id
+                          AND p.conditions_cel IS NOT NULL
+                    )
+                ),
+                ''
+            ) AS conditions
+        FROM concept c
+        ORDER BY c.seq
+    """,
 )
 
 def populate_concept_sidecar_rows(
@@ -174,8 +204,3 @@ def populate_concept_sidecar_rows(
         PARAMETERIZATION_GROUP_PROJECTION.insert_rows(conn, rows.parameterization_group_rows)
     if rows.form_algebra_rows:
         FORM_ALGEBRA_PROJECTION.insert_rows(conn, rows.form_algebra_rows)
-
-    for statement in CONCEPT_FTS_PROJECTION.ddl_statements():
-        conn.execute(statement)
-    if rows.concept_fts_rows:
-        CONCEPT_FTS_PROJECTION.insert_rows(conn, rows.concept_fts_rows)

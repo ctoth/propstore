@@ -70,7 +70,6 @@ from propstore.sidecar.claims import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
     CLAIM_CONCEPT_LINK_PROJECTION,
     CLAIM_CORE_PROJECTION,
-    CLAIM_FTS_PROJECTION,
     CLAIM_NUMERIC_PAYLOAD_PROJECTION,
     CLAIM_TEXT_PAYLOAD_PROJECTION,
     CONFLICT_WITNESS_PROJECTION,
@@ -90,7 +89,6 @@ from propstore.sidecar.micropublications import (
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.concepts import (
     ALIAS_PROJECTION,
-    CONCEPT_FTS_PROJECTION,
     CONCEPT_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
@@ -269,7 +267,6 @@ def compile_concept_sidecar_rows(
     parameterization_rows: list[ProjectionRow] = []
     parameterization_group_rows: list[ProjectionRow] = []
     form_algebra_rows: list[ProjectionRow] = []
-    concept_fts_rows: list[ProjectionRow] = []
 
     for form_definition in form_registry.values():
         dimensions_json = (
@@ -411,22 +408,6 @@ def compile_concept_sidecar_rows(
                 )
             )
 
-        alias_names = [alias.name for alias in record.aliases]
-        conditions_parts: list[str] = []
-        for relationship in record.relationships:
-            conditions_parts.extend(relationship.conditions)
-        for parameterization in record.parameterizations:
-            conditions_parts.extend(parameterization.conditions)
-        concept_fts_rows.append(
-            CONCEPT_FTS_PROJECTION.row(
-                concept_id=concept_id,
-                canonical_name=record.canonical_name,
-                aliases=" ".join(alias_names),
-                definition=record.definition,
-                conditions=" ".join(conditions_parts),
-            )
-        )
-
     groups = build_groups(concepts)
     for group_id, group_members in enumerate(sorted(groups, key=lambda group: min(group))):
         for concept_id in sorted(group_members):
@@ -448,7 +429,6 @@ def compile_concept_sidecar_rows(
         parameterization_rows=tuple(parameterization_rows),
         parameterization_group_rows=tuple(parameterization_group_rows),
         form_algebra_rows=tuple(form_algebra_rows),
-        concept_fts_rows=tuple(concept_fts_rows),
     )
 
 
@@ -952,26 +932,6 @@ def compile_conflict_sidecar_rows(
     )
 
 
-def compile_claim_fts_rows(
-    claim_files: Sequence[ClaimFileEntry],
-) -> tuple[ProjectionRow, ...]:
-    rows: list[ProjectionRow] = []
-    for claim_file in claim_files:
-        for claim in claim_file_claims(claim_file):
-            claim_id = claim.artifact_id
-            if not isinstance(claim_id, str) or not claim_id:
-                continue
-            rows.append(
-                CLAIM_FTS_PROJECTION.row(
-                    claim_id=claim_id,
-                    statement=claim.statement or "",
-                    conditions=" ".join(list(claim.conditions)),
-                    expression=claim.expression or "",
-                )
-            )
-    return tuple(rows)
-
-
 def compile_raw_id_quarantine_sidecar_rows(
     records: Sequence[RawIdQuarantineRecord],
 ) -> RawIdQuarantineSidecarRows:
@@ -1130,7 +1090,6 @@ def compile_sidecar_build_plan(
     claim_rows: ClaimSidecarRows | None = None
     raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(())
     conflict_rows: tuple[ProjectionRow, ...] = ()
-    claim_fts_rows: tuple[ProjectionRow, ...] = ()
     stance_rows: tuple[ProjectionRow, ...] = ()
     justification_rows: tuple[ProjectionRow, ...] = ()
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...] = ()
@@ -1164,7 +1123,6 @@ def compile_sidecar_build_plan(
             dict(repository_checked_bundle.compilation_context.cel_registry),
             lifting_system=lifting_system,
         )
-        claim_fts_rows = compile_claim_fts_rows(normalized_claim_files)
         stance_rows, stance_quarantine_diagnostics = (
             _compile_authored_stance_sidecar_rows_with_diagnostics(
                 stance_entries,
@@ -1206,7 +1164,6 @@ def compile_sidecar_build_plan(
         claim_rows=claim_rows,
         raw_id_quarantine_rows=raw_id_quarantine_rows,
         conflict_rows=conflict_rows,
-        claim_fts_rows=claim_fts_rows,
         micropublication_rows=micropublication_rows,
         stance_rows=stance_rows,
         justification_rows=justification_rows,

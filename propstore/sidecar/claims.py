@@ -180,7 +180,22 @@ CLAIM_FTS_PROJECTION = FtsProjection(
     table="claim_fts",
     key_column="claim_id",
     columns=("statement", "conditions", "expression"),
-    row_plan="compiled claim files",
+    source_query="""
+        SELECT
+            c.id AS claim_id,
+            COALESCE(t.statement, '') AS statement,
+            COALESCE(
+                (
+                    SELECT group_concat(value, ' ')
+                    FROM json_each(t.conditions_cel)
+                ),
+                ''
+            ) AS conditions,
+            COALESCE(t.expression, '') AS expression
+        FROM claim_core c
+        JOIN claim_text_payload t ON t.claim_id = c.id
+        ORDER BY c.seq
+    """,
 )
 
 def populate_raw_id_quarantine_records(
@@ -313,10 +328,3 @@ def populate_conflicts(
     rows: Sequence[ProjectionRow],
 ) -> None:
     CONFLICT_WITNESS_PROJECTION.insert_rows(conn, rows)
-
-
-def populate_claim_fts_rows(
-    conn: sqlite3.Connection,
-    rows: Sequence[ProjectionRow],
-) -> None:
-    CLAIM_FTS_PROJECTION.insert_rows(conn, rows)

@@ -29,7 +29,6 @@ def test_parameterization_group_rows_use_generated_insert() -> None:
             ),
         ),
         form_algebra_rows=(),
-        concept_fts_rows=(),
     )
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row

@@ -44,9 +44,9 @@ from propstore.families.forms.passes import register_form_pipeline, run_form_pip
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.sidecar.claims import (
+    CLAIM_FTS_PROJECTION,
     CLAIM_CORE_PROJECTION,
     populate_authored_justifications,
-    populate_claim_fts_rows,
     populate_claims,
     populate_conflicts,
     populate_raw_id_quarantine_records,
@@ -54,7 +54,7 @@ from propstore.sidecar.claims import (
 )
 from propstore.sidecar.passes import compile_sidecar_build_plan
 from propstore.sidecar.stages import ContextSidecarRows, RepositoryCheckedBundle
-from propstore.sidecar.concepts import populate_concept_sidecar_rows
+from propstore.sidecar.concepts import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
 from propstore.sidecar.diagnostics import (
     BUILD_DIAGNOSTICS_PROJECTION,
     insert_build_diagnostic,
@@ -797,6 +797,7 @@ def _build_sidecar_file(
             conn,
             sidecar_plan.concept_rows,
         )
+        CONCEPT_FTS_PROJECTION.populate_from_source_query(conn)
         create_claim_tables(conn)
         ensure_embedding_tables(conn)
         _record_form_diagnostics(conn, form_diagnostics)
@@ -830,7 +831,7 @@ def _build_sidecar_file(
             )
 
             populate_conflicts(conn, sidecar_plan.conflict_rows)
-            populate_claim_fts_rows(conn, sidecar_plan.claim_fts_rows)
+            CLAIM_FTS_PROJECTION.populate_from_source_query(conn)
         else:
             _populate_promotion_blocked_rows(
                 conn,

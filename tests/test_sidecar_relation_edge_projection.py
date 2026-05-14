@@ -27,7 +27,6 @@ def test_concept_relation_edge_rows_use_generated_insert() -> None:
         parameterization_rows=(),
         parameterization_group_rows=(),
         form_algebra_rows=(),
-        concept_fts_rows=(),
     )
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row

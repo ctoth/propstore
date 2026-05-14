@@ -80,7 +80,6 @@ class ConceptSidecarRows:
     parameterization_rows: tuple["ProjectionRow", ...]
     parameterization_group_rows: tuple["ProjectionRow", ...]
     form_algebra_rows: tuple["ProjectionRow", ...]
-    concept_fts_rows: tuple["ProjectionRow", ...]
 
 
 @dataclass(frozen=True)
@@ -103,7 +102,6 @@ class SidecarBuildPlan:
     claim_rows: ClaimSidecarRows | None
     raw_id_quarantine_rows: RawIdQuarantineSidecarRows
     conflict_rows: tuple["ProjectionRow", ...]
-    claim_fts_rows: tuple["ProjectionRow", ...]
     micropublication_rows: MicropublicationSidecarRows
     stance_rows: tuple["ProjectionRow", ...]
     justification_rows: tuple["ProjectionRow", ...]
