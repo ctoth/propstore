@@ -57,6 +57,19 @@ ALIAS_PROJECTION = ProjectionTable(
 )
 
 
+PARAMETERIZATION_GROUP_PROJECTION = ProjectionTable(
+    name="parameterization_group",
+    columns=(
+        ProjectionColumn("concept_id", "TEXT", nullable=False),
+        ProjectionColumn("group_id", "INTEGER", nullable=False),
+    ),
+    foreign_keys=(
+        ProjectionForeignKey(("concept_id",), "concept", ("id",)),
+    ),
+    indexes=(ProjectionIndex("idx_param_group", ("group_id",)),),
+)
+
+
 @dataclass(frozen=True)
 class FormProjectionRow:
     name: str
@@ -86,6 +99,18 @@ class AliasProjectionRow:
             "concept_id": self.concept_id,
             "alias_name": self.alias_name,
             "source": self.source,
+        }
+
+
+@dataclass(frozen=True)
+class ParameterizationGroupProjectionRow:
+    concept_id: str
+    group_id: int
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "concept_id": self.concept_id,
+            "group_id": self.group_id,
         }
 
 
@@ -155,12 +180,9 @@ def populate_concept_sidecar_rows(
             row.values,
         )
 
+    parameterization_group_insert_sql = PARAMETERIZATION_GROUP_PROJECTION.insert_sql()
     for row in rows.parameterization_group_rows:
-        conn.execute(
-            "INSERT INTO parameterization_group (concept_id, group_id) "
-            "VALUES (?, ?)",
-            row.values,
-        )
+        conn.execute(parameterization_group_insert_sql, row.as_insert_mapping())
 
     form_algebra_insert_sql = FORM_ALGEBRA_PROJECTION.insert_sql()
     for row in rows.form_algebra_rows:

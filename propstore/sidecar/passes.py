@@ -66,7 +66,6 @@ from propstore.sidecar.stages import (
     ContextLiftingRuleInsertRow,
     ContextSidecarRows,
     ConceptInsertRow,
-    ConceptParameterizationGroupInsertRow,
     ConceptParameterizationInsertRow,
     ConceptRelationshipInsertRow,
     ConceptSidecarRows,
@@ -87,6 +86,7 @@ from propstore.sidecar.concepts import (
     AliasProjectionRow,
     FormAlgebraProjectionRow,
     FormProjectionRow,
+    ParameterizationGroupProjectionRow,
 )
 from propstore.sidecar.sources import SourceProjectionRow
 from propstore.sidecar.claim_utils import (
@@ -262,7 +262,7 @@ def compile_concept_sidecar_rows(
     relationship_rows: list[ConceptRelationshipInsertRow] = []
     relation_edge_rows: list[RelationEdgeInsertRow] = []
     parameterization_rows: list[ConceptParameterizationInsertRow] = []
-    parameterization_group_rows: list[ConceptParameterizationGroupInsertRow] = []
+    parameterization_group_rows: list[ParameterizationGroupProjectionRow] = []
     form_algebra_rows: list[FormAlgebraProjectionRow] = []
     concept_fts_rows: list[ConceptFtsInsertRow] = []
 
@@ -435,7 +435,10 @@ def compile_concept_sidecar_rows(
     for group_id, group_members in enumerate(sorted(groups, key=lambda group: min(group))):
         for concept_id in sorted(group_members):
             parameterization_group_rows.append(
-                ConceptParameterizationGroupInsertRow((concept_id, group_id))
+                ParameterizationGroupProjectionRow(
+                    concept_id=concept_id,
+                    group_id=group_id,
+                )
             )
 
     form_algebra_rows.extend(_compile_form_algebra_rows(concepts, form_registry))

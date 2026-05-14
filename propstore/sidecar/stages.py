@@ -18,6 +18,7 @@ if TYPE_CHECKING:
         AliasProjectionRow,
         FormAlgebraProjectionRow,
         FormProjectionRow,
+        ParameterizationGroupProjectionRow,
     )
     from propstore.sidecar.sources import SourceProjectionRow
 
@@ -150,11 +151,6 @@ class ConceptParameterizationInsertRow:
 
 
 @dataclass(frozen=True)
-class ConceptParameterizationGroupInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
 class ConceptFtsInsertRow:
     values: tuple[Any, ...]
 
@@ -167,7 +163,7 @@ class ConceptSidecarRows:
     relationship_rows: tuple[ConceptRelationshipInsertRow, ...]
     relation_edge_rows: tuple[RelationEdgeInsertRow, ...]
     parameterization_rows: tuple[ConceptParameterizationInsertRow, ...]
-    parameterization_group_rows: tuple[ConceptParameterizationGroupInsertRow, ...]
+    parameterization_group_rows: tuple["ParameterizationGroupProjectionRow", ...]
     form_algebra_rows: tuple["FormAlgebraProjectionRow", ...]
     concept_fts_rows: tuple[ConceptFtsInsertRow, ...]
 

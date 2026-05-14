@@ -47,6 +47,7 @@ from propstore.sidecar.concepts import (
     ALIAS_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
+    PARAMETERIZATION_GROUP_PROJECTION,
 )
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
@@ -100,6 +101,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
         FORM_PROJECTION,
         FORM_ALGEBRA_PROJECTION,
         ALIAS_PROJECTION,
+        PARAMETERIZATION_GROUP_PROJECTION,
     ):
         for statement in projection.ddl_statements():
             conn.execute(statement)
@@ -148,12 +150,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (output_concept_id) REFERENCES concept(id)
         );
 
-        CREATE TABLE parameterization_group (
-            concept_id TEXT NOT NULL,
-            group_id INTEGER NOT NULL,
-            FOREIGN KEY (concept_id) REFERENCES concept(id)
-        );
-
         CREATE TABLE relation_edge (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             source_kind TEXT NOT NULL,
@@ -190,7 +186,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX idx_relation_edge_source ON relation_edge(source_kind, source_id);
         CREATE INDEX idx_relation_edge_target ON relation_edge(target_kind, target_id);
         CREATE INDEX idx_relation_edge_type ON relation_edge(relation_type);
-        CREATE INDEX idx_param_group ON parameterization_group(group_id);
     """)
 
 
