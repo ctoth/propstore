@@ -519,12 +519,45 @@ Quire owns build orchestration mechanics. Propstore keeps only semantic inputs:
 - semantic diagnostics emitted by Propstore extractors
 - Propstore-specific build report rendering if needed
 
+This phase is not a file-local line-count exercise. A Phase 12 review on
+2026-05-14 found that a literal 50% `build.py` reduction would require moving
+Propstore family orchestration, diagnostic policy, promotion-blocked policy, or
+grounding/source semantics out of `build.py`. That would only relocate
+Propstore-owned semantic code inside `propstore/` or move non-goal semantics
+into Quire. Neither is deletion-first.
+
+The executable target is therefore architectural deletion:
+
+- delete Propstore-owned atomic publish, temp SQLite path, WAL/SHM cleanup, and
+  publish-lock helpers;
+- delete Propstore-owned derived-store cache-key/path ownership when Quire
+  already provides the cache key and materialized path;
+- delete Propstore-owned generic schema/dependency hashing helpers after Quire
+  owns the generic digest readers;
+- keep Propstore code that loads families, runs Propstore semantic pipelines,
+  emits Propstore diagnostics, handles source-promotion-blocked rows, restores
+  embedding snapshots, and populates semantic projections;
+- do not move semantic orchestration to another Propstore file merely to shrink
+  `build.py`.
+
 Phase gate:
 
-- `propstore/sidecar/build.py` is net-reduced by at least 50% from the
-  workstream starting commit.
 - Propstore does not own atomic publish, lock, cache-root, derived-store path,
   schema-hash, or projection-ordering mechanics.
+- Search shows the deleted generic helper family is gone:
+  - `_sqlite_artifact_paths`
+  - `_cleanup_sqlite_artifacts`
+  - `_new_temp_sqlite_path`
+  - `_publish_lock_for_sqlite`
+  - `_SIDECAR_PUBLISH_LOCKS`
+  - `_checkpoint_and_close`
+  - `_sidecar_content_hash`
+- Any remaining hashing helper in `build.py` must compose Propstore semantic
+  inputs and call Quire-owned generic digest APIs rather than reading lockfiles
+  or walking directories locally.
+- `git diff --shortstat <starting-commit>..HEAD -- propstore/sidecar/build.py`
+  must show a net reduction from the workstream starting commit. The reduction
+  is evidence for this phase, not the completion criterion.
 
 Focused tests:
 
