@@ -38,6 +38,11 @@ from propstore.sidecar.contexts import (
     CONTEXT_PROJECTION,
 )
 from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
+from propstore.sidecar.rules import (
+    GROUNDED_BUNDLE_INPUT_PROJECTION,
+    GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION,
+    GROUNDED_FACT_PROJECTION,
+)
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 
@@ -70,8 +75,9 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
     CLAIM_FTS_PROJECTION,
     CONFLICT_WITNESS_PROJECTION,
-    _required_table("grounded_fact", "predicate", "arguments", "section"),
-    _required_table("grounded_fact_empty_predicate", "section", "predicate"),
+    GROUNDED_FACT_PROJECTION,
+    GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION,
+    GROUNDED_BUNDLE_INPUT_PROJECTION,
     JUSTIFICATION_PROJECTION,
     CALIBRATION_COUNTS_PROJECTION,
     BUILD_DIAGNOSTICS_PROJECTION,

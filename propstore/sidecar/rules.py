@@ -58,6 +58,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
 
@@ -69,6 +70,7 @@ from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocu
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
+from propstore.sidecar.projection import ProjectionColumn, ProjectionTable
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
 # tuple order is the deterministic iteration order used by
@@ -79,6 +81,81 @@ _SECTION_NAMES: tuple[str, ...] = (
     "undecided",
     "unknown",
 )
+
+
+GROUNDED_FACT_PROJECTION = ProjectionTable(
+    name="grounded_fact",
+    columns=(
+        ProjectionColumn("predicate", "TEXT", nullable=False),
+        ProjectionColumn("arguments", "TEXT", nullable=False),
+        ProjectionColumn("section", "TEXT", nullable=False),
+    ),
+    primary_key=("predicate", "arguments", "section"),
+    if_not_exists=True,
+)
+
+
+GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION = ProjectionTable(
+    name="grounded_fact_empty_predicate",
+    columns=(
+        ProjectionColumn("section", "TEXT", nullable=False),
+        ProjectionColumn("predicate", "TEXT", nullable=False),
+    ),
+    primary_key=("section", "predicate"),
+    if_not_exists=True,
+)
+
+
+GROUNDED_BUNDLE_INPUT_PROJECTION = ProjectionTable(
+    name="grounded_bundle_input",
+    columns=(
+        ProjectionColumn("kind", "TEXT", nullable=False),
+        ProjectionColumn("position", "INTEGER", nullable=False),
+        ProjectionColumn("payload", "BLOB", nullable=False),
+    ),
+    primary_key=("kind", "position"),
+    if_not_exists=True,
+)
+
+
+@dataclass(frozen=True)
+class GroundedFactProjectionRow:
+    predicate: str
+    arguments: str
+    section: str
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "predicate": self.predicate,
+            "arguments": self.arguments,
+            "section": self.section,
+        }
+
+
+@dataclass(frozen=True)
+class GroundedFactEmptyPredicateProjectionRow:
+    section: str
+    predicate: str
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "section": self.section,
+            "predicate": self.predicate,
+        }
+
+
+@dataclass(frozen=True)
+class GroundedBundleInputProjectionRow:
+    kind: str
+    position: int
+    payload: bytes
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "kind": self.kind,
+            "position": self.position,
+            "payload": self.payload,
+        }
 
 
 def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
@@ -132,29 +209,13 @@ def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
     storage must not silently drop it. The empty-predicate table is
     how that grounded classification is persisted.
     """
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS grounded_fact ("
-        "predicate TEXT NOT NULL, "
-        "arguments TEXT NOT NULL, "
-        "section TEXT NOT NULL, "
-        "PRIMARY KEY (predicate, arguments, section)"
-        ")"
-    )
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS grounded_fact_empty_predicate ("
-        "section TEXT NOT NULL, "
-        "predicate TEXT NOT NULL, "
-        "PRIMARY KEY (section, predicate)"
-        ")"
-    )
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS grounded_bundle_input ("
-        "kind TEXT NOT NULL, "
-        "position INTEGER NOT NULL, "
-        "payload BLOB NOT NULL, "
-        "PRIMARY KEY (kind, position)"
-        ")"
-    )
+    for projection in (
+        GROUNDED_FACT_PROJECTION,
+        GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION,
+        GROUNDED_BUNDLE_INPUT_PROJECTION,
+    ):
+        for statement in projection.ddl_statements():
+            conn.execute(statement)
 
 
 def populate_grounded_facts(
@@ -190,6 +251,8 @@ def populate_grounded_facts(
     grounded classification raise loudly instead of being silently coalesced.
     """
     inserted = 0
+    grounded_fact_insert_sql = GROUNDED_FACT_PROJECTION.insert_sql()
+    empty_predicate_insert_sql = GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION.insert_sql()
     _persist_bundle_inputs(conn, bundle)
     sections = bundle.sections
     for section_name in _SECTION_NAMES:
@@ -211,9 +274,11 @@ def populate_grounded_facts(
                 # contract sums inner-set *sizes*, which are zero
                 # for an empty frozenset.
                 conn.execute(
-                    "INSERT INTO grounded_fact_empty_predicate "
-                    "(section, predicate) VALUES (?, ?)",
-                    (section_name, predicate_id),
+                    empty_predicate_insert_sql,
+                    GroundedFactEmptyPredicateProjectionRow(
+                        section=section_name,
+                        predicate=predicate_id,
+                    ).as_insert_mapping(),
                 )
                 continue
             # Pre-encode argument tuples so we can sort for a stable
@@ -226,9 +291,12 @@ def populate_grounded_facts(
             )
             for encoded_arguments in encoded:
                 conn.execute(
-                    "INSERT INTO grounded_fact "
-                    "(predicate, arguments, section) VALUES (?, ?, ?)",
-                    (predicate_id, encoded_arguments, section_name),
+                    grounded_fact_insert_sql,
+                    GroundedFactProjectionRow(
+                        predicate=predicate_id,
+                        arguments=encoded_arguments,
+                        section=section_name,
+                    ).as_insert_mapping(),
                 )
                 inserted += 1
     return inserted
@@ -241,12 +309,16 @@ def _persist_bundle_inputs(conn: sqlite3.Connection, bundle: GroundedRulesBundle
         ("source_fact", bundle.source_facts),
         ("argument", bundle.arguments),
     )
+    insert_sql = GROUNDED_BUNDLE_INPUT_PROJECTION.insert_sql()
     for kind, values in rows:
         for position, value in enumerate(values):
             conn.execute(
-                "INSERT INTO grounded_bundle_input "
-                "(kind, position, payload) VALUES (?, ?, ?)",
-                (kind, position, _encode_bundle_input(kind, value)),
+                insert_sql,
+                GroundedBundleInputProjectionRow(
+                    kind=kind,
+                    position=position,
+                    payload=_encode_bundle_input(kind, value),
+                ).as_insert_mapping(),
             )
 
 
