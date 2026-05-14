@@ -5,7 +5,7 @@ from contextlib import closing
 
 import pytest
 
-from propstore.sidecar.projection import FtsProjection
+from quire.projections import FtsProjection
 from propstore.sidecar.sqlite import connect_sidecar, connect_sidecar_readonly
 
 

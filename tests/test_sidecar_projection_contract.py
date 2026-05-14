@@ -5,7 +5,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from propstore.sidecar.projection import (
+from quire.projections import (
     FtsProjection,
     ProjectionColumn,
     ProjectionForeignKey,

@@ -30,14 +30,16 @@ from pathlib import Path
 import pytest
 from tests.family_helpers import world_query_from_sqlite_path
 
-from propstore.sidecar.world_projection import required_columns_by_table
+from quire.projections import projection_name
+
+from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 from propstore.world.model import WorldQuery
 
 
 def test_branch_column_in_required_schema() -> None:
     """The world sidecar projection contract must include `claim_core.branch`."""
-    assert "branch" in required_columns_by_table()["claim_core"], (
+    assert "branch" in _required_columns_by_table()["claim_core"], (
         "The world sidecar projection is missing claim_core.branch; the "
         "validator will not reject legacy pre-branch sidecars. Commit 8 requires this."
     )
@@ -61,7 +63,7 @@ def _build_legacy_sidecar(path: Path) -> None:
         conn.execute(
             "CREATE TABLE meta (key TEXT PRIMARY KEY, schema_version INTEGER NOT NULL)"
         )
-        for table, required_columns in required_columns_by_table().items():
+        for table, required_columns in _required_columns_by_table().items():
             if table == "claim_core":
                 columns = sorted(required_columns - {"branch"})
             else:
@@ -75,6 +77,13 @@ def _build_legacy_sidecar(path: Path) -> None:
         conn.commit()
     finally:
         conn.close()
+
+
+def _required_columns_by_table() -> dict[str, frozenset[str]]:
+    return {
+        projection_name(projection): frozenset(projection.column_names)
+        for projection in WORLD_SIDECAR_SCHEMA.projections
+    }
 
 
 def test_legacy_sidecar_without_branch_column_is_rejected(tmp_path: Path) -> None:

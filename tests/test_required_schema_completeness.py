@@ -2,11 +2,20 @@
 
 from __future__ import annotations
 
-from propstore.sidecar.world_projection import required_columns_by_table
+from quire.projections import projection_name
+
+from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
+
+
+def _required_columns_by_table() -> dict[str, frozenset[str]]:
+    return {
+        projection_name(projection): frozenset(projection.column_names)
+        for projection in WORLD_SIDECAR_SCHEMA.projections
+    }
 
 
 def test_runtime_claim_core_columns_required_in_world_model_schema() -> None:
-    required_columns = required_columns_by_table()["claim_core"]
+    required_columns = _required_columns_by_table()["claim_core"]
     missing = {
         "content_hash",
         "premise_kind",
@@ -18,7 +27,7 @@ def test_runtime_claim_core_columns_required_in_world_model_schema() -> None:
 
 
 def test_build_diagnostics_required_in_world_model_schema() -> None:
-    required_columns = required_columns_by_table()
+    required_columns = _required_columns_by_table()
     assert "build_diagnostics" in required_columns
     assert required_columns["build_diagnostics"] >= {
         "id",

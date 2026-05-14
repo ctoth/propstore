@@ -78,7 +78,7 @@ from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.micropublications import (
     create_micropublication_tables as create_micropublication_projection_tables,
 )
-from propstore.sidecar.projection import ProjectionColumn, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionTable
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows

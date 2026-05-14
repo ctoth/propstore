@@ -13,7 +13,7 @@ from propstore.core.embeddings import (
     concept_embedding_text,
 )
 from propstore.core.row_types import ClaimRow, ConceptRow
-from propstore.sidecar.projection import (
+from quire.projections import (
     ProjectionColumn,
     ProjectionIndex,
     ProjectionTable,

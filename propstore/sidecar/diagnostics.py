@@ -6,7 +6,7 @@ import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from propstore.sidecar.projection import ProjectionColumn, ProjectionIndex, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
 
 
 BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(

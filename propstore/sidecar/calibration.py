@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from propstore.sidecar.projection import ProjectionColumn, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionTable
 
 
 CALIBRATION_COUNTS_PROJECTION = ProjectionTable(

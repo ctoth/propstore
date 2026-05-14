@@ -70,7 +70,7 @@ from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocu
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.sidecar.projection import ProjectionColumn, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionTable
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
 # tuple order is the deterministic iteration order used by

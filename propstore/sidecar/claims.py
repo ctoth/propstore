@@ -16,7 +16,7 @@ from collections.abc import Mapping, Sequence
 
 from dataclasses import dataclass
 
-from propstore.sidecar.projection import (
+from quire.projections import (
     FtsProjection,
     ProjectionColumn,
     ProjectionForeignKey,

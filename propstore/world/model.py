@@ -41,7 +41,7 @@ from propstore.core.row_types import (
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
-from propstore.sidecar.projection import ProjectionSchemaError
+from quire.projections import ProjectionSchemaError
 from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
 from propstore.core.conditions.solver import ConditionSolver
 

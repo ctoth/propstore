@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from propstore.sidecar.projection import ProjectionColumn, ProjectionForeignKey, ProjectionIndex, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionForeignKey, ProjectionIndex, ProjectionTable
 
 
 CONTEXT_PROJECTION = ProjectionTable(
