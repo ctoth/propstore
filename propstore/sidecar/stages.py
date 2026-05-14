@@ -16,6 +16,7 @@ if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
     from propstore.sidecar.concepts import (
         AliasProjectionRow,
+        ConceptProjectionRow,
         FormAlgebraProjectionRow,
         FormProjectionRow,
         ParameterizationGroupProjectionRow,
@@ -131,11 +132,6 @@ class ContextSidecarRows:
 
 
 @dataclass(frozen=True)
-class ConceptInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
 class ConceptRelationshipInsertRow:
     values: tuple[Any, ...]
 
@@ -158,7 +154,7 @@ class ConceptFtsInsertRow:
 @dataclass(frozen=True)
 class ConceptSidecarRows:
     form_rows: tuple["FormProjectionRow", ...]
-    concept_rows: tuple[ConceptInsertRow, ...]
+    concept_rows: tuple["ConceptProjectionRow", ...]
     alias_rows: tuple["AliasProjectionRow", ...]
     relationship_rows: tuple[ConceptRelationshipInsertRow, ...]
     relation_edge_rows: tuple[RelationEdgeInsertRow, ...]

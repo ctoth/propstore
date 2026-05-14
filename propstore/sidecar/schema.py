@@ -46,6 +46,7 @@ import sqlite3
 from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
 from propstore.sidecar.concepts import (
     ALIAS_PROJECTION,
+    CONCEPT_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
@@ -101,6 +102,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
         SOURCE_PROJECTION,
         FORM_PROJECTION,
         FORM_ALGEBRA_PROJECTION,
+        CONCEPT_PROJECTION,
         ALIAS_PROJECTION,
         PARAMETERIZATION_GROUP_PROJECTION,
     ):
@@ -108,28 +110,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             conn.execute(statement)
 
     conn.executescript("""
-        CREATE TABLE concept (
-            id TEXT PRIMARY KEY,
-            primary_logical_id TEXT NOT NULL DEFAULT '',
-            logical_ids_json TEXT NOT NULL DEFAULT '[]',
-            version_id TEXT NOT NULL DEFAULT '',
-            content_hash TEXT NOT NULL,
-            seq INTEGER NOT NULL,
-            canonical_name TEXT NOT NULL,
-            status TEXT NOT NULL,
-            domain TEXT,
-            definition TEXT NOT NULL,
-            kind_type TEXT NOT NULL,
-            form TEXT NOT NULL,
-            form_parameters TEXT,
-            range_min REAL,
-            range_max REAL,
-            is_dimensionless INTEGER NOT NULL DEFAULT 0,
-            unit_symbol TEXT,
-            created_date TEXT,
-            last_modified TEXT
-        );
-
         CREATE TABLE relationship (
             source_id TEXT NOT NULL,
             type TEXT NOT NULL,
@@ -181,7 +161,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             CHECK(opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6)
         );
 
-        CREATE INDEX idx_concept_primary_logical_id ON concept(primary_logical_id);
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);
         CREATE INDEX idx_relation_edge_source ON relation_edge(source_kind, source_id);

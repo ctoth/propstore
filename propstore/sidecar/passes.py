@@ -65,7 +65,6 @@ from propstore.sidecar.stages import (
     ContextLiftingMaterializationInsertRow,
     ContextLiftingRuleInsertRow,
     ContextSidecarRows,
-    ConceptInsertRow,
     ConceptParameterizationInsertRow,
     ConceptRelationshipInsertRow,
     ConceptSidecarRows,
@@ -84,6 +83,7 @@ from propstore.sidecar.stages import (
 )
 from propstore.sidecar.concepts import (
     AliasProjectionRow,
+    ConceptProjectionRow,
     FormAlgebraProjectionRow,
     FormProjectionRow,
     ParameterizationGroupProjectionRow,
@@ -257,7 +257,7 @@ def compile_concept_sidecar_rows(
     cel_registry: dict[str, ConceptInfo],
 ) -> ConceptSidecarRows:
     form_rows: list[FormProjectionRow] = []
-    concept_rows: list[ConceptInsertRow] = []
+    concept_rows: list[ConceptProjectionRow] = []
     alias_rows: list[AliasProjectionRow] = []
     relationship_rows: list[ConceptRelationshipInsertRow] = []
     relation_edge_rows: list[RelationEdgeInsertRow] = []
@@ -306,35 +306,30 @@ def compile_concept_sidecar_rows(
         concept_id = str(record.artifact_id)
 
         concept_rows.append(
-            ConceptInsertRow(
-                (
-                    concept_id,
-                    record.primary_logical_id,
-                    json.dumps(
-                        [
-                            logical_id.to_payload()
-                            for logical_id in record.logical_ids
-                        ]
-                    ),
-                    record.version_id,
-                    content_hash,
-                    seq,
-                    record.canonical_name,
-                    record.status.value,
-                    record.domain,
-                    record.definition,
-                    form_definition.kind.value
-                    if form_definition is not None
-                    else kind_value_from_form_name(record.form),
-                    record.form,
-                    form_parameters_json,
-                    range_min,
-                    range_max,
-                    is_dimensionless,
-                    unit_symbol,
-                    record.created_date,
-                    record.last_modified,
-                )
+            ConceptProjectionRow(
+                id=concept_id,
+                primary_logical_id=record.primary_logical_id or "",
+                logical_ids_json=json.dumps(
+                    [logical_id.to_payload() for logical_id in record.logical_ids]
+                ),
+                version_id=record.version_id,
+                content_hash=content_hash,
+                seq=seq,
+                canonical_name=record.canonical_name,
+                status=record.status.value,
+                domain=record.domain,
+                definition=record.definition,
+                kind_type=form_definition.kind.value
+                if form_definition is not None
+                else kind_value_from_form_name(record.form),
+                form=record.form,
+                form_parameters=form_parameters_json,
+                range_min=range_min,
+                range_max=range_max,
+                is_dimensionless=is_dimensionless,
+                unit_symbol=unit_symbol,
+                created_date=record.created_date,
+                last_modified=record.last_modified,
             )
         )
 

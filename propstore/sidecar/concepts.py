@@ -10,6 +10,33 @@ from propstore.sidecar.projection import ProjectionColumn, ProjectionForeignKey,
 from propstore.sidecar.stages import ConceptSidecarRows
 
 
+CONCEPT_PROJECTION = ProjectionTable(
+    name="concept",
+    columns=(
+        ProjectionColumn("id", "TEXT", primary_key=True),
+        ProjectionColumn("primary_logical_id", "TEXT", nullable=False, default_sql="''"),
+        ProjectionColumn("logical_ids_json", "TEXT", nullable=False, default_sql="'[]'"),
+        ProjectionColumn("version_id", "TEXT", nullable=False, default_sql="''"),
+        ProjectionColumn("content_hash", "TEXT", nullable=False),
+        ProjectionColumn("seq", "INTEGER", nullable=False),
+        ProjectionColumn("canonical_name", "TEXT", nullable=False),
+        ProjectionColumn("status", "TEXT", nullable=False),
+        ProjectionColumn("domain", "TEXT"),
+        ProjectionColumn("definition", "TEXT", nullable=False),
+        ProjectionColumn("kind_type", "TEXT", nullable=False),
+        ProjectionColumn("form", "TEXT", nullable=False),
+        ProjectionColumn("form_parameters", "TEXT"),
+        ProjectionColumn("range_min", "REAL"),
+        ProjectionColumn("range_max", "REAL"),
+        ProjectionColumn("is_dimensionless", "INTEGER", nullable=False, default_sql="0"),
+        ProjectionColumn("unit_symbol", "TEXT"),
+        ProjectionColumn("created_date", "TEXT"),
+        ProjectionColumn("last_modified", "TEXT"),
+    ),
+    indexes=(ProjectionIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
+)
+
+
 FORM_PROJECTION = ProjectionTable(
     name="form",
     columns=(
@@ -134,6 +161,52 @@ class FormAlgebraProjectionRow:
         }
 
 
+@dataclass(frozen=True)
+class ConceptProjectionRow:
+    id: str
+    primary_logical_id: str
+    logical_ids_json: str
+    version_id: str
+    content_hash: str
+    seq: int
+    canonical_name: str
+    status: str
+    domain: str | None
+    definition: str
+    kind_type: str
+    form: str
+    form_parameters: str | None
+    range_min: float | None
+    range_max: float | None
+    is_dimensionless: int
+    unit_symbol: str | None
+    created_date: str | None
+    last_modified: str | None
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "id": self.id,
+            "primary_logical_id": self.primary_logical_id,
+            "logical_ids_json": self.logical_ids_json,
+            "version_id": self.version_id,
+            "content_hash": self.content_hash,
+            "seq": self.seq,
+            "canonical_name": self.canonical_name,
+            "status": self.status,
+            "domain": self.domain,
+            "definition": self.definition,
+            "kind_type": self.kind_type,
+            "form": self.form,
+            "form_parameters": self.form_parameters,
+            "range_min": self.range_min,
+            "range_max": self.range_max,
+            "is_dimensionless": self.is_dimensionless,
+            "unit_symbol": self.unit_symbol,
+            "created_date": self.created_date,
+            "last_modified": self.last_modified,
+        }
+
+
 def populate_concept_sidecar_rows(
     conn: sqlite3.Connection,
     rows: ConceptSidecarRows,
@@ -142,15 +215,9 @@ def populate_concept_sidecar_rows(
     for row in rows.form_rows:
         conn.execute(form_insert_sql, row.as_insert_mapping())
 
+    concept_insert_sql = CONCEPT_PROJECTION.insert_sql()
     for row in rows.concept_rows:
-        conn.execute(
-            "INSERT INTO concept (id, primary_logical_id, logical_ids_json, "
-            "version_id, content_hash, seq, canonical_name, status, domain, "
-            "definition, kind_type, form, form_parameters, range_min, range_max, "
-            "is_dimensionless, unit_symbol, created_date, last_modified) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            row.values,
-        )
+        conn.execute(concept_insert_sql, row.as_insert_mapping())
 
     alias_insert_sql = ALIAS_PROJECTION.insert_sql()
     for row in rows.alias_rows:

@@ -15,6 +15,7 @@ from propstore.sidecar.projection import (
 from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
 from propstore.sidecar.concepts import (
     ALIAS_PROJECTION,
+    CONCEPT_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
@@ -31,16 +32,7 @@ def _required_table(name: str, *columns: str) -> ProjectionTable:
 
 WORLD_SIDECAR_SCHEMA = create_projection_schema(
     SOURCE_PROJECTION,
-    _required_table(
-        "concept",
-        "id",
-        "canonical_name",
-        "kind_type",
-        "form",
-        "form_parameters",
-        "primary_logical_id",
-        "logical_ids_json",
-    ),
+    CONCEPT_PROJECTION,
     ALIAS_PROJECTION,
     _required_table("parameterization", "output_concept_id", "conditions_ir"),
     PARAMETERIZATION_GROUP_PROJECTION,
