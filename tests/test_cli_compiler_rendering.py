@@ -35,7 +35,7 @@ def test_build_renders_phi_group_glosses_once_per_kind(
     monkeypatch.setattr(
         compiler_cmds,
         "build_repository",
-        lambda _repo, *, output, force, strict_authoring: report,
+        lambda _repo, *, force, strict_authoring: report,
     )
 
     result = CliRunner().invoke(
@@ -70,7 +70,7 @@ def test_build_strict_authoring_flag_reaches_owner(monkeypatch) -> None:
     )
     seen: dict[str, bool] = {}
 
-    def _fake_build_repository(_repo, *, output, force, strict_authoring):
+    def _fake_build_repository(_repo, *, force, strict_authoring):
         seen["strict_authoring"] = strict_authoring
         return report
 
