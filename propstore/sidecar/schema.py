@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from propstore.sidecar.concepts import FORM_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
 
@@ -90,8 +91,9 @@ def create_concept_fts_table(conn: sqlite3.Connection) -> None:
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    for statement in SOURCE_PROJECTION.ddl_statements():
-        conn.execute(statement)
+    for projection in (SOURCE_PROJECTION, FORM_PROJECTION):
+        for statement in projection.ddl_statements():
+            conn.execute(statement)
 
     conn.executescript("""
         CREATE TABLE concept (
@@ -178,14 +180,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             CHECK(opinion_uncertainty IS NULL OR (opinion_uncertainty >= 0 AND opinion_uncertainty <= 1)),
             CHECK(opinion_base_rate IS NULL OR (opinion_base_rate > 0 AND opinion_base_rate < 1)),
             CHECK(opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6)
-        );
-
-        CREATE TABLE form (
-            name TEXT PRIMARY KEY,
-            kind TEXT NOT NULL,
-            unit_symbol TEXT,
-            is_dimensionless INTEGER NOT NULL DEFAULT 0,
-            dimensions TEXT
         );
 
         CREATE TABLE form_algebra (

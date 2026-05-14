@@ -3,20 +3,50 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Mapping
+from dataclasses import dataclass
 
+from propstore.sidecar.projection import ProjectionColumn, ProjectionTable
 from propstore.sidecar.stages import ConceptSidecarRows
+
+
+FORM_PROJECTION = ProjectionTable(
+    name="form",
+    columns=(
+        ProjectionColumn("name", "TEXT", primary_key=True),
+        ProjectionColumn("kind", "TEXT", nullable=False),
+        ProjectionColumn("unit_symbol", "TEXT"),
+        ProjectionColumn("is_dimensionless", "INTEGER", nullable=False, default_sql="0"),
+        ProjectionColumn("dimensions", "TEXT"),
+    ),
+)
+
+
+@dataclass(frozen=True)
+class FormProjectionRow:
+    name: str
+    kind: str
+    unit_symbol: str | None
+    is_dimensionless: int
+    dimensions: str | None
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "name": self.name,
+            "kind": self.kind,
+            "unit_symbol": self.unit_symbol,
+            "is_dimensionless": self.is_dimensionless,
+            "dimensions": self.dimensions,
+        }
 
 
 def populate_concept_sidecar_rows(
     conn: sqlite3.Connection,
     rows: ConceptSidecarRows,
 ) -> None:
+    form_insert_sql = FORM_PROJECTION.insert_sql()
     for row in rows.form_rows:
-        conn.execute(
-            "INSERT INTO form (name, kind, unit_symbol, is_dimensionless, dimensions) "
-            "VALUES (?, ?, ?, ?, ?)",
-            row.values,
-        )
+        conn.execute(form_insert_sql, row.as_insert_mapping())
 
     for row in rows.concept_rows:
         conn.execute(

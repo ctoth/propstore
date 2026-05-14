@@ -73,7 +73,6 @@ from propstore.sidecar.stages import (
     ConceptSidecarRows,
     ConflictWitnessInsertRow,
     FormAlgebraInsertRow,
-    FormInsertRow,
     JustificationInsertRow,
     MicropublicationClaimInsertRow,
     MicropublicationInsertRow,
@@ -86,6 +85,7 @@ from propstore.sidecar.stages import (
     RepositoryCheckedBundle,
     SidecarBuildPlan,
 )
+from propstore.sidecar.concepts import FormProjectionRow
 from propstore.sidecar.sources import SourceProjectionRow
 from propstore.sidecar.claim_utils import (
     coerce_stance_resolution,
@@ -254,7 +254,7 @@ def compile_concept_sidecar_rows(
     form_registry: dict[str, FormDefinition],
     cel_registry: dict[str, ConceptInfo],
 ) -> ConceptSidecarRows:
-    form_rows: list[FormInsertRow] = []
+    form_rows: list[FormProjectionRow] = []
     concept_rows: list[ConceptInsertRow] = []
     alias_rows: list[ConceptAliasInsertRow] = []
     relationship_rows: list[ConceptRelationshipInsertRow] = []
@@ -271,16 +271,14 @@ def compile_concept_sidecar_rows(
             else None
         )
         form_rows.append(
-            FormInsertRow(
-                (
-                    form_definition.name,
-                    form_definition.kind.value
-                    if hasattr(form_definition.kind, "value")
-                    else str(form_definition.kind),
-                    form_definition.unit_symbol,
-                    1 if form_definition.is_dimensionless else 0,
-                    dimensions_json,
-                )
+            FormProjectionRow(
+                name=form_definition.name,
+                kind=form_definition.kind.value
+                if hasattr(form_definition.kind, "value")
+                else str(form_definition.kind),
+                unit_symbol=form_definition.unit_symbol,
+                is_dimensionless=1 if form_definition.is_dimensionless else 0,
+                dimensions=dimensions_json,
             )
         )
 
