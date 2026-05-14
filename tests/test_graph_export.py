@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 import yaml
 
-from tests.family_helpers import materialized_world_store_path
+from tests.family_helpers import materialized_world_store_path, world_query_from_sqlite_path
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.sidecar.schema import build_minimal_world_model_schema
@@ -392,10 +392,7 @@ class TestUnboundGraph:
         conn.commit()
         conn.close()
 
-        class _Repo:
-            sidecar_path = sidecar
-
-        with WorldQuery(_Repo()) as world:
+        with world_query_from_sqlite_path(sidecar) as world:
             graph = build_knowledge_graph(world)
 
         claim_of_edges = [
