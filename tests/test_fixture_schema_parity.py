@@ -5,6 +5,7 @@ import sqlite3
 import tests.conftest as project_conftest
 
 from propstore.sidecar import schema
+from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.rules import create_grounded_fact_table
 
 
@@ -49,6 +50,7 @@ def test_minimal_world_model_schema_matches_production_builders() -> None:
     schema.create_claim_tables(production_conn)
     schema.create_micropublication_tables(production_conn)
     create_grounded_fact_table(production_conn)
+    ensure_embedding_tables(production_conn)
 
     assert _table_names(fixture_conn) == _table_names(production_conn)
     for table in sorted(_table_names(production_conn)):
