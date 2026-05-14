@@ -12,6 +12,7 @@ from propstore.sidecar.projection import (
     SemanticProjection,
     create_projection_schema,
 )
+from propstore.sidecar.sources import SOURCE_PROJECTION
 
 
 def _required_table(name: str, *columns: str) -> ProjectionTable:
@@ -22,19 +23,7 @@ def _required_table(name: str, *columns: str) -> ProjectionTable:
 
 
 WORLD_SIDECAR_SCHEMA = create_projection_schema(
-    _required_table(
-        "source",
-        "slug",
-        "source_id",
-        "kind",
-        "origin_type",
-        "origin_value",
-        "origin_retrieved",
-        "origin_content_ref",
-        "prior_base_rate",
-        "quality_json",
-        "derived_from_json",
-    ),
+    SOURCE_PROJECTION,
     _required_table(
         "concept",
         "id",
@@ -208,4 +197,3 @@ def _projection_name(projection: SemanticProjection) -> str:
     if isinstance(projection, ProjectionTable):
         return projection.name
     return projection.table
-

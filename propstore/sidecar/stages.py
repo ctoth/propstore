@@ -14,6 +14,7 @@ from propstore.families.forms.stages import FormDefinition
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
+    from propstore.sidecar.sources import SourceProjectionRow
 
 
 @dataclass(frozen=True)
@@ -93,16 +94,6 @@ class MicropublicationClaimInsertRow:
 class MicropublicationSidecarRows:
     micropublication_rows: tuple[MicropublicationInsertRow, ...]
     claim_rows: tuple[MicropublicationClaimInsertRow, ...]
-
-
-@dataclass(frozen=True)
-class SourceInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class SourceSidecarRows:
-    source_rows: tuple[SourceInsertRow, ...]
 
 
 @dataclass(frozen=True)
@@ -205,7 +196,7 @@ class RepositoryCheckedBundle:
 
 @dataclass(frozen=True)
 class SidecarBuildPlan:
-    source_rows: SourceSidecarRows
+    source_rows: tuple["SourceProjectionRow", ...]
     concept_rows: ConceptSidecarRows
     context_rows: ContextSidecarRows
     claim_rows: ClaimSidecarRows | None

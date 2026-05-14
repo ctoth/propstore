@@ -85,9 +85,8 @@ from propstore.sidecar.stages import (
     RelationEdgeInsertRow,
     RepositoryCheckedBundle,
     SidecarBuildPlan,
-    SourceInsertRow,
-    SourceSidecarRows,
 )
+from propstore.sidecar.sources import SourceProjectionRow
 from propstore.sidecar.claim_utils import (
     coerce_stance_resolution,
     resolution_opinion_columns,
@@ -115,33 +114,31 @@ def _concept_symbol_candidates(record: ConceptRecord) -> tuple[str, ...]:
 
 def compile_source_sidecar_rows(
     sources: Iterable[tuple[str, SourceDocument]],
-) -> SourceSidecarRows:
-    rows: list[SourceInsertRow] = []
+) -> tuple[SourceProjectionRow, ...]:
+    rows: list[SourceProjectionRow] = []
     for slug, source_doc in sources:
         origin = source_doc.origin
         trust = source_doc.trust
         rows.append(
-            SourceInsertRow(
-                (
-                    slug,
-                    str(source_doc.id or slug),
-                    source_doc.kind.value,
-                    origin.type.value,
-                    origin.value,
-                    origin.retrieved,
-                    origin.content_ref,
-                    _opinion_json(trust.prior_base_rate),
-                    None
-                    if trust.quality is None
-                    else json.dumps(trust.quality.to_payload()),
-                    None
-                    if not trust.derived_from
-                    else json.dumps(list(trust.derived_from)),
-                    source_doc.artifact_code,
-                )
+            SourceProjectionRow(
+                slug=slug,
+                source_id=str(source_doc.id or slug),
+                kind=source_doc.kind.value,
+                origin_type=origin.type.value,
+                origin_value=origin.value,
+                origin_retrieved=origin.retrieved,
+                origin_content_ref=origin.content_ref,
+                prior_base_rate=_opinion_json(trust.prior_base_rate),
+                quality_json=None
+                if trust.quality is None
+                else json.dumps(trust.quality.to_payload()),
+                derived_from_json=None
+                if not trust.derived_from
+                else json.dumps(list(trust.derived_from)),
+                artifact_code=source_doc.artifact_code,
             )
         )
-    return SourceSidecarRows(source_rows=tuple(rows))
+    return tuple(rows)
 
 
 def compile_context_sidecar_rows(

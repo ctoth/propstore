@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
 
 SCHEMA_VERSION = 6
@@ -89,21 +90,10 @@ def create_concept_fts_table(conn: sqlite3.Connection) -> None:
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    conn.executescript("""
-        CREATE TABLE source (
-            slug TEXT PRIMARY KEY,
-            source_id TEXT NOT NULL,
-            kind TEXT NOT NULL,
-            origin_type TEXT,
-            origin_value TEXT,
-            origin_retrieved TEXT,
-            origin_content_ref TEXT,
-            prior_base_rate TEXT,
-            quality_json TEXT,
-            derived_from_json TEXT,
-            artifact_code TEXT
-        );
+    for statement in SOURCE_PROJECTION.ddl_statements():
+        conn.execute(statement)
 
+    conn.executescript("""
         CREATE TABLE concept (
             id TEXT PRIMARY KEY,
             primary_logical_id TEXT NOT NULL DEFAULT '',
@@ -211,7 +201,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX idx_alias_name ON alias(alias_name);
         CREATE INDEX idx_alias_concept ON alias(concept_id);
-        CREATE INDEX idx_source_source_id ON source(source_id);
         CREATE INDEX idx_concept_primary_logical_id ON concept(primary_logical_id);
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);
