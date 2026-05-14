@@ -9,7 +9,6 @@ import pytest
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from tests.family_helpers import build_sidecar
 
 
 def _init_source(runner: CliRunner, repo: Repository, name: str = "demo"):
@@ -161,7 +160,6 @@ def test_propose_claim_observation(tmp_path: Path) -> None:
     assert promoted_claim["artifact_id"] == source_claim["artifact_id"]
     assert promoted_claim["statement"] == "Water boils at 100C."
 
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
     papers_dir = repo.root.parent / "papers" / "demo"
     papers_dir.mkdir(parents=True, exist_ok=True)
     (papers_dir / "paper.pdf").write_bytes(content_file.read_bytes())

@@ -12,7 +12,7 @@ from click.testing import CliRunner
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import build_sidecar, materialized_world_store_path
 from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.source import parameterization_group_merge_preview
@@ -1058,8 +1058,12 @@ def test_source_promote_writes_master_claims_stances_sources_and_justifications(
     source_doc = yaml.safe_load(repo.git.read_file("sources/demo.yaml"))
     assert source_doc["id"].startswith("tag:")
 
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
-    conn = sqlite3.connect(repo.sidecar_path)
+    sidecar_path = materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
+    )
+    conn = sqlite3.connect(sidecar_path)
     try:
         justification_ids = {
             row[0]

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from propstore.repository import Repository
-from propstore.sidecar.schema import create_claim_tables, create_context_tables
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.common import source_branch_name
 from propstore.source.status import inspect_source_status
+from tests.family_helpers import materialized_world_store_path
 
 
 def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
@@ -13,11 +13,9 @@ def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     alien_branch = target_branch.replace("_", "x")
     assert alien_branch != target_branch
 
-    repo.sidecar_dir.mkdir(parents=True, exist_ok=True)
-    conn = connect_sidecar(repo.sidecar_path)
+    store_path = materialized_world_store_path(repo, force=True)
+    conn = connect_sidecar(store_path)
     try:
-        create_context_tables(conn)
-        create_claim_tables(conn)
         conn.execute(
             """
             INSERT INTO claim_core (

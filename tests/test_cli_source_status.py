@@ -188,14 +188,9 @@ def promoted_partial(tmp_path: Path) -> tuple[Repository, str]:
         },
     )
 
-    # Finalize to generate the error report; build the sidecar so promote
-    # can write the mirror + diagnostic rows; promote.
+    # Finalize to generate the error report; promote writes the mirror +
+    # diagnostic rows into the derived store for the promoted commit.
     finalize_source_branch(repo, source_name)
-
-    from tests.family_helpers import build_sidecar
-
-    head = repo.git.head_sha()
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
     promote_source_branch(repo, source_name)
 
     return repo, source_name
