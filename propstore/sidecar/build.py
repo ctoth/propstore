@@ -44,6 +44,7 @@ from propstore.families.forms.passes import register_form_pipeline, run_form_pip
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.sidecar.claims import (
+    CLAIM_CORE_PROJECTION,
     populate_authored_justifications,
     populate_claim_fts_rows,
     populate_claims,
@@ -118,9 +119,25 @@ def _sidecar_cache_key_inputs(source_revision: str) -> dict[str, object]:
     }
 
 
-def _sidecar_content_hash(source_revision: str) -> str:
+def _source_branch_tips(repo: "Repository") -> tuple[tuple[str, str], ...]:
+    return tuple(
+        sorted(
+            (branch.name, branch.tip_sha)
+            for branch in repo.snapshot.iter_branches()
+            if branch.kind == "source"
+        )
+    )
+
+
+def _sidecar_content_hash(
+    source_revision: str,
+    *,
+    source_branch_tips: tuple[tuple[str, str], ...] = (),
+) -> str:
+    inputs = _sidecar_cache_key_inputs(source_revision)
+    inputs["source_branch_tips"] = source_branch_tips
     return hashlib.sha256(
-        canonical_json_bytes(_sidecar_cache_key_inputs(source_revision))
+        canonical_json_bytes(inputs)
     ).hexdigest()
 
 
@@ -428,6 +445,73 @@ def _record_quarantine_diagnostics(
         )
 
 
+def _compile_source_promotion_blocked_rows(repo: "Repository"):
+    from propstore.source.promote import compile_source_promotion_blocked_projection_rows
+
+    claim_rows = []
+    diagnostic_rows = []
+    for branch in repo.snapshot.iter_branches():
+        if branch.kind != "source":
+            continue
+        source_name = branch.name.removeprefix("source/")
+        rows = compile_source_promotion_blocked_projection_rows(repo, source_name)
+        claim_rows.extend(rows.claim_rows)
+        diagnostic_rows.extend(rows.diagnostic_rows)
+    return tuple(claim_rows), tuple(diagnostic_rows)
+
+
+def _populate_promotion_blocked_rows(
+    conn: sqlite3.Connection,
+    claim_rows,
+    diagnostic_rows,
+) -> None:
+    if not claim_rows and not diagnostic_rows:
+        return
+    child_claim_tables = {
+        row[0]
+        for row in conn.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name IN (
+                  'claim_concept_link',
+                  'claim_numeric_payload',
+                  'claim_text_payload',
+                  'claim_algorithm_payload',
+                  'micropublication_claim'
+              )
+            """
+        ).fetchall()
+    }
+    claim_ids = tuple(row.id for row in claim_rows)
+    for claim_id in claim_ids:
+        for table_name in (
+            "claim_concept_link",
+            "claim_numeric_payload",
+            "claim_text_payload",
+            "claim_algorithm_payload",
+            "micropublication_claim",
+        ):
+            if table_name not in child_claim_tables:
+                continue
+            conn.execute(
+                f"DELETE FROM {table_name} WHERE claim_id = ?",
+                (claim_id,),
+            )
+        conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
+        conn.execute(
+            "DELETE FROM build_diagnostics "
+            "WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'",
+            (claim_id,),
+        )
+    claim_insert = CLAIM_CORE_PROJECTION.insert_sql()
+    for row in claim_rows:
+        conn.execute(claim_insert, row.as_insert_mapping())
+    for row in diagnostic_rows:
+        insert_build_diagnostic(conn, row)
+
+
 def materialize_world_sidecar(
     repo: "Repository",
     force: bool = False,
@@ -448,7 +532,11 @@ def _materialize_world_sidecar_locked(
         if commit_hash is None:
             raise ValueError("world sidecar materialization requires a committed git repository")
         kwargs["commit_hash"] = commit_hash
-    content_hash = _sidecar_content_hash(str(commit_hash))
+    source_branch_tips = _source_branch_tips(repo)
+    content_hash = _sidecar_content_hash(
+        str(commit_hash),
+        source_branch_tips=source_branch_tips,
+    )
     cache_key = repo.derived_stores.cache_key(
         projection_id="propstore.world",
         source_commit=str(commit_hash),
@@ -509,7 +597,11 @@ def _build_sidecar_file(
         source_revision = repo.require_git().head_sha()
         if source_revision is None:
             raise ValueError("build_sidecar requires a committed git repository or an explicit commit_hash")
-    content_hash = _sidecar_content_hash(source_revision)
+    source_branch_tips = _source_branch_tips(repo)
+    content_hash = _sidecar_content_hash(
+        source_revision,
+        source_branch_tips=source_branch_tips,
+    )
     hash_path = output_path.with_suffix(".hash")
 
     if not force and output_path.exists() and hash_path.exists():
@@ -650,6 +742,9 @@ def _build_sidecar_file(
             for handle in repo.families.micropubs.iter_handles(commit=commit_hash)
         ),
     )
+    promotion_blocked_claim_rows, promotion_blocked_diagnostic_rows = (
+        _compile_source_promotion_blocked_rows(repo)
+    )
 
     embedding_snapshot = None
     if output_path.exists():
@@ -726,9 +821,20 @@ def _build_sidecar_file(
                     conn,
                     sidecar_plan.raw_id_quarantine_rows,
                 )
+            _populate_promotion_blocked_rows(
+                conn,
+                promotion_blocked_claim_rows,
+                promotion_blocked_diagnostic_rows,
+            )
 
             populate_conflicts(conn, sidecar_plan.conflict_rows)
             populate_claim_fts_rows(conn, sidecar_plan.claim_fts_rows)
+        else:
+            _populate_promotion_blocked_rows(
+                conn,
+                promotion_blocked_claim_rows,
+                promotion_blocked_diagnostic_rows,
+            )
 
         populate_micropublications(conn, sidecar_plan.micropublication_rows)
 
