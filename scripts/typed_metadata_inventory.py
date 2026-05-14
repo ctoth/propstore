@@ -113,6 +113,7 @@ class FileInventory:
     row_classes: list[str] = field(default_factory=list)
     row_types_imports: int = 0
     row_types_names: list[str] = field(default_factory=list)
+    request_report_calls: list[str] = field(default_factory=list)
     table_name_mentions: list[str] = field(default_factory=list)
     field_mentions: list[str] = field(default_factory=list)
 
@@ -217,6 +218,8 @@ def _scan_ast(text: str, item: FileInventory) -> None:
                     item.sql_literals.append(" ".join(sql.split()))
             elif name == "materialize_world_sidecar":
                 item.materialize_calls += 1
+            if name.endswith(("Request", "Report")):
+                item.request_report_calls.append(name)
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if node.name in CODEC_NAMES:
                 item.codec_methods.append(node.name)
@@ -393,6 +396,27 @@ def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
         )
     ]
     _print_table(("path", "imports", "names"), rows)
+
+    print()
+    print("## CLI Request/Report Adapter Surface")
+    rows = [
+        (
+            _relative(item.path, root),
+            len(item.request_report_calls),
+            ", ".join(sorted(set(item.request_report_calls))[:12]),
+        )
+        for item in sorted(
+            [
+                item
+                for item in propstore_items
+                if _relative(item.path, root).startswith("propstore/cli/")
+                and item.request_report_calls
+            ],
+            key=lambda item: (len(item.request_report_calls), str(item.path)),
+            reverse=True,
+        )[:limit]
+    ]
+    _print_table(("path", "request_report_calls", "sample_names"), rows)
 
     print()
     print("## Test Pins")
