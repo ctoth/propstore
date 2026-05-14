@@ -60,7 +60,11 @@ from tests.conftest import (
     normalize_claims_payload,
     normalize_concept_payloads,
 )
-from tests.family_helpers import claim_artifact_commit_payloads, materialized_world_store_path
+from tests.family_helpers import (
+    build_sidecar,
+    claim_artifact_commit_payloads,
+    materialized_world_store_path,
+)
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────
@@ -179,6 +183,21 @@ def _read_repo_yaml(workspace: Path, relpath: str) -> dict:
 
 def _repo_entries(workspace: Path) -> set[str]:
     return set(Repository.find(workspace / "knowledge").git.flat_tree_entries())
+
+
+def _workspace_repo(workspace: Path) -> Repository:
+    return Repository.find(workspace / "knowledge")
+
+
+def _export_workspace_sidecar(workspace: Path, sidecar: Path, *, force: bool = False) -> bool:
+    return build_sidecar(_workspace_repo(workspace), sidecar, force=force)
+
+
+def _derived_store_path_from_output(output: str) -> Path:
+    for line in output.splitlines():
+        if line.startswith("Derived store: "):
+            return Path(line.split(maxsplit=5)[5])
+    raise AssertionError(f"Build output did not include a derived-store path:\n{output}")
 
 
 class TestRootCli:
@@ -312,11 +331,9 @@ def freq_workspace(workspace: Path) -> Path:
         "Seed committed frequency workspace",
     )
 
-    runner = CliRunner()
     sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
-    sidecar.parent.mkdir(parents=True, exist_ok=True)
-    result = runner.invoke(cli, ["build", "-o", str(sidecar)])
-    assert result.exit_code == 0, f"Build failed: {result.output}"
+    _export_workspace_sidecar(workspace, sidecar)
+    assert sidecar.exists()
     return workspace
 
 
@@ -797,9 +814,10 @@ class TestValidate:
 class TestBuild:
     def test_produces_sidecar(self, workspace: Path) -> None:
         runner = CliRunner()
-        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
-        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        result = runner.invoke(cli, ["build"])
         assert result.exit_code == 0, result.output
+        assert "Derived store:" in result.output
+        sidecar = _derived_store_path_from_output(result.output)
         assert sidecar.exists()
         assert "rebuilt" in result.output
 
@@ -811,7 +829,6 @@ class TestBuild:
     def test_accepts_valid_canonical_claim_reference(self, workspace: Path) -> None:
         concepts_dir = workspace / "knowledge" / "concepts"
         claims_dir = workspace / "knowledge" / "claims"
-        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
         claim_payload = _normalize_claim_concept_refs({
             "source": {"paper": "paper"},
             "claims": [
@@ -854,9 +871,9 @@ class TestBuild:
         )
 
         runner = CliRunner()
-        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        result = runner.invoke(cli, ["build"])
         assert result.exit_code == 0, result.output
-        assert sidecar.exists()
+        assert _derived_store_path_from_output(result.output).exists()
 
     def test_build_records_validation_failure_diagnostics(self, workspace: Path) -> None:
         bad = workspace / "knowledge" / "concepts" / "broken.yaml"
@@ -869,9 +886,9 @@ class TestBuild:
         }))
         _commit_workspace_paths(workspace, ["concepts/broken.yaml"], "Seed invalid duplicate concept")
         runner = CliRunner()
-        sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
-        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
+        result = runner.invoke(cli, ["build"])
         assert result.exit_code == 0, result.output
+        sidecar = _derived_store_path_from_output(result.output)
         assert sidecar.exists()
         conn = sqlite3.connect(sidecar)
         try:
@@ -976,8 +993,7 @@ class TestBuildExtended:
         """Built sidecar should contain core and grounding tables."""
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
-        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result.exit_code == 0, result.output
+        _export_workspace_sidecar(workspace, sidecar)
 
         conn = sqlite3.connect(sidecar)
         tables = {row[0] for row in conn.execute(
@@ -996,8 +1012,7 @@ class TestBuildExtended:
         """Built sidecar should have correct concept names and IDs."""
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
-        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result.exit_code == 0, result.output
+        _export_workspace_sidecar(workspace, sidecar)
 
         conn = sqlite3.connect(sidecar)
         rows = conn.execute(
@@ -1016,8 +1031,7 @@ class TestBuildExtended:
         """Built sidecar should include alias data from concepts."""
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
-        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result.exit_code == 0, result.output
+        _export_workspace_sidecar(workspace, sidecar)
 
         conn = sqlite3.connect(sidecar)
         aliases = conn.execute("SELECT alias_name FROM alias").fetchall()
@@ -1046,8 +1060,7 @@ class TestBuildExtended:
 
         runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
-        result = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result.exit_code == 0, result.output
+        _export_workspace_sidecar(workspace, sidecar)
 
         conn = sqlite3.connect(sidecar)
         count = conn.execute("SELECT count(*) FROM claim_core").fetchone()[0]
@@ -1060,32 +1073,21 @@ class TestBuildExtended:
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
 
         # First build
-        result1 = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result1.exit_code == 0, result1.output
-        assert "rebuilt" in result1.output
+        assert _export_workspace_sidecar(workspace, sidecar) is True
 
-        # Second build without force — should be unchanged
-        result2 = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result2.exit_code == 0, result2.output
-        assert "unchanged" in result2.output
+        # Second build without force should be unchanged.
+        assert _export_workspace_sidecar(workspace, sidecar) is False
 
-        # Third build with --force — should rebuild
-        result3 = runner.invoke(cli, ["build", "--force", "-o", str(sidecar)])
-        assert result3.exit_code == 0, result3.output
-        assert "rebuilt" in result3.output
+        # Third build with --force should rebuild.
+        assert _export_workspace_sidecar(workspace, sidecar, force=True) is True
 
     def test_build_skip_on_unchanged_content(self, workspace: Path) -> None:
         """Building twice without changes should skip on the second run."""
-        runner = CliRunner()
         sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
 
-        result1 = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result1.exit_code == 0
-        assert "rebuilt" in result1.output
+        assert _export_workspace_sidecar(workspace, sidecar) is True
 
-        result2 = runner.invoke(cli, ["build", "-o", str(sidecar)])
-        assert result2.exit_code == 0
-        assert "unchanged" in result2.output
+        assert _export_workspace_sidecar(workspace, sidecar) is False
 
 
 # ── export-aliases ──────────────────────────────────────────────────
