@@ -124,24 +124,11 @@ class GroundedFactProjectionRow:
     arguments: str
     section: str
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "predicate": self.predicate,
-            "arguments": self.arguments,
-            "section": self.section,
-        }
-
 
 @dataclass(frozen=True)
 class GroundedFactEmptyPredicateProjectionRow:
     section: str
     predicate: str
-
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "section": self.section,
-            "predicate": self.predicate,
-        }
 
 
 @dataclass(frozen=True)
@@ -149,13 +136,6 @@ class GroundedBundleInputProjectionRow:
     kind: str
     position: int
     payload: bytes
-
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "kind": self.kind,
-            "position": self.position,
-            "payload": self.payload,
-        }
 
 
 def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
@@ -234,8 +214,6 @@ def populate_grounded_facts(
     grounded classification raise loudly instead of being silently coalesced.
     """
     inserted = 0
-    grounded_fact_insert_sql = GROUNDED_FACT_PROJECTION.insert_sql()
-    empty_predicate_insert_sql = GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION.insert_sql()
     _persist_bundle_inputs(conn, bundle)
     sections = bundle.sections
     for section_name in _SECTION_NAMES:
@@ -256,12 +234,12 @@ def populate_grounded_facts(
                 # ``test_populate_row_count_matches_section_content``
                 # contract sums inner-set *sizes*, which are zero
                 # for an empty frozenset.
-                conn.execute(
-                    empty_predicate_insert_sql,
+                GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION.insert_row(
+                    conn,
                     GroundedFactEmptyPredicateProjectionRow(
                         section=section_name,
                         predicate=predicate_id,
-                    ).as_insert_mapping(),
+                    ),
                 )
                 continue
             # Pre-encode argument tuples so we can sort for a stable
@@ -273,13 +251,13 @@ def populate_grounded_facts(
                 json.dumps(list(arg_tuple)) for arg_tuple in rows
             )
             for encoded_arguments in encoded:
-                conn.execute(
-                    grounded_fact_insert_sql,
+                GROUNDED_FACT_PROJECTION.insert_row(
+                    conn,
                     GroundedFactProjectionRow(
                         predicate=predicate_id,
                         arguments=encoded_arguments,
                         section=section_name,
-                    ).as_insert_mapping(),
+                    ),
                 )
                 inserted += 1
     return inserted
@@ -292,16 +270,15 @@ def _persist_bundle_inputs(conn: sqlite3.Connection, bundle: GroundedRulesBundle
         ("source_fact", bundle.source_facts),
         ("argument", bundle.arguments),
     )
-    insert_sql = GROUNDED_BUNDLE_INPUT_PROJECTION.insert_sql()
     for kind, values in rows:
         for position, value in enumerate(values):
-            conn.execute(
-                insert_sql,
+            GROUNDED_BUNDLE_INPUT_PROJECTION.insert_row(
+                conn,
                 GroundedBundleInputProjectionRow(
                     kind=kind,
                     position=position,
                     payload=_encode_bundle_input(kind, value),
-                ).as_insert_mapping(),
+                ),
             )
 
 
