@@ -49,6 +49,7 @@ from propstore.sidecar.concepts import (
     CONCEPT_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
+    PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
 )
 from propstore.sidecar.sources import SOURCE_PROJECTION
@@ -104,6 +105,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
         FORM_ALGEBRA_PROJECTION,
         CONCEPT_PROJECTION,
         ALIAS_PROJECTION,
+        PARAMETERIZATION_PROJECTION,
         PARAMETERIZATION_GROUP_PROJECTION,
     ):
         for statement in projection.ddl_statements():
@@ -118,17 +120,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             note TEXT,
             FOREIGN KEY (source_id) REFERENCES concept(id),
             FOREIGN KEY (target_id) REFERENCES concept(id)
-        );
-
-        CREATE TABLE parameterization (
-            output_concept_id TEXT NOT NULL,
-            concept_ids TEXT NOT NULL,
-            formula TEXT NOT NULL,
-            sympy TEXT,
-            exactness TEXT NOT NULL,
-            conditions_cel TEXT,
-            conditions_ir TEXT,
-            FOREIGN KEY (output_concept_id) REFERENCES concept(id)
         );
 
         CREATE TABLE relation_edge (

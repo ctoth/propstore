@@ -97,6 +97,23 @@ PARAMETERIZATION_GROUP_PROJECTION = ProjectionTable(
 )
 
 
+PARAMETERIZATION_PROJECTION = ProjectionTable(
+    name="parameterization",
+    columns=(
+        ProjectionColumn("output_concept_id", "TEXT", nullable=False),
+        ProjectionColumn("concept_ids", "TEXT", nullable=False),
+        ProjectionColumn("formula", "TEXT", nullable=False),
+        ProjectionColumn("sympy", "TEXT"),
+        ProjectionColumn("exactness", "TEXT", nullable=False),
+        ProjectionColumn("conditions_cel", "TEXT"),
+        ProjectionColumn("conditions_ir", "TEXT"),
+    ),
+    foreign_keys=(
+        ProjectionForeignKey(("output_concept_id",), "concept", ("id",)),
+    ),
+)
+
+
 @dataclass(frozen=True)
 class FormProjectionRow:
     name: str
@@ -138,6 +155,28 @@ class ParameterizationGroupProjectionRow:
         return {
             "concept_id": self.concept_id,
             "group_id": self.group_id,
+        }
+
+
+@dataclass(frozen=True)
+class ParameterizationProjectionRow:
+    output_concept_id: str
+    concept_ids: str
+    formula: str
+    sympy: str | None
+    exactness: str
+    conditions_cel: str | None
+    conditions_ir: str | None
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "output_concept_id": self.output_concept_id,
+            "concept_ids": self.concept_ids,
+            "formula": self.formula,
+            "sympy": self.sympy,
+            "exactness": self.exactness,
+            "conditions_cel": self.conditions_cel,
+            "conditions_ir": self.conditions_ir,
         }
 
 
@@ -239,13 +278,9 @@ def populate_concept_sidecar_rows(
             row.values,
         )
 
+    parameterization_insert_sql = PARAMETERIZATION_PROJECTION.insert_sql()
     for row in rows.parameterization_rows:
-        conn.execute(
-            "INSERT INTO parameterization "
-            "(output_concept_id, concept_ids, formula, sympy, exactness, "
-            "conditions_cel, conditions_ir) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            row.values,
-        )
+        conn.execute(parameterization_insert_sql, row.as_insert_mapping())
 
     parameterization_group_insert_sql = PARAMETERIZATION_GROUP_PROJECTION.insert_sql()
     for row in rows.parameterization_group_rows:

@@ -18,6 +18,7 @@ from propstore.sidecar.concepts import (
     CONCEPT_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
+    PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
 )
 from propstore.sidecar.sources import SOURCE_PROJECTION
@@ -34,7 +35,7 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
     SOURCE_PROJECTION,
     CONCEPT_PROJECTION,
     ALIAS_PROJECTION,
-    _required_table("parameterization", "output_concept_id", "conditions_ir"),
+    PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
     _required_table(
         "relation_edge",

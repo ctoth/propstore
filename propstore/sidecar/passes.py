@@ -65,7 +65,6 @@ from propstore.sidecar.stages import (
     ContextLiftingMaterializationInsertRow,
     ContextLiftingRuleInsertRow,
     ContextSidecarRows,
-    ConceptParameterizationInsertRow,
     ConceptRelationshipInsertRow,
     ConceptSidecarRows,
     ConflictWitnessInsertRow,
@@ -87,6 +86,7 @@ from propstore.sidecar.concepts import (
     FormAlgebraProjectionRow,
     FormProjectionRow,
     ParameterizationGroupProjectionRow,
+    ParameterizationProjectionRow,
 )
 from propstore.sidecar.sources import SourceProjectionRow
 from propstore.sidecar.claim_utils import (
@@ -261,7 +261,7 @@ def compile_concept_sidecar_rows(
     alias_rows: list[AliasProjectionRow] = []
     relationship_rows: list[ConceptRelationshipInsertRow] = []
     relation_edge_rows: list[RelationEdgeInsertRow] = []
-    parameterization_rows: list[ConceptParameterizationInsertRow] = []
+    parameterization_rows: list[ParameterizationProjectionRow] = []
     parameterization_group_rows: list[ParameterizationGroupProjectionRow] = []
     form_algebra_rows: list[FormAlgebraProjectionRow] = []
     concept_fts_rows: list[ConceptFtsInsertRow] = []
@@ -375,6 +375,10 @@ def compile_concept_sidecar_rows(
             )
 
         for parameterization in record.parameterizations:
+            if parameterization.formula is None:
+                raise ValueError(f"Parameterization for {concept_id} is missing formula")
+            if parameterization.exactness is None:
+                raise ValueError(f"Parameterization for {concept_id} is missing exactness")
             inputs = [str(input_id) for input_id in parameterization.inputs]
             conditions_json = (
                 json.dumps(list(parameterization.conditions))
@@ -395,16 +399,14 @@ def compile_concept_sidecar_rows(
                 else None
             )
             parameterization_rows.append(
-                ConceptParameterizationInsertRow(
-                    (
-                        concept_id,
-                        json.dumps(inputs),
-                        parameterization.formula,
-                        parameterization.sympy,
-                        parameterization.exactness,
-                        conditions_json,
-                        conditions_ir,
-                    )
+                ParameterizationProjectionRow(
+                    output_concept_id=concept_id,
+                    concept_ids=json.dumps(inputs),
+                    formula=parameterization.formula,
+                    sympy=parameterization.sympy,
+                    exactness=str(parameterization.exactness),
+                    conditions_cel=conditions_json,
+                    conditions_ir=conditions_ir,
                 )
             )
 
