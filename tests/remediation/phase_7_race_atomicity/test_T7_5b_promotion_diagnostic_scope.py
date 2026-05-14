@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from propstore.sidecar.build import _populate_promotion_blocked_rows
 from propstore.sidecar.schema import create_claim_tables, create_context_tables
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.source.promote import _write_promotion_blocked_sidecar_rows
+from propstore.source.promote import compile_promotion_blocked_projection_rows
 
 
 def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path):
@@ -56,13 +57,28 @@ def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path
         conn.close()
 
     claim = SimpleNamespace(artifact_id="claim-1", id="local-claim")
-    _write_promotion_blocked_sidecar_rows(
-        sidecar_path,
+    alpha_rows = compile_promotion_blocked_projection_rows(
         "source/a",
         "paper-a",
         [claim],
         {"claim-1": [("concept_mapping", "fresh branch a")]},
     )
+    beta_rows = compile_promotion_blocked_projection_rows(
+        "source/b",
+        "paper-b",
+        [claim],
+        {"claim-1": [("concept_mapping", "keep branch b")]},
+    )
+    conn = connect_sidecar(sidecar_path)
+    try:
+        _populate_promotion_blocked_rows(
+            conn,
+            alpha_rows.claim_rows + beta_rows.claim_rows,
+            alpha_rows.diagnostic_rows + beta_rows.diagnostic_rows,
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
     conn = connect_sidecar(sidecar_path)
     try:
