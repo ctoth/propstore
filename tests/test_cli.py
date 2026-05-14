@@ -2047,60 +2047,34 @@ class TestWorldOwnerReports:
         self,
         freq_workspace: Path,
     ) -> None:
-        sidecar = freq_workspace / "knowledge" / "sidecar" / "propstore.sqlite"
-        conn = sqlite3.connect(sidecar)
-        try:
-            claim1_id = conn.execute(
-                """
-                SELECT id FROM claim_core
-                WHERE primary_logical_id = 'freq_paper:freq_claim1'
-                """
-            ).fetchone()[0]
-            concept_id = conn.execute(
-                """
-                SELECT concept_id FROM claim_concept_link
-                WHERE claim_id = ?
-                """,
-                (claim1_id,),
-            ).fetchone()[0]
-            conn.execute(
-                """
-                INSERT INTO claim_core (
-                    id, primary_logical_id, logical_ids_json, version_id,
-                    content_hash, seq, type, source_slug, source_paper,
-                    provenance_page, premise_kind, branch, build_status, stage,
-                    promotion_status
-                ) VALUES (
-                    'freq_paper:freq_claim2', 'freq_paper:freq_claim2', '[]',
-                    '', '', 0, 'parameter', 'freq_paper', 'freq_paper',
-                    2, 'ordinary', 'master', 'ingested', NULL, NULL
-                )
-                """
-            )
-            conn.execute(
-                """
-                INSERT INTO claim_concept_link (
-                    claim_id, concept_id, role, ordinal, binding_name
-                ) VALUES (
-                    'freq_paper:freq_claim2', ?, 'output', 0, NULL
-                )
-                """,
-                (concept_id,),
-            )
-            conn.execute(
-                """
-                INSERT INTO relation_edge (
-                    source_kind, source_id, relation_type, target_kind, target_id
-                ) VALUES (
-                    'claim', ?, 'rebuts',
-                    'claim', 'freq_paper:freq_claim2'
-                )
-                """,
-                (claim1_id,),
-            )
-            conn.commit()
-        finally:
-            conn.close()
+        claims_dir = freq_workspace / "knowledge" / "claims"
+        _write_claim_file(claims_dir, "freq_paper.yaml", _normalize_claim_concept_refs({
+            "source": {"paper": "freq_paper"},
+            "claims": [
+                {
+                    "id": "freq_claim1",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 0.2,
+                    "unit": "kHz",
+                    "stances": [{"type": "rebuts", "target": "freq_claim2"}],
+                    "provenance": {"paper": "freq_paper", "page": 1},
+                },
+                {
+                    "id": "freq_claim2",
+                    "type": "parameter",
+                    "concept": "concept1",
+                    "value": 0.18,
+                    "unit": "kHz",
+                    "provenance": {"paper": "freq_paper", "page": 2},
+                },
+            ],
+        }))
+        _commit_workspace_paths(
+            freq_workspace,
+            ["claims/freq_paper.yaml"],
+            "Seed frequency rebuttal scenario",
+        )
 
         runner = CliRunner()
         result = runner.invoke(
