@@ -8,7 +8,7 @@ from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
 from propstore.families.registry import ContextRef, PredicateRef, RuleRef
 from propstore.repository import Repository
-from propstore.sidecar.build import build_sidecar
+from propstore.sidecar.build import export_sidecar as build_sidecar
 from propstore.source import promote_source_branch
 from tests.test_branch_head_cas_matrix import _seed_ready_source_branch
 

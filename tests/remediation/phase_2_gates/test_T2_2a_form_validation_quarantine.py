@@ -6,7 +6,7 @@ from pathlib import Path
 import yaml
 
 from propstore.repository import Repository
-from propstore.sidecar.build import build_sidecar
+from propstore.sidecar.build import export_sidecar as build_sidecar
 
 
 def test_invalid_form_quarantines_not_raises(tmp_path: Path) -> None:

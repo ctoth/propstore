@@ -13,7 +13,7 @@ from quire.refs import RefName
 
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
-from propstore.sidecar.build import build_sidecar
+from propstore.sidecar.build import export_sidecar as build_sidecar
 from propstore.sidecar.sqlite import connect_sidecar
 from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot

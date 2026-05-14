@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 from propstore.repository import Repository
-from propstore.sidecar.build import build_sidecar
+from propstore.sidecar.build import export_sidecar as build_sidecar
 from propstore.sidecar import schema
 
 
