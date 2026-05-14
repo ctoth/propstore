@@ -46,6 +46,7 @@ import sqlite3
 from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
 from propstore.sidecar.concepts import (
     ALIAS_PROJECTION,
+    CONCEPT_FTS_PROJECTION,
     CONCEPT_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
@@ -86,17 +87,8 @@ def write_schema_metadata(conn: sqlite3.Connection) -> None:
 
 
 def create_concept_fts_table(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
-        CREATE VIRTUAL TABLE concept_fts USING fts5(
-            concept_id UNINDEXED,
-            canonical_name,
-            aliases,
-            definition,
-            conditions
-        )
-        """
-    )
+    for statement in CONCEPT_FTS_PROJECTION.ddl_statements():
+        conn.execute(statement)
 
 
 def create_tables(conn: sqlite3.Connection) -> None:

@@ -6,7 +6,7 @@ import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from propstore.sidecar.projection import ProjectionColumn, ProjectionForeignKey, ProjectionIndex, ProjectionTable
+from propstore.sidecar.projection import FtsProjection, ProjectionColumn, ProjectionForeignKey, ProjectionIndex, ProjectionTable
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.stages import ConceptSidecarRows
 
@@ -115,6 +115,16 @@ PARAMETERIZATION_PROJECTION = ProjectionTable(
 )
 
 
+CONCEPT_FTS_PROJECTION = FtsProjection(
+    table="concept_fts",
+    key_column="concept_id",
+    columns=("canonical_name", "aliases", "definition", "conditions"),
+    row_plan=(
+        "Concept FTS rows are generated from compiled concept bundles in deterministic concept traversal order."
+    ),
+)
+
+
 @dataclass(frozen=True)
 class FormProjectionRow:
     name: str
@@ -178,6 +188,24 @@ class ParameterizationProjectionRow:
             "exactness": self.exactness,
             "conditions_cel": self.conditions_cel,
             "conditions_ir": self.conditions_ir,
+        }
+
+
+@dataclass(frozen=True)
+class ConceptFtsProjectionRow:
+    concept_id: str
+    canonical_name: str
+    aliases: str
+    definition: str
+    conditions: str
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "concept_id": self.concept_id,
+            "canonical_name": self.canonical_name,
+            "aliases": self.aliases,
+            "definition": self.definition,
+            "conditions": self.conditions,
         }
 
 
@@ -287,21 +315,8 @@ def populate_concept_sidecar_rows(
     for row in rows.form_algebra_rows:
         conn.execute(form_algebra_insert_sql, row.as_insert_mapping())
 
-    conn.execute(
-        """
-        CREATE VIRTUAL TABLE concept_fts USING fts5(
-            concept_id UNINDEXED,
-            canonical_name,
-            aliases,
-            definition,
-            conditions
-        )
-        """
-    )
+    for statement in CONCEPT_FTS_PROJECTION.ddl_statements():
+        conn.execute(statement)
+    concept_fts_insert_sql = CONCEPT_FTS_PROJECTION.insert_sql()
     for row in rows.concept_fts_rows:
-        conn.execute(
-            "INSERT INTO concept_fts "
-            "(concept_id, canonical_name, aliases, definition, conditions) "
-            "VALUES (?, ?, ?, ?, ?)",
-            row.values,
-        )
+        conn.execute(concept_fts_insert_sql, row.as_insert_mapping())

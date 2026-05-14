@@ -59,7 +59,6 @@ from propstore.sidecar.stages import (
     ClaimFtsInsertRow,
     ClaimSidecarRows,
     ClaimStanceInsertRow,
-    ConceptFtsInsertRow,
     ContextAssumptionInsertRow,
     ContextInsertRow,
     ContextLiftingMaterializationInsertRow,
@@ -82,6 +81,7 @@ from propstore.sidecar.stages import (
 from propstore.sidecar.relations import RelationEdgeProjectionRow
 from propstore.sidecar.concepts import (
     AliasProjectionRow,
+    ConceptFtsProjectionRow,
     ConceptProjectionRow,
     FormAlgebraProjectionRow,
     FormProjectionRow,
@@ -264,7 +264,7 @@ def compile_concept_sidecar_rows(
     parameterization_rows: list[ParameterizationProjectionRow] = []
     parameterization_group_rows: list[ParameterizationGroupProjectionRow] = []
     form_algebra_rows: list[FormAlgebraProjectionRow] = []
-    concept_fts_rows: list[ConceptFtsInsertRow] = []
+    concept_fts_rows: list[ConceptFtsProjectionRow] = []
 
     for form_definition in form_registry.values():
         dimensions_json = (
@@ -415,14 +415,12 @@ def compile_concept_sidecar_rows(
         for parameterization in record.parameterizations:
             conditions_parts.extend(parameterization.conditions)
         concept_fts_rows.append(
-            ConceptFtsInsertRow(
-                (
-                    concept_id,
-                    record.canonical_name,
-                    " ".join(alias_names),
-                    record.definition,
-                    " ".join(conditions_parts),
-                )
+            ConceptFtsProjectionRow(
+                concept_id=concept_id,
+                canonical_name=record.canonical_name,
+                aliases=" ".join(alias_names),
+                definition=record.definition,
+                conditions=" ".join(conditions_parts),
             )
         )
 
