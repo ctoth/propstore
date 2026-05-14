@@ -484,7 +484,7 @@ def _populate_promotion_blocked_rows(
             """
         ).fetchall()
     }
-    claim_ids = tuple(row.id for row in claim_rows)
+    claim_ids = tuple(str(row.values["id"]) for row in claim_rows)
     for claim_id in claim_ids:
         for table_name in (
             "claim_concept_link",
