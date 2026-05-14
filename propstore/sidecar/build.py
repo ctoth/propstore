@@ -484,7 +484,8 @@ def _populate_promotion_blocked_rows(
             """
         ).fetchall()
     }
-    claim_ids = tuple(str(row.values["id"]) for row in claim_rows)
+    claim_rows_by_id = {str(row.values["id"]): row for row in claim_rows}
+    claim_ids = tuple(claim_rows_by_id)
     for claim_id in claim_ids:
         for table_name in (
             "claim_concept_link",
@@ -506,7 +507,7 @@ def _populate_promotion_blocked_rows(
             (claim_id,),
         )
     claim_insert = CLAIM_CORE_PROJECTION.insert_sql()
-    for row in claim_rows:
+    for row in claim_rows_by_id.values():
         conn.execute(claim_insert, row.as_insert_mapping())
     for row in diagnostic_rows:
         insert_build_diagnostic(conn, row)
