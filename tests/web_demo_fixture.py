@@ -5,18 +5,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from propstore.repository import Repository
-from propstore.sidecar.schema import (
-    create_claim_tables,
-    create_context_tables,
-    create_tables,
-    write_schema_metadata,
-)
-from propstore.sidecar.rules import create_grounded_fact_table
+from propstore.sidecar.build import materialize_world_sidecar
 
 
 @dataclass(frozen=True)
 class WebDemoRepositoryFixture:
     repo: Repository
+    sidecar_path: Path
     focus_claim_id: str
     supporter_claim_id: str
     attacker_claim_id: str
@@ -25,41 +20,21 @@ class WebDemoRepositoryFixture:
 
 def seed_web_demo_repository(tmp_path: Path) -> WebDemoRepositoryFixture:
     repo = Repository.init(tmp_path / "web-demo-repo")
-    repo.sidecar_dir.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(repo.sidecar_path)
+    handle, _ = materialize_world_sidecar(repo, force=True)
+    conn = sqlite3.connect(handle.path)
     try:
-        create_tables(conn)
-        create_claim_tables(conn)
-        create_context_tables(conn)
-        create_grounded_fact_table(conn)
-        write_schema_metadata(conn)
-        _create_concept_fts(conn)
         _seed_rows(conn)
         conn.commit()
     finally:
         conn.close()
     return WebDemoRepositoryFixture(
         repo=repo,
+        sidecar_path=handle.path,
         focus_claim_id="demo_focus",
         supporter_claim_id="demo_supporter",
         attacker_claim_id="demo_attacker",
         concept_id="demo_concept",
     )
-
-
-def _create_concept_fts(conn: sqlite3.Connection) -> None:
-    conn.execute(
-        """
-        CREATE VIRTUAL TABLE concept_fts USING fts5(
-            concept_id UNINDEXED,
-            canonical_name,
-            aliases,
-            definition,
-            conditions
-        )
-        """
-    )
-
 
 def _seed_rows(conn: sqlite3.Connection) -> None:
     conn.execute(

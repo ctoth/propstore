@@ -10,7 +10,7 @@ from tests.web_demo_fixture import seed_web_demo_repository
 
 def test_neighborhood_hides_blocked_stance_endpoints(tmp_path) -> None:
     fixture = seed_web_demo_repository(tmp_path)
-    with sqlite3.connect(fixture.repo.sidecar_path) as conn:
+    with sqlite3.connect(fixture.sidecar_path) as conn:
         conn.execute(
             """
             INSERT INTO relation_edge (

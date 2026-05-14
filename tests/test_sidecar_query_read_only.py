@@ -13,14 +13,14 @@ def _journal_mode(path) -> str:
 
 def test_query_sidecar_does_not_switch_database_to_wal(tmp_path) -> None:
     fixture = seed_web_demo_repository(tmp_path)
-    before_mode = _journal_mode(fixture.repo.sidecar_path)
-    before_bytes = fixture.repo.sidecar_path.read_bytes()
+    before_mode = _journal_mode(fixture.sidecar_path)
+    before_bytes = fixture.sidecar_path.read_bytes()
 
     result = query_sidecar(fixture.repo, "SELECT 1 AS one")
 
     assert result.columns == ("one",)
     assert result.rows == (("1",),)
-    assert _journal_mode(fixture.repo.sidecar_path) == before_mode
-    assert fixture.repo.sidecar_path.read_bytes() == before_bytes
-    assert not fixture.repo.sidecar_path.with_name("propstore.sqlite-wal").exists()
-    assert not fixture.repo.sidecar_path.with_name("propstore.sqlite-shm").exists()
+    assert _journal_mode(fixture.sidecar_path) == before_mode
+    assert fixture.sidecar_path.read_bytes() == before_bytes
+    assert not fixture.sidecar_path.with_name(f"{fixture.sidecar_path.name}-wal").exists()
+    assert not fixture.sidecar_path.with_name(f"{fixture.sidecar_path.name}-shm").exists()
