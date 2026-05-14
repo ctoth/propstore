@@ -32,19 +32,11 @@ import pytest
 from propstore.sidecar.schema import (
     SCHEMA_VERSION,
     SIDECAR_META_KEY,
-    create_claim_tables,
-    create_context_tables,
-    create_tables,
-    write_schema_metadata,
+    build_minimal_world_model_schema,
 )
-from propstore.sidecar.rules import create_grounded_fact_table
 from propstore.world.model import WorldQuery
 from propstore.world.types import RenderPolicy
 from tests.family_helpers import world_query_from_sqlite_path
-
-
-def _write_meta(conn: sqlite3.Connection) -> None:
-    write_schema_metadata(conn)
 
 
 def _insert_minimal_source(conn: sqlite3.Connection, slug: str = "test-source") -> None:
@@ -161,27 +153,7 @@ def lifecycle_sidecar(tmp_path: Path) -> Path:
 
     conn = sqlite3.connect(sidecar_path)
     try:
-        create_tables(conn)
-        create_context_tables(conn)
-        create_claim_tables(conn)
-        create_grounded_fact_table(conn)
-        # ``concept_fts`` is normally built by
-        # ``propstore.sidecar.concepts.build_concept_fts_index`` during the
-        # full build; WorldQuery validates its presence. Create a stub
-        # virtual table so the render-policy fixture can open a WorldQuery
-        # without running the entire compile path.
-        conn.execute(
-            """
-            CREATE VIRTUAL TABLE concept_fts USING fts5(
-                concept_id UNINDEXED,
-                canonical_name,
-                aliases,
-                definition,
-                conditions
-            )
-            """
-        )
-        _write_meta(conn)
+        build_minimal_world_model_schema(conn)
 
         _insert_minimal_source(conn)
         _insert_concept(conn)
