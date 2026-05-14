@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from click.testing import CliRunner
 
 from propstore.cli import cli
@@ -10,6 +12,13 @@ def _materialize_demo(tmp_path):
     root = tmp_path / "knowledge"
     materialize_reasoning_demo(root)
     return root
+
+
+def _derived_store_path_from_build_output(output: str):
+    for line in output.splitlines():
+        if line.startswith("Derived store: "):
+            return line.rsplit(" ", 1)[-1]
+    raise AssertionError(f"build output did not report a derived store path:\n{output}")
 
 
 def test_reasoning_demo_grounding_status(tmp_path) -> None:
@@ -86,7 +95,7 @@ def test_reasoning_demo_build_and_world_extensions(tmp_path) -> None:
     runner = CliRunner()
     build_result = runner.invoke(cli, ["-C", str(root), "build"])
     assert build_result.exit_code == 0, build_result.output
-    assert root.joinpath("sidecar", "propstore.sqlite").exists()
+    assert Path(_derived_store_path_from_build_output(build_result.output)).exists()
 
     extensions_result = runner.invoke(
         cli,
@@ -126,7 +135,7 @@ def test_reasoning_demo_worldline_run_and_show(tmp_path) -> None:
 
     assert run_result.exit_code == 0, run_result.output
     assert "flight_score: 1.0 (resolved, resolved)" in run_result.output
-    assert root.joinpath("sidecar", "propstore.sqlite").exists()
+    assert Path(_derived_store_path_from_build_output(build_result.output)).exists()
 
     show_result = runner.invoke(cli, ["-C", str(root), "worldline", "show", "demo"])
 
