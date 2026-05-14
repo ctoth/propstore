@@ -72,9 +72,7 @@ from propstore.sidecar.contexts import (
 )
 from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import ensure_embedding_tables
-from propstore.sidecar.micropublications import (
-    create_micropublication_tables as create_micropublication_projection_tables,
-)
+from propstore.sidecar.micropublications import create_micropublication_tables
 from quire.projections import ProjectionColumn, ProjectionTable
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
@@ -113,11 +111,6 @@ def write_schema_metadata(conn: sqlite3.Connection) -> None:
     )
 
 
-def create_concept_fts_table(conn: sqlite3.Connection) -> None:
-    for statement in CONCEPT_FTS_PROJECTION.ddl_statements():
-        conn.execute(statement)
-
-
 def create_tables(conn: sqlite3.Connection) -> None:
     for projection in (
         SOURCE_PROJECTION,
@@ -141,7 +134,6 @@ def build_minimal_world_model_schema(conn: sqlite3.Connection) -> None:
 
     write_schema_metadata(conn)
     create_tables(conn)
-    create_concept_fts_table(conn)
     create_context_tables(conn)
     create_claim_tables(conn)
     create_micropublication_tables(conn)
@@ -158,10 +150,6 @@ def create_context_tables(conn: sqlite3.Connection) -> None:
     ):
         for statement in projection.ddl_statements():
             conn.execute(statement)
-
-
-def create_micropublication_tables(conn: sqlite3.Connection) -> None:
-    create_micropublication_projection_tables(conn)
 
 
 def populate_contexts(

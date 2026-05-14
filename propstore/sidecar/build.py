@@ -61,13 +61,15 @@ from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.schema import (
     create_claim_tables,
-    create_micropublication_tables,
     create_context_tables,
     create_tables,
     populate_contexts,
     write_schema_metadata,
 )
-from propstore.sidecar.micropublications import populate_micropublications
+from propstore.sidecar.micropublications import (
+    create_micropublication_tables,
+    populate_micropublications,
+)
 from propstore.sidecar.quarantine import QuarantinableWriter
 from propstore.sidecar.rules import create_grounded_fact_table, populate_grounded_facts
 from propstore.sidecar.sources import populate_sources

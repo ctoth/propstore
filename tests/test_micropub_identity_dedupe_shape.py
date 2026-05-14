@@ -9,9 +9,10 @@ from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.identity.micropubs import micropub_artifact_id
 from propstore.sidecar.micropublications import (
     MicropublicationProjectionRow,
+    create_micropublication_tables,
     populate_micropublications,
 )
-from propstore.sidecar.schema import create_context_tables, create_micropublication_tables
+from propstore.sidecar.schema import create_context_tables
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.sidecar.stages import MicropublicationSidecarRows
 
