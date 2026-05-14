@@ -588,6 +588,55 @@ Phase gate:
 - Every remaining sidecar helper has a one-line semantic ownership note in the
   Phase 13 completion ledger.
 
+### Phase 13 Completion Ledger
+
+Phase 13 status: completed on branch
+`workstream/quire-owned-derived-store-machinery`.
+
+Deleted wrapper-only surfaces:
+
+- `propstore.sidecar.diagnostics.create_build_diagnostics_table` and
+  `insert_build_diagnostic`; callers now use `BUILD_DIAGNOSTICS_PROJECTION`
+  directly.
+- `SourceProjectionRow.as_insert_mapping`,
+  `MicropublicationProjectionRow.as_insert_mapping`,
+  `MicropublicationClaimProjectionRow.as_insert_mapping`,
+  `GroundedFactProjectionRow.as_insert_mapping`,
+  `GroundedFactEmptyPredicateProjectionRow.as_insert_mapping`, and
+  `GroundedBundleInputProjectionRow.as_insert_mapping`; Quire projection row
+  encoding now owns dataclass materialization.
+- `propstore.sidecar.schema.create_build_diagnostics_table`,
+  `create_concept_fts_table`, and the schema-level
+  `create_micropublication_tables` forwarding helper; remaining schema helpers
+  group Propstore semantic table families rather than forwarding one
+  declaration.
+
+Remaining sidecar ownership notes:
+
+| File | Remaining ownership note |
+| --- | --- |
+| `authoring_lints.py` | Propstore authoring-policy diagnostics for malformed source/claim/stance documents. |
+| `build.py` | Propstore world-sidecar semantic orchestration, diagnostics, source-branch tips, promotion-blocked rows, embedding snapshot restore, and grounding population; generic lifecycle/digest work is Quire-owned. |
+| `calibration.py` | Propstore calibration-count semantic table declaration. |
+| `claim_utils.py` | Claim semantic normalization, typed-payload extraction, equation/algorithm storage policy, stance resolution, and claim concept-link derivation. |
+| `claims.py` | Claim semantic table/FTS declarations and claim-specific population/dedupe/quarantine behavior. |
+| `concept_utils.py` | Concept identity/reference semantic helpers. |
+| `concepts.py` | Concept/form/alias/relationship/parameterization semantic declarations and population ordering. |
+| `contexts.py` | Context, assumption, lifting-rule, and lifting-materialization semantic declarations. |
+| `diagnostics.py` | Build-diagnostics semantic projection declaration only. |
+| `embedding_store.py` | Propstore embedding model policy, entity text loading, freshness/status semantics, and high-level similarity API over Quire sqlite-vec helpers. |
+| `micropublications.py` | Micropublication semantic declarations plus content-derived id/link dedupe policy. |
+| `passes.py` | Propstore semantic lowering from checked domain bundles into projection rows. |
+| `query.py` | Presentation-safe sidecar SQL query result/failure surface. |
+| `quarantine.py` | Rule-5 quarantine behavior that turns failed semantic writes into build diagnostics. |
+| `relations.py` | Relation-edge semantic declaration shared by concepts and claims. |
+| `rules.py` | Grounded-rule semantic persistence and round-trip encoding for gunray/DeLP/ASPIC structures. |
+| `schema.py` | Propstore semantic schema grouping and metadata version writes. |
+| `sqlite.py` | Propstore sidecar connection policy, including WAL and readonly connection setup. |
+| `sources.py` | Source semantic declaration and source-row population. |
+| `stages.py` | Typed intermediate sidecar build bundles connecting semantic passes to projection population. |
+| `world_projection.py` | Propstore semantic projection registry for world sidecar validation. |
+
 ## Phase 14: Final Reduction, Search, and Test Gates
 
 Repository: `propstore`
