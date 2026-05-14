@@ -1,14 +1,12 @@
 """Regression test for Bug 4: FK violation when mirroring a blocked
 claim whose ``claim_core`` row already has payload child rows.
 
-``_write_promotion_blocked_sidecar_rows`` issues
-``DELETE FROM claim_core WHERE id = ?`` with ``PRAGMA foreign_keys = ON``.
-If the existing ``claim_core`` row has any child row in
+The materialized promotion-blocked population path replaces the
+``claim_core`` row for the blocked id. If the existing ``claim_core`` row has any child row in
 ``claim_numeric_payload``, ``claim_text_payload``,
 ``claim_algorithm_payload``, or ``micropublication_claim`` (all of which
-FK to ``claim_core(id)``), the DELETE raises
-``sqlite3.IntegrityError: FOREIGN KEY constraint failed`` and the
-promote path aborts.
+FK to ``claim_core(id)``), the builder must delete those children before
+replacing the parent row.
 
 Reproduces the Belch_2008 crash from the aspirin stance-backfill retry
 session (2026-04-23): a claim was ingested in a sibling branch (so its
@@ -19,6 +17,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from propstore.sidecar.build import _populate_promotion_blocked_rows
 from propstore.sidecar.schema import (
     create_tables,
     create_claim_tables,
@@ -26,7 +25,7 @@ from propstore.sidecar.schema import (
     create_micropublication_tables,
 )
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.source.promote import _write_promotion_blocked_sidecar_rows
+from propstore.source.promote import compile_promotion_blocked_projection_rows
 
 
 def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
@@ -114,13 +113,22 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
     # Belch_2008 (here ``source/beta``) needs to mirror this claim as
     # blocked. Prior behavior crashes with a FOREIGN KEY violation.
     claim = SimpleNamespace(artifact_id="claim-shared", id="local-claim")
-    _write_promotion_blocked_sidecar_rows(
-        sidecar_path,
+    rows = compile_promotion_blocked_projection_rows(
         "source/beta",
         "paper-beta",
         [claim],
         {"claim-shared": [("concept_mapping", "unresolved in beta")]},
     )
+    conn = connect_sidecar(sidecar_path)
+    try:
+        _populate_promotion_blocked_rows(
+            conn,
+            rows.claim_rows,
+            rows.diagnostic_rows,
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
     conn = connect_sidecar(sidecar_path)
     try:
