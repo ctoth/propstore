@@ -258,9 +258,11 @@ def promote_source(
 
 
 def inspect_source(repo: Repository, request: SourceNamedRequest):
+    from propstore.sidecar.build import materialize_world_sidecar
     from propstore.source import inspect_source_status
 
-    return inspect_source_status(repo, request.name)
+    handle, _ = materialize_world_sidecar(repo)
+    return inspect_source_status(handle.path, request.name)
 
 
 def sync_source(repo: Repository, request: SourceSyncRequest) -> SourceSyncReport:
