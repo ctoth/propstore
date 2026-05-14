@@ -58,8 +58,6 @@ from propstore.sidecar.stages import (
     ContextSidecarRows,
     ConceptRelationshipInsertRow,
     ConceptSidecarRows,
-    MicropublicationClaimInsertRow,
-    MicropublicationInsertRow,
     MicropublicationSidecarRows,
     RawIdQuarantineSidecarRows,
     QuarantineDiagnostic,
@@ -84,6 +82,10 @@ from propstore.sidecar.contexts import (
     ContextProjectionRow,
 )
 from propstore.sidecar.diagnostics import BuildDiagnosticProjectionRow
+from propstore.sidecar.micropublications import (
+    MicropublicationClaimProjectionRow,
+    MicropublicationProjectionRow,
+)
 from propstore.sidecar.relations import RelationEdgeProjectionRow
 from propstore.sidecar.concepts import (
     AliasProjectionRow,
@@ -962,8 +964,8 @@ def _compile_micropublication_sidecar_rows_with_diagnostics(
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[MicropublicationSidecarRows, tuple[QuarantineDiagnostic, ...]]:
     valid_claim_ids = set(claim_index.ids())
-    micropublication_rows: list[MicropublicationInsertRow] = []
-    claim_rows: list[MicropublicationClaimInsertRow] = []
+    micropublication_rows: list[MicropublicationProjectionRow] = []
+    claim_rows: list[MicropublicationClaimProjectionRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, micropub in sorted(micropub_entries, key=lambda item: item[0]):
@@ -1000,33 +1002,36 @@ def _compile_micropublication_sidecar_rows_with_diagnostics(
             continue
 
         micropublication_rows.append(
-            MicropublicationInsertRow(
-                (
-                    micropub.artifact_id,
-                    str(micropub.context.id),
-                    json.dumps(list(micropub.assumptions), sort_keys=True),
-                    json.dumps(
-                        [item.to_payload() for item in micropub.evidence],
+            MicropublicationProjectionRow(
+                id=micropub.artifact_id,
+                context_id=str(micropub.context.id),
+                assumptions_json=json.dumps(
+                    list(micropub.assumptions),
+                    sort_keys=True,
+                ),
+                evidence_json=json.dumps(
+                    [item.to_payload() for item in micropub.evidence],
+                    sort_keys=True,
+                ),
+                stance=None if micropub.stance is None else micropub.stance.value,
+                provenance_json=(
+                    None
+                    if micropub.provenance is None
+                    else json.dumps(
+                        micropub.provenance.to_payload(),
                         sort_keys=True,
-                    ),
-                    None if micropub.stance is None else micropub.stance.value,
-                    (
-                        None
-                        if micropub.provenance is None
-                        else json.dumps(
-                            micropub.provenance.to_payload(),
-                            sort_keys=True,
-                        )
-                    ),
-                    micropub.source,
-                )
+                    )
+                ),
+                source_slug=micropub.source,
             )
         )
         for seq, claim_id in enumerate(resolved_claims, start=1):
             assert claim_id is not None
             claim_rows.append(
-                MicropublicationClaimInsertRow(
-                    (micropub.artifact_id, claim_id, seq)
+                MicropublicationClaimProjectionRow(
+                    micropublication_id=micropub.artifact_id,
+                    claim_id=claim_id,
+                    seq=seq,
                 )
             )
 

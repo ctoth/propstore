@@ -7,13 +7,13 @@ from quire.documents import convert_document_value
 
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.identity.micropubs import micropub_artifact_id
-from propstore.sidecar.micropublications import populate_micropublications
+from propstore.sidecar.micropublications import (
+    MicropublicationProjectionRow,
+    populate_micropublications,
+)
 from propstore.sidecar.schema import create_context_tables, create_micropublication_tables
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.sidecar.stages import (
-    MicropublicationInsertRow,
-    MicropublicationSidecarRows,
-)
+from propstore.sidecar.stages import MicropublicationSidecarRows
 
 
 def _micropub(page: int) -> MicropublicationDocument:
@@ -32,17 +32,15 @@ def _micropub(page: int) -> MicropublicationDocument:
     )
 
 
-def _row(document: MicropublicationDocument) -> MicropublicationInsertRow:
-    return MicropublicationInsertRow(
-        (
-            micropub_artifact_id(document),
-            document.context.id,
-            "[]",
-            "[]",
-            None,
-            None,
-            "demo",
-        )
+def _row(document: MicropublicationDocument) -> MicropublicationProjectionRow:
+    return MicropublicationProjectionRow(
+        id=micropub_artifact_id(document),
+        context_id=document.context.id,
+        assumptions_json="[]",
+        evidence_json="[]",
+        stance=None,
+        provenance_json=None,
+        source_slug="demo",
     )
 
 

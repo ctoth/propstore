@@ -32,6 +32,10 @@ if TYPE_CHECKING:
         ContextProjectionRow,
     )
     from propstore.sidecar.diagnostics import BuildDiagnosticProjectionRow
+    from propstore.sidecar.micropublications import (
+        MicropublicationClaimProjectionRow,
+        MicropublicationProjectionRow,
+    )
     from propstore.sidecar.concepts import (
         AliasProjectionRow,
         ConceptFtsProjectionRow,
@@ -72,19 +76,9 @@ class QuarantineDiagnostic:
 
 
 @dataclass(frozen=True)
-class MicropublicationInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class MicropublicationClaimInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
 class MicropublicationSidecarRows:
-    micropublication_rows: tuple[MicropublicationInsertRow, ...]
-    claim_rows: tuple[MicropublicationClaimInsertRow, ...]
+    micropublication_rows: tuple["MicropublicationProjectionRow", ...]
+    claim_rows: tuple["MicropublicationClaimProjectionRow", ...]
 
 
 @dataclass(frozen=True)

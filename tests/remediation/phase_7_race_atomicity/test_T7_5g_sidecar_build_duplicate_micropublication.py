@@ -11,35 +11,31 @@ build pass must dedupe instead of crashing with
 """
 from __future__ import annotations
 
-from propstore.sidecar.micropublications import populate_micropublications
+from propstore.sidecar.micropublications import (
+    MicropublicationProjectionRow,
+    populate_micropublications,
+)
 from propstore.sidecar.schema import (
     create_context_tables,
     create_micropublication_tables,
 )
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.sidecar.stages import (
-    MicropublicationClaimInsertRow,
-    MicropublicationInsertRow,
-    MicropublicationSidecarRows,
-)
+from propstore.sidecar.stages import MicropublicationSidecarRows
 
 
 def _make_micropub_values(
     micropub_id: str,
     context_id: str,
     source_slug: str,
-) -> tuple:
-    # Positional tuple matches the INSERT in populate_micropublications:
-    # (id, context_id, assumptions_json, evidence_json,
-    #  stance, provenance_json, source_slug)
-    return (
-        micropub_id,
-        context_id,
-        "[]",
-        "[]",
-        None,
-        None,
-        source_slug,
+) -> MicropublicationProjectionRow:
+    return MicropublicationProjectionRow(
+        id=micropub_id,
+        context_id=context_id,
+        assumptions_json="[]",
+        evidence_json="[]",
+        stance=None,
+        provenance_json=None,
+        source_slug=source_slug,
     )
 
 
@@ -62,19 +58,15 @@ def test_populate_micropublications_tolerates_duplicate_ids(tmp_path):
         shared_id = "ps:micropub:shared0001"
         rows = MicropublicationSidecarRows(
             micropublication_rows=(
-                MicropublicationInsertRow(
-                    _make_micropub_values(
-                        shared_id,
-                        "ctx:default",
-                        "paper-alpha",
-                    )
+                _make_micropub_values(
+                    shared_id,
+                    "ctx:default",
+                    "paper-alpha",
                 ),
-                MicropublicationInsertRow(
-                    _make_micropub_values(
-                        shared_id,
-                        "ctx:default",
-                        "paper-alpha-variant",
-                    )
+                _make_micropub_values(
+                    shared_id,
+                    "ctx:default",
+                    "paper-alpha-variant",
                 ),
             ),
             claim_rows=(),
@@ -118,19 +110,15 @@ def test_populate_micropublications_tolerates_duplicate_claim_link_ids(
         shared_id = "ps:micropub:shared0002"
         rows = MicropublicationSidecarRows(
             micropublication_rows=(
-                MicropublicationInsertRow(
-                    _make_micropub_values(
-                        shared_id,
-                        "ctx:default",
-                        "paper-alpha",
-                    )
+                _make_micropub_values(
+                    shared_id,
+                    "ctx:default",
+                    "paper-alpha",
                 ),
-                MicropublicationInsertRow(
-                    _make_micropub_values(
-                        shared_id,
-                        "ctx:default",
-                        "paper-alpha-variant",
-                    )
+                _make_micropub_values(
+                    shared_id,
+                    "ctx:default",
+                    "paper-alpha-variant",
                 ),
             ),
             claim_rows=(),
