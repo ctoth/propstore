@@ -11,6 +11,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any, cast
 
+from quire.derived_store import DerivedStoreHandle
 from propstore.conflict_detector import ConflictClass
 from propstore.sidecar.schema import build_minimal_world_model_schema
 from propstore.stances import StanceType
@@ -101,10 +102,19 @@ def _world_query_for_claims(tmp_path: Path, *claim_ids: str) -> WorldQuery:
 class _RepoForHistoricalQuery:
     def __init__(self, root: Path) -> None:
         self.root = root
-        self.sidecar_path = root / "sidecar" / "propstore.sqlite"
 
     def tree(self, commit: str | None = None):
         return FilesystemTreePath.from_filesystem_path(self.root)
+
+
+def _derived_store_for_path(path: Path, *, commit: str = "test") -> DerivedStoreHandle:
+    return DerivedStoreHandle(
+        projection_id="propstore.world.test",
+        source_commit=commit,
+        content_hash="test",
+        cache_key=f"test-{commit}",
+        path=path,
+    )
 
 
 def test_world_query_method_projects_single_step_journal(tmp_path: Path) -> None:
@@ -179,13 +189,13 @@ def test_world_query_historical_query_builds_temp_sidecar_for_commit(
     repo.root.mkdir()
     requested_commits: list[str] = []
 
-    def fake_build_sidecar(
+    def fake_materialize_world_sidecar(
         repo_arg: object,
-        sidecar_path: Path,
         force: bool = False,
         **kwargs: Any,
-    ) -> bool:
+    ) -> tuple[DerivedStoreHandle, bool]:
         requested_commits.append(str(kwargs["commit_hash"]))
+        sidecar_path = tmp_path / "historical" / "propstore.sqlite"
         _write_sidecar(
             sidecar_path,
             historical_claim_a,
@@ -199,12 +209,19 @@ def test_world_query_historical_query_builds_temp_sidecar_for_commit(
             ),
             conflict_pairs=((historical_claim_a, historical_claim_b),),
         )
-        return True
+        return _derived_store_for_path(sidecar_path, commit=str(kwargs["commit_hash"])), True
 
     from propstore.sidecar import build as sidecar_build
 
-    monkeypatch.setattr(sidecar_build, "build_sidecar", fake_build_sidecar)
-    world = WorldQuery(cast(Any, repo), sidecar_path=current_sidecar)
+    monkeypatch.setattr(
+        sidecar_build,
+        "materialize_world_sidecar",
+        fake_materialize_world_sidecar,
+    )
+    world = WorldQuery(
+        cast(Any, repo),
+        derived_store=_derived_store_for_path(current_sidecar),
+    )
     commit_sha = "f" * 40
     try:
         with world.historical_query(commit_sha) as historical:
