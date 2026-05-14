@@ -11,13 +11,19 @@ the build pass must dedupe instead of crashing with
 """
 from __future__ import annotations
 
-from propstore.sidecar.claims import populate_claims
+from propstore.sidecar.claims import (
+    ClaimAlgorithmPayloadProjectionRow,
+    ClaimCoreProjectionRow,
+    ClaimNumericPayloadProjectionRow,
+    ClaimTextPayloadProjectionRow,
+    populate_claims,
+)
 from propstore.sidecar.schema import (
     create_claim_tables,
     create_context_tables,
 )
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.sidecar.stages import ClaimInsertRow, ClaimSidecarRows
+from propstore.sidecar.stages import ClaimSidecarRows
 
 
 def _make_claim_row(artifact_id: str, source_paper: str, seq: int) -> dict:
@@ -68,6 +74,28 @@ def _make_claim_row(artifact_id: str, source_paper: str, seq: int) -> dict:
     }
 
 
+def _claim_sidecar_rows(*claim_rows: dict) -> ClaimSidecarRows:
+    return ClaimSidecarRows(
+        claim_core_rows=tuple(
+            ClaimCoreProjectionRow.from_claim_mapping(row) for row in claim_rows
+        ),
+        numeric_payload_rows=tuple(
+            ClaimNumericPayloadProjectionRow.from_claim_mapping(row)
+            for row in claim_rows
+        ),
+        text_payload_rows=tuple(
+            ClaimTextPayloadProjectionRow.from_claim_mapping(row) for row in claim_rows
+        ),
+        algorithm_payload_rows=tuple(
+            ClaimAlgorithmPayloadProjectionRow.from_claim_mapping(row)
+            for row in claim_rows
+        ),
+        claim_link_rows=(),
+        stance_rows=(),
+        quarantine_diagnostics=(),
+    )
+
+
 def test_populate_claims_tolerates_duplicate_artifact_ids(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = connect_sidecar(sidecar_path)
@@ -77,26 +105,17 @@ def test_populate_claims_tolerates_duplicate_artifact_ids(tmp_path):
 
         # Two rows share the artifact_id. Simulates aspirin's two
         # McNeil claim files that share 43 artifact_ids.
-        rows = ClaimSidecarRows(
-            claim_rows=(
-                ClaimInsertRow(
-                    _make_claim_row(
-                        "ps:claim:shared0001",
-                        "paper-alpha",
-                        seq=1,
-                    )
-                ),
-                ClaimInsertRow(
-                    _make_claim_row(
-                        "ps:claim:shared0001",
-                        "paper-alpha-variant",
-                        seq=2,
-                    )
-                ),
+        rows = _claim_sidecar_rows(
+            _make_claim_row(
+                "ps:claim:shared0001",
+                "paper-alpha",
+                seq=1,
             ),
-            claim_link_rows=(),
-            stance_rows=(),
-            quarantine_diagnostics=(),
+            _make_claim_row(
+                "ps:claim:shared0001",
+                "paper-alpha-variant",
+                seq=2,
+            ),
         )
 
         populate_claims(conn, rows)

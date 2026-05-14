@@ -54,25 +54,29 @@ from propstore.sidecar.claim_utils import (
     prepare_claim_concept_link_rows,
 )
 from propstore.sidecar.stages import (
-    ClaimInsertRow,
-    ClaimConceptLinkInsertRow,
-    ClaimFtsInsertRow,
     ClaimSidecarRows,
-    ClaimStanceInsertRow,
     ContextSidecarRows,
     ConceptRelationshipInsertRow,
     ConceptSidecarRows,
-    ConflictWitnessInsertRow,
-    JustificationInsertRow,
     MicropublicationClaimInsertRow,
     MicropublicationInsertRow,
     MicropublicationSidecarRows,
     BuildDiagnosticInsertRow,
-    RawIdQuarantineClaimInsertRow,
     RawIdQuarantineSidecarRows,
     QuarantineDiagnostic,
     RepositoryCheckedBundle,
     SidecarBuildPlan,
+)
+from propstore.sidecar.claims import (
+    ClaimAlgorithmPayloadProjectionRow,
+    ClaimConceptLinkProjectionRow,
+    ClaimCoreProjectionRow,
+    ClaimFtsProjectionRow,
+    ClaimNumericPayloadProjectionRow,
+    ClaimStanceProjectionRow,
+    ClaimTextPayloadProjectionRow,
+    ConflictWitnessProjectionRow,
+    JustificationProjectionRow,
 )
 from propstore.sidecar.contexts import (
     ContextAssumptionProjectionRow,
@@ -554,9 +558,12 @@ def compile_claim_sidecar_rows(
     form_registry: dict | None = None,
 ) -> ClaimSidecarRows:
     claim_seq = 0
-    claim_rows: list[ClaimInsertRow] = []
-    claim_link_rows: list[ClaimConceptLinkInsertRow] = []
-    stance_rows: list[ClaimStanceInsertRow] = []
+    claim_core_rows: list[ClaimCoreProjectionRow] = []
+    numeric_payload_rows: list[ClaimNumericPayloadProjectionRow] = []
+    text_payload_rows: list[ClaimTextPayloadProjectionRow] = []
+    algorithm_payload_rows: list[ClaimAlgorithmPayloadProjectionRow] = []
+    claim_link_rows: list[ClaimConceptLinkProjectionRow] = []
+    stance_rows: list[ClaimStanceProjectionRow] = []
     quarantine_diagnostics: list[QuarantineDiagnostic] = []
     claim_index = build_claim_file_reference_index(
         claim_bundle.normalized_claim_files
@@ -581,9 +588,18 @@ def compile_claim_sidecar_rows(
             )
             if file_stage is not None:
                 row["stage"] = file_stage
-            claim_rows.append(ClaimInsertRow(row))
+            claim_core_rows.append(ClaimCoreProjectionRow.from_claim_mapping(row))
+            numeric_payload_rows.append(
+                ClaimNumericPayloadProjectionRow.from_claim_mapping(row)
+            )
+            text_payload_rows.append(
+                ClaimTextPayloadProjectionRow.from_claim_mapping(row)
+            )
+            algorithm_payload_rows.append(
+                ClaimAlgorithmPayloadProjectionRow.from_claim_mapping(row)
+            )
             claim_link_rows.extend(
-                ClaimConceptLinkInsertRow(values)
+                ClaimConceptLinkProjectionRow.from_values(values)
                 for values in prepare_claim_concept_link_rows(semantic_claim)
             )
             deferred_stance_rows, deferred_stance_diagnostics = (
@@ -593,13 +609,16 @@ def compile_claim_sidecar_rows(
                 )
             )
             stance_rows.extend(
-                ClaimStanceInsertRow(values)
+                ClaimStanceProjectionRow.from_values(values)
                 for values in deferred_stance_rows
             )
             quarantine_diagnostics.extend(deferred_stance_diagnostics)
 
     return ClaimSidecarRows(
-        claim_rows=tuple(claim_rows),
+        claim_core_rows=tuple(claim_core_rows),
+        numeric_payload_rows=tuple(numeric_payload_rows),
+        text_payload_rows=tuple(text_payload_rows),
+        algorithm_payload_rows=tuple(algorithm_payload_rows),
         claim_link_rows=tuple(claim_link_rows),
         stance_rows=tuple(stance_rows),
         quarantine_diagnostics=tuple(quarantine_diagnostics),
@@ -609,7 +628,7 @@ def compile_claim_sidecar_rows(
 def compile_authored_stance_sidecar_rows(
     stance_entries: Iterable[tuple[str, StanceDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[ClaimStanceInsertRow, ...]:
+) -> tuple[ClaimStanceProjectionRow, ...]:
     rows, diagnostics = _compile_authored_stance_sidecar_rows_with_diagnostics(
         stance_entries,
         claim_index,
@@ -622,9 +641,9 @@ def compile_authored_stance_sidecar_rows(
 def _compile_authored_stance_sidecar_rows_with_diagnostics(
     stance_entries: Iterable[tuple[str, StanceDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[tuple[ClaimStanceInsertRow, ...], tuple[QuarantineDiagnostic, ...]]:
+) -> tuple[tuple[ClaimStanceProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_index.ids())
-    rows: list[ClaimStanceInsertRow] = []
+    rows: list[ClaimStanceProjectionRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, stance in stance_entries:
@@ -683,7 +702,7 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
             or source_claim
         )
         rows.append(
-            ClaimStanceInsertRow(
+            ClaimStanceProjectionRow.from_values(
                 (
                     source_claim,
                     target,
@@ -712,7 +731,7 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
 def compile_authored_justification_sidecar_rows(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[JustificationInsertRow, ...]:
+) -> tuple[JustificationProjectionRow, ...]:
     rows, diagnostics = _compile_authored_justification_sidecar_rows_with_diagnostics(
         justification_entries,
         claim_index,
@@ -725,9 +744,9 @@ def compile_authored_justification_sidecar_rows(
 def _compile_authored_justification_sidecar_rows_with_diagnostics(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[tuple[JustificationInsertRow, ...], tuple[QuarantineDiagnostic, ...]]:
+) -> tuple[tuple[JustificationProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_index.ids())
-    rows: list[JustificationInsertRow] = []
+    rows: list[JustificationProjectionRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, justification in justification_entries:
@@ -794,7 +813,7 @@ def _compile_authored_justification_sidecar_rows_with_diagnostics(
             provenance_payload["attack_target"] = attack_target
 
         rows.append(
-            JustificationInsertRow(
+            JustificationProjectionRow.from_values(
                 (
                     justification_id,
                     str(justification.rule_kind or "reported_claim"),
@@ -817,7 +836,7 @@ def compile_conflict_sidecar_rows(
     concept_registry: dict,
     cel_registry: dict,
     lifting_system=None,
-) -> tuple[ConflictWitnessInsertRow, ...]:
+) -> tuple[ConflictWitnessProjectionRow, ...]:
     conflict_claims = conflict_claims_from_claim_files(claim_files)
     records = detect_conflicts(
         conflict_claims,
@@ -833,7 +852,7 @@ def compile_conflict_sidecar_rows(
         )
     )
     return tuple(
-        ConflictWitnessInsertRow(
+        ConflictWitnessProjectionRow.from_values(
             (
                 record.concept_id,
                 record.claim_a_id,
@@ -852,15 +871,15 @@ def compile_conflict_sidecar_rows(
 
 def compile_claim_fts_rows(
     claim_files: Sequence[ClaimFileEntry],
-) -> tuple[ClaimFtsInsertRow, ...]:
-    rows: list[ClaimFtsInsertRow] = []
+) -> tuple[ClaimFtsProjectionRow, ...]:
+    rows: list[ClaimFtsProjectionRow] = []
     for claim_file in claim_files:
         for claim in claim_file_claims(claim_file):
             claim_id = claim.artifact_id
             if not isinstance(claim_id, str) or not claim_id:
                 continue
             rows.append(
-                ClaimFtsInsertRow(
+                ClaimFtsProjectionRow.from_values(
                     (
                         claim_id,
                         claim.statement or "",
@@ -875,32 +894,32 @@ def compile_claim_fts_rows(
 def compile_raw_id_quarantine_sidecar_rows(
     records: Sequence[RawIdQuarantineRecord],
 ) -> RawIdQuarantineSidecarRows:
-    claim_rows: list[RawIdQuarantineClaimInsertRow] = []
+    claim_rows: list[ClaimCoreProjectionRow] = []
     diagnostic_rows: list[BuildDiagnosticInsertRow] = []
 
     for record in records:
         claim_rows.append(
-            RawIdQuarantineClaimInsertRow(
-                (
-                    record.synthetic_id,
-                    "",
-                    "[]",
-                    "",
-                    "",
-                    record.seq,
-                    "quarantine",
-                    None,
-                    record.source_paper,
-                    record.source_paper,
-                    0,
-                    None,
-                    None,
-                    "ordinary",
-                    None,
-                    "blocked",
-                    None,
-                    None,
-                )
+            ClaimCoreProjectionRow.from_claim_mapping(
+                {
+                    "id": record.synthetic_id,
+                    "primary_logical_id": "",
+                    "logical_ids_json": "[]",
+                    "version_id": "",
+                    "content_hash": "",
+                    "seq": record.seq,
+                    "type": "quarantine",
+                    "target_concept": None,
+                    "source_slug": record.source_paper,
+                    "source_paper": record.source_paper,
+                    "provenance_page": 0,
+                    "provenance_json": None,
+                    "context_id": None,
+                    "premise_kind": "ordinary",
+                    "branch": None,
+                    "build_status": "blocked",
+                    "stage": None,
+                    "promotion_status": None,
+                }
             )
         )
         diagnostic_rows.append(
@@ -1030,10 +1049,10 @@ def compile_sidecar_build_plan(
 ) -> SidecarBuildPlan:
     claim_rows: ClaimSidecarRows | None = None
     raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(())
-    conflict_rows: tuple[ConflictWitnessInsertRow, ...] = ()
-    claim_fts_rows: tuple[ClaimFtsInsertRow, ...] = ()
-    stance_rows: tuple[ClaimStanceInsertRow, ...] = ()
-    justification_rows: tuple[JustificationInsertRow, ...] = ()
+    conflict_rows: tuple[ConflictWitnessProjectionRow, ...] = ()
+    claim_fts_rows: tuple[ClaimFtsProjectionRow, ...] = ()
+    stance_rows: tuple[ClaimStanceProjectionRow, ...] = ()
+    justification_rows: tuple[JustificationProjectionRow, ...] = ()
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...] = ()
     claim_index = build_claim_file_reference_index(())
 

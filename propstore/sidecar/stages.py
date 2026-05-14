@@ -14,6 +14,17 @@ from propstore.families.forms.stages import FormDefinition
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
+    from propstore.sidecar.claims import (
+        ClaimAlgorithmPayloadProjectionRow,
+        ClaimConceptLinkProjectionRow,
+        ClaimCoreProjectionRow,
+        ClaimFtsProjectionRow,
+        ClaimNumericPayloadProjectionRow,
+        ClaimStanceProjectionRow,
+        ClaimTextPayloadProjectionRow,
+        ConflictWitnessProjectionRow,
+        JustificationProjectionRow,
+    )
     from propstore.sidecar.contexts import (
         ContextAssumptionProjectionRow,
         ContextLiftingMaterializationProjectionRow,
@@ -34,46 +45,14 @@ if TYPE_CHECKING:
 
 
 @dataclass(frozen=True)
-class ClaimInsertRow:
-    values: dict[str, object]
-
-
-@dataclass(frozen=True)
-class ClaimConceptLinkInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class ClaimStanceInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
 class ClaimSidecarRows:
-    claim_rows: tuple[ClaimInsertRow, ...]
-    claim_link_rows: tuple[ClaimConceptLinkInsertRow, ...]
-    stance_rows: tuple[ClaimStanceInsertRow, ...]
+    claim_core_rows: tuple["ClaimCoreProjectionRow", ...]
+    numeric_payload_rows: tuple["ClaimNumericPayloadProjectionRow", ...]
+    text_payload_rows: tuple["ClaimTextPayloadProjectionRow", ...]
+    algorithm_payload_rows: tuple["ClaimAlgorithmPayloadProjectionRow", ...]
+    claim_link_rows: tuple["ClaimConceptLinkProjectionRow", ...]
+    stance_rows: tuple["ClaimStanceProjectionRow", ...]
     quarantine_diagnostics: tuple["QuarantineDiagnostic", ...]
-
-
-@dataclass(frozen=True)
-class JustificationInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class ConflictWitnessInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class ClaimFtsInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class RawIdQuarantineClaimInsertRow:
-    values: tuple[Any, ...]
 
 
 @dataclass(frozen=True)
@@ -83,7 +62,7 @@ class BuildDiagnosticInsertRow:
 
 @dataclass(frozen=True)
 class RawIdQuarantineSidecarRows:
-    claim_rows: tuple[RawIdQuarantineClaimInsertRow, ...]
+    claim_rows: tuple["ClaimCoreProjectionRow", ...]
     diagnostic_rows: tuple[BuildDiagnosticInsertRow, ...]
 
 
@@ -157,9 +136,9 @@ class SidecarBuildPlan:
     context_rows: ContextSidecarRows
     claim_rows: ClaimSidecarRows | None
     raw_id_quarantine_rows: RawIdQuarantineSidecarRows
-    conflict_rows: tuple[ConflictWitnessInsertRow, ...]
-    claim_fts_rows: tuple[ClaimFtsInsertRow, ...]
+    conflict_rows: tuple["ConflictWitnessProjectionRow", ...]
+    claim_fts_rows: tuple["ClaimFtsProjectionRow", ...]
     micropublication_rows: MicropublicationSidecarRows
-    stance_rows: tuple[ClaimStanceInsertRow, ...]
-    justification_rows: tuple[JustificationInsertRow, ...]
+    stance_rows: tuple["ClaimStanceProjectionRow", ...]
+    justification_rows: tuple["JustificationProjectionRow", ...]
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]

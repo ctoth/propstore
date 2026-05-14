@@ -2132,7 +2132,7 @@ class TestAlgorithmBindings:
         )
 
 
-class TestClaimInsertRow:
+class TestClaimProjectionRows:
     def test_prepare_claim_insert_row_returns_dict(self):
         """_prepare_claim_insert_row should return a dict with named columns."""
         from propstore.sidecar.claim_utils import prepare_claim_insert_row

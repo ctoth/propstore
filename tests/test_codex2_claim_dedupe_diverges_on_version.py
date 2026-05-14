@@ -3,14 +3,17 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 
-from propstore.sidecar.claims import populate_claims
+from propstore.sidecar.claims import (
+    ClaimAlgorithmPayloadProjectionRow,
+    ClaimConceptLinkProjectionRow,
+    ClaimCoreProjectionRow,
+    ClaimNumericPayloadProjectionRow,
+    ClaimTextPayloadProjectionRow,
+    populate_claims,
+)
 from propstore.sidecar.schema import create_claim_tables, create_context_tables, create_tables
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.sidecar.stages import (
-    ClaimConceptLinkInsertRow,
-    ClaimInsertRow,
-    ClaimSidecarRows,
-)
+from propstore.sidecar.stages import ClaimSidecarRows
 
 
 def _claim_row(
@@ -66,6 +69,31 @@ def _claim_row(
     }
 
 
+def _claim_sidecar_rows(
+    *claim_rows: dict,
+    claim_link_rows: tuple[ClaimConceptLinkProjectionRow, ...] = (),
+) -> ClaimSidecarRows:
+    return ClaimSidecarRows(
+        claim_core_rows=tuple(
+            ClaimCoreProjectionRow.from_claim_mapping(row) for row in claim_rows
+        ),
+        numeric_payload_rows=tuple(
+            ClaimNumericPayloadProjectionRow.from_claim_mapping(row)
+            for row in claim_rows
+        ),
+        text_payload_rows=tuple(
+            ClaimTextPayloadProjectionRow.from_claim_mapping(row) for row in claim_rows
+        ),
+        algorithm_payload_rows=tuple(
+            ClaimAlgorithmPayloadProjectionRow.from_claim_mapping(row)
+            for row in claim_rows
+        ),
+        claim_link_rows=claim_link_rows,
+        stance_rows=(),
+        quarantine_diagnostics=(),
+    )
+
+
 def _open_claim_sidecar(path: Path):
     conn = connect_sidecar(path)
     create_tables(conn)
@@ -113,14 +141,13 @@ def test_populate_claims_detects_same_logical_id_different_version(
     try:
         populate_claims(
             conn,
-            ClaimSidecarRows(
-                claim_rows=(
-                    ClaimInsertRow(_claim_row("ps:claim:shared", version_id="sha256:first")),
-                    ClaimInsertRow(_claim_row("ps:claim:shared", version_id="sha256:second", seq=2)),
+            _claim_sidecar_rows(
+                _claim_row("ps:claim:shared", version_id="sha256:first"),
+                _claim_row(
+                    "ps:claim:shared",
+                    version_id="sha256:second",
+                    seq=2,
                 ),
-                claim_link_rows=(),
-                stance_rows=(),
-                quarantine_diagnostics=(),
             ),
         )
         conn.commit()
@@ -148,21 +175,29 @@ def test_populate_claims_dedupes_duplicate_claim_concept_links(
     try:
         populate_claims(
             conn,
-            ClaimSidecarRows(
-                claim_rows=(
-                    ClaimInsertRow(_claim_row("ps:claim:linked", version_id="sha256:same")),
-                    ClaimInsertRow(_claim_row("ps:claim:linked", version_id="sha256:same")),
-                ),
+            _claim_sidecar_rows(
+                _claim_row("ps:claim:linked", version_id="sha256:same"),
+                _claim_row("ps:claim:linked", version_id="sha256:same"),
                 claim_link_rows=(
-                    ClaimConceptLinkInsertRow(
-                        ("ps:claim:linked", "ps:concept:velocity", "target", 0, None)
+                    ClaimConceptLinkProjectionRow.from_values(
+                        (
+                            "ps:claim:linked",
+                            "ps:concept:velocity",
+                            "target",
+                            0,
+                            None,
+                        )
                     ),
-                    ClaimConceptLinkInsertRow(
-                        ("ps:claim:linked", "ps:concept:velocity", "target", 0, None)
+                    ClaimConceptLinkProjectionRow.from_values(
+                        (
+                            "ps:claim:linked",
+                            "ps:concept:velocity",
+                            "target",
+                            0,
+                            None,
+                        )
                     ),
                 ),
-                stance_rows=(),
-                quarantine_diagnostics=(),
             ),
         )
         conn.commit()

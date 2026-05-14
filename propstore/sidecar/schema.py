@@ -44,6 +44,16 @@ from __future__ import annotations
 import sqlite3
 
 from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
+from propstore.sidecar.claims import (
+    CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
+    CLAIM_CONCEPT_LINK_PROJECTION,
+    CLAIM_CORE_PROJECTION,
+    CLAIM_FTS_PROJECTION,
+    CLAIM_NUMERIC_PAYLOAD_PROJECTION,
+    CLAIM_TEXT_PAYLOAD_PROJECTION,
+    CONFLICT_WITNESS_PROJECTION,
+    JUSTIFICATION_PROJECTION,
+)
 from propstore.sidecar.concepts import (
     ALIAS_PROJECTION,
     CONCEPT_FTS_PROJECTION,
@@ -250,106 +260,20 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
     for statement in CALIBRATION_COUNTS_PROJECTION.ddl_statements():
         conn.execute(statement)
 
+    for projection in (
+        CLAIM_CORE_PROJECTION,
+        CLAIM_CONCEPT_LINK_PROJECTION,
+        CLAIM_NUMERIC_PAYLOAD_PROJECTION,
+        CLAIM_TEXT_PAYLOAD_PROJECTION,
+        CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
+        CONFLICT_WITNESS_PROJECTION,
+        JUSTIFICATION_PROJECTION,
+        CLAIM_FTS_PROJECTION,
+    ):
+        for statement in projection.ddl_statements():
+            conn.execute(statement)
+
     conn.executescript("""
-        CREATE TABLE claim_core (
-            id TEXT PRIMARY KEY,
-            primary_logical_id TEXT NOT NULL DEFAULT '',
-            logical_ids_json TEXT NOT NULL DEFAULT '[]',
-            version_id TEXT NOT NULL DEFAULT '',
-            content_hash TEXT NOT NULL DEFAULT '',
-            seq INTEGER NOT NULL,
-            type TEXT NOT NULL,
-            target_concept TEXT,
-            source_slug TEXT,
-            source_paper TEXT NOT NULL,
-            provenance_page INTEGER NOT NULL,
-            provenance_json TEXT,
-            context_id TEXT,
-            premise_kind TEXT NOT NULL DEFAULT 'ordinary',
-            branch TEXT,
-            build_status TEXT NOT NULL DEFAULT 'ingested',
-            stage TEXT,
-            promotion_status TEXT,
-            FOREIGN KEY (context_id) REFERENCES context(id)
-        );
-
-        CREATE TABLE claim_concept_link (
-            claim_id TEXT NOT NULL,
-            concept_id TEXT NOT NULL,
-            role TEXT NOT NULL,
-            ordinal INTEGER NOT NULL,
-            binding_name TEXT,
-            PRIMARY KEY (claim_id, role, ordinal, concept_id),
-            FOREIGN KEY (claim_id) REFERENCES claim_core(id),
-            FOREIGN KEY (concept_id) REFERENCES concept(id)
-        );
-
-        CREATE TABLE claim_numeric_payload (
-            claim_id TEXT PRIMARY KEY,
-            value REAL,
-            lower_bound REAL,
-            upper_bound REAL,
-            uncertainty REAL,
-            uncertainty_type TEXT,
-            sample_size INTEGER,
-            unit TEXT,
-            value_si REAL,
-            lower_bound_si REAL,
-            upper_bound_si REAL,
-            FOREIGN KEY (claim_id) REFERENCES claim_core(id)
-        );
-
-        CREATE TABLE claim_text_payload (
-            claim_id TEXT PRIMARY KEY,
-            conditions_cel TEXT,
-            conditions_ir TEXT,
-            statement TEXT,
-            expression TEXT,
-            sympy_generated TEXT,
-            sympy_error TEXT,
-            name TEXT,
-            measure TEXT,
-            listener_population TEXT,
-            methodology TEXT,
-            notes TEXT,
-            description TEXT,
-            auto_summary TEXT,
-            FOREIGN KEY (claim_id) REFERENCES claim_core(id)
-        );
-
-        CREATE TABLE claim_algorithm_payload (
-            claim_id TEXT PRIMARY KEY,
-            body TEXT,
-            canonical_ast TEXT,
-            variables_json TEXT,
-            algorithm_stage TEXT,
-            FOREIGN KEY (claim_id) REFERENCES claim_core(id)
-        );
-
-        CREATE TABLE conflict_witness (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            concept_id TEXT NOT NULL,
-            claim_a_id TEXT NOT NULL,
-            claim_b_id TEXT NOT NULL,
-            warning_class TEXT NOT NULL,
-            conditions_a TEXT,
-            conditions_b TEXT,
-            value_a TEXT,
-            value_b TEXT,
-            derivation_chain TEXT
-        );
-
-        CREATE TABLE justification (
-            id TEXT PRIMARY KEY,
-            justification_kind TEXT NOT NULL,
-            conclusion_claim_id TEXT NOT NULL,
-            premise_claim_ids TEXT NOT NULL,
-            source_relation_type TEXT,
-            source_claim_id TEXT,
-            provenance_json TEXT,
-            rule_strength TEXT NOT NULL DEFAULT 'defeasible'
-        );
-
         CREATE TABLE build_diagnostics (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             claim_id TEXT,
@@ -362,25 +286,6 @@ def create_claim_tables(conn: sqlite3.Connection) -> None:
             file TEXT,
             detail_json TEXT
         );
-
-        CREATE VIRTUAL TABLE claim_fts USING fts5(
-            claim_id UNINDEXED,
-            statement,
-            conditions,
-            expression
-        );
-
-        CREATE INDEX idx_claim_core_target ON claim_core(target_concept);
-        CREATE INDEX idx_claim_concept_link_claim ON claim_concept_link(claim_id);
-        CREATE INDEX idx_claim_concept_link_concept ON claim_concept_link(concept_id);
-        CREATE INDEX idx_claim_concept_link_role ON claim_concept_link(role);
-        CREATE INDEX idx_claim_core_type ON claim_core(type);
-        CREATE INDEX idx_claim_core_primary_logical_id ON claim_core(primary_logical_id);
-        CREATE INDEX idx_claim_core_build_status ON claim_core(build_status);
-        CREATE INDEX idx_claim_core_stage ON claim_core(stage);
-        CREATE INDEX idx_claim_core_promotion_status ON claim_core(promotion_status);
-        CREATE INDEX idx_claim_algorithm_stage ON claim_algorithm_payload(algorithm_stage);
-        CREATE INDEX idx_conflict_witness_concept ON conflict_witness(concept_id);
         CREATE INDEX idx_build_diagnostics_claim ON build_diagnostics(claim_id);
         CREATE INDEX idx_build_diagnostics_kind ON build_diagnostics(diagnostic_kind);
         CREATE INDEX idx_build_diagnostics_source ON build_diagnostics(source_kind, source_ref);
