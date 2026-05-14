@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
@@ -42,23 +42,6 @@ class SourceProjectionRow:
     derived_from_json: str | None
     artifact_code: str | None
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "slug": self.slug,
-            "source_id": self.source_id,
-            "kind": self.kind,
-            "origin_type": self.origin_type,
-            "origin_value": self.origin_value,
-            "origin_retrieved": self.origin_retrieved,
-            "origin_content_ref": self.origin_content_ref,
-            "prior_base_rate": self.prior_base_rate,
-            "quality_json": self.quality_json,
-            "derived_from_json": self.derived_from_json,
-            "artifact_code": self.artifact_code,
-        }
-
 
 def populate_sources(conn: sqlite3.Connection, rows: Sequence[SourceProjectionRow]) -> None:
-    insert_sql = SOURCE_PROJECTION.insert_sql()
-    for row in rows:
-        conn.execute(insert_sql, row.as_insert_mapping())
+    SOURCE_PROJECTION.insert_rows(conn, rows)
