@@ -20,7 +20,7 @@ dependencies = [
     "pint>=0.25.3",
     "dulwich>=1.1.0",
     "gunray @ git+https://github.com/ctoth/gunray.git@a06da9c06a8c20262edec56f8a1f55dc1901781d",
-    "quire @ git+https://github.com/ctoth/quire@d7d047256cd3677af415b031b55c5d16cc9c0e88",
+    "quire @ git+https://github.com/ctoth/quire@c0590e2fe365815f5c6a9a2a65950b30d94fc12e",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
     "linkml-runtime>=1.9.3,<1.10",
