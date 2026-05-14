@@ -547,6 +547,7 @@ def test_context_add_writes_structured_context_to_git_head(tmp_path):
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
+    from tests.family_helpers import materialized_world_store_path
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -951,15 +952,16 @@ def test_build_from_git(tmp_path):
 
     hash_key = kr.head_sha()
     tree = repo.tree(commit=hash_key)
+    sidecar_path = tmp_path / "world.sqlite"
 
     rebuilt = build_sidecar(
-        tree, repo.sidecar_path, force=False,
+        tree, sidecar_path, force=False,
         commit_hash=hash_key,
     )
     assert rebuilt is True
 
     # .hash file includes the source revision and the sidecar schema version.
-    hash_path = repo.sidecar_path.with_suffix(".hash")
+    hash_path = sidecar_path.with_suffix(".hash")
     assert hash_path.exists()
     stored_hash = hash_path.read_text().strip()
     assert stored_hash == _sidecar_content_hash(hash_key)
@@ -967,7 +969,7 @@ def test_build_from_git(tmp_path):
 
     # Sidecar sqlite exists and contains concept data
     import sqlite3
-    conn = sqlite3.connect(repo.sidecar_path)
+    conn = sqlite3.connect(sidecar_path)
     rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
     conn.close()
     assert len(rows) == 1
@@ -986,17 +988,18 @@ def test_build_skips_when_unchanged(tmp_path):
 
     hash_key = kr.head_sha()
     tree = repo.tree(commit=hash_key)
+    sidecar_path = tmp_path / "world.sqlite"
 
     # First build
     rebuilt1 = build_sidecar(
-        tree, repo.sidecar_path, force=False,
+        tree, sidecar_path, force=False,
         commit_hash=hash_key,
     )
     assert rebuilt1 is True
 
     # Second build with same HEAD ��� should skip
     rebuilt2 = build_sidecar(
-        tree, repo.sidecar_path, force=False,
+        tree, sidecar_path, force=False,
         commit_hash=hash_key,
     )
     assert rebuilt2 is False
@@ -1009,10 +1012,11 @@ def test_build_rebuilds_on_new_commit(tmp_path):
 
     hash_key1 = kr.head_sha()
     tree1 = repo.tree(commit=hash_key1)
+    sidecar_path = tmp_path / "world.sqlite"
 
     # First build
     rebuilt1 = build_sidecar(
-        tree1, repo.sidecar_path, force=False,
+        tree1, sidecar_path, force=False,
         commit_hash=hash_key1,
     )
     assert rebuilt1 is True
@@ -1035,18 +1039,18 @@ def test_build_rebuilds_on_new_commit(tmp_path):
 
     # Build with new commit hash — should rebuild
     rebuilt2 = build_sidecar(
-        tree2, repo.sidecar_path, force=False,
+        tree2, sidecar_path, force=False,
         commit_hash=hash_key2,
     )
     assert rebuilt2 is True
 
     # Hash file now reflects the new source revision under the current schema.
-    hash_path = repo.sidecar_path.with_suffix(".hash")
+    hash_path = sidecar_path.with_suffix(".hash")
     assert hash_path.read_text().strip() == _sidecar_content_hash(hash_key2)
 
     # Sidecar has both concepts
     import sqlite3
-    conn = sqlite3.connect(repo.sidecar_path)
+    conn = sqlite3.connect(sidecar_path)
     rows = conn.execute("SELECT id FROM concept ORDER BY id").fetchall()
     conn.close()
     assert [r[0] for r in rows] == sorted([
@@ -1268,13 +1272,13 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     from propstore.cli import cli
     from propstore.repository import Repository
     from propstore.proposals import stance_proposal_branch
+    from tests.family_helpers import materialized_world_store_path
     import propstore.heuristic.embed as embed_mod
     import propstore.heuristic.relate as relate_mod
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
-    repo.sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    sqlite3.connect(repo.sidecar_path).close()
+    materialized_world_store_path(repo, force=True)
 
     monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn: None)
     monkeypatch.setattr(
@@ -1539,12 +1543,9 @@ def test_checkout_builds_from_historical(tmp_path):
     assert result.exit_code == 0, result.output
     assert "Sidecar built from commit" in result.output
 
-    # Verify sidecar contains only v1 data
-    hash_path = repo.sidecar_path.with_suffix(".hash")
-    assert hash_path.exists()
-    assert hash_path.read_text().strip() == _sidecar_content_hash(v1_sha)
-
-    conn = sqlite3.connect(repo.sidecar_path)
+    # Verify the derived store for v1 contains only v1 data.
+    sidecar_path = materialized_world_store_path(repo, commit_hash=v1_sha)
+    conn = sqlite3.connect(sidecar_path)
     rows = conn.execute("SELECT id, canonical_name FROM concept").fetchall()
     conn.close()
     assert len(rows) == 1
