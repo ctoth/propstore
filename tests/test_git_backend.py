@@ -547,7 +547,6 @@ def test_context_add_writes_structured_context_to_git_head(tmp_path):
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
-    from tests.family_helpers import materialized_world_store_path
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1505,6 +1504,7 @@ def test_checkout_builds_from_historical(tmp_path):
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
+    from tests.family_helpers import materialized_world_store_path
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)

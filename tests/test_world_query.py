@@ -581,11 +581,11 @@ class TestWorldQueryConstruction:
         assert world is not None
         assert isinstance(world, WorldStore)
 
-    def test_raises_without_sidecar(self, tmp_path):
+    def test_auto_materializes_without_prior_build(self, tmp_path):
         from propstore.repository import Repository
         repo = Repository.init(tmp_path / "empty_knowledge")
-        with pytest.raises(FileNotFoundError):
-            WorldQuery(repo)
+        with WorldQuery(repo) as world:
+            assert world.stats().claims == 0
 
     def test_context_manager(self, world):
         with world:

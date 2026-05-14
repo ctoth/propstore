@@ -100,7 +100,8 @@ def materialized_world_store_path(
 ) -> Path:
     if repo.git is None:
         _init_git_without_sync(repo.root)
-        repo = Repository(repo.root)
+        for cached_name in ("git", "_family_store", "families", "snapshot"):
+            repo.__dict__.pop(cached_name, None)
     _materialize_claim_fixture_batches(repo)
     if kwargs.get("commit_hash") is None:
         _commit_worktree(repo)
