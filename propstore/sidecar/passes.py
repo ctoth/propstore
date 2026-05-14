@@ -76,10 +76,10 @@ from propstore.sidecar.stages import (
     RawIdQuarantineClaimInsertRow,
     RawIdQuarantineSidecarRows,
     QuarantineDiagnostic,
-    RelationEdgeInsertRow,
     RepositoryCheckedBundle,
     SidecarBuildPlan,
 )
+from propstore.sidecar.relations import RelationEdgeProjectionRow
 from propstore.sidecar.concepts import (
     AliasProjectionRow,
     ConceptProjectionRow,
@@ -260,7 +260,7 @@ def compile_concept_sidecar_rows(
     concept_rows: list[ConceptProjectionRow] = []
     alias_rows: list[AliasProjectionRow] = []
     relationship_rows: list[ConceptRelationshipInsertRow] = []
-    relation_edge_rows: list[RelationEdgeInsertRow] = []
+    relation_edge_rows: list[RelationEdgeProjectionRow] = []
     parameterization_rows: list[ParameterizationProjectionRow] = []
     parameterization_group_rows: list[ParameterizationGroupProjectionRow] = []
     form_algebra_rows: list[FormAlgebraProjectionRow] = []
@@ -361,16 +361,14 @@ def compile_concept_sidecar_rows(
                 )
             )
             relation_edge_rows.append(
-                RelationEdgeInsertRow(
-                    (
-                        "concept",
-                        concept_id,
-                        relationship.relationship_type,
-                        "concept",
-                        target_id,
-                        conditions_json,
-                        relationship.note,
-                    )
+                RelationEdgeProjectionRow(
+                    source_kind="concept",
+                    source_id=concept_id,
+                    relation_type=relationship.relationship_type,
+                    target_kind="concept",
+                    target_id=target_id,
+                    conditions_cel=conditions_json,
+                    note=relationship.note,
                 )
             )
 

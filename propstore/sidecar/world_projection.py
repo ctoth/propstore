@@ -21,6 +21,7 @@ from propstore.sidecar.concepts import (
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
 )
+from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 
 
@@ -37,29 +38,7 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
     ALIAS_PROJECTION,
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
-    _required_table(
-        "relation_edge",
-        "source_kind",
-        "source_id",
-        "relation_type",
-        "target_kind",
-        "target_id",
-        "perspective_source_claim_id",
-        "target_justification_id",
-        "strength",
-        "conditions_differ",
-        "note",
-        "resolution_method",
-        "resolution_model",
-        "embedding_model",
-        "embedding_distance",
-        "pass_number",
-        "confidence",
-        "opinion_belief",
-        "opinion_disbelief",
-        "opinion_uncertainty",
-        "opinion_base_rate",
-    ),
+    RELATION_EDGE_PROJECTION,
     FORM_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FtsProjection(

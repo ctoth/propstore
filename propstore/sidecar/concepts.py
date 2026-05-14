@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 
 from propstore.sidecar.projection import ProjectionColumn, ProjectionForeignKey, ProjectionIndex, ProjectionTable
+from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.stages import ConceptSidecarRows
 
 
@@ -270,13 +271,9 @@ def populate_concept_sidecar_rows(
             row.values,
         )
 
+    relation_edge_insert_sql = RELATION_EDGE_PROJECTION.insert_sql()
     for row in rows.relation_edge_rows:
-        conn.execute(
-            "INSERT INTO relation_edge "
-            "(source_kind, source_id, relation_type, target_kind, target_id, "
-            "conditions_cel, note) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            row.values,
-        )
+        conn.execute(relation_edge_insert_sql, row.as_insert_mapping())
 
     parameterization_insert_sql = PARAMETERIZATION_PROJECTION.insert_sql()
     for row in rows.parameterization_rows:

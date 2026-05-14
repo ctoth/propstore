@@ -52,6 +52,7 @@ from propstore.sidecar.concepts import (
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
 )
+from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
 
@@ -107,6 +108,7 @@ def create_tables(conn: sqlite3.Connection) -> None:
         ALIAS_PROJECTION,
         PARAMETERIZATION_PROJECTION,
         PARAMETERIZATION_GROUP_PROJECTION,
+        RELATION_EDGE_PROJECTION,
     ):
         for statement in projection.ddl_statements():
             conn.execute(statement)
@@ -122,41 +124,8 @@ def create_tables(conn: sqlite3.Connection) -> None:
             FOREIGN KEY (target_id) REFERENCES concept(id)
         );
 
-        CREATE TABLE relation_edge (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_kind TEXT NOT NULL,
-            source_id TEXT NOT NULL,
-            relation_type TEXT NOT NULL,
-            target_kind TEXT NOT NULL,
-            target_id TEXT NOT NULL,
-            perspective_source_claim_id TEXT,
-            target_justification_id TEXT,
-            conditions_cel TEXT,
-            strength TEXT,
-            conditions_differ TEXT,
-            note TEXT,
-            resolution_method TEXT,
-            resolution_model TEXT,
-            embedding_model TEXT,
-            embedding_distance REAL,
-            pass_number INTEGER,
-            confidence REAL,
-            opinion_belief REAL,
-            opinion_disbelief REAL,
-            opinion_uncertainty REAL,
-            opinion_base_rate REAL,
-            CHECK(opinion_belief IS NULL OR (opinion_belief >= 0 AND opinion_belief <= 1)),
-            CHECK(opinion_disbelief IS NULL OR (opinion_disbelief >= 0 AND opinion_disbelief <= 1)),
-            CHECK(opinion_uncertainty IS NULL OR (opinion_uncertainty >= 0 AND opinion_uncertainty <= 1)),
-            CHECK(opinion_base_rate IS NULL OR (opinion_base_rate > 0 AND opinion_base_rate < 1)),
-            CHECK(opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6)
-        );
-
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);
-        CREATE INDEX idx_relation_edge_source ON relation_edge(source_kind, source_id);
-        CREATE INDEX idx_relation_edge_target ON relation_edge(target_kind, target_id);
-        CREATE INDEX idx_relation_edge_type ON relation_edge(relation_type);
     """)
 
 
