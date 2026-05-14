@@ -24,6 +24,9 @@ class _Repository:
         self.root = root
         self.git = _EscapingGit(relpath)
 
+    def require_git(self) -> _EscapingGit:
+        return self.git
+
 
 @pytest.mark.parametrize(
     "evil_path",
