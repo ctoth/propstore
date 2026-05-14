@@ -6,7 +6,7 @@ import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from propstore.sidecar.projection import ProjectionColumn, ProjectionTable
+from propstore.sidecar.projection import ProjectionColumn, ProjectionForeignKey, ProjectionIndex, ProjectionTable
 from propstore.sidecar.stages import ConceptSidecarRows
 
 
@@ -19,6 +19,24 @@ FORM_PROJECTION = ProjectionTable(
         ProjectionColumn("is_dimensionless", "INTEGER", nullable=False, default_sql="0"),
         ProjectionColumn("dimensions", "TEXT"),
     ),
+)
+
+
+FORM_ALGEBRA_PROJECTION = ProjectionTable(
+    name="form_algebra",
+    columns=(
+        ProjectionColumn("id", "INTEGER PRIMARY KEY AUTOINCREMENT", insertable=False),
+        ProjectionColumn("output_form", "TEXT", nullable=False),
+        ProjectionColumn("input_forms", "TEXT", nullable=False),
+        ProjectionColumn("operation", "TEXT", nullable=False),
+        ProjectionColumn("source_concept_id", "TEXT"),
+        ProjectionColumn("source_formula", "TEXT"),
+        ProjectionColumn("dim_verified", "INTEGER", nullable=False, default_sql="1"),
+    ),
+    foreign_keys=(
+        ProjectionForeignKey(("output_form",), "form", ("name",)),
+    ),
+    indexes=(ProjectionIndex("idx_form_algebra_output", ("output_form",)),),
 )
 
 
@@ -37,6 +55,26 @@ class FormProjectionRow:
             "unit_symbol": self.unit_symbol,
             "is_dimensionless": self.is_dimensionless,
             "dimensions": self.dimensions,
+        }
+
+
+@dataclass(frozen=True)
+class FormAlgebraProjectionRow:
+    output_form: str
+    input_forms: str
+    operation: str
+    source_concept_id: str | None
+    source_formula: str | None
+    dim_verified: int
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "output_form": self.output_form,
+            "input_forms": self.input_forms,
+            "operation": self.operation,
+            "source_concept_id": self.source_concept_id,
+            "source_formula": self.source_formula,
+            "dim_verified": self.dim_verified,
         }
 
 
@@ -95,13 +133,9 @@ def populate_concept_sidecar_rows(
             row.values,
         )
 
+    form_algebra_insert_sql = FORM_ALGEBRA_PROJECTION.insert_sql()
     for row in rows.form_algebra_rows:
-        conn.execute(
-            "INSERT INTO form_algebra "
-            "(output_form, input_forms, operation, source_concept_id, "
-            "source_formula, dim_verified) VALUES (?, ?, ?, ?, ?, ?)",
-            row.values,
-        )
+        conn.execute(form_algebra_insert_sql, row.as_insert_mapping())
 
     conn.execute(
         """

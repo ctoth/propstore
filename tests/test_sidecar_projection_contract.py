@@ -75,6 +75,23 @@ def test_projection_table_generates_named_insert_and_encodes_json() -> None:
     }
 
 
+def test_projection_table_omits_non_insertable_columns_from_named_insert() -> None:
+    table = ProjectionTable(
+        name="form_algebra",
+        columns=(
+            ProjectionColumn("id", "INTEGER", primary_key=True, insertable=False),
+            ProjectionColumn("output_form", "TEXT", nullable=False),
+            ProjectionColumn("operation", "TEXT", nullable=False),
+        ),
+    )
+
+    assert '"id" INTEGER PRIMARY KEY' in table.create_ddl()
+    assert table.insert_sql() == (
+        'INSERT INTO "form_algebra" ("output_form", "operation") '
+        "VALUES (:output_form, :operation)"
+    )
+
+
 def test_projection_schema_validates_required_tables_and_columns() -> None:
     table = ProjectionTable(
         name="source",

@@ -12,7 +12,7 @@ from propstore.sidecar.projection import (
     SemanticProjection,
     create_projection_schema,
 )
-from propstore.sidecar.concepts import FORM_PROJECTION
+from propstore.sidecar.concepts import FORM_ALGEBRA_PROJECTION, FORM_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 
 
@@ -62,7 +62,7 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
         "opinion_base_rate",
     ),
     FORM_PROJECTION,
-    _required_table("form_algebra", "output_form", "input_forms"),
+    FORM_ALGEBRA_PROJECTION,
     FtsProjection(table="concept_fts", key_column="concept_id", columns=()),
     _required_table("context", "id", "name", "description", "parameters_json", "perspective"),
     _required_table("context_assumption", "context_id", "assumption_cel", "seq"),

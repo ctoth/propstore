@@ -72,7 +72,6 @@ from propstore.sidecar.stages import (
     ConceptRelationshipInsertRow,
     ConceptSidecarRows,
     ConflictWitnessInsertRow,
-    FormAlgebraInsertRow,
     JustificationInsertRow,
     MicropublicationClaimInsertRow,
     MicropublicationInsertRow,
@@ -85,7 +84,7 @@ from propstore.sidecar.stages import (
     RepositoryCheckedBundle,
     SidecarBuildPlan,
 )
-from propstore.sidecar.concepts import FormProjectionRow
+from propstore.sidecar.concepts import FormAlgebraProjectionRow, FormProjectionRow
 from propstore.sidecar.sources import SourceProjectionRow
 from propstore.sidecar.claim_utils import (
     coerce_stance_resolution,
@@ -261,7 +260,7 @@ def compile_concept_sidecar_rows(
     relation_edge_rows: list[RelationEdgeInsertRow] = []
     parameterization_rows: list[ConceptParameterizationInsertRow] = []
     parameterization_group_rows: list[ConceptParameterizationGroupInsertRow] = []
-    form_algebra_rows: list[FormAlgebraInsertRow] = []
+    form_algebra_rows: list[FormAlgebraProjectionRow] = []
     concept_fts_rows: list[ConceptFtsInsertRow] = []
 
     for form_definition in form_registry.values():
@@ -448,7 +447,7 @@ def compile_concept_sidecar_rows(
 def _compile_form_algebra_rows(
     concepts: list[LoadedConcept],
     form_registry: dict[str, FormDefinition],
-) -> tuple[FormAlgebraInsertRow, ...]:
+) -> tuple[FormAlgebraProjectionRow, ...]:
     if not form_registry:
         return ()
 
@@ -461,7 +460,7 @@ def _compile_form_algebra_rows(
         id_to_symbols[concept_id] = _concept_symbol_candidates(record)
 
     seen: set[tuple[object, ...]] = set()
-    rows: list[FormAlgebraInsertRow] = []
+    rows: list[FormAlgebraProjectionRow] = []
 
     for concept in concepts:
         record = concept.record
@@ -532,15 +531,13 @@ def _compile_form_algebra_rows(
                 continue
             seen.add(dedup_key)
             rows.append(
-                FormAlgebraInsertRow(
-                    (
-                        output_form,
-                        json.dumps(input_forms),
-                        operation,
-                        concept_id,
-                        parameterization.formula or "",
-                        dim_verified,
-                    )
+                FormAlgebraProjectionRow(
+                    output_form=output_form,
+                    input_forms=json.dumps(input_forms),
+                    operation=operation,
+                    source_concept_id=concept_id,
+                    source_formula=parameterization.formula or "",
+                    dim_verified=dim_verified,
                 )
             )
 

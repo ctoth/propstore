@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from propstore.sidecar.concepts import FORM_PROJECTION
+from propstore.sidecar.concepts import FORM_ALGEBRA_PROJECTION, FORM_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
 
@@ -91,7 +91,7 @@ def create_concept_fts_table(conn: sqlite3.Connection) -> None:
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    for projection in (SOURCE_PROJECTION, FORM_PROJECTION):
+    for projection in (SOURCE_PROJECTION, FORM_PROJECTION, FORM_ALGEBRA_PROJECTION):
         for statement in projection.ddl_statements():
             conn.execute(statement)
 
@@ -182,17 +182,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             CHECK(opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6)
         );
 
-        CREATE TABLE form_algebra (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            output_form TEXT NOT NULL,
-            input_forms TEXT NOT NULL,
-            operation TEXT NOT NULL,
-            source_concept_id TEXT,
-            source_formula TEXT,
-            dim_verified INTEGER NOT NULL DEFAULT 1,
-            FOREIGN KEY (output_form) REFERENCES form(name)
-        );
-
         CREATE INDEX idx_alias_name ON alias(alias_name);
         CREATE INDEX idx_alias_concept ON alias(concept_id);
         CREATE INDEX idx_concept_primary_logical_id ON concept(primary_logical_id);
@@ -202,7 +191,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX idx_relation_edge_target ON relation_edge(target_kind, target_id);
         CREATE INDEX idx_relation_edge_type ON relation_edge(relation_type);
         CREATE INDEX idx_param_group ON parameterization_group(group_id);
-        CREATE INDEX idx_form_algebra_output ON form_algebra(output_form);
     """)
 
 

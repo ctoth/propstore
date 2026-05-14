@@ -63,6 +63,7 @@ class ProjectionColumn:
     sql_type: str
     nullable: bool = True
     primary_key: bool = False
+    insertable: bool = True
     default_sql: str | None = None
     check_sql: str | None = None
     encoder: ProjectionEncoder | None = None
@@ -96,6 +97,7 @@ class ProjectionColumn:
             "sql_type": self.sql_type,
             "nullable": self.nullable,
             "primary_key": self.primary_key,
+            "insertable": self.insertable,
             "default_sql": self.default_sql,
             "check_sql": self.check_sql,
             "codec": _codec_name(self.encoder, self.decoder),
@@ -192,6 +194,10 @@ class ProjectionTable:
     def column_names(self) -> tuple[str, ...]:
         return tuple(column.name for column in self.columns)
 
+    @property
+    def insert_columns(self) -> tuple[ProjectionColumn, ...]:
+        return tuple(column for column in self.columns if column.insertable)
+
     def table_name(self, bindings: Mapping[str, str] | None = None) -> str:
         return _render_dynamic_name(self.name, bindings)
 
@@ -224,8 +230,8 @@ class ProjectionTable:
     ) -> str:
         table_name = self.table_name(bindings)
         verb = "INSERT OR IGNORE" if or_ignore else "INSERT"
-        columns = ", ".join(_quote_identifier(column) for column in self.column_names)
-        params = ", ".join(f":{column}" for column in self.column_names)
+        columns = ", ".join(_quote_identifier(column.name) for column in self.insert_columns)
+        params = ", ".join(f":{column.name}" for column in self.insert_columns)
         return f"{verb} INTO {_quote_identifier(table_name)} ({columns}) VALUES ({params})"
 
     def encode_row(self, values: Mapping[str, Any]) -> dict[str, Any]:
