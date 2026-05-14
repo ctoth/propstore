@@ -2,7 +2,7 @@
 
 These tests pin two guarantees:
 
-1. `_REQUIRED_SCHEMA["claim_core"]` includes `"branch"`. This is a
+1. The world sidecar projection contract requires `claim_core.branch`. This is a
    structural contract — if someone drops the column from the required
    set, this test fails fast. It runs at import-time against the source
    of truth, so there is no way to regress it by accident.
@@ -16,9 +16,9 @@ These tests pin two guarantees:
 
 Co-located helper `_build_legacy_sidecar` constructs a minimal on-disk
 sidecar fixture, bypassing the real compiler. It writes the full
-`_REQUIRED_SCHEMA` verbatim except that `claim_core` omits the `branch`
-column. Then it writes `meta.schema_version = SCHEMA_VERSION` so the
-version guard passes (we want to prove the column check fires, not the
+projection contract's required columns except that `claim_core` omits the
+`branch` column. Then it writes `meta.schema_version = SCHEMA_VERSION` so
+the version guard passes (we want to prove the column check fires, not the
 version check).
 """
 
@@ -29,22 +29,23 @@ from pathlib import Path
 
 import pytest
 
+from propstore.sidecar.world_projection import required_columns_by_table
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
-from propstore.world.model import _REQUIRED_SCHEMA, WorldQuery
+from propstore.world.model import WorldQuery
 
 
 def test_branch_column_in_required_schema() -> None:
-    """`_REQUIRED_SCHEMA["claim_core"]` must include `branch`."""
-    assert "branch" in _REQUIRED_SCHEMA["claim_core"], (
-        "_REQUIRED_SCHEMA['claim_core'] is missing 'branch' — the validator "
-        "will not reject legacy pre-branch sidecars. Commit 8 requires this."
+    """The world sidecar projection contract must include `claim_core.branch`."""
+    assert "branch" in required_columns_by_table()["claim_core"], (
+        "The world sidecar projection is missing claim_core.branch; the "
+        "validator will not reject legacy pre-branch sidecars. Commit 8 requires this."
     )
 
 
 def _build_legacy_sidecar(path: Path) -> None:
     """Write a sidecar with the full required schema EXCEPT `claim_core.branch`.
 
-    Data-driven: iterates over `_REQUIRED_SCHEMA` and emits
+    Data-driven: iterates over the projection contract and emits
     `CREATE TABLE name (col1 TEXT, col2 TEXT, ...)` for every required
     table. For `claim_core`, the `branch` column is deliberately filtered
     out — that is the whole point of the fixture. All other tables get
@@ -59,7 +60,7 @@ def _build_legacy_sidecar(path: Path) -> None:
         conn.execute(
             "CREATE TABLE meta (key TEXT PRIMARY KEY, schema_version INTEGER NOT NULL)"
         )
-        for table, required_columns in _REQUIRED_SCHEMA.items():
+        for table, required_columns in required_columns_by_table().items():
             if table == "claim_core":
                 columns = sorted(required_columns - {"branch"})
             else:
@@ -79,7 +80,7 @@ def test_legacy_sidecar_without_branch_column_is_rejected(tmp_path: Path) -> Non
     """`WorldQuery` must reject a sidecar where `claim_core.branch` is absent.
 
     We construct a sidecar that satisfies every other row of
-    `_REQUIRED_SCHEMA` verbatim and writes the current `SCHEMA_VERSION`
+    the projection contract verbatim and writes the current `SCHEMA_VERSION`
     so only the missing `branch` column can trigger the error. The
     validator must raise `ValueError` whose message mentions both
     `branch` and `claim_core` so a human reviewer can see which column

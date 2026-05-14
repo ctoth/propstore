@@ -41,7 +41,9 @@ from propstore.core.row_types import (
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
+from propstore.sidecar.projection import ProjectionSchemaError
 from propstore.sidecar.sqlite import connect_sidecar_readonly
+from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
 from propstore.core.conditions.solver import ConditionSolver
 
 if TYPE_CHECKING:
@@ -71,167 +73,6 @@ _KIND_TYPE_MAP = {
     "quantity": KindType.QUANTITY,
     "timepoint": KindType.TIMEPOINT,
 }
-
-_REQUIRED_SCHEMA: dict[str, set[str]] = {
-    "source": {
-        "slug",
-        "source_id",
-        "kind",
-        "origin_type",
-        "origin_value",
-        "origin_retrieved",
-        "origin_content_ref",
-        "prior_base_rate",
-        "quality_json",
-        "derived_from_json",
-    },
-    "concept": {
-        "id",
-        "canonical_name",
-        "kind_type",
-        "form",
-        "form_parameters",
-        "primary_logical_id",
-        "logical_ids_json",
-    },
-    "alias": {"concept_id", "alias_name"},
-    "parameterization": {"output_concept_id", "conditions_ir"},
-    "parameterization_group": {"group_id", "concept_id"},
-    "relation_edge": {
-        "source_kind",
-        "source_id",
-        "relation_type",
-        "target_kind",
-        "target_id",
-        "perspective_source_claim_id",
-        "target_justification_id",
-        "strength",
-        "conditions_differ",
-        "note",
-        "resolution_method",
-        "resolution_model",
-        "embedding_model",
-        "embedding_distance",
-        "pass_number",
-        "confidence",
-        "opinion_belief",
-        "opinion_disbelief",
-        "opinion_uncertainty",
-        "opinion_base_rate",
-    },
-    "form": {"name", "dimensions", "is_dimensionless"},
-    "form_algebra": {"output_form", "input_forms"},
-    "concept_fts": {"concept_id"},
-    "context": {"id", "name", "description", "parameters_json", "perspective"},
-    "context_assumption": {"context_id", "assumption_cel", "seq"},
-    "context_lifting_rule": {
-        "id",
-        "source_context_id",
-        "target_context_id",
-        "conditions_cel",
-        "mode",
-        "justification",
-    },
-    "claim_core": {
-        "id",
-        "primary_logical_id",
-        "logical_ids_json",
-        "version_id",
-        "content_hash",
-        "seq",
-        "type",
-        "target_concept",
-        "source_slug",
-        "source_paper",
-        "provenance_page",
-        "provenance_json",
-        "context_id",
-        "premise_kind",
-        "branch",
-        "build_status",
-        "stage",
-        "promotion_status",
-    },
-    "claim_concept_link": {
-        "claim_id",
-        "concept_id",
-        "role",
-        "ordinal",
-        "binding_name",
-    },
-    "claim_numeric_payload": {
-        "claim_id",
-        "value",
-        "lower_bound",
-        "upper_bound",
-        "uncertainty",
-        "uncertainty_type",
-        "sample_size",
-        "unit",
-        "value_si",
-        "lower_bound_si",
-        "upper_bound_si",
-    },
-    "claim_text_payload": {
-        "claim_id",
-        "conditions_cel",
-        "conditions_ir",
-        "statement",
-        "expression",
-        "sympy_generated",
-        "sympy_error",
-        "name",
-        "measure",
-        "listener_population",
-        "methodology",
-        "notes",
-        "description",
-        "auto_summary",
-    },
-    "claim_algorithm_payload": {
-        "claim_id",
-        "body",
-        "canonical_ast",
-        "variables_json",
-        "algorithm_stage",
-    },
-    "conflict_witness": {
-        "concept_id",
-        "claim_a_id",
-        "claim_b_id",
-        "warning_class",
-        "conditions_a",
-        "conditions_b",
-        "value_a",
-        "value_b",
-        "derivation_chain",
-    },
-    "grounded_fact": {"predicate", "arguments", "section"},
-    "grounded_fact_empty_predicate": {"section", "predicate"},
-    "justification": {
-        "id",
-        "justification_kind",
-        "conclusion_claim_id",
-        "premise_claim_ids",
-        "source_relation_type",
-        "source_claim_id",
-        "provenance_json",
-        "rule_strength",
-    },
-    "build_diagnostics": {
-        "id",
-        "claim_id",
-        "source_kind",
-        "source_ref",
-        "diagnostic_kind",
-        "severity",
-        "blocking",
-        "message",
-        "file",
-        "detail_json",
-    },
-}
-
 
 @dataclass(frozen=True)
 class _BoundView:
@@ -373,31 +214,12 @@ class WorldQuery(WorldStore):
                 "Rebuild with 'pks build'."
             )
 
-        missing_tables = sorted(
-            table for table in _REQUIRED_SCHEMA if not self._has_table(table)
-        )
-        if missing_tables:
-            missing = ", ".join(missing_tables)
+        try:
+            WORLD_SIDECAR_SCHEMA.validate_connection(self._conn)
+        except ProjectionSchemaError as error:
             raise ValueError(
-                "Unsupported sidecar schema: missing table(s) "
-                f"{missing}. Rebuild with 'pks build'."
-            )
-
-        missing_columns: list[str] = []
-        for table, required_columns in _REQUIRED_SCHEMA.items():
-            columns = self._table_columns(table)
-            absent = sorted(required_columns - columns)
-            missing_columns.extend(f"{table}.{column}" for column in absent)
-        if missing_columns:
-            missing = ", ".join(missing_columns)
-            raise ValueError(
-                "Unsupported sidecar schema: missing column(s) "
-                f"{missing}. Rebuild with 'pks build'."
-            )
-
-    def _table_columns(self, table: str) -> set[str]:
-        rows = self._conn.execute(f"PRAGMA table_info({table})").fetchall()  # noqa: S608
-        return {str(row["name"]) for row in rows}
+                f"Unsupported sidecar schema: {error}. Rebuild with 'pks build'."
+            ) from error
 
     # ── Lazy Z3 setup ────────────────────────────────────────────────
 
