@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from propstore.sidecar.concepts import ALIAS_PROJECTION, AliasProjectionRow, populate_concept_sidecar_rows
+from propstore.sidecar.concepts import ALIAS_PROJECTION, populate_concept_sidecar_rows
 from propstore.sidecar.stages import ConceptSidecarRows
 
 
@@ -16,7 +16,7 @@ def test_alias_rows_use_generated_insert() -> None:
         form_rows=(),
         concept_rows=(),
         alias_rows=(
-            AliasProjectionRow(
+            ALIAS_PROJECTION.row(
                 concept_id="concept-alpha",
                 alias_name="F0",
                 source="Sundberg_1993",
@@ -42,4 +42,3 @@ def test_alias_rows_use_generated_insert() -> None:
         "alias_name": "F0",
         "source": "Sundberg_1993",
     }
-

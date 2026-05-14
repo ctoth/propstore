@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from propstore.sidecar.diagnostics import (
-    BuildDiagnosticProjectionRow,
+    BUILD_DIAGNOSTICS_PROJECTION,
     create_build_diagnostics_table,
     insert_build_diagnostic,
 )
@@ -103,18 +103,16 @@ class QuarantinableWriter:
         )
         cursor = insert_build_diagnostic(
             self._conn,
-            BuildDiagnosticProjectionRow.from_values(
-                (
-                    artifact_id if kind == "claim" else None,
-                    kind,
-                    artifact_id,
-                    diagnostic_kind,
-                    "error",
-                    1,
-                    message,
-                    file,
-                    detail_json,
-                )
+            BUILD_DIAGNOSTICS_PROJECTION.row(
+                claim_id=artifact_id if kind == "claim" else None,
+                source_kind=kind,
+                source_ref=artifact_id,
+                diagnostic_kind=diagnostic_kind,
+                severity="error",
+                blocking=1,
+                message=message,
+                file=file,
+                detail_json=detail_json,
             ),
         )
         if cursor.lastrowid is None:

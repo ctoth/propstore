@@ -4,11 +4,11 @@ import inspect
 from pathlib import Path
 
 from propstore.sidecar.claims import (
-    ClaimAlgorithmPayloadProjectionRow,
-    ClaimConceptLinkProjectionRow,
-    ClaimCoreProjectionRow,
-    ClaimNumericPayloadProjectionRow,
-    ClaimTextPayloadProjectionRow,
+    CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
+    CLAIM_CONCEPT_LINK_PROJECTION,
+    CLAIM_CORE_PROJECTION,
+    CLAIM_NUMERIC_PAYLOAD_PROJECTION,
+    CLAIM_TEXT_PAYLOAD_PROJECTION,
     populate_claims,
 )
 from propstore.sidecar.schema import create_claim_tables, create_context_tables, create_tables
@@ -71,26 +71,81 @@ def _claim_row(
 
 def _claim_sidecar_rows(
     *claim_rows: dict,
-    claim_link_rows: tuple[ClaimConceptLinkProjectionRow, ...] = (),
+    claim_link_rows: tuple = (),
 ) -> ClaimSidecarRows:
     return ClaimSidecarRows(
-        claim_core_rows=tuple(
-            ClaimCoreProjectionRow.from_claim_mapping(row) for row in claim_rows
-        ),
+        claim_core_rows=tuple(_claim_core_row(row) for row in claim_rows),
         numeric_payload_rows=tuple(
-            ClaimNumericPayloadProjectionRow.from_claim_mapping(row)
+            CLAIM_NUMERIC_PAYLOAD_PROJECTION.row(
+                claim_id=row["id"],
+                value=row["value"],
+                lower_bound=row["lower_bound"],
+                upper_bound=row["upper_bound"],
+                uncertainty=row["uncertainty"],
+                uncertainty_type=row["uncertainty_type"],
+                sample_size=row["sample_size"],
+                unit=row["unit"],
+                value_si=row["value_si"],
+                lower_bound_si=row["lower_bound_si"],
+                upper_bound_si=row["upper_bound_si"],
+            )
             for row in claim_rows
         ),
         text_payload_rows=tuple(
-            ClaimTextPayloadProjectionRow.from_claim_mapping(row) for row in claim_rows
+            CLAIM_TEXT_PAYLOAD_PROJECTION.row(
+                claim_id=row["id"],
+                conditions_cel=row["conditions_cel"],
+                conditions_ir=row["conditions_ir"],
+                statement=row["statement"],
+                expression=row["expression"],
+                sympy_generated=row["sympy_generated"],
+                sympy_error=row["sympy_error"],
+                name=row["name"],
+                measure=row["measure"],
+                listener_population=row["listener_population"],
+                methodology=row["methodology"],
+                notes=row["notes"],
+                description=row["description"],
+                auto_summary=row["auto_summary"],
+            )
+            for row in claim_rows
         ),
         algorithm_payload_rows=tuple(
-            ClaimAlgorithmPayloadProjectionRow.from_claim_mapping(row)
+            CLAIM_ALGORITHM_PAYLOAD_PROJECTION.row(
+                claim_id=row["id"],
+                body=row["body"],
+                canonical_ast=row["canonical_ast"],
+                variables_json=row["variables_json"],
+                algorithm_stage=row["algorithm_stage"],
+            )
             for row in claim_rows
         ),
         claim_link_rows=claim_link_rows,
         stance_rows=(),
         quarantine_diagnostics=(),
+    )
+
+
+def _claim_core_row(row: dict):
+    return CLAIM_CORE_PROJECTION.row(
+        id=row["id"],
+        primary_logical_id=row["primary_logical_id"],
+        logical_ids_json=row["logical_ids_json"],
+        version_id=row["version_id"],
+        content_hash=row.get("content_hash") or "",
+        seq=row["seq"],
+        type=row["type"],
+        target_concept=row["target_concept"],
+        source_slug=row["source_slug"],
+        source_paper=row["source_paper"],
+        provenance_page=row["provenance_page"],
+        provenance_json=row["provenance_json"],
+        context_id=row["context_id"],
+        premise_kind=row.get("premise_kind") or "ordinary",
+        branch=row.get("branch"),
+        build_status=row.get("build_status") or "ingested",
+        stage=row.get("stage"),
+        promotion_status=row.get("promotion_status"),
     )
 
 
@@ -179,23 +234,19 @@ def test_populate_claims_dedupes_duplicate_claim_concept_links(
                 _claim_row("ps:claim:linked", version_id="sha256:same"),
                 _claim_row("ps:claim:linked", version_id="sha256:same"),
                 claim_link_rows=(
-                    ClaimConceptLinkProjectionRow.from_values(
-                        (
-                            "ps:claim:linked",
-                            "ps:concept:velocity",
-                            "target",
-                            0,
-                            None,
-                        )
+                    CLAIM_CONCEPT_LINK_PROJECTION.row(
+                        claim_id="ps:claim:linked",
+                        concept_id="ps:concept:velocity",
+                        role="target",
+                        ordinal=0,
+                        binding_name=None,
                     ),
-                    ClaimConceptLinkProjectionRow.from_values(
-                        (
-                            "ps:claim:linked",
-                            "ps:concept:velocity",
-                            "target",
-                            0,
-                            None,
-                        )
+                    CLAIM_CONCEPT_LINK_PROJECTION.row(
+                        claim_id="ps:claim:linked",
+                        concept_id="ps:concept:velocity",
+                        role="target",
+                        ordinal=0,
+                        binding_name=None,
                     ),
                 ),
             ),

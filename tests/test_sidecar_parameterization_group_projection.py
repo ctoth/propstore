@@ -4,7 +4,6 @@ import sqlite3
 
 from propstore.sidecar.concepts import (
     PARAMETERIZATION_GROUP_PROJECTION,
-    ParameterizationGroupProjectionRow,
     populate_concept_sidecar_rows,
 )
 from propstore.sidecar.stages import ConceptSidecarRows
@@ -24,7 +23,7 @@ def test_parameterization_group_rows_use_generated_insert() -> None:
         relation_edge_rows=(),
         parameterization_rows=(),
         parameterization_group_rows=(
-            ParameterizationGroupProjectionRow(
+            PARAMETERIZATION_GROUP_PROJECTION.row(
                 concept_id="concept-alpha",
                 group_id=7,
             ),
@@ -44,4 +43,3 @@ def test_parameterization_group_rows_use_generated_insert() -> None:
         "concept_id": "concept-alpha",
         "group_id": 7,
     }
-

@@ -4,7 +4,6 @@ import sqlite3
 
 from propstore.sidecar.concepts import (
     PARAMETERIZATION_PROJECTION,
-    ParameterizationProjectionRow,
     populate_concept_sidecar_rows,
 )
 from propstore.sidecar.stages import ConceptSidecarRows
@@ -25,7 +24,7 @@ def test_parameterization_rows_use_generated_insert() -> None:
         relationship_rows=(),
         relation_edge_rows=(),
         parameterization_rows=(
-            ParameterizationProjectionRow(
+            PARAMETERIZATION_PROJECTION.row(
                 output_concept_id="concept-alpha",
                 concept_ids='["concept-alpha"]',
                 formula="x + 1",
@@ -47,4 +46,4 @@ def test_parameterization_rows_use_generated_insert() -> None:
     populate_concept_sidecar_rows(conn, rows)
 
     stored = conn.execute('SELECT * FROM "parameterization"').fetchone()
-    assert dict(stored) == rows.parameterization_rows[0].as_insert_mapping()
+    assert dict(stored) == PARAMETERIZATION_PROJECTION.encode_row(rows.parameterization_rows[0])

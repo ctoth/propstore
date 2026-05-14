@@ -6,8 +6,6 @@ import sqlite3
 from propstore.sidecar.concepts import (
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
-    FormAlgebraProjectionRow,
-    FormProjectionRow,
     populate_concept_sidecar_rows,
 )
 from propstore.sidecar.stages import ConceptSidecarRows
@@ -23,7 +21,7 @@ def test_form_algebra_rows_use_generated_insert_and_autoincrement_id() -> None:
 
     rows = ConceptSidecarRows(
         form_rows=(
-            FormProjectionRow(
+            FORM_PROJECTION.row(
                 name="force",
                 kind="quantity",
                 unit_symbol="N",
@@ -38,7 +36,7 @@ def test_form_algebra_rows_use_generated_insert_and_autoincrement_id() -> None:
         parameterization_rows=(),
         parameterization_group_rows=(),
         form_algebra_rows=(
-            FormAlgebraProjectionRow(
+            FORM_ALGEBRA_PROJECTION.row(
                 output_form="force",
                 input_forms='["mass", "acceleration"]',
                 operation="mass * acceleration",
@@ -65,4 +63,3 @@ def test_form_algebra_rows_use_generated_insert_and_autoincrement_id() -> None:
     assert stored["source_concept_id"] == "concept-force"
     assert stored["source_formula"] == "m * a"
     assert stored["dim_verified"] == 1
-

@@ -8,6 +8,7 @@ from collections.abc import Iterable, Sequence
 
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
+from quire.projections import ProjectionRow
 from quire.references import FamilyReferenceIndex
 
 from propstore.claims import (
@@ -50,6 +51,7 @@ from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols
 from propstore.sidecar.claim_utils import (
     extract_deferred_stance_rows_with_diagnostics,
+    normalize_conditions_differ,
     prepare_claim_insert_row,
     prepare_claim_concept_link_rows,
 )
@@ -65,36 +67,35 @@ from propstore.sidecar.stages import (
     SidecarBuildPlan,
 )
 from propstore.sidecar.claims import (
-    ClaimAlgorithmPayloadProjectionRow,
-    ClaimConceptLinkProjectionRow,
-    ClaimCoreProjectionRow,
-    ClaimFtsProjectionRow,
-    ClaimNumericPayloadProjectionRow,
-    ClaimStanceProjectionRow,
-    ClaimTextPayloadProjectionRow,
-    ConflictWitnessProjectionRow,
-    JustificationProjectionRow,
+    CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
+    CLAIM_CONCEPT_LINK_PROJECTION,
+    CLAIM_CORE_PROJECTION,
+    CLAIM_FTS_PROJECTION,
+    CLAIM_NUMERIC_PAYLOAD_PROJECTION,
+    CLAIM_TEXT_PAYLOAD_PROJECTION,
+    CONFLICT_WITNESS_PROJECTION,
+    JUSTIFICATION_PROJECTION,
 )
 from propstore.sidecar.contexts import (
-    ContextAssumptionProjectionRow,
-    ContextLiftingMaterializationProjectionRow,
-    ContextLiftingRuleProjectionRow,
-    ContextProjectionRow,
+    CONTEXT_ASSUMPTION_PROJECTION,
+    CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
+    CONTEXT_LIFTING_RULE_PROJECTION,
+    CONTEXT_PROJECTION,
 )
-from propstore.sidecar.diagnostics import BuildDiagnosticProjectionRow
+from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.micropublications import (
     MicropublicationClaimProjectionRow,
     MicropublicationProjectionRow,
 )
-from propstore.sidecar.relations import RelationEdgeProjectionRow
+from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.concepts import (
-    AliasProjectionRow,
-    ConceptFtsProjectionRow,
-    ConceptProjectionRow,
-    FormAlgebraProjectionRow,
-    FormProjectionRow,
-    ParameterizationGroupProjectionRow,
-    ParameterizationProjectionRow,
+    ALIAS_PROJECTION,
+    CONCEPT_FTS_PROJECTION,
+    CONCEPT_PROJECTION,
+    FORM_ALGEBRA_PROJECTION,
+    FORM_PROJECTION,
+    PARAMETERIZATION_GROUP_PROJECTION,
+    PARAMETERIZATION_PROJECTION,
 )
 from propstore.sidecar.sources import SourceProjectionRow
 from propstore.sidecar.claim_utils import (
@@ -156,9 +157,9 @@ def compile_context_sidecar_rows(
     *,
     authored_ist_assertions: Sequence[IstProposition] = (),
 ) -> ContextSidecarRows:
-    context_rows: list[ContextProjectionRow] = []
-    assumption_rows: list[ContextAssumptionProjectionRow] = []
-    lifting_rule_rows: list[ContextLiftingRuleProjectionRow] = []
+    context_rows: list[ProjectionRow] = []
+    assumption_rows: list[ProjectionRow] = []
+    lifting_rule_rows: list[ProjectionRow] = []
 
     for context in coerce_loaded_contexts(contexts):
         record = context.record
@@ -167,7 +168,7 @@ def compile_context_sidecar_rows(
         context_id = str(record.context_id)
 
         context_rows.append(
-            ContextProjectionRow(
+            CONTEXT_PROJECTION.row(
                 id=context_id,
                 name=record.name or "",
                 description=record.description,
@@ -180,7 +181,7 @@ def compile_context_sidecar_rows(
 
         for seq, assumption in enumerate(record.assumptions, 1):
             assumption_rows.append(
-                ContextAssumptionProjectionRow(
+                CONTEXT_ASSUMPTION_PROJECTION.row(
                     context_id=context_id,
                     assumption_cel=assumption,
                     seq=seq,
@@ -189,7 +190,7 @@ def compile_context_sidecar_rows(
 
         for rule in record.lifting_rules:
             lifting_rule_rows.append(
-                ContextLiftingRuleProjectionRow(
+                CONTEXT_LIFTING_RULE_PROJECTION.row(
                     id=rule.id,
                     source_context_id=str(rule.source.id),
                     target_context_id=str(rule.target.id),
@@ -223,14 +224,14 @@ def compile_context_sidecar_rows(
 
 def compile_context_lifting_materialization_rows(
     materializations: Sequence[LiftedAssertion | LiftingDecision],
-) -> tuple[ContextLiftingMaterializationProjectionRow, ...]:
-    rows: list[ContextLiftingMaterializationProjectionRow] = []
+) -> tuple[ProjectionRow, ...]:
+    rows: list[ProjectionRow] = []
     for materialization in materializations:
         if isinstance(materialization, LiftingDecision):
             provenance = materialization.provenance.to_payload()
             exception_id = materialization.provenance.exception_id
             rows.append(
-                ContextLiftingMaterializationProjectionRow(
+                CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.row(
                     rule_id=materialization.rule_id,
                     source_context_id=str(materialization.source_context.id),
                     target_context_id=str(materialization.target_context.id),
@@ -242,7 +243,7 @@ def compile_context_lifting_materialization_rows(
             )
             continue
         rows.append(
-            ContextLiftingMaterializationProjectionRow(
+            CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.row(
                 rule_id=materialization.rule_id,
                 source_context_id=str(materialization.source_context.id),
                 target_context_id=str(materialization.target_context.id),
@@ -260,15 +261,15 @@ def compile_concept_sidecar_rows(
     form_registry: dict[str, FormDefinition],
     cel_registry: dict[str, ConceptInfo],
 ) -> ConceptSidecarRows:
-    form_rows: list[FormProjectionRow] = []
-    concept_rows: list[ConceptProjectionRow] = []
-    alias_rows: list[AliasProjectionRow] = []
+    form_rows: list[ProjectionRow] = []
+    concept_rows: list[ProjectionRow] = []
+    alias_rows: list[ProjectionRow] = []
     relationship_rows: list[ConceptRelationshipProjectionRow] = []
-    relation_edge_rows: list[RelationEdgeProjectionRow] = []
-    parameterization_rows: list[ParameterizationProjectionRow] = []
-    parameterization_group_rows: list[ParameterizationGroupProjectionRow] = []
-    form_algebra_rows: list[FormAlgebraProjectionRow] = []
-    concept_fts_rows: list[ConceptFtsProjectionRow] = []
+    relation_edge_rows: list[ProjectionRow] = []
+    parameterization_rows: list[ProjectionRow] = []
+    parameterization_group_rows: list[ProjectionRow] = []
+    form_algebra_rows: list[ProjectionRow] = []
+    concept_fts_rows: list[ProjectionRow] = []
 
     for form_definition in form_registry.values():
         dimensions_json = (
@@ -277,7 +278,7 @@ def compile_concept_sidecar_rows(
             else None
         )
         form_rows.append(
-            FormProjectionRow(
+            FORM_PROJECTION.row(
                 name=form_definition.name,
                 kind=form_definition.kind.value
                 if hasattr(form_definition.kind, "value")
@@ -310,7 +311,7 @@ def compile_concept_sidecar_rows(
         concept_id = str(record.artifact_id)
 
         concept_rows.append(
-            ConceptProjectionRow(
+            CONCEPT_PROJECTION.row(
                 id=concept_id,
                 primary_logical_id=record.primary_logical_id or "",
                 logical_ids_json=json.dumps(
@@ -339,7 +340,7 @@ def compile_concept_sidecar_rows(
 
         for alias in record.aliases:
             alias_rows.append(
-                AliasProjectionRow(
+                ALIAS_PROJECTION.row(
                     concept_id=concept_id,
                     alias_name=alias.name,
                     source=alias.source,
@@ -363,7 +364,7 @@ def compile_concept_sidecar_rows(
                 )
             )
             relation_edge_rows.append(
-                RelationEdgeProjectionRow(
+                RELATION_EDGE_PROJECTION.row(
                     source_kind="concept",
                     source_id=concept_id,
                     relation_type=relationship.relationship_type,
@@ -399,7 +400,7 @@ def compile_concept_sidecar_rows(
                 else None
             )
             parameterization_rows.append(
-                ParameterizationProjectionRow(
+                PARAMETERIZATION_PROJECTION.row(
                     output_concept_id=concept_id,
                     concept_ids=json.dumps(inputs),
                     formula=parameterization.formula,
@@ -417,7 +418,7 @@ def compile_concept_sidecar_rows(
         for parameterization in record.parameterizations:
             conditions_parts.extend(parameterization.conditions)
         concept_fts_rows.append(
-            ConceptFtsProjectionRow(
+            CONCEPT_FTS_PROJECTION.row(
                 concept_id=concept_id,
                 canonical_name=record.canonical_name,
                 aliases=" ".join(alias_names),
@@ -430,7 +431,7 @@ def compile_concept_sidecar_rows(
     for group_id, group_members in enumerate(sorted(groups, key=lambda group: min(group))):
         for concept_id in sorted(group_members):
             parameterization_group_rows.append(
-                ParameterizationGroupProjectionRow(
+                PARAMETERIZATION_GROUP_PROJECTION.row(
                     concept_id=concept_id,
                     group_id=group_id,
                 )
@@ -454,7 +455,7 @@ def compile_concept_sidecar_rows(
 def _compile_form_algebra_rows(
     concepts: list[LoadedConcept],
     form_registry: dict[str, FormDefinition],
-) -> tuple[FormAlgebraProjectionRow, ...]:
+) -> tuple[ProjectionRow, ...]:
     if not form_registry:
         return ()
 
@@ -467,7 +468,7 @@ def _compile_form_algebra_rows(
         id_to_symbols[concept_id] = _concept_symbol_candidates(record)
 
     seen: set[tuple[object, ...]] = set()
-    rows: list[FormAlgebraProjectionRow] = []
+    rows: list[ProjectionRow] = []
 
     for concept in concepts:
         record = concept.record
@@ -538,7 +539,7 @@ def _compile_form_algebra_rows(
                 continue
             seen.add(dedup_key)
             rows.append(
-                FormAlgebraProjectionRow(
+                FORM_ALGEBRA_PROJECTION.row(
                     output_form=output_form,
                     input_forms=json.dumps(input_forms),
                     operation=operation,
@@ -551,6 +552,32 @@ def _compile_form_algebra_rows(
     return tuple(rows)
 
 
+def _claim_stance_projection_row(values: tuple[object, ...]) -> ProjectionRow:
+    return RELATION_EDGE_PROJECTION.row(
+        source_kind="claim",
+        source_id=values[0],
+        relation_type=values[2],
+        target_kind="claim",
+        target_id=values[1],
+        perspective_source_claim_id=values[17],
+        target_justification_id=values[3],
+        conditions_cel=None,
+        strength=values[4],
+        conditions_differ=normalize_conditions_differ(values[5]),
+        note=values[6],
+        resolution_method=values[7],
+        resolution_model=values[8],
+        embedding_model=values[9],
+        embedding_distance=values[10],
+        pass_number=values[11],
+        confidence=values[12],
+        opinion_belief=values[13],
+        opinion_disbelief=values[14],
+        opinion_uncertainty=values[15],
+        opinion_base_rate=values[16],
+    )
+
+
 def compile_claim_sidecar_rows(
     claim_bundle: ClaimCompilationBundle,
     concept_registry: dict,
@@ -558,12 +585,12 @@ def compile_claim_sidecar_rows(
     form_registry: dict | None = None,
 ) -> ClaimSidecarRows:
     claim_seq = 0
-    claim_core_rows: list[ClaimCoreProjectionRow] = []
-    numeric_payload_rows: list[ClaimNumericPayloadProjectionRow] = []
-    text_payload_rows: list[ClaimTextPayloadProjectionRow] = []
-    algorithm_payload_rows: list[ClaimAlgorithmPayloadProjectionRow] = []
-    claim_link_rows: list[ClaimConceptLinkProjectionRow] = []
-    stance_rows: list[ClaimStanceProjectionRow] = []
+    claim_core_rows: list[ProjectionRow] = []
+    numeric_payload_rows: list[ProjectionRow] = []
+    text_payload_rows: list[ProjectionRow] = []
+    algorithm_payload_rows: list[ProjectionRow] = []
+    claim_link_rows: list[ProjectionRow] = []
+    stance_rows: list[ProjectionRow] = []
     quarantine_diagnostics: list[QuarantineDiagnostic] = []
     claim_index = build_claim_file_reference_index(
         claim_bundle.normalized_claim_files
@@ -588,20 +615,80 @@ def compile_claim_sidecar_rows(
             )
             if file_stage is not None:
                 row["stage"] = file_stage
-            claim_core_rows.append(ClaimCoreProjectionRow.from_claim_mapping(row))
+            claim_core_rows.append(
+                CLAIM_CORE_PROJECTION.row(
+                    id=row["id"],
+                    primary_logical_id=row["primary_logical_id"],
+                    logical_ids_json=row["logical_ids_json"],
+                    version_id=row["version_id"],
+                    content_hash=row.get("content_hash") or "",
+                    seq=row["seq"],
+                    type=row["type"],
+                    target_concept=row["target_concept"],
+                    source_slug=row["source_slug"],
+                    source_paper=row["source_paper"],
+                    provenance_page=row["provenance_page"],
+                    provenance_json=row["provenance_json"],
+                    context_id=row["context_id"],
+                    premise_kind=row.get("premise_kind") or "ordinary",
+                    branch=row.get("branch"),
+                    build_status=row.get("build_status") or "ingested",
+                    stage=row.get("stage"),
+                    promotion_status=row.get("promotion_status"),
+                )
+            )
             numeric_payload_rows.append(
-                ClaimNumericPayloadProjectionRow.from_claim_mapping(row)
+                CLAIM_NUMERIC_PAYLOAD_PROJECTION.row(
+                    claim_id=row["id"],
+                    value=row["value"],
+                    lower_bound=row["lower_bound"],
+                    upper_bound=row["upper_bound"],
+                    uncertainty=row["uncertainty"],
+                    uncertainty_type=row["uncertainty_type"],
+                    sample_size=row["sample_size"],
+                    unit=row["unit"],
+                    value_si=row["value_si"],
+                    lower_bound_si=row["lower_bound_si"],
+                    upper_bound_si=row["upper_bound_si"],
+                )
             )
             text_payload_rows.append(
-                ClaimTextPayloadProjectionRow.from_claim_mapping(row)
+                CLAIM_TEXT_PAYLOAD_PROJECTION.row(
+                    claim_id=row["id"],
+                    conditions_cel=row["conditions_cel"],
+                    conditions_ir=row["conditions_ir"],
+                    statement=row["statement"],
+                    expression=row["expression"],
+                    sympy_generated=row["sympy_generated"],
+                    sympy_error=row["sympy_error"],
+                    name=row["name"],
+                    measure=row["measure"],
+                    listener_population=row["listener_population"],
+                    methodology=row["methodology"],
+                    notes=row["notes"],
+                    description=row["description"],
+                    auto_summary=row["auto_summary"],
+                )
             )
             algorithm_payload_rows.append(
-                ClaimAlgorithmPayloadProjectionRow.from_claim_mapping(row)
+                CLAIM_ALGORITHM_PAYLOAD_PROJECTION.row(
+                    claim_id=row["id"],
+                    body=row["body"],
+                    canonical_ast=row["canonical_ast"],
+                    variables_json=row["variables_json"],
+                    algorithm_stage=row["algorithm_stage"],
+                )
             )
-            claim_link_rows.extend(
-                ClaimConceptLinkProjectionRow.from_values(values)
-                for values in prepare_claim_concept_link_rows(semantic_claim)
-            )
+            for values in prepare_claim_concept_link_rows(semantic_claim):
+                claim_link_rows.append(
+                    CLAIM_CONCEPT_LINK_PROJECTION.row(
+                        claim_id=values[0],
+                        concept_id=values[1],
+                        role=values[2],
+                        ordinal=values[3],
+                        binding_name=values[4],
+                    )
+                )
             deferred_stance_rows, deferred_stance_diagnostics = (
                 extract_deferred_stance_rows_with_diagnostics(
                     semantic_claim,
@@ -609,7 +696,7 @@ def compile_claim_sidecar_rows(
                 )
             )
             stance_rows.extend(
-                ClaimStanceProjectionRow.from_values(values)
+                _claim_stance_projection_row(values)
                 for values in deferred_stance_rows
             )
             quarantine_diagnostics.extend(deferred_stance_diagnostics)
@@ -628,7 +715,7 @@ def compile_claim_sidecar_rows(
 def compile_authored_stance_sidecar_rows(
     stance_entries: Iterable[tuple[str, StanceDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[ClaimStanceProjectionRow, ...]:
+) -> tuple[ProjectionRow, ...]:
     rows, diagnostics = _compile_authored_stance_sidecar_rows_with_diagnostics(
         stance_entries,
         claim_index,
@@ -641,9 +728,9 @@ def compile_authored_stance_sidecar_rows(
 def _compile_authored_stance_sidecar_rows_with_diagnostics(
     stance_entries: Iterable[tuple[str, StanceDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[tuple[ClaimStanceProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
+) -> tuple[tuple[ProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_index.ids())
-    rows: list[ClaimStanceProjectionRow] = []
+    rows: list[ProjectionRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, stance in stance_entries:
@@ -702,7 +789,7 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
             or source_claim
         )
         rows.append(
-            ClaimStanceProjectionRow.from_values(
+            _claim_stance_projection_row(
                 (
                     source_claim,
                     target,
@@ -731,7 +818,7 @@ def _compile_authored_stance_sidecar_rows_with_diagnostics(
 def compile_authored_justification_sidecar_rows(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[JustificationProjectionRow, ...]:
+) -> tuple[ProjectionRow, ...]:
     rows, diagnostics = _compile_authored_justification_sidecar_rows_with_diagnostics(
         justification_entries,
         claim_index,
@@ -744,9 +831,9 @@ def compile_authored_justification_sidecar_rows(
 def _compile_authored_justification_sidecar_rows_with_diagnostics(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[tuple[JustificationProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
+) -> tuple[tuple[ProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_index.ids())
-    rows: list[JustificationProjectionRow] = []
+    rows: list[ProjectionRow] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, justification in justification_entries:
@@ -813,19 +900,17 @@ def _compile_authored_justification_sidecar_rows_with_diagnostics(
             provenance_payload["attack_target"] = attack_target
 
         rows.append(
-            JustificationProjectionRow.from_values(
-                (
-                    justification_id,
-                    str(justification.rule_kind or "reported_claim"),
-                    conclusion,
-                    json.dumps(resolved_premises),
-                    None,
-                    None,
-                    json.dumps(provenance_payload)
-                    if provenance_payload
-                    else None,
-                    str(justification.rule_strength or "defeasible"),
-                )
+            JUSTIFICATION_PROJECTION.row(
+                id=justification_id,
+                justification_kind=str(justification.rule_kind or "reported_claim"),
+                conclusion_claim_id=conclusion,
+                premise_claim_ids=json.dumps(resolved_premises),
+                source_relation_type=None,
+                source_claim_id=None,
+                provenance_json=json.dumps(provenance_payload)
+                if provenance_payload
+                else None,
+                rule_strength=str(justification.rule_strength or "defeasible"),
             )
         )
     return tuple(rows), tuple(diagnostics)
@@ -836,7 +921,7 @@ def compile_conflict_sidecar_rows(
     concept_registry: dict,
     cel_registry: dict,
     lifting_system=None,
-) -> tuple[ConflictWitnessProjectionRow, ...]:
+) -> tuple[ProjectionRow, ...]:
     conflict_claims = conflict_claims_from_claim_files(claim_files)
     records = detect_conflicts(
         conflict_claims,
@@ -852,18 +937,16 @@ def compile_conflict_sidecar_rows(
         )
     )
     return tuple(
-        ConflictWitnessProjectionRow.from_values(
-            (
-                record.concept_id,
-                record.claim_a_id,
-                record.claim_b_id,
-                record.warning_class.value,
-                json.dumps(record.conditions_a),
-                json.dumps(record.conditions_b),
-                record.value_a,
-                record.value_b,
-                record.derivation_chain,
-            )
+        CONFLICT_WITNESS_PROJECTION.row(
+            concept_id=record.concept_id,
+            claim_a_id=record.claim_a_id,
+            claim_b_id=record.claim_b_id,
+            warning_class=record.warning_class.value,
+            conditions_a=json.dumps(record.conditions_a),
+            conditions_b=json.dumps(record.conditions_b),
+            value_a=record.value_a,
+            value_b=record.value_b,
+            derivation_chain=record.derivation_chain,
         )
         for record in records
     )
@@ -871,21 +954,19 @@ def compile_conflict_sidecar_rows(
 
 def compile_claim_fts_rows(
     claim_files: Sequence[ClaimFileEntry],
-) -> tuple[ClaimFtsProjectionRow, ...]:
-    rows: list[ClaimFtsProjectionRow] = []
+) -> tuple[ProjectionRow, ...]:
+    rows: list[ProjectionRow] = []
     for claim_file in claim_files:
         for claim in claim_file_claims(claim_file):
             claim_id = claim.artifact_id
             if not isinstance(claim_id, str) or not claim_id:
                 continue
             rows.append(
-                ClaimFtsProjectionRow.from_values(
-                    (
-                        claim_id,
-                        claim.statement or "",
-                        " ".join(list(claim.conditions)),
-                        claim.expression or "",
-                    )
+                CLAIM_FTS_PROJECTION.row(
+                    claim_id=claim_id,
+                    statement=claim.statement or "",
+                    conditions=" ".join(list(claim.conditions)),
+                    expression=claim.expression or "",
                 )
             )
     return tuple(rows)
@@ -894,47 +975,43 @@ def compile_claim_fts_rows(
 def compile_raw_id_quarantine_sidecar_rows(
     records: Sequence[RawIdQuarantineRecord],
 ) -> RawIdQuarantineSidecarRows:
-    claim_rows: list[ClaimCoreProjectionRow] = []
-    diagnostic_rows: list[BuildDiagnosticProjectionRow] = []
+    claim_rows: list[ProjectionRow] = []
+    diagnostic_rows: list[ProjectionRow] = []
 
     for record in records:
         claim_rows.append(
-            ClaimCoreProjectionRow.from_claim_mapping(
-                {
-                    "id": record.synthetic_id,
-                    "primary_logical_id": "",
-                    "logical_ids_json": "[]",
-                    "version_id": "",
-                    "content_hash": "",
-                    "seq": record.seq,
-                    "type": "quarantine",
-                    "target_concept": None,
-                    "source_slug": record.source_paper,
-                    "source_paper": record.source_paper,
-                    "provenance_page": 0,
-                    "provenance_json": None,
-                    "context_id": None,
-                    "premise_kind": "ordinary",
-                    "branch": None,
-                    "build_status": "blocked",
-                    "stage": None,
-                    "promotion_status": None,
-                }
+            CLAIM_CORE_PROJECTION.row(
+                id=record.synthetic_id,
+                primary_logical_id="",
+                logical_ids_json="[]",
+                version_id="",
+                content_hash="",
+                seq=record.seq,
+                type="quarantine",
+                target_concept=None,
+                source_slug=record.source_paper,
+                source_paper=record.source_paper,
+                provenance_page=0,
+                provenance_json=None,
+                context_id=None,
+                premise_kind="ordinary",
+                branch=None,
+                build_status="blocked",
+                stage=None,
+                promotion_status=None,
             )
         )
         diagnostic_rows.append(
-            BuildDiagnosticProjectionRow.from_values(
-                (
-                    record.synthetic_id,
-                    "claim",
-                    record.raw_id,
-                    "raw_id_input",
-                    "error",
-                    1,
-                    record.message,
-                    record.filename,
-                    record.detail_json,
-                )
+            BUILD_DIAGNOSTICS_PROJECTION.row(
+                claim_id=record.synthetic_id,
+                source_kind="claim",
+                source_ref=record.raw_id,
+                diagnostic_kind="raw_id_input",
+                severity="error",
+                blocking=1,
+                message=record.message,
+                file=record.filename,
+                detail_json=record.detail_json,
             )
         )
 
@@ -1052,10 +1129,10 @@ def compile_sidecar_build_plan(
 ) -> SidecarBuildPlan:
     claim_rows: ClaimSidecarRows | None = None
     raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(())
-    conflict_rows: tuple[ConflictWitnessProjectionRow, ...] = ()
-    claim_fts_rows: tuple[ClaimFtsProjectionRow, ...] = ()
-    stance_rows: tuple[ClaimStanceProjectionRow, ...] = ()
-    justification_rows: tuple[JustificationProjectionRow, ...] = ()
+    conflict_rows: tuple[ProjectionRow, ...] = ()
+    claim_fts_rows: tuple[ProjectionRow, ...] = ()
+    stance_rows: tuple[ProjectionRow, ...] = ()
+    justification_rows: tuple[ProjectionRow, ...] = ()
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...] = ()
     claim_index = build_claim_file_reference_index(())
 

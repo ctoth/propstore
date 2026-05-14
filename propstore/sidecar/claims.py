@@ -12,20 +12,18 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Mapping, Sequence
-
-from dataclasses import dataclass
+from collections.abc import Sequence
 
 from quire.projections import (
     FtsProjection,
     ProjectionColumn,
     ProjectionForeignKey,
     ProjectionIndex,
+    ProjectionRow,
     ProjectionTable,
 )
-from propstore.sidecar.claim_utils import normalize_conditions_differ
 from propstore.sidecar.diagnostics import (
-    BuildDiagnosticProjectionRow,
+    BUILD_DIAGNOSTICS_PROJECTION,
     insert_build_diagnostic,
 )
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
@@ -185,195 +183,6 @@ CLAIM_FTS_PROJECTION = FtsProjection(
     row_plan="compiled claim files",
 )
 
-
-@dataclass(frozen=True)
-class ClaimCoreProjectionRow:
-    values: Mapping[str, object]
-
-    @classmethod
-    def from_claim_mapping(cls, row: Mapping[str, object]) -> "ClaimCoreProjectionRow":
-        return cls(
-            {
-                "id": row["id"],
-                "primary_logical_id": row["primary_logical_id"],
-                "logical_ids_json": row["logical_ids_json"],
-                "version_id": row["version_id"],
-                "content_hash": row.get("content_hash") or "",
-                "seq": row["seq"],
-                "type": row["type"],
-                "target_concept": row["target_concept"],
-                "source_slug": row["source_slug"],
-                "source_paper": row["source_paper"],
-                "provenance_page": row["provenance_page"],
-                "provenance_json": row["provenance_json"],
-                "context_id": row["context_id"],
-                "premise_kind": row.get("premise_kind") or "ordinary",
-                "branch": row.get("branch"),
-                "build_status": row.get("build_status") or "ingested",
-                "stage": row.get("stage"),
-                "promotion_status": row.get("promotion_status"),
-            }
-        )
-
-
-@dataclass(frozen=True)
-class ClaimNumericPayloadProjectionRow:
-    values: Mapping[str, object]
-
-    @classmethod
-    def from_claim_mapping(cls, row: Mapping[str, object]) -> "ClaimNumericPayloadProjectionRow":
-        return cls(
-            {
-                "claim_id": row["id"],
-                "value": row["value"],
-                "lower_bound": row["lower_bound"],
-                "upper_bound": row["upper_bound"],
-                "uncertainty": row["uncertainty"],
-                "uncertainty_type": row["uncertainty_type"],
-                "sample_size": row["sample_size"],
-                "unit": row["unit"],
-                "value_si": row["value_si"],
-                "lower_bound_si": row["lower_bound_si"],
-                "upper_bound_si": row["upper_bound_si"],
-            }
-        )
-
-
-@dataclass(frozen=True)
-class ClaimTextPayloadProjectionRow:
-    values: Mapping[str, object]
-
-    @classmethod
-    def from_claim_mapping(cls, row: Mapping[str, object]) -> "ClaimTextPayloadProjectionRow":
-        return cls(
-            {
-                "claim_id": row["id"],
-                "conditions_cel": row["conditions_cel"],
-                "conditions_ir": row["conditions_ir"],
-                "statement": row["statement"],
-                "expression": row["expression"],
-                "sympy_generated": row["sympy_generated"],
-                "sympy_error": row["sympy_error"],
-                "name": row["name"],
-                "measure": row["measure"],
-                "listener_population": row["listener_population"],
-                "methodology": row["methodology"],
-                "notes": row["notes"],
-                "description": row["description"],
-                "auto_summary": row["auto_summary"],
-            }
-        )
-
-
-@dataclass(frozen=True)
-class ClaimAlgorithmPayloadProjectionRow:
-    values: Mapping[str, object]
-
-    @classmethod
-    def from_claim_mapping(cls, row: Mapping[str, object]) -> "ClaimAlgorithmPayloadProjectionRow":
-        return cls(
-            {
-                "claim_id": row["id"],
-                "body": row["body"],
-                "canonical_ast": row["canonical_ast"],
-                "variables_json": row["variables_json"],
-                "algorithm_stage": row["algorithm_stage"],
-            }
-        )
-
-
-@dataclass(frozen=True)
-class ClaimConceptLinkProjectionRow:
-    claim_id: object
-    concept_id: object
-    role: object
-    ordinal: object
-    binding_name: object
-
-    @classmethod
-    def from_values(cls, values: tuple[object, ...]) -> "ClaimConceptLinkProjectionRow":
-        return cls(*values)
-
-
-@dataclass(frozen=True)
-class ClaimStanceProjectionRow:
-    values: Mapping[str, object]
-
-    @classmethod
-    def from_values(cls, values: tuple[object, ...]) -> "ClaimStanceProjectionRow":
-        return cls(
-            {
-                "source_kind": "claim",
-                "source_id": values[0],
-                "relation_type": values[2],
-                "target_kind": "claim",
-                "target_id": values[1],
-                "perspective_source_claim_id": values[17],
-                "target_justification_id": values[3],
-                "conditions_cel": None,
-                "strength": values[4],
-                "conditions_differ": normalize_conditions_differ(values[5]),
-                "note": values[6],
-                "resolution_method": values[7],
-                "resolution_model": values[8],
-                "embedding_model": values[9],
-                "embedding_distance": values[10],
-                "pass_number": values[11],
-                "confidence": values[12],
-                "opinion_belief": values[13],
-                "opinion_disbelief": values[14],
-                "opinion_uncertainty": values[15],
-                "opinion_base_rate": values[16],
-            }
-        )
-
-
-@dataclass(frozen=True)
-class JustificationProjectionRow:
-    id: object
-    justification_kind: object
-    conclusion_claim_id: object
-    premise_claim_ids: object
-    source_relation_type: object
-    source_claim_id: object
-    provenance_json: object
-    rule_strength: object
-
-    @classmethod
-    def from_values(cls, values: tuple[object, ...]) -> "JustificationProjectionRow":
-        return cls(*values)
-
-
-@dataclass(frozen=True)
-class ConflictWitnessProjectionRow:
-    concept_id: object
-    claim_a_id: object
-    claim_b_id: object
-    warning_class: object
-    conditions_a: object
-    conditions_b: object
-    value_a: object
-    value_b: object
-    derivation_chain: object
-
-    @classmethod
-    def from_values(cls, values: tuple[object, ...]) -> "ConflictWitnessProjectionRow":
-        return cls(*values)
-
-
-@dataclass(frozen=True)
-class ClaimFtsProjectionRow:
-    claim_id: object
-    statement: object
-    conditions: object
-    expression: object
-
-    @classmethod
-    def from_values(cls, values: tuple[object, ...]) -> "ClaimFtsProjectionRow":
-        return cls(*values)
-
-
-
 def populate_raw_id_quarantine_records(
     conn: sqlite3.Connection,
     rows: RawIdQuarantineSidecarRows,
@@ -441,12 +250,18 @@ def populate_claims(
             seen_claim_versions[claim_id] = str(version_id or "")
     seen_link_keys: set[tuple[object, object, object, object]] = set()
     for row in rows.claim_link_rows:
-        key = (row.claim_id, row.role, row.ordinal, row.concept_id)
+        key = (
+            row.values["claim_id"],
+            row.values["role"],
+            row.values["ordinal"],
+            row.values["concept_id"],
+        )
         if key in seen_link_keys:
             continue
         seen_link_keys.add(key)
         CLAIM_CONCEPT_LINK_PROJECTION.insert_row(conn, row)
-    RELATION_EDGE_PROJECTION.insert_rows(conn, (stance_row.values for stance_row in rows.stance_rows))
+    if rows.stance_rows:
+        RELATION_EDGE_PROJECTION.insert_rows(conn, (stance_row.values for stance_row in rows.stance_rows))
 
 
 def _insert_claim_version_conflict(
@@ -459,51 +274,49 @@ def _insert_claim_version_conflict(
 ) -> None:
     insert_build_diagnostic(
         conn,
-        BuildDiagnosticProjectionRow.from_values(
-            (
-                claim_id,
-                "claim",
-                source_ref,
-                "claim_version_conflict",
-                "error",
-                1,
-                f"Claim logical id {claim_id!r} appears with multiple version_id values",
-                None,
-                json.dumps(
-                    {
-                        "existing_version_id": existing_version,
-                        "new_version_id": new_version,
-                    },
-                    sort_keys=True,
-                ),
-            )
+        BUILD_DIAGNOSTICS_PROJECTION.row(
+            claim_id=claim_id,
+            source_kind="claim",
+            source_ref=source_ref,
+            diagnostic_kind="claim_version_conflict",
+            severity="error",
+            blocking=1,
+            message=f"Claim logical id {claim_id!r} appears with multiple version_id values",
+            file=None,
+            detail_json=json.dumps(
+                {
+                    "existing_version_id": existing_version,
+                    "new_version_id": new_version,
+                },
+                sort_keys=True,
+            ),
         ),
     )
 
 
 def populate_stances(
     conn: sqlite3.Connection,
-    rows: Sequence[ClaimStanceProjectionRow],
+    rows: Sequence[ProjectionRow],
 ) -> None:
     RELATION_EDGE_PROJECTION.insert_rows(conn, (row.values for row in rows))
 
 
 def populate_authored_justifications(
     conn: sqlite3.Connection,
-    rows: Sequence[JustificationProjectionRow],
+    rows: Sequence[ProjectionRow],
 ) -> None:
     JUSTIFICATION_PROJECTION.insert_rows(conn, rows, or_ignore=True)
 
 
 def populate_conflicts(
     conn: sqlite3.Connection,
-    rows: Sequence[ConflictWitnessProjectionRow],
+    rows: Sequence[ProjectionRow],
 ) -> None:
     CONFLICT_WITNESS_PROJECTION.insert_rows(conn, rows)
 
 
 def populate_claim_fts_rows(
     conn: sqlite3.Connection,
-    rows: Sequence[ClaimFtsProjectionRow],
+    rows: Sequence[ProjectionRow],
 ) -> None:
     CLAIM_FTS_PROJECTION.insert_rows(conn, rows)

@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
 
-from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionRow, ProjectionTable
 
 
 BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(
@@ -34,23 +33,6 @@ BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(
 )
 
 
-@dataclass(frozen=True)
-class BuildDiagnosticProjectionRow:
-    claim_id: object
-    source_kind: object
-    source_ref: object
-    diagnostic_kind: object
-    severity: object
-    blocking: object
-    message: object
-    file: object
-    detail_json: object
-
-    @classmethod
-    def from_values(cls, values: tuple[object, ...]) -> "BuildDiagnosticProjectionRow":
-        return cls(*values)
-
-
 def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:
     for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
         conn.execute(statement)
@@ -58,7 +40,7 @@ def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:
 
 def insert_build_diagnostic(
     conn: sqlite3.Connection,
-    row: BuildDiagnosticProjectionRow,
+    row: ProjectionRow,
 ) -> sqlite3.Cursor:
     return conn.execute(
         BUILD_DIAGNOSTICS_PROJECTION.insert_sql(),

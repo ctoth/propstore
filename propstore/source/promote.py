@@ -56,10 +56,11 @@ from propstore.provenance import (
     write_provenance_note,
 )
 from propstore.repository import Repository
-from propstore.sidecar.claims import ClaimCoreProjectionRow
+from propstore.sidecar.claims import CLAIM_CORE_PROJECTION
 from propstore.sidecar.diagnostics import (
-    BuildDiagnosticProjectionRow,
+    BUILD_DIAGNOSTICS_PROJECTION,
 )
+from quire.projections import ProjectionRow
 from propstore.source.claim_concepts import (
     normalize_promoted_source_claim_artifact,
     source_concept_ref_requires_mapping,
@@ -119,8 +120,8 @@ class PromotionResult:
 
 @dataclass(frozen=True)
 class PromotionBlockedProjectionRows:
-    claim_rows: tuple[ClaimCoreProjectionRow, ...]
-    diagnostic_rows: tuple[BuildDiagnosticProjectionRow, ...]
+    claim_rows: tuple[ProjectionRow, ...]
+    diagnostic_rows: tuple[ProjectionRow, ...]
 
 
 def _validate_promoted_claims_before_commit(
@@ -760,57 +761,53 @@ def compile_promotion_blocked_projection_rows(
     ``diagnostic_kind='promotion_blocked'``, ``blocking=1``.
     """
 
-    claim_rows: list[ClaimCoreProjectionRow] = []
-    diagnostic_rows: list[BuildDiagnosticProjectionRow] = []
+    claim_rows: list[ProjectionRow] = []
+    diagnostic_rows: list[ProjectionRow] = []
     for claim in blocked_claims:
         artifact_id = claim.artifact_id
         if not isinstance(artifact_id, str) or not artifact_id:
             artifact_id = str(claim.id or "?")
         source_ref = f"{source_branch}:{artifact_id}"
         claim_rows.append(
-            ClaimCoreProjectionRow.from_claim_mapping(
-                {
-                    "id": artifact_id,
-                    "primary_logical_id": "",
-                    "logical_ids_json": "[]",
-                    "version_id": "",
-                    "content_hash": "",
-                    "seq": 0,
-                    "type": "promotion_blocked",
-                    "target_concept": None,
-                    "source_slug": source_paper,
-                    "source_paper": source_paper,
-                    "provenance_page": 0,
-                    "provenance_json": None,
-                    "context_id": None,
-                    "premise_kind": "ordinary",
-                    "branch": source_branch,
-                    "build_status": "ingested",
-                    "stage": None,
-                    "promotion_status": "blocked",
-                }
+            CLAIM_CORE_PROJECTION.row(
+                id=artifact_id,
+                primary_logical_id="",
+                logical_ids_json="[]",
+                version_id="",
+                content_hash="",
+                seq=0,
+                type="promotion_blocked",
+                target_concept=None,
+                source_slug=source_paper,
+                source_paper=source_paper,
+                provenance_page=0,
+                provenance_json=None,
+                context_id=None,
+                premise_kind="ordinary",
+                branch=source_branch,
+                build_status="ingested",
+                stage=None,
+                promotion_status="blocked",
             )
         )
         for kind, detail in reasons.get(artifact_id, []):
             diagnostic_rows.append(
-                BuildDiagnosticProjectionRow.from_values(
-                    (
-                        artifact_id,
-                        "claim",
-                        source_ref,
-                        "promotion_blocked",
-                        "error",
-                        1,
-                        detail,
-                        None,
-                        json.dumps(
-                            {
-                                "reason_kind": kind,
-                                "source_branch": source_branch,
-                            },
-                            sort_keys=True,
-                        ),
-                    )
+                BUILD_DIAGNOSTICS_PROJECTION.row(
+                    claim_id=artifact_id,
+                    source_kind="claim",
+                    source_ref=source_ref,
+                    diagnostic_kind="promotion_blocked",
+                    severity="error",
+                    blocking=1,
+                    message=detail,
+                    file=None,
+                    detail_json=json.dumps(
+                        {
+                            "reason_kind": kind,
+                            "source_branch": source_branch,
+                        },
+                        sort_keys=True,
+                    ),
                 )
             )
     return PromotionBlockedProjectionRows(

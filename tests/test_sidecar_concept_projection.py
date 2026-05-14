@@ -4,7 +4,6 @@ import sqlite3
 
 from propstore.sidecar.concepts import (
     CONCEPT_PROJECTION,
-    ConceptProjectionRow,
     populate_concept_sidecar_rows,
 )
 from propstore.sidecar.stages import ConceptSidecarRows
@@ -25,7 +24,7 @@ def test_concept_rows_use_generated_ddl_and_insert() -> None:
     rows = ConceptSidecarRows(
         form_rows=(),
         concept_rows=(
-            ConceptProjectionRow(
+            CONCEPT_PROJECTION.row(
                 id="concept-alpha",
                 primary_logical_id="logical-alpha",
                 logical_ids_json='["logical-alpha"]',

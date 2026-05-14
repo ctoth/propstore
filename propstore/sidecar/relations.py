@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
 
 
@@ -42,14 +40,3 @@ RELATION_EDGE_PROJECTION = ProjectionTable(
         ProjectionIndex("idx_relation_edge_type", ("relation_type",)),
     ),
 )
-
-
-@dataclass(frozen=True)
-class RelationEdgeProjectionRow:
-    source_kind: str
-    source_id: str
-    relation_type: str
-    target_kind: str
-    target_id: str
-    conditions_cel: str | None
-    note: str | None

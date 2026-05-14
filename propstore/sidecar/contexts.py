@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-
 from quire.projections import ProjectionColumn, ProjectionForeignKey, ProjectionIndex, ProjectionTable
 
 
@@ -80,40 +78,3 @@ CONTEXT_LIFTING_MATERIALIZATION_PROJECTION = ProjectionTable(
     ),
     if_not_exists=True,
 )
-
-
-@dataclass(frozen=True)
-class ContextProjectionRow:
-    id: str
-    name: str
-    description: str | None
-    parameters_json: str | None
-    perspective: str | None
-
-
-@dataclass(frozen=True)
-class ContextAssumptionProjectionRow:
-    context_id: str
-    assumption_cel: str
-    seq: int
-
-
-@dataclass(frozen=True)
-class ContextLiftingRuleProjectionRow:
-    id: str
-    source_context_id: str
-    target_context_id: str
-    conditions_cel: str | None
-    mode: str
-    justification: str | None
-
-
-@dataclass(frozen=True)
-class ContextLiftingMaterializationProjectionRow:
-    rule_id: str
-    source_context_id: str
-    target_context_id: str
-    proposition_id: str
-    status: str
-    exception_id: str | None
-    provenance_json: str

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sqlite3
-from dataclasses import dataclass
 
 from quire.projections import FtsProjection, ProjectionColumn, ProjectionForeignKey, ProjectionIndex, ProjectionTable
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
@@ -142,82 +141,6 @@ CONCEPT_FTS_PROJECTION = FtsProjection(
         "Concept FTS rows are generated from compiled concept bundles in deterministic concept traversal order."
     ),
 )
-
-
-@dataclass(frozen=True)
-class FormProjectionRow:
-    name: str
-    kind: str
-    unit_symbol: str | None
-    is_dimensionless: int
-    dimensions: str | None
-
-
-@dataclass(frozen=True)
-class AliasProjectionRow:
-    concept_id: str
-    alias_name: str
-    source: str | None
-
-
-@dataclass(frozen=True)
-class ParameterizationGroupProjectionRow:
-    concept_id: str
-    group_id: int
-
-
-@dataclass(frozen=True)
-class ParameterizationProjectionRow:
-    output_concept_id: str
-    concept_ids: str
-    formula: str
-    sympy: str | None
-    exactness: str
-    conditions_cel: str | None
-    conditions_ir: str | None
-
-
-@dataclass(frozen=True)
-class ConceptFtsProjectionRow:
-    concept_id: str
-    canonical_name: str
-    aliases: str
-    definition: str
-    conditions: str
-
-
-@dataclass(frozen=True)
-class FormAlgebraProjectionRow:
-    output_form: str
-    input_forms: str
-    operation: str
-    source_concept_id: str | None
-    source_formula: str | None
-    dim_verified: int
-
-
-@dataclass(frozen=True)
-class ConceptProjectionRow:
-    id: str
-    primary_logical_id: str
-    logical_ids_json: str
-    version_id: str
-    content_hash: str
-    seq: int
-    canonical_name: str
-    status: str
-    domain: str | None
-    definition: str
-    kind_type: str
-    form: str
-    form_parameters: str | None
-    range_min: float | None
-    range_max: float | None
-    is_dimensionless: int
-    unit_symbol: str | None
-    created_date: str | None
-    last_modified: str | None
-
 
 def populate_concept_sidecar_rows(
     conn: sqlite3.Connection,

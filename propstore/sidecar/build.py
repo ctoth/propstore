@@ -56,7 +56,7 @@ from propstore.sidecar.passes import compile_sidecar_build_plan
 from propstore.sidecar.stages import ContextSidecarRows, RepositoryCheckedBundle
 from propstore.sidecar.concepts import populate_concept_sidecar_rows
 from propstore.sidecar.diagnostics import (
-    BuildDiagnosticProjectionRow,
+    BUILD_DIAGNOSTICS_PROJECTION,
     insert_build_diagnostic,
 )
 from propstore.sidecar.embedding_store import ensure_embedding_tables
@@ -272,18 +272,16 @@ def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
     create_build_diagnostics_table(conn)
     insert_build_diagnostic(
         conn,
-        BuildDiagnosticProjectionRow.from_values(
-            (
-                None,
-                "sidecar_build",
-                None,
-                "build_exception",
-                "error",
-                1,
-                str(exc),
-                None,
-                None,
-            )
+        BUILD_DIAGNOSTICS_PROJECTION.row(
+            claim_id=None,
+            source_kind="sidecar_build",
+            source_ref=None,
+            diagnostic_kind="build_exception",
+            severity="error",
+            blocking=1,
+            message=str(exc),
+            file=None,
+            detail_json=None,
         ),
     )
     conn.commit()
@@ -296,18 +294,16 @@ def _record_embedding_restore_diagnostic(
     create_build_diagnostics_table(conn)
     insert_build_diagnostic(
         conn,
-        BuildDiagnosticProjectionRow.from_values(
-            (
-                None,
-                "embedding",
-                "restore",
-                "embedding_restore",
-                "warning",
-                0,
-                f"embedding restore failed: {exc}",
-                None,
-                None,
-            )
+        BUILD_DIAGNOSTICS_PROJECTION.row(
+            claim_id=None,
+            source_kind="embedding",
+            source_ref="restore",
+            diagnostic_kind="embedding_restore",
+            severity="warning",
+            blocking=0,
+            message=f"embedding restore failed: {exc}",
+            file=None,
+            detail_json=None,
         ),
     )
 
@@ -395,18 +391,16 @@ def _record_authoring_diagnostics(
     for diagnostic in diagnostics:
         insert_build_diagnostic(
             conn,
-            BuildDiagnosticProjectionRow.from_values(
-                (
-                    diagnostic.artifact_id,
-                    "authoring",
-                    diagnostic.artifact_id or diagnostic.filename,
-                    diagnostic.code,
-                    diagnostic.level,
-                    1 if diagnostic.is_error else 0,
-                    diagnostic.render(),
-                    diagnostic.filename,
-                    None,
-                )
+            BUILD_DIAGNOSTICS_PROJECTION.row(
+                claim_id=diagnostic.artifact_id,
+                source_kind="authoring",
+                source_ref=diagnostic.artifact_id or diagnostic.filename,
+                diagnostic_kind=diagnostic.code,
+                severity=diagnostic.level,
+                blocking=1 if diagnostic.is_error else 0,
+                message=diagnostic.render(),
+                file=diagnostic.filename,
+                detail_json=None,
             ),
         )
 
@@ -414,11 +408,12 @@ def _record_authoring_diagnostics(
 def _filter_invalid_context_lifting_rows(
     rows: ContextSidecarRows,
 ) -> ContextSidecarRows:
-    context_ids = {row.id for row in rows.context_rows}
+    context_ids = {row.values["id"] for row in rows.context_rows}
     valid_lifting_rows = tuple(
         row
         for row in rows.lifting_rule_rows
-        if row.source_context_id in context_ids and row.target_context_id in context_ids
+        if row.values["source_context_id"] in context_ids
+        and row.values["target_context_id"] in context_ids
     )
     return ContextSidecarRows(
         context_rows=rows.context_rows,

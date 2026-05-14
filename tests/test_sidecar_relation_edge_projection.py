@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 
 from propstore.sidecar.concepts import populate_concept_sidecar_rows
-from propstore.sidecar.relations import RELATION_EDGE_PROJECTION, RelationEdgeProjectionRow
+from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.stages import ConceptSidecarRows
 
 
@@ -14,7 +14,7 @@ def test_concept_relation_edge_rows_use_generated_insert() -> None:
         alias_rows=(),
         relationship_rows=(),
         relation_edge_rows=(
-            RelationEdgeProjectionRow(
+            RELATION_EDGE_PROJECTION.row(
                 source_kind="concept",
                 source_id="concept-a",
                 relation_type="broader",
