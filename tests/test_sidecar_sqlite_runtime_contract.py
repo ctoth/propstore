@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 from contextlib import closing
 
+from quire.derived_store import checkpoint_and_close_sqlite
 from propstore.sidecar.sqlite import connect_sidecar, connect_sidecar_readonly
 
 
@@ -14,18 +15,13 @@ def _sqlite_artifacts(path):
     )
 
 
-def _checkpoint_and_close(conn: sqlite3.Connection) -> None:
-    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    conn.close()
-
-
 def test_readonly_connection_to_wal_database_creates_runtime_wal_or_shm(tmp_path) -> None:
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = connect_sidecar(sidecar_path)
     conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY, value TEXT NOT NULL)")
     conn.execute("INSERT INTO item (id, value) VALUES (1, 'alpha')")
     conn.commit()
-    _checkpoint_and_close(conn)
+    checkpoint_and_close_sqlite(conn)
 
     for artifact in _sqlite_artifacts(sidecar_path)[1:]:
         assert not artifact.exists()
@@ -45,7 +41,7 @@ def test_checkpointed_sqlite_file_can_publish_without_wal_or_shm_siblings(tmp_pa
     conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY, value TEXT NOT NULL)")
     conn.execute("INSERT INTO item (id, value) VALUES (1, 'published')")
     conn.commit()
-    _checkpoint_and_close(conn)
+    checkpoint_and_close_sqlite(conn)
 
     temp_path.replace(final_path)
 

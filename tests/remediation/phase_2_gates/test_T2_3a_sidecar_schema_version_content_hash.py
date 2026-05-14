@@ -9,7 +9,7 @@ from propstore.sidecar.build import export_sidecar as build_sidecar
 from propstore.sidecar import schema
 
 
-def test_sidecar_content_hash_changes_on_schema_version_bump(
+def test_world_sidecar_hash_changes_on_schema_version_bump(
     tmp_path: Path,
     monkeypatch,
 ) -> None:

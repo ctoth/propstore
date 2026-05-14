@@ -14,18 +14,20 @@ whether to show these rows. This implements the discipline declared in
 
 from __future__ import annotations
 
-import hashlib
 import os
 import sqlite3
-import tempfile
-import threading
-import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-from quire.derived_store import DerivedStoreHandle
-from quire.hashing import canonical_json_bytes
+from quire.derived_store import (
+    DerivedStoreHandle,
+    checkpoint_and_close_sqlite,
+    derived_store_content_hash,
+    digest_directory,
+    materialize_sqlite_file,
+    read_dependency_pins,
+)
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
@@ -84,8 +86,6 @@ if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
     from propstore.repository import Repository
 
-_SIDECAR_PUBLISH_LOCKS_LOCK = threading.Lock()
-_SIDECAR_PUBLISH_LOCKS: dict[Path, threading.Lock] = {}
 _SIDECAR_CACHE_DEPENDENCIES = (
     "argumentation",
     "ast-equiv",
@@ -102,20 +102,30 @@ class EmbeddingSnapshotReport:
     concept_vector_count: int
 
 
-def _sidecar_cache_key_inputs(source_revision: str) -> dict[str, object]:
+def world_sidecar_hash_inputs(
+    source_revision: str,
+    *,
+    source_branch_tips: tuple[tuple[str, str], ...] = (),
+) -> dict[str, object]:
+    repo_root = Path(__file__).resolve().parents[2]
+    dependency_pins = read_dependency_pins(
+        repo_root / "uv.lock",
+        _SIDECAR_CACHE_DEPENDENCIES,
+    )
     return {
         "source_revision": source_revision,
+        "source_branch_tips": source_branch_tips,
         "sidecar_schema_version": sidecar_schema.SCHEMA_VERSION,
         "passes": _semantic_pass_versions(),
-        "generated_schema_version": _generated_schema_version(),
         "family_contract_versions": _family_contract_versions(),
-        "dependency_pins": _dependency_pins(),
         "build_time_config": {
             "PROPSTORE_SIDECAR_CACHE_BUST": os.environ.get(
                 "PROPSTORE_SIDECAR_CACHE_BUST",
                 "",
             ),
         },
+        "generated_schema_version": digest_directory(repo_root / "schema" / "generated"),
+        "dependency_pins": dependency_pins,
     }
 
 
@@ -129,16 +139,32 @@ def _source_branch_tips(repo: "Repository") -> tuple[tuple[str, str], ...]:
     )
 
 
-def _sidecar_content_hash(
+def world_sidecar_hash(
     source_revision: str,
     *,
     source_branch_tips: tuple[tuple[str, str], ...] = (),
 ) -> str:
-    inputs = _sidecar_cache_key_inputs(source_revision)
-    inputs["source_branch_tips"] = source_branch_tips
-    return hashlib.sha256(
-        canonical_json_bytes(inputs)
-    ).hexdigest()
+    inputs = world_sidecar_hash_inputs(
+        source_revision,
+        source_branch_tips=source_branch_tips,
+    )
+    dependencies = read_dependency_pins(
+        Path(__file__).resolve().parents[2] / "uv.lock",
+        _SIDECAR_CACHE_DEPENDENCIES,
+    )
+    content_hash = derived_store_content_hash(
+        projection_version=str(sidecar_schema.SCHEMA_VERSION),
+        schema_hash=str(inputs["generated_schema_version"]),
+        dependencies=dependencies,
+        extra_inputs={
+            "source_revision": inputs["source_revision"],
+            "source_branch_tips": inputs["source_branch_tips"],
+            "passes": inputs["passes"],
+            "family_contract_versions": inputs["family_contract_versions"],
+            "build_time_config": inputs["build_time_config"],
+        },
+    )
+    return content_hash.removeprefix("sha256:")
 
 
 def _family_contract_versions() -> dict[str, str]:
@@ -188,79 +214,6 @@ def _semantic_pass_versions() -> tuple[dict[str, str], ...]:
             ),
         )
     )
-
-
-def _generated_schema_version(schema_dir: Path | None = None) -> str:
-    if schema_dir is None:
-        schema_dir = Path(__file__).resolve().parents[2] / "schema" / "generated"
-    digest = hashlib.sha256()
-    if not schema_dir.exists():
-        return ""
-    for path in sorted(item for item in schema_dir.rglob("*") if item.is_file()):
-        digest.update(path.relative_to(schema_dir).as_posix().encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return digest.hexdigest()
-
-
-def _dependency_pins(lock_path: Path | None = None) -> dict[str, str]:
-    if lock_path is None:
-        lock_path = Path(__file__).resolve().parents[2] / "uv.lock"
-    if not lock_path.exists():
-        return {}
-    lock = tomllib.loads(lock_path.read_text(encoding="utf-8"))
-    pins: dict[str, str] = {}
-    for package in lock.get("package", ()):
-        if not isinstance(package, dict):
-            continue
-        name = package.get("name")
-        if name not in _SIDECAR_CACHE_DEPENDENCIES:
-            continue
-        version = str(package.get("version") or "")
-        source = package.get("source")
-        pins[str(name)] = f"{version}|{source!r}"
-    return dict(sorted(pins.items()))
-
-
-def _sqlite_artifact_paths(sqlite_path: Path) -> tuple[Path, Path, Path]:
-    return (
-        sqlite_path,
-        sqlite_path.with_name(f"{sqlite_path.name}-wal"),
-        sqlite_path.with_name(f"{sqlite_path.name}-shm"),
-    )
-
-
-def _cleanup_sqlite_artifacts(sqlite_path: Path) -> None:
-    for path in _sqlite_artifact_paths(sqlite_path):
-        path.unlink(missing_ok=True)
-
-
-def _new_temp_sqlite_path(sqlite_path: Path) -> Path:
-    fd, temp_name = tempfile.mkstemp(
-        prefix=f".{sqlite_path.name}.",
-        suffix=".tmp",
-        dir=sqlite_path.parent,
-    )
-    os.close(fd)
-    temp_path = Path(temp_name)
-    temp_path.unlink()
-    return temp_path
-
-
-def _publish_lock_for_sqlite(sqlite_path: Path) -> threading.Lock:
-    key = sqlite_path.resolve()
-    with _SIDECAR_PUBLISH_LOCKS_LOCK:
-        lock = _SIDECAR_PUBLISH_LOCKS.get(key)
-        if lock is None:
-            lock = threading.Lock()
-            _SIDECAR_PUBLISH_LOCKS[key] = lock
-        return lock
-
-
-def _checkpoint_and_close(conn: sqlite3.Connection) -> None:
-    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-    conn.close()
 
 
 def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
@@ -535,31 +488,22 @@ def _materialize_world_sidecar_locked(
             raise ValueError("world sidecar materialization requires a committed git repository")
         kwargs["commit_hash"] = commit_hash
     source_branch_tips = _source_branch_tips(repo)
-    content_hash = _sidecar_content_hash(
+    content_hash = world_sidecar_hash(
         str(commit_hash),
         source_branch_tips=source_branch_tips,
     )
-    cache_key = repo.derived_stores.cache_key(
-        projection_id="propstore.world",
-        source_commit=str(commit_hash),
-        content_hash=content_hash,
-    )
-    target_path = repo.derived_stores.path_for_cache_key("propstore.world", cache_key)
-    if force and target_path.exists():
-        _cleanup_sqlite_artifacts(target_path)
-
-    built = not target_path.exists()
 
     def _build(target: Path) -> None:
         _build_sidecar_file(repo, target, force=True, **kwargs)
 
-    handle = repo.derived_stores.materialize(
+    materialization = repo.derived_stores.materialize_with_report(
         projection_id="propstore.world",
         source_commit=str(commit_hash),
         content_hash=content_hash,
         build=_build,
+        force=force,
     )
-    return handle, built
+    return materialization.handle, materialization.built
 
 
 def export_sidecar(
@@ -600,16 +544,10 @@ def _build_sidecar_file(
         if source_revision is None:
             raise ValueError("build_sidecar requires a committed git repository or an explicit commit_hash")
     source_branch_tips = _source_branch_tips(repo)
-    content_hash = _sidecar_content_hash(
+    content_hash = world_sidecar_hash(
         source_revision,
         source_branch_tips=source_branch_tips,
     )
-    hash_path = output_path.with_suffix(".hash")
-
-    if not force and output_path.exists() and hash_path.exists():
-        existing_hash = hash_path.read_text().strip()
-        if existing_hash == content_hash:
-            return False
 
     form_result = run_form_pipeline(
         [
@@ -779,128 +717,115 @@ def _build_sidecar_file(
             if snapshot_conn is not None:
                 snapshot_conn.close()
 
-    had_existing_sidecar = output_path.exists()
-    temp_output_path = _new_temp_sqlite_path(output_path)
-    temp_hash_path = temp_output_path.with_name(f"{temp_output_path.name}.hash")
+    def _write_sidecar(target_path: Path) -> None:
+        conn = connect_sidecar(target_path)
+        try:
+            write_schema_metadata(conn)
+            create_tables(conn)
+            create_context_tables(conn)
+            create_grounded_fact_table(conn)
+            populate_sources(
+                conn,
+                sidecar_plan.source_rows,
+            )
+            populate_concept_sidecar_rows(
+                conn,
+                sidecar_plan.concept_rows,
+            )
+            CONCEPT_FTS_PROJECTION.populate_from_source_query(conn)
+            create_claim_tables(conn)
+            ensure_embedding_tables(conn)
+            _record_form_diagnostics(conn, form_diagnostics)
+            _record_concept_diagnostics(conn, concept_diagnostics)
+            _record_context_diagnostics(conn, context_diagnostics)
+            _record_claim_diagnostics(conn, tuple(recorded_claim_diagnostics))
+            _record_authoring_diagnostics(conn, authoring_diagnostics)
+            _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
+            create_micropublication_tables(conn)
 
-    conn = connect_sidecar(temp_output_path)
-    try:
-        write_schema_metadata(conn)
-        create_tables(conn)
-        create_context_tables(conn)
-        create_grounded_fact_table(conn)
-        populate_sources(
-            conn,
-            sidecar_plan.source_rows,
-        )
-        populate_concept_sidecar_rows(
-            conn,
-            sidecar_plan.concept_rows,
-        )
-        CONCEPT_FTS_PROJECTION.populate_from_source_query(conn)
-        create_claim_tables(conn)
-        ensure_embedding_tables(conn)
-        _record_form_diagnostics(conn, form_diagnostics)
-        _record_concept_diagnostics(conn, concept_diagnostics)
-        _record_context_diagnostics(conn, context_diagnostics)
-        _record_claim_diagnostics(conn, tuple(recorded_claim_diagnostics))
-        _record_authoring_diagnostics(conn, authoring_diagnostics)
-        _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
-        create_micropublication_tables(conn)
+            context_rows = (
+                _filter_invalid_context_lifting_rows(sidecar_plan.context_rows)
+                if context_diagnostics
+                else sidecar_plan.context_rows
+            )
+            if context_rows.context_rows:
+                populate_contexts(conn, context_rows)
 
-        context_rows = (
-            _filter_invalid_context_lifting_rows(sidecar_plan.context_rows)
-            if context_diagnostics
-            else sidecar_plan.context_rows
-        )
-        if context_rows.context_rows:
-            populate_contexts(conn, context_rows)
+            if sidecar_plan.claim_rows is not None:
+                populate_claims(conn, sidecar_plan.claim_rows)
 
-        if sidecar_plan.claim_rows is not None:
-            populate_claims(conn, sidecar_plan.claim_rows)
-
-            if sidecar_plan.raw_id_quarantine_rows.claim_rows:
-                populate_raw_id_quarantine_records(
+                if sidecar_plan.raw_id_quarantine_rows.claim_rows:
+                    populate_raw_id_quarantine_records(
+                        conn,
+                        sidecar_plan.raw_id_quarantine_rows,
+                    )
+                _populate_promotion_blocked_rows(
                     conn,
-                    sidecar_plan.raw_id_quarantine_rows,
+                    promotion_blocked_claim_rows,
+                    promotion_blocked_diagnostic_rows,
                 )
-            _populate_promotion_blocked_rows(
-                conn,
-                promotion_blocked_claim_rows,
-                promotion_blocked_diagnostic_rows,
+
+                populate_conflicts(conn, sidecar_plan.conflict_rows)
+                CLAIM_FTS_PROJECTION.populate_from_source_query(conn)
+            else:
+                _populate_promotion_blocked_rows(
+                    conn,
+                    promotion_blocked_claim_rows,
+                    promotion_blocked_diagnostic_rows,
+                )
+
+            populate_micropublications(conn, sidecar_plan.micropublication_rows)
+
+            grounded_bundle = build_grounded_bundle(
+                repo,
+                commit=commit_hash,
             )
+            populate_grounded_facts(conn, grounded_bundle)
 
-            populate_conflicts(conn, sidecar_plan.conflict_rows)
-            CLAIM_FTS_PROJECTION.populate_from_source_query(conn)
-        else:
-            _populate_promotion_blocked_rows(
-                conn,
-                promotion_blocked_claim_rows,
-                promotion_blocked_diagnostic_rows,
-            )
+            if embedding_snapshot is not None:
+                try:
+                    from propstore.heuristic.embed import _load_vec_extension, restore_embeddings
 
-        populate_micropublications(conn, sidecar_plan.micropublication_rows)
+                    conn.row_factory = sqlite3.Row
+                    _load_vec_extension(conn)
+                    restore_embeddings(conn, embedding_snapshot)
+                    conn.row_factory = None
+                except ImportError as exc:
+                    _record_embedding_restore_diagnostic(conn, exc)
+                    conn.row_factory = None
+                except Exception as exc:
+                    _record_embedding_restore_diagnostic(conn, exc)
+                    conn.row_factory = None
 
-        grounded_bundle = build_grounded_bundle(
-            repo,
-            commit=commit_hash,
-        )
-        populate_grounded_facts(conn, grounded_bundle)
+            if sidecar_plan.claim_rows is not None:
+                populate_stances(conn, sidecar_plan.stance_rows)
+                populate_authored_justifications(
+                    conn,
+                    sidecar_plan.justification_rows,
+                )
 
-        if embedding_snapshot is not None:
-            try:
-                from propstore.heuristic.embed import _load_vec_extension, restore_embeddings
-
-                conn.row_factory = sqlite3.Row
-                _load_vec_extension(conn)
-                restore_embeddings(conn, embedding_snapshot)
-                conn.row_factory = None
-            except ImportError as exc:
-                _record_embedding_restore_diagnostic(conn, exc)
-                conn.row_factory = None
-            except Exception as exc:
-                _record_embedding_restore_diagnostic(conn, exc)
-                conn.row_factory = None
-
-        if sidecar_plan.claim_rows is not None:
-            populate_stances(conn, sidecar_plan.stance_rows)
-            populate_authored_justifications(
-                conn,
-                sidecar_plan.justification_rows,
-            )
-
-        conn.commit()
-    except Exception as exc:
-        try:
-            _record_build_exception(conn, exc)
             conn.commit()
-        except Exception as diagnostic_error:
-            exc.add_note(f"failed to record build diagnostic: {diagnostic_error}")
-        try:
-            _checkpoint_and_close(conn)
-        except Exception as close_error:
-            exc.add_note(f"failed to close failed sidecar build: {close_error}")
-        if had_existing_sidecar:
-            _cleanup_sqlite_artifacts(temp_output_path)
-        else:
-            with _publish_lock_for_sqlite(output_path):
-                temp_output_path.replace(output_path)
-            _cleanup_sqlite_artifacts(temp_output_path)
-        raise
+        except Exception as exc:
+            try:
+                _record_build_exception(conn, exc)
+                conn.commit()
+            except Exception as diagnostic_error:
+                exc.add_note(f"failed to record build diagnostic: {diagnostic_error}")
+            try:
+                checkpoint_and_close_sqlite(conn)
+            except Exception as close_error:
+                exc.add_note(f"failed to close failed sidecar build: {close_error}")
+            raise
 
-    _checkpoint_and_close(conn)
-    temp_hash_path.write_text(content_hash)
-    try:
-        with _publish_lock_for_sqlite(output_path):
-            temp_output_path.replace(output_path)
-            temp_hash_path.replace(hash_path)
-    except Exception:
-        _cleanup_sqlite_artifacts(temp_output_path)
-        temp_hash_path.unlink(missing_ok=True)
-        raise
-    _cleanup_sqlite_artifacts(temp_output_path)
-    temp_hash_path.unlink(missing_ok=True)
-    return True
+        checkpoint_and_close_sqlite(conn)
+
+    return materialize_sqlite_file(
+        output_path,
+        content_hash=content_hash,
+        build=_write_sidecar,
+        force=force,
+        publish_failure_when_missing=True,
+    ).built
 
 
 def build_grounding_sidecar(
@@ -911,20 +836,25 @@ def build_grounding_sidecar(
 ) -> None:
     """Materialize the grounding substrate into a sidecar-shaped SQLite file."""
 
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    _cleanup_sqlite_artifacts(output_path)
-    conn = connect_sidecar(output_path)
-    try:
-        write_schema_metadata(conn)
-        create_grounded_fact_table(conn)
-        grounded_bundle = build_grounded_bundle(
-            repo,
-            commit=commit_hash,
-        )
-        populate_grounded_facts(conn, grounded_bundle)
-        conn.commit()
-    except Exception:
-        conn.close()
-        _cleanup_sqlite_artifacts(output_path)
-        raise
-    _checkpoint_and_close(conn)
+    def _write_grounding(target_path: Path) -> None:
+        conn = connect_sidecar(target_path)
+        try:
+            write_schema_metadata(conn)
+            create_grounded_fact_table(conn)
+            grounded_bundle = build_grounded_bundle(
+                repo,
+                commit=commit_hash,
+            )
+            populate_grounded_facts(conn, grounded_bundle)
+            conn.commit()
+        except Exception:
+            conn.close()
+            raise
+        checkpoint_and_close_sqlite(conn)
+
+    materialize_sqlite_file(
+        output_path,
+        content_hash=None,
+        build=_write_grounding,
+        force=True,
+    )

@@ -9,7 +9,7 @@ import pytest
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath
 from propstore.concept_ids import next_concept_id_for_repo, record_concept_id_counter
 from propstore.repository import Repository
-from propstore.sidecar.build import _sidecar_content_hash
+from propstore.sidecar.build import world_sidecar_hash
 from quire.git_store import GitStore
 from tests.git_store_helpers import init_store, is_store, open_store
 from tests.conftest import (
@@ -963,7 +963,7 @@ def test_build_from_git(tmp_path):
     hash_path = sidecar_path.with_suffix(".hash")
     assert hash_path.exists()
     stored_hash = hash_path.read_text().strip()
-    assert stored_hash == _sidecar_content_hash(hash_key)
+    assert stored_hash == world_sidecar_hash(hash_key)
     assert len(stored_hash) == 64
 
     # Sidecar sqlite exists and contains concept data
@@ -1045,7 +1045,7 @@ def test_build_rebuilds_on_new_commit(tmp_path):
 
     # Hash file now reflects the new source revision under the current schema.
     hash_path = sidecar_path.with_suffix(".hash")
-    assert hash_path.read_text().strip() == _sidecar_content_hash(hash_key2)
+    assert hash_path.read_text().strip() == world_sidecar_hash(hash_key2)
 
     # Sidecar has both concepts
     import sqlite3
