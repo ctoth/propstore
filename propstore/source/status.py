@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from propstore.repository import Repository
+from propstore.sidecar.build import materialize_world_sidecar
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.common import source_branch_name
 
@@ -48,13 +49,14 @@ def _escape_sql_like(value: str) -> str:
 
 def inspect_source_status(repo: Repository, name: str) -> SourceStatusReport:
     branch = source_branch_name(name)
-    if not repo.sidecar_path.exists():
+    handle, _ = materialize_world_sidecar(repo)
+    if not handle.path.exists():
         return SourceStatusReport(
             branch=branch,
             state=SourceStatusState.SIDECAR_MISSING,
         )
 
-    conn = connect_sidecar(repo.sidecar_path)
+    conn = connect_sidecar(handle.path)
     conn.row_factory = sqlite3.Row
     try:
         has_claim_core = conn.execute(

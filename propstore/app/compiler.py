@@ -30,7 +30,6 @@ def validate_repository(repo: Repository):
 def build_repository(
     repo: Repository,
     *,
-    output: str | None,
     force: bool,
     strict_authoring: bool = False,
 ):
@@ -38,7 +37,6 @@ def build_repository(
 
     return run_build_repository(
         repo,
-        output=output,
         force=force,
         strict_authoring=strict_authoring,
     )

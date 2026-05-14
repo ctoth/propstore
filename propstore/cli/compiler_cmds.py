@@ -63,7 +63,6 @@ def validate(obj: dict) -> None:
 
 
 @click.command()
-@click.option("-o", "--output", default=None, help="Output path")
 @click.option("--force", is_flag=True, help="Force rebuild")
 @click.option(
     "--strict-authoring",
@@ -73,7 +72,6 @@ def validate(obj: dict) -> None:
 @click.pass_obj
 def build(
     obj: dict,
-    output: str | None,
     force: bool,
     strict_authoring: bool,
 ) -> None:
@@ -82,7 +80,6 @@ def build(
     try:
         report = build_repository(
             repo,
-            output=output,
             force=force,
             strict_authoring=strict_authoring,
         )
@@ -135,6 +132,13 @@ def build(
         f"Build {status}: {report.concept_count} concepts, "
         f"{report.claim_count} claims, {report.conflict_count} hard conflicts, "
         f"{report.phi_node_count} phi-nodes, {report.warning_count} warnings")
+    if report.derived_store is not None:
+        handle = report.derived_store
+        emit(
+            "Derived store: "
+            f"{handle.projection_id} {handle.source_commit} "
+            f"{handle.cache_key} {handle.path}"
+        )
 
 
 @click.command("export-aliases")

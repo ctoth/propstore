@@ -225,6 +225,7 @@ def promote_source(
 ) -> SourcePromoteReport:
     from propstore.compiler.errors import CompilerWorkflowError
     from propstore.compiler.workflows import build_repository
+    from propstore.sidecar.build import materialize_world_sidecar
     from propstore.source import promote_source_branch, source_paper_slug
     from propstore.source.common import (
         load_source_claims_document,
@@ -232,7 +233,7 @@ def promote_source(
     from propstore.source.promote import _write_promotion_blocked_sidecar_rows
 
     promotion = promote_source_branch(repo, request.name, strict=request.strict)
-    build_report = build_repository(repo, output=None, force=True)
+    build_report = build_repository(repo, force=True)
     build_errors = tuple(
         message for message in build_report.messages if message.level == "error"
     )
@@ -247,8 +248,9 @@ def promote_source(
             build_errors,
         )
     if promotion.blocked_claims:
+        handle, _ = materialize_world_sidecar(repo, force=True)
         _write_promotion_blocked_sidecar_rows(
-            repo.sidecar_path,
+            handle.path,
             source_branch_name(request.name),
             source_paper_slug(request.name),
             promotion.blocked_claims,

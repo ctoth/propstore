@@ -113,8 +113,11 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
     if claim_id not in claims_by_id:
         from propstore.world import WorldQuery
 
-        if repo.sidecar_path.exists():
+        try:
             wm = WorldQuery(repo)
+        except FileNotFoundError:
+            wm = None
+        if wm is not None:
             try:
                 resolved = wm.resolve_claim(claim_ref)
             finally:
@@ -233,11 +236,14 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
     visit(claim_id)
 
     atms_label = None
-    if repo.sidecar_path.exists():
-        from propstore.world import WorldQuery
-        from propstore.world.types import Environment
+    from propstore.world import WorldQuery
+    from propstore.world.types import Environment
 
+    try:
         wm = WorldQuery(repo)
+    except FileNotFoundError:
+        wm = None
+    if wm is not None:
         try:
             bound = wm.bind(Environment())
             atms_label = _serialize_label(bound.atms_engine().claim_label(claim_id))

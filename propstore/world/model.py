@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import sqlite3
-import tempfile
 from collections import deque
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
@@ -12,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from quire.derived_store import DerivedStoreHandle
 from propstore.core.conditions.registry import (
     ConceptInfo,
     KindType,
@@ -42,7 +42,6 @@ from propstore.core.row_types import (
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 from propstore.sidecar.projection import ProjectionSchemaError
-from propstore.sidecar.sqlite import connect_sidecar_readonly
 from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
 from propstore.core.conditions.solver import ConditionSolver
 
@@ -95,32 +94,36 @@ class WorldQuery(WorldStore):
     @classmethod
     def from_path(cls, knowledge_dir: str | Path) -> WorldQuery:
         """Open a world model from a knowledge directory path."""
-        sidecar = Path(knowledge_dir) / "sidecar" / "propstore.sqlite"
-        return cls(sidecar_path=sidecar)
+        from propstore.repository import Repository
+
+        return cls(Repository(Path(knowledge_dir)))
 
     def __init__(
         self,
         repo: Repository | None = None,
         *,
-        sidecar_path: Path | None = None,
+        derived_store: DerivedStoreHandle | None = None,
         commit: str | None = None,
     ) -> None:
-        if sidecar_path is not None:
-            resolved = sidecar_path
-        elif repo is not None:
-            resolved = repo.sidecar_path
-        else:
-            raise TypeError(
-                "WorldQuery requires either sidecar_path or repo argument"
+        if derived_store is None:
+            if repo is None:
+                raise TypeError(
+                    "WorldQuery requires either derived_store or repo argument"
+                )
+            from propstore.sidecar.build import materialize_world_sidecar
+
+            derived_store, _rebuilt = materialize_world_sidecar(
+                repo,
+                commit_hash=commit,
             )
-        if not resolved.exists():
+        if not derived_store.path.exists():
             raise FileNotFoundError(
-                f"Sidecar not found at {resolved}. Run 'pks build' first."
+                f"Derived store not found at {derived_store.path}. Run 'pks build' first."
             )
-        self._conn = connect_sidecar_readonly(resolved)
+        self._conn = derived_store.open_readonly()
         self._conn.row_factory = sqlite3.Row
-        knowledge_root = FilesystemKnowledgePath.from_filesystem_path(
-            resolved.parent.parent
+        knowledge_root: KnowledgePath = FilesystemKnowledgePath.from_filesystem_path(
+            derived_store.path.parent
         )
         if repo is not None and hasattr(repo, "tree"):
             knowledge_root = repo.tree(commit=commit)
@@ -157,24 +160,18 @@ class WorldQuery(WorldStore):
             raise ValueError(
                 "WorldQuery.historical_query requires a repository-backed query"
             )
-        from propstore.sidecar.build import build_sidecar
+        from propstore.sidecar.build import materialize_world_sidecar
 
-        with tempfile.TemporaryDirectory(
-            prefix="propstore-historical-sidecar-"
-        ) as tempdir:
-            sidecar_path = Path(tempdir) / "sidecar" / "propstore.sqlite"
-            build_sidecar(
-                self._repo,
-                sidecar_path,
-                force=True,
-                commit_hash=commit_sha,
-            )
-            with WorldQuery(
-                self._repo,
-                sidecar_path=sidecar_path,
-                commit=commit_sha,
-            ) as historical:
-                yield historical
+        handle, _rebuilt = materialize_world_sidecar(
+            self._repo,
+            commit_hash=commit_sha,
+        )
+        with WorldQuery(
+            self._repo,
+            derived_store=handle,
+            commit=commit_sha,
+        ) as historical:
+            yield historical
 
     def close(self) -> None:
         self._compiled_graph_cache = None

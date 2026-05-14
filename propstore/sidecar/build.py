@@ -24,6 +24,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from quire.derived_store import DerivedStoreHandle
 from quire.hashing import canonical_json_bytes
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import (
@@ -205,24 +206,24 @@ def _dependency_pins(lock_path: Path | None = None) -> dict[str, str]:
     return dict(sorted(pins.items()))
 
 
-def _sqlite_sidecar_artifact_paths(sidecar_path: Path) -> tuple[Path, Path, Path]:
+def _sqlite_artifact_paths(sqlite_path: Path) -> tuple[Path, Path, Path]:
     return (
-        sidecar_path,
-        sidecar_path.with_name(f"{sidecar_path.name}-wal"),
-        sidecar_path.with_name(f"{sidecar_path.name}-shm"),
+        sqlite_path,
+        sqlite_path.with_name(f"{sqlite_path.name}-wal"),
+        sqlite_path.with_name(f"{sqlite_path.name}-shm"),
     )
 
 
-def _cleanup_sidecar_artifacts(sidecar_path: Path) -> None:
-    for path in _sqlite_sidecar_artifact_paths(sidecar_path):
+def _cleanup_sqlite_artifacts(sqlite_path: Path) -> None:
+    for path in _sqlite_artifact_paths(sqlite_path):
         path.unlink(missing_ok=True)
 
 
-def _new_temp_sidecar_path(sidecar_path: Path) -> Path:
+def _new_temp_sqlite_path(sqlite_path: Path) -> Path:
     fd, temp_name = tempfile.mkstemp(
-        prefix=f".{sidecar_path.name}.",
+        prefix=f".{sqlite_path.name}.",
         suffix=".tmp",
-        dir=sidecar_path.parent,
+        dir=sqlite_path.parent,
     )
     os.close(fd)
     temp_path = Path(temp_name)
@@ -230,8 +231,8 @@ def _new_temp_sidecar_path(sidecar_path: Path) -> Path:
     return temp_path
 
 
-def _publish_lock_for_sidecar(sidecar_path: Path) -> threading.Lock:
-    key = sidecar_path.resolve()
+def _publish_lock_for_sqlite(sqlite_path: Path) -> threading.Lock:
+    key = sqlite_path.resolve()
     with _SIDECAR_PUBLISH_LOCKS_LOCK:
         lock = _SIDECAR_PUBLISH_LOCKS.get(key)
         if lock is None:
@@ -427,19 +428,63 @@ def _record_quarantine_diagnostics(
         )
 
 
-def build_sidecar(
+def materialize_world_sidecar(
     repo: "Repository",
-    sidecar_path: Path,
+    force: bool = False,
+    **kwargs,
+) -> tuple[DerivedStoreHandle, bool]:
+    with repo.mutation_guard():
+        return _materialize_world_sidecar_locked(repo, force, **kwargs)
+
+
+def _materialize_world_sidecar_locked(
+    repo: "Repository",
+    force: bool = False,
+    **kwargs,
+) -> tuple[DerivedStoreHandle, bool]:
+    commit_hash = kwargs.get("commit_hash")
+    if commit_hash is None:
+        commit_hash = repo.require_git().head_sha()
+        if commit_hash is None:
+            raise ValueError("world sidecar materialization requires a committed git repository")
+        kwargs["commit_hash"] = commit_hash
+    content_hash = _sidecar_content_hash(str(commit_hash))
+    cache_key = repo.derived_stores.cache_key(
+        projection_id="propstore.world",
+        source_commit=str(commit_hash),
+        content_hash=content_hash,
+    )
+    target_path = repo.derived_stores.path_for_cache_key("propstore.world", cache_key)
+    if force and target_path.exists():
+        _cleanup_sqlite_artifacts(target_path)
+
+    built = not target_path.exists()
+
+    def _build(target: Path) -> None:
+        _build_sidecar_file(repo, target, force=True, **kwargs)
+
+    handle = repo.derived_stores.materialize(
+        projection_id="propstore.world",
+        source_commit=str(commit_hash),
+        content_hash=content_hash,
+        build=_build,
+    )
+    return handle, built
+
+
+def export_sidecar(
+    repo: "Repository",
+    output_path: Path,
     force: bool = False,
     **kwargs,
 ) -> bool:
     with repo.mutation_guard():
-        return _build_sidecar_locked(repo, sidecar_path, force, **kwargs)
+        return _build_sidecar_file(repo, output_path, force, **kwargs)
 
 
-def _build_sidecar_locked(
+def _build_sidecar_file(
     repo: "Repository",
-    sidecar_path: Path,
+    output_path: Path,
     force: bool = False,
     *,
     commit_hash: str | None = None,
@@ -455,7 +500,7 @@ def _build_sidecar_locked(
     on_embedding_snapshot: Callable[[EmbeddingSnapshotReport], None] | None = None,
 ) -> bool:
     """Build the SQLite sidecar from repository artifact families."""
-    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     tree = repo.tree(commit=commit_hash)
 
     if commit_hash is not None:
@@ -465,9 +510,9 @@ def _build_sidecar_locked(
         if source_revision is None:
             raise ValueError("build_sidecar requires a committed git repository or an explicit commit_hash")
     content_hash = _sidecar_content_hash(source_revision)
-    hash_path = sidecar_path.with_suffix(".hash")
+    hash_path = output_path.with_suffix(".hash")
 
-    if not force and sidecar_path.exists() and hash_path.exists():
+    if not force and output_path.exists() and hash_path.exists():
         existing_hash = hash_path.read_text().strip()
         if existing_hash == content_hash:
             return False
@@ -607,12 +652,12 @@ def _build_sidecar_locked(
     )
 
     embedding_snapshot = None
-    if sidecar_path.exists():
+    if output_path.exists():
         snapshot_conn = None
         try:
             from propstore.heuristic.embed import _load_vec_extension, extract_embeddings
 
-            snapshot_conn = connect_sidecar(sidecar_path)
+            snapshot_conn = connect_sidecar(output_path)
             snapshot_conn.row_factory = sqlite3.Row
             _load_vec_extension(snapshot_conn)
             embedding_snapshot = extract_embeddings(snapshot_conn)
@@ -637,11 +682,11 @@ def _build_sidecar_locked(
             if snapshot_conn is not None:
                 snapshot_conn.close()
 
-    had_existing_sidecar = sidecar_path.exists()
-    temp_sidecar_path = _new_temp_sidecar_path(sidecar_path)
-    temp_hash_path = temp_sidecar_path.with_name(f"{temp_sidecar_path.name}.hash")
+    had_existing_sidecar = output_path.exists()
+    temp_output_path = _new_temp_sqlite_path(output_path)
+    temp_hash_path = temp_output_path.with_name(f"{temp_output_path.name}.hash")
 
-    conn = connect_sidecar(temp_sidecar_path)
+    conn = connect_sidecar(temp_output_path)
     try:
         write_schema_metadata(conn)
         create_tables(conn)
@@ -727,39 +772,39 @@ def _build_sidecar_locked(
         except Exception as close_error:
             exc.add_note(f"failed to close failed sidecar build: {close_error}")
         if had_existing_sidecar:
-            _cleanup_sidecar_artifacts(temp_sidecar_path)
+            _cleanup_sqlite_artifacts(temp_output_path)
         else:
-            with _publish_lock_for_sidecar(sidecar_path):
-                temp_sidecar_path.replace(sidecar_path)
-            _cleanup_sidecar_artifacts(temp_sidecar_path)
+            with _publish_lock_for_sqlite(output_path):
+                temp_output_path.replace(output_path)
+            _cleanup_sqlite_artifacts(temp_output_path)
         raise
 
     _checkpoint_and_close(conn)
     temp_hash_path.write_text(content_hash)
     try:
-        with _publish_lock_for_sidecar(sidecar_path):
-            temp_sidecar_path.replace(sidecar_path)
+        with _publish_lock_for_sqlite(output_path):
+            temp_output_path.replace(output_path)
             temp_hash_path.replace(hash_path)
     except Exception:
-        _cleanup_sidecar_artifacts(temp_sidecar_path)
+        _cleanup_sqlite_artifacts(temp_output_path)
         temp_hash_path.unlink(missing_ok=True)
         raise
-    _cleanup_sidecar_artifacts(temp_sidecar_path)
+    _cleanup_sqlite_artifacts(temp_output_path)
     temp_hash_path.unlink(missing_ok=True)
     return True
 
 
 def build_grounding_sidecar(
     repo: "Repository",
-    sidecar_path: Path,
+    output_path: Path,
     *,
     commit_hash: str | None = None,
 ) -> None:
     """Materialize the grounding substrate into a sidecar-shaped SQLite file."""
 
-    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    _cleanup_sidecar_artifacts(sidecar_path)
-    conn = connect_sidecar(sidecar_path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    _cleanup_sqlite_artifacts(output_path)
+    conn = connect_sidecar(output_path)
     try:
         write_schema_metadata(conn)
         create_grounded_fact_table(conn)
@@ -771,6 +816,6 @@ def build_grounding_sidecar(
         conn.commit()
     except Exception:
         conn.close()
-        _cleanup_sidecar_artifacts(sidecar_path)
+        _cleanup_sqlite_artifacts(output_path)
         raise
     _checkpoint_and_close(conn)

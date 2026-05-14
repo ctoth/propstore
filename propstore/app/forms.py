@@ -115,29 +115,28 @@ def show_form(
     form_def = parse_form(document.name, document)
     decompositions: tuple[FormAlgebraDecomposition, ...] = ()
     uses: tuple[FormAlgebraUse, ...] = ()
-    if repo.sidecar_path.exists():
-        try:
-            from propstore.world import WorldQuery
+    try:
+        from propstore.world import WorldQuery
 
-            with WorldQuery(repo) as world:
-                decompositions = tuple(
-                    FormAlgebraDecomposition(
-                        input_forms=tuple(json.loads(entry["input_forms"])),
-                        source_formula=entry.get("source_formula"),
-                        source_concept_id=entry.get("source_concept_id", "?"),
-                    )
-                    for entry in world.form_algebra_for(name)
+        with WorldQuery(repo) as world:
+            decompositions = tuple(
+                FormAlgebraDecomposition(
+                    input_forms=tuple(json.loads(entry["input_forms"])),
+                    source_formula=entry.get("source_formula"),
+                    source_concept_id=entry.get("source_concept_id", "?"),
                 )
-                uses = tuple(
-                    FormAlgebraUse(
-                        output_form=entry["output_form"],
-                        input_forms=tuple(json.loads(entry["input_forms"])),
-                    )
-                    for entry in world.form_algebra_using(name)
+                for entry in world.form_algebra_for(name)
+            )
+            uses = tuple(
+                FormAlgebraUse(
+                    output_form=entry["output_form"],
+                    input_forms=tuple(json.loads(entry["input_forms"])),
                 )
-        except Exception:
-            decompositions = ()
-            uses = ()
+                for entry in world.form_algebra_using(name)
+            )
+    except Exception:
+        decompositions = ()
+        uses = ()
 
     return FormShowReport(
         yaml_text=repo.families.forms.render(document),

@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from functools import cached_property
 from pathlib import Path
 
+from quire.derived_store import DerivedStoreManager
 from quire.documents import DocumentStruct, decode_document_bytes
 from quire.git_store import GitStore
 from quire.refs import RefName
@@ -33,8 +34,8 @@ class RepositoryConfigDocument(DocumentStruct):
 class Repository:
     """A propstore knowledge repository rooted at a ``knowledge/`` directory.
 
-    All path resolution for concepts, claims, forms, sidecar, and counters
-    goes through this object.
+    All path resolution for concepts, claims, forms, derived stores, and
+    counters goes through this object.
     """
 
     def __init__(self, root: Path) -> None:
@@ -44,13 +45,9 @@ class Repository:
     def root(self) -> Path:
         return self._root
 
-    @property
-    def sidecar_dir(self) -> Path:
-        return self._root / "sidecar"
-
-    @property
-    def sidecar_path(self) -> Path:
-        return self._root / "sidecar" / "propstore.sqlite"
+    @cached_property
+    def derived_stores(self) -> DerivedStoreManager:
+        return DerivedStoreManager(self._root / ".propstore" / "derived-stores")
 
     @cached_property
     def config(self) -> dict[str, TaggingAuthority]:

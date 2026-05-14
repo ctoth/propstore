@@ -6,6 +6,7 @@ import sqlite3
 
 from propstore.reporting import JsonReportMixin
 from propstore.repository import Repository
+from propstore.sidecar.build import materialize_world_sidecar
 from propstore.sidecar.sqlite import connect_sidecar_readonly
 
 
@@ -20,11 +21,8 @@ class SidecarQueryResult(JsonReportMixin):
 
 
 def query_sidecar(repo: Repository, sql: str) -> SidecarQueryResult:
-    sidecar = repo.sidecar_path
-    if not sidecar.exists():
-        raise FileNotFoundError(sidecar)
-
-    conn = connect_sidecar_readonly(sidecar)
+    handle, _ = materialize_world_sidecar(repo)
+    conn = connect_sidecar_readonly(handle.path)
     conn.row_factory = sqlite3.Row
     try:
         cursor = conn.execute(sql)

@@ -19,10 +19,7 @@ behavioral change.
 from __future__ import annotations
 
 import json
-import os
-import shutil
 import sqlite3
-import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
@@ -65,6 +62,7 @@ from propstore.sidecar.diagnostics import (
     BuildDiagnosticProjectionRow,
     insert_build_diagnostic,
 )
+from propstore.sidecar.build import materialize_world_sidecar
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.claim_concepts import (
     normalize_promoted_source_claim_artifact,
@@ -747,13 +745,13 @@ def _compute_blocked_claim_artifact_ids(
 
 
 def _write_promotion_blocked_sidecar_rows(
-    sidecar_path: Path,
+    store_path: Path,
     source_branch: str,
     source_paper: str,
     blocked_claims,
     reasons: dict[str, list[tuple[str, str]]],
 ) -> None:
-    """Mirror blocked claims into the sidecar with promotion_status='blocked'.
+    """Mirror blocked claims into the derived SQL store with promotion_status='blocked'.
 
     Each blocked claim becomes a row in ``claim_core`` with
     ``promotion_status='blocked'``, ``branch=<source_branch>``; each
@@ -762,17 +760,13 @@ def _write_promotion_blocked_sidecar_rows(
     layer joins these to surface per-claim promotion state under opt-in
     policy flags (phase 4).
 
-    If the sidecar file does not exist yet, the write is a no-op — the
-    primary use case (CLI ``pks source promote``) builds the sidecar at
-    repo init and then uses it continuously, so the file usually exists.
-    Tests that want to observe the mirror rows must ``build_sidecar``
-    before calling promote.
+    If the derived store file does not exist yet, the write is a no-op.
     """
 
-    if not sidecar_path.exists():
+    if not store_path.exists():
         return
 
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sidecar(store_path)
     try:
         child_claim_tables = {
             row[0]
@@ -910,38 +904,6 @@ def _write_promotion_blocked_sidecar_rows(
         conn.close()
 
 
-def _prepare_promotion_blocked_sidecar(
-    sidecar_path: Path,
-    source_branch: str,
-    source_paper: str,
-    blocked_claims,
-    reasons: dict[str, list[tuple[str, str]]],
-) -> Path | None:
-    if not sidecar_path.exists():
-        return None
-    sidecar_path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temp_name = tempfile.mkstemp(
-        prefix=f".{sidecar_path.name}.promotion.",
-        suffix=".tmp",
-        dir=sidecar_path.parent,
-    )
-    os.close(fd)
-    temp_path = Path(temp_name)
-    try:
-        shutil.copy2(sidecar_path, temp_path)
-        _write_promotion_blocked_sidecar_rows(
-            temp_path,
-            source_branch,
-            source_paper,
-            blocked_claims,
-            reasons,
-        )
-    except Exception:
-        temp_path.unlink(missing_ok=True)
-        raise
-    return temp_path
-
-
 def promote_source_branch(
     repo: Repository,
     source_name: str,
@@ -1011,8 +973,9 @@ def promote_source_branch(
     if not valid_claims and blocked_claims:
         # All items blocked — still write mirror rows so the render layer
         # can surface them, then raise so the CLI can report exit code 1.
+        handle, _ = materialize_world_sidecar(repo, force=True)
         _write_promotion_blocked_sidecar_rows(
-            repo.sidecar_path,
+            handle.path,
             source_branch_name(source_name),
             slug,
             blocked_claims,
@@ -1049,71 +1012,68 @@ def promote_source_branch(
         primary_claim_index=primary_claim_index,
     )
 
-    prepared_sidecar_path: Path | None = None
     sidecar_mirror_ok = True
     sidecar_mirror_error: str | None = None
     sha: str | None = None
-    try:
-        git = repo.git
-        if git is None:
-            raise ValueError("source promotion requires a git-backed repository")
-        with git.head_bound_transaction(repo.require_git().primary_branch_name()) as head_txn:
-            if promotion_plan.blocked_claims:
-                head_txn.assert_current()
-                prepared_sidecar_path = _prepare_promotion_blocked_sidecar(
-                    repo.sidecar_path,
-                    promotion_plan.source_branch,
-                    promotion_plan.slug,
-                    promotion_plan.blocked_claims,
-                    promotion_plan.blocked_reasons,
+    git = repo.git
+    if git is None:
+        raise ValueError("source promotion requires a git-backed repository")
+    with git.head_bound_transaction(repo.require_git().primary_branch_name()) as head_txn:
+        if promotion_plan.blocked_claims:
+            head_txn.assert_current()
+
+            def write_blocked_rows_to_derived_store(commit_sha: str) -> None:
+                nonlocal sidecar_mirror_ok, sidecar_mirror_error
+                try:
+                    handle, _ = materialize_world_sidecar(
+                        repo,
+                        force=True,
+                        commit_hash=commit_sha,
+                    )
+                    _write_promotion_blocked_sidecar_rows(
+                        handle.path,
+                        promotion_plan.source_branch,
+                        promotion_plan.slug,
+                        promotion_plan.blocked_claims,
+                        promotion_plan.blocked_reasons,
+                    )
+                except OSError as exc:
+                    sidecar_mirror_ok = False
+                    sidecar_mirror_error = str(exc)
+
+            head_txn.after_commit(write_blocked_rows_to_derived_store)
+
+        with head_txn.families_transact(repo.families, message=f"Promote source {slug}") as transaction:
+            transaction.sources.save(
+                promotion_plan.source_ref,
+                promotion_plan.promoted_source_document,
+            )
+            for claim_ref, claim_document in promotion_plan.promoted_claim_documents.items():
+                transaction.claims.save(
+                    claim_ref,
+                    claim_document,
                 )
-                if prepared_sidecar_path is not None:
-                    sidecar_path_to_publish = prepared_sidecar_path
-
-                    def publish_prepared_sidecar(_commit_sha: str) -> None:
-                        nonlocal sidecar_mirror_ok, sidecar_mirror_error
-                        try:
-                            sidecar_path_to_publish.replace(repo.sidecar_path)
-                        except OSError as exc:
-                            sidecar_mirror_ok = False
-                            sidecar_mirror_error = str(exc)
-
-                    head_txn.after_commit(publish_prepared_sidecar)
-
-            with head_txn.families_transact(repo.families, message=f"Promote source {slug}") as transaction:
-                transaction.sources.save(
-                    promotion_plan.source_ref,
-                    promotion_plan.promoted_source_document,
+            for micropub_ref, micropub_document in promotion_plan.promoted_micropub_documents.items():
+                transaction.micropubs.save(
+                    micropub_ref,
+                    micropub_document,
                 )
-                for claim_ref, claim_document in promotion_plan.promoted_claim_documents.items():
-                    transaction.claims.save(
-                        claim_ref,
-                        claim_document,
-                    )
-                for micropub_ref, micropub_document in promotion_plan.promoted_micropub_documents.items():
-                    transaction.micropubs.save(
-                        micropub_ref,
-                        micropub_document,
-                    )
-                for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
-                    transaction.concepts.save(
-                        concept_ref,
-                        concept_document,
-                    )
-                for justification_ref, justification_document in promotion_plan.promoted_justification_documents.items():
-                    transaction.justifications.save(
-                        justification_ref,
-                        justification_document,
-                    )
-                for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
-                    transaction.stances.save(
-                        stance_ref,
-                        stance_document,
-                    )
-            sha = head_txn.commit_sha
-    finally:
-        if prepared_sidecar_path is not None and prepared_sidecar_path.exists():
-            prepared_sidecar_path.unlink(missing_ok=True)
+            for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
+                transaction.concepts.save(
+                    concept_ref,
+                    concept_document,
+                )
+            for justification_ref, justification_document in promotion_plan.promoted_justification_documents.items():
+                transaction.justifications.save(
+                    justification_ref,
+                    justification_document,
+                )
+            for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
+                transaction.stances.save(
+                    stance_ref,
+                    stance_document,
+                )
+        sha = head_txn.commit_sha
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
     source_branch_tip = repo.require_git().branch_sha(promotion_plan.source_branch)

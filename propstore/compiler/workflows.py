@@ -6,8 +6,6 @@ for presenting these reports, not for deciding which compiler passes run.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from pathlib import Path
-
 from quire.documents import DocumentSchemaError
 from propstore.claims import ClaimFileEntry, claim_file_payload
 from propstore.compiler.context import (
@@ -85,6 +83,14 @@ class BuildEmbeddingSnapshotReport:
 
 
 @dataclass(frozen=True)
+class BuildDerivedStoreHandle:
+    projection_id: str
+    source_commit: str
+    cache_key: str
+    path: str
+
+
+@dataclass(frozen=True)
 class RepositoryBuildReport:
     concept_count: int
     claim_count: int
@@ -95,6 +101,7 @@ class RepositoryBuildReport:
     conflicts: tuple[BuildConflictLine, ...] = ()
     phi_groups: tuple[BuildPhiGroup, ...] = ()
     embedding_snapshot: BuildEmbeddingSnapshotReport | None = None
+    derived_store: BuildDerivedStoreHandle | None = None
     messages: tuple[PassDiagnostic, ...] = ()
     no_concepts: bool = False
     sidecar_missing: bool = False
@@ -366,11 +373,10 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
 def build_repository(
     repo: Repository,
     *,
-    output: str | None = None,
     force: bool = False,
     strict_authoring: bool = False,
 ) -> RepositoryBuildReport:
-    from propstore.sidecar.build import build_sidecar
+    from propstore.sidecar.build import materialize_world_sidecar
 
     hash_key = repo.require_git().head_sha()
     tree = repo.snapshot.tree(commit=hash_key)
@@ -595,7 +601,6 @@ def build_repository(
         )
     build_messages.extend(authoring_lints)
 
-    sidecar_path = Path(output) if output else repo.sidecar_path
     embedding_snapshots: list[BuildEmbeddingSnapshotReport] = []
 
     def _record_embedding_snapshot(report) -> None:
@@ -607,9 +612,8 @@ def build_repository(
             )
         )
 
-    rebuilt = build_sidecar(
+    handle, rebuilt = materialize_world_sidecar(
         repo,
-        sidecar_path,
         force=force,
         commit_hash=hash_key,
         compilation_context=compilation_context,
@@ -632,7 +636,7 @@ def build_repository(
         from propstore.conflict_detector import ConflictClass
         from propstore.world import WorldQuery
 
-        wm = WorldQuery(repo, sidecar_path=sidecar_path)
+        wm = WorldQuery(repo, commit=hash_key)
         stats = wm.stats()
         claim_count = stats.claims
         conflicts = wm.conflicts()
@@ -689,6 +693,12 @@ def build_repository(
             for key, claim_ids in phi_groups.items()
         ),
         embedding_snapshot=embedding_snapshots[-1] if embedding_snapshots else None,
+        derived_store=BuildDerivedStoreHandle(
+            projection_id=handle.projection_id,
+            source_commit=handle.source_commit,
+            cache_key=handle.cache_key,
+            path=str(handle.path),
+        ),
         messages=tuple(build_messages),
         sidecar_missing=sidecar_missing,
     )

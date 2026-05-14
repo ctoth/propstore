@@ -177,9 +177,9 @@ def _read_branch_grounding_bundle(repo, commit: str | None):
     from propstore.sidecar.sqlite import connect_sidecar
 
     with tempfile.TemporaryDirectory(prefix="propstore-branch-sidecar-") as temp_dir:
-        sidecar_path = Path(temp_dir) / "propstore.sqlite"
-        build_grounding_sidecar(repo, sidecar_path, commit_hash=commit)
-        conn = connect_sidecar(sidecar_path)
+        grounding_store_path = Path(temp_dir) / "propstore.sqlite"
+        build_grounding_sidecar(repo, grounding_store_path, commit_hash=commit)
+        conn = connect_sidecar(grounding_store_path)
         try:
             return read_grounded_bundle(conn)
         finally:

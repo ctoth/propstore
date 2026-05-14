@@ -258,7 +258,7 @@ def build_commit_show_report(repo: Repository, commit: str) -> CommitShowReport:
 
 
 def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
-    from propstore.sidecar.build import build_sidecar
+    from propstore.sidecar.build import materialize_world_sidecar
 
     try:
         repo.require_git().show_commit(commit)
@@ -268,9 +268,8 @@ def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
     if not any(repo.families.concepts.iter(commit=commit)):
         raise CommitHasNoConceptsError("No concepts found at that commit.")
 
-    rebuilt = build_sidecar(
+    _handle, rebuilt = materialize_world_sidecar(
         repo,
-        repo.sidecar_path,
         force=True,
         commit_hash=commit,
     )

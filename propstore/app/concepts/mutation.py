@@ -679,10 +679,12 @@ def _resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:
 
 
 def _require_sidecar(repo: Repository) -> Path:
-    sidecar = repo.sidecar_path
-    if not sidecar.exists():
+    from propstore.sidecar.build import materialize_world_sidecar
+
+    handle, _rebuilt = materialize_world_sidecar(repo)
+    if not handle.path.exists():
         raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
-    return sidecar
+    return handle.path
 
 
 def _concept_embed_model_report(
