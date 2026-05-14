@@ -484,6 +484,14 @@ def _populate_promotion_blocked_rows(
             """
         ).fetchall()
     }
+    schema_tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+    }
+    if "concept" not in schema_tables:
+        child_claim_tables.discard("claim_concept_link")
     claim_rows_by_id = {str(row.values["id"]): row for row in claim_rows}
     claim_ids = tuple(claim_rows_by_id)
     for claim_id in claim_ids:
