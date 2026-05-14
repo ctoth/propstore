@@ -215,7 +215,7 @@ def test_vec_projection_supports_dynamic_table_names() -> None:
 
     assert projection.ddl_statements({"model_identity_hash": "abc_123"}) == (
         'CREATE VIRTUAL TABLE "claim_vec_abc_123" '
-        'USING vec0("claim_id" TEXT, "embedding" float[3])',
+        "USING vec0(claim_id TEXT, embedding float[3])",
     )
     assert projection.insert_sql({"model_identity_hash": "abc_123"}) == (
         'INSERT INTO "claim_vec_abc_123" ("claim_id", "embedding") '
@@ -234,7 +234,7 @@ def test_vec_projection_supports_rowid_backed_tables() -> None:
 
     assert projection.ddl_statements({"model_identity_hash": "abc_123"}) == (
         'CREATE VIRTUAL TABLE "claim_vec_abc_123" '
-        'USING vec0("embedding" float[3])',
+        "USING vec0(embedding float[3])",
     )
     assert projection.insert_rowid_sql({"model_identity_hash": "abc_123"}) == (
         'INSERT INTO "claim_vec_abc_123" (rowid, "embedding") '

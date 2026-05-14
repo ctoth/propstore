@@ -92,6 +92,7 @@ def test_argumentation_dependency_uses_remote_git_source() -> None:
         '"formal-argumentation @ '
         'git+https://github.com/ctoth/argumentation.git@' in text
     )
-    assert "[tool.uv.sources]" not in text
+    assert "formal-argumentation = {" not in text
+    assert "argumentation = {" not in text
     assert "file:" not in text
     assert "../argumentation" not in text
