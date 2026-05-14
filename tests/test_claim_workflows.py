@@ -8,11 +8,12 @@ import pytest
 
 import propstore.app.claims as claims_app
 from propstore.app.claim_views import ClaimViewRequest, build_claim_view
+from propstore.app.claim_views import ClaimViewUnknownClaimError
 from propstore.app.claims import (
     ClaimEmbedRequest,
     ClaimRelateRequest,
-    ClaimSidecarMissingError,
     ClaimSimilarRequest,
+    UnknownClaimError,
     compare_algorithm_claims_from_repo,
     embed_claim_embeddings,
     find_similar_claims,
@@ -22,7 +23,6 @@ import propstore.heuristic.embed as embed_mod
 import propstore.heuristic.relate as relate_mod
 from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
-from propstore.app.world import WorldSidecarMissingError
 from tests.family_helpers import materialized_world_store_path
 
 
@@ -32,13 +32,15 @@ def _repo_with_sidecar(tmp_path: Path) -> Repository:
     return repo
 
 
-def test_claim_repo_world_model_wrappers_report_missing_sidecar(tmp_path: Path) -> None:
+def test_claim_repo_world_model_wrappers_materialize_and_report_unknown_claim(
+    tmp_path: Path,
+) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
-    with pytest.raises(WorldSidecarMissingError):
+    with pytest.raises(ClaimViewUnknownClaimError):
         build_claim_view(repo, ClaimViewRequest(claim_id="claim-a"))
 
-    with pytest.raises(ClaimSidecarMissingError):
+    with pytest.raises(UnknownClaimError):
         compare_algorithm_claims_from_repo(
             repo,
             claims_app.ClaimCompareRequest("claim-a", "claim-b"),
