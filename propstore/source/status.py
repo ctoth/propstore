@@ -9,9 +9,8 @@ from __future__ import annotations
 import sqlite3
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 
-from propstore.repository import Repository
-from propstore.sidecar.build import materialize_world_sidecar
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.common import source_branch_name
 
@@ -46,11 +45,10 @@ def _escape_sql_like(value: str) -> str:
     return value.replace("!", "!!").replace("%", "!%").replace("_", "!_")
 
 
-def inspect_source_status(repo: Repository, name: str) -> SourceStatusReport:
+def inspect_source_status(store_path: Path, name: str) -> SourceStatusReport:
     branch = source_branch_name(name)
-    handle, _ = materialize_world_sidecar(repo)
 
-    conn = connect_sidecar(handle.path)
+    conn = connect_sidecar(store_path)
     conn.row_factory = sqlite3.Row
     try:
         has_claim_core = conn.execute(
