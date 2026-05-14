@@ -40,6 +40,23 @@ FORM_ALGEBRA_PROJECTION = ProjectionTable(
 )
 
 
+ALIAS_PROJECTION = ProjectionTable(
+    name="alias",
+    columns=(
+        ProjectionColumn("concept_id", "TEXT", nullable=False),
+        ProjectionColumn("alias_name", "TEXT", nullable=False),
+        ProjectionColumn("source", "TEXT", nullable=False),
+    ),
+    foreign_keys=(
+        ProjectionForeignKey(("concept_id",), "concept", ("id",)),
+    ),
+    indexes=(
+        ProjectionIndex("idx_alias_name", ("alias_name",)),
+        ProjectionIndex("idx_alias_concept", ("concept_id",)),
+    ),
+)
+
+
 @dataclass(frozen=True)
 class FormProjectionRow:
     name: str
@@ -55,6 +72,20 @@ class FormProjectionRow:
             "unit_symbol": self.unit_symbol,
             "is_dimensionless": self.is_dimensionless,
             "dimensions": self.dimensions,
+        }
+
+
+@dataclass(frozen=True)
+class AliasProjectionRow:
+    concept_id: str
+    alias_name: str
+    source: str | None
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "concept_id": self.concept_id,
+            "alias_name": self.alias_name,
+            "source": self.source,
         }
 
 
@@ -96,11 +127,9 @@ def populate_concept_sidecar_rows(
             row.values,
         )
 
+    alias_insert_sql = ALIAS_PROJECTION.insert_sql()
     for row in rows.alias_rows:
-        conn.execute(
-            "INSERT INTO alias (concept_id, alias_name, source) VALUES (?, ?, ?)",
-            row.values,
-        )
+        conn.execute(alias_insert_sql, row.as_insert_mapping())
 
     for row in rows.relationship_rows:
         conn.execute(

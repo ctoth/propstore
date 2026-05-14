@@ -59,7 +59,6 @@ from propstore.sidecar.stages import (
     ClaimFtsInsertRow,
     ClaimSidecarRows,
     ClaimStanceInsertRow,
-    ConceptAliasInsertRow,
     ConceptFtsInsertRow,
     ContextAssumptionInsertRow,
     ContextInsertRow,
@@ -84,7 +83,11 @@ from propstore.sidecar.stages import (
     RepositoryCheckedBundle,
     SidecarBuildPlan,
 )
-from propstore.sidecar.concepts import FormAlgebraProjectionRow, FormProjectionRow
+from propstore.sidecar.concepts import (
+    AliasProjectionRow,
+    FormAlgebraProjectionRow,
+    FormProjectionRow,
+)
 from propstore.sidecar.sources import SourceProjectionRow
 from propstore.sidecar.claim_utils import (
     coerce_stance_resolution,
@@ -255,7 +258,7 @@ def compile_concept_sidecar_rows(
 ) -> ConceptSidecarRows:
     form_rows: list[FormProjectionRow] = []
     concept_rows: list[ConceptInsertRow] = []
-    alias_rows: list[ConceptAliasInsertRow] = []
+    alias_rows: list[AliasProjectionRow] = []
     relationship_rows: list[ConceptRelationshipInsertRow] = []
     relation_edge_rows: list[RelationEdgeInsertRow] = []
     parameterization_rows: list[ConceptParameterizationInsertRow] = []
@@ -336,7 +339,13 @@ def compile_concept_sidecar_rows(
         )
 
         for alias in record.aliases:
-            alias_rows.append(ConceptAliasInsertRow((concept_id, alias.name, alias.source)))
+            alias_rows.append(
+                AliasProjectionRow(
+                    concept_id=concept_id,
+                    alias_name=alias.name,
+                    source=alias.source,
+                )
+            )
 
         for relationship in record.relationships:
             conditions_json = (

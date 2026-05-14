@@ -12,7 +12,11 @@ from propstore.sidecar.projection import (
     SemanticProjection,
     create_projection_schema,
 )
-from propstore.sidecar.concepts import FORM_ALGEBRA_PROJECTION, FORM_PROJECTION
+from propstore.sidecar.concepts import (
+    ALIAS_PROJECTION,
+    FORM_ALGEBRA_PROJECTION,
+    FORM_PROJECTION,
+)
 from propstore.sidecar.sources import SOURCE_PROJECTION
 
 
@@ -35,7 +39,7 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
         "primary_logical_id",
         "logical_ids_json",
     ),
-    _required_table("alias", "concept_id", "alias_name"),
+    ALIAS_PROJECTION,
     _required_table("parameterization", "output_concept_id", "conditions_ir"),
     _required_table("parameterization_group", "group_id", "concept_id"),
     _required_table(

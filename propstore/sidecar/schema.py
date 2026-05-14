@@ -43,7 +43,11 @@ from __future__ import annotations
 
 import sqlite3
 
-from propstore.sidecar.concepts import FORM_ALGEBRA_PROJECTION, FORM_PROJECTION
+from propstore.sidecar.concepts import (
+    ALIAS_PROJECTION,
+    FORM_ALGEBRA_PROJECTION,
+    FORM_PROJECTION,
+)
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
 
@@ -91,7 +95,12 @@ def create_concept_fts_table(conn: sqlite3.Connection) -> None:
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
-    for projection in (SOURCE_PROJECTION, FORM_PROJECTION, FORM_ALGEBRA_PROJECTION):
+    for projection in (
+        SOURCE_PROJECTION,
+        FORM_PROJECTION,
+        FORM_ALGEBRA_PROJECTION,
+        ALIAS_PROJECTION,
+    ):
         for statement in projection.ddl_statements():
             conn.execute(statement)
 
@@ -116,13 +125,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             unit_symbol TEXT,
             created_date TEXT,
             last_modified TEXT
-        );
-
-        CREATE TABLE alias (
-            concept_id TEXT NOT NULL,
-            alias_name TEXT NOT NULL,
-            source TEXT NOT NULL,
-            FOREIGN KEY (concept_id) REFERENCES concept(id)
         );
 
         CREATE TABLE relationship (
@@ -182,8 +184,6 @@ def create_tables(conn: sqlite3.Connection) -> None:
             CHECK(opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6)
         );
 
-        CREATE INDEX idx_alias_name ON alias(alias_name);
-        CREATE INDEX idx_alias_concept ON alias(concept_id);
         CREATE INDEX idx_concept_primary_logical_id ON concept(primary_logical_id);
         CREATE INDEX idx_rel_source ON relationship(source_id);
         CREATE INDEX idx_rel_target ON relationship(target_id);

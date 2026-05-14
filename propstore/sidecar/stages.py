@@ -14,7 +14,11 @@ from propstore.families.forms.stages import FormDefinition
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
-    from propstore.sidecar.concepts import FormAlgebraProjectionRow, FormProjectionRow
+    from propstore.sidecar.concepts import (
+        AliasProjectionRow,
+        FormAlgebraProjectionRow,
+        FormProjectionRow,
+    )
     from propstore.sidecar.sources import SourceProjectionRow
 
 
@@ -131,11 +135,6 @@ class ConceptInsertRow:
 
 
 @dataclass(frozen=True)
-class ConceptAliasInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
 class ConceptRelationshipInsertRow:
     values: tuple[Any, ...]
 
@@ -164,7 +163,7 @@ class ConceptFtsInsertRow:
 class ConceptSidecarRows:
     form_rows: tuple["FormProjectionRow", ...]
     concept_rows: tuple[ConceptInsertRow, ...]
-    alias_rows: tuple[ConceptAliasInsertRow, ...]
+    alias_rows: tuple["AliasProjectionRow", ...]
     relationship_rows: tuple[ConceptRelationshipInsertRow, ...]
     relation_edge_rows: tuple[RelationEdgeInsertRow, ...]
     parameterization_rows: tuple[ConceptParameterizationInsertRow, ...]
