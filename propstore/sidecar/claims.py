@@ -22,10 +22,7 @@ from quire.projections import (
     ProjectionRow,
     ProjectionTable,
 )
-from propstore.sidecar.diagnostics import (
-    BUILD_DIAGNOSTICS_PROJECTION,
-    insert_build_diagnostic,
-)
+from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.stages import (
     ClaimSidecarRows,
@@ -204,7 +201,7 @@ def populate_raw_id_quarantine_records(
 ) -> None:
     CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in rows.claim_rows))
     for row in rows.diagnostic_rows:
-        insert_build_diagnostic(conn, row)
+        BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
 
 
 def populate_claims(
@@ -287,7 +284,7 @@ def _insert_claim_version_conflict(
     new_version: str,
     source_ref: str,
 ) -> None:
-    insert_build_diagnostic(
+    BUILD_DIAGNOSTICS_PROJECTION.insert_row(
         conn,
         BUILD_DIAGNOSTICS_PROJECTION.row(
             claim_id=claim_id,

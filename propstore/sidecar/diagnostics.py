@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import sqlite3
-
-from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionRow, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
 
 
 BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(
@@ -31,18 +29,3 @@ BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(
     ),
     if_not_exists=True,
 )
-
-
-def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:
-    for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
-        conn.execute(statement)
-
-
-def insert_build_diagnostic(
-    conn: sqlite3.Connection,
-    row: ProjectionRow,
-) -> sqlite3.Cursor:
-    return conn.execute(
-        BUILD_DIAGNOSTICS_PROJECTION.insert_sql(),
-        BUILD_DIAGNOSTICS_PROJECTION.encode_row(row),
-    )

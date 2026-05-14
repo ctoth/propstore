@@ -57,13 +57,9 @@ from propstore.sidecar.claims import (
 from propstore.sidecar.passes import compile_sidecar_build_plan
 from propstore.sidecar.stages import ContextSidecarRows, RepositoryCheckedBundle
 from propstore.sidecar.concepts import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
-from propstore.sidecar.diagnostics import (
-    BUILD_DIAGNOSTICS_PROJECTION,
-    insert_build_diagnostic,
-)
+from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.schema import (
-    create_build_diagnostics_table,
     create_claim_tables,
     create_micropublication_tables,
     create_context_tables,
@@ -222,8 +218,9 @@ def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
     Rule 5 from the render-gates workstream keeps build failures inspectable at
     render time; the partial sidecar is evidence, not trash to unlink.
     """
-    create_build_diagnostics_table(conn)
-    insert_build_diagnostic(
+    for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
+        conn.execute(statement)
+    BUILD_DIAGNOSTICS_PROJECTION.insert_row(
         conn,
         BUILD_DIAGNOSTICS_PROJECTION.row(
             claim_id=None,
@@ -244,8 +241,9 @@ def _record_embedding_restore_diagnostic(
     conn: sqlite3.Connection,
     exc: Exception,
 ) -> None:
-    create_build_diagnostics_table(conn)
-    insert_build_diagnostic(
+    for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
+        conn.execute(statement)
+    BUILD_DIAGNOSTICS_PROJECTION.insert_row(
         conn,
         BUILD_DIAGNOSTICS_PROJECTION.row(
             claim_id=None,
@@ -342,7 +340,7 @@ def _record_authoring_diagnostics(
     diagnostics: tuple[PassDiagnostic, ...],
 ) -> None:
     for diagnostic in diagnostics:
-        insert_build_diagnostic(
+        BUILD_DIAGNOSTICS_PROJECTION.insert_row(
             conn,
             BUILD_DIAGNOSTICS_PROJECTION.row(
                 claim_id=diagnostic.artifact_id,
@@ -464,7 +462,7 @@ def _populate_promotion_blocked_rows(
         )
     CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
     for row in diagnostic_rows:
-        insert_build_diagnostic(conn, row)
+        BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
 
 
 def materialize_world_sidecar(

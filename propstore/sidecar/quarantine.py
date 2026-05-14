@@ -15,11 +15,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from propstore.sidecar.diagnostics import (
-    BUILD_DIAGNOSTICS_PROJECTION,
-    create_build_diagnostics_table,
-    insert_build_diagnostic,
-)
+from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,7 +35,8 @@ class Quarantined:
 class QuarantinableWriter:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
-        create_build_diagnostics_table(conn)
+        for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
+            conn.execute(statement)
 
     def try_write(
         self,
@@ -101,19 +98,20 @@ class QuarantinableWriter:
             sort_keys=True,
             separators=(",", ":"),
         )
-        cursor = insert_build_diagnostic(
-            self._conn,
-            BUILD_DIAGNOSTICS_PROJECTION.row(
-                claim_id=artifact_id if kind == "claim" else None,
-                source_kind=kind,
-                source_ref=artifact_id,
-                diagnostic_kind=diagnostic_kind,
-                severity="error",
-                blocking=1,
-                message=message,
-                file=file,
-                detail_json=detail_json,
-            ),
+        row = BUILD_DIAGNOSTICS_PROJECTION.row(
+            claim_id=artifact_id if kind == "claim" else None,
+            source_kind=kind,
+            source_ref=artifact_id,
+            diagnostic_kind=diagnostic_kind,
+            severity="error",
+            blocking=1,
+            message=message,
+            file=file,
+            detail_json=detail_json,
+        )
+        cursor = self._conn.execute(
+            BUILD_DIAGNOSTICS_PROJECTION.insert_sql(),
+            BUILD_DIAGNOSTICS_PROJECTION.encode_row(row),
         )
         if cursor.lastrowid is None:
             raise RuntimeError("build_diagnostics insert did not return a row id")

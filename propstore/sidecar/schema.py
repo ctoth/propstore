@@ -70,10 +70,7 @@ from propstore.sidecar.contexts import (
     CONTEXT_LIFTING_RULE_PROJECTION,
     CONTEXT_PROJECTION,
 )
-from propstore.sidecar.diagnostics import (
-    BUILD_DIAGNOSTICS_PROJECTION,
-    create_build_diagnostics_table as create_build_diagnostics_projection_table,
-)
+from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.micropublications import (
     create_micropublication_tables as create_micropublication_projection_tables,
@@ -175,10 +172,6 @@ def populate_contexts(
     CONTEXT_ASSUMPTION_PROJECTION.insert_rows(conn, rows.assumption_rows)
     CONTEXT_LIFTING_RULE_PROJECTION.insert_rows(conn, rows.lifting_rule_rows)
     CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.insert_rows(conn, rows.lifting_materialization_rows)
-
-
-def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:
-    create_build_diagnostics_projection_table(conn)
 
 
 def create_claim_tables(conn: sqlite3.Connection) -> None:
