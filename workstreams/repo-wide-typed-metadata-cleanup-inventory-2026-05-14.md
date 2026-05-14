@@ -350,3 +350,92 @@ dead wrappers. They are used by sidecar passes, population helpers, build-time
 filtering, schema population, and race/remediation tests. Treat them as
 load-bearing until a declaration-generated row-bundle API replaces the
 semantics directly.
+
+## Adversarial Review Corrections
+
+The initial "sidecar coupling" heuristic was too broad. There are two different
+kinds of hits:
+
+- Red hits: raw storage ownership outside the owner layer, such as `sqlite3`,
+  `connect_sidecar`, `connect_sidecar_readonly`, `row_factory`, and direct
+  `.execute("SELECT ...")` over projection tables outside `propstore/sidecar`.
+- Yellow hits: typed API coupling to sidecar/derived-store build or diagnostic
+  surfaces, such as `materialize_world_sidecar`, `collect_authoring_lints`, or
+  projection constants imported for source promotion diagnostics. Those may
+  still need ownership review, but they are not the same smell as app code
+  owning SQL.
+
+The inventory must therefore replace broad `propstore.sidecar` greps with
+separate red/yellow ledgers. A cleanup slice should not delete a yellow hit
+unless the owner API has been explicitly reassigned.
+
+`propstore/core/row_types.py` is not disposable duplicate declaration material.
+It is the typed SQLite-to-semantic boundary used by world, ASPIC, PRAF,
+worldline, graph, and support-revision code. It owns enum coercion and required
+field discipline. A future single-declaration system may generate or feed these
+row types, but a deletion-first slice must preserve the same typed coercion
+boundary. Gate: list all `core.row_types` importers and the row types they
+consume before touching that file.
+
+Runtime-only report types must be separated from persisted/materialized
+declarations. `worldline/result_types.py`, `worldline/revision_types.py`,
+`world/types.py`, ATMS report types, fragility reports, intervention plans, and
+similar runtime/wire outputs may legitimately have `to_dict`/`from_mapping`
+code without belonging to the derived-store declaration system. Gate: before
+consolidating any dataclass or mapping codec, classify it as one of
+`persisted-artifact`, `derived-store-row`, `runtime-report`, `wire-report`, or
+`IO-boundary-codec`.
+
+The family registry is probably not the final home for every derived-store
+detail. It owns source-of-truth artifact identity, placement, FK, canonical
+payload, source-local fields, and version policy. Projection/search/vector
+metadata is downstream derived shape. The beautiful abstraction may be
+co-located through typed metadata references, but it must not collapse the
+source-of-truth artifact layer and derived-store layer into one confused owner.
+Gate: every field consolidation asks whether the owner is Quire artifact/family
+metadata, Propstore semantic artifact metadata, derived-store projection
+metadata, or runtime query/report metadata.
+
+More inventory surfaces need explicit classification before implementation:
+
+- `propstore/grounding/`
+- `propstore/conflict_detector/`
+- `propstore/aspic_bridge/`
+- `propstore/provenance/`
+- `propstore/web/`
+- `propstore/compiler/`
+- `propstore/importing/`
+- `propstore/opinion.py`
+- `propstore/sidecar/quarantine.py`
+- `propstore/sidecar/sqlite.py`
+- `propstore/sidecar/query.py`
+- concrete `propstore/cli/**` modules that build semantic rows or reports
+- tests that assert projection column names, row bundles, FTS behavior, vector
+  behavior, promotion diagnostics, or world query row shapes
+
+Line count is only an ordinal smell. It is not a cleanup gate. Better inventory
+metrics are declaration-density counts per file:
+
+- `ProjectionColumn(` declarations;
+- direct SQL query count outside the storage owner;
+- `to_payload`/`from_payload` methods;
+- `to_dict`/`from_dict`/`from_mapping` codecs;
+- `dict[str, Any]` and `Mapping[str, Any]` semantic payload boundaries;
+- importer count for any proposed deletion target.
+
+Additional gates before execution:
+
+- Enum-coercion gate: if a repeated field is coerced by `core/row_types.py` or
+  another typed owner, the consolidation must preserve the coercion at the same
+  boundary.
+- Runtime-vs-persisted gate: no runtime report type may be folded into a
+  projection declaration unless it is proven to be persisted/materialized.
+- Quire ownership gate: identity/version/reference fields such as
+  `primary_logical_id`, `logical_ids_json`, `version_id`, `content_hash`, and
+  reference IDs must be checked against Quire family/reference ownership before
+  being consolidated inside Propstore.
+- Source promotion gate: `propstore/source/promote.py` blocked-row and
+  `sidecar_mirror_ok` behavior must be inventoried before hard-failing any
+  source-local shape that currently becomes a promotion diagnostic.
+- Test pinning gate: each deletion slice lists the tests that pin the old field
+  names, row bundles, SQL table names, report shapes, or CLI output.
