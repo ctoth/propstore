@@ -16,8 +16,8 @@ from hypothesis import strategies as st
 from propstore.core.row_types import coerce_claim_row
 from tests.family_helpers import build_sidecar
 from tests.family_helpers import load_claim_files
+from tests.family_helpers import world_query_from_sqlite_path
 from propstore.families.claims.passes import validate_claims
-from propstore.world import WorldQuery
 from tests.conftest import (
     TEST_CONTEXT_ID,
     attach_claim_version_id,
@@ -250,12 +250,7 @@ class TestClaimNotesSidecar:
 
         build_sidecar(knowledge, sidecar_path, force=True)
 
-        # WorldQuery expects a repo-like object with .sidecar_path
-        class _FakeRepo:
-            def __init__(self, path):
-                self.sidecar_path = path
-
-        wm = WorldQuery(_FakeRepo(sidecar_path))
+        wm = world_query_from_sqlite_path(sidecar_path)
         claim = wm.get_claim(make_claim_identity("claim1", namespace="wm_notes_paper")["artifact_id"])
         assert claim is not None
         claim_data = coerce_claim_row(claim).to_dict()
