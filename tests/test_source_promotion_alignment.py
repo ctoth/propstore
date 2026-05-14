@@ -4,7 +4,6 @@ import sqlite3
 import subprocess
 from pathlib import Path
 
-import pytest
 import yaml
 from click.testing import CliRunner
 
@@ -814,22 +813,14 @@ def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
     )
 
 
-def test_promote_source_branch_does_not_advance_master_when_sidecar_prepare_fails(
+def test_promote_source_branch_materializes_blocked_rows_from_source_state(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """Regression test for Bug 2: promote atomicity.
+    """Promotion no longer patches a sidecar file before or after commit.
 
-    Previously, ``promote_source_branch`` committed to master first and
-    wrote the blocked-sidecar mirror rows afterward. If the sidecar
-    write raised (e.g. Bug 1's UNIQUE-id collision) the git commit was
-    already on master — leaving a stacked promote commit with no
-    corresponding sidecar row. The aspirin stance-backfill session
-    accumulated 15 such tangled commits before anyone noticed.
-
-    After the fix, a sidecar-write failure must NOT advance the master
-    ref: either the sidecar is written before the git commit, or the
-    two are bound in a single transaction that rolls back on failure.
+    Blocked promotion rows are now derived from source-branch state during
+    world-store materialization, so source promotion has no SQLite writer to
+    monkeypatch and no sidecar mutation that can race the master commit.
     """
 
     source_name = "atomicity_paper"
@@ -876,22 +867,30 @@ def test_promote_source_branch_does_not_advance_master_when_sidecar_prepare_fail
     master_branch = repo.git.primary_branch_name()
     master_head_before = repo.git.branch_sha(master_branch)
 
-    # Arrange a pre-commit sidecar preparation failure.
     from propstore.source import promote as promote_module
 
-    def _boom(*args, **kwargs):
-        raise RuntimeError("simulated sidecar write failure")
+    assert not hasattr(promote_module, "_write_promotion_blocked_sidecar_rows")
 
-    monkeypatch.setattr(
-        promote_module,
-        "_write_promotion_blocked_sidecar_rows",
-        _boom,
-    )
-
-    with pytest.raises(RuntimeError, match="simulated sidecar write failure"):
-        promote_source_branch(repo, source_name)
+    result = promote_source_branch(repo, source_name)
 
     master_head_after = repo.git.branch_sha(master_branch)
-    assert master_head_after == master_head_before, (
-        "sidecar preparation failure must not advance master; atomicity broken"
+    assert master_head_after != master_head_before
+    assert result.blocked_claims
+
+    store_path = materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
     )
+    conn = sqlite3.connect(store_path)
+    try:
+        rows = conn.execute(
+            """
+            SELECT branch, promotion_status
+            FROM claim_core
+            WHERE promotion_status = 'blocked'
+            """,
+        ).fetchall()
+    finally:
+        conn.close()
+    assert rows == [(source_branch_name(source_name), "blocked")]
