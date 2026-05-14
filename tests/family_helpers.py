@@ -32,9 +32,13 @@ from propstore.families.registry import ClaimRef
 from propstore.families.registry import JustificationRef, StanceRef
 from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
-from propstore.sidecar.build import build_sidecar as _build_sidecar
+from propstore.sidecar.build import (
+    export_sidecar as _export_sidecar,
+    materialize_world_sidecar,
+)
 from propstore.storage import PROPSTORE_GIT_POLICY
 from tests.git_store_helpers import is_store
+from quire.derived_store import DerivedStoreHandle
 
 
 def load_claim_files(claims_dir: TreePath | Path) -> list[LoadedClaimsFile]:
@@ -85,7 +89,37 @@ def build_sidecar(repo_or_path: Repository | TreePath | Path, sidecar_path: Path
     _materialize_claim_fixture_batches(repo)
     if kwargs.get("commit_hash") is None:
         _commit_worktree(repo)
-    return _build_sidecar(repo, sidecar_path, **kwargs)
+    return _export_sidecar(repo, sidecar_path, **kwargs)
+
+
+def materialized_world_store_path(
+    repo: Repository,
+    *,
+    force: bool = False,
+    **kwargs,
+) -> Path:
+    if repo.git is None:
+        _init_git_without_sync(repo.root)
+        repo = Repository(repo.root)
+    _materialize_claim_fixture_batches(repo)
+    if kwargs.get("commit_hash") is None:
+        _commit_worktree(repo)
+    handle, _ = materialize_world_sidecar(repo, force=force, **kwargs)
+    return handle.path
+
+
+def world_query_from_sqlite_path(sqlite_path: Path):
+    from propstore.world import WorldQuery
+
+    return WorldQuery(
+        derived_store=DerivedStoreHandle(
+            projection_id="propstore.world.test",
+            source_commit="test",
+            content_hash="test",
+            cache_key="test",
+            path=sqlite_path,
+        )
+    )
 
 
 def claim_artifact_commit_payloads(
