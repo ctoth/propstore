@@ -63,7 +63,7 @@ def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     finally:
         conn.close()
 
-    report = inspect_source_status(repo, "foo_bar")
+    report = inspect_source_status(store_path, "foo_bar")
 
     assert len(report.rows) == 1
     assert report.rows[0].claim_id == "claim-1"
