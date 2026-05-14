@@ -277,3 +277,76 @@ semantic subsystems instead of being converted immediately at the IO boundary.
    source-local fields should be declared once and rejected by canonical/master
    surfaces. Gate: source-local normalization remains in source subsystem and
    canonical paths hard-fail on source-local-only shape.
+
+## Verified Risk Notes
+
+The current `knowledge/` checkout does not contain claim YAML files; `rg --files
+knowledge` currently shows sidecar artifacts plus predicates and rules. That
+means the claim YAML round-trip shape cannot be inferred from local sample data
+in this checkout. Any cleanup that deletes flat claim fields from
+`ClaimDocument` or changes source claim serialization must first add or locate
+fixtures that exercise the real authored claim shapes.
+
+Quire already has a generic fallback serializer:
+
+- `../quire/quire/documents/schema.py` defines `DocumentStruct` as a strict
+  `msgspec.Struct` base, but it has no `to_payload` method.
+- `../quire/quire/documents/codecs.py` defines `document_to_payload`. It calls a
+  document's custom `to_payload` when present, otherwise uses
+  `msgspec.to_builtins(document)` and prunes `None`.
+
+So the cleanup target is sharper than "add generic serialization". Quire
+already has generic serialization for simple structs. Propstore's custom
+`to_payload` methods are only justified where they intentionally rename fields,
+convert enum values, impose order, lower typed references, or omit/transform
+fields differently from `msgspec.to_builtins`. The inventory should classify
+each custom `to_payload` as either semantic transformation or removable
+boilerplate.
+
+Repeated sidecar field signatures verified by literal search:
+
+| Field | Hits | Notes |
+| --- | ---: | --- |
+| `claim_id` | 6 | nullable, non-nullable, and primary-key variants exist; a single full column constant would be wrong, but a typed field descriptor could generate variants. |
+| `concept_id` | 4 | all found hits are `TEXT, nullable=False`; likely common reference metadata. |
+| `context_id` | 3 | nullable on claim core, non-nullable on context assumptions and micropublications. |
+| `provenance_json` | 4 | nullable in claims/justifications/micropubs, non-nullable in context lifting materialization. |
+| `content_hash` | 2 | claim and concept declarations differ by default SQL. |
+| `seq` | 4 | claim/concept/micropub sequence plus context assumption order; same SQL type but not always same semantic meaning. |
+
+This argues against naive constants like `CLAIM_ID_COLUMN`. The better target is
+typed field metadata with reusable identity/reference/provenance fragments and
+per-table role annotations. The generator can emit the correct nullability,
+primary-key status, default, FK, and index policy from that metadata.
+
+Direct SQL outside sidecar is concentrated enough to inventory mechanically:
+
+- `propstore/world/model.py` owns the largest set of direct `SELECT` calls over
+  `meta`, `concept`, `context`, `context_assumption`,
+  `context_lifting_rule`, `claim_core`, `claim_concept_link`, `alias`,
+  `conflict_witness`, `parameterization`, `relation_edge`, `justification`,
+  `micropublication`, `micropublication_claim`, `parameterization_group`,
+  `concept_fts`, `form`, and `form_algebra`.
+- `propstore/source/status.py` directly checks `sqlite_master` and reads
+  `claim_core` plus `build_diagnostics`.
+- `propstore/heuristic/relate.py` directly reads `claim_core` and
+  `claim_text_payload`.
+- `propstore/heuristic/calibrate.py` reads the calibration projection through
+  projection SQL.
+- `propstore/app/concepts/display.py` and
+  `propstore/app/concepts/mutation.py` directly query concept FTS,
+  `concept`, and `alias`.
+
+The cleanup should not begin by deleting `WorldQuery` SQL wholesale; that is
+load-bearing query behavior. The deletion-first target is SQL in app/source/
+heuristic modules first, replacing it with typed read-model APIs. Then
+`WorldQuery` itself can be compressed once declaration-generated query helpers
+exist.
+
+Sidecar row bundles in `propstore/sidecar/stages.py` are used by production and
+tests: `ClaimSidecarRows`, `ContextSidecarRows`, `ConceptSidecarRows`,
+`MicropublicationSidecarRows`, and `RawIdQuarantineSidecarRows` are not merely
+dead wrappers. They are used by sidecar passes, population helpers, build-time
+filtering, schema population, and race/remediation tests. Treat them as
+load-bearing until a declaration-generated row-bundle API replaces the
+semantics directly.
