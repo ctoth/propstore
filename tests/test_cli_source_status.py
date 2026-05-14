@@ -219,12 +219,12 @@ def test_source_status_report_lists_blocked_promotion_rows(
     )
 
 
-def test_source_status_report_marks_missing_sidecar(tmp_path: Path) -> None:
+def test_source_status_report_materializes_empty_store(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     report = inspect_source_status(repo, "clean")
 
-    assert report.state is SourceStatusState.SIDECAR_MISSING
+    assert report.state is SourceStatusState.NO_ROWS
     assert report.rows == ()
 
 
