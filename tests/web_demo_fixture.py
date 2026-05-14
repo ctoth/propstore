@@ -25,6 +25,8 @@ def seed_web_demo_repository(tmp_path: Path) -> WebDemoRepositoryFixture:
     try:
         _seed_rows(conn)
         conn.commit()
+        conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+        conn.execute("PRAGMA journal_mode=DELETE")
     finally:
         conn.close()
     return WebDemoRepositoryFixture(
