@@ -2,11 +2,10 @@
 blocked artifact_id is mirrored from a second source branch.
 
 ``claim_core.id`` is a ``TEXT PRIMARY KEY``. The prior
-``_write_promotion_blocked_sidecar_rows`` DELETE was scoped by
-``(id, branch)``, which does not remove a prior mirror row that came
-from a different source branch — so the subsequent INSERT collides on
-the primary key and the promote aborts with ``sqlite3.IntegrityError:
-UNIQUE constraint failed: claim_core.id``.
+The materialized projection must tolerate the same blocked artifact id
+from more than one source branch. ``claim_core.id`` is a ``TEXT PRIMARY
+KEY``, so the builder must coalesce the claim row while preserving each
+branch's diagnostic.
 
 The aspirin stance-backfill session (2026-04-23) stacked 15 tangled
 re-promote commits because of this — the git commit landed before the
@@ -16,9 +15,10 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+from propstore.sidecar.build import _populate_promotion_blocked_rows
 from propstore.sidecar.schema import create_claim_tables, create_context_tables
 from propstore.sidecar.sqlite import connect_sidecar
-from propstore.source.promote import _write_promotion_blocked_sidecar_rows
+from propstore.source.promote import compile_promotion_blocked_projection_rows
 
 
 def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
@@ -34,26 +34,28 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
 
     claim = SimpleNamespace(artifact_id="claim-dup", id="local-claim")
 
-    # First source branch blocks this claim -> mirror row lands with
-    # branch='source/alpha'.
-    _write_promotion_blocked_sidecar_rows(
-        sidecar_path,
+    alpha_rows = compile_promotion_blocked_projection_rows(
         "source/alpha",
         "paper-alpha",
         [claim],
         {"claim-dup": [("concept_mapping", "unresolved in alpha")]},
     )
-
-    # Second, independent source branch also blocks the *same*
-    # artifact_id. Prior behavior: DELETE scoped by (id, branch) does
-    # not remove the alpha row, INSERT collides on PK.
-    _write_promotion_blocked_sidecar_rows(
-        sidecar_path,
+    beta_rows = compile_promotion_blocked_projection_rows(
         "source/beta",
         "paper-beta",
         [claim],
         {"claim-dup": [("concept_mapping", "unresolved in beta")]},
     )
+    conn = connect_sidecar(sidecar_path)
+    try:
+        _populate_promotion_blocked_rows(
+            conn,
+            alpha_rows.claim_rows + beta_rows.claim_rows,
+            alpha_rows.diagnostic_rows + beta_rows.diagnostic_rows,
+        )
+        conn.commit()
+    finally:
+        conn.close()
 
     conn = connect_sidecar(sidecar_path)
     try:
