@@ -170,21 +170,10 @@ def populate_contexts(
     conn: sqlite3.Connection,
     rows: ContextSidecarRows,
 ) -> None:
-    context_insert_sql = CONTEXT_PROJECTION.insert_sql()
-    for row in rows.context_rows:
-        conn.execute(context_insert_sql, row.as_insert_mapping())
-
-    assumption_insert_sql = CONTEXT_ASSUMPTION_PROJECTION.insert_sql()
-    for row in rows.assumption_rows:
-        conn.execute(assumption_insert_sql, row.as_insert_mapping())
-
-    lifting_rule_insert_sql = CONTEXT_LIFTING_RULE_PROJECTION.insert_sql()
-    for row in rows.lifting_rule_rows:
-        conn.execute(lifting_rule_insert_sql, row.as_insert_mapping())
-
-    materialization_insert_sql = CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.insert_sql()
-    for row in rows.lifting_materialization_rows:
-        conn.execute(materialization_insert_sql, row.as_insert_mapping())
+    CONTEXT_PROJECTION.insert_rows(conn, rows.context_rows)
+    CONTEXT_ASSUMPTION_PROJECTION.insert_rows(conn, rows.assumption_rows)
+    CONTEXT_LIFTING_RULE_PROJECTION.insert_rows(conn, rows.lifting_rule_rows)
+    CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.insert_rows(conn, rows.lifting_materialization_rows)
 
 
 def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:

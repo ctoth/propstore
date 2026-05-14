@@ -63,4 +63,4 @@ def test_concept_rows_use_generated_ddl_and_insert() -> None:
     populate_concept_sidecar_rows(conn, rows)
 
     stored = conn.execute('SELECT * FROM "concept"').fetchone()
-    assert dict(stored) == rows.concept_rows[0].as_insert_mapping()
+    assert dict(stored) == CONCEPT_PROJECTION.encode_row(rows.concept_rows[0])

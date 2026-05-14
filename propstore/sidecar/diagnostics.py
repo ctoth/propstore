@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Mapping
 from dataclasses import dataclass
 
 from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
@@ -51,19 +50,6 @@ class BuildDiagnosticProjectionRow:
     def from_values(cls, values: tuple[object, ...]) -> "BuildDiagnosticProjectionRow":
         return cls(*values)
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "claim_id": self.claim_id,
-            "source_kind": self.source_kind,
-            "source_ref": self.source_ref,
-            "diagnostic_kind": self.diagnostic_kind,
-            "severity": self.severity,
-            "blocking": self.blocking,
-            "message": self.message,
-            "file": self.file,
-            "detail_json": self.detail_json,
-        }
-
 
 def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:
     for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
@@ -76,5 +62,5 @@ def insert_build_diagnostic(
 ) -> sqlite3.Cursor:
     return conn.execute(
         BUILD_DIAGNOSTICS_PROJECTION.insert_sql(),
-        row.as_insert_mapping(),
+        BUILD_DIAGNOSTICS_PROJECTION.encode_row(row),
     )

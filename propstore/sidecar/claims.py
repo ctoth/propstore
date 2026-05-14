@@ -215,9 +215,6 @@ class ClaimCoreProjectionRow:
             }
         )
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return self.values
-
 
 @dataclass(frozen=True)
 class ClaimNumericPayloadProjectionRow:
@@ -240,9 +237,6 @@ class ClaimNumericPayloadProjectionRow:
                 "upper_bound_si": row["upper_bound_si"],
             }
         )
-
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return self.values
 
 
 @dataclass(frozen=True)
@@ -270,9 +264,6 @@ class ClaimTextPayloadProjectionRow:
             }
         )
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return self.values
-
 
 @dataclass(frozen=True)
 class ClaimAlgorithmPayloadProjectionRow:
@@ -290,9 +281,6 @@ class ClaimAlgorithmPayloadProjectionRow:
             }
         )
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return self.values
-
 
 @dataclass(frozen=True)
 class ClaimConceptLinkProjectionRow:
@@ -305,15 +293,6 @@ class ClaimConceptLinkProjectionRow:
     @classmethod
     def from_values(cls, values: tuple[object, ...]) -> "ClaimConceptLinkProjectionRow":
         return cls(*values)
-
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "claim_id": self.claim_id,
-            "concept_id": self.concept_id,
-            "role": self.role,
-            "ordinal": self.ordinal,
-            "binding_name": self.binding_name,
-        }
 
 
 @dataclass(frozen=True)
@@ -348,9 +327,6 @@ class ClaimStanceProjectionRow:
             }
         )
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return self.values
-
 
 @dataclass(frozen=True)
 class JustificationProjectionRow:
@@ -366,18 +342,6 @@ class JustificationProjectionRow:
     @classmethod
     def from_values(cls, values: tuple[object, ...]) -> "JustificationProjectionRow":
         return cls(*values)
-
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "id": self.id,
-            "justification_kind": self.justification_kind,
-            "conclusion_claim_id": self.conclusion_claim_id,
-            "premise_claim_ids": self.premise_claim_ids,
-            "source_relation_type": self.source_relation_type,
-            "source_claim_id": self.source_claim_id,
-            "provenance_json": self.provenance_json,
-            "rule_strength": self.rule_strength,
-        }
 
 
 @dataclass(frozen=True)
@@ -396,19 +360,6 @@ class ConflictWitnessProjectionRow:
     def from_values(cls, values: tuple[object, ...]) -> "ConflictWitnessProjectionRow":
         return cls(*values)
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "concept_id": self.concept_id,
-            "claim_a_id": self.claim_a_id,
-            "claim_b_id": self.claim_b_id,
-            "warning_class": self.warning_class,
-            "conditions_a": self.conditions_a,
-            "conditions_b": self.conditions_b,
-            "value_a": self.value_a,
-            "value_b": self.value_b,
-            "derivation_chain": self.derivation_chain,
-        }
-
 
 @dataclass(frozen=True)
 class ClaimFtsProjectionRow:
@@ -421,23 +372,13 @@ class ClaimFtsProjectionRow:
     def from_values(cls, values: tuple[object, ...]) -> "ClaimFtsProjectionRow":
         return cls(*values)
 
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "claim_id": self.claim_id,
-            "statement": self.statement,
-            "conditions": self.conditions,
-            "expression": self.expression,
-        }
-
 
 
 def populate_raw_id_quarantine_records(
     conn: sqlite3.Connection,
     rows: RawIdQuarantineSidecarRows,
 ) -> None:
-    claim_core_insert_sql = CLAIM_CORE_PROJECTION.insert_sql()
-    for row in rows.claim_rows:
-        conn.execute(claim_core_insert_sql, row.as_insert_mapping())
+    CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in rows.claim_rows))
     for row in rows.diagnostic_rows:
         insert_build_diagnostic(conn, row)
 
@@ -463,10 +404,6 @@ def populate_claims(
 
     seen_claim_versions: dict[str, str] = {}
     emitted_conflicts: set[tuple[str, str, str]] = set()
-    claim_core_insert_sql = CLAIM_CORE_PROJECTION.insert_sql()
-    numeric_payload_insert_sql = CLAIM_NUMERIC_PAYLOAD_PROJECTION.insert_sql()
-    text_payload_insert_sql = CLAIM_TEXT_PAYLOAD_PROJECTION.insert_sql()
-    algorithm_payload_insert_sql = CLAIM_ALGORITHM_PAYLOAD_PROJECTION.insert_sql()
     payloads_by_claim_id = {
         numeric_row.values["claim_id"]: (numeric_row, text_row, algorithm_row)
         for numeric_row, text_row, algorithm_row in zip(
@@ -495,24 +432,21 @@ def populate_claims(
                 )
                 emitted_conflicts.add(conflict_key)
             continue
-        conn.execute(claim_core_insert_sql, row.as_insert_mapping())
+        CLAIM_CORE_PROJECTION.insert_row(conn, row.values)
         numeric_row, text_row, algorithm_row = payloads_by_claim_id[claim_id]
-        conn.execute(numeric_payload_insert_sql, numeric_row.as_insert_mapping())
-        conn.execute(text_payload_insert_sql, text_row.as_insert_mapping())
-        conn.execute(algorithm_payload_insert_sql, algorithm_row.as_insert_mapping())
+        CLAIM_NUMERIC_PAYLOAD_PROJECTION.insert_row(conn, numeric_row.values)
+        CLAIM_TEXT_PAYLOAD_PROJECTION.insert_row(conn, text_row.values)
+        CLAIM_ALGORITHM_PAYLOAD_PROJECTION.insert_row(conn, algorithm_row.values)
         if isinstance(claim_id, str):
             seen_claim_versions[claim_id] = str(version_id or "")
     seen_link_keys: set[tuple[object, object, object, object]] = set()
-    claim_link_insert_sql = CLAIM_CONCEPT_LINK_PROJECTION.insert_sql()
     for row in rows.claim_link_rows:
         key = (row.claim_id, row.role, row.ordinal, row.concept_id)
         if key in seen_link_keys:
             continue
         seen_link_keys.add(key)
-        conn.execute(claim_link_insert_sql, row.as_insert_mapping())
-    relation_edge_insert_sql = RELATION_EDGE_PROJECTION.insert_sql()
-    for stance_row in rows.stance_rows:
-        conn.execute(relation_edge_insert_sql, stance_row.as_insert_mapping())
+        CLAIM_CONCEPT_LINK_PROJECTION.insert_row(conn, row)
+    RELATION_EDGE_PROJECTION.insert_rows(conn, (stance_row.values for stance_row in rows.stance_rows))
 
 
 def _insert_claim_version_conflict(
@@ -551,33 +485,25 @@ def populate_stances(
     conn: sqlite3.Connection,
     rows: Sequence[ClaimStanceProjectionRow],
 ) -> None:
-    insert_sql = RELATION_EDGE_PROJECTION.insert_sql()
-    for row in rows:
-        conn.execute(insert_sql, row.as_insert_mapping())
+    RELATION_EDGE_PROJECTION.insert_rows(conn, (row.values for row in rows))
 
 
 def populate_authored_justifications(
     conn: sqlite3.Connection,
     rows: Sequence[JustificationProjectionRow],
 ) -> None:
-    insert_sql = JUSTIFICATION_PROJECTION.insert_sql(or_ignore=True)
-    for row in rows:
-        conn.execute(insert_sql, row.as_insert_mapping())
+    JUSTIFICATION_PROJECTION.insert_rows(conn, rows, or_ignore=True)
 
 
 def populate_conflicts(
     conn: sqlite3.Connection,
     rows: Sequence[ConflictWitnessProjectionRow],
 ) -> None:
-    insert_sql = CONFLICT_WITNESS_PROJECTION.insert_sql()
-    for row in rows:
-        conn.execute(insert_sql, row.as_insert_mapping())
+    CONFLICT_WITNESS_PROJECTION.insert_rows(conn, rows)
 
 
 def populate_claim_fts_rows(
     conn: sqlite3.Connection,
     rows: Sequence[ClaimFtsProjectionRow],
 ) -> None:
-    insert_sql = CLAIM_FTS_PROJECTION.insert_sql()
-    for row in rows:
-        conn.execute(insert_sql, row.as_insert_mapping())
+    CLAIM_FTS_PROJECTION.insert_rows(conn, rows)

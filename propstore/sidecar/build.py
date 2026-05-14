@@ -514,9 +514,7 @@ def _populate_promotion_blocked_rows(
             "WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'",
             (claim_id,),
         )
-    claim_insert = CLAIM_CORE_PROJECTION.insert_sql()
-    for row in claim_rows_by_id.values():
-        conn.execute(claim_insert, row.as_insert_mapping())
+    CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
     for row in diagnostic_rows:
         insert_build_diagnostic(conn, row)
 

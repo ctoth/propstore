@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 
 from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
@@ -54,28 +53,3 @@ class RelationEdgeProjectionRow:
     target_id: str
     conditions_cel: str | None
     note: str | None
-
-    def as_insert_mapping(self) -> Mapping[str, object]:
-        return {
-            "source_kind": self.source_kind,
-            "source_id": self.source_id,
-            "relation_type": self.relation_type,
-            "target_kind": self.target_kind,
-            "target_id": self.target_id,
-            "perspective_source_claim_id": None,
-            "target_justification_id": None,
-            "conditions_cel": self.conditions_cel,
-            "strength": None,
-            "conditions_differ": None,
-            "note": self.note,
-            "resolution_method": None,
-            "resolution_model": None,
-            "embedding_model": None,
-            "embedding_distance": None,
-            "pass_number": None,
-            "confidence": None,
-            "opinion_belief": None,
-            "opinion_disbelief": None,
-            "opinion_uncertainty": None,
-            "opinion_base_rate": None,
-        }
