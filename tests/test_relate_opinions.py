@@ -32,6 +32,7 @@ from propstore.core.base_rates import BaseRateUnresolved
 from propstore.families.documents.stances import StanceDocument
 from propstore.opinion import Opinion, fuse
 from propstore.provenance import Provenance, ProvenanceStatus
+from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 
 
 def _vacuous_provenance_payload() -> dict:
@@ -343,30 +344,9 @@ class TestSidecarPopulatesOpinionColumns:
                 context_id TEXT,
                 branch TEXT
             );
-            CREATE TABLE relation_edge (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                source_kind TEXT NOT NULL,
-                source_id TEXT NOT NULL,
-                relation_type TEXT NOT NULL,
-                target_kind TEXT NOT NULL,
-                target_id TEXT NOT NULL,
-                perspective_source_claim_id TEXT,
-                target_justification_id TEXT,
-                strength TEXT,
-                conditions_differ TEXT,
-                note TEXT,
-                resolution_method TEXT,
-                resolution_model TEXT,
-                embedding_model TEXT,
-                embedding_distance REAL,
-                pass_number INTEGER,
-                confidence REAL,
-                opinion_belief REAL,
-                opinion_disbelief REAL,
-                opinion_uncertainty REAL,
-                opinion_base_rate REAL
-            );
         """)
+        for statement in RELATION_EDGE_PROJECTION.ddl_statements():
+            conn.execute(statement)
         conn.execute(
             """
             INSERT INTO claim_core (
@@ -456,30 +436,9 @@ class TestSidecarHandlesOldFormatYaml:
                 context_id TEXT,
                 branch TEXT
             );
-            CREATE TABLE relation_edge (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                source_kind TEXT NOT NULL,
-                source_id TEXT NOT NULL,
-                relation_type TEXT NOT NULL,
-                target_kind TEXT NOT NULL,
-                target_id TEXT NOT NULL,
-                perspective_source_claim_id TEXT,
-                target_justification_id TEXT,
-                strength TEXT,
-                conditions_differ TEXT,
-                note TEXT,
-                resolution_method TEXT,
-                resolution_model TEXT,
-                embedding_model TEXT,
-                embedding_distance REAL,
-                pass_number INTEGER,
-                confidence REAL,
-                opinion_belief REAL,
-                opinion_disbelief REAL,
-                opinion_uncertainty REAL,
-                opinion_base_rate REAL
-            );
         """)
+        for statement in RELATION_EDGE_PROJECTION.ddl_statements():
+            conn.execute(statement)
         conn.execute(
             """
             INSERT INTO claim_core (
