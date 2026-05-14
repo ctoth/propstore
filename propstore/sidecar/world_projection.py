@@ -21,6 +21,12 @@ from propstore.sidecar.concepts import (
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
 )
+from propstore.sidecar.contexts import (
+    CONTEXT_ASSUMPTION_PROJECTION,
+    CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
+    CONTEXT_LIFTING_RULE_PROJECTION,
+    CONTEXT_PROJECTION,
+)
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 
@@ -42,17 +48,10 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
     FORM_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     CONCEPT_FTS_PROJECTION,
-    _required_table("context", "id", "name", "description", "parameters_json", "perspective"),
-    _required_table("context_assumption", "context_id", "assumption_cel", "seq"),
-    _required_table(
-        "context_lifting_rule",
-        "id",
-        "source_context_id",
-        "target_context_id",
-        "conditions_cel",
-        "mode",
-        "justification",
-    ),
+    CONTEXT_PROJECTION,
+    CONTEXT_ASSUMPTION_PROJECTION,
+    CONTEXT_LIFTING_RULE_PROJECTION,
+    CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
     _required_table(
         "claim_core",
         "id",

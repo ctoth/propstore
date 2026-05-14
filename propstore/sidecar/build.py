@@ -400,16 +400,17 @@ def _record_authoring_diagnostics(
 def _filter_invalid_context_lifting_rows(
     rows: ContextSidecarRows,
 ) -> ContextSidecarRows:
-    context_ids = {row.values[0] for row in rows.context_rows}
+    context_ids = {row.id for row in rows.context_rows}
     valid_lifting_rows = tuple(
         row
         for row in rows.lifting_rule_rows
-        if row.values[1] in context_ids and row.values[2] in context_ids
+        if row.source_context_id in context_ids and row.target_context_id in context_ids
     )
     return ContextSidecarRows(
         context_rows=rows.context_rows,
         assumption_rows=rows.assumption_rows,
         lifting_rule_rows=valid_lifting_rows,
+        lifting_materialization_rows=rows.lifting_materialization_rows,
     )
 
 

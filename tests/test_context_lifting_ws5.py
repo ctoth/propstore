@@ -301,7 +301,14 @@ def test_context_sidecar_compiler_materializes_authored_ist_assertions() -> None
     )
 
     assert len(rows.lifting_materialization_rows) == 1
-    assert rows.lifting_materialization_rows[0].values[:5] == (
+    row = rows.lifting_materialization_rows[0]
+    assert (
+        row.rule_id,
+        row.source_context_id,
+        row.target_context_id,
+        row.proposition_id,
+        row.status,
+    ) == (
         "lift-source-target",
         "ctx_source",
         "ctx_target",

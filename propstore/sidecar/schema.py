@@ -53,6 +53,12 @@ from propstore.sidecar.concepts import (
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
 )
+from propstore.sidecar.contexts import (
+    CONTEXT_ASSUMPTION_PROJECTION,
+    CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
+    CONTEXT_LIFTING_RULE_PROJECTION,
+    CONTEXT_PROJECTION,
+)
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
 from propstore.sidecar.stages import ContextSidecarRows
@@ -135,53 +141,14 @@ def build_minimal_world_model_schema(conn: sqlite3.Connection) -> None:
 
 
 def create_context_tables(conn: sqlite3.Connection) -> None:
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS context (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            parameters_json TEXT,
-            perspective TEXT
-        );
-
-        CREATE TABLE IF NOT EXISTS context_assumption (
-            context_id TEXT NOT NULL,
-            assumption_cel TEXT NOT NULL,
-            seq INTEGER NOT NULL,
-            FOREIGN KEY (context_id) REFERENCES context(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS context_lifting_rule (
-            id TEXT PRIMARY KEY,
-            source_context_id TEXT NOT NULL,
-            target_context_id TEXT NOT NULL,
-            conditions_cel TEXT,
-            mode TEXT NOT NULL,
-            justification TEXT,
-            FOREIGN KEY (source_context_id) REFERENCES context(id),
-            FOREIGN KEY (target_context_id) REFERENCES context(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS context_lifting_materialization (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            rule_id TEXT NOT NULL,
-            source_context_id TEXT NOT NULL,
-            target_context_id TEXT NOT NULL,
-            proposition_id TEXT NOT NULL,
-            status TEXT NOT NULL,
-            exception_id TEXT,
-            provenance_json TEXT NOT NULL,
-            FOREIGN KEY (rule_id) REFERENCES context_lifting_rule(id),
-            FOREIGN KEY (source_context_id) REFERENCES context(id),
-            FOREIGN KEY (target_context_id) REFERENCES context(id)
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_ctx_assumption ON context_assumption(context_id);
-        CREATE INDEX IF NOT EXISTS idx_ctx_lift_source ON context_lifting_rule(source_context_id);
-        CREATE INDEX IF NOT EXISTS idx_ctx_lift_target ON context_lifting_rule(target_context_id);
-        CREATE INDEX IF NOT EXISTS idx_ctx_lift_mat_target
-            ON context_lifting_materialization(target_context_id, proposition_id);
-    """)
+    for projection in (
+        CONTEXT_PROJECTION,
+        CONTEXT_ASSUMPTION_PROJECTION,
+        CONTEXT_LIFTING_RULE_PROJECTION,
+        CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
+    ):
+        for statement in projection.ddl_statements():
+            conn.execute(statement)
 
 
 def create_micropublication_tables(conn: sqlite3.Connection) -> None:
@@ -215,43 +182,21 @@ def populate_contexts(
     conn: sqlite3.Connection,
     rows: ContextSidecarRows,
 ) -> None:
+    context_insert_sql = CONTEXT_PROJECTION.insert_sql()
     for row in rows.context_rows:
-        conn.execute(
-            """
-            INSERT INTO context (id, name, description, parameters_json, perspective)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            row.values,
-        )
+        conn.execute(context_insert_sql, row.as_insert_mapping())
 
+    assumption_insert_sql = CONTEXT_ASSUMPTION_PROJECTION.insert_sql()
     for row in rows.assumption_rows:
-        conn.execute(
-            "INSERT INTO context_assumption (context_id, assumption_cel, seq) "
-            "VALUES (?, ?, ?)",
-            row.values,
-        )
+        conn.execute(assumption_insert_sql, row.as_insert_mapping())
 
+    lifting_rule_insert_sql = CONTEXT_LIFTING_RULE_PROJECTION.insert_sql()
     for row in rows.lifting_rule_rows:
-        conn.execute(
-            """
-            INSERT INTO context_lifting_rule (
-                id, source_context_id, target_context_id,
-                conditions_cel, mode, justification
-            ) VALUES (?, ?, ?, ?, ?, ?)
-            """,
-            row.values,
-        )
+        conn.execute(lifting_rule_insert_sql, row.as_insert_mapping())
 
+    materialization_insert_sql = CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.insert_sql()
     for row in rows.lifting_materialization_rows:
-        conn.execute(
-            """
-            INSERT INTO context_lifting_materialization (
-                rule_id, source_context_id, target_context_id,
-                proposition_id, status, exception_id, provenance_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            row.values,
-        )
+        conn.execute(materialization_insert_sql, row.as_insert_mapping())
 
 
 def create_build_diagnostics_table(conn: sqlite3.Connection) -> None:

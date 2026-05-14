@@ -59,10 +59,6 @@ from propstore.sidecar.stages import (
     ClaimFtsInsertRow,
     ClaimSidecarRows,
     ClaimStanceInsertRow,
-    ContextAssumptionInsertRow,
-    ContextInsertRow,
-    ContextLiftingMaterializationInsertRow,
-    ContextLiftingRuleInsertRow,
     ContextSidecarRows,
     ConceptRelationshipInsertRow,
     ConceptSidecarRows,
@@ -77,6 +73,12 @@ from propstore.sidecar.stages import (
     QuarantineDiagnostic,
     RepositoryCheckedBundle,
     SidecarBuildPlan,
+)
+from propstore.sidecar.contexts import (
+    ContextAssumptionProjectionRow,
+    ContextLiftingMaterializationProjectionRow,
+    ContextLiftingRuleProjectionRow,
+    ContextProjectionRow,
 )
 from propstore.sidecar.relations import RelationEdgeProjectionRow
 from propstore.sidecar.concepts import (
@@ -148,9 +150,9 @@ def compile_context_sidecar_rows(
     *,
     authored_ist_assertions: Sequence[IstProposition] = (),
 ) -> ContextSidecarRows:
-    context_rows: list[ContextInsertRow] = []
-    assumption_rows: list[ContextAssumptionInsertRow] = []
-    lifting_rule_rows: list[ContextLiftingRuleInsertRow] = []
+    context_rows: list[ContextProjectionRow] = []
+    assumption_rows: list[ContextAssumptionProjectionRow] = []
+    lifting_rule_rows: list[ContextLiftingRuleProjectionRow] = []
 
     for context in coerce_loaded_contexts(contexts):
         record = context.record
@@ -159,37 +161,37 @@ def compile_context_sidecar_rows(
         context_id = str(record.context_id)
 
         context_rows.append(
-            ContextInsertRow(
-                (
-                    context_id,
-                    record.name or "",
-                    record.description,
-                    json.dumps(dict(record.parameters), sort_keys=True)
-                    if record.parameters
-                    else None,
-                    record.perspective,
-                )
+            ContextProjectionRow(
+                id=context_id,
+                name=record.name or "",
+                description=record.description,
+                parameters_json=json.dumps(dict(record.parameters), sort_keys=True)
+                if record.parameters
+                else None,
+                perspective=record.perspective,
             )
         )
 
         for seq, assumption in enumerate(record.assumptions, 1):
             assumption_rows.append(
-                ContextAssumptionInsertRow((context_id, assumption, seq))
+                ContextAssumptionProjectionRow(
+                    context_id=context_id,
+                    assumption_cel=assumption,
+                    seq=seq,
+                )
             )
 
         for rule in record.lifting_rules:
             lifting_rule_rows.append(
-                ContextLiftingRuleInsertRow(
-                    (
-                        rule.id,
-                        str(rule.source.id),
-                        str(rule.target.id),
-                        json.dumps(list(rule.conditions), sort_keys=True)
-                        if rule.conditions
-                        else None,
-                        rule.mode.value,
-                        rule.justification,
-                    )
+                ContextLiftingRuleProjectionRow(
+                    id=rule.id,
+                    source_context_id=str(rule.source.id),
+                    target_context_id=str(rule.target.id),
+                    conditions_cel=json.dumps(list(rule.conditions), sort_keys=True)
+                    if rule.conditions
+                    else None,
+                    mode=rule.mode.value,
+                    justification=rule.justification,
                 )
             )
 
@@ -215,37 +217,33 @@ def compile_context_sidecar_rows(
 
 def compile_context_lifting_materialization_rows(
     materializations: Sequence[LiftedAssertion | LiftingDecision],
-) -> tuple[ContextLiftingMaterializationInsertRow, ...]:
-    rows: list[ContextLiftingMaterializationInsertRow] = []
+) -> tuple[ContextLiftingMaterializationProjectionRow, ...]:
+    rows: list[ContextLiftingMaterializationProjectionRow] = []
     for materialization in materializations:
         if isinstance(materialization, LiftingDecision):
             provenance = materialization.provenance.to_payload()
             exception_id = materialization.provenance.exception_id
             rows.append(
-                ContextLiftingMaterializationInsertRow(
-                    (
-                        materialization.rule_id,
-                        str(materialization.source_context.id),
-                        str(materialization.target_context.id),
-                        materialization.proposition_id,
-                        materialization.status.value,
-                        exception_id,
-                        json.dumps(provenance, sort_keys=True),
-                    )
+                ContextLiftingMaterializationProjectionRow(
+                    rule_id=materialization.rule_id,
+                    source_context_id=str(materialization.source_context.id),
+                    target_context_id=str(materialization.target_context.id),
+                    proposition_id=materialization.proposition_id,
+                    status=materialization.status.value,
+                    exception_id=exception_id,
+                    provenance_json=json.dumps(provenance, sort_keys=True),
                 )
             )
             continue
         rows.append(
-            ContextLiftingMaterializationInsertRow(
-                (
-                    materialization.rule_id,
-                    str(materialization.source_context.id),
-                    str(materialization.target_context.id),
-                    materialization.proposition_id,
-                    materialization.status.value,
-                    materialization.exception_id,
-                    json.dumps(materialization.provenance, sort_keys=True),
-                )
+            ContextLiftingMaterializationProjectionRow(
+                rule_id=materialization.rule_id,
+                source_context_id=str(materialization.source_context.id),
+                target_context_id=str(materialization.target_context.id),
+                proposition_id=materialization.proposition_id,
+                status=materialization.status.value,
+                exception_id=materialization.exception_id,
+                provenance_json=json.dumps(materialization.provenance, sort_keys=True),
             )
         )
     return tuple(rows)

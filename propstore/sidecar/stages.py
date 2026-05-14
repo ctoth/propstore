@@ -14,6 +14,12 @@ from propstore.families.forms.stages import FormDefinition
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
+    from propstore.sidecar.contexts import (
+        ContextAssumptionProjectionRow,
+        ContextLiftingMaterializationProjectionRow,
+        ContextLiftingRuleProjectionRow,
+        ContextProjectionRow,
+    )
     from propstore.sidecar.concepts import (
         AliasProjectionRow,
         ConceptFtsProjectionRow,
@@ -107,31 +113,11 @@ class MicropublicationSidecarRows:
 
 
 @dataclass(frozen=True)
-class ContextInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class ContextAssumptionInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class ContextLiftingRuleInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
-class ContextLiftingMaterializationInsertRow:
-    values: tuple[Any, ...]
-
-
-@dataclass(frozen=True)
 class ContextSidecarRows:
-    context_rows: tuple[ContextInsertRow, ...]
-    assumption_rows: tuple[ContextAssumptionInsertRow, ...]
-    lifting_rule_rows: tuple[ContextLiftingRuleInsertRow, ...]
-    lifting_materialization_rows: tuple[ContextLiftingMaterializationInsertRow, ...] = ()
+    context_rows: tuple["ContextProjectionRow", ...]
+    assumption_rows: tuple["ContextAssumptionProjectionRow", ...]
+    lifting_rule_rows: tuple["ContextLiftingRuleProjectionRow", ...]
+    lifting_materialization_rows: tuple["ContextLiftingMaterializationProjectionRow", ...] = ()
 
 
 @dataclass(frozen=True)

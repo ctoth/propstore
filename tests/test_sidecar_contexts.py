@@ -59,10 +59,9 @@ def test_sidecar_materialization_rows_persist_decision_status_and_witness_refere
     )
 
     row = compile_context_lifting_materialization_rows(decisions)[0]
-    values = row.values
-    provenance = json.loads(values[6])
+    provenance = json.loads(row.provenance_json)
 
-    assert values[4] == LiftingDecisionStatus.UNKNOWN.value
+    assert row.status == LiftingDecisionStatus.UNKNOWN.value
     assert provenance["status"] == "unknown"
     assert provenance["diagnostic"] == "lifting rule condition is unknown: timeout"
 
@@ -89,6 +88,6 @@ def test_sidecar_materialization_rows_are_recomputed_inspection_records() -> Non
         )
     )[0]
 
-    assert old_row.values[4] == "unknown"
-    assert new_row.values[4] == "lifted"
-    assert old_row.values[6] != new_row.values[6]
+    assert old_row.status == "unknown"
+    assert new_row.status == "lifted"
+    assert old_row.provenance_json != new_row.provenance_json
