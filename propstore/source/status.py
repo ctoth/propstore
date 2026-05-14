@@ -17,7 +17,6 @@ from propstore.source.common import source_branch_name
 
 
 class SourceStatusState(str, Enum):
-    SIDECAR_MISSING = "sidecar_missing"
     CLAIM_CORE_MISSING = "claim_core_missing"
     NO_ROWS = "no_rows"
     HAS_ROWS = "has_rows"
@@ -50,11 +49,6 @@ def _escape_sql_like(value: str) -> str:
 def inspect_source_status(repo: Repository, name: str) -> SourceStatusReport:
     branch = source_branch_name(name)
     handle, _ = materialize_world_sidecar(repo)
-    if not handle.path.exists():
-        return SourceStatusReport(
-            branch=branch,
-            state=SourceStatusState.SIDECAR_MISSING,
-        )
 
     conn = connect_sidecar(handle.path)
     conn.row_factory = sqlite3.Row
