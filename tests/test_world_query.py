@@ -43,7 +43,10 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from tests.family_helpers import build_sidecar, world_query_from_sqlite_path
+from tests.family_helpers import (
+    materialized_world_store_path,
+    world_query_from_sqlite_path,
+)
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.sidecar.schema import build_minimal_world_model_schema
@@ -567,8 +570,7 @@ def claim_files(concept_dir):
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
     """Build sidecar and return a WorldQuery."""
-    knowledge = concept_dir.parent
-    build_sidecar(knowledge, repo.sidecar_path)
+    materialized_world_store_path(repo)
     return WorldQuery(repo)
 
 
@@ -679,7 +681,7 @@ class TestUnboundQueries:
             )
         )
 
-        build_sidecar(knowledge, repo.sidecar_path, force=True)
+        materialized_world_store_path(repo, force=True)
         wm = WorldQuery(repo)
         claim = wm.get_claim(_claim_artifact("alpha_source", "claim_slug"))
         assert claim is not None
@@ -764,7 +766,7 @@ class TestUnboundQueries:
         from propstore.repository import Repository
 
         repo = Repository(knowledge)
-        build_sidecar(knowledge, repo.sidecar_path)
+        materialized_world_store_path(repo)
 
         wm = WorldQuery(repo)
         try:
@@ -821,7 +823,7 @@ class TestUnboundQueries:
         from propstore.repository import Repository
 
         repo = Repository(knowledge)
-        build_sidecar(knowledge, repo.sidecar_path)
+        materialized_world_store_path(repo)
 
         wm = WorldQuery(repo)
         try:
@@ -2416,8 +2418,7 @@ def algo_claim_files(algo_concept_dir):
 @pytest.fixture
 def algo_world(algo_concept_dir, algo_repo, algo_claim_files):
     """Build sidecar and return a WorldQuery with algorithm claims."""
-    knowledge = algo_concept_dir.parent
-    build_sidecar(knowledge, algo_repo.sidecar_path)
+    materialized_world_store_path(algo_repo)
     return WorldQuery(algo_repo)
 
 
@@ -2772,7 +2773,8 @@ class TestWorldQuerySidecarPath:
         """WorldQuery.__init__ should accept a bare sidecar_path: Path.
 
         Currently fails because __init__ signature is (self, repo: Repository)
-        and immediately does repo.sidecar_path, which raises AttributeError
+        and immediately used the repository-local sidecar path, which raised
+        AttributeError
         when given a Path instead of a Repository.
         """
         # Create a minimal sidecar database at a known path
