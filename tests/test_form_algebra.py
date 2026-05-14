@@ -492,12 +492,9 @@ class TestFormShowAlgebra:
 
 def _repo_from_world(wm):
     """Extract the Repository from a WorldQuery (it stores it internally)."""
-    # WorldQuery stores conn but we need the repo — reconstruct from sidecar path
-    from propstore.repository import Repository
-    db_path = wm._conn.execute("PRAGMA database_list").fetchone()[2]
-    from pathlib import Path
-    sidecar_path = Path(db_path)
-    return Repository(sidecar_path.parent.parent)
+    repo = wm._repo
+    assert repo is not None
+    return repo
 
 
 class TestWorldQueryFormQueries:
