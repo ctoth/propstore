@@ -19,6 +19,7 @@ import pytest
 
 from propstore.sidecar.schema import build_minimal_world_model_schema
 from propstore.world.model import WorldQuery
+from tests.family_helpers import world_query_from_sqlite_path
 
 
 # ── test fixture helpers ─────────────────────────────────────────────
@@ -148,7 +149,7 @@ class _CountingConnection:
 def test_resolve_claim_logical_id_lookup_does_not_scale_with_n(tmp_path):
     sidecar = _build_claim_sidecar(tmp_path, n_rows=200)
 
-    world = WorldQuery(sidecar_path=sidecar)
+    world = world_query_from_sqlite_path(sidecar)
     try:
         counter = _CountingConnection(world._conn)
         world._conn = counter  # type: ignore[assignment]
@@ -183,7 +184,7 @@ def test_resolve_claim_logical_id_lookup_does_not_scale_with_n(tmp_path):
 def test_resolve_claim_cached_lookup_handles_bare_value_key(tmp_path):
     sidecar = _build_claim_sidecar(tmp_path, n_rows=50)
 
-    world = WorldQuery(sidecar_path=sidecar)
+    world = world_query_from_sqlite_path(sidecar)
     try:
         # Prime the cache via a miss.
         assert world.resolve_claim("test:claim_missing") is None
@@ -206,7 +207,7 @@ def test_resolve_claim_cached_lookup_handles_bare_value_key(tmp_path):
 def test_resolve_concept_logical_id_lookup_does_not_scale_with_n(tmp_path):
     sidecar = _build_concept_sidecar(tmp_path, n_rows=200)
 
-    world = WorldQuery(sidecar_path=sidecar)
+    world = world_query_from_sqlite_path(sidecar)
     try:
         counter = _CountingConnection(world._conn)
         world._conn = counter  # type: ignore[assignment]
@@ -240,7 +241,7 @@ def test_resolve_concept_logical_id_lookup_does_not_scale_with_n(tmp_path):
 def test_resolve_concept_canonical_name_path_still_reachable(tmp_path):
     sidecar = _build_concept_sidecar(tmp_path, n_rows=20)
 
-    world = WorldQuery(sidecar_path=sidecar)
+    world = world_query_from_sqlite_path(sidecar)
     try:
         # Force the cache to populate via a miss first.
         assert world.resolve_concept("test:concept_missing") is None

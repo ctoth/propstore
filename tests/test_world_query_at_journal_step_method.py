@@ -21,6 +21,7 @@ from propstore.support_revision.history import (
 )
 from propstore.world.model import WorldQuery
 from quire.tree_path import FilesystemTreePath
+from tests.family_helpers import world_query_from_sqlite_path
 from tests.fixtures.journal import (
     make_assertion_atom,
     make_journal_entry,
@@ -94,7 +95,7 @@ def _write_sidecar(
 def _world_query_for_claims(tmp_path: Path, *claim_ids: str) -> WorldQuery:
     sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
     _write_sidecar(sidecar_path, *claim_ids)
-    return WorldQuery(sidecar_path=sidecar_path)
+    return world_query_from_sqlite_path(sidecar_path)
 
 
 class _RepoForHistoricalQuery:

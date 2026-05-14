@@ -30,6 +30,7 @@ from propstore.stances import StanceType
 from tests.family_helpers import (
     _materialize_claim_fixture_batches,
     build_sidecar as _build_sidecar,
+    world_query_from_sqlite_path,
 )
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
@@ -1269,7 +1270,7 @@ class TestClaimTable:
 
         build_sidecar(knowledge_reader, sidecar_path, force=True)
 
-        world = WorldQuery(sidecar_path=sidecar_path)
+        world = world_query_from_sqlite_path(sidecar_path)
         try:
             justifications = world.justifications_for_claim_scope(
                 {"claim1", "claim4", "claim5"}

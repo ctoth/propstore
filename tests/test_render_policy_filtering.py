@@ -40,6 +40,7 @@ from propstore.sidecar.schema import (
 from propstore.sidecar.rules import create_grounded_fact_table
 from propstore.world.model import WorldQuery
 from propstore.world.types import RenderPolicy
+from tests.family_helpers import world_query_from_sqlite_path
 
 
 def _write_meta(conn: sqlite3.Connection) -> None:
@@ -224,7 +225,7 @@ def lifecycle_sidecar(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def wm(lifecycle_sidecar: Path) -> WorldQuery:
-    model = WorldQuery(sidecar_path=lifecycle_sidecar)
+    model = world_query_from_sqlite_path(lifecycle_sidecar)
     yield model
     model.close()
 

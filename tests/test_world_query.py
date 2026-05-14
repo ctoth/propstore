@@ -43,7 +43,7 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import build_sidecar, world_query_from_sqlite_path
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.sidecar.schema import build_minimal_world_model_schema
@@ -2783,7 +2783,7 @@ class TestWorldQuerySidecarPath:
 
         # This should work: construct WorldQuery from a Path to the sidecar db.
         # It currently FAILS because __init__ expects a Repository, not a Path.
-        wm = WorldQuery(sidecar_path=db_path)
+        wm = world_query_from_sqlite_path(db_path)
         assert wm is not None
         wm.close()
 
@@ -2794,7 +2794,7 @@ class TestWorldQuerySidecarPath:
         conn.close()
 
         with pytest.raises(ValueError, match="Unsupported sidecar schema"):
-            WorldQuery(sidecar_path=db_path)
+            world_query_from_sqlite_path(db_path)
 
     def test_worldmodel_rejects_unsupported_schema_version(self, tmp_path):
         db_path = tmp_path / "propstore.sqlite"
@@ -2807,7 +2807,7 @@ class TestWorldQuerySidecarPath:
         conn.close()
 
         with pytest.raises(ValueError, match="Unsupported sidecar schema version"):
-            WorldQuery(sidecar_path=db_path)
+            world_query_from_sqlite_path(db_path)
 
     @pytest.mark.parametrize(
         ("mutation", "message"),
@@ -2836,7 +2836,7 @@ class TestWorldQuerySidecarPath:
         conn.close()
 
         with pytest.raises(ValueError, match="Unsupported sidecar schema"):
-            WorldQuery(sidecar_path=db_path)
+            world_query_from_sqlite_path(db_path)
 
     def test_worldmodel_importable_without_cli(self):
         """propstore.world.model.WorldQuery.from_path should not require

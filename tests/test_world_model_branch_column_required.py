@@ -28,6 +28,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
+from tests.family_helpers import world_query_from_sqlite_path
 
 from propstore.sidecar.world_projection import required_columns_by_table
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
@@ -90,7 +91,7 @@ def test_legacy_sidecar_without_branch_column_is_rejected(tmp_path: Path) -> Non
     _build_legacy_sidecar(sidecar_path)
 
     with pytest.raises(ValueError) as excinfo:
-        WorldQuery(sidecar_path=sidecar_path)
+        world_query_from_sqlite_path(sidecar_path)
 
     message = str(excinfo.value)
     assert "branch" in message, (

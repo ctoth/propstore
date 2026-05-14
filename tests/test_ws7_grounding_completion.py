@@ -6,6 +6,7 @@ import sqlite3
 from pathlib import Path
 
 from argumentation.aspic import GroundAtom
+from tests.family_helpers import world_query_from_sqlite_path
 
 
 def _build_predicate_document(
@@ -247,7 +248,7 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     conn.commit()
     conn.close()
 
-    with WorldQuery(sidecar_path=sidecar_path) as world:
+    with world_query_from_sqlite_path(sidecar_path) as world:
         bundle = world.grounding_bundle()
 
     assert bundle.sections["yes"]["bird"] == frozenset({("tweety",)})
