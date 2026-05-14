@@ -861,10 +861,7 @@ class TestUnboundQueries:
         conn.commit()
         conn.close()
 
-        class _Repo:
-            sidecar_path = sidecar
-
-        wm = WorldQuery(_Repo())
+        wm = world_query_from_sqlite_path(sidecar)
         try:
             claims = wm.claims_for("concept2")
             assert [str(claim.claim_id) for claim in claims] == ["measurement1"]
@@ -901,10 +898,7 @@ class TestUnboundQueries:
         conn.commit()
         conn.close()
 
-        class _Repo:
-            sidecar_path = sidecar
-
-        wm = WorldQuery(_Repo())
+        wm = world_query_from_sqlite_path(sidecar)
         try:
             claims = wm.claims_with_policy("concept2", RenderPolicy())
             assert [str(claim.claim_id) for claim in claims] == ["observation1"]
@@ -938,10 +932,7 @@ class TestUnboundQueries:
         conn.commit()
         conn.close()
 
-        class _Repo:
-            sidecar_path = sidecar
-
-        wm = WorldQuery(_Repo())
+        wm = world_query_from_sqlite_path(sidecar)
         try:
             claims = wm.claims_related_to_concept("concept2")
             assert [str(claim.claim_id) for claim in claims] == ["observation1"]
@@ -975,10 +966,7 @@ class TestUnboundQueries:
         conn.commit()
         conn.close()
 
-        class _Repo:
-            sidecar_path = sidecar
-
-        wm = WorldQuery(_Repo())
+        wm = world_query_from_sqlite_path(sidecar)
         try:
             assert [str(claim.claim_id) for claim in wm.claims_for("concept2")] == ["measurement1"]
             assert [str(claim.claim_id) for claim in wm.claims_for("concept2")] == ["measurement1"]
