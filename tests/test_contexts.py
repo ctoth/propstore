@@ -39,6 +39,7 @@ from propstore.sidecar.schema import (
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from tests.conftest import make_compilation_context
+from tests.family_helpers import world_query_from_sqlite_path
 
 
 def write_context(ctx_dir: Path, name: str, data: dict) -> Path:
@@ -460,12 +461,7 @@ class TestWorldQueryContextLifting:
         conn.commit()
         conn.close()
 
-        class _Repo:
-            sidecar_path = sidecar
-
-        from propstore.world import WorldQuery
-
-        wm = WorldQuery(_Repo())
+        wm = world_query_from_sqlite_path(sidecar)
         try:
             bound = wm.bind(Environment(context_id="ctx_child"))
             assert {str(claim.claim_id) for claim in bound.active_claims("c1")} == {
