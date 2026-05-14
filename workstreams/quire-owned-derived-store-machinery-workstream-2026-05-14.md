@@ -217,6 +217,48 @@ Phase gate:
 - Every `generic-derived-store` item is assigned to a Quire phase below.
 - Every `delete-without-replacement` item has a named search/test proof.
 
+### Phase 1 Baseline and Classification Ledger
+
+Phase 1 status: completed on branch
+`workstream/quire-owned-derived-store-machinery`.
+
+Recorded baseline commands:
+
+- `git diff --shortstat 11ce4e42^..HEAD -- propstore`:
+  `38 files changed, 3400 insertions(+), 2069 deletions(-)`.
+- `git diff --numstat 11ce4e42^..HEAD -- propstore`: recorded in the
+  starting-evidence table above and in the Phase 1 command transcript.
+- `git diff --shortstat fad271ec42c5711b5a93b25d1351d2b7522a4bc5..HEAD --
+  propstore`: no output, meaning no tracked `propstore/` delta at Phase 1
+  start.
+
+Classification table:
+
+| File | Exported surface | Classification | Quire phase or proof |
+| --- | --- | --- | --- |
+| `propstore/sidecar/projection.py` | `ProjectionEncoder`, `ProjectionDecoder`, `json_encoder`, `json_decoder`, `ProjectionColumn`, `ProjectionForeignKey`, `ProjectionIndex`, `ProjectionRow`, `ProjectionTable`, `FtsProjection`, `VecProjection`, `ProjectionSchema`, `ProjectionSchemaError`, `create_projection_schema`, `SemanticProjection` | `generic-derived-store` | Phases 2-5 |
+| `propstore/sidecar/build.py` | `_sidecar_cache_key_inputs`, `_sidecar_content_hash`, `_generated_schema_version`, `_dependency_pins`, `_sqlite_artifact_paths`, `_cleanup_sqlite_artifacts`, `_new_temp_sqlite_path`, `_publish_lock_for_sqlite`, `_checkpoint_and_close`, `_materialize_world_sidecar_locked` lifecycle parts | `generic-derived-store` | Phase 6 |
+| `propstore/sidecar/build.py` | `EmbeddingSnapshotReport`, `materialize_world_sidecar`, `export_sidecar`, `build_grounding_sidecar` | `propstore-query-behavior` | Keep as Propstore-facing API, thin over Quire in Phase 12 |
+| `propstore/sidecar/build.py` | `_record_build_exception`, `_record_embedding_restore_diagnostic`, `_record_form_diagnostics`, `_record_claim_diagnostics`, `_record_concept_diagnostics`, `_record_context_diagnostics`, `_record_authoring_diagnostics`, `_record_quarantine_diagnostics` | `propstore-semantic-extractor` | Keep semantic diagnostic construction; generic diagnostics sink moves in Phase 6 |
+| `propstore/sidecar/build.py` | `_filter_invalid_context_lifting_rows`, `_compile_source_promotion_blocked_rows`, `_populate_promotion_blocked_rows`, `_source_branch_tips`, `_family_contract_versions`, `_semantic_pass_versions` | `propstore-semantic-extractor` | Keep or thin in Phase 12 |
+| `propstore/sidecar/claims.py` | `CLAIM_CORE_PROJECTION`, `CLAIM_CONCEPT_LINK_PROJECTION`, `CLAIM_NUMERIC_PAYLOAD_PROJECTION`, `CLAIM_TEXT_PAYLOAD_PROJECTION`, `CLAIM_ALGORITHM_PAYLOAD_PROJECTION`, `CONFLICT_WITNESS_PROJECTION`, `JUSTIFICATION_PROJECTION`, `CLAIM_FTS_PROJECTION` | `propstore-semantic-declaration` | Declarations remain, Quire types in Phases 8-10 |
+| `propstore/sidecar/claims.py` | `ClaimCoreProjectionRow`, `ClaimNumericPayloadProjectionRow`, `ClaimTextPayloadProjectionRow`, `ClaimAlgorithmPayloadProjectionRow`, `ClaimConceptLinkProjectionRow`, `ClaimStanceProjectionRow`, `JustificationProjectionRow`, `ConflictWitnessProjectionRow`, `ClaimFtsProjectionRow` | `propstore-semantic-declaration` | Keep only if Quire row encoders need typed semantic rows; reduce in Phase 13 |
+| `propstore/sidecar/claims.py` | `populate_raw_id_quarantine_records`, `populate_claims`, `_insert_claim_version_conflict`, `populate_stances`, `populate_authored_justifications`, `populate_conflicts`, `populate_claim_fts_rows` | `propstore-semantic-extractor` | Keep semantic lowering; generic insert/read moves in Phases 9-10 |
+| `propstore/sidecar/concepts.py` | `CONCEPT_PROJECTION`, `FORM_PROJECTION`, `FORM_ALGEBRA_PROJECTION`, `ALIAS_PROJECTION`, `PARAMETERIZATION_GROUP_PROJECTION`, `PARAMETERIZATION_PROJECTION`, `RELATIONSHIP_PROJECTION`, `CONCEPT_FTS_PROJECTION` | `propstore-semantic-declaration` | Declarations remain, Quire types in Phases 8-10 |
+| `propstore/sidecar/concepts.py` | `FormProjectionRow`, `AliasProjectionRow`, `ParameterizationGroupProjectionRow`, `ParameterizationProjectionRow`, `ConceptFtsProjectionRow`, `FormAlgebraProjectionRow`, `ConceptProjectionRow` | `propstore-semantic-declaration` | Keep only if Quire row encoders need typed semantic rows; reduce in Phase 13 |
+| `propstore/sidecar/concepts.py` | `populate_concept_sidecar_rows` | `propstore-semantic-extractor` | Keep semantic lowering; generic insert/FTS moves in Phases 9-10 |
+| `propstore/sidecar/contexts.py` | `CONTEXT_PROJECTION`, `CONTEXT_ASSUMPTION_PROJECTION`, `CONTEXT_LIFTING_RULE_PROJECTION`, `CONTEXT_LIFTING_MATERIALIZATION_PROJECTION`, row classes | `propstore-semantic-declaration` | Declarations remain, Quire types in Phases 8-9 |
+| `propstore/sidecar/relations.py` | `RELATION_EDGE_PROJECTION`, `RelationEdgeProjectionRow` | `propstore-semantic-declaration` | Declarations remain, Quire types in Phases 8-9 |
+| `propstore/sidecar/diagnostics.py` | `BUILD_DIAGNOSTICS_PROJECTION`, `BuildDiagnosticProjectionRow` | `propstore-semantic-declaration` | Declaration remains, generic diagnostics structure moves in Phase 6 |
+| `propstore/sidecar/diagnostics.py` | `create_build_diagnostics_table`, `insert_build_diagnostic` | `generic-derived-store` | Phases 3 and 6 |
+| `propstore/sidecar/embedding_store.py` | `EMBEDDING_MODEL_PROJECTION`, `EMBEDDING_STATUS_PROJECTION`, `CONCEPT_EMBEDDING_STATUS_PROJECTION`, `CLAIM_VEC_PROJECTION`, `CONCEPT_VEC_PROJECTION`, status/model row classes | `propstore-semantic-declaration` | Declarations remain, Quire types in Phases 8 and 11 |
+| `propstore/sidecar/embedding_store.py` | `_vec_projection`, `_vec_bindings`, `_ensure_vec_table`, generic vector DDL/materialization parts of `_SidecarEntityEmbeddingStore` | `generic-derived-store` | Phase 5 and Phase 11 |
+| `propstore/sidecar/embedding_store.py` | `EmbeddingSnapshot`, `RestoreReport`, `SidecarEmbeddingRegistry`, `SidecarClaimEmbeddingStore`, `SidecarConceptEmbeddingStore`, `SidecarEmbeddingSnapshotStore` | `propstore-query-behavior` | Keep semantic API, thin over Quire vector primitives in Phase 11 |
+| `propstore/sidecar/world_projection.py` | `WORLD_SIDECAR_SCHEMA` | `propstore-semantic-declaration` | Keep as registry of Propstore projection declarations, using Quire types in Phase 8 |
+| `propstore/sidecar/world_projection.py` | `_required_table`, `required_columns_by_table`, `_projection_name` | `delete-without-replacement` | Delete in Phase 8; proof is `rg -F "required_columns_by_table"` plus world-query/schema tests |
+
+No `unknown` classifications remain.
+
 ## Phase 2: Quire Projection Metamodel Extraction
 
 Repository: `../quire`
