@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from quire.derived_store import DerivedStoreHandle
 import yaml
 
 from propstore.compiler.workflows import build_repository
@@ -38,9 +39,18 @@ def test_build_repository_reports_missing_sidecar_instead_of_zero_success(
     )
 
     def _no_sidecar(*args, **kwargs):
-        return False
+        return (
+            DerivedStoreHandle(
+                projection_id="propstore.world.test",
+                source_commit="test",
+                content_hash="test",
+                cache_key="test",
+                path=tmp_path / "missing" / "propstore.sqlite",
+            ),
+            True,
+        )
 
-    monkeypatch.setattr("propstore.sidecar.build.build_sidecar", _no_sidecar)
+    monkeypatch.setattr("propstore.sidecar.build.materialize_world_sidecar", _no_sidecar)
 
     report = build_repository(repo, force=True)
 
