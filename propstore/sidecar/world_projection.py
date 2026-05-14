@@ -69,7 +69,15 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
     ),
     FORM_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
-    FtsProjection(table="concept_fts", key_column="concept_id", columns=()),
+    FtsProjection(
+        table="concept_fts",
+        key_column="concept_id",
+        columns=("canonical_name", "aliases", "definition", "conditions"),
+        row_plan=(
+            "ConceptFtsInsertRow values are generated from compiled concept bundles "
+            "and inserted in deterministic concept traversal order."
+        ),
+    ),
     _required_table("context", "id", "name", "description", "parameters_json", "perspective"),
     _required_table("context_assumption", "context_id", "assumption_cel", "seq"),
     _required_table(

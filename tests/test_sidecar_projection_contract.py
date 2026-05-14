@@ -171,7 +171,33 @@ def test_fts_projection_generates_virtual_table_and_validates_columns() -> None:
         '"definition", "conditions") VALUES (:concept_id, :canonical_name, '
         ":aliases, :definition, :conditions)"
     )
+    assert projection.population_sql() == (
+        'INSERT INTO "concept_fts" ("concept_id", "canonical_name", "aliases", '
+        '"definition", "conditions") SELECT ...'
+    )
+    assert projection.match_sql(("concept_id",), limit_param="limit") == (
+        'SELECT "concept_id" FROM "concept_fts" '
+        'WHERE "concept_fts" MATCH :query LIMIT :limit'
+    )
     schema.validate_connection(conn)
+
+
+def test_fts_projection_validates_search_columns_and_population_plan() -> None:
+    projection = FtsProjection(
+        table="claim_fts",
+        key_column="claim_id",
+        columns=("statement", "conditions", "expression"),
+        row_plan="Claim FTS rows are generated from normalized claim files.",
+    )
+
+    assert projection.population_plan() == (
+        "Claim FTS rows are generated from normalized claim files."
+    )
+    projection.validate_search_columns(("claim_id", "statement", "expression"))
+    with pytest.raises(ValueError, match="does not declare search column"):
+        projection.validate_search_columns(("missing",))
+    with pytest.raises(ValueError, match="has no source query"):
+        projection.population_sql()
 
 
 def test_vec_projection_supports_dynamic_table_names() -> None:

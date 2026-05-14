@@ -279,6 +279,18 @@ class FtsProjection:
     key_column: str
     columns: tuple[str, ...]
     source_query: str | None = None
+    row_plan: str | None = None
+
+    def __post_init__(self) -> None:
+        column_names = self.column_names
+        if len(set(column_names)) != len(column_names):
+            raise ValueError(f"FTS projection {self.table!r} has duplicate columns")
+        for column in column_names:
+            _quote_identifier(column)
+        if self.source_query is not None and self.row_plan is not None:
+            raise ValueError(
+                f"FTS projection {self.table!r} must use source_query or row_plan, not both"
+            )
 
     @property
     def column_names(self) -> tuple[str, ...]:
@@ -305,6 +317,48 @@ class FtsProjection:
         params = ", ".join(f":{column}" for column in self.column_names)
         return f"INSERT INTO {_quote_identifier(table_name)} ({columns}) VALUES ({params})"
 
+    def population_sql(self, bindings: Mapping[str, str] | None = None) -> str:
+        if self.source_query is None:
+            raise ValueError(f"FTS projection {self.table!r} has no source query")
+        table_name = self.table_name(bindings)
+        columns = ", ".join(_quote_identifier(column) for column in self.column_names)
+        return f"INSERT INTO {_quote_identifier(table_name)} ({columns}) {self.source_query}"
+
+    def population_plan(self) -> str:
+        if self.source_query is not None:
+            return self.source_query
+        if self.row_plan is not None:
+            return self.row_plan
+        raise ValueError(f"FTS projection {self.table!r} has no population plan")
+
+    def validate_search_columns(self, columns: Sequence[str]) -> None:
+        declared = set(self.column_names)
+        missing = tuple(column for column in columns if column not in declared)
+        if missing:
+            joined = ", ".join(missing)
+            raise ValueError(
+                f"FTS projection {self.table!r} does not declare search column(s): {joined}"
+            )
+
+    def match_sql(
+        self,
+        select_columns: Sequence[str],
+        *,
+        bindings: Mapping[str, str] | None = None,
+        query_param: str = "query",
+        limit_param: str | None = None,
+    ) -> str:
+        self.validate_search_columns(select_columns)
+        table_name = self.table_name(bindings)
+        selected = ", ".join(_quote_identifier(column) for column in select_columns)
+        statement = (
+            f"SELECT {selected} FROM {_quote_identifier(table_name)} "
+            f"WHERE {_quote_identifier(table_name)} MATCH :{query_param}"
+        )
+        if limit_param is not None:
+            statement += f" LIMIT :{limit_param}"
+        return statement
+
     def schema_hash_material(self) -> dict[str, Any]:
         return {
             "kind": "fts5",
@@ -312,6 +366,7 @@ class FtsProjection:
             "key_column": self.key_column,
             "columns": self.columns,
             "source_query": self.source_query,
+            "row_plan": self.row_plan,
         }
 
 

@@ -5,6 +5,7 @@ from contextlib import closing
 
 import pytest
 
+from propstore.sidecar.projection import FtsProjection
 from propstore.sidecar.sqlite import connect_sidecar, connect_sidecar_readonly
 
 
@@ -19,39 +20,31 @@ def _skip_if_fts5_unavailable() -> None:
 def test_fts5_table_is_queryable_from_readonly_sidecar_connection(tmp_path) -> None:
     _skip_if_fts5_unavailable()
     sidecar_path = tmp_path / "propstore.sqlite"
+    projection = FtsProjection(
+        table="concept_fts",
+        key_column="concept_id",
+        columns=("canonical_name", "aliases", "definition", "conditions"),
+        row_plan="test rows",
+    )
     with closing(connect_sidecar(sidecar_path)) as conn:
+        conn.execute(projection.ddl_statements()[0])
         conn.execute(
-            """
-            CREATE VIRTUAL TABLE concept_fts USING fts5(
-                concept_id UNINDEXED,
-                canonical_name,
-                aliases,
-                definition,
-                conditions
-            )
-            """
-        )
-        conn.execute(
-            """
-            INSERT INTO concept_fts (
-                concept_id, canonical_name, aliases, definition, conditions
-            ) VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                "ps:concept:frequency",
-                "fundamental frequency",
-                "pitch f0",
-                "A periodic acoustic feature",
-                "task == 'speech'",
-            ),
+            projection.insert_sql(),
+            {
+                "concept_id": "ps:concept:frequency",
+                "canonical_name": "fundamental frequency",
+                "aliases": "pitch f0",
+                "definition": "A periodic acoustic feature",
+                "conditions": "task == 'speech'",
+            },
         )
         conn.commit()
         conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
 
     with closing(connect_sidecar_readonly(sidecar_path)) as readonly:
         rows = readonly.execute(
-            "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH ?",
-            ("pitch",),
+            projection.match_sql(("concept_id",)),
+            {"query": "pitch"},
         ).fetchall()
 
     assert [row[0] for row in rows] == ["ps:concept:frequency"]
