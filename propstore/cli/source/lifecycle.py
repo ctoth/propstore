@@ -140,9 +140,6 @@ def source_status(obj: dict, name: str) -> None:
     """
     repo: Repository = obj["repo"]
     report = inspect_source(repo, SourceNamedRequest(name=name))
-    if report.state is SourceStatusState.SIDECAR_MISSING:
-        emit("No sidecar built yet — run 'pks build' first.")
-        return
     if report.state is SourceStatusState.CLAIM_CORE_MISSING:
         emit("No claim_core table — sidecar schema may predate phase 3.")
         return
