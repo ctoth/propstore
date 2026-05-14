@@ -9,7 +9,7 @@ import yaml
 from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.graph_relation_types import GraphRelationType
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.world import WorldQuery
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
@@ -155,7 +155,7 @@ def graph_build_world(tmp_path):
     from propstore.repository import Repository
 
     repo = Repository(knowledge)
-    build_sidecar(knowledge, repo.sidecar_path)
+    materialized_world_store_path(repo)
     return WorldQuery(repo)
 
 

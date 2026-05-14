@@ -5,7 +5,7 @@ import yaml
 from propstore.repository import Repository
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.loading import build_grounded_bundle
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 from propstore.world import WorldQuery
 
 
@@ -45,7 +45,7 @@ def test_build_grounded_bundle_rejects_rules_without_predicates(tmp_path) -> Non
 
 def test_world_query_grounding_bundle_uses_repo_knowledge_root_and_caches(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    build_sidecar(repo, repo.sidecar_path, force=True)
+    materialized_world_store_path(repo, force=True)
 
     wm = WorldQuery(repo)
     try:

@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 from propstore.world import ResolutionStrategy, WorldQuery, resolve
 from propstore.world.value_resolver import ActiveClaimResolver
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
@@ -48,7 +48,7 @@ def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> Worl
     from propstore.repository import Repository
 
     repo = Repository(root)
-    build_sidecar(root, repo.sidecar_path)
+    materialized_world_store_path(repo)
     return WorldQuery(repo)
 
 

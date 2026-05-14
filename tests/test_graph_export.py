@@ -5,7 +5,7 @@ import sqlite3
 import pytest
 import yaml
 
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.sidecar.schema import build_minimal_world_model_schema
@@ -306,7 +306,7 @@ def claim_files(concept_dir):
 @pytest.fixture
 def world(concept_dir, repo, claim_files):
     """Build sidecar and return a WorldQuery."""
-    build_sidecar(concept_dir.parent, repo.sidecar_path)
+    materialized_world_store_path(repo)
     return WorldQuery(repo)
 
 
