@@ -67,6 +67,12 @@ def test_projection_table_generates_named_insert_and_encodes_json() -> None:
         'INSERT INTO "source" ("slug", "quality_json") '
         "VALUES (:slug, :quality_json)"
     )
+    assert table.insert_sql(or_replace=True) == (
+        'INSERT OR REPLACE INTO "source" ("slug", "quality_json") '
+        "VALUES (:slug, :quality_json)"
+    )
+    with pytest.raises(ValueError, match="only one conflict policy"):
+        table.insert_sql(or_ignore=True, or_replace=True)
     assert table.encode_row(
         {"slug": "paper-a", "quality_json": {"score": 0.9, "kind": "peer"}}
     ) == {
@@ -217,6 +223,26 @@ def test_vec_projection_supports_dynamic_table_names() -> None:
     )
     with pytest.raises(ValueError, match="Invalid dynamic name segment"):
         projection.ddl_statements({"model_identity_hash": "../bad"})
+
+
+def test_vec_projection_supports_rowid_backed_tables() -> None:
+    projection = VecProjection(
+        table="claim_vec_{model_identity_hash}",
+        key_column=None,
+        vector_column=ProjectionColumn("embedding", "float[3]", nullable=False),
+    )
+
+    assert projection.ddl_statements({"model_identity_hash": "abc_123"}) == (
+        'CREATE VIRTUAL TABLE "claim_vec_abc_123" '
+        'USING vec0("embedding" float[3])',
+    )
+    assert projection.insert_rowid_sql({"model_identity_hash": "abc_123"}) == (
+        'INSERT INTO "claim_vec_abc_123" (rowid, "embedding") '
+        "VALUES (:rowid, :embedding)"
+    )
+    assert projection.delete_rowid_sql({"model_identity_hash": "abc_123"}) == (
+        'DELETE FROM "claim_vec_abc_123" WHERE rowid = :rowid'
+    )
 
 
 def test_projection_schema_hash_material_is_deterministic() -> None:

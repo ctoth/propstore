@@ -73,6 +73,7 @@ from propstore.sidecar.diagnostics import (
     BUILD_DIAGNOSTICS_PROJECTION,
     create_build_diagnostics_table as create_build_diagnostics_projection_table,
 )
+from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.micropublications import (
     create_micropublication_tables as create_micropublication_projection_tables,
 )
@@ -155,6 +156,7 @@ def build_minimal_world_model_schema(conn: sqlite3.Connection) -> None:
     create_claim_tables(conn)
     create_micropublication_tables(conn)
     create_grounded_fact_table(conn)
+    ensure_embedding_tables(conn)
 
 
 def create_context_tables(conn: sqlite3.Connection) -> None:

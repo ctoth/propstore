@@ -226,10 +226,18 @@ class ProjectionTable:
         self,
         *,
         or_ignore: bool = False,
+        or_replace: bool = False,
         bindings: Mapping[str, str] | None = None,
     ) -> str:
+        if or_ignore and or_replace:
+            raise ValueError("insert_sql accepts only one conflict policy")
         table_name = self.table_name(bindings)
-        verb = "INSERT OR IGNORE" if or_ignore else "INSERT"
+        if or_ignore:
+            verb = "INSERT OR IGNORE"
+        elif or_replace:
+            verb = "INSERT OR REPLACE"
+        else:
+            verb = "INSERT"
         columns = ", ".join(_quote_identifier(column.name) for column in self.insert_columns)
         params = ", ".join(f":{column.name}" for column in self.insert_columns)
         return f"{verb} INTO {_quote_identifier(table_name)} ({columns}) VALUES ({params})"
@@ -373,12 +381,14 @@ class FtsProjection:
 @dataclass(frozen=True)
 class VecProjection:
     table: str
-    key_column: ProjectionColumn
+    key_column: ProjectionColumn | None
     vector_column: ProjectionColumn
     metadata_columns: tuple[ProjectionColumn, ...] = ()
 
     @property
     def columns(self) -> tuple[ProjectionColumn, ...]:
+        if self.key_column is None:
+            return (self.vector_column,) + self.metadata_columns
         return (self.key_column, self.vector_column) + self.metadata_columns
 
     @property
@@ -407,6 +417,18 @@ class VecProjection:
         columns = ", ".join(_quote_identifier(column.name) for column in self.columns)
         params = ", ".join(f":{column.name}" for column in self.columns)
         return f"INSERT INTO {_quote_identifier(table_name)} ({columns}) VALUES ({params})"
+
+    def insert_rowid_sql(self, bindings: Mapping[str, str] | None = None) -> str:
+        table_name = self.table_name(bindings)
+        columns = ", ".join(
+            ("rowid",) + tuple(_quote_identifier(column.name) for column in self.columns)
+        )
+        params = ", ".join((":rowid",) + tuple(f":{column.name}" for column in self.columns))
+        return f"INSERT INTO {_quote_identifier(table_name)} ({columns}) VALUES ({params})"
+
+    def delete_rowid_sql(self, bindings: Mapping[str, str] | None = None) -> str:
+        table_name = self.table_name(bindings)
+        return f"DELETE FROM {_quote_identifier(table_name)} WHERE rowid = :rowid"
 
     def encode_row(self, values: Mapping[str, Any]) -> dict[str, Any]:
         return {column.name: column.encode(values.get(column.name)) for column in self.columns}

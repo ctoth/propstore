@@ -38,6 +38,11 @@ from propstore.sidecar.contexts import (
     CONTEXT_PROJECTION,
 )
 from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
+from propstore.sidecar.embedding_store import (
+    CONCEPT_EMBEDDING_STATUS_PROJECTION,
+    EMBEDDING_MODEL_PROJECTION,
+    EMBEDDING_STATUS_PROJECTION,
+)
 from propstore.sidecar.micropublications import (
     MICROPUBLICATION_CLAIM_PROJECTION,
     MICROPUBLICATION_PROJECTION,
@@ -86,6 +91,9 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
     MICROPUBLICATION_PROJECTION,
     MICROPUBLICATION_CLAIM_PROJECTION,
     CALIBRATION_COUNTS_PROJECTION,
+    EMBEDDING_MODEL_PROJECTION,
+    EMBEDDING_STATUS_PROJECTION,
+    CONCEPT_EMBEDDING_STATUS_PROJECTION,
     BUILD_DIAGNOSTICS_PROJECTION,
     metadata={"projection": "propstore.world"},
 )

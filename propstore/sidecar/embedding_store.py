@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import sqlite3
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Protocol
 
 from propstore.core.embeddings import (
@@ -13,6 +13,12 @@ from propstore.core.embeddings import (
     concept_embedding_text,
 )
 from propstore.core.row_types import ClaimRow, ConceptRow
+from propstore.sidecar.projection import (
+    ProjectionColumn,
+    ProjectionIndex,
+    ProjectionTable,
+    VecProjection,
+)
 
 
 class _EmbeddingModelIdentity(Protocol):
@@ -48,40 +54,157 @@ class RestoreReport:
     orphaned: int = 0
 
 
+EMBEDDING_MODEL_PROJECTION = ProjectionTable(
+    name="embedding_model",
+    columns=(
+        ProjectionColumn("model_identity_hash", "TEXT", nullable=False, primary_key=True),
+        ProjectionColumn("provider", "TEXT", nullable=False),
+        ProjectionColumn("model_name", "TEXT", nullable=False),
+        ProjectionColumn(
+            "model_version",
+            "TEXT",
+            nullable=False,
+            default_sql="''",
+        ),
+        ProjectionColumn("content_digest", "TEXT", nullable=False),
+        ProjectionColumn("dimensions", "INTEGER", nullable=False),
+        ProjectionColumn("created_at", "TEXT", nullable=False),
+    ),
+    if_not_exists=True,
+)
+
+
+EMBEDDING_STATUS_PROJECTION = ProjectionTable(
+    name="embedding_status",
+    columns=(
+        ProjectionColumn("model_identity_hash", "TEXT", nullable=False),
+        ProjectionColumn("claim_id", "TEXT", nullable=False),
+        ProjectionColumn("content_hash", "TEXT", nullable=False),
+        ProjectionColumn("embedded_at", "TEXT", nullable=False),
+    ),
+    primary_key=("model_identity_hash", "claim_id"),
+    indexes=(ProjectionIndex("idx_embedding_status_model_identity", ("model_identity_hash",)),),
+    if_not_exists=True,
+)
+
+
+CONCEPT_EMBEDDING_STATUS_PROJECTION = ProjectionTable(
+    name="concept_embedding_status",
+    columns=(
+        ProjectionColumn("model_identity_hash", "TEXT", nullable=False),
+        ProjectionColumn("concept_id", "TEXT", nullable=False),
+        ProjectionColumn("content_hash", "TEXT", nullable=False),
+        ProjectionColumn("embedded_at", "TEXT", nullable=False),
+    ),
+    primary_key=("model_identity_hash", "concept_id"),
+    indexes=(
+        ProjectionIndex(
+            "idx_concept_embedding_status_model_identity",
+            ("model_identity_hash",),
+        ),
+    ),
+    if_not_exists=True,
+)
+
+
+CLAIM_VEC_PROJECTION = VecProjection(
+    table="claim_vec_{model_identity_hash}",
+    key_column=None,
+    vector_column=ProjectionColumn("embedding", "float[{dimensions}]", nullable=False),
+)
+
+
+CONCEPT_VEC_PROJECTION = VecProjection(
+    table="concept_vec_{model_identity_hash}",
+    key_column=None,
+    vector_column=ProjectionColumn("embedding", "float[{dimensions}]", nullable=False),
+)
+
+
+@dataclasses.dataclass(frozen=True)
+class EmbeddingModelProjectionRow:
+    model_identity_hash: str
+    provider: str
+    model_name: str
+    model_version: str
+    content_digest: str
+    dimensions: int
+    created_at: str
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "model_identity_hash": self.model_identity_hash,
+            "provider": self.provider,
+            "model_name": self.model_name,
+            "model_version": self.model_version,
+            "content_digest": self.content_digest,
+            "dimensions": self.dimensions,
+            "created_at": self.created_at,
+        }
+
+
+@dataclasses.dataclass(frozen=True)
+class EmbeddingStatusProjectionRow:
+    model_identity_hash: str
+    claim_id: str
+    content_hash: str
+    embedded_at: str
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "model_identity_hash": self.model_identity_hash,
+            "claim_id": self.claim_id,
+            "content_hash": self.content_hash,
+            "embedded_at": self.embedded_at,
+        }
+
+
+@dataclasses.dataclass(frozen=True)
+class ConceptEmbeddingStatusProjectionRow:
+    model_identity_hash: str
+    concept_id: str
+    content_hash: str
+    embedded_at: str
+
+    def as_insert_mapping(self) -> Mapping[str, object]:
+        return {
+            "model_identity_hash": self.model_identity_hash,
+            "concept_id": self.concept_id,
+            "content_hash": self.content_hash,
+            "embedded_at": self.embedded_at,
+        }
+
+
 def _is_missing_table_error(error: sqlite3.OperationalError) -> bool:
     return "no such table" in str(error)
 
 
 def ensure_embedding_tables(conn: sqlite3.Connection) -> None:
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS embedding_model (
-            model_identity_hash TEXT PRIMARY KEY,
-            provider TEXT NOT NULL,
-            model_name TEXT NOT NULL,
-            model_version TEXT NOT NULL DEFAULT '',
-            content_digest TEXT NOT NULL,
-            dimensions INTEGER NOT NULL,
-            created_at TEXT NOT NULL
-        );
-        CREATE TABLE IF NOT EXISTS embedding_status (
-            model_identity_hash TEXT NOT NULL,
-            claim_id TEXT NOT NULL,
-            content_hash TEXT NOT NULL,
-            embedded_at TEXT NOT NULL,
-            PRIMARY KEY (model_identity_hash, claim_id)
-        );
-        CREATE TABLE IF NOT EXISTS concept_embedding_status (
-            model_identity_hash TEXT NOT NULL,
-            concept_id TEXT NOT NULL,
-            content_hash TEXT NOT NULL,
-            embedded_at TEXT NOT NULL,
-            PRIMARY KEY (model_identity_hash, concept_id)
-        );
-        CREATE INDEX IF NOT EXISTS idx_embedding_status_model_identity
-            ON embedding_status(model_identity_hash);
-        CREATE INDEX IF NOT EXISTS idx_concept_embedding_status_model_identity
-            ON concept_embedding_status(model_identity_hash);
-    """)
+    for projection in (
+        EMBEDDING_MODEL_PROJECTION,
+        EMBEDDING_STATUS_PROJECTION,
+        CONCEPT_EMBEDDING_STATUS_PROJECTION,
+    ):
+        for statement in projection.ddl_statements():
+            conn.execute(statement)
+
+
+def _vec_projection(prefix: str, dimensions: int) -> VecProjection:
+    if prefix == "claim_vec":
+        table = CLAIM_VEC_PROJECTION.table
+    elif prefix == "concept_vec":
+        table = CONCEPT_VEC_PROJECTION.table
+    else:
+        table = f"{prefix}_{{model_identity_hash}}"
+    return VecProjection(
+        table=table,
+        key_column=None,
+        vector_column=ProjectionColumn("embedding", f"float[{dimensions}]", nullable=False),
+    )
+
+
+def _vec_bindings(model_identity_hash: str) -> dict[str, str]:
+    return {"model_identity_hash": model_identity_hash}
 
 
 def _ensure_vec_table(
@@ -96,9 +219,9 @@ def _ensure_vec_table(
         (table_name,),
     ).fetchone()
     if row is None:
-        conn.execute(
-            f"CREATE VIRTUAL TABLE [{table_name}] USING vec0(embedding float[{dimensions}])"
-        )
+        projection = _vec_projection(prefix, dimensions)
+        for statement in projection.ddl_statements(_vec_bindings(model_identity_hash)):
+            conn.execute(statement)
 
 
 class SidecarEmbeddingRegistry:
@@ -168,26 +291,16 @@ class _SidecarEntityEmbeddingStore:
         created_at: str,
     ) -> None:
         self._conn.execute(
-            """
-            INSERT OR REPLACE INTO embedding_model (
-                model_identity_hash,
-                provider,
-                model_name,
-                model_version,
-                content_digest,
-                dimensions,
-                created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
-            """,
-            (
-                model_identity.identity_hash,
-                model_identity.provider,
-                model_identity.model_name,
-                model_identity.model_version,
-                model_identity.content_digest,
-                dimensions,
-                created_at,
-            ),
+            EMBEDDING_MODEL_PROJECTION.insert_sql(or_replace=True),
+            EmbeddingModelProjectionRow(
+                model_identity_hash=model_identity.identity_hash,
+                provider=model_identity.provider,
+                model_name=model_identity.model_name,
+                model_version=model_identity.model_version,
+                content_digest=model_identity.content_digest,
+                dimensions=dimensions,
+                created_at=created_at,
+            ).as_insert_mapping(),
         )
         _ensure_vec_table(
             self._conn,
@@ -204,20 +317,39 @@ class _SidecarEntityEmbeddingStore:
         embedded_at: str,
     ) -> None:
         model_identity_hash = model_identity.identity_hash
-        table_name = f"{self.vec_prefix}_{model_identity_hash}"
-        self._conn.execute(f"DELETE FROM [{table_name}] WHERE rowid = ?", (entity.seq,))
+        vec_projection = _vec_projection(self.vec_prefix, 0)
+        vec_bindings = _vec_bindings(model_identity_hash)
         self._conn.execute(
-            f"INSERT INTO [{table_name}](rowid, embedding) VALUES (?, ?)",
-            (entity.seq, vector_blob),
+            vec_projection.delete_rowid_sql(vec_bindings),
+            {"rowid": entity.seq},
         )
         self._conn.execute(
-            f"INSERT OR REPLACE INTO {self.status_table} VALUES (?, ?, ?, ?)",
-            (
-                model_identity_hash,
-                entity.entity_id,
-                entity.content_hash,
-                embedded_at,
-            ),
+            vec_projection.insert_rowid_sql(vec_bindings),
+            {"rowid": entity.seq, "embedding": vector_blob},
+        )
+        status_projection = (
+            EMBEDDING_STATUS_PROJECTION
+            if self.status_table == "embedding_status"
+            else CONCEPT_EMBEDDING_STATUS_PROJECTION
+        )
+        status_mapping: Mapping[str, object]
+        if self.status_table == "embedding_status":
+            status_mapping = EmbeddingStatusProjectionRow(
+                model_identity_hash=model_identity_hash,
+                claim_id=entity.entity_id,
+                content_hash=entity.content_hash,
+                embedded_at=embedded_at,
+            ).as_insert_mapping()
+        else:
+            status_mapping = ConceptEmbeddingStatusProjectionRow(
+                model_identity_hash=model_identity_hash,
+                concept_id=entity.entity_id,
+                content_hash=entity.content_hash,
+                embedded_at=embedded_at,
+            ).as_insert_mapping()
+        self._conn.execute(
+            status_projection.insert_sql(or_replace=True),
+            status_mapping,
         )
 
     def vector_for(
@@ -524,26 +656,16 @@ class SidecarEmbeddingSnapshotStore:
         for model in snapshot.models:
             model_identity_hash = model["model_identity_hash"]
             self._conn.execute(
-                """
-                INSERT OR REPLACE INTO embedding_model (
-                    model_identity_hash,
-                    provider,
-                    model_name,
-                    model_version,
-                    content_digest,
-                    dimensions,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    model_identity_hash,
-                    model["provider"],
-                    model["model_name"],
-                    model["model_version"],
-                    model["content_digest"],
-                    model["dimensions"],
-                    model["created_at"],
-                ),
+                EMBEDDING_MODEL_PROJECTION.insert_sql(or_replace=True),
+                EmbeddingModelProjectionRow(
+                    model_identity_hash=str(model_identity_hash),
+                    provider=str(model["provider"]),
+                    model_name=str(model["model_name"]),
+                    model_version=str(model["model_version"]),
+                    content_digest=str(model["content_digest"]),
+                    dimensions=int(model["dimensions"]),
+                    created_at=str(model["created_at"]),
+                ).as_insert_mapping(),
             )
             _ensure_vec_table(
                 self._conn,
@@ -551,7 +673,9 @@ class SidecarEmbeddingSnapshotStore:
                 int(model["dimensions"]),
                 prefix="claim_vec",
             )
-            table_name = f"claim_vec_{model_identity_hash}"
+            vec_projection = _vec_projection("claim_vec", int(model["dimensions"]))
+            vec_bindings = _vec_bindings(str(model_identity_hash))
+            status_insert_sql = EMBEDDING_STATUS_PROJECTION.insert_sql(or_replace=True)
             for _old_seq, claim_id, blob in snapshot.claim_vectors.get(
                 model_identity_hash,
                 [],
@@ -568,17 +692,20 @@ class SidecarEmbeddingSnapshotStore:
                     report.stale += 1
                     continue
                 self._conn.execute(
-                    f"INSERT INTO [{table_name}](rowid, embedding) VALUES (?, ?)",
-                    (new_seq, blob),
+                    vec_projection.insert_rowid_sql(vec_bindings),
+                    {"rowid": new_seq, "embedding": blob},
                 )
                 self._conn.execute(
-                    "INSERT OR REPLACE INTO embedding_status VALUES (?, ?, ?, ?)",
-                    (
-                        model_identity_hash,
-                        claim_id,
-                        current_hash,
-                        embedded_at_lookup.get((model_identity_hash, claim_id), ""),
-                    ),
+                    status_insert_sql,
+                    EmbeddingStatusProjectionRow(
+                        model_identity_hash=str(model_identity_hash),
+                        claim_id=claim_id,
+                        content_hash=current_hash,
+                        embedded_at=embedded_at_lookup.get(
+                            (model_identity_hash, claim_id),
+                            "",
+                        ),
+                    ).as_insert_mapping(),
                 )
                 report.restored += 1
 
@@ -620,26 +747,16 @@ class SidecarEmbeddingSnapshotStore:
         for model in snapshot.models:
             model_identity_hash = model["model_identity_hash"]
             self._conn.execute(
-                """
-                INSERT OR REPLACE INTO embedding_model (
-                    model_identity_hash,
-                    provider,
-                    model_name,
-                    model_version,
-                    content_digest,
-                    dimensions,
-                    created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    model_identity_hash,
-                    model["provider"],
-                    model["model_name"],
-                    model["model_version"],
-                    model["content_digest"],
-                    model["dimensions"],
-                    model["created_at"],
-                ),
+                EMBEDDING_MODEL_PROJECTION.insert_sql(or_replace=True),
+                EmbeddingModelProjectionRow(
+                    model_identity_hash=str(model_identity_hash),
+                    provider=str(model["provider"]),
+                    model_name=str(model["model_name"]),
+                    model_version=str(model["model_version"]),
+                    content_digest=str(model["content_digest"]),
+                    dimensions=int(model["dimensions"]),
+                    created_at=str(model["created_at"]),
+                ).as_insert_mapping(),
             )
             _ensure_vec_table(
                 self._conn,
@@ -647,7 +764,11 @@ class SidecarEmbeddingSnapshotStore:
                 int(model["dimensions"]),
                 prefix="concept_vec",
             )
-            table_name = f"concept_vec_{model_identity_hash}"
+            vec_projection = _vec_projection("concept_vec", int(model["dimensions"]))
+            vec_bindings = _vec_bindings(str(model_identity_hash))
+            status_insert_sql = CONCEPT_EMBEDDING_STATUS_PROJECTION.insert_sql(
+                or_replace=True,
+            )
             for _old_seq, concept_id, blob in snapshot.concept_vectors.get(
                 model_identity_hash,
                 [],
@@ -664,16 +785,19 @@ class SidecarEmbeddingSnapshotStore:
                     report.stale += 1
                     continue
                 self._conn.execute(
-                    f"INSERT INTO [{table_name}](rowid, embedding) VALUES (?, ?)",
-                    (new_seq, blob),
+                    vec_projection.insert_rowid_sql(vec_bindings),
+                    {"rowid": new_seq, "embedding": blob},
                 )
                 self._conn.execute(
-                    "INSERT OR REPLACE INTO concept_embedding_status VALUES (?, ?, ?, ?)",
-                    (
-                        model_identity_hash,
-                        concept_id,
-                        current_hash,
-                        embedded_at_lookup.get((model_identity_hash, concept_id), ""),
-                    ),
+                    status_insert_sql,
+                    ConceptEmbeddingStatusProjectionRow(
+                        model_identity_hash=str(model_identity_hash),
+                        concept_id=concept_id,
+                        content_hash=current_hash,
+                        embedded_at=embedded_at_lookup.get(
+                            (model_identity_hash, concept_id),
+                            "",
+                        ),
+                    ).as_insert_mapping(),
                 )
                 report.restored += 1

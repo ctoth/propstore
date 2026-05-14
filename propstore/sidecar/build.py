@@ -57,6 +57,7 @@ from propstore.sidecar.diagnostics import (
     BuildDiagnosticProjectionRow,
     insert_build_diagnostic,
 )
+from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.schema import (
     create_build_diagnostics_table,
     create_claim_tables,
@@ -655,6 +656,7 @@ def _build_sidecar_locked(
             sidecar_plan.concept_rows,
         )
         create_claim_tables(conn)
+        ensure_embedding_tables(conn)
         _record_form_diagnostics(conn, form_diagnostics)
         _record_concept_diagnostics(conn, concept_diagnostics)
         _record_context_diagnostics(conn, context_diagnostics)
