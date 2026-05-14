@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -15,7 +16,7 @@ from quire.artifacts import (
     SubdirFixedFilePlacement,
     TemplateFilePlacement,
 )
-from quire.families import FamilyDeclaration, FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
+from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
 from quire.documents import (
     coerce_json_mapping,
     coerce_text_document,
@@ -536,6 +537,57 @@ def _semantic_metadata(
     return metadata
 
 
+def _family_definition(
+    *,
+    key: PropstoreFamily,
+    name: str,
+    contract_version: VersionId,
+    artifact_name: str,
+    doc_type: type[Any],
+    placement: Any,
+    artifact_contract_version: VersionId | None = None,
+    accessor: str | None = None,
+    coerce_payload: Callable[..., Any] | None = None,
+    decode_bytes: Callable[..., Any] | None = None,
+    encode_document: Callable[..., Any] | None = None,
+    render_document: Callable[..., Any] | None = None,
+    document_payload: Callable[..., Any] | None = None,
+    normalize_for_write: Callable[..., Any] | None = None,
+    validate_for_write: Callable[..., Any] | None = None,
+    scan_type: type[Any] | None = None,
+    foreign_keys: tuple[ForeignKeySpec, ...] = (),
+    identity_policy: FamilyIdentityPolicy | None = None,
+    identity_field: str | None = None,
+    reference_keys: tuple[ReferenceKey, ...] = (),
+    metadata: Mapping[str, object] | None = None,
+) -> FamilyDefinition[Any, PropstoreFamily, Any, Any]:
+    return FamilyDefinition(
+        key=key,
+        name=name,
+        contract_version=contract_version,
+        artifact_family=ArtifactFamily(
+            name=artifact_name,
+            contract_version=artifact_contract_version or contract_version,
+            doc_type=doc_type,
+            placement=placement,
+            coerce_payload=coerce_payload,
+            decode_bytes=decode_bytes,
+            encode_document=encode_document,
+            render_document=render_document,
+            document_payload=document_payload,
+            normalize_for_write=normalize_for_write,
+            validate_for_write=validate_for_write,
+            scan_type=scan_type,
+        ),
+        accessor=accessor,
+        foreign_keys=foreign_keys,
+        identity_policy=identity_policy,
+        identity_field=identity_field,
+        reference_keys=reference_keys,
+        metadata=metadata,
+    )
+
+
 PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
     name="propstore",
     contract_version=PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
@@ -562,7 +614,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             reference_keys=CONCEPT_REFERENCE_KEYS,
             metadata=_semantic_metadata(importable=True, import_order=10),
         ),
-        FamilyDeclaration(
+        _family_definition(
             key=PropstoreFamily.CONTEXTS,
             name=PropstoreFamily.CONTEXTS.value,
             contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
@@ -578,8 +630,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             identity_field="id",
             reference_keys=(ReferenceKey.field("name"),),
             metadata=_semantic_metadata(importable=True, import_order=30),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.FORMS,
             name=PropstoreFamily.FORMS.value,
             contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
@@ -594,8 +646,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             ),
             identity_field="name",
             metadata=_semantic_metadata(importable=True, import_order=30),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.PREDICATES,
             name=PropstoreFamily.PREDICATES.value,
             contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
@@ -612,8 +664,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 importable=True,
                 import_order=40,
             ),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.RULES,
             name=PropstoreFamily.RULES.value,
             contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
@@ -630,8 +682,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 importable=True,
                 import_order=50,
             ),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.RULE_SUPERIORITY,
             name=PropstoreFamily.RULE_SUPERIORITY.value,
             contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
@@ -648,8 +700,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 importable=True,
                 import_order=55,
             ),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.STANCES,
             name=PropstoreFamily.STANCES.value,
             contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
@@ -666,8 +718,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             foreign_keys=STANCE_FOREIGN_KEYS,
             identity_field="artifact_code",
             metadata=_semantic_metadata(importable=True, import_order=60),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SAMEAS,
             name=PropstoreFamily.SAMEAS.value,
             contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -681,8 +733,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 branch=PRIMARY_ARTIFACT_BRANCH,
             ),
             metadata=_semantic_metadata(importable=True, import_order=65),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.WORLDLINES,
             name=PropstoreFamily.WORLDLINES.value,
             contract_version=WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -698,7 +750,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 **_semantic_metadata(importable=True, import_order=70),
                 "trajectory_field": "journal",
             },
-        ).to_definition(),
+        ),
         FamilyDefinition(
             key=PropstoreFamily.SOURCES,
             name=PropstoreFamily.SOURCES.value,
@@ -714,7 +766,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             foreign_keys=MICROPUBLICATION_FOREIGN_KEYS,
             identity_field="artifact_id",
         ),
-        FamilyDeclaration(
+        _family_definition(
             key=PropstoreFamily.JUSTIFICATIONS,
             name=PropstoreFamily.JUSTIFICATIONS.value,
             contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
@@ -731,16 +783,16 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             foreign_keys=JUSTIFICATION_FOREIGN_KEYS,
             identity_field="artifact_code",
             reference_keys=(ReferenceKey.field("id"),),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_DOCUMENTS,
             name=PropstoreFamily.SOURCE_DOCUMENTS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_document",
             doc_type=SourceDocument,
             placement=FixedFilePlacement("source.yaml", branch=SOURCE_BRANCH),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_NOTES,
             name=PropstoreFamily.SOURCE_NOTES.value,
             contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -752,8 +804,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             encode_document=encode_text_document,
             render_document=identity_text_document,
             document_payload=identity_text_document,
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_METADATA,
             name=PropstoreFamily.SOURCE_METADATA.value,
             contract_version=SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -765,48 +817,48 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             encode_document=encode_json_mapping,
             render_document=render_json_mapping,
             document_payload=identity_json_mapping,
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_CONCEPTS,
             name=PropstoreFamily.SOURCE_CONCEPTS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_concepts",
             doc_type=SourceConceptsDocument,
             placement=FixedFilePlacement("concepts.yaml", branch=SOURCE_BRANCH),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_CLAIMS,
             name=PropstoreFamily.SOURCE_CLAIMS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_claims",
             doc_type=SourceClaimsDocument,
             placement=FixedFilePlacement("claims.yaml", branch=SOURCE_BRANCH),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_MICROPUBS,
             name=PropstoreFamily.SOURCE_MICROPUBS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_micropubs",
             doc_type=MicropublicationsFileDocument,
             placement=FixedFilePlacement("micropubs.yaml", branch=SOURCE_BRANCH),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_JUSTIFICATIONS,
             name=PropstoreFamily.SOURCE_JUSTIFICATIONS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_justifications",
             doc_type=SourceJustificationsDocument,
             placement=FixedFilePlacement("justifications.yaml", branch=SOURCE_BRANCH),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_STANCES,
             name=PropstoreFamily.SOURCE_STANCES.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_stances",
             doc_type=SourceStancesDocument,
             placement=FixedFilePlacement("stances.yaml", branch=SOURCE_BRANCH),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.SOURCE_FINALIZE_REPORTS,
             name=PropstoreFamily.SOURCE_FINALIZE_REPORTS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -818,8 +870,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 codec="safe_slug",
                 branch=SOURCE_BRANCH,
             ),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.PROPOSAL_STANCES,
             name=PropstoreFamily.PROPOSAL_STANCES.value,
             contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -832,8 +884,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 codec="colon_to_double_underscore",
                 branch=PROPOSAL_STANCE_BRANCH,
             ),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.PROPOSAL_PREDICATES,
             name=PropstoreFamily.PROPOSAL_PREDICATES.value,
             contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -846,8 +898,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 ref_field="source_paper",
                 branch=PROPOSAL_PREDICATE_BRANCH,
             ),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.PROPOSAL_RULES,
             name=PropstoreFamily.PROPOSAL_RULES.value,
             contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -860,8 +912,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 stem_ref_field="rule_id",
                 branch=PROPOSAL_RULE_BRANCH,
             ),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.CONCEPT_ALIGNMENTS,
             name=PropstoreFamily.CONCEPT_ALIGNMENTS.value,
             contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -873,8 +925,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 ref_field="slug",
                 branch=PROPOSAL_CONCEPT_BRANCH,
             ),
-        ).to_definition(),
-        FamilyDeclaration(
+        ),
+        _family_definition(
             key=PropstoreFamily.MERGE_MANIFESTS,
             name=PropstoreFamily.MERGE_MANIFESTS.value,
             contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
@@ -885,7 +937,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 ref_factory=MergeManifestRef,
                 branch=PRIMARY_ARTIFACT_BRANCH,
             ),
-        ).to_definition(),
+        ),
     ),
 )
 

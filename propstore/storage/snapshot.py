@@ -1,11 +1,11 @@
 from __future__ import annotations
 
+from contextlib import nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterator, TypeVar
 
 from quire.documents import decode_document_bytes
-from quire.git_store import MaterializeConflictError
 from propstore.families.registry import semantic_init_roots
 from propstore.storage import PROPSTORE_GIT_POLICY
 
@@ -23,6 +23,13 @@ class BranchInfo:
     kind: str
     parent_branch: str = ""
     created_at: int = 0
+
+
+class MaterializeConflictError(ValueError):
+    def __init__(self, conflict_paths: tuple[str, ...]) -> None:
+        paths = tuple(sorted(conflict_paths))
+        super().__init__(f"Materialize would overwrite local edits: {', '.join(paths)}")
+        self.conflict_paths = paths
 
 
 @dataclass(frozen=True)
@@ -126,15 +133,27 @@ class RepositorySnapshot:
             if clean and source_commit is not None
             else set()
         )
-        quire_report = git.materialize(
-            root=self.repo.root,
-            commit=commit,
-            branch=materialize_branch,
-            clean=clean,
-            clean_roots=clean_roots,
-            ignored_path=PROPSTORE_GIT_POLICY.ignores_path,
-            force=force,
+        head_guard = (
+            git.head_bound_transaction(materialize_branch)
+            if materialize_branch is not None
+            else nullcontext()
         )
+        with head_guard:
+            try:
+                quire_report = git.materialize(
+                    root=self.repo.root,
+                    commit=commit,
+                    branch=materialize_branch,
+                    clean=clean,
+                    clean_roots=clean_roots,
+                    ignored_path=PROPSTORE_GIT_POLICY.ignores_path,
+                    force=force,
+                )
+            except ValueError as exc:
+                conflict_paths = getattr(exc, "conflict_paths", None)
+                if conflict_paths is None:
+                    raise
+                raise MaterializeConflictError(tuple(str(path) for path in conflict_paths)) from exc
         skipped_ignored = (
             _ignored_clean_paths(self.repo.root, clean_roots=clean_roots, tracked_paths=tracked_paths)
             if clean
