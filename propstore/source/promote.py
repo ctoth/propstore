@@ -60,6 +60,7 @@ from propstore.provenance import (
     write_provenance_note,
 )
 from propstore.repository import Repository
+from propstore.sidecar.claims import CLAIM_CORE_PROJECTION, ClaimCoreProjectionRow
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.claim_concepts import (
     normalize_promoted_source_claim_artifact,
@@ -852,35 +853,29 @@ def _write_promotion_blocked_sidecar_rows(
             )
 
             conn.execute(
-                """
-                INSERT INTO claim_core (
-                    id, primary_logical_id, logical_ids_json, version_id,
-                    content_hash, seq, type, target_concept,
-                    source_slug, source_paper, provenance_page,
-                    provenance_json, context_id, premise_kind, branch,
-                    build_status, stage, promotion_status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    artifact_id,
-                    "",
-                    "[]",
-                    "",
-                    "",
-                    0,
-                    "promotion_blocked",
-                    None,
-                    source_paper,
-                    source_paper,
-                    0,
-                    None,
-                    None,
-                    "ordinary",
-                    source_branch,
-                    "ingested",
-                    None,
-                    "blocked",
-                ),
+                CLAIM_CORE_PROJECTION.insert_sql(),
+                ClaimCoreProjectionRow.from_claim_mapping(
+                    {
+                        "id": artifact_id,
+                        "primary_logical_id": "",
+                        "logical_ids_json": "[]",
+                        "version_id": "",
+                        "content_hash": "",
+                        "seq": 0,
+                        "type": "promotion_blocked",
+                        "target_concept": None,
+                        "source_slug": source_paper,
+                        "source_paper": source_paper,
+                        "provenance_page": 0,
+                        "provenance_json": None,
+                        "context_id": None,
+                        "premise_kind": "ordinary",
+                        "branch": source_branch,
+                        "build_status": "ingested",
+                        "stage": None,
+                        "promotion_status": "blocked",
+                    }
+                ).as_insert_mapping(),
             )
 
             for kind, detail in reasons.get(artifact_id, []):
