@@ -14,7 +14,7 @@ from propstore.repository import Repository
 from propstore.source import normalize_source_claims_payload, source_branch_name
 from propstore.source.common import load_source_document
 from tests.conftest import make_test_context_commit_entry
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 
 
 def _save_source_claims_directly(
@@ -134,8 +134,6 @@ def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_c
     )
     assert finalize.exit_code == 0, finalize.output
 
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
-
     promote = runner.invoke(
         cli,
         [
@@ -152,7 +150,12 @@ def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_c
     promoted_statements = {claim.statement for claim in promoted_claims if claim.statement}
     assert promoted_statements == {"Known concept observation."}
 
-    conn = sqlite3.connect(repo.sidecar_path)
+    store_path = materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
+    )
+    conn = sqlite3.connect(store_path)
     try:
         diagnostic_rows = conn.execute(
             """

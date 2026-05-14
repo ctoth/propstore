@@ -11,7 +11,7 @@ from propstore.repository import Repository
 from propstore.source import finalize_source_branch, promote_source_branch, source_branch_name
 from propstore.source.promote import PromotionResult
 
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 from tests.conftest import make_test_context_commit_entry
 from tests.remediation.phase_2_gates.test_T2_2s_source_promote_unresolved_concept_quarantine import (
     _save_source_claims_directly,
@@ -110,7 +110,6 @@ def test_promote_returns_in_memory_blocked_diagnostics_after_committed_mirror(
     source_name = "ws_c_partial"
     repo = _setup_source_with_blocked_claim(tmp_path, source_name=source_name)
     finalize_source_branch(repo, source_name)
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
 
     result = promote_source_branch(repo, source_name)
 
@@ -128,7 +127,12 @@ def test_promote_returns_in_memory_blocked_diagnostics_after_committed_mirror(
         for _, detail in diagnostics
     )
 
-    conn = sqlite3.connect(repo.sidecar_path)
+    store_path = materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
+    )
+    conn = sqlite3.connect(store_path)
     try:
         mirrored_rows = conn.execute(
             "SELECT id FROM claim_core WHERE branch = ? AND promotion_status = 'blocked'",

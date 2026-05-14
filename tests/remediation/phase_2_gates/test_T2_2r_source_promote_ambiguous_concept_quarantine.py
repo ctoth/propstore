@@ -10,7 +10,7 @@ from propstore.cli import cli
 from propstore.repository import Repository
 from propstore.source import source_branch_name
 from tests.conftest import make_test_context_commit_entry, normalize_concept_payloads
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import materialized_world_store_path
 
 
 def _seed_master_concept(repo: Repository, *, name: str) -> str:
@@ -155,8 +155,6 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     )
     assert finalize.exit_code == 0, finalize.output
 
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=repo.git.head_sha())
-
     promote = runner.invoke(
         cli,
         [
@@ -174,7 +172,12 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     assert promoted_statements == {"Known concept observation."}
     assert promoted_claims[0].concepts == (known_artifact_id,)
 
-    conn = sqlite3.connect(repo.sidecar_path)
+    store_path = materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
+    )
+    conn = sqlite3.connect(store_path)
     try:
         diagnostic_rows = conn.execute(
             """

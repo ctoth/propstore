@@ -42,7 +42,7 @@ from propstore.families.documents.sources import (
     SourceStancesDocument,
 )
 from propstore.source.promote import load_finalize_report
-from tests.family_helpers import build_sidecar
+from tests.family_helpers import build_sidecar, materialized_world_store_path
 
 
 def _promoted_claims(repo: Repository):
@@ -631,12 +631,6 @@ def test_promote_source_branch_does_not_block_claim_for_invalid_stance(
     assert finalize_report.status == "blocked"
     assert "missing_source:claim_zzz" in finalize_report.stance_reference_errors
 
-    # Build the primary-branch sidecar BEFORE promote. The sidecar must
-    # exist for ``promote_source_branch`` to write mirror rows for blocked
-    # claims into it.
-    head = repo.git.head_sha()
-    build_sidecar(repo, repo.sidecar_path, force=True, commit_hash=head)
-
     result = promote_source_branch(repo, source_name)
     assert result is not None, "partial promotion should return some marker, not raise"
     assert result.blocked_claims == ()
@@ -648,7 +642,12 @@ def test_promote_source_branch_does_not_block_claim_for_invalid_stance(
     assert "Second valid observation." in promoted_statements
     assert "Claim whose stance targets a missing ref." in promoted_statements
 
-    conn = sqlite3.connect(repo.sidecar_path)
+    store_path = materialized_world_store_path(
+        repo,
+        force=True,
+        commit_hash=repo.git.head_sha(),
+    )
+    conn = sqlite3.connect(store_path)
     try:
         blocked_rows = conn.execute(
             "SELECT id, branch, promotion_status FROM claim_core "
