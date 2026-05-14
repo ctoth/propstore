@@ -75,7 +75,7 @@ markers = [
 ]
 
 [tool.uv.sources]
-quire = { git = "https://github.com/ctoth/quire", rev = "1490fd0d3f9efd1a71cfd2675ada4ff55249c3b8" }
+quire = { git = "https://github.com/ctoth/quire", rev = "2edbb050721d4e8aeee8f31e0aeccf97a9561480" }
 
 [dependency-groups]
 dev = [
