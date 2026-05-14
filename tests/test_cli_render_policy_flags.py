@@ -34,16 +34,22 @@ from click.testing import CliRunner
 from propstore.cli import cli
 from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
-from propstore.families.claims.documents import ClaimDocument
+from propstore.core.claim_types import ClaimType
+from propstore.families.claims.documents import (
+    ClaimDocument,
+    ClaimLogicalIdDocument,
+    ClaimSourceDocument,
+    ProvenanceDocument,
+)
 from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
 from propstore.families.documents.sources import (
-    ClaimSourceDocument,
     SourceJustificationDocument,
 )
 from propstore.families.identity.justifications import stamp_justification_artifact_id
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import ClaimRef, ContextRef, JustificationRef, StanceRef
 from propstore.repository import Repository
+from propstore.sidecar.build import materialize_world_sidecar
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
 from propstore.world.queries import (
@@ -97,12 +103,8 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     repo.git.commit_files(adds, "Seed cli-render-policy workspace")
     repo.git.sync_worktree()
 
-    # Run pks build so the sidecar exists with current lifecycle columns.
-    runner = CliRunner()
-    sidecar = knowledge / "sidecar" / "propstore.sqlite"
-    sidecar.parent.mkdir(parents=True, exist_ok=True)
-    result = runner.invoke(cli, ["build", "-o", str(sidecar)])
-    assert result.exit_code == 0, f"Build failed: {result.output}"
+    handle, _ = materialize_world_sidecar(repo)
+    assert handle.path.exists()
     return tmp_path
 
 
@@ -113,6 +115,11 @@ def _concept_id(workspace: Path) -> str:
     aid = data.get("artifact_id")
     assert isinstance(aid, str) and aid
     return aid
+
+
+def _world_store_path(workspace: Path) -> Path:
+    handle, _ = materialize_world_sidecar(Repository.find(workspace / "knowledge"))
+    return handle.path
 
 
 def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
@@ -130,7 +137,7 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
     concept. To give the tests a reliably-visible "clean" baseline I
     also insert ``claim_fixture_final`` with default lifecycle values.
     """
-    sidecar = workspace / "knowledge" / "sidecar" / "propstore.sqlite"
+    sidecar = _world_store_path(workspace)
     conn = sqlite3.connect(sidecar)
     try:
         # Ensure a source row the claim can FK against.
@@ -150,6 +157,8 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
 
         def _insert(claim_id, *, build_status="ingested", stage=None,
                     promotion_status=None, branch="master") -> None:
+            conn.execute("DELETE FROM claim_concept_link WHERE claim_id = ?", (claim_id,))
+            conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
             conn.execute(
                 f"""
                 INSERT INTO claim_core ({base_cols}) VALUES (
@@ -214,7 +223,7 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
         conn.close()
 
 
-def _seed_authored_reasoning(repo: Repository) -> None:
+def _seed_authored_reasoning(repo: Repository, concept_aid: str) -> None:
     context_ref = ContextRef("ctx_fixture")
     repo.families.contexts.save(
         context_ref,
@@ -226,6 +235,15 @@ def _seed_authored_reasoning(repo: Repository) -> None:
             ClaimRef(claim_id),
             ClaimDocument(
                 artifact_id=claim_id,
+                logical_ids=(
+                    ClaimLogicalIdDocument(namespace="fixture", value=claim_id),
+                ),
+                version_id=f"sha256:{claim_id.encode('utf-8').hex():0<64}"[:71],
+                type=ClaimType.PARAMETER,
+                output_concept=concept_aid,
+                value=1.0,
+                unit="Hz",
+                provenance=ProvenanceDocument(paper="fixture_paper", page=1),
                 source=ClaimSourceDocument(paper="fixture_paper"),
                 context=ContextReferenceDocument(id=str(context_ref)),
                 statement=claim_id,
@@ -310,8 +328,9 @@ def _seed_authored_reasoning(repo: Repository) -> None:
 @pytest.fixture()
 def seeded_workspace(workspace: Path) -> Path:
     """Workspace + seeded lifecycle rows in the sidecar."""
-    _seed_lifecycle_rows(workspace, _concept_id(workspace))
-    _seed_authored_reasoning(Repository.find(workspace / "knowledge"))
+    concept_aid = _concept_id(workspace)
+    _seed_authored_reasoning(Repository.find(workspace / "knowledge"), concept_aid)
+    _seed_lifecycle_rows(workspace, concept_aid)
     return workspace
 
 
@@ -371,7 +390,7 @@ class TestWorldStatusFlags:
 
         repo = Repository.find(seeded_workspace / "knowledge")
         report = world_status(repo, AppWorldStatusRequest())
-        sidecar = seeded_workspace / "knowledge" / "sidecar" / "propstore.sqlite"
+        sidecar = _world_store_path(seeded_workspace)
         conn = sqlite3.connect(sidecar)
         try:
             sql_justification_count = conn.execute(
@@ -395,7 +414,7 @@ class TestWorldStatusFlags:
         assert "Claims:         1" in result.output
         assert "Predicates:     2" in result.output
         assert "Rules:          2" in result.output
-        assert "Authored justifications: 0" in result.output
+        assert "Authored justifications: 1" in result.output
         assert "Justifications:" not in result.output
         assert "Stances:        1" in result.output
         assert "Conflict witnesses:" in result.output
