@@ -6,12 +6,12 @@ from contextlib import closing
 
 import pytest
 
-from propstore.heuristic.embed import _load_vec_extension
+from propstore.families.embeddings.declaration import load_vec_extension
 
 
 def _load_or_skip(conn: sqlite3.Connection) -> None:
     try:
-        _load_vec_extension(conn)
+        load_vec_extension(conn)
     except ImportError as exc:
         pytest.skip(str(exc))
     except sqlite3.OperationalError as exc:

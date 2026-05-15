@@ -2530,9 +2530,9 @@ class TestEmbeddingSnapshotErrors:
         conn.close()
 
         with (
-            patch("propstore.heuristic.embed._load_vec_extension", MagicMock()),
+            patch("propstore.families.embeddings.declaration.load_vec_extension", MagicMock()),
             patch(
-                "propstore.heuristic.embed.extract_embeddings",
+                "propstore.families.embeddings.declaration.extract_embeddings",
                 MagicMock(side_effect=RuntimeError("snapshot boom")),
             ),
         ):

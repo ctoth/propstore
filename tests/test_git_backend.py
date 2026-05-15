@@ -1272,14 +1272,14 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     from propstore.repository import Repository
     from propstore.proposals import stance_proposal_branch
     from tests.family_helpers import materialized_world_store_path
-    import propstore.heuristic.embed as embed_mod
+    import propstore.families.embeddings.declaration as embedding_decl
     import propstore.heuristic.relate as relate_mod
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     materialized_world_store_path(repo, force=True)
 
-    monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn: None)
+    monkeypatch.setattr(embedding_decl, "load_vec_extension", lambda conn: None)
     monkeypatch.setattr(
         relate_mod,
         "relate_claim",

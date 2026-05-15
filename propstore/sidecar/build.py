@@ -694,11 +694,11 @@ def _build_sidecar_file(
     if output_path.exists():
         snapshot_conn = None
         try:
-            from propstore.heuristic.embed import _load_vec_extension, extract_embeddings
+            from propstore.families.embeddings.declaration import extract_embeddings, load_vec_extension
 
             snapshot_conn = connect_sidecar(output_path)
             snapshot_conn.row_factory = sqlite3.Row
-            _load_vec_extension(snapshot_conn)
+            load_vec_extension(snapshot_conn)
             embedding_snapshot = extract_embeddings(snapshot_conn)
             if embedding_snapshot is not None:
                 claim_count = sum(
@@ -788,10 +788,10 @@ def _build_sidecar_file(
 
             if embedding_snapshot is not None:
                 try:
-                    from propstore.heuristic.embed import _load_vec_extension, restore_embeddings
+                    from propstore.families.embeddings.declaration import load_vec_extension, restore_embeddings
 
                     conn.row_factory = sqlite3.Row
-                    _load_vec_extension(conn)
+                    load_vec_extension(conn)
                     restore_embeddings(conn, embedding_snapshot)
                     conn.row_factory = None
                 except ImportError as exc:

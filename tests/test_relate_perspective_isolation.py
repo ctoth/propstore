@@ -25,12 +25,12 @@ def _claim_db() -> sqlite3.Connection:
 
 
 def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
+    import propstore.families.embeddings.declaration as embeddings
     from propstore.heuristic import relate
-    from propstore.heuristic import embed
 
     conn = _claim_db()
-    monkeypatch.setattr(embed, "_load_vec_extension", lambda _conn: None)
-    monkeypatch.setattr(embed, "get_registered_models", lambda _conn: [{"model_name": "embedder"}])
+    monkeypatch.setattr(embeddings, "load_vec_extension", lambda _conn: None)
+    monkeypatch.setattr(embeddings, "get_registered_models", lambda _conn: [{"model_name": "embedder"}])
 
     def find_similar(_conn: sqlite3.Connection, claim_id: str, _model_name: str, *, top_k: int) -> list[dict]:
         if claim_id == "claim-a":
@@ -64,7 +64,7 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
             },
         ]
 
-    monkeypatch.setattr(embed, "find_similar", find_similar)
+    monkeypatch.setattr(embeddings, "find_similar", find_similar)
     monkeypatch.setattr(relate, "classify_stance_async", classify_stance_async)
 
     result = asyncio.run(

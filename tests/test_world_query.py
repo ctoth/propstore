@@ -989,16 +989,16 @@ class TestUnboundQueries:
         assert CONCEPT1_ID in ids
 
     def test_similar_claims_returns_typed_hits(self, world, monkeypatch):
-        import propstore.heuristic.embed as embed
+        import propstore.families.embeddings.declaration as embeddings
 
-        monkeypatch.setattr(embed, "_load_vec_extension", lambda conn: None)
+        monkeypatch.setattr(embeddings, "load_vec_extension", lambda conn: None)
         monkeypatch.setattr(
-            embed,
+            embeddings,
             "get_registered_models",
             lambda conn: [{"model_name": "test-model"}],
         )
         monkeypatch.setattr(
-            embed,
+            embeddings,
             "find_similar",
             lambda conn, claim_id, model_name, top_k=10: [
                 {
@@ -1026,16 +1026,16 @@ class TestUnboundQueries:
         ]
 
     def test_similar_concepts_returns_typed_hits(self, world, monkeypatch):
-        import propstore.heuristic.embed as embed
+        import propstore.families.embeddings.declaration as embeddings
 
-        monkeypatch.setattr(embed, "_load_vec_extension", lambda conn: None)
+        monkeypatch.setattr(embeddings, "load_vec_extension", lambda conn: None)
         monkeypatch.setattr(
-            embed,
+            embeddings,
             "get_registered_models",
             lambda conn: [{"model_name": "test-model"}],
         )
         monkeypatch.setattr(
-            embed,
+            embeddings,
             "find_similar_concepts",
             lambda conn, concept_id, model_name, top_k=10: [
                 {

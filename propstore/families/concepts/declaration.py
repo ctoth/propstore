@@ -760,10 +760,10 @@ def embed_concepts_for_request(
     if not concept_id and not embed_all:
         raise ValueError("provide a concept ID or request all concepts")
 
-    from propstore.heuristic.embed import (
-        _load_vec_extension,
+    from propstore.families.embeddings.declaration import (
         embed_concepts,
         get_registered_models,
+        load_vec_extension,
     )
     from propstore.sidecar.sqlite import connect_sidecar
 
@@ -771,7 +771,7 @@ def embed_concepts_for_request(
     conn = connect_sidecar(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
+        load_vec_extension(conn)
         ids = [resolve_sidecar_concept_id(conn, concept_id)] if concept_id else None
 
         if model == "all":
@@ -822,18 +822,18 @@ def find_similar_concept_rows(
     agree: bool = False,
     disagree: bool = False,
 ) -> list[dict[str, Any]]:
-    from propstore.heuristic.embed import (
-        _load_vec_extension,
+    from propstore.families.embeddings.declaration import (
         find_similar_concepts,
         find_similar_concepts_agree,
         find_similar_concepts_disagree,
         get_registered_models,
+        load_vec_extension,
     )
     from propstore.sidecar.sqlite import connect_sidecar
 
     conn = connect_sidecar(sidecar)
     conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
+    load_vec_extension(conn)
 
     try:
         resolved_id = resolve_sidecar_concept_id(conn, concept_id)

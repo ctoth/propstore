@@ -292,7 +292,7 @@ class TestGetRegisteredModelsOperationalError:
             real_conn, "FROM embedding_model", "database disk image is malformed"
         )
 
-        from propstore.heuristic.embed import get_registered_models
+        from propstore.families.embeddings.declaration import get_registered_models
 
         with pytest.raises(sqlite3.OperationalError, match="database disk image is malformed"):
             get_registered_models(wrapper)
@@ -317,7 +317,7 @@ class TestExtractEmbeddingsOperationalError:
             real_conn, "FROM embedding_model", "database disk image is malformed"
         )
 
-        from propstore.heuristic.embed import extract_embeddings
+        from propstore.families.embeddings.declaration import extract_embeddings
 
         with pytest.raises(sqlite3.OperationalError, match="database disk image is malformed"):
             extract_embeddings(wrapper)

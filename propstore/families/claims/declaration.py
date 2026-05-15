@@ -986,10 +986,10 @@ def embed_claims_for_request(
     if not claim_id and not embed_all:
         raise ValueError("provide a claim ID or request all claims")
 
-    from propstore.heuristic.embed import (
-        _load_vec_extension,
+    from propstore.families.embeddings.declaration import (
         embed_claims,
         get_registered_models,
+        load_vec_extension,
     )
     from propstore.sidecar.sqlite import connect_sidecar
 
@@ -998,7 +998,7 @@ def embed_claims_for_request(
     conn = connect_sidecar(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
+        load_vec_extension(conn)
         if model == "all":
             models = get_registered_models(conn)
             if not models:
@@ -1047,18 +1047,18 @@ def find_similar_claim_rows(
     agree: bool = False,
     disagree: bool = False,
 ) -> list[dict[str, Any]]:
-    from propstore.heuristic.embed import (
-        _load_vec_extension,
+    from propstore.families.embeddings.declaration import (
         find_similar,
         find_similar_agree,
         find_similar_disagree,
         get_registered_models,
+        load_vec_extension,
     )
     from propstore.sidecar.sqlite import connect_sidecar
 
     conn = connect_sidecar(sidecar)
     conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
+    load_vec_extension(conn)
 
     try:
         if agree:
@@ -1086,14 +1086,14 @@ def relate_claim_from_sidecar(
     embedding_model: str | None = None,
     top_k: int = 5,
 ) -> list[dict[str, Any]]:
-    from propstore.heuristic.embed import _load_vec_extension
+    from propstore.families.embeddings.declaration import load_vec_extension
     from propstore.heuristic.relate import relate_claim
     from propstore.sidecar.sqlite import connect_sidecar
 
     conn = connect_sidecar(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
+        load_vec_extension(conn)
         return relate_claim(conn, claim_id, model_name, embedding_model, top_k)
 
 
@@ -1105,14 +1105,14 @@ def relate_all_from_sidecar(
     concurrency: int = 20,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> dict[str, Any]:
-    from propstore.heuristic.embed import _load_vec_extension
+    from propstore.families.embeddings.declaration import load_vec_extension
     from propstore.heuristic.relate import relate_all
     from propstore.sidecar.sqlite import connect_sidecar
 
     conn = connect_sidecar(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
+        load_vec_extension(conn)
         return relate_all(
             conn,
             model_name,

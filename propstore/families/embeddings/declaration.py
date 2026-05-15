@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import dataclasses
+import importlib
 import sqlite3
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import ClassVar
 
 from quire.sqlite_vec_store import (
@@ -24,6 +25,12 @@ from propstore.core.embeddings import (
     EmbeddingEntity,
     claim_embedding_text,
     concept_embedding_text,
+)
+from propstore.heuristic.embed import (
+    _embed_entities,
+    _find_similar_agree_generic,
+    _find_similar_disagree_generic,
+    _find_similar_entities,
 )
 from propstore.families.claims.declaration import (
     CLAIM_EMBEDDING_JOIN_COLUMNS,
@@ -60,6 +67,22 @@ CONCEPT_VEC_SPEC = VecEntityStoreSpec(
 
 
 EMBEDDING_SPECS = (CLAIM_VEC_SPEC, CONCEPT_VEC_SPEC)
+
+
+def _require_sqlite_vec():
+    try:
+        return importlib.import_module("sqlite_vec")
+    except ImportError:
+        raise ImportError(
+            "sqlite-vec is required for embedding commands. "
+            "Install with: uv pip install 'propstore[embeddings]'"
+        )
+
+
+def load_vec_extension(conn: sqlite3.Connection) -> None:
+    sqlite_vec = _require_sqlite_vec()
+    conn.enable_load_extension(True)
+    sqlite_vec.load(conn)
 
 
 @dataclasses.dataclass
@@ -247,3 +270,152 @@ class SidecarEmbeddingSnapshotStore:
 
 
 _is_missing_table_error = is_missing_table_error
+
+
+def get_registered_models(conn: sqlite3.Connection) -> list[dict]:
+    """Return all registered embedding models."""
+
+    return SidecarEmbeddingRegistry(conn).get_registered_models()
+
+
+def embed_claims(
+    conn: sqlite3.Connection,
+    model_name: str,
+    claim_ids: list[str] | None = None,
+    batch_size: int = 64,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict:
+    """Generate and store embeddings for claims."""
+
+    return _embed_entities(
+        SidecarClaimEmbeddingStore(conn),
+        model_name,
+        claim_ids,
+        batch_size,
+        on_progress,
+    )
+
+
+def embed_concepts(
+    conn: sqlite3.Connection,
+    model_name: str,
+    concept_ids: list[str] | None = None,
+    batch_size: int = 64,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict:
+    """Generate and store embeddings for concepts."""
+
+    return _embed_entities(
+        SidecarConceptEmbeddingStore(conn),
+        model_name,
+        concept_ids,
+        batch_size,
+        on_progress,
+    )
+
+
+def find_similar(
+    conn: sqlite3.Connection,
+    claim_id: str,
+    model_name: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Find top-k most similar claims by embedding distance."""
+
+    return _find_similar_entities(
+        SidecarClaimEmbeddingStore(conn),
+        claim_id,
+        model_name,
+        top_k,
+    )
+
+
+def find_similar_concepts(
+    conn: sqlite3.Connection,
+    concept_id: str,
+    model_name: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Find top-k most similar concepts by embedding distance."""
+
+    return _find_similar_entities(
+        SidecarConceptEmbeddingStore(conn),
+        concept_id,
+        model_name,
+        top_k,
+    )
+
+
+def find_similar_agree(
+    conn: sqlite3.Connection,
+    claim_id: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Claims similar under all stored models."""
+
+    return _find_similar_agree_generic(
+        SidecarClaimEmbeddingStore(conn),
+        claim_id,
+        get_registered_models(conn),
+        top_k,
+    )
+
+
+def find_similar_disagree(
+    conn: sqlite3.Connection,
+    claim_id: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Claims similar under some stored models but not others."""
+
+    return _find_similar_disagree_generic(
+        SidecarClaimEmbeddingStore(conn),
+        claim_id,
+        get_registered_models(conn),
+        top_k,
+    )
+
+
+def find_similar_concepts_agree(
+    conn: sqlite3.Connection,
+    concept_id: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Concepts similar under all stored models."""
+
+    return _find_similar_agree_generic(
+        SidecarConceptEmbeddingStore(conn),
+        concept_id,
+        get_registered_models(conn),
+        top_k,
+    )
+
+
+def find_similar_concepts_disagree(
+    conn: sqlite3.Connection,
+    concept_id: str,
+    top_k: int = 10,
+) -> list[dict]:
+    """Concepts similar under some stored models but not others."""
+
+    return _find_similar_disagree_generic(
+        SidecarConceptEmbeddingStore(conn),
+        concept_id,
+        get_registered_models(conn),
+        top_k,
+    )
+
+
+def extract_embeddings(conn: sqlite3.Connection) -> EmbeddingSnapshot | None:
+    """Extract all embedding data before sidecar rebuild."""
+
+    return SidecarEmbeddingSnapshotStore(conn).extract()
+
+
+def restore_embeddings(
+    conn: sqlite3.Connection,
+    snapshot: EmbeddingSnapshot,
+) -> RestoreReport:
+    """Restore embeddings after sidecar rebuild."""
+
+    return SidecarEmbeddingSnapshotStore(conn).restore(snapshot)

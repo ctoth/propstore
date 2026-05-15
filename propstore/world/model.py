@@ -614,8 +614,8 @@ class WorldQuery(WorldStore):
 
         Requires sqlite-vec extension and pre-computed embeddings.
         """
-        from propstore.heuristic.embed import find_similar, _load_vec_extension, get_registered_models
-        _load_vec_extension(self._conn)
+        from propstore.families.embeddings.declaration import find_similar, get_registered_models, load_vec_extension
+        load_vec_extension(self._conn)
 
         if model_name is None:
             models = get_registered_models(self._conn)
@@ -639,8 +639,8 @@ class WorldQuery(WorldStore):
 
         Requires sqlite-vec extension and pre-computed embeddings.
         """
-        from propstore.heuristic.embed import find_similar_concepts, _load_vec_extension, get_registered_models
-        _load_vec_extension(self._conn)
+        from propstore.families.embeddings.declaration import find_similar_concepts, get_registered_models, load_vec_extension
+        load_vec_extension(self._conn)
 
         if model_name is None:
             models = get_registered_models(self._conn)
