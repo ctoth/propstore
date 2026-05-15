@@ -112,6 +112,28 @@ arrive. The replacement API must be generated from the single declaration, or
 import only field descriptors from it while declaring no column/type/role
 knowledge of its own.
 
+## Current Executability Verdict
+
+Status: not yet executable for production implementation.
+
+This workstream is now executable as a documentation control surface, but not
+as an implementation checklist. Phase 3 may not open until Phase 1.5, the Quire
+dependency plan, the JSON baseline, and the owner ledger are committed.
+
+Known blockers:
+
+- The scanner does not yet emit JSON or compare a committed baseline.
+- The owner ledger CSV does not exist.
+- Quire generator/catalog requirements are not yet split into ordered Quire
+  slices.
+- DDL/FTS/vector byte-equivalence baselines do not exist.
+- Request/report/read-model shape declarations are not fully classified.
+- Sidecar schema assembly files are not yet assigned final dispositions.
+- Absolute reduction metrics are not yet mechanically enforced.
+
+The goal of the next documentation slices is to remove these blockers before
+any production code is edited.
+
 ## Current Mechanical Inventory
 
 Last observed command:
@@ -254,6 +276,49 @@ Additional surface classifications:
 `propstore/core/row_types.py` importer count: 36 files. This is the blast
 radius gate for any row-type consolidation.
 
+### Missing Surfaces Found In 2026-05-15 Pass
+
+The earlier inventory was too narrow. These surfaces must be added to scanner
+coverage and to the owner ledger before implementation:
+
+- `propstore/world/queries.py`: request/report classes, sqlite error coupling,
+  and world query line/result shapes.
+- `propstore/world/types.py`: runtime reasoning/report classes including
+  `RenderPolicy`, ATMS reports, chain results, and claim views.
+- `propstore/world/model.py`: the main table-SQL read model over `meta`,
+  concepts, claims, contexts, relations, justifications, forms,
+  micropublications, diagnostics, calibration, and embedding/FTS surfaces.
+- `propstore/app/world.py`, `propstore/app/world_atms.py`,
+  `propstore/app/world_reasoning.py`, `propstore/app/world_revision.py`, and
+  `propstore/app/worldlines.py`: app-layer request/report wrappers over world
+  owner surfaces.
+- `propstore/app/claims.py`, `propstore/app/sources.py`,
+  `propstore/app/repository_history.py`, `propstore/app/contexts.py`,
+  `propstore/app/concept_views.py`, `propstore/app/claim_views.py`,
+  `propstore/app/neighborhoods.py`, `propstore/app/rules.py`, and
+  `propstore/app/forms.py`: app request/report surfaces and direct or yellow
+  sidecar coupling that were not all listed in the seed table.
+- `propstore/compiler/workflows.py`: yellow sidecar build/lint coupling and
+  embedding snapshot reports.
+- `propstore/source/promote.py`: source-local blocked-row and
+  `sidecar_mirror_ok` behavior plus projection row writing.
+- `propstore/sidecar/embedding_store.py`: embedding model/status/vector
+  declarations and sqlite-vec store policy.
+- `propstore/sidecar/world_projection.py`: aggregate schema declaration over
+  every projection table.
+- `propstore/sidecar/build.py`, `propstore/sidecar/schema.py`,
+  `propstore/sidecar/passes.py`, `propstore/sidecar/stages.py`,
+  `propstore/sidecar/authoring_lints.py`, `propstore/sidecar/claim_utils.py`,
+  `propstore/sidecar/concept_utils.py`, `propstore/sidecar/sqlite.py`,
+  `propstore/sidecar/quarantine.py`, and `propstore/sidecar/query.py`: sidecar
+  lifecycle, row-bundle, schema, lint, connection, diagnostic, and inspection
+  surfaces needing explicit final dispositions.
+- `propstore/families/registry.py`: semantic family registry details that must
+  be separated from derived-store declaration details.
+
+This list invalidates the old Phase 1 claim that there are no unclassified
+missing inventory surfaces.
+
 ## Hard Gates
 
 0. Documentation readiness gate:
@@ -324,6 +389,11 @@ radius gate for any row-type consolidation.
        slices;
      - fewer removable custom codecs for payload slices;
      - fewer app/CLI semantic row builders for presentation-boundary slices.
+   - Improvement must be measured against the committed JSON baseline, not by
+     visual inspection of markdown tables.
+   - Generated code is reported separately from handwritten production code.
+     A slice cannot claim reduction if it deletes handwritten duplication while
+     adding a larger handwritten generated-adjacent surface.
    - If a slice cannot keep a reduction, revert that slice before moving on.
 
 9. Old-path absence gate:
@@ -361,6 +431,32 @@ radius gate for any row-type consolidation.
      behind a generated catalog/API or be explicitly retained as a product
      escape hatch with zero hand-written column/table knowledge.
 
+15. Request/report collapse gate:
+   - Existing app/world request/report/read-model classes are not exempt from
+     cleanup.
+   - Each class matching `Request`, `Report`, `Result`, `Row`, `Record`,
+     `Spec`, `Line`, or `View` must be classified as one of:
+     `presentation-adapter`, `typed-query-api`, `runtime-wire-report`,
+     `runtime-reasoning-type`, `io-boundary-codec`, or
+     `delete-without-replacement`.
+   - App-layer wrappers that only restate owner-layer request fields must be
+     deleted or lowered at one named presentation adapter call site. They may
+     not be moved into another app package.
+
+16. Sidecar disposition gate:
+   - Every `propstore/sidecar/*.py` file gets one final disposition before
+     implementation: deleted, generated output, Quire-owned, retained product
+     escape hatch, or semantic owner module moved out of sidecar.
+   - A sidecar file with disposition `retained product escape hatch` may not
+     declare table names, column names, FTS fields, vector tables, or FK policy.
+
+17. FTS/vector ownership gate:
+   - `FtsProjection`, `rowid_vec_projection`, `embedding_status_projection`,
+     vector table names, embedding status tables, and embedding model tables
+     are declared by the family declaration graph plus Quire mechanics only.
+   - Handwritten FTS/vector declarations outside generated output must reach
+     zero by final completion.
+
 ## Forbidden Patterns
 
 - No compatibility wrapper, alias, fallback reader, dual path, bridge
@@ -380,18 +476,20 @@ radius gate for any row-type consolidation.
 The execution order is:
 
 1. Complete mechanical inventory coverage.
-2. Add machine-readable scanner output and freeze the baseline.
-3. Complete the machine-readable owner ledger.
-4. Land one complete family vertical prototype on concepts.
-5. Land the claims vertical after claim YAML round-trip fixtures exist.
-6. Land context, relation, micropublication, source, diagnostic, grounding, and
+2. Close the missing scanner coverage in Phase 1.5.
+3. Add machine-readable scanner output and freeze the baseline.
+4. Commit the Quire dependency plan and complete required Quire slices.
+5. Complete the machine-readable owner ledger.
+6. Land one complete family vertical prototype on concepts.
+7. Land the claims vertical after claim YAML round-trip fixtures exist.
+8. Land context, relation, micropublication, source, diagnostic, grounding, and
    rule verticals.
-7. Collapse `WorldQuery` direct SQL as the consequence of generated family
+9. Collapse `WorldQuery` direct SQL as the consequence of generated family
    query APIs.
-8. Sunset yellow derived-store coupling outside the declaration/generator owner.
-9. Rebuild or delete raw sidecar query inspection so it reads the generated
+10. Sunset yellow derived-store coupling outside the declaration/generator owner.
+11. Rebuild or delete raw sidecar query inspection so it reads the generated
    catalog and owns zero hand-written column names.
-10. Final line-count, inventory, pyright, targeted tests, and full-suite gates.
+12. Final line-count, inventory, pyright, targeted tests, and full-suite gates.
 
 Standalone red-SQL deletion is not a phase. Red SQL is removed inside the
 family vertical whose generated typed query surface replaces it. This prevents
@@ -399,7 +497,7 @@ deleting SQL into a temporary hand-written API that will be deleted again.
 
 ## Phase 1: Inventory Coverage
 
-Status: complete.
+Status: reopened.
 
 Completed evidence:
 
@@ -414,10 +512,71 @@ Completed evidence:
 
 Gate result:
 
-- There are no unclassified missing inventory surfaces in this workstream.
-- If a future slice discovers a missed category, update the scanner first,
-  commit it, rerun the scanner, and update this workstream before editing
-  production code.
+- The earlier "no unclassified missing inventory surfaces" claim was wrong.
+- Phase 1 remains blocked until Phase 1.5 is complete.
+- If a future slice discovers another missed category, update the scanner
+  first, commit it, rerun the scanner, and update this workstream before
+  editing production code.
+
+## Phase 1.5: Scanner Coverage Closure
+
+Status: pending.
+
+Add scanner detectors for:
+
+- `FtsProjection(...)` and per-field FTS source declarations.
+- `rowid_vec_projection(...)`, `embedding_status_projection(...)`, vector table
+  names, embedding status tables, and embedding model tables.
+- `ProjectionForeignKey(...)` edges, counted per edge rather than per file.
+- `ast.ClassDef` names ending in `Request`, `Report`, `Result`, `Row`,
+  `Record`, `Spec`, `Line`, or `View`.
+- `JsonReportMixin`, `to_payload`, `from_payload`, `to_dict`, `from_dict`,
+  `from_mapping`, and loose `Mapping[str, Any]`/`dict[str, Any]` boundaries.
+- `quire.*` import surfaces by file and imported symbol.
+- `propstore.sidecar.*` import surfaces by file and imported symbol.
+- Table-name token mentions outside generated/catalog/query owners.
+- Per-family overlap between source-local document fields and canonical
+  declaration fields.
+- Sidecar file disposition coverage for every `propstore/sidecar/*.py` file.
+
+Gate:
+
+- The scanner emits JSON with all categories above.
+- The JSON baseline is committed before Phase 2 opens.
+- The comparison command can fail a slice when its declared metric does not
+  improve or when generated-code growth is mixed into handwritten reduction.
+
+## Phase 1.6: Quire Dependency Plan
+
+Status: pending.
+
+Create a Quire dependency ledger in this workstream before Phase 2 opens.
+
+Required rows:
+
+- declaration-to-projection rendering API;
+- declaration-to-FTS rendering API;
+- declaration-to-vector rendering API;
+- generated row coercion API;
+- generated read-model/query API primitives;
+- runtime catalog inspection API for `propstore/sidecar/query.py`;
+- derived-store lifecycle/cache-hash API;
+- family reference/FK declaration API;
+- SQLite connection/WAL/readonly policy API;
+- schema/DDL byte-equivalence dump API.
+
+Each row names:
+
+- Quire module owner;
+- required Propstore caller;
+- blocking Propstore phase;
+- test command;
+- pushed Quire commit or tag before Propstore pins it.
+
+Gate:
+
+- No Propstore implementation slice may start while its Quire row is pending.
+- No Propstore dependency file may pin Quire to a local path.
 
 ## Phase 2: Owner Classification Ledger
 
@@ -462,6 +621,11 @@ one file. Required columns:
 - `target_descriptor`
 - `deletion_proof`
 - `pinned_tests`
+- `metric_id`
+- `baseline_count`
+- `target_count`
+- `quire_dependency_id`
+- `sidecar_disposition`
 - `slice_id`
 - `status`
 
@@ -475,6 +639,10 @@ Allowed `declaration_kind` values:
 - `cel_field`
 - `fts_source`
 - `vector_source`
+- `foreign_key`
+- `generated_catalog_entry`
+- `sidecar_lifecycle`
+- `app_request_report_shape`
 
 Allowed `current_role` values:
 
@@ -503,6 +671,7 @@ Allowed `owner_category` values:
 - `runtime-wire-report`
 - `io-boundary-codec`
 - `presentation-adapter`
+- `runtime-reasoning-type`
 - `delete-without-replacement`
 
 Ledger invariants:
@@ -519,6 +688,12 @@ Ledger invariants:
   reason.
 - Slices do not open until every field in their family is enumerated in the
   CSV.
+- Every `sidecar_disposition` is one of `deleted`, `generated-output`,
+  `quire-owned`, `retained-product-escape-hatch`, or `semantic-owner-moved`.
+- Every row with a non-empty `quire_dependency_id` references a completed Quire
+  dependency plan row before the Propstore slice opens.
+- Every row has an absolute `baseline_count` and `target_count` for its
+  `metric_id`; "fewer" is not sufficient.
 
 ### Phase-2 Surface Coverage Seed
 
@@ -537,6 +712,48 @@ This seed table is not the ledger.
 | `propstore/worldline/result_types.py` codecs | worldline runtime layer | runtime/wire report owner | runtime-wire-report | no derived-store deletion by default | N/A unless leak is proven | worldline tests | must not fold into projection metadata |
 | `propstore/families/claims/documents.py` custom `to_payload` | family document schema | `propstore/families/claims/declaration.py` | propstore-semantic-declaration | classify each method as semantic transform or removable boilerplate before deletion | `rg -n "def to_payload" propstore/families/claims/documents.py` decreases only for removable boilerplate | claim authoring/roundtrip tests | claim YAML fixtures required |
 | `propstore/families/documents/sources.py` source-local payload duplication | source document schema | `propstore/families/sources/declaration.py` | io-boundary-codec | delete only duplicate codecs that do not encode source-local semantics | `rg -n "def to_payload|dict\\[str, Any\\]" propstore/families/documents/sources.py` decreases for boilerplate only | source propose/promote tests | source-local fields are load-bearing |
+
+Mandatory ledger expansions:
+
+- `propstore/world/model.py` gets one ledger group per table it queries:
+  `meta`, `concept`, `alias`, `concept_fts`, `claim_core`,
+  `claim_concept_link`, `claim_numeric_payload`, `claim_text_payload`,
+  `claim_algorithm_payload`, `context`, `context_assumption`,
+  `context_lifting_rule`, `context_lifting_materialization`,
+  `relation_edge`, `conflict_witness`, `justification`, `micropublication`,
+  `micropublication_claim`, `parameterization`, `parameterization_group`,
+  `form`, `form_algebra`, `build_diagnostics`, embedding status, and vector
+  tables.
+- `propstore/world/queries.py` and `propstore/world/types.py` get one row per
+  request/report/result/view/line class. Rows that are true runtime reasoning
+  types are retained; rows that mirror generated query result shapes are
+  deleted or generated.
+- `propstore/app/world.py`, `propstore/app/world_atms.py`,
+  `propstore/app/world_reasoning.py`, `propstore/app/world_revision.py`, and
+  `propstore/app/worldlines.py` get rows for app wrappers. The default target
+  is deletion: CLI/app callers construct owner-layer request objects directly
+  after render-policy lowering at a single presentation adapter boundary.
+- `propstore/sidecar/embedding_store.py` gets rows for embedding model,
+  embedding status, concept embedding status, claim vector, and concept vector
+  declarations. Target owner is family declaration plus Quire vector mechanics;
+  handwritten declarations go to zero.
+- `propstore/sidecar/world_projection.py` gets a generated-catalog row. Final
+  state: deleted or generated output derived from the family registry; it may
+  not keep handwritten imports of every projection constant.
+- Every `propstore/sidecar/*.py` file gets a disposition row before Phase 3.
+  Required files include `build.py`, `schema.py`, `passes.py`, `stages.py`,
+  `authoring_lints.py`, `claim_utils.py`, `concept_utils.py`, `sqlite.py`,
+  `quarantine.py`, `query.py`, `embedding_store.py`, `world_projection.py`,
+  and each family projection module.
+- `propstore/source/promote.py` gets rows for blocked-row diagnostics,
+  `sidecar_mirror_ok`, and direct projection row writes.
+- `propstore/compiler/workflows.py`, `propstore/app/sources.py`,
+  `propstore/app/repository_history.py`, and `propstore/app/claims.py` get rows
+  for yellow sidecar materialization/build coupling.
+- `propstore/families/registry.py` gets rows separating semantic family
+  registry metadata from derived-store generation metadata.
+
+Any missing mandatory expansion row blocks Phase 3.
 
 ## Phase 3: Concept Vertical Prototype
 
@@ -578,19 +795,22 @@ Gate:
 - Generated concept row coercion is behavior-equivalent to old `ConceptRow`.
 - No hand-written concept table SQL remains outside the generator/query owner.
 
-### Slice Test Map
+### Cross-Vertical Slice Test Map
 
-| Slice | Required Focused Tests |
-| --- | --- |
-| `propstore/app/concepts/display.py` | `tests/test_concept_views.py`, `tests/test_cli.py`, concept FTS/search tests |
-| `propstore/app/concepts/mutation.py` | `tests/test_concept_views.py`, `tests/test_cli.py`, `tests/test_source_promotion_alignment.py`, concept mutation tests |
-| `propstore/app/concepts/embedding.py` | `tests/test_embed_operational_error.py`, concept embedding/similarity tests |
-| `propstore/app/claims.py` | `tests/test_claim_views.py`, `tests/test_relate_opinions.py`, claim embedding/similarity tests |
-| `propstore/source/status.py` | `tests/test_cli_source_status.py`, `tests/remediation/phase_7_race_atomicity/test_T7_5c_source_status_like_escape.py`, promotion diagnostic tests |
-| `propstore/heuristic/relate.py` | `tests/test_relate_opinions.py`, calibration/opinion tests |
-| `propstore/heuristic/calibrate.py` | `tests/test_calibrate.py`, `tests/test_relate_opinions.py` |
-| `propstore/heuristic/embed.py` | `tests/test_embed_operational_error.py`, embedding tests |
-| `propstore/merge/structured_merge.py` | merge/grounding/structured merge tests |
+This map spans all verticals. During Phase 3, only rows tagged `concept` are in
+scope.
+
+| Phase Tag | Slice | Required Focused Tests |
+| --- | --- | --- |
+| concept | `propstore/app/concepts/display.py` | `tests/test_concept_views.py`, `tests/test_cli.py`, concept FTS/search tests |
+| concept | `propstore/app/concepts/mutation.py` | `tests/test_concept_views.py`, `tests/test_cli.py`, `tests/test_source_promotion_alignment.py`, concept mutation tests |
+| concept | `propstore/app/concepts/embedding.py` | `tests/test_embed_operational_error.py`, concept embedding/similarity tests |
+| claim | `propstore/app/claims.py` | `tests/test_claim_views.py`, `tests/test_relate_opinions.py`, claim embedding/similarity tests |
+| source/diagnostic | `propstore/source/status.py` | `tests/test_cli_source_status.py`, `tests/remediation/phase_7_race_atomicity/test_T7_5c_source_status_like_escape.py`, promotion diagnostic tests |
+| claim/relation | `propstore/heuristic/relate.py` | `tests/test_relate_opinions.py`, calibration/opinion tests |
+| calibration | `propstore/heuristic/calibrate.py` | `tests/test_calibrate.py`, `tests/test_relate_opinions.py` |
+| embedding | `propstore/heuristic/embed.py` | `tests/test_embed_operational_error.py`, embedding tests |
+| relation/merge | `propstore/merge/structured_merge.py` | merge/grounding/structured merge tests |
 
 Before executing each slice, replace broad names above with exact existing test
 paths from `rg --files tests`.
@@ -619,9 +839,14 @@ Status: pending.
 
 Precondition:
 
-- Add or locate claim YAML round-trip fixtures. The current local `knowledge/`
-  checkout does not contain claim YAML files, so flat-vs-proposition claim
-  shape cannot be inferred from local sample data.
+- Add or locate at least five claim YAML round-trip fixtures under a committed
+  path named in this workstream before Phase 4 opens. The fixture set must
+  cover numeric, text, algorithm, concept-link, source-local, and contextual
+  claim shapes. The current local `knowledge/` checkout does not contain claim
+  YAML files, so flat-vs-proposition claim shape cannot be inferred from local
+  sample data.
+- Add a focused round-trip command to the Phase 4 gate once the fixture path is
+  committed. Phase 4 is blocked until that command exists and passes.
 
 Target surfaces:
 
@@ -666,6 +891,32 @@ Target surfaces:
 - grounded rules and bundle input rows;
 - calibration counts.
 
+Context ownership rule:
+
+- Context records, assumptions, parameters, perspective, and lifting rules are
+  owned by the context family declaration.
+- `context_id` in claims, micropublications, relations, diagnostics, and other
+  families is a Quire family reference/FK to the context declaration, not a
+  re-declared local semantic field.
+- Differences in current nullability are represented as per-reference
+  cardinality/optionality on the referencing field descriptor.
+
+`core/row_types.py` deletion schedule:
+
+- Current derived-store row classes in `propstore/core/row_types.py` are:
+  `ConceptRow`, `RelationshipRow`, `ClaimConceptLinkRow`, `ClaimRow`,
+  `StanceRow`, `ConflictRow`, and `ParameterizationRow`.
+- `ConceptRow` is deleted in the concept vertical.
+- `ClaimRow` and `ClaimConceptLinkRow` are deleted in the claim vertical.
+- `RelationshipRow` and `ParameterizationRow` are deleted in the
+  concept/relation/form verticals that own those projections.
+- `StanceRow` and `ConflictRow` are deleted in the relation/opinion/world
+  verticals that replace their generated query result inputs.
+- Final completion requires no derived-store row class in
+  `propstore/core/row_types.py`.
+- A slice touching `core/row_types.py` must reduce the importer count from the
+  committed baseline; otherwise the slice is reverted.
+
 Gate:
 
 - Each family follows the concept vertical template.
@@ -673,6 +924,24 @@ Gate:
   wrapper.
 - FTS/vector/query/row coercion roles are declared in the same family
   declaration slice when applicable.
+- Each family vertical must add exact old-path search gates before it opens.
+  Minimum required searches:
+  - contexts:
+    `rg -n "FROM context\\b|FROM context_assumption\\b|FROM context_lifting_rule\\b|FROM context_lifting_materialization\\b|CONTEXT_.*PROJECTION|from propstore\\.sidecar\\.contexts" propstore --glob "*.py"`
+  - relations/opinions:
+    `rg -n "FROM relation_edge\\b|FROM conflict_witness\\b|RELATION_EDGE_PROJECTION|CONFLICT_WITNESS_PROJECTION|class RelationshipRow\\b|class StanceRow\\b|class ConflictRow\\b" propstore --glob "*.py"`
+  - micropublications:
+    `rg -n "FROM micropublication\\b|FROM micropublication_claim\\b|MICROPUBLICATION_.*PROJECTION|from propstore\\.sidecar\\.micropublications" propstore --glob "*.py"`
+  - sources:
+    `rg -n "FROM source\\b|SOURCE_PROJECTION|from propstore\\.sidecar\\.sources|source-local|sidecar_mirror_ok" propstore --glob "*.py"`
+  - diagnostics/quarantine:
+    `rg -n "FROM build_diagnostics\\b|BUILD_DIAGNOSTICS_PROJECTION|from propstore\\.sidecar\\.(diagnostics|quarantine)" propstore --glob "*.py"`
+  - grounded rules:
+    `rg -n "FROM grounded_fact\\b|FROM grounded_fact_empty_predicate\\b|FROM grounded_bundle_input\\b|GROUNDED_.*PROJECTION|from propstore\\.sidecar\\.rules" propstore --glob "*.py"`
+  - calibration:
+    `rg -n "FROM calibration_counts\\b|CALIBRATION_COUNTS_PROJECTION|from propstore\\.sidecar\\.calibration" propstore --glob "*.py"`
+  - embeddings/vector:
+    `rg -n "embedding_model|embedding_status|concept_embedding_status|claim_vec|concept_vec|rowid_vec_projection|embedding_status_projection|from propstore\\.sidecar\\.embedding_store" propstore --glob "*.py"`
 
 ## Phase 6: WorldQuery and Red SQL Consequences
 
@@ -687,11 +956,23 @@ Tasks:
 - Preserve domain reasoning in world/app/heuristic modules; delete storage
   ownership only.
 
+Final state:
+
+- `propstore/world/model.py` is either deleted or reduced to non-SQL world
+  orchestration over generated family query APIs.
+- It contains zero `.execute(` calls and zero table-name SQL literals.
+- It may not remain the owner of derived-store table shape.
+- If a `WorldQuery` object survives, it is a domain read-model facade whose
+  storage access is delegated to generated family query APIs and whose table
+  coverage is proven by the ledger.
+
 Gate:
 
 - The matching old-path search gate for each family is clean outside the
   generated declaration/catalog/query owner.
 - No replacement module hand-codes derived-store table names.
+- `rg -n "conn\\.execute|_conn\\.execute|SELECT |FROM |JOIN " propstore/world/model.py`
+  has no storage red hit unless the file has been deleted.
 
 ## Phase 7: Yellow Sunset and Raw Query Catalog
 
@@ -707,6 +988,27 @@ Tasks:
 - Delete hand-written column knowledge from raw query support, or delete raw
   query support if product policy chooses that.
 
+Sidecar file disposition:
+
+- `world_projection.py`: deleted or generated output derived from the family
+  declaration registry.
+- `build.py`: retained only as derived-store lifecycle orchestration, with
+  schema/table details supplied by Quire/generator catalog APIs.
+- `schema.py`: deleted or generated output; no handwritten projection import
+  list.
+- `passes.py` and `stages.py`: deleted or reduced to semantic extraction
+  orchestration whose row bundles are generated from family declarations.
+- `embedding_store.py`: vector/status declarations move to family declaration
+  plus Quire vector mechanics; operational sqlite-vec store logic moves to
+  Quire if generic.
+- `authoring_lints.py`, `quarantine.py`, and diagnostics surfaces: generated
+  diagnostic catalog/query ownership or explicit diagnostic family declaration.
+- `claim_utils.py` and `concept_utils.py`: deleted unless every remaining
+  function is semantic extraction logic that belongs under the family package.
+- `sqlite.py`: deleted after Quire owns connection/WAL/readonly policy.
+- `query.py`: retained only as product escape hatch backed by generated runtime
+  catalog inspection, or deleted.
+
 Gate:
 
 - `propstore/sidecar/query.py` contains zero hand-written derived-store column
@@ -716,6 +1018,10 @@ Gate:
 - Projection compression is not a separate phase. Family declarations generate
   projections; if a separate compression pass is needed, the family vertical is
   incomplete.
+- `rg -n "WORLD_SIDECAR_SCHEMA|from propstore\\.sidecar\\..*import .*_PROJECTION|ProjectionTable\\(|ProjectionColumn\\(|FtsProjection\\(|rowid_vec_projection|embedding_status_projection" propstore --glob "*.py"`
+  returns only generated/declaration owner hits.
+- `rg -n "FROM (concept|alias|claim_core|context|relation_edge|build_diagnostics|embedding_model|embedding_status|concept_embedding_status)\\b" propstore/sidecar/query.py`
+  is clean if raw inspection is retained.
 
 ## Phase 8: Runtime/Wire Codec Follow-Up
 
@@ -753,6 +1059,28 @@ powershell -File scripts/run_logged_pytest.ps1 -Label typed-metadata-cleanup-tar
 powershell -File scripts/run_logged_pytest.ps1 -Label typed-metadata-cleanup-full
 ```
 
+Required reduction metrics:
+
+| Metric | Current Baseline | Final Target |
+| --- | ---: | ---: |
+| Handwritten `ProjectionColumn(...)` sites in current sidecar declaration modules | 208 observed in `propstore/sidecar` | 0 handwritten sidecar declarations; generated/declaration-owner output reported separately |
+| Handwritten `FtsProjection(...)` declarations outside generated output | at least 2 | 0 |
+| Handwritten vector/status/model declarations from `rowid_vec_projection(...)` or `embedding_status_projection(...)` outside generated output | at least 4 | 0 |
+| Handwritten `ProjectionForeignKey(...)` edges outside generated output | baseline to be emitted by JSON scanner | 0 |
+| Raw SQL score outside sidecar/generator/query owner | 188 observed outside sidecar in current inventory | 0 in app/source/heuristic/merge; 0 `.execute(` in `world/model.py` final state |
+| App/world request/report wrappers that merely restate owner-layer fields | baseline to be emitted by JSON scanner | strictly decreases per touched family; no net growth |
+| `propstore/core/row_types.py` derived-row importers | 36 observed | 0 importers of derived-store row classes |
+| `propstore.sidecar.*` imports outside declaration/generator/catalog owner | baseline to be emitted by JSON scanner | 0 except named escape hatches |
+| Table-name token mentions outside declaration/generator/query owner | baseline to be emitted by JSON scanner | 0 |
+| Repeated-field declarer count for each repeated projection field | current repeated-field table above | 1 declaring owner per field, ignoring generated output |
+| `WORLD_SIDECAR_SCHEMA` handwritten projection imports | 28 projection constants observed | 0 |
+| Codec methods in `propstore/families/` and `propstore/source/` not classified as semantic or IO boundary | families=57 and source=14 observed before classification | 0 unclassified; removable boilerplate decreases per family |
+| Handwritten generated-adjacent LOC added by cleanup slices | baseline 0 for new cleanup-owned modules | may not exceed deleted handwritten LOC in the same slice unless explicitly approved in the ledger |
+
+The final report must show baseline value, final value, and delta for every
+metric above. Raw `./propstore` LOC is tracked, but it is not enough by itself;
+handwritten production LOC and generated output LOC are reported separately.
+
 Completion requires:
 
 - all phase gates complete;
@@ -780,12 +1108,27 @@ Before production code edits:
    captures:
    - red storage leak scores by file;
    - projection column counts by file;
+   - FTS declaration counts by file;
+   - vector/status/model declaration counts by file;
+   - FK edge counts by file;
    - repeated projection field files;
    - declaration-density scores by file;
    - core row-type importers;
+   - request/report/result/row/record/spec/line/view class definitions;
+   - app/world wrapper-pair candidates;
+   - sidecar file dispositions;
+   - `propstore.sidecar.*` imports by file;
+   - `quire.*` imports by file;
+   - table-name token mentions by file;
+   - source-local-vs-canonical field overlaps;
+   - handwritten production LOC, generated LOC, and cleanup-owned
+     generated-adjacent LOC;
    - CLI request/report adapter calls;
    - test pins.
 3. Add a comparison command that fails when a completed slice does not improve
    its target metric.
+4. Add a schema/DDL baseline command that renders current projection DDL, FTS
+   DDL, vector/status table DDL, and runtime catalog tables for byte-equivalence
+   comparison.
 
 Do not hand-compare markdown tables for implementation gates.
