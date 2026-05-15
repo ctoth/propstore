@@ -58,6 +58,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 import gunray
 import msgspec
@@ -68,6 +69,9 @@ from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
 from quire.projections import ProjectionColumn, ProjectionTable
+
+if TYPE_CHECKING:
+    from propstore.repository import Repository
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
 # tuple order is the deterministic iteration order used by
@@ -513,6 +517,22 @@ def read_grounded_bundle(conn: sqlite3.Connection) -> GroundedRulesBundle:
     if bundle.sections != stored_sections:
         raise ValueError("persisted grounded facts diverge from grounded inputs")
     return bundle
+
+
+def build_runtime_grounded_bundle(
+    repo: Repository,
+    *,
+    commit_hash: str | None = None,
+) -> GroundedRulesBundle:
+    """Build the runtime grounding bundle for a repository snapshot."""
+
+    from propstore.grounding.loading import build_grounded_bundle
+
+    return build_grounded_bundle(
+        repo,
+        commit=commit_hash,
+        return_arguments=True,
+    )
 
 
 def _read_source_rules(conn: sqlite3.Connection) -> tuple[RuleDocument, ...]:

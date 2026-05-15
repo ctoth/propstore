@@ -3,10 +3,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-import tempfile
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
@@ -172,18 +170,9 @@ class _BranchSnapshotStore:
 
 
 def _read_branch_grounding_bundle(repo, commit: str | None):
-    from propstore.sidecar.build import build_grounding_sidecar
-    from propstore.families.rules.declaration import read_grounded_bundle
-    from propstore.sidecar.sqlite import connect_sidecar
+    from propstore.families.rules.declaration import build_runtime_grounded_bundle
 
-    with tempfile.TemporaryDirectory(prefix="propstore-branch-sidecar-") as temp_dir:
-        grounding_store_path = Path(temp_dir) / "propstore.sqlite"
-        build_grounding_sidecar(repo, grounding_store_path, commit_hash=commit)
-        conn = connect_sidecar(grounding_store_path)
-        try:
-            return read_grounded_bundle(conn)
-        finally:
-            conn.close()
+    return build_runtime_grounded_bundle(repo, commit_hash=commit)
 
 
 def _empty_projection() -> StructuredProjection:
