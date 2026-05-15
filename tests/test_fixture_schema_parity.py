@@ -6,7 +6,7 @@ import tests.conftest as project_conftest
 
 from propstore.sidecar import schema
 from propstore.families.micropublications.declaration import create_micropublication_tables
-from propstore.sidecar.embedding_store import ensure_embedding_tables
+from propstore.families.embeddings.declaration import ensure_embedding_tables
 from propstore.families.rules.declaration import create_grounded_fact_table
 
 

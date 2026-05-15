@@ -12,7 +12,7 @@ from typing import Protocol
 
 from propstore.core.embeddings import EmbeddingEntity
 from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
-from propstore.sidecar.embedding_store import (
+from propstore.families.embeddings.declaration import (
     EmbeddingSnapshot,
     RestoreReport,
     SidecarClaimEmbeddingStore,

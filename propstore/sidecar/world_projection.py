@@ -11,6 +11,7 @@ from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
     CLAIM_CONCEPT_LINK_PROJECTION,
     CLAIM_CORE_PROJECTION,
+    CLAIM_EMBEDDING_STATUS_PROJECTION,
     CLAIM_FTS_PROJECTION,
     CLAIM_NUMERIC_PAYLOAD_PROJECTION,
     CLAIM_TEXT_PAYLOAD_PROJECTION,
@@ -33,10 +34,9 @@ from propstore.families.contexts.declaration import (
     CONTEXT_PROJECTION,
 )
 from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
-from propstore.sidecar.embedding_store import (
+from propstore.families.embeddings.declaration import (
     CONCEPT_EMBEDDING_STATUS_PROJECTION,
     EMBEDDING_MODEL_PROJECTION,
-    EMBEDDING_STATUS_PROJECTION,
 )
 from propstore.families.micropublications.declaration import (
     MICROPUBLICATION_CLAIM_PROJECTION,
@@ -80,7 +80,7 @@ WORLD_SIDECAR_SCHEMA = create_projection_schema(
     MICROPUBLICATION_CLAIM_PROJECTION,
     CALIBRATION_COUNTS_PROJECTION,
     EMBEDDING_MODEL_PROJECTION,
-    EMBEDDING_STATUS_PROJECTION,
+    CLAIM_EMBEDDING_STATUS_PROJECTION,
     CONCEPT_EMBEDDING_STATUS_PROJECTION,
     BUILD_DIAGNOSTICS_PROJECTION,
     metadata={"projection": "propstore.world"},

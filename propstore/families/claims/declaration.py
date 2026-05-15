@@ -24,6 +24,7 @@ from quire.projections import (
     ProjectionRow,
     ProjectionTable,
 )
+from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
 from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.claim_values import (
@@ -1052,6 +1053,17 @@ CLAIM_FTS_PROJECTION = FtsProjection(
         ORDER BY c.seq
     """,
 )
+
+
+CLAIM_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
+    name="embedding_status",
+    entity_id_column="claim_id",
+    index_name="idx_embedding_status_model_identity",
+)
+
+
+CLAIM_VEC_PROJECTION = rowid_vec_projection("claim_vec_{model_identity_hash}")
+
 
 def populate_raw_id_quarantine_records(
     conn: sqlite3.Connection,

@@ -64,7 +64,7 @@ from propstore.families.diagnostics.declaration import (
     QuarantinableWriter,
     delete_promotion_blocked_diagnostics,
 )
-from propstore.sidecar.embedding_store import ensure_embedding_tables
+from propstore.families.embeddings.declaration import ensure_embedding_tables
 from propstore.sidecar.schema import (
     create_claim_tables,
     create_context_tables,

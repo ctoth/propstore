@@ -1,4 +1,4 @@
-"""Sidecar-backed embedding entity APIs."""
+"""Embedding derived-store declarations and entity APIs."""
 
 from __future__ import annotations
 
@@ -16,10 +16,8 @@ from quire.sqlite_vec_store import (
     VecEntitySnapshot,
     VecEntityStoreSpec,
     VecSnapshot,
-    embedding_status_projection,
     ensure_embedding_tables as ensure_quire_embedding_tables,
     is_missing_table_error,
-    rowid_vec_projection,
 )
 
 from propstore.core.embeddings import (
@@ -30,6 +28,8 @@ from propstore.core.embeddings import (
 from propstore.families.claims.declaration import (
     CLAIM_EMBEDDING_JOIN_COLUMNS,
     CLAIM_EMBEDDING_JOIN_SOURCE,
+    CLAIM_EMBEDDING_STATUS_PROJECTION,
+    CLAIM_VEC_PROJECTION,
     resolve_claim_embedding_entity,
     select_claim_embedding_rows,
 )
@@ -41,19 +41,9 @@ from propstore.families.concepts.declaration import (
 )
 
 
-EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
-    name="embedding_status",
-    entity_id_column="claim_id",
-    index_name="idx_embedding_status_model_identity",
-)
-
-
-CLAIM_VEC_PROJECTION = rowid_vec_projection("claim_vec_{model_identity_hash}")
-
-
 CLAIM_VEC_SPEC = VecEntityStoreSpec(
     name="claim",
-    status_projection=EMBEDDING_STATUS_PROJECTION,
+    status_projection=CLAIM_EMBEDDING_STATUS_PROJECTION,
     status_id_column="claim_id",
     vector_projection=CLAIM_VEC_PROJECTION,
     source_table="claim_core",

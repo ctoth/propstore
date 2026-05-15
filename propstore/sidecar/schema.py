@@ -70,7 +70,7 @@ from propstore.families.contexts.declaration import (
     populate_contexts as populate_context_projection_rows,
 )
 from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
-from propstore.sidecar.embedding_store import ensure_embedding_tables
+from propstore.families.embeddings.declaration import ensure_embedding_tables
 from propstore.families.micropublications.declaration import create_micropublication_tables
 from quire.projections import ProjectionColumn, ProjectionTable
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION

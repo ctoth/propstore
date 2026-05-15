@@ -7,7 +7,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.sidecar.embedding_store import ensure_embedding_tables
+from propstore.families.embeddings.declaration import ensure_embedding_tables
 
 
 def test_embedding_identity_distinguishes_punctuation_collisions() -> None:
