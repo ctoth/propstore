@@ -520,7 +520,14 @@ Gate result:
 
 ## Phase 1.5: Scanner Coverage Closure
 
-Status: pending.
+Status: complete.
+
+Committed evidence:
+
+- `d7727a54 Extend typed metadata inventory scanner`
+- `12fef069 Add typed metadata cleanup baselines`
+- `workstreams/typed-metadata-cleanup-baseline-2026-05-15.json`
+- `workstreams/typed-metadata-cleanup-cloc-baseline-2026-05-15.json`
 
 Add scanner detectors for:
 
@@ -546,9 +553,15 @@ Gate:
 - The comparison command can fail a slice when its declared metric does not
   improve or when generated-code growth is mixed into handwritten reduction.
 
+Gate result:
+
+- Passed for Phase 1.5. The baseline comparison command was verified by
+  comparing the current tree against the committed baseline for
+  `raw_sql_score_outside_sidecar`; it failed with no improvement as expected.
+
 ## Phase 1.6: Quire Dependency Plan
 
-Status: pending.
+Status: pending owner decision.
 
 Create a Quire dependency ledger in this workstream before Phase 2 opens.
 
@@ -577,6 +590,26 @@ Gate:
 
 - No Propstore implementation slice may start while its Quire row is pending.
 - No Propstore dependency file may pin Quire to a local path.
+
+### Quire Dependency Ledger
+
+| ID | Capability | Quire Owner Module | Required Propstore Caller | Blocking Propstore Phase | Test Command | Pushed Quire Commit/Tag | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| QD-001 | Declaration-to-projection rendering API | `quire.projections` plus future declaration renderer | Propstore family declaration generator | Phase 3 concept vertical | `uv run pyright propstore`; sidecar projection contract tests | TBD | pending |
+| QD-002 | Declaration-to-FTS rendering API | `quire.projections` / derived-store search primitive | concept and claim declaration generators | Phase 3 concept vertical, Phase 4 claim vertical | `powershell -File scripts/run_logged_pytest.ps1 -Label fts-declaration tests/test_sidecar_projection_fts_contract.py tests/test_concept_fts_malformed_query.py` | TBD | pending |
+| QD-003 | Declaration-to-vector rendering API | `quire.sqlite_vec_store` / vector projection primitive | concept and claim embedding declarations | Phase 3 concept vertical, Phase 4 claim vertical, embedding vertical | `powershell -File scripts/run_logged_pytest.ps1 -Label vec-declaration tests/test_sidecar_projection_vec_contract.py tests/test_no_embedding_key_collision.py tests/test_embed_operational_error.py` | TBD | pending |
+| QD-004 | Generated row coercion API | future Quire row/declaration codec module | generated family row modules replacing `propstore/core/row_types.py` | Phase 3+ row-type deletion slices | `uv run pyright propstore`; row coercion focused tests from ledger | TBD | pending |
+| QD-005 | Generated read-model/query API primitives | future Quire derived-store query module | generated family query APIs replacing app/world/source SQL | Phase 3 concept SQL deletion; Phase 6 WorldQuery collapse | `powershell -File scripts/run_logged_pytest.ps1 -Label generated-query tests/test_world_query.py tests/test_concept_views.py tests/test_claim_views.py` | TBD | pending |
+| QD-006 | Runtime catalog inspection API | future Quire runtime catalog module | `propstore/sidecar/query.py` or its replacement | Phase 7 raw query catalog | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-query tests/test_sidecar_query_read_only.py` | TBD | pending |
+| QD-007 | Derived-store lifecycle/cache-hash API | `quire.derived_store` | sidecar build/materialization replacement | Phase 7 sidecar lifecycle disposition | `powershell -File scripts/run_logged_pytest.ps1 -Label derived-store tests/test_codex5_sidecar_cache_derived_invalidation.py tests/test_build_sidecar.py` | TBD | pending |
+| QD-008 | Family reference/FK declaration API | `quire.references` / artifact family metadata | family declarations for context/claim/concept/source references | Phase 3+ FK deletion slices | `powershell -File scripts/run_logged_pytest.ps1 -Label fk-declaration tests/test_sidecar_projection_contract.py tests/test_source_promote_dangling_refs.py` | TBD | pending |
+| QD-009 | SQLite connection/WAL/readonly policy API | future Quire SQLite connection policy module | replacement for `propstore/sidecar/sqlite.py` | Phase 7 sidecar sqlite disposition | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-sqlite tests/test_sidecar_sqlite_runtime_contract.py` | TBD | pending |
+| QD-010 | Schema/DDL byte-equivalence dump API | `quire.projections` / derived-store schema renderer | baseline comparison for generated DDL/FTS/vector output | Phase 3 before generated concept DDL lands | `powershell -File scripts/run_logged_pytest.ps1 -Label ddl-equivalence tests/test_sidecar_projection_contract.py tests/test_sidecar_projection_fts_contract.py tests/test_sidecar_projection_vec_contract.py` | TBD | pending |
+
+Phase 2 may proceed with the owner ledger while these rows remain `pending`,
+but no production implementation slice may open until every row referenced by
+that slice has a pushed Quire commit/tag or is explicitly marked `not-needed`
+with evidence from the current Quire API.
 
 ## Phase 2: Owner Classification Ledger
 
