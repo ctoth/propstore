@@ -61,9 +61,15 @@ from propstore.families.concepts.declaration import (
     resolve_concept_alias,
     resolve_concept_id,
     select_all_concepts,
+    select_all_form_algebra_rows,
+    select_all_form_rows,
+    select_all_parameterizations,
     select_concept_by_id,
     select_concept_ids_for_group,
     select_concept_registry_rows,
+    select_form_algebra_rows_for_output,
+    select_parameterization_group_members,
+    select_parameterizations_for_output_concept,
     search_concept_ids,
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
@@ -574,8 +580,7 @@ class WorldQuery(WorldStore):
         return select_all_concepts(self._conn)
 
     def all_parameterizations(self) -> list[ParameterizationRow]:
-        rows = self._conn.execute("SELECT * FROM parameterization").fetchall()
-        return [ParameterizationRow.from_mapping(dict(row)) for row in rows]
+        return select_all_parameterizations(self._conn)
 
     def all_relationships(self) -> list[RelationshipRow]:
         return select_all_relationships(self._conn)
@@ -781,7 +786,7 @@ class WorldQuery(WorldStore):
     def forms_by_dimensions(self, dims: dict[str, int]) -> list[dict]:
         """Find all forms with matching SI dimensions."""
         from bridgman import dims_equal
-        rows = self._conn.execute("SELECT * FROM form").fetchall()
+        rows = select_all_form_rows(self._conn)
         results = []
         for row in rows:
             row_dims_json = row["dimensions"]
@@ -797,19 +802,16 @@ class WorldQuery(WorldStore):
 
     def form_algebra_for(self, form_name: str) -> list[dict]:
         """Get all algebra decompositions that produce *form_name*."""
-        rows = self._conn.execute(
-            "SELECT * FROM form_algebra WHERE output_form = ?", (form_name,)
-        ).fetchall()
-        return [dict(r) for r in rows]
+        return select_form_algebra_rows_for_output(self._conn, form_name)
 
     def form_algebra_using(self, form_name: str) -> list[dict]:
         """Get all algebra entries where *form_name* is an input."""
-        rows = self._conn.execute("SELECT * FROM form_algebra").fetchall()
+        rows = select_all_form_algebra_rows(self._conn)
         results = []
         for row in rows:
             input_forms = json.loads(row["input_forms"])
             if form_name in input_forms:
-                results.append(dict(row))
+                results.append(row)
         return results
 
     def stats(self) -> WorldStoreStats:
@@ -831,17 +833,10 @@ class WorldQuery(WorldStore):
     def _parameterizations_for(self, concept_id: str) -> list[ParameterizationRow]:
         """Get parameterization rows where output_concept_id matches."""
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
-        rows = self._conn.execute(
-            "SELECT * FROM parameterization WHERE output_concept_id = ?",
-            (resolved_concept_id,),
-        ).fetchall()
-        return [
-            ParameterizationRow.from_mapping(
-                dict(row),
-                output_concept_id=resolved_concept_id,
-            )
-            for row in rows
-        ]
+        return select_parameterizations_for_output_concept(
+            self._conn,
+            resolved_concept_id,
+        )
 
     def parameterizations_for(self, concept_id: str) -> list[ParameterizationRow]:
         return self._parameterizations_for(concept_id)
@@ -882,17 +877,7 @@ class WorldQuery(WorldStore):
     def _group_members(self, concept_id: str) -> list[str]:
         """Get all concept_ids in the same parameterization group."""
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
-        row = self._conn.execute(
-            "SELECT group_id FROM parameterization_group WHERE concept_id = ?",
-            (resolved_concept_id,),
-        ).fetchone()
-        if row is None:
-            return []
-        rows = self._conn.execute(
-            "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
-            (row["group_id"],),
-        ).fetchall()
-        return [r["concept_id"] for r in rows]
+        return select_parameterization_group_members(self._conn, resolved_concept_id)
 
     def group_members(self, concept_id: str) -> list[str]:
         return self._group_members(concept_id)

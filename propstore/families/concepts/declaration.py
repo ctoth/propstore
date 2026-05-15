@@ -650,6 +650,66 @@ def select_concept_ids_for_group(conn: sqlite3.Connection, group_id: int) -> set
     return {str(row["concept_id"]) for row in rows}
 
 
+def select_parameterizations_for_output_concept(
+    conn: sqlite3.Connection,
+    concept_id: str,
+) -> list[ParameterizationRow]:
+    rows = conn.execute(
+        "SELECT * FROM parameterization WHERE output_concept_id = ?",
+        (concept_id,),
+    ).fetchall()
+    return [
+        ParameterizationRow.from_mapping(
+            dict(row),
+            output_concept_id=concept_id,
+        )
+        for row in rows
+    ]
+
+
+def select_all_parameterizations(conn: sqlite3.Connection) -> list[ParameterizationRow]:
+    rows = conn.execute("SELECT * FROM parameterization").fetchall()
+    return [ParameterizationRow.from_mapping(dict(row)) for row in rows]
+
+
+def select_parameterization_group_members(
+    conn: sqlite3.Connection,
+    concept_id: str,
+) -> list[str]:
+    row = conn.execute(
+        "SELECT group_id FROM parameterization_group WHERE concept_id = ?",
+        (concept_id,),
+    ).fetchone()
+    if row is None:
+        return []
+    rows = conn.execute(
+        "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
+        (row["group_id"],),
+    ).fetchall()
+    return [str(group_row["concept_id"]) for group_row in rows]
+
+
+def select_all_form_rows(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT * FROM form").fetchall()
+    return [dict(row) for row in rows]
+
+
+def select_form_algebra_rows_for_output(
+    conn: sqlite3.Connection,
+    form_name: str,
+) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        "SELECT * FROM form_algebra WHERE output_form = ?",
+        (form_name,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def select_all_form_algebra_rows(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute("SELECT * FROM form_algebra").fetchall()
+    return [dict(row) for row in rows]
+
+
 def search_concept_ids(conn: sqlite3.Connection, query: str) -> list[dict[str, Any]]:
     rows = conn.execute(
         "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH ?",
