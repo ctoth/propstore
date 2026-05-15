@@ -38,7 +38,7 @@ from propstore.sidecar.embedding_store import (
     EMBEDDING_MODEL_PROJECTION,
     EMBEDDING_STATUS_PROJECTION,
 )
-from propstore.sidecar.micropublications import (
+from propstore.families.micropublications.declaration import (
     MICROPUBLICATION_CLAIM_PROJECTION,
     MICROPUBLICATION_PROJECTION,
 )

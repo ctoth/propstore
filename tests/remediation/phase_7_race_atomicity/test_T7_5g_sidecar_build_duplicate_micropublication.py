@@ -11,7 +11,7 @@ build pass must dedupe instead of crashing with
 """
 from __future__ import annotations
 
-from propstore.sidecar.micropublications import (
+from propstore.families.micropublications.declaration import (
     MicropublicationProjectionRow,
     create_micropublication_tables,
     populate_micropublications,

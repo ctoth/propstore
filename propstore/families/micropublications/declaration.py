@@ -1,4 +1,4 @@
-"""Micropublication SQL insertion helpers for the sidecar."""
+"""Micropublication derived-store declaration and query helpers."""
 
 from __future__ import annotations
 
@@ -11,6 +11,8 @@ from quire.projections import (
     ProjectionIndex,
     ProjectionTable,
 )
+
+from propstore.core.micropublications import ActiveMicropublication
 from propstore.sidecar.stages import MicropublicationSidecarRows
 
 
@@ -112,3 +114,39 @@ def populate_micropublications(
             continue
         seen_link_keys.add(key)
         MICROPUBLICATION_CLAIM_PROJECTION.insert_row(conn, row)
+
+
+def select_all_micropublications(
+    conn: sqlite3.Connection,
+) -> list[ActiveMicropublication]:
+    rows = conn.execute(
+        """
+        SELECT
+            mp.id AS artifact_id,
+            mp.context_id,
+            mp.assumptions_json,
+            mp.stance,
+            mp.source_slug,
+            (
+                SELECT json_group_array(mc.claim_id)
+                FROM micropublication_claim mc
+                WHERE mc.micropublication_id = mp.id
+                ORDER BY mc.seq
+            ) AS claim_ids
+        FROM micropublication mp
+        ORDER BY mp.id
+        """
+    ).fetchall()
+    return [
+        ActiveMicropublication.from_mapping(
+            {
+                "artifact_id": row["artifact_id"],
+                "context_id": row["context_id"],
+                "claim_ids": row["claim_ids"],
+                "assumptions": row["assumptions_json"],
+                "stance": row["stance"],
+                "source": row["source_slug"],
+            }
+        )
+        for row in rows
+    ]

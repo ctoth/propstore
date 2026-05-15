@@ -18,7 +18,7 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from propstore.sidecar.build import _populate_promotion_blocked_rows
-from propstore.sidecar.micropublications import create_micropublication_tables
+from propstore.families.micropublications.declaration import create_micropublication_tables
 from propstore.sidecar.schema import (
     create_tables,
     create_claim_tables,

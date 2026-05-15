@@ -68,7 +68,7 @@ from propstore.sidecar.schema import (
     populate_contexts,
     write_schema_metadata,
 )
-from propstore.sidecar.micropublications import (
+from propstore.families.micropublications.declaration import (
     create_micropublication_tables,
     populate_micropublications,
 )

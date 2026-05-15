@@ -1,0 +1,1 @@
+"""Micropublication family declaration package."""

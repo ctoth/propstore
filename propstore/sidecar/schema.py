@@ -71,7 +71,7 @@ from propstore.families.contexts.declaration import (
 )
 from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import ensure_embedding_tables
-from propstore.sidecar.micropublications import create_micropublication_tables
+from propstore.families.micropublications.declaration import create_micropublication_tables
 from quire.projections import ProjectionColumn, ProjectionTable
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION

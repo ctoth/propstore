@@ -15,7 +15,7 @@ from propstore.families.forms.stages import FormDefinition
 if TYPE_CHECKING:
     from quire.projections import ProjectionRow
     from propstore.compiler.context import CompilationContext
-    from propstore.sidecar.micropublications import (
+    from propstore.families.micropublications.declaration import (
         MicropublicationClaimProjectionRow,
         MicropublicationProjectionRow,
     )

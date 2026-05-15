@@ -5,7 +5,7 @@ import sqlite3
 import tests.conftest as project_conftest
 
 from propstore.sidecar import schema
-from propstore.sidecar.micropublications import create_micropublication_tables
+from propstore.families.micropublications.declaration import create_micropublication_tables
 from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.rules import create_grounded_fact_table
 
