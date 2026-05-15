@@ -526,6 +526,8 @@ Committed evidence:
 
 - `d7727a54 Extend typed metadata inventory scanner`
 - `12fef069 Add typed metadata cleanup baselines`
+- `66d48152 Align owner ledger inventory metrics`
+- `75f6162c Add typed metadata owner ledger`
 - `workstreams/typed-metadata-cleanup-baseline-2026-05-15.json`
 - `workstreams/typed-metadata-cleanup-cloc-baseline-2026-05-15.json`
 
@@ -613,7 +615,30 @@ with evidence from the current Quire API.
 
 ## Phase 2: Owner Classification Ledger
 
-Status: pending.
+Status: complete for mechanical inventory; pending owner review for production
+slice opening.
+
+Committed evidence:
+
+- `b8dd3dd1 Add typed metadata owner ledger generator`
+- `75f6162c Add typed metadata owner ledger`
+- `workstreams/typed-metadata-owner-ledger-2026-05-15.csv`
+- Ledger row count: 1,343.
+- Baseline summary after metric alignment:
+  - `sidecar_projection_columns`: 208
+  - `handwritten_projection_tables`: 28
+  - `handwritten_fts_projections`: 2
+  - `handwritten_vec_declarations`: 4
+  - `handwritten_fk_edges`: 21
+  - `raw_sql_score_outside_sidecar`: 188
+  - `table_name_mentions_outside_sidecar`: 544
+  - `class_surfaces_app_world`: 228
+  - `class_surfaces_total`: 326
+  - `codec_methods_families_source`: 57
+  - `codec_methods_total`: 238
+
+Phase 3 remains blocked until referenced Quire dependency rows are complete or
+marked `not-needed` with evidence.
 
 Tasks:
 
