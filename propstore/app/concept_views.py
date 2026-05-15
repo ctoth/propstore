@@ -18,7 +18,7 @@ from propstore.app.repository_views import (
     repository_view_label,
 )
 from propstore.app.world import open_app_world_model
-from propstore.core.row_types import ClaimRow
+from propstore.families.claims.declaration import ClaimRow
 from propstore.repository import Repository
 
 ConceptViewState: TypeAlias = Literal[

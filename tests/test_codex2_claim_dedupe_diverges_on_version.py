@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 
-from propstore.sidecar.claims import (
+from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
     CLAIM_CONCEPT_LINK_PROJECTION,
     CLAIM_CORE_PROJECTION,

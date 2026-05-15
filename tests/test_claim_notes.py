@@ -13,7 +13,7 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.core.row_types import coerce_claim_row
+from propstore.families.claims.declaration import coerce_claim_row
 from tests.family_helpers import build_sidecar
 from tests.family_helpers import load_claim_files
 from tests.family_helpers import world_query_from_sqlite_path

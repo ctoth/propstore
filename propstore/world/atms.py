@@ -68,14 +68,14 @@ from propstore.core.labels import (
     merge_labels,
     SupportQuality,
 )
+from propstore.families.claims.declaration import ClaimRow
 from propstore.core.row_types import (
-    ClaimRow,
+    coerce_conflict_row,
+    coerce_parameterization_row,
     ConflictRow,
     ConflictRowInput,
     ParameterizationRow,
     ParameterizationRowInput,
-    coerce_conflict_row,
-    coerce_parameterization_row,
 )
 from propstore.support_revision.projection import situated_assertion_from_active_claim
 from propstore.world.types import (

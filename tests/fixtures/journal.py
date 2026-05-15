@@ -29,7 +29,7 @@ from propstore.core.relations import (
     RoleBinding,
     RoleBindingSet,
 )
-from propstore.core.row_types import ClaimRow
+from propstore.families.claims.declaration import ClaimRow
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     EpistemicSnapshot,

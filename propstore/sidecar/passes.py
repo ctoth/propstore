@@ -57,7 +57,7 @@ from propstore.families.forms.stages import (
 )
 from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols
-from propstore.sidecar.claim_utils import (
+from propstore.families.claims.storage import (
     extract_deferred_stance_rows_with_diagnostics,
     normalize_conditions_differ,
     prepare_claim_insert_row,
@@ -74,7 +74,7 @@ from propstore.sidecar.stages import (
     RepositoryCheckedBundle,
     SidecarBuildPlan,
 )
-from propstore.sidecar.claims import (
+from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
     CLAIM_CONCEPT_LINK_PROJECTION,
     CLAIM_CORE_PROJECTION,
@@ -96,7 +96,7 @@ from propstore.sidecar.micropublications import (
 )
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SourceProjectionRow
-from propstore.sidecar.claim_utils import (
+from propstore.families.claims.storage import (
     coerce_stance_resolution,
     resolution_opinion_columns,
 )

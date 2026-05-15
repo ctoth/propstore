@@ -45,9 +45,10 @@ from propstore.families.concepts.stages import LoadedConcept, parse_concept_reco
 from propstore.families.forms.passes import register_form_pipeline, run_form_pipeline
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.grounding.loading import build_grounded_bundle
-from propstore.sidecar.claims import (
+from propstore.families.claims.declaration import (
     CLAIM_FTS_PROJECTION,
     CLAIM_CORE_PROJECTION,
+    delete_claim_core_row,
     populate_authored_justifications,
     populate_claims,
     populate_conflicts,
@@ -456,7 +457,7 @@ def _populate_promotion_blocked_rows(
                 f"DELETE FROM {table_name} WHERE claim_id = ?",
                 (claim_id,),
             )
-        conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
+        delete_claim_core_row(conn, claim_id)
         conn.execute(
             "DELETE FROM build_diagnostics "
             "WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'",

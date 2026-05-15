@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from quire.documents import convert_document_value
 
-from propstore.core.row_types import coerce_claim_row
+from propstore.families.claims.declaration import coerce_claim_row
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.registry import ClaimRef

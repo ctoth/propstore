@@ -7,7 +7,7 @@ from quire.projections import (
     create_projection_schema,
 )
 from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
-from propstore.sidecar.claims import (
+from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
     CLAIM_CONCEPT_LINK_PROJECTION,
     CLAIM_CORE_PROJECTION,

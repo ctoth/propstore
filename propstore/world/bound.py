@@ -17,15 +17,14 @@ from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_a
 from propstore.core.claim_types import ClaimType
 from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore, WorldStore
 from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_context_id
+from propstore.families.claims.declaration import ClaimRowInput, coerce_claim_row
 from propstore.core.row_types import (
-    ClaimRowInput,
-    ConflictRow,
-    ParameterizationRow,
-    StanceRow,
-    coerce_claim_row,
     coerce_conflict_row,
     coerce_parameterization_row,
     coerce_stance_row,
+    ConflictRow,
+    ParameterizationRow,
+    StanceRow,
 )
 from propstore.families.concepts.declaration import coerce_concept_row
 from propstore.core.labels import (

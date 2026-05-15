@@ -174,7 +174,7 @@ def compare_algorithm_claims(
     request: ClaimCompareRequest,
 ) -> ClaimCompareReport:
     from ast_equiv import compare as ast_compare
-    from propstore.core.row_types import coerce_claim_row
+    from propstore.families.claims.declaration import coerce_claim_row
 
     claim_a_input = world.get_claim(request.claim_a_id)
     if claim_a_input is None:

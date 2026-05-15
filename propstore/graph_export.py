@@ -11,8 +11,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.core.environment import Environment
+from propstore.families.claims.declaration import coerce_claim_row
 from propstore.core.row_types import (
-    coerce_claim_row,
     coerce_parameterization_row,
     coerce_relationship_row,
     coerce_stance_row,

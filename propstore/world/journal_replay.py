@@ -26,7 +26,8 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-from propstore.core.row_types import ClaimRow, ConflictRow, StanceRow
+from propstore.families.claims.declaration import ClaimRow
+from propstore.core.row_types import ConflictRow, StanceRow
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.projection import snapshot_to_claim_ids
 from propstore.support_revision.state import RevisionScope

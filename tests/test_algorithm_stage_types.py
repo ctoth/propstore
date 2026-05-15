@@ -7,7 +7,7 @@ import yaml
 from propstore.families.claims.documents import ClaimDocument, ClaimsFileDocument
 from tests.family_helpers import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage, to_algorithm_stage
-from propstore.core.row_types import ClaimRow
+from propstore.families.claims.declaration import ClaimRow
 from propstore.families.documents.sources import SourceClaimDocument
 
 

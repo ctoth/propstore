@@ -11,12 +11,7 @@ from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.claim_types import ClaimType
 from propstore.core.conditions import CheckedConditionSet, checked_condition_set_from_json
 from propstore.core.id_types import ClaimId, ConceptId, ContextId, LogicalId, to_concept_id
-from propstore.core.row_types import (
-    ClaimConceptLinkRow,
-    ClaimRow,
-    ClaimRowInput,
-    coerce_claim_row,
-)
+from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow, ClaimRowInput, coerce_claim_row
 
 
 @dataclass(frozen=True)

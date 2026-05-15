@@ -21,7 +21,8 @@ from propstore.app.repository_views import (
 )
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
 from propstore.core.relations import ClaimConceptLinkRole
-from propstore.core.row_types import ClaimConceptLinkRow, ClaimRow, ConceptRow
+from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow
+from propstore.families.concepts.declaration import ConceptRow
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
 

@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from propstore.core.row_types import ClaimRow
+from propstore.families.claims.declaration import ClaimRow
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.projection import snapshot_to_claim_ids
 from propstore.support_revision.scope_policy import scope_policy

@@ -56,7 +56,7 @@ from propstore.provenance import (
     write_provenance_note,
 )
 from propstore.repository import Repository
-from propstore.sidecar.claims import CLAIM_CORE_PROJECTION
+from propstore.families.claims.declaration import CLAIM_CORE_PROJECTION
 from propstore.sidecar.diagnostics import (
     BUILD_DIAGNOSTICS_PROJECTION,
 )

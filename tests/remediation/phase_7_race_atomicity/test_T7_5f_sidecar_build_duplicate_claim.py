@@ -11,7 +11,7 @@ the build pass must dedupe instead of crashing with
 """
 from __future__ import annotations
 
-from propstore.sidecar.claims import (
+from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
     CLAIM_CORE_PROJECTION,
     CLAIM_NUMERIC_PAYLOAD_PROJECTION,

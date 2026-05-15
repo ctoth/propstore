@@ -31,7 +31,7 @@ from propstore.cel_registry import (
     build_store_cel_registry,
 )
 from propstore.families.concepts.stages import ConceptRecord, parse_concept_record
-from propstore.core.row_types import ConceptRow
+from propstore.families.concepts.declaration import ConceptRow
 
 
 # ── Fixtures: concept registries ─────────────────────────────────────

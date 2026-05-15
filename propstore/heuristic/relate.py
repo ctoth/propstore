@@ -14,6 +14,11 @@ import asyncio
 import sqlite3
 from collections.abc import Callable
 
+from propstore.families.claims.declaration import (
+    select_all_claim_ids,
+    select_claim_text,
+    select_claim_texts,
+)
 from propstore.heuristic.classify import classify_stance_async
 
 
@@ -31,42 +36,12 @@ def _run_async(coro):
 
 def _get_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict | None:
     """Get claim statement/expression and source paper."""
-    row = conn.execute(
-        """
-        SELECT core.id, txt.auto_summary, txt.statement, txt.expression, core.source_paper
-        FROM claim_core AS core
-        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-        WHERE core.id = ?
-        """,
-        (claim_id,)
-    ).fetchone()
-    if not row:
-        return None
-    d = dict(row)
-    d["text"] = d.get("auto_summary") or d.get("statement") or d.get("expression") or claim_id
-    return d
+    return select_claim_text(conn, claim_id)
 
 
 def _bulk_get_claim_texts(conn: sqlite3.Connection, claim_ids: list[str]) -> dict[str, dict]:
     """Fetch claim texts for multiple IDs in a single query."""
-    if not claim_ids:
-        return {}
-    placeholders = ",".join("?" * len(claim_ids))
-    rows = conn.execute(
-        f"""
-        SELECT core.id, txt.auto_summary, txt.statement, txt.expression, core.source_paper
-        FROM claim_core AS core
-        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-        WHERE core.id IN ({placeholders})
-        """,
-        claim_ids,
-    ).fetchall()
-    result: dict[str, dict] = {}
-    for row in rows:
-        d = dict(row)
-        d["text"] = d.get("auto_summary") or d.get("statement") or d.get("expression") or d["id"]
-        result[d["id"]] = d
-    return result
+    return select_claim_texts(conn, claim_ids)
 
 
 def dedup_pairs(
@@ -204,8 +179,7 @@ async def relate_all_async(
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
         embedding_model = str(models[0]["model_name"])
 
-    all_claim_rows = conn.execute("SELECT id FROM claim_core").fetchall()
-    all_claim_ids = [row["id"] for row in all_claim_rows]
+    all_claim_ids = select_all_claim_ids(conn)
     total = len(all_claim_ids)
 
     # Bulk-fetch all claim texts upfront

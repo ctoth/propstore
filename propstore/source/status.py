@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from propstore.families.claims.declaration import select_source_promotion_claim_rows
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.common import source_branch_name
 
@@ -63,31 +64,22 @@ def inspect_source_status(store_path: Path, name: str) -> SourceStatusReport:
                 state=SourceStatusState.CLAIM_CORE_MISSING,
             )
 
-        claim_rows = conn.execute(
-            """
-            SELECT id, promotion_status
-            FROM claim_core
-            WHERE branch = ? AND promotion_status IS NOT NULL
-            ORDER BY id
-            """,
-            (branch,),
-        ).fetchall()
+        claim_rows = select_source_promotion_claim_rows(conn, branch)
 
         diagnostics_by_claim: dict[str, list[SourceStatusDiagnostic]] = {}
-        if has_diagnostics:
+        if has_diagnostics and claim_rows:
             like_pattern = f"{_escape_sql_like(branch)}:%"
+            claim_ids = [str(row["id"]) for row in claim_rows]
+            placeholders = ",".join("?" for _ in claim_ids)
             diag_rows = conn.execute(
-                """
+                f"""
                 SELECT claim_id, source_ref, diagnostic_kind, blocking, message
                 FROM build_diagnostics
                 WHERE source_kind = 'claim'
-                  AND (claim_id IN (
-                    SELECT id FROM claim_core
-                    WHERE branch = ? AND promotion_status IS NOT NULL
-                  ) OR source_ref LIKE ? ESCAPE '!')
+                  AND (claim_id IN ({placeholders}) OR source_ref LIKE ? ESCAPE '!')
                 ORDER BY id
                 """,
-                (branch, like_pattern),
+                (*claim_ids, like_pattern),
             ).fetchall()
             for diag in diag_rows:
                 claim_id = diag["claim_id"]

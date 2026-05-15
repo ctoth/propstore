@@ -322,7 +322,7 @@ class TestStanceYamlRoundTrip:
 
 class TestSidecarPopulatesOpinionColumns:
     def test_opinion_columns_from_stance_yaml(self, tmp_path):
-        from propstore.sidecar.claims import populate_stances
+        from propstore.families.claims.declaration import populate_stances
         from propstore.sidecar.passes import compile_authored_stance_sidecar_rows
 
         conn = sqlite3.connect(":memory:")
@@ -414,7 +414,7 @@ class TestSidecarPopulatesOpinionColumns:
 
 class TestSidecarHandlesOldFormatYaml:
     def test_missing_opinion_fields_become_null(self, tmp_path):
-        from propstore.sidecar.claims import populate_stances
+        from propstore.families.claims.declaration import populate_stances
         from propstore.sidecar.passes import compile_authored_stance_sidecar_rows
 
         conn = sqlite3.connect(":memory:")

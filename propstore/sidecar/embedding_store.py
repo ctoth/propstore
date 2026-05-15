@@ -27,7 +27,12 @@ from propstore.core.embeddings import (
     claim_embedding_text,
     concept_embedding_text,
 )
-from propstore.core.row_types import ClaimRow
+from propstore.families.claims.declaration import (
+    CLAIM_EMBEDDING_JOIN_COLUMNS,
+    CLAIM_EMBEDDING_JOIN_SOURCE,
+    resolve_claim_embedding_entity,
+    select_claim_embedding_rows,
+)
 from propstore.families.concepts.declaration import (
     CONCEPT_EMBEDDING_STATUS_PROJECTION,
     CONCEPT_VEC_PROJECTION,
@@ -184,74 +189,29 @@ class _SidecarEntityEmbeddingStore:
 
 class SidecarClaimEmbeddingStore(_SidecarEntityEmbeddingStore):
     spec = CLAIM_VEC_SPEC
-    join_source = """
-        (
-            SELECT
-                core.id,
-                core.seq,
-                core.type,
-                core.source_paper,
-                COALESCE(output_link.concept_id, target_link.concept_id, core.target_concept) AS concept_id,
-                txt.auto_summary,
-                txt.statement
-            FROM claim_core AS core
-            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-            LEFT JOIN claim_concept_link AS output_link
-                ON output_link.claim_id = core.id AND output_link.role = 'output'
-            LEFT JOIN claim_concept_link AS target_link
-                ON target_link.claim_id = core.id AND target_link.role = 'target'
-        )
-    """
-    join_columns = (
-        "c.id, c.type, c.auto_summary, c.statement, c.source_paper, c.concept_id"
-    )
+    join_source = CLAIM_EMBEDDING_JOIN_SOURCE
+    join_columns = CLAIM_EMBEDDING_JOIN_COLUMNS
 
     def load_entities(
         self,
         entity_ids: Sequence[str] | None = None,
     ) -> list[EmbeddingEntity]:
-        query = """
-            SELECT
-                core.id,
-                core.id AS artifact_id,
-                core.seq,
-                core.content_hash,
-                txt.auto_summary,
-                txt.statement,
-                txt.expression,
-                txt.name
-            FROM claim_core AS core
-            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-        """
-        params: tuple[str, ...] = ()
-        if entity_ids:
-            placeholders = ",".join("?" for _ in entity_ids)
-            query += f" WHERE core.id IN ({placeholders})"
-            params = tuple(entity_ids)
-        rows = self._conn.execute(query, params).fetchall()
         entities: list[EmbeddingEntity] = []
-        for row in rows:
-            claim = ClaimRow.from_mapping(dict(row))
+        for claim in select_claim_embedding_rows(self._conn, entity_ids):
             if claim.seq is None:
                 raise ValueError(f"Claim {claim.claim_id} has no sidecar sequence")
             entities.append(
                 EmbeddingEntity(
                     entity_id=str(claim.claim_id),
                     seq=claim.seq,
-                    content_hash=str(row["content_hash"]),
+                    content_hash=str(claim.attributes["content_hash"]),
                     text=claim_embedding_text(claim),
                 )
             )
         return entities
 
     def resolve_entity(self, entity_id: str) -> tuple[str, int]:
-        row = self._conn.execute(
-            "SELECT id, seq FROM claim_core WHERE id = ?",
-            (entity_id,),
-        ).fetchone()
-        if row is None:
-            raise ValueError(f"Claim {entity_id} not found")
-        return str(row["id"]), int(row["seq"])
+        return resolve_claim_embedding_entity(self._conn, entity_id)
 
 
 class SidecarConceptEmbeddingStore(_SidecarEntityEmbeddingStore):

@@ -46,13 +46,12 @@ from propstore.core.environment import (
     ConflictStore,
     Environment,
 )
+from propstore.families.claims.declaration import ClaimRowInput, coerce_claim_row
 from propstore.core.row_types import (
-    ClaimRowInput,
-    ConflictRowInput,
-    StanceRowInput,
-    coerce_claim_row,
     coerce_conflict_row,
     coerce_stance_row,
+    ConflictRowInput,
+    StanceRowInput,
 )
 from propstore.world.types import (
     ArgumentationSemantics,

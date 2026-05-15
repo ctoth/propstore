@@ -29,13 +29,13 @@ from propstore.core.conditions.registry import (
     with_standard_synthetic_bindings,
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.families.claims.declaration import coerce_claim_row
+from propstore.families.concepts.declaration import coerce_concept_row
 from propstore.core.row_types import (
-    ConflictRowInput,
-    StanceRowInput,
-    coerce_claim_row,
-    coerce_concept_row,
     coerce_conflict_row,
     coerce_stance_row,
+    ConflictRowInput,
+    StanceRowInput,
 )
 from propstore.core.store_results import (
     WorldStoreStats,

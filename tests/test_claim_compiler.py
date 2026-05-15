@@ -8,7 +8,7 @@ from propstore.families.claims.passes import compile_claim_files, run_claim_pipe
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
 from propstore.families.registry import semantic_foreign_keys
 from tests.family_helpers import build_compilation_context_from_paths, load_claim_files
-from propstore.sidecar.claim_utils import prepare_claim_insert_row
+from propstore.families.claims.storage import prepare_claim_insert_row
 from tests.conftest import (
     make_concept_registry,
     make_compilation_context,

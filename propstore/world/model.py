@@ -31,8 +31,14 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.core.row_types import (
+from propstore.families.claims.declaration import (
     ClaimRow,
+    build_claim_logical_id_index,
+    count_claims,
+    resolve_claim_id,
+    select_claim_rows,
+)
+from propstore.core.row_types import (
     ConflictRow,
     ParameterizationRow,
     RelationshipRow,
@@ -326,98 +332,8 @@ class WorldQuery(WorldStore):
 
     # ── Unbound queries ──────────────────────────────────────────────
 
-    def _claim_select_sql(self) -> str:
-        return """
-            SELECT
-                core.id,
-                core.id AS artifact_id,
-                core.primary_logical_id,
-                core.logical_ids_json,
-                core.version_id,
-                core.seq,
-                core.type,
-                num.value,
-                num.lower_bound,
-                num.upper_bound,
-                num.uncertainty,
-                num.uncertainty_type,
-                num.sample_size,
-                num.unit,
-                txt.conditions_cel,
-                txt.conditions_ir,
-                txt.statement,
-                txt.expression,
-                txt.sympy_generated,
-                txt.sympy_error,
-                txt.name,
-                core.target_concept,
-                txt.measure,
-                txt.listener_population,
-                txt.methodology,
-                txt.notes,
-                txt.description,
-                txt.auto_summary,
-                alg.body,
-                alg.canonical_ast,
-                alg.variables_json,
-                alg.algorithm_stage,
-                core.source_slug,
-                core.source_paper,
-                src.source_id AS source_id,
-                src.kind AS source_kind,
-                src.origin_type AS source_origin_type,
-                src.origin_value AS source_origin_value,
-                src.origin_retrieved AS source_origin_retrieved,
-                src.origin_content_ref AS source_origin_content_ref,
-                src.prior_base_rate AS source_prior_base_rate,
-                src.quality_json AS source_quality_json,
-                src.derived_from_json AS source_derived_from_json,
-                core.provenance_page,
-                core.provenance_json,
-                num.value_si,
-                num.lower_bound_si,
-                num.upper_bound_si,
-                core.context_id,
-                core.branch,
-                core.build_status,
-                core.stage,
-                core.promotion_status
-            FROM claim_core AS core
-            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
-            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-            LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
-            LEFT JOIN source AS src ON src.slug = core.source_slug
-        """
-
     def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[ClaimRow]:
-        rows = self._conn.execute(
-            f"{self._claim_select_sql()} {where_sql}",
-            params,
-        ).fetchall()
-        row_dicts = [dict(row) for row in rows]
-        if not row_dicts:
-            return []
-        claim_ids = [
-            str(row_dict["id"])
-            for row_dict in row_dicts
-            if isinstance(row_dict.get("id"), str)
-        ]
-        links_by_claim_id: dict[str, list[dict[str, Any]]] = {claim_id: [] for claim_id in claim_ids}
-        placeholders = ",".join("?" for _ in claim_ids)
-        link_rows = self._conn.execute(
-            f"""
-            SELECT claim_id, concept_id, role, ordinal, binding_name
-            FROM claim_concept_link
-            WHERE claim_id IN ({placeholders})
-            ORDER BY claim_id, ordinal, concept_id
-            """,  # noqa: S608
-            tuple(claim_ids),
-        ).fetchall()
-        for link_row in link_rows:
-            links_by_claim_id.setdefault(str(link_row["claim_id"]), []).append(dict(link_row))
-        for row_dict in row_dicts:
-            row_dict["concept_links"] = links_by_claim_id.get(str(row_dict["id"]), [])
-        return [ClaimRow.from_mapping(row_dict) for row_dict in row_dicts]
+        return select_claim_rows(self._conn, where_sql, params)
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
         concept = select_concept_by_id(self._conn, concept_id)
@@ -471,35 +387,9 @@ class WorldQuery(WorldStore):
 
         if table not in ("claim_core", "concept"):
             raise ValueError(f"unsupported logical-id table: {table}")
-        index: dict[str, str] = {}
         if table == "concept":
             return build_concept_logical_id_index(self._conn)
-        rows = self._conn.execute(
-            f"SELECT id, primary_logical_id, logical_ids_json FROM {table}"  # noqa: S608
-        ).fetchall()
-        for row in rows:
-            artifact_id = row["id"]
-            primary_logical_id = row["primary_logical_id"]
-            if isinstance(primary_logical_id, str) and primary_logical_id:
-                index.setdefault(primary_logical_id, artifact_id)
-            logical_ids_json = row["logical_ids_json"]
-            if not isinstance(logical_ids_json, str) or not logical_ids_json:
-                continue
-            try:
-                logical_ids = json.loads(logical_ids_json)
-            except json.JSONDecodeError:
-                continue
-            if not isinstance(logical_ids, list):
-                continue
-            for entry in logical_ids:
-                if not isinstance(entry, dict):
-                    continue
-                namespace = entry.get("namespace")
-                value = entry.get("value")
-                if isinstance(namespace, str) and isinstance(value, str):
-                    index.setdefault(f"{namespace}:{value}", artifact_id)
-                    index.setdefault(value, artifact_id)
-        return index
+        return build_claim_logical_id_index(self._conn)
 
     def _get_claim_logical_id_index(self) -> dict[str, str]:
         if self._claim_logical_id_index is None:
@@ -517,21 +407,11 @@ class WorldQuery(WorldStore):
 
     def resolve_claim(self, name: str) -> str | None:
         """Resolve a claim by artifact ID or logical ID."""
-        row = self._conn.execute(
-            "SELECT id FROM claim_core WHERE id = ?",
-            (name,),
-        ).fetchone()
-        if row is not None:
-            return row["id"]
-
-        row = self._conn.execute(
-            "SELECT id FROM claim_core WHERE primary_logical_id = ?",
-            (name,),
-        ).fetchone()
-        if row is not None:
-            return row["id"]
-
-        return self._get_claim_logical_id_index().get(name)
+        return resolve_claim_id(
+            self._conn,
+            name,
+            logical_id_index=self._get_claim_logical_id_index(),
+        )
 
     def resolve_alias(self, alias: str) -> str | None:
         return resolve_concept_alias(self._conn, alias)
@@ -1141,7 +1021,7 @@ class WorldQuery(WorldStore):
 
     def stats(self) -> WorldStoreStats:
         concepts = count_concepts(self._conn)
-        claims = self._conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
+        claims = count_claims(self._conn)
         conflicts = self._conn.execute("SELECT COUNT(*) FROM conflict_witness").fetchone()[0]
         return WorldStoreStats(
             concepts=int(concepts),

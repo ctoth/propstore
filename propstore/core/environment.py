@@ -20,8 +20,8 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
+from propstore.families.claims.declaration import ClaimRowInput
 from propstore.core.row_types import (
-    ClaimRowInput,
     ConflictRowInput,
     ParameterizationRowInput,
     RelationshipRowInput,

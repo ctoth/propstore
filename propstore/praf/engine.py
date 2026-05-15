@@ -17,7 +17,7 @@ from argumentation.probabilistic import (
     summarize_defeat_relations as _summarize_defeat_probabilities,
 )
 
-from propstore.core.row_types import ClaimRow, ClaimRowInput, coerce_claim_row
+from propstore.families.claims.declaration import ClaimRow, ClaimRowInput, coerce_claim_row
 from propstore.opinion import Opinion, W, discount, from_probability
 from propstore.probabilistic_relations import ProbabilisticRelation, relation_from_row
 from propstore.provenance import Provenance, ProvenanceStatus

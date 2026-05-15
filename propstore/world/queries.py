@@ -429,7 +429,7 @@ def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
 
 
 def world_claim_display_id(claim: Mapping[str, object] | Any) -> str:
-    from propstore.core.row_types import coerce_claim_row
+    from propstore.families.claims.declaration import coerce_claim_row
 
     row = coerce_claim_row(claim)
     logical_id = row.primary_logical_id
@@ -460,7 +460,7 @@ def query_world_concept(
     world: WorldQuery,
     request: WorldConceptQueryRequest,
 ) -> WorldConceptQueryReport:
-    from propstore.core.row_types import coerce_claim_row
+    from propstore.families.claims.declaration import coerce_claim_row
     from propstore.families.concepts.declaration import coerce_concept_row
 
     resolved, resolved_from = _resolve_world_query_target(world, request.target)
@@ -552,7 +552,7 @@ def explain_world_claim(
     world: WorldQuery,
     request: WorldExplainRequest,
 ) -> WorldExplainReport:
-    from propstore.core.row_types import coerce_claim_row
+    from propstore.families.claims.declaration import coerce_claim_row
 
     claim_input = world.get_claim(request.claim_id)
     if claim_input is None:
@@ -598,7 +598,7 @@ def list_world_algorithms(
 ) -> WorldAlgorithmsReport:
     from propstore.core.algorithm_stage import coerce_algorithm_stage
     from propstore.core.claim_types import ClaimType
-    from propstore.core.row_types import coerce_claim_row
+    from propstore.families.claims.declaration import coerce_claim_row
 
     claims = [coerce_claim_row(claim) for claim in world.claims_for(None)]
     algorithms = [claim for claim in claims if claim.claim_type is ClaimType.ALGORITHM]

@@ -114,11 +114,10 @@ knowledge of its own.
 
 ## Current Executability Verdict
 
-Status: executable through the Phase 4 claim vertical.
+Status: executable through Phase 5 family verticals.
 
-Phase 3 is complete. Phase 4 may open because the claim round-trip fixture
-path and focused fixture gate are now defined. Phase 7 remains blocked on
-QD-006 and QD-009.
+Phase 3 and Phase 4 are complete. Phase 5 family verticals may open using the
+old-path searches below. Phase 7 remains blocked on QD-006 and QD-009.
 
 Closed pre-production blockers:
 
@@ -932,7 +931,7 @@ slice is not complete.
 
 ## Phase 4: Claim Vertical
 
-Status: preconditions complete; claim vertical pending.
+Status: complete.
 
 Precondition:
 

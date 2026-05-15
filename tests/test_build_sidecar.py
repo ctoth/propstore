@@ -2136,7 +2136,7 @@ class TestAlgorithmBindings:
 class TestClaimProjectionRows:
     def test_prepare_claim_insert_row_returns_dict(self):
         """_prepare_claim_insert_row should return a dict with named columns."""
-        from propstore.sidecar.claim_utils import prepare_claim_insert_row
+        from propstore.families.claims.storage import prepare_claim_insert_row
 
         claim = {
             "id": "test_claim1",
@@ -2153,7 +2153,7 @@ class TestClaimProjectionRows:
 
     def test_prepare_claim_insert_row_has_all_columns(self):
         """The returned dict should have entries for every claim table column."""
-        from propstore.sidecar.claim_utils import prepare_claim_insert_row
+        from propstore.families.claims.storage import prepare_claim_insert_row
 
         claim = {
             "id": "test_claim1",
@@ -2263,7 +2263,7 @@ class TestExtractNumericClaimFieldsFloatSafety:
         Current code: float('N/A') raises ValueError.
         Expected: graceful handling — return None for the value field.
         """
-        from propstore.sidecar.claim_utils import extract_numeric_claim_fields
+        from propstore.families.claims.storage import extract_numeric_claim_fields
 
         claim = {"value": "N/A", "unit": "Hz"}
         # This should NOT raise — non-numeric values should be handled gracefully
@@ -2275,7 +2275,7 @@ class TestExtractNumericClaimFieldsFloatSafety:
 
     def test_non_numeric_value_in_prepare_row_does_not_crash(self):
         """End-to-end: _prepare_claim_insert_row with value='N/A' must not crash."""
-        from propstore.sidecar.claim_utils import prepare_claim_insert_row
+        from propstore.families.claims.storage import prepare_claim_insert_row
 
         claim = {
             "id": "crash_claim",
@@ -2296,7 +2296,7 @@ class TestExtractNumericClaimFieldsFloatSafety:
 
     def test_empty_string_value_does_not_crash(self):
         """A claim with value='' (empty string) must not crash."""
-        from propstore.sidecar.claim_utils import extract_numeric_claim_fields
+        from propstore.families.claims.storage import extract_numeric_claim_fields
 
         claim = {"value": "", "unit": "Hz"}
         result = extract_numeric_claim_fields(claim)
@@ -2306,7 +2306,7 @@ class TestExtractNumericClaimFieldsFloatSafety:
 
     def test_numeric_string_still_works(self):
         """A claim with a valid numeric string must still convert correctly."""
-        from propstore.sidecar.claim_utils import extract_numeric_claim_fields
+        from propstore.families.claims.storage import extract_numeric_claim_fields
 
         claim = {"value": "42.5", "unit": "Hz"}
         result = extract_numeric_claim_fields(claim)

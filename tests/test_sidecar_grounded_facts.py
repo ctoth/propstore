@@ -7,7 +7,7 @@ persists the four Garcia sections (``yes`` / ``no`` /
 SQLite store.
 
 Target module: ``propstore.sidecar.rules`` (new). Chosen over
-extending ``propstore.sidecar.claims`` because the existing sidecar
+extending ``propstore.families.claims.declaration`` because the existing sidecar
 convention is one topic module per subsystem (``claims.py``,
 ``concepts.py``, ``sources.py``); grounded facts are their own topic
 and deserve their own module. Schema creation helper also lives in

@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from propstore.core.id_types import ConceptId, ContextId, to_concept_id
-from propstore.core.row_types import coerce_claim_row
+from propstore.families.claims.declaration import coerce_claim_row
 from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
