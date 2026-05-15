@@ -101,9 +101,13 @@ async def relate_claim_async(
 
     Single-pass bidirectional classification — each LLM call returns both A->B and B->A.
     """
-    from propstore.heuristic.embed import find_similar, get_registered_models, _load_vec_extension
+    from propstore.families.embeddings.declaration import (
+        find_similar,
+        get_registered_models,
+        load_vec_extension,
+    )
 
-    _load_vec_extension(conn)
+    load_vec_extension(conn)
 
     if embedding_model is None:
         models = get_registered_models(conn)
@@ -169,9 +173,13 @@ async def relate_all_async(
     on_progress: Callable[[int, int], None] | None,
 ) -> dict:
     """Classify relationships for all claims with concurrent bidirectional LLM calls."""
-    from propstore.heuristic.embed import find_similar, get_registered_models, _load_vec_extension
+    from propstore.families.embeddings.declaration import (
+        find_similar,
+        get_registered_models,
+        load_vec_extension,
+    )
 
-    _load_vec_extension(conn)
+    load_vec_extension(conn)
 
     if embedding_model is None:
         models = get_registered_models(conn)
