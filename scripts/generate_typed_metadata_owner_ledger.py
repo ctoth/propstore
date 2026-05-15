@@ -237,10 +237,16 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
                 )
         for class_name in file_record.get("class_surfaces", []):
             owner_category = "typed-query-api"
+            metric_id = "class_surfaces_total"
+            target_count = summary.get("class_surfaces_total", 0)
             if path.startswith("propstore/worldline/") or path.startswith("propstore/support_revision/"):
                 owner_category = "runtime-wire-report"
             elif path.startswith("propstore/app/"):
                 owner_category = "presentation-adapter"
+                metric_id = "class_surfaces_app_world"
+                target_count = 0
+            elif path.startswith("propstore/world/"):
+                metric_id = "class_surfaces_app_world"
             rows.append(
                 _row(
                     data=data,
@@ -248,13 +254,18 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
                     declaring_file=path,
                     declaration_kind="app_request_report_shape",
                     owner_category=owner_category,
-                    metric_id="class_surfaces_app_world",
-                    baseline_count=summary.get("class_surfaces_app_world", 0),
-                    target_count=0 if owner_category == "presentation-adapter" else summary.get("class_surfaces_app_world", 0),
+                    metric_id=metric_id,
+                    baseline_count=summary.get(metric_id, 0),
+                    target_count=target_count,
                     quire_dependency_id="",
                 )
             )
         for method_name in file_record.get("codec_methods", []):
+            metric_id = "codec_methods_total"
+            target_count = summary.get(metric_id, 0)
+            if path.startswith("propstore/families/") or path.startswith("propstore/source/"):
+                metric_id = "codec_methods_families_source"
+                target_count = 0
             rows.append(
                 _row(
                     data=data,
@@ -262,9 +273,9 @@ def build_rows(data: dict[str, Any]) -> list[dict[str, str]]:
                     declaring_file=path,
                     declaration_kind="family_payload_field",
                     owner_category="io-boundary-codec" if "source" in path else "propstore-semantic-declaration",
-                    metric_id="codec_methods_families_source",
-                    baseline_count=summary.get("codec_methods_families_source", 0),
-                    target_count=0,
+                    metric_id=metric_id,
+                    baseline_count=summary.get(metric_id, 0),
+                    target_count=target_count,
                     quire_dependency_id="",
                 )
             )

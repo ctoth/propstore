@@ -410,7 +410,9 @@ def _summary_metrics(items: list[FileInventory], root: Path) -> dict[str, int]:
         "sidecar_import_count_outside_sidecar": sum(item.sidecar_imports for item in non_sidecar_items),
         "quire_importers": sum(1 for item in propstore_items if item.quire_imports),
         "table_name_mentions_outside_sidecar": sum(len(item.table_name_mentions) for item in non_sidecar_items),
+        "class_surfaces_total": sum(len(item.class_surfaces) for item in propstore_items),
         "class_surfaces_app_world": app_world_wrapper_classes,
+        "codec_methods_total": sum(len(item.codec_methods) for item in propstore_items),
         "codec_methods_families_source": sum(
             len(item.codec_methods)
             for item in propstore_items
