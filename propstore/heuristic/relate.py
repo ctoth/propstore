@@ -11,15 +11,25 @@ instead of collapsing them to ``min(forward, reverse)``.
 from __future__ import annotations
 
 import asyncio
-import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from typing import Protocol
 
-from propstore.families.claims.declaration import (
-    select_all_claim_ids,
-    select_claim_text,
-    select_claim_texts,
-)
 from propstore.heuristic.classify import classify_stance_async
+
+
+class ClaimRelationStore(Protocol):
+    def load_embedding_extension(self) -> None: ...
+    def get_registered_models(self) -> list[dict]: ...
+    def get_claim_text(self, claim_id: str) -> dict | None: ...
+    def get_claim_texts(self, claim_ids: Sequence[str]) -> dict[str, dict]: ...
+    def all_claim_ids(self) -> list[str]: ...
+    def find_similar(
+        self,
+        claim_id: str,
+        model_name: str,
+        *,
+        top_k: int,
+    ) -> list[dict]: ...
 
 
 def _run_async(coro):
@@ -32,16 +42,6 @@ def _run_async(coro):
     import concurrent.futures
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         return pool.submit(asyncio.run, coro).result()
-
-
-def _get_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict | None:
-    """Get claim statement/expression and source paper."""
-    return select_claim_text(conn, claim_id)
-
-
-def _bulk_get_claim_texts(conn: sqlite3.Connection, claim_ids: list[str]) -> dict[str, dict]:
-    """Fetch claim texts for multiple IDs in a single query."""
-    return select_claim_texts(conn, claim_ids)
 
 
 def dedup_pairs(
@@ -90,7 +90,7 @@ def _shared_concept_ids_from_pair(claim_a: dict, claim_b: dict) -> list[str]:
 
 
 async def relate_claim_async(
-    conn: sqlite3.Connection,
+    store: ClaimRelationStore,
     claim_id: str,
     model_name: str,
     embedding_model: str | None,
@@ -101,30 +101,24 @@ async def relate_claim_async(
 
     Single-pass bidirectional classification — each LLM call returns both A->B and B->A.
     """
-    from propstore.families.embeddings.declaration import (
-        find_similar,
-        get_registered_models,
-        load_vec_extension,
-    )
-
-    load_vec_extension(conn)
+    store.load_embedding_extension()
 
     if embedding_model is None:
-        models = get_registered_models(conn)
+        models = store.get_registered_models()
         if not models:
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
         embedding_model = str(models[0]["model_name"])
 
-    claim_a = _get_claim_text(conn, claim_id)
+    claim_a = store.get_claim_text(claim_id)
     if not claim_a:
         raise ValueError(f"Claim {claim_id} not found")
 
-    candidates = find_similar(conn, claim_id, embedding_model, top_k=top_k)
+    candidates = store.find_similar(claim_id, embedding_model, top_k=top_k)
 
     candidate_claims = []
     candidate_distances: dict[str, float] = {}
     for c in candidates:
-        claim_b = _get_claim_text(conn, c["id"])
+        claim_b = store.get_claim_text(c["id"])
         if claim_b:
             # Carry concept_id from find_similar result for shared-concept check
             claim_b["concept_id"] = c.get("concept_id")
@@ -151,7 +145,7 @@ async def relate_claim_async(
 
 
 def relate_claim(
-    conn: sqlite3.Connection,
+    store: ClaimRelationStore,
     claim_id: str,
     model_name: str,
     embedding_model: str | None = None,
@@ -160,12 +154,12 @@ def relate_claim(
     """Find similar claims and classify relationships (sync entry point)."""
     sem = asyncio.Semaphore(10)
     return _run_async(
-        relate_claim_async(conn, claim_id, model_name, embedding_model, top_k, sem)
+        relate_claim_async(store, claim_id, model_name, embedding_model, top_k, sem)
     )
 
 
 async def relate_all_async(
-    conn: sqlite3.Connection,
+    store: ClaimRelationStore,
     model_name: str,
     embedding_model: str | None,
     top_k: int,
@@ -173,25 +167,19 @@ async def relate_all_async(
     on_progress: Callable[[int, int], None] | None,
 ) -> dict:
     """Classify relationships for all claims with concurrent bidirectional LLM calls."""
-    from propstore.families.embeddings.declaration import (
-        find_similar,
-        get_registered_models,
-        load_vec_extension,
-    )
-
-    load_vec_extension(conn)
+    store.load_embedding_extension()
 
     if embedding_model is None:
-        models = get_registered_models(conn)
+        models = store.get_registered_models()
         if not models:
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
         embedding_model = str(models[0]["model_name"])
 
-    all_claim_ids = select_all_claim_ids(conn)
+    all_claim_ids = store.all_claim_ids()
     total = len(all_claim_ids)
 
     # Bulk-fetch all claim texts upfront
-    text_cache = _bulk_get_claim_texts(conn, all_claim_ids)
+    text_cache = store.get_claim_texts(all_claim_ids)
 
     # Phase 1: Gather directed pairs from embeddings (fast, no LLM)
     directed_pairs: list[tuple[dict, dict, float]] = []
@@ -204,7 +192,7 @@ async def relate_all_async(
         if claim_id not in text_cache:
             continue
         try:
-            candidates = find_similar(conn, claim_id, embedding_model, top_k=top_k)
+            candidates = store.find_similar(claim_id, embedding_model, top_k=top_k)
         except ValueError:
             continue
         raw_candidates.append((claim_id, candidates))
@@ -214,7 +202,7 @@ async def relate_all_async(
                 candidate_ids_needed.add(c["id"])
 
     if candidate_ids_needed:
-        text_cache.update(_bulk_get_claim_texts(conn, list(candidate_ids_needed)))
+        text_cache.update(store.get_claim_texts(list(candidate_ids_needed)))
 
     for claim_id, candidates in raw_candidates:
         claim_a = text_cache[claim_id]
@@ -298,7 +286,7 @@ async def relate_all_async(
 
 
 def relate_all(
-    conn: sqlite3.Connection,
+    store: ClaimRelationStore,
     model_name: str,
     embedding_model: str | None = None,
     top_k: int = 5,
@@ -307,5 +295,5 @@ def relate_all(
 ) -> dict:
     """Classify relationships for all claims (sync entry point)."""
     return _run_async(
-        relate_all_async(conn, model_name, embedding_model, top_k, concurrency, on_progress)
+        relate_all_async(store, model_name, embedding_model, top_k, concurrency, on_progress)
     )

@@ -1,6 +1,6 @@
-"""Tests for _bulk_get_claim_texts — bulk claim text fetching.
+"""Tests for select_claim_texts bulk claim text fetching.
 
-Verifies the bulk path is a faithful replacement for per-claim _get_claim_text.
+Verifies the bulk path is a faithful replacement for per-claim select_claim_text.
 """
 
 from __future__ import annotations
@@ -63,13 +63,13 @@ def conn():
 
 class TestBulkFetchReturnsAllRequested:
     def test_fetch_three_of_five(self, conn):
-        from propstore.heuristic.relate import _bulk_get_claim_texts
-        result = _bulk_get_claim_texts(conn, ["c1", "c3", "c5"])
+        from propstore.families.claims.declaration import select_claim_texts
+        result = select_claim_texts(conn, ["c1", "c3", "c5"])
         assert set(result.keys()) == {"c1", "c3", "c5"}
 
     def test_each_has_text_field(self, conn):
-        from propstore.heuristic.relate import _bulk_get_claim_texts
-        result = _bulk_get_claim_texts(conn, ["c1", "c2", "c4", "c5"])
+        from propstore.families.claims.declaration import select_claim_texts
+        result = select_claim_texts(conn, ["c1", "c2", "c4", "c5"])
         for cid, d in result.items():
             assert "text" in d, f"claim {cid} missing 'text'"
             assert d["text"], f"claim {cid} has empty 'text'"
@@ -77,16 +77,16 @@ class TestBulkFetchReturnsAllRequested:
 
 class TestBulkFetchMissingIdsSkipped:
     def test_nonexistent_ids_absent(self, conn):
-        from propstore.heuristic.relate import _bulk_get_claim_texts
-        result = _bulk_get_claim_texts(conn, ["c1", "nonexistent", "c3"])
+        from propstore.families.claims.declaration import select_claim_texts
+        result = select_claim_texts(conn, ["c1", "nonexistent", "c3"])
         assert "nonexistent" not in result
         assert set(result.keys()) == {"c1", "c3"}
 
 
 class TestBulkFetchEmptyList:
     def test_empty_input_returns_empty(self, conn):
-        from propstore.heuristic.relate import _bulk_get_claim_texts
-        result = _bulk_get_claim_texts(conn, [])
+        from propstore.families.claims.declaration import select_claim_texts
+        result = select_claim_texts(conn, [])
         assert result == {}
 
 
@@ -95,18 +95,18 @@ class TestBulkFetchEmptyList:
 # ---------------------------------------------------------------------------
 
 class TestBulkFetchEquivalence:
-    """_bulk_get_claim_texts returns identical data to per-claim _get_claim_text."""
+    """select_claim_texts returns identical data to per-claim select_claim_text."""
 
     @pytest.mark.property
     @given(ids=st.lists(st.sampled_from(FIXTURE_IDS), min_size=0, max_size=5, unique=True))
     @settings(max_examples=50, suppress_health_check=[HealthCheck.function_scoped_fixture])
     def test_bulk_matches_individual(self, conn, ids):
-        from propstore.heuristic.relate import _bulk_get_claim_texts, _get_claim_text
+        from propstore.families.claims.declaration import select_claim_text, select_claim_texts
 
-        bulk = _bulk_get_claim_texts(conn, ids)
+        bulk = select_claim_texts(conn, ids)
         individual = {}
         for cid in ids:
-            d = _get_claim_text(conn, cid)
+            d = select_claim_text(conn, cid)
             if d is not None:
                 individual[cid] = d
 

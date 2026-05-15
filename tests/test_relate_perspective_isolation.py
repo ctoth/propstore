@@ -25,12 +25,14 @@ def _claim_db() -> sqlite3.Connection:
 
 
 def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
-    import propstore.families.embeddings.declaration as embeddings
+    from propstore.families.claims.declaration import (
+        select_all_claim_ids,
+        select_claim_text,
+        select_claim_texts,
+    )
     from propstore.heuristic import relate
 
     conn = _claim_db()
-    monkeypatch.setattr(embeddings, "load_vec_extension", lambda _conn: None)
-    monkeypatch.setattr(embeddings, "get_registered_models", lambda _conn: [{"model_name": "embedder"}])
 
     def find_similar(_conn: sqlite3.Connection, claim_id: str, _model_name: str, *, top_k: int) -> list[dict]:
         if claim_id == "claim-a":
@@ -64,12 +66,36 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
             },
         ]
 
-    monkeypatch.setattr(embeddings, "find_similar", find_similar)
+    class Store:
+        def load_embedding_extension(self) -> None:
+            pass
+
+        def get_registered_models(self) -> list[dict]:
+            return [{"model_name": "embedder"}]
+
+        def get_claim_text(self, claim_id: str) -> dict | None:
+            return select_claim_text(conn, claim_id)
+
+        def get_claim_texts(self, claim_ids: list[str]) -> dict[str, dict]:
+            return select_claim_texts(conn, claim_ids)
+
+        def all_claim_ids(self) -> list[str]:
+            return select_all_claim_ids(conn)
+
+        def find_similar(
+            self,
+            claim_id: str,
+            model_name: str,
+            *,
+            top_k: int,
+        ) -> list[dict]:
+            return find_similar(conn, claim_id, model_name, top_k=top_k)
+
     monkeypatch.setattr(relate, "classify_stance_async", classify_stance_async)
 
     result = asyncio.run(
         relate.relate_all_async(
-            conn,
+            Store(),
             model_name="classifier",
             embedding_model=None,
             top_k=1,
