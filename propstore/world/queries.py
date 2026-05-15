@@ -352,7 +352,7 @@ def _format_value_with_si(
             if isinstance(concept_id, str):
                 concept = world.get_concept(concept_id)
                 if concept is not None:
-                    from propstore.core.row_types import coerce_concept_row
+                    from propstore.families.concepts.declaration import coerce_concept_row
 
                     canonical_unit = str(
                         coerce_concept_row(concept).attributes.get("unit_symbol") or ""
@@ -376,7 +376,7 @@ def _concept_resolution_candidate(
     world: WorldQuery,
     concept_id: str,
 ) -> WorldConceptResolutionCandidate | None:
-    from propstore.core.row_types import coerce_concept_row
+    from propstore.families.concepts.declaration import coerce_concept_row
 
     concept = world.get_concept(concept_id)
     if concept is None:
@@ -416,7 +416,7 @@ def _resolve_world_query_target(
 
 
 def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
-    from propstore.core.row_types import coerce_concept_row
+    from propstore.families.concepts.declaration import coerce_concept_row
 
     concept = world.get_concept(concept_id)
     if concept is None:
@@ -442,7 +442,7 @@ def _world_chain_concept_line(
     world: WorldQuery,
     concept_id: str,
 ) -> WorldChainConceptLine:
-    from propstore.core.row_types import coerce_concept_row
+    from propstore.families.concepts.declaration import coerce_concept_row
 
     concept = world.get_concept(concept_id)
     canonical_name = (
@@ -460,7 +460,8 @@ def query_world_concept(
     world: WorldQuery,
     request: WorldConceptQueryRequest,
 ) -> WorldConceptQueryReport:
-    from propstore.core.row_types import coerce_claim_row, coerce_concept_row
+    from propstore.core.row_types import coerce_claim_row
+    from propstore.families.concepts.declaration import coerce_concept_row
 
     resolved, resolved_from = _resolve_world_query_target(world, request.target)
     concept = world.get_concept(resolved)

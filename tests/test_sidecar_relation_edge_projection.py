@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from propstore.sidecar.concepts import populate_concept_sidecar_rows
+from propstore.families.concepts.declaration import populate_concept_sidecar_rows
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.stages import ConceptSidecarRows
 

@@ -27,7 +27,13 @@ from propstore.core.embeddings import (
     claim_embedding_text,
     concept_embedding_text,
 )
-from propstore.core.row_types import ClaimRow, ConceptRow
+from propstore.core.row_types import ClaimRow
+from propstore.families.concepts.declaration import (
+    CONCEPT_EMBEDDING_STATUS_PROJECTION,
+    CONCEPT_VEC_PROJECTION,
+    resolve_concept_embedding_entity,
+    select_concept_embedding_sources,
+)
 
 
 EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
@@ -37,15 +43,7 @@ EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
 )
 
 
-CONCEPT_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
-    name="concept_embedding_status",
-    entity_id_column="concept_id",
-    index_name="idx_concept_embedding_status_model_identity",
-)
-
-
 CLAIM_VEC_PROJECTION = rowid_vec_projection("claim_vec_{model_identity_hash}")
-CONCEPT_VEC_PROJECTION = rowid_vec_projection("concept_vec_{model_identity_hash}")
 
 
 CLAIM_VEC_SPEC = VecEntityStoreSpec(
@@ -265,65 +263,23 @@ class SidecarConceptEmbeddingStore(_SidecarEntityEmbeddingStore):
         self,
         entity_ids: Sequence[str] | None = None,
     ) -> list[EmbeddingEntity]:
-        query = """
-            SELECT
-                id,
-                seq,
-                content_hash,
-                canonical_name,
-                definition
-            FROM concept
-        """
-        params: tuple[str, ...] = ()
-        if entity_ids:
-            placeholders = ",".join("?" for _ in entity_ids)
-            query += f" WHERE id IN ({placeholders})"
-            params = tuple(entity_ids)
-        rows = self._conn.execute(query, params).fetchall()
-        aliases = self._aliases_by_concept_id(tuple(str(row["id"]) for row in rows))
         entities: list[EmbeddingEntity] = []
-        for row in rows:
-            concept = ConceptRow.from_mapping(dict(row))
+        for source in select_concept_embedding_sources(self._conn, entity_ids):
             entities.append(
                 EmbeddingEntity(
-                    entity_id=str(concept.concept_id),
-                    seq=int(row["seq"]),
-                    content_hash=str(row["content_hash"]),
+                    entity_id=str(source.concept.concept_id),
+                    seq=source.seq,
+                    content_hash=source.content_hash,
                     text=concept_embedding_text(
-                        concept,
-                        aliases.get(str(concept.concept_id), ()),
+                        source.concept,
+                        source.aliases,
                     ),
                 )
             )
         return entities
 
     def resolve_entity(self, entity_id: str) -> tuple[str, int]:
-        row = self._conn.execute(
-            "SELECT id, seq FROM concept WHERE id = ? OR canonical_name = ?",
-            (entity_id, entity_id),
-        ).fetchone()
-        if row is None:
-            raise ValueError(f"Concept {entity_id} not found")
-        return str(row["id"]), int(row["seq"])
-
-    def _aliases_by_concept_id(
-        self,
-        concept_ids: Sequence[str],
-    ) -> dict[str, tuple[str, ...]]:
-        if not concept_ids:
-            return {}
-        placeholders = ",".join("?" for _ in concept_ids)
-        rows = self._conn.execute(
-            f"SELECT concept_id, alias_name FROM alias WHERE concept_id IN ({placeholders})",
-            tuple(concept_ids),
-        ).fetchall()
-        aliases: dict[str, list[str]] = {}
-        for row in rows:
-            aliases.setdefault(str(row["concept_id"]), []).append(str(row["alias_name"]))
-        return {
-            concept_id: tuple(names)
-            for concept_id, names in aliases.items()
-        }
+        return resolve_concept_embedding_entity(self._conn, entity_id)
 
 
 class SidecarEmbeddingSnapshotStore:

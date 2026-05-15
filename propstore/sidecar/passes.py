@@ -29,6 +29,14 @@ from propstore.core.conditions import (
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
+from propstore.families.concepts.declaration import (
+    ALIAS_PROJECTION,
+    CONCEPT_PROJECTION,
+    FORM_ALGEBRA_PROJECTION,
+    FORM_PROJECTION,
+    PARAMETERIZATION_GROUP_PROJECTION,
+    PARAMETERIZATION_PROJECTION,
+)
 from propstore.families.contexts.stages import (
     LoadedContext,
     coerce_loaded_contexts,
@@ -87,14 +95,6 @@ from propstore.sidecar.micropublications import (
     MicropublicationProjectionRow,
 )
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
-from propstore.sidecar.concepts import (
-    ALIAS_PROJECTION,
-    CONCEPT_PROJECTION,
-    FORM_ALGEBRA_PROJECTION,
-    FORM_PROJECTION,
-    PARAMETERIZATION_GROUP_PROJECTION,
-    PARAMETERIZATION_PROJECTION,
-)
 from propstore.sidecar.sources import SourceProjectionRow
 from propstore.sidecar.claim_utils import (
     coerce_stance_resolution,

@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import contextlib
-from collections.abc import Callable
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from copy import deepcopy
 from datetime import date
 from functools import wraps
 from pathlib import Path
-import sqlite3
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -48,7 +46,6 @@ from propstore.families.identity.concepts import normalize_canonical_concept_pay
 from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
 from propstore.families.registry import ClaimRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
-from propstore.sidecar.sqlite import connect_sidecar
 from propstore.semantic_passes.types import PipelineResult
 from propstore.app.repository_views import AppRepositoryViewRequest
 
@@ -353,32 +350,6 @@ def _serialized_concept_mutation(function):
     return wrapper
 
 
-def search_concepts(
-    repo: Repository,
-    request: ConceptSearchRequest,
-) -> ConceptSearchReport:
-    sidecar = _require_sidecar(repo)
-    conn = connect_sidecar(sidecar)
-    with contextlib.closing(conn):
-        rows = conn.execute(
-            "SELECT concept.primary_logical_id, concept_fts.canonical_name, concept_fts.definition "
-            "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
-            "WHERE concept_fts MATCH ? LIMIT ?",
-            (request.query, request.limit),
-        ).fetchall()
-    return ConceptSearchReport(
-        hits=tuple(
-            ConceptSearchHit(
-                handle=str(row[0]),
-                logical_id=str(row[0]),
-                canonical_name=str(row[1]),
-                definition=str(row[2] or ""),
-            )
-            for row in rows
-        )
-    )
-
-
 def list_concepts(
     repo: Repository,
     request: ConceptListRequest,
@@ -524,158 +495,6 @@ def promote_concept_alignment(
 
     updated = promote_alignment(repo, cluster_id)
     return ConceptAlignmentReport(alignment_id=updated.id)
-
-
-def embed_concept_embeddings(
-    repo: Repository,
-    request: ConceptEmbedRequest,
-    *,
-    on_progress: Callable[[str, int, int], None] | None = None,
-) -> ConceptEmbedReport:
-    if not request.concept_id and not request.embed_all:
-        raise ConceptWorkflowError("provide a concept ID or request all concepts")
-
-    from propstore.heuristic.embed import (
-        _load_vec_extension,
-        embed_concepts,
-        get_registered_models,
-    )
-
-    sidecar = _require_sidecar(repo)
-    reports: list[ConceptEmbedModelReport] = []
-    conn = connect_sidecar(sidecar)
-    with contextlib.closing(conn):
-        conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
-        ids = (
-            [_resolve_sidecar_concept_id(conn, request.concept_id)]
-            if request.concept_id
-            else None
-        )
-
-        if request.model == "all":
-            models = get_registered_models(conn)
-            if not models:
-                raise ConceptEmbeddingModelError(
-                    "no models registered. Run embed with a specific model first."
-                )
-            for model_row in models:
-                model_name = str(model_row["model_name"])
-                result = embed_concepts(
-                    conn,
-                    model_name,
-                    concept_ids=ids,
-                    batch_size=request.batch_size,
-                    on_progress=(
-                        None
-                        if on_progress is None
-                        else lambda done, total, model_name=model_name: on_progress(
-                            model_name,
-                            done,
-                            total,
-                        )
-                    ),
-                )
-                reports.append(_concept_embed_model_report(model_name, result))
-        else:
-            result = embed_concepts(
-                conn,
-                request.model,
-                concept_ids=ids,
-                batch_size=request.batch_size,
-                on_progress=(
-                    None
-                    if on_progress is None
-                    else lambda done, total: on_progress(request.model, done, total)
-                ),
-            )
-            reports.append(_concept_embed_model_report(request.model, result))
-        conn.commit()
-    return ConceptEmbedReport(results=tuple(reports))
-
-
-def find_similar_concepts(
-    repo: Repository,
-    request: ConceptSimilarRequest,
-) -> ConceptSimilarReport:
-    from propstore.heuristic.embed import (
-        _load_vec_extension,
-        find_similar_concepts as find_similar_concepts_for_model,
-        find_similar_concepts_agree,
-        find_similar_concepts_disagree,
-        get_registered_models,
-    )
-
-    sidecar = _require_sidecar(repo)
-    conn = connect_sidecar(sidecar)
-    conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
-
-    try:
-        resolved_id = _resolve_sidecar_concept_id(conn, request.concept_id)
-        if request.agree:
-            rows = find_similar_concepts_agree(conn, resolved_id, top_k=request.top_k)
-        elif request.disagree:
-            rows = find_similar_concepts_disagree(
-                conn, resolved_id, top_k=request.top_k
-            )
-        else:
-            model = request.model
-            if model is None:
-                models = get_registered_models(conn)
-                if not models:
-                    raise ConceptEmbeddingModelError(
-                        "no embeddings found. Run 'pks concept embed' first."
-                    )
-                model = str(models[0]["model_name"])
-            rows = find_similar_concepts_for_model(
-                conn,
-                resolved_id,
-                model,
-                top_k=request.top_k,
-            )
-    except ValueError as exc:
-        raise ConceptWorkflowError(str(exc)) from exc
-    finally:
-        conn.close()
-
-    return ConceptSimilarReport(
-        hits=tuple(
-            ConceptSimilarHit(
-                distance=float(row.get("distance", 0)),
-                concept_id=str(row.get("primary_logical_id") or row.get("id", "?")),
-                canonical_name=str(row.get("canonical_name", "")),
-                definition=str(row.get("definition") or ""),
-            )
-            for row in rows
-        )
-    )
-
-
-def _resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:
-    conn.row_factory = sqlite3.Row
-    direct = conn.execute("SELECT id FROM concept WHERE id = ?", (handle,)).fetchone()
-    if direct is not None:
-        return str(direct["id"])
-    primary = conn.execute(
-        "SELECT id FROM concept WHERE primary_logical_id = ?",
-        (handle,),
-    ).fetchone()
-    if primary is not None:
-        return str(primary["id"])
-    canonical = conn.execute(
-        "SELECT id FROM concept WHERE canonical_name = ?",
-        (handle,),
-    ).fetchone()
-    if canonical is not None:
-        return str(canonical["id"])
-    alias = conn.execute(
-        "SELECT concept_id FROM alias WHERE alias_name = ?",
-        (handle,),
-    ).fetchone()
-    if alias is not None:
-        return str(alias["concept_id"])
-    raise UnknownConceptError(handle)
 
 
 def _require_sidecar(repo: Repository) -> Path:

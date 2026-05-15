@@ -6,7 +6,8 @@ from typing import Any
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import WorldStore
-from propstore.core.row_types import coerce_claim_row, coerce_concept_row
+from propstore.core.row_types import coerce_claim_row
+from propstore.families.concepts.declaration import coerce_concept_row
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
 from propstore.worldline.result_types import WorldlineInputSource, WorldlineTargetValue

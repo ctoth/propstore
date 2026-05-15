@@ -18,7 +18,8 @@ from propstore.app.repository_views import (
     RepositoryViewUnsupportedStateError,
 )
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
-from propstore.core.row_types import ClaimConceptLinkRow, ClaimRow, ConceptRow
+from propstore.core.row_types import ClaimConceptLinkRow, ClaimRow
+from propstore.families.concepts.declaration import ConceptRow
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record
 from propstore.repository import Repository
 from propstore.world import RenderPolicy

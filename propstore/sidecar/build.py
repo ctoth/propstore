@@ -56,7 +56,7 @@ from propstore.sidecar.claims import (
 )
 from propstore.sidecar.passes import compile_sidecar_build_plan
 from propstore.sidecar.stages import ContextSidecarRows, RepositoryCheckedBundle
-from propstore.sidecar.concepts import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
+from propstore.families.concepts.declaration import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
 from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.schema import (

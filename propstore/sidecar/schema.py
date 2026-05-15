@@ -54,7 +54,7 @@ from propstore.sidecar.claims import (
     CONFLICT_WITNESS_PROJECTION,
     JUSTIFICATION_PROJECTION,
 )
-from propstore.sidecar.concepts import (
+from propstore.families.concepts.declaration import (
     ALIAS_PROJECTION,
     CONCEPT_FTS_PROJECTION,
     CONCEPT_PROJECTION,

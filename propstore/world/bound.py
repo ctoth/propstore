@@ -23,11 +23,11 @@ from propstore.core.row_types import (
     ParameterizationRow,
     StanceRow,
     coerce_claim_row,
-    coerce_concept_row,
     coerce_conflict_row,
     coerce_parameterization_row,
     coerce_stance_row,
 )
+from propstore.families.concepts.declaration import coerce_concept_row
 from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,

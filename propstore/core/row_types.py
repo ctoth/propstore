@@ -14,7 +14,6 @@ from propstore.core.relations import (
     coerce_claim_concept_link_role,
 )
 from propstore.core.claim_types import ClaimType, coerce_claim_type
-from propstore.core.concept_status import ConceptStatus, coerce_concept_status
 from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
     coerce_concept_relationship_type,
@@ -67,110 +66,6 @@ def _require_stance_type(value: object) -> StanceType:
     if stance_type is None:
         raise KeyError("stance_type")
     return stance_type
-
-
-@dataclass(frozen=True)
-class ConceptRow:
-    concept_id: ConceptId
-    canonical_name: str
-    status: ConceptStatus | None = None
-    definition: str | None = None
-    kind_type: str | None = None
-    form: str | None = None
-    domain: str | None = None
-    form_parameters: str | None = None
-    primary_logical_id: str | None = None
-    logical_ids_json: str | None = None
-    attributes: Mapping[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        if self.status is not None:
-            object.__setattr__(self, "status", coerce_concept_status(self.status))
-        object.__setattr__(self, "attributes", dict(self.attributes))
-
-    @classmethod
-    def from_mapping(cls, row_map: Mapping[str, Any]) -> ConceptRow:
-        known = {
-            "id",
-            "canonical_name",
-            "status",
-            "definition",
-            "kind_type",
-            "form",
-            "domain",
-            "form_parameters",
-            "primary_logical_id",
-            "logical_ids_json",
-        }
-        attributes = {
-            str(key): value
-            for key, value in row_map.items()
-            if key not in known and value is not None
-        }
-        return cls(
-            concept_id=to_concept_id(row_map["id"]),
-            canonical_name=str(row_map["canonical_name"]),
-            status=(
-                None
-                if row_map.get("status") is None
-                else coerce_concept_status(row_map["status"])
-            ),
-            definition=None if row_map.get("definition") is None else str(row_map["definition"]),
-            kind_type=None if row_map.get("kind_type") is None else str(row_map["kind_type"]),
-            form=None if row_map.get("form") is None else str(row_map["form"]),
-            domain=None if row_map.get("domain") is None else str(row_map["domain"]),
-            form_parameters=(
-                None
-                if row_map.get("form_parameters") is None
-                else str(row_map["form_parameters"])
-            ),
-            primary_logical_id=(
-                None
-                if row_map.get("primary_logical_id") is None
-                else str(row_map["primary_logical_id"])
-            ),
-            logical_ids_json=(
-                None
-                if row_map.get("logical_ids_json") is None
-                else str(row_map["logical_ids_json"])
-            ),
-            attributes=attributes,
-        )
-
-    def parsed_logical_ids(self) -> list[dict[str, Any]]:
-        if not self.logical_ids_json:
-            return []
-        try:
-            loaded = json.loads(self.logical_ids_json)
-        except json.JSONDecodeError:
-            return []
-        return loaded if isinstance(loaded, list) else []
-
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "id": self.concept_id,
-            "canonical_name": self.canonical_name,
-        }
-        if self.status is not None:
-            data["status"] = self.status.value
-        if self.definition is not None:
-            data["definition"] = self.definition
-        if self.kind_type is not None:
-            data["kind_type"] = self.kind_type
-        if self.form is not None:
-            data["form"] = self.form
-        if self.domain is not None:
-            data["domain"] = self.domain
-        if self.form_parameters is not None:
-            data["form_parameters"] = self.form_parameters
-        if self.primary_logical_id is not None:
-            data["primary_logical_id"] = self.primary_logical_id
-            data["logical_id"] = self.primary_logical_id
-        if self.logical_ids_json is not None:
-            data["logical_ids_json"] = self.logical_ids_json
-        data["logical_ids"] = self.parsed_logical_ids()
-        data.update(self.attributes)
-        return data
 
 
 @dataclass(frozen=True)
@@ -913,18 +808,11 @@ class ParameterizationRow:
         )
 
 
-ConceptRowInput = ConceptRow | Mapping[str, Any]
 ClaimRowInput = ClaimRow | Mapping[str, Any]
 RelationshipRowInput = RelationshipRow | Mapping[str, Any]
 StanceRowInput = StanceRow | Mapping[str, Any]
 ConflictRowInput = ConflictRow | Mapping[str, Any]
 ParameterizationRowInput = ParameterizationRow | Mapping[str, Any]
-
-
-def coerce_concept_row(row: ConceptRowInput) -> ConceptRow:
-    if isinstance(row, ConceptRow):
-        return row
-    return ConceptRow.from_mapping(row)
 
 
 def coerce_claim_row(row: ClaimRowInput) -> ClaimRow:

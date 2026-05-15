@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from propstore.sidecar.concepts import ALIAS_PROJECTION, populate_concept_sidecar_rows
+from propstore.families.concepts.declaration import ALIAS_PROJECTION, populate_concept_sidecar_rows
 from propstore.sidecar.stages import ConceptSidecarRows
 
 

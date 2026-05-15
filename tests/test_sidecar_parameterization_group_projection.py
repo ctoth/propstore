@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from propstore.sidecar.concepts import (
+from propstore.families.concepts.declaration import (
     PARAMETERIZATION_GROUP_PROJECTION,
     populate_concept_sidecar_rows,
 )

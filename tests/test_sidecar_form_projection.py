@@ -5,7 +5,7 @@ import sqlite3
 
 from propstore.core.conditions.registry import KindType
 from propstore.families.forms.stages import FormDefinition
-from propstore.sidecar.concepts import FORM_PROJECTION, populate_concept_sidecar_rows
+from propstore.families.concepts.declaration import FORM_PROJECTION, populate_concept_sidecar_rows
 from propstore.sidecar.passes import compile_concept_sidecar_rows
 
 

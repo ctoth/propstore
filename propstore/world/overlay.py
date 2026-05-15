@@ -49,19 +49,18 @@ from propstore.core.row_types import (
     ClaimRowInput,
     ConflictRow,
     ConflictRowInput,
-    ConceptRowInput,
     ParameterizationRow,
     ParameterizationRowInput,
     RelationshipRowInput,
     StanceRowInput,
     StanceRow,
     coerce_claim_row,
-    coerce_concept_row,
     coerce_conflict_row,
     coerce_parameterization_row,
     coerce_relationship_row,
     coerce_stance_row,
 )
+from propstore.families.concepts.declaration import ConceptRowInput, coerce_concept_row
 from propstore.world.bound import BoundWorld, _recomputed_conflicts
 from propstore.world.types import (
     BeliefSpace,

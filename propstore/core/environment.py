@@ -22,12 +22,12 @@ from propstore.core.store_results import (
 )
 from propstore.core.row_types import (
     ClaimRowInput,
-    ConceptRowInput,
     ConflictRowInput,
     ParameterizationRowInput,
     RelationshipRowInput,
     StanceRowInput,
 )
+from propstore.families.concepts.declaration import ConceptRowInput
 
 
 def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:

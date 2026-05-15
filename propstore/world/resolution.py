@@ -28,7 +28,8 @@ from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.families.forms.stages import kind_type_from_form_name
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
-from propstore.core.row_types import ClaimRowInput, ConceptRowInput, coerce_claim_row, coerce_concept_row
+from propstore.core.row_types import ClaimRowInput, coerce_claim_row
+from propstore.families.concepts.declaration import ConceptRowInput, coerce_concept_row
 from propstore.world.types import (
     ArgumentationSemantics,
     BeliefSpace,

@@ -33,11 +33,22 @@ from propstore.core.store_results import (
 )
 from propstore.core.row_types import (
     ClaimRow,
-    ConceptRow,
     ConflictRow,
     ParameterizationRow,
     RelationshipRow,
     StanceRow,
+)
+from propstore.families.concepts.declaration import (
+    ConceptRow,
+    build_concept_logical_id_index,
+    count_concepts,
+    resolve_concept_alias,
+    resolve_concept_id,
+    select_all_concepts,
+    select_concept_by_id,
+    select_concept_ids_for_group,
+    select_concept_registry_rows,
+    search_concept_ids,
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
@@ -230,20 +241,7 @@ class WorldQuery(WorldStore):
     def _build_registry(self) -> dict[str, ConceptInfo]:
         if self._registry is not None:
             return self._registry
-        rows = self._conn.execute(
-            "SELECT id, canonical_name, kind_type, form_parameters FROM concept"
-        ).fetchall()
-        normalized_rows = [
-            ConceptRow.from_mapping(
-                {
-                    "id": row["id"],
-                    "canonical_name": row["canonical_name"],
-                    "kind_type": row["kind_type"],
-                    "form_parameters": row["form_parameters"],
-                }
-            )
-            for row in rows
-        ]
+        normalized_rows = select_concept_registry_rows(self._conn)
         registry = with_standard_synthetic_bindings(
             build_store_cel_registry(normalized_rows)
         )
@@ -422,15 +420,15 @@ class WorldQuery(WorldStore):
         return [ClaimRow.from_mapping(row_dict) for row_dict in row_dicts]
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
-        row = self._conn.execute("SELECT * FROM concept WHERE id = ?", (concept_id,)).fetchone()
-        if row is None:
+        concept = select_concept_by_id(self._conn, concept_id)
+        if concept is None:
             resolved = self.resolve_concept(concept_id)
             if resolved is None or resolved == concept_id:
                 return None
-            row = self._conn.execute("SELECT * FROM concept WHERE id = ?", (resolved,)).fetchone()
-        if row is None:
+            concept = select_concept_by_id(self._conn, resolved)
+        if concept is None:
             return None
-        data = dict(row)
+        data = concept.to_dict()
         logical_ids_json = data.get("logical_ids_json")
         if isinstance(logical_ids_json, str) and logical_ids_json:
             try:
@@ -474,6 +472,8 @@ class WorldQuery(WorldStore):
         if table not in ("claim_core", "concept"):
             raise ValueError(f"unsupported logical-id table: {table}")
         index: dict[str, str] = {}
+        if table == "concept":
+            return build_concept_logical_id_index(self._conn)
         rows = self._conn.execute(
             f"SELECT id, primary_logical_id, logical_ids_json FROM {table}"  # noqa: S608
         ).fetchall()
@@ -534,40 +534,15 @@ class WorldQuery(WorldStore):
         return self._get_claim_logical_id_index().get(name)
 
     def resolve_alias(self, alias: str) -> str | None:
-        row = self._conn.execute(
-            "SELECT concept_id FROM alias WHERE alias_name = ?", (alias,)
-        ).fetchone()
-        return row["concept_id"] if row else None
+        return resolve_concept_alias(self._conn, alias)
 
     def resolve_concept(self, name: str) -> str | None:
         """Resolve a concept by alias, artifact ID, logical ID, or canonical name."""
-        resolved = self.resolve_alias(name)
-        if resolved:
-            return resolved
-
-        row = self._conn.execute(
-            "SELECT id FROM concept WHERE id = ?",
-            (name,),
-        ).fetchone()
-        if row is not None:
-            return row["id"]
-
-        row = self._conn.execute(
-            "SELECT id FROM concept WHERE primary_logical_id = ?",
-            (name,),
-        ).fetchone()
-        if row is not None:
-            return row["id"]
-
-        cached = self._get_concept_logical_id_index().get(name)
-        if cached is not None:
-            return cached
-
-        row = self._conn.execute(
-            "SELECT id FROM concept WHERE canonical_name = ?",
-            (name,),
-        ).fetchone()
-        return row["id"] if row else None
+        return resolve_concept_id(
+            self._conn,
+            name,
+            logical_id_index=self._get_concept_logical_id_index(),
+        )
 
     def claims_for(self, concept_id: str | None) -> list[ClaimRow]:
         where_sql, params = self._claims_linked_to_concept_where_sql(
@@ -828,8 +803,7 @@ class WorldQuery(WorldStore):
         return [ConflictRow.from_mapping(dict(row)) for row in rows]
 
     def all_concepts(self) -> list[ConceptRow]:
-        rows = self._conn.execute("SELECT * FROM concept").fetchall()
-        return [ConceptRow.from_mapping(dict(row)) for row in rows]
+        return select_all_concepts(self._conn)
 
     def all_parameterizations(self) -> list[ParameterizationRow]:
         rows = self._conn.execute("SELECT * FROM parameterization").fetchall()
@@ -1060,17 +1034,10 @@ class WorldQuery(WorldStore):
         ]
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
-        rows = self._conn.execute(
-            "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
-            (group_id,),
-        ).fetchall()
-        return {row["concept_id"] for row in rows}
+        return select_concept_ids_for_group(self._conn, group_id)
 
     def search(self, query: str) -> list[ConceptSearchHit]:
-        rows = self._conn.execute(
-            "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH ?",
-            (query,),
-        ).fetchall()
+        rows = search_concept_ids(self._conn, query)
         return [ConceptSearchHit.from_mapping(dict(row)) for row in rows]
 
     def similar_claims(
@@ -1173,7 +1140,7 @@ class WorldQuery(WorldStore):
         return results
 
     def stats(self) -> WorldStoreStats:
-        concepts = self._conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0]
+        concepts = count_concepts(self._conn)
         claims = self._conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0]
         conflicts = self._conn.execute("SELECT COUNT(*) FROM conflict_witness").fetchone()[0]
         return WorldStoreStats(

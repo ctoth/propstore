@@ -24,7 +24,7 @@ from .mutation import (
     _require_sidecar,
 )
 from propstore.app.repository_views import repository_view_label
-from propstore.sidecar.sqlite import connect_sidecar_readonly
+from propstore.families.concepts.declaration import fetch_concept_search_hits_from_sidecar
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -42,34 +42,24 @@ def search_concepts(
 ) -> ConceptSearchReport:
     _ = repository_view_label(request.repository_view)
     sidecar = _require_sidecar(repo)
-    conn = connect_sidecar_readonly(sidecar)
     try:
-        try:
-            rows = conn.execute(
-                "SELECT "
-                "COALESCE(NULLIF(concept.primary_logical_id, ''), concept.id), "
-                "concept.primary_logical_id, "
-                "concept_fts.canonical_name, "
-                "concept.status, "
-                "concept_fts.definition "
-                "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
-                "WHERE concept_fts MATCH ? LIMIT ?",
-                (request.query, request.limit),
-            ).fetchall()
-        except sqlite3.OperationalError as exc:
-            if _is_fts_syntax_error(exc):
-                raise ConceptSearchSyntaxError(request.query) from exc
-            raise
-    finally:
-        conn.close()
+        rows = fetch_concept_search_hits_from_sidecar(
+            sidecar,
+            query=request.query,
+            limit=request.limit,
+        )
+    except sqlite3.OperationalError as exc:
+        if _is_fts_syntax_error(exc):
+            raise ConceptSearchSyntaxError(request.query) from exc
+        raise
     return ConceptSearchReport(
         hits=tuple(
             ConceptSearchHit(
-                handle=str(row[0]),
-                logical_id=None if row[1] is None else str(row[1]),
-                canonical_name=str(row[2]),
-                status=None if row[3] is None else str(row[3]),
-                definition=str(row[4] or ""),
+                handle=str(row["handle"]),
+                logical_id=None if row["logical_id"] is None else str(row["logical_id"]),
+                canonical_name=str(row["canonical_name"]),
+                status=None if row["status"] is None else str(row["status"]),
+                definition=str(row["definition"] or ""),
             )
             for row in rows
         )
