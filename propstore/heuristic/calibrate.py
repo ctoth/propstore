@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import bisect
 import math
-import sqlite3
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -18,7 +17,6 @@ from enum import StrEnum
 
 from propstore.core.base_rates import BaseRateUnresolved
 from propstore.core.id_types import AssertionId
-from propstore.sidecar.calibration import CALIBRATION_COUNTS_PROJECTION
 from propstore.opinion import Opinion, from_evidence, from_probability
 from propstore.provenance import (
     Provenance,
@@ -337,24 +335,6 @@ def _resolve_prior(
             f"CategoryPrior category {resolved.category!r} does not match category {category!r}"
         )
     return resolved
-
-
-def load_calibration_counts(conn) -> dict[tuple[int, str], tuple[int, int]] | None:
-    """Load calibration validation data from sidecar.
-
-    Returns dict mapping (pass_number, category) to (correct, total),
-    or None if no calibration data exists.
-    Per Guo et al. (2017): raw outputs need calibration against validation data.
-    """
-    try:
-        rows = conn.execute(CALIBRATION_COUNTS_PROJECTION.select_all_sql()).fetchall()
-    except sqlite3.OperationalError as exc:
-        if "no such table" not in str(exc).lower():
-            raise
-        return None
-    if not rows:
-        return None
-    return {(row[0], row[1]): (row[2], row[3]) for row in rows}
 
 
 def categorical_to_opinion(
