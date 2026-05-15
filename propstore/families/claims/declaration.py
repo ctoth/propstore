@@ -10,10 +10,12 @@ at build) — no data is refused; the render layer decides what to show.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import sqlite3
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from quire.projections import (
@@ -820,6 +822,111 @@ def resolve_claim_embedding_entity(conn: sqlite3.Connection, entity_id: str) -> 
     if row is None:
         raise ValueError(f"Claim {entity_id} not found")
     return str(row["id"]), int(row["seq"])
+
+
+def embed_claims_for_request(
+    sidecar: Path,
+    *,
+    claim_id: str | None,
+    embed_all: bool,
+    model: str,
+    batch_size: int,
+    on_progress: Callable[[str, int, int], None] | None = None,
+) -> list[tuple[str, Any]]:
+    if not claim_id and not embed_all:
+        raise ValueError("provide a claim ID or request all claims")
+
+    from propstore.heuristic.embed import (
+        _load_vec_extension,
+        embed_claims,
+        get_registered_models,
+    )
+    from propstore.sidecar.sqlite import connect_sidecar
+
+    ids = [claim_id] if claim_id else None
+    reports: list[tuple[str, Any]] = []
+    conn = connect_sidecar(sidecar)
+    with contextlib.closing(conn):
+        conn.row_factory = sqlite3.Row
+        _load_vec_extension(conn)
+        if model == "all":
+            models = get_registered_models(conn)
+            if not models:
+                raise LookupError("no models registered")
+            for model_row in models:
+                model_name = str(model_row["model_name"])
+                result = embed_claims(
+                    conn,
+                    model_name,
+                    claim_ids=ids,
+                    batch_size=batch_size,
+                    on_progress=(
+                        None
+                        if on_progress is None
+                        else lambda done, total, model_name=model_name: on_progress(
+                            model_name,
+                            done,
+                            total,
+                        )
+                    ),
+                )
+                reports.append((model_name, result))
+        else:
+            result = embed_claims(
+                conn,
+                model,
+                claim_ids=ids,
+                batch_size=batch_size,
+                on_progress=(
+                    None
+                    if on_progress is None
+                    else lambda done, total: on_progress(model, done, total)
+                ),
+            )
+            reports.append((model, result))
+        conn.commit()
+    return reports
+
+
+def find_similar_claim_rows(
+    sidecar: Path,
+    *,
+    claim_id: str,
+    model: str | None,
+    top_k: int,
+    agree: bool = False,
+    disagree: bool = False,
+) -> list[dict[str, Any]]:
+    from propstore.heuristic.embed import (
+        _load_vec_extension,
+        find_similar,
+        find_similar_agree,
+        find_similar_disagree,
+        get_registered_models,
+    )
+    from propstore.sidecar.sqlite import connect_sidecar
+
+    conn = connect_sidecar(sidecar)
+    conn.row_factory = sqlite3.Row
+    _load_vec_extension(conn)
+
+    try:
+        if agree:
+            rows = find_similar_agree(conn, claim_id, top_k=top_k)
+        elif disagree:
+            rows = find_similar_disagree(conn, claim_id, top_k=top_k)
+        else:
+            selected_model = model
+            if selected_model is None:
+                models = get_registered_models(conn)
+                if not models:
+                    raise LookupError("no embeddings found")
+                selected_model = str(models[0]["model_name"])
+            rows = find_similar(conn, claim_id, selected_model, top_k=top_k)
+    finally:
+        conn.close()
+
+    return [dict(row) for row in rows]
 
 
 def select_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict[str, Any] | None:

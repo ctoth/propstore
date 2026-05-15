@@ -1,17 +1,20 @@
 from __future__ import annotations
 
-import contextlib
 from collections.abc import Callable
 from dataclasses import dataclass
 import json
 from pathlib import Path
-import sqlite3
-from typing import Mapping
+from typing import TYPE_CHECKING, Mapping
 
+from propstore.families.claims.declaration import (
+    embed_claims_for_request,
+    find_similar_claim_rows,
+)
 from propstore.repository import Repository
-from propstore.sidecar.sqlite import connect_sidecar
-from propstore.world import WorldQuery
 from quire.tree_path import TreePath as KnowledgePath
+
+if TYPE_CHECKING:
+    from propstore.world import WorldQuery
 
 
 class ClaimWorkflowError(Exception):
@@ -477,53 +480,24 @@ def embed_claim_embeddings(
     if not request.claim_id and not request.embed_all:
         raise ClaimWorkflowError("provide a claim ID or request all claims")
 
-    from propstore.heuristic.embed import _load_vec_extension, embed_claims, get_registered_models
-
     sidecar = _require_sidecar(repo)
-    ids = [request.claim_id] if request.claim_id else None
-    reports: list[ClaimEmbedModelReport] = []
-    conn = connect_sidecar(sidecar)
-    with contextlib.closing(conn):
-        conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
-        if request.model == "all":
-            models = get_registered_models(conn)
-            if not models:
-                raise ClaimEmbeddingModelError(
-                    "no models registered. Run embed with a specific model first."
-                )
-            for model_row in models:
-                model_name = str(model_row["model_name"])
-                result = embed_claims(
-                    conn,
-                    model_name,
-                    claim_ids=ids,
-                    batch_size=request.batch_size,
-                    on_progress=(
-                        None
-                        if on_progress is None
-                        else lambda done, total, model_name=model_name: on_progress(
-                            model_name,
-                            done,
-                            total,
-                        )
-                    ),
-                )
-                reports.append(_claim_embed_model_report(model_name, result))
-        else:
-            result = embed_claims(
-                conn,
-                request.model,
-                claim_ids=ids,
-                batch_size=request.batch_size,
-                on_progress=(
-                    None
-                    if on_progress is None
-                    else lambda done, total: on_progress(request.model, done, total)
-                ),
-            )
-            reports.append(_claim_embed_model_report(request.model, result))
-        conn.commit()
+    try:
+        results = embed_claims_for_request(
+            sidecar,
+            claim_id=request.claim_id,
+            embed_all=request.embed_all,
+            model=request.model,
+            batch_size=request.batch_size,
+            on_progress=on_progress,
+        )
+    except LookupError as exc:
+        raise ClaimEmbeddingModelError(
+            "no models registered. Run embed with a specific model first."
+        ) from exc
+    reports = [
+        _claim_embed_model_report(model_name, result)
+        for model_name, result in results
+    ]
     return ClaimEmbedReport(results=tuple(reports))
 
 
@@ -531,37 +505,22 @@ def find_similar_claims(
     repo: Repository,
     request: ClaimSimilarRequest,
 ) -> ClaimSimilarReport:
-    from propstore.heuristic.embed import (
-        _load_vec_extension,
-        find_similar,
-        find_similar_agree,
-        find_similar_disagree,
-        get_registered_models,
-    )
-
     sidecar = _require_sidecar(repo)
-    conn = connect_sidecar(sidecar)
-    conn.row_factory = sqlite3.Row
-    _load_vec_extension(conn)
     try:
-        if request.agree:
-            rows = find_similar_agree(conn, request.claim_id, top_k=request.top_k)
-        elif request.disagree:
-            rows = find_similar_disagree(conn, request.claim_id, top_k=request.top_k)
-        else:
-            model = request.model
-            if model is None:
-                models = get_registered_models(conn)
-                if not models:
-                    raise ClaimEmbeddingModelError(
-                        "no embeddings found. Run 'pks claim embed' first."
-                    )
-                model = str(models[0]["model_name"])
-            rows = find_similar(conn, request.claim_id, model, top_k=request.top_k)
+        rows = find_similar_claim_rows(
+            sidecar,
+            claim_id=request.claim_id,
+            model=request.model,
+            top_k=request.top_k,
+            agree=request.agree,
+            disagree=request.disagree,
+        )
+    except LookupError as exc:
+        raise ClaimEmbeddingModelError(
+            "no embeddings found. Run 'pks claim embed' first."
+        ) from exc
     except ValueError as exc:
         raise ClaimWorkflowError(str(exc)) from exc
-    finally:
-        conn.close()
 
     hits = tuple(
         ClaimSimilarHit(
@@ -581,10 +540,9 @@ def relate_claims(
     *,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> ClaimRelateReport:
-    from propstore.heuristic.embed import _load_vec_extension
     from propstore.proposals import commit_stance_proposals, stance_proposal_branch
-    from propstore.heuristic.relate import relate_all as relate_all_fn
-    from propstore.heuristic.relate import relate_claim
+    from propstore.heuristic.relate import relate_all_from_sidecar
+    from propstore.heuristic.relate import relate_claim_from_sidecar
 
     try:
         repo.require_git().head_sha()
@@ -594,54 +552,50 @@ def relate_claims(
         ) from exc
     sidecar = _require_sidecar(repo)
 
-    conn = connect_sidecar(sidecar)
-    with contextlib.closing(conn):
-        conn.row_factory = sqlite3.Row
-        _load_vec_extension(conn)
-        if request.claim_id and not request.relate_all:
-            stances = tuple(
-                relate_claim(
-                    conn,
-                    request.claim_id,
-                    request.model,
-                    request.embedding_model,
-                    request.top_k,
-                )
-            )
-            commit_sha, committed_relpaths = commit_stance_proposals(
-                repo,
-                {request.claim_id: list(stances)} if stances else {},
-                request.model,
-            )
-            return ClaimRelateReport(
-                branch=stance_proposal_branch(),
-                stances=stances,
-                commit_sha=commit_sha,
-                relpaths=tuple(committed_relpaths),
-            )
-        if request.relate_all:
-            result = relate_all_fn(
-                conn,
+    if request.claim_id and not request.relate_all:
+        stances = tuple(
+            relate_claim_from_sidecar(
+                sidecar,
+                request.claim_id,
                 request.model,
                 request.embedding_model,
                 request.top_k,
-                concurrency=request.concurrency,
-                on_progress=on_progress,
             )
-            stances_by_claim = _required_stances_by_claim(
-                result.get("stances_by_claim", {})
-            )
-            commit_sha, committed_relpaths = commit_stance_proposals(
-                repo,
-                stances_by_claim,
-                request.model,
-            )
-            return ClaimRelateReport(
-                branch=stance_proposal_branch(),
-                commit_sha=commit_sha,
-                relpaths=tuple(committed_relpaths),
-                claims_processed=_required_int(result, "claims_processed"),
-                stances_found=_required_int(result, "stances_found"),
-                no_relation=_required_int(result, "no_relation"),
-            )
+        )
+        commit_sha, committed_relpaths = commit_stance_proposals(
+            repo,
+            {request.claim_id: list(stances)} if stances else {},
+            request.model,
+        )
+        return ClaimRelateReport(
+            branch=stance_proposal_branch(),
+            stances=stances,
+            commit_sha=commit_sha,
+            relpaths=tuple(committed_relpaths),
+        )
+    if request.relate_all:
+        result = relate_all_from_sidecar(
+            sidecar,
+            request.model,
+            request.embedding_model,
+            request.top_k,
+            concurrency=request.concurrency,
+            on_progress=on_progress,
+        )
+        stances_by_claim = _required_stances_by_claim(
+            result.get("stances_by_claim", {})
+        )
+        commit_sha, committed_relpaths = commit_stance_proposals(
+            repo,
+            stances_by_claim,
+            request.model,
+        )
+        return ClaimRelateReport(
+            branch=stance_proposal_branch(),
+            commit_sha=commit_sha,
+            relpaths=tuple(committed_relpaths),
+            claims_processed=_required_int(result, "claims_processed"),
+            stances_found=_required_int(result, "stances_found"),
+            no_relation=_required_int(result, "no_relation"),
+        )
     raise ClaimWorkflowError("provide a claim ID or request all claims")

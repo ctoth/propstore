@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from quire.projections import (
     ProjectionColumn,
@@ -13,7 +14,9 @@ from quire.projections import (
 )
 
 from propstore.core.micropublications import ActiveMicropublication
-from propstore.sidecar.stages import MicropublicationSidecarRows
+
+if TYPE_CHECKING:
+    from propstore.sidecar.stages import MicropublicationSidecarRows
 
 
 MICROPUBLICATION_PROJECTION = ProjectionTable(

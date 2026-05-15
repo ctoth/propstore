@@ -11,8 +11,10 @@ instead of collapsing them to ``min(forward, reverse)``.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import sqlite3
 from collections.abc import Callable
+from pathlib import Path
 
 from propstore.families.claims.declaration import (
     select_all_claim_ids,
@@ -160,6 +162,23 @@ def relate_claim(
     )
 
 
+def relate_claim_from_sidecar(
+    sidecar: Path,
+    claim_id: str,
+    model_name: str,
+    embedding_model: str | None = None,
+    top_k: int = 5,
+) -> list[dict]:
+    from propstore.heuristic.embed import _load_vec_extension
+    from propstore.sidecar.sqlite import connect_sidecar
+
+    conn = connect_sidecar(sidecar)
+    with contextlib.closing(conn):
+        conn.row_factory = sqlite3.Row
+        _load_vec_extension(conn)
+        return relate_claim(conn, claim_id, model_name, embedding_model, top_k)
+
+
 async def relate_all_async(
     conn: sqlite3.Connection,
     model_name: str,
@@ -301,3 +320,28 @@ def relate_all(
     return _run_async(
         relate_all_async(conn, model_name, embedding_model, top_k, concurrency, on_progress)
     )
+
+
+def relate_all_from_sidecar(
+    sidecar: Path,
+    model_name: str,
+    embedding_model: str | None = None,
+    top_k: int = 5,
+    concurrency: int = 20,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict:
+    from propstore.heuristic.embed import _load_vec_extension
+    from propstore.sidecar.sqlite import connect_sidecar
+
+    conn = connect_sidecar(sidecar)
+    with contextlib.closing(conn):
+        conn.row_factory = sqlite3.Row
+        _load_vec_extension(conn)
+        return relate_all(
+            conn,
+            model_name,
+            embedding_model,
+            top_k,
+            concurrency=concurrency,
+            on_progress=on_progress,
+        )

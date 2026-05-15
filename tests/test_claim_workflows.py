@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import MagicMock
-
 import yaml
 import pytest
 
@@ -19,7 +17,6 @@ from propstore.app.claims import (
     find_similar_claims,
     relate_claims,
 )
-import propstore.heuristic.embed as embed_mod
 import propstore.heuristic.relate as relate_mod
 from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
@@ -47,31 +44,29 @@ def test_claim_repo_world_model_wrappers_materialize_and_report_unknown_claim(
         )
 
 
-def test_embed_claim_embeddings_owns_connection_and_reports_progress(
+def test_embed_claim_embeddings_uses_claim_declaration_embedding_owner(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     repo = _repo_with_sidecar(tmp_path)
-    conn = MagicMock()
-    calls: list[tuple[str, list[str] | None, int]] = []
+    calls: list[tuple[str, str | None, bool, int]] = []
 
-    def fake_embed_claims(
-        conn_arg,
-        model_name,
+    def fake_embed_for_request(
+        sidecar,
         *,
-        claim_ids,
+        claim_id,
+        embed_all,
+        model,
         batch_size,
         on_progress,
     ):
-        assert conn_arg is conn
-        calls.append((model_name, claim_ids, batch_size))
+        assert sidecar.exists()
+        calls.append((model, claim_id, embed_all, batch_size))
         if on_progress is not None:
-            on_progress(3, 5)
-        return {"embedded": 3, "skipped": 1, "errors": 0}
+            on_progress(model, 3, 5)
+        return [(model, {"embedded": 3, "skipped": 1, "errors": 0})]
 
-    monkeypatch.setattr(claims_app, "connect_sidecar", lambda path: conn)
-    monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn_arg: None)
-    monkeypatch.setattr(embed_mod, "embed_claims", fake_embed_claims)
+    monkeypatch.setattr(claims_app, "embed_claims_for_request", fake_embed_for_request)
     progress: list[tuple[str, int, int]] = []
 
     report = embed_claim_embeddings(
@@ -87,29 +82,36 @@ def test_embed_claim_embeddings_owns_connection_and_reports_progress(
         ),
     )
 
-    assert calls == [("model-a", ["claim-a"], 11)]
+    assert calls == [("model-a", "claim-a", False, 11)]
     assert progress == [("model-a", 3, 5)]
     assert report.results[0].embedded == 3
     assert report.results[0].skipped == 1
-    conn.commit.assert_called_once()
-    conn.close.assert_called_once()
 
 
-def test_find_similar_claims_uses_registered_default_model_and_closes(
+def test_find_similar_claims_uses_claim_declaration_similarity_owner(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     repo = _repo_with_sidecar(tmp_path)
-    conn = MagicMock()
     captured: dict[str, object] = {}
 
-    def fake_find_similar(conn_arg, claim_id, model_name, *, top_k):
+    def fake_find_similar_rows(
+        sidecar,
+        *,
+        claim_id,
+        model,
+        top_k,
+        agree,
+        disagree,
+    ):
         captured.update(
             {
-                "conn": conn_arg,
+                "sidecar_exists": sidecar.exists(),
                 "claim_id": claim_id,
-                "model_name": model_name,
+                "model_name": model,
                 "top_k": top_k,
+                "agree": agree,
+                "disagree": disagree,
             }
         )
         return [
@@ -121,14 +123,7 @@ def test_find_similar_claims_uses_registered_default_model_and_closes(
             }
         ]
 
-    monkeypatch.setattr(claims_app, "connect_sidecar", lambda path: conn)
-    monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn_arg: None)
-    monkeypatch.setattr(
-        embed_mod,
-        "get_registered_models",
-        lambda conn_arg: [{"model_name": "model-a"}],
-    )
-    monkeypatch.setattr(embed_mod, "find_similar", fake_find_similar)
+    monkeypatch.setattr(claims_app, "find_similar_claim_rows", fake_find_similar_rows)
 
     report = find_similar_claims(
         repo,
@@ -140,14 +135,15 @@ def test_find_similar_claims_uses_registered_default_model_and_closes(
     )
 
     assert captured == {
-        "conn": conn,
+        "sidecar_exists": True,
         "claim_id": "claim-a",
-        "model_name": "model-a",
+        "model_name": None,
         "top_k": 7,
+        "agree": False,
+        "disagree": False,
     }
     assert report.hits[0].claim_id == "claim-b"
     assert report.hits[0].summary == "close semantic neighbor"
-    conn.close.assert_called_once()
 
 
 def test_relate_claims_commits_single_claim_proposals_to_branch(
@@ -156,11 +152,10 @@ def test_relate_claims_commits_single_claim_proposals_to_branch(
 ) -> None:
     repo = _repo_with_sidecar(tmp_path)
 
-    monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn: None)
     monkeypatch.setattr(
         relate_mod,
-        "relate_claim",
-        lambda conn, claim_id, model_name, embedding_model, top_k: [
+        "relate_claim_from_sidecar",
+        lambda sidecar, claim_id, model_name, embedding_model, top_k: [
             {
                 "target": "claim-b",
                 "type": "supports",
@@ -206,11 +201,10 @@ def test_relate_claims_all_reports_summary_without_empty_commit(
     repo = _repo_with_sidecar(tmp_path)
     progress: list[tuple[int, int]] = []
 
-    monkeypatch.setattr(embed_mod, "_load_vec_extension", lambda conn: None)
     monkeypatch.setattr(
         relate_mod,
-        "relate_all",
-        lambda conn, model_name, embedding_model, top_k, *, concurrency, on_progress: {
+        "relate_all_from_sidecar",
+        lambda sidecar, model_name, embedding_model, top_k, *, concurrency, on_progress: {
             "stances_by_claim": {},
             "claims_processed": 4,
             "stances_found": 0,
