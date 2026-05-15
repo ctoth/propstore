@@ -41888,7 +41888,9 @@
   ],
   "summary": {
     "class_surfaces_app_world": 228,
+    "class_surfaces_total": 326,
     "codec_methods_families_source": 57,
+    "codec_methods_total": 238,
     "generated_propstore_python_lines": 0,
     "handwritten_fk_edges": 21,
     "handwritten_fts_projections": 2,
