@@ -18,7 +18,6 @@ from propstore.core.conditions.registry import (
 )
 from propstore.cel_registry import build_store_cel_registry
 from propstore.families.contexts.declaration import load_lifting_system
-from propstore.core.graph_types import ProvenanceRecord
 from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.labels import compile_environment_assumptions
@@ -32,9 +31,13 @@ from propstore.core.store_results import (
 from propstore.families.claims.declaration import (
     ClaimRow,
     build_claim_logical_id_index,
+    count_authored_justifications,
     count_claims,
     resolve_claim_id,
+    select_authored_justifications,
     select_claim_rows,
+    select_claim_rows_linked_to_concept,
+    select_claim_rows_with_visibility,
 )
 from propstore.families.diagnostics.declaration import (
     has_build_diagnostics_table,
@@ -376,41 +379,24 @@ class WorldQuery(WorldStore):
         )
 
     def claims_for(self, concept_id: str | None) -> list[ClaimRow]:
-        where_sql, params = self._claims_linked_to_concept_where_sql(
-            concept_id,
+        resolved_concept_id = (
+            None
+            if concept_id is None
+            else self.resolve_concept(concept_id) or concept_id
+        )
+        return select_claim_rows_linked_to_concept(
+            self._conn,
+            resolved_concept_id,
             roles=("output", "target"),
         )
-        return self._claim_rows(where_sql + "ORDER BY core.id", params)
 
     def claims_related_to_concept(self, concept_id: str | None) -> list[ClaimRow]:
-        where_sql, params = self._claims_linked_to_concept_where_sql(concept_id)
-        return self._claim_rows(where_sql + "ORDER BY core.id", params)
-
-    def _claims_linked_to_concept_where_sql(
-        self,
-        concept_id: str | None,
-        *,
-        roles: tuple[str, ...] | None = None,
-    ) -> tuple[str, tuple[Any, ...]]:
-        if concept_id is None:
-            return "", ()
-        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
-        predicates = [
-            "link.claim_id = core.id",
-            "link.concept_id = ?",
-        ]
-        params: list[Any] = [resolved_concept_id]
-        if roles:
-            placeholders = ",".join("?" for _ in roles)
-            predicates.append(f"link.role IN ({placeholders})")
-            params.extend(roles)
-        where_sql = (
-            "WHERE EXISTS ("
-            "SELECT 1 FROM claim_concept_link AS link "
-            f"WHERE {' AND '.join(predicates)}"
-            ") "
+        resolved_concept_id = (
+            None
+            if concept_id is None
+            else self.resolve_concept(concept_id) or concept_id
         )
-        return where_sql, tuple(params)
+        return select_claim_rows_linked_to_concept(self._conn, resolved_concept_id)
 
     def _render_policy_predicates(
         self, policy: RenderPolicy
@@ -470,18 +456,17 @@ class WorldQuery(WorldStore):
         stay out of the default view but remain queryable through opt-in
         flags.
         """
-        predicates, params = self._render_policy_predicates(policy)
-        clauses: list[str] = []
-        bound: list[Any] = list(params)
-        if concept_id is not None:
-            concept_clause, concept_params = self._claims_linked_to_concept_where_sql(concept_id)
-            clauses.append(concept_clause.removeprefix("WHERE ").strip())
-            bound.extend(concept_params)
-        clauses.extend(predicates)
-        where_sql = ""
-        if clauses:
-            where_sql = "WHERE " + " AND ".join(clauses) + " "
-        return self._claim_rows(where_sql + "ORDER BY core.id", tuple(bound))
+        resolved_concept_id = (
+            None
+            if concept_id is None
+            else self.resolve_concept(concept_id) or concept_id
+        )
+        return select_claim_rows_with_visibility(
+            self._conn,
+            concept_id=resolved_concept_id,
+            include_drafts=policy.include_drafts,
+            include_blocked=policy.include_blocked,
+        )
 
     def build_diagnostics(self, policy: RenderPolicy) -> list[dict[str, Any]]:
         """Return ``build_diagnostics`` rows when ``policy.show_quarantined``
@@ -589,16 +574,7 @@ class WorldQuery(WorldStore):
         return select_all_claim_stances(self._conn)
 
     def all_authored_justifications(self) -> tuple[CanonicalJustification, ...]:
-        rows = self._conn.execute(
-            """
-            SELECT id, justification_kind, conclusion_claim_id,
-                   premise_claim_ids, source_relation_type, source_claim_id,
-                   provenance_json, rule_strength
-            FROM justification
-            ORDER BY id
-            """
-        ).fetchall()
-        return tuple(self._canonical_justification_from_row(row) for row in rows)
+        return select_authored_justifications(self._conn)
 
     def justifications_for_claim_scope(
         self,
@@ -619,70 +595,6 @@ class WorldQuery(WorldStore):
                 for premise_id in justification.premise_claim_ids
             )
         )
-
-    def _canonical_justification_from_row(
-        self,
-        row: sqlite3.Row,
-    ) -> CanonicalJustification:
-        justification_id = str(row["id"])
-        premise_claim_ids = self._decode_justification_premises(
-            row["premise_claim_ids"],
-            justification_id=justification_id,
-        )
-        provenance = self._decode_justification_provenance(
-            row["provenance_json"],
-            justification_id=justification_id,
-        )
-        attributes = tuple(
-            (key, row[key])
-            for key in ("source_relation_type", "source_claim_id")
-            if row[key] is not None
-        )
-        return CanonicalJustification(
-            justification_id=justification_id,
-            conclusion_claim_id=str(row["conclusion_claim_id"]),
-            premise_claim_ids=premise_claim_ids,
-            rule_kind=str(row["justification_kind"]),
-            rule_strength=str(row["rule_strength"] or "defeasible"),
-            provenance=provenance,
-            attributes=attributes,
-        )
-
-    @staticmethod
-    def _decode_justification_premises(
-        value: object,
-        *,
-        justification_id: str,
-    ) -> tuple[str, ...]:
-        if not isinstance(value, str):
-            raise ValueError(
-                f"justification {justification_id!r} premise_claim_ids must be JSON text"
-            )
-        loaded = json.loads(value)
-        if not isinstance(loaded, list):
-            raise ValueError(
-                f"justification {justification_id!r} premise_claim_ids must decode to a list"
-            )
-        return tuple(str(item) for item in loaded)
-
-    @staticmethod
-    def _decode_justification_provenance(
-        value: object,
-        *,
-        justification_id: str,
-    ) -> ProvenanceRecord | None:
-        if value is None or value == "":
-            return None
-        if not isinstance(value, str):
-            raise ValueError(
-                f"justification {justification_id!r} provenance_json must be JSON text"
-            )
-        loaded = json.loads(value)
-        if not isinstance(loaded, Mapping):
-            raise ValueError(
-                f"justification {justification_id!r} provenance_json must decode to a mapping"
-            )
-        return ProvenanceRecord.from_mapping(loaded)
 
     def claim_stances_with_policy(
         self,
@@ -825,8 +737,7 @@ class WorldQuery(WorldStore):
         )
 
     def authored_justification_count(self) -> int:
-        count = self._conn.execute("SELECT COUNT(*) FROM justification").fetchone()[0]
-        return int(count)
+        return count_authored_justifications(self._conn)
 
     # ── Parameterization queries ─────────────────────────────────────
 

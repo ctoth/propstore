@@ -51,6 +51,8 @@ from propstore.core.relations import (
 from propstore.core.source_types import coerce_source_kind, coerce_source_origin_type
 
 if TYPE_CHECKING:
+    from propstore.core.graph_types import ProvenanceRecord
+    from propstore.core.justifications import CanonicalJustification
     from propstore.sidecar.stages import (
         ClaimSidecarRows,
         RawIdQuarantineSidecarRows,
@@ -697,6 +699,67 @@ def select_claim_rows(
     return [ClaimRow.from_mapping(row_dict) for row_dict in row_dicts]
 
 
+def select_claim_rows_linked_to_concept(
+    conn: sqlite3.Connection,
+    concept_id: str | None,
+    *,
+    roles: tuple[str, ...] | None = None,
+) -> list[ClaimRow]:
+    where_sql, params = _claim_concept_link_where_sql(concept_id, roles=roles)
+    return select_claim_rows(conn, where_sql + "ORDER BY core.id", params)
+
+
+def select_claim_rows_with_visibility(
+    conn: sqlite3.Connection,
+    *,
+    concept_id: str | None,
+    include_drafts: bool,
+    include_blocked: bool,
+) -> list[ClaimRow]:
+    clauses: list[str] = []
+    bound: list[Any] = []
+    concept_clause, concept_params = _claim_concept_link_where_sql(concept_id)
+    if concept_clause:
+        clauses.append(concept_clause.removeprefix("WHERE ").strip())
+        bound.extend(concept_params)
+    if not include_drafts:
+        clauses.append("(core.stage IS NULL OR core.stage != 'draft')")
+    if not include_blocked:
+        clauses.append("(core.build_status IS NULL OR core.build_status != 'blocked')")
+        clauses.append(
+            "(core.promotion_status IS NULL OR core.promotion_status != 'blocked')"
+        )
+    where_sql = ""
+    if clauses:
+        where_sql = "WHERE " + " AND ".join(clauses) + " "
+    return select_claim_rows(conn, where_sql + "ORDER BY core.id", tuple(bound))
+
+
+def _claim_concept_link_where_sql(
+    concept_id: str | None,
+    *,
+    roles: tuple[str, ...] | None = None,
+) -> tuple[str, tuple[Any, ...]]:
+    if concept_id is None:
+        return "", ()
+    predicates = [
+        "link.claim_id = core.id",
+        "link.concept_id = ?",
+    ]
+    params: list[Any] = [concept_id]
+    if roles:
+        placeholders = ",".join("?" for _ in roles)
+        predicates.append(f"link.role IN ({placeholders})")
+        params.extend(roles)
+    where_sql = (
+        "WHERE EXISTS ("
+        "SELECT 1 FROM claim_concept_link AS link "
+        f"WHERE {' AND '.join(predicates)}"
+        ") "
+    )
+    return where_sql, tuple(params)
+
+
 def select_claim_concept_links_by_claim_id(
     conn: sqlite3.Connection,
     claim_ids: Sequence[str],
@@ -776,6 +839,93 @@ def resolve_claim_id(
 
 def count_claims(conn: sqlite3.Connection) -> int:
     return int(conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0])
+
+
+def select_authored_justifications(
+    conn: sqlite3.Connection,
+) -> tuple[CanonicalJustification, ...]:
+    rows = conn.execute(
+        """
+        SELECT id, justification_kind, conclusion_claim_id,
+               premise_claim_ids, source_relation_type, source_claim_id,
+               provenance_json, rule_strength
+        FROM justification
+        ORDER BY id
+        """
+    ).fetchall()
+    return tuple(_canonical_justification_from_row(row) for row in rows)
+
+
+def count_authored_justifications(conn: sqlite3.Connection) -> int:
+    return int(conn.execute("SELECT COUNT(*) FROM justification").fetchone()[0])
+
+
+def _canonical_justification_from_row(
+    row: sqlite3.Row,
+) -> CanonicalJustification:
+    from propstore.core.justifications import CanonicalJustification
+
+    justification_id = str(row["id"])
+    premise_claim_ids = _decode_justification_premises(
+        row["premise_claim_ids"],
+        justification_id=justification_id,
+    )
+    provenance = _decode_justification_provenance(
+        row["provenance_json"],
+        justification_id=justification_id,
+    )
+    attributes = tuple(
+        (key, row[key])
+        for key in ("source_relation_type", "source_claim_id")
+        if row[key] is not None
+    )
+    return CanonicalJustification(
+        justification_id=justification_id,
+        conclusion_claim_id=str(row["conclusion_claim_id"]),
+        premise_claim_ids=premise_claim_ids,
+        rule_kind=str(row["justification_kind"]),
+        rule_strength=str(row["rule_strength"] or "defeasible"),
+        provenance=provenance,
+        attributes=attributes,
+    )
+
+
+def _decode_justification_premises(
+    value: object,
+    *,
+    justification_id: str,
+) -> tuple[str, ...]:
+    if not isinstance(value, str):
+        raise ValueError(
+            f"justification {justification_id!r} premise_claim_ids must be JSON text"
+        )
+    loaded = json.loads(value)
+    if not isinstance(loaded, list):
+        raise ValueError(
+            f"justification {justification_id!r} premise_claim_ids must decode to a list"
+        )
+    return tuple(str(item) for item in loaded)
+
+
+def _decode_justification_provenance(
+    value: object,
+    *,
+    justification_id: str,
+) -> ProvenanceRecord | None:
+    if value is None or value == "":
+        return None
+    if not isinstance(value, str):
+        raise ValueError(
+            f"justification {justification_id!r} provenance_json must be JSON text"
+        )
+    loaded = json.loads(value)
+    if not isinstance(loaded, Mapping):
+        raise ValueError(
+            f"justification {justification_id!r} provenance_json must decode to a mapping"
+        )
+    from propstore.core.graph_types import ProvenanceRecord
+
+    return ProvenanceRecord.from_mapping(loaded)
 
 
 def has_claim_core_table(conn: sqlite3.Connection) -> bool:
