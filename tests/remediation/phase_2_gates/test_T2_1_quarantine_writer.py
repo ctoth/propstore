@@ -3,7 +3,11 @@ from __future__ import annotations
 import sqlite3
 from pathlib import Path
 
-from propstore.sidecar.quarantine import QuarantinableWriter, Quarantined, Written
+from propstore.families.diagnostics.declaration import (
+    QuarantinableWriter,
+    Quarantined,
+    Written,
+)
 
 
 def test_writer_quarantines_on_any_failure(tmp_path: Path) -> None:

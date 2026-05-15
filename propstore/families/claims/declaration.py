@@ -1057,7 +1057,7 @@ def populate_raw_id_quarantine_records(
     conn: sqlite3.Connection,
     rows: RawIdQuarantineSidecarRows,
 ) -> None:
-    from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
+    from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
 
     CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in rows.claim_rows))
     for row in rows.diagnostic_rows:
@@ -1146,7 +1146,7 @@ def _insert_claim_version_conflict(
     new_version: str,
     source_ref: str,
 ) -> None:
-    from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
+    from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
 
     BUILD_DIAGNOSTICS_PROJECTION.insert_row(
         conn,

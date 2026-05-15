@@ -1,21 +1,40 @@
-"""Quarantine writer for rule-5 sidecar gates.
-
-The render-time filtering pattern in ``schema.py`` depends on refusing
-less data at build time: rows with bad local payloads become blocking
-``build_diagnostics`` entries instead of aborting the whole sidecar
-build. This module packages that boundary so later gates share one
-diagnostic-write path.
-"""
+"""Build-diagnostics projection and query contract."""
 
 from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
+from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
+
+
+BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(
+    name="build_diagnostics",
+    columns=(
+        ProjectionColumn("id", "INTEGER PRIMARY KEY AUTOINCREMENT", insertable=False),
+        ProjectionColumn("claim_id", "TEXT"),
+        ProjectionColumn("source_kind", "TEXT", nullable=False),
+        ProjectionColumn("source_ref", "TEXT"),
+        ProjectionColumn("diagnostic_kind", "TEXT", nullable=False),
+        ProjectionColumn("severity", "TEXT", nullable=False),
+        ProjectionColumn("blocking", "INTEGER", nullable=False),
+        ProjectionColumn("message", "TEXT", nullable=False),
+        ProjectionColumn("file", "TEXT"),
+        ProjectionColumn("detail_json", "TEXT"),
+    ),
+    indexes=(
+        ProjectionIndex("idx_build_diagnostics_claim", ("claim_id",)),
+        ProjectionIndex("idx_build_diagnostics_kind", ("diagnostic_kind",)),
+        ProjectionIndex(
+            "idx_build_diagnostics_source",
+            ("source_kind", "source_ref"),
+        ),
+    ),
+    if_not_exists=True,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,3 +140,59 @@ class QuarantinableWriter:
             diagnostic_id=cursor.lastrowid,
             message=message,
         )
+
+
+def has_build_diagnostics_table(conn: sqlite3.Connection) -> bool:
+    return (
+        conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='build_diagnostics'"
+        ).fetchone()
+        is not None
+    )
+
+
+def select_build_diagnostics(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    rows = conn.execute(
+        """
+        SELECT
+            id, claim_id, source_kind, source_ref,
+            diagnostic_kind, severity, blocking,
+            message, file, detail_json
+        FROM build_diagnostics
+        ORDER BY id
+        """
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def select_source_status_diagnostic_rows(
+    conn: sqlite3.Connection,
+    *,
+    claim_ids: Sequence[str],
+    like_pattern: str,
+) -> list[sqlite3.Row]:
+    if not claim_ids:
+        return []
+    placeholders = ",".join("?" for _ in claim_ids)
+    return conn.execute(
+        f"""
+        SELECT claim_id, source_ref, diagnostic_kind, blocking, message
+        FROM build_diagnostics
+        WHERE source_kind = 'claim'
+          AND (claim_id IN ({placeholders}) OR source_ref LIKE ? ESCAPE '!')
+        ORDER BY id
+        """,
+        (*claim_ids, like_pattern),
+    ).fetchall()
+
+
+def delete_promotion_blocked_diagnostics(
+    conn: sqlite3.Connection,
+    claim_id: str,
+) -> None:
+    conn.execute(
+        "DELETE FROM build_diagnostics "
+        "WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'",
+        (claim_id,),
+    )
+

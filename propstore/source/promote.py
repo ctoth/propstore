@@ -57,7 +57,7 @@ from propstore.provenance import (
 )
 from propstore.repository import Repository
 from propstore.families.claims.declaration import CLAIM_CORE_PROJECTION
-from propstore.sidecar.diagnostics import (
+from propstore.families.diagnostics.declaration import (
     BUILD_DIAGNOSTICS_PROJECTION,
 )
 from quire.projections import ProjectionRow

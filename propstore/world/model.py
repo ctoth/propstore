@@ -36,6 +36,10 @@ from propstore.families.claims.declaration import (
     resolve_claim_id,
     select_claim_rows,
 )
+from propstore.families.diagnostics.declaration import (
+    has_build_diagnostics_table,
+    select_build_diagnostics,
+)
 from propstore.core.row_types import ParameterizationRow
 from propstore.families.relations.declaration import (
     ConflictRow,
@@ -487,19 +491,9 @@ class WorldQuery(WorldStore):
         """
         if not policy.show_quarantined:
             return []
-        if not self._has_table("build_diagnostics"):
+        if not has_build_diagnostics_table(self._conn):
             return []
-        rows = self._conn.execute(
-            """
-            SELECT
-                id, claim_id, source_kind, source_ref,
-                diagnostic_kind, severity, blocking,
-                message, file, detail_json
-            FROM build_diagnostics
-            ORDER BY id
-            """
-        ).fetchall()
-        return [dict(row) for row in rows]
+        return select_build_diagnostics(self._conn)
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]:
         if not claim_ids:

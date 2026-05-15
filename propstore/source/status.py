@@ -11,6 +11,10 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from propstore.families.diagnostics.declaration import (
+    has_build_diagnostics_table,
+    select_source_status_diagnostic_rows,
+)
 from propstore.families.claims.declaration import select_source_promotion_claim_rows
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.common import source_branch_name
@@ -55,9 +59,7 @@ def inspect_source_status(store_path: Path, name: str) -> SourceStatusReport:
         has_claim_core = conn.execute(
             "SELECT 1 FROM sqlite_master WHERE type='table' AND name='claim_core'"
         ).fetchone() is not None
-        has_diagnostics = conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='build_diagnostics'"
-        ).fetchone() is not None
+        has_diagnostics = has_build_diagnostics_table(conn)
         if not has_claim_core:
             return SourceStatusReport(
                 branch=branch,
@@ -70,17 +72,11 @@ def inspect_source_status(store_path: Path, name: str) -> SourceStatusReport:
         if has_diagnostics and claim_rows:
             like_pattern = f"{_escape_sql_like(branch)}:%"
             claim_ids = [str(row["id"]) for row in claim_rows]
-            placeholders = ",".join("?" for _ in claim_ids)
-            diag_rows = conn.execute(
-                f"""
-                SELECT claim_id, source_ref, diagnostic_kind, blocking, message
-                FROM build_diagnostics
-                WHERE source_kind = 'claim'
-                  AND (claim_id IN ({placeholders}) OR source_ref LIKE ? ESCAPE '!')
-                ORDER BY id
-                """,
-                (*claim_ids, like_pattern),
-            ).fetchall()
+            diag_rows = select_source_status_diagnostic_rows(
+                conn,
+                claim_ids=claim_ids,
+                like_pattern=like_pattern,
+            )
             for diag in diag_rows:
                 claim_id = diag["claim_id"]
                 source_ref = diag["source_ref"]

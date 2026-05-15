@@ -78,7 +78,7 @@ from propstore.families.claims.declaration import (
     CONFLICT_WITNESS_PROJECTION,
     JUSTIFICATION_PROJECTION,
 )
-from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
+from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.families.micropublications.declaration import (
     MicropublicationClaimProjectionRow,
     MicropublicationProjectionRow,

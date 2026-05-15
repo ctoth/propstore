@@ -32,7 +32,7 @@ from propstore.families.contexts.declaration import (
     CONTEXT_LIFTING_RULE_PROJECTION,
     CONTEXT_PROJECTION,
 )
-from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
+from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import (
     CONCEPT_EMBEDDING_STATUS_PROJECTION,
     EMBEDDING_MODEL_PROJECTION,

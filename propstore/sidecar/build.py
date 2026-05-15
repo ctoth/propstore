@@ -59,7 +59,11 @@ from propstore.families.claims.declaration import (
 from propstore.sidecar.passes import compile_sidecar_build_plan
 from propstore.sidecar.stages import RepositoryCheckedBundle
 from propstore.families.concepts.declaration import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
-from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
+from propstore.families.diagnostics.declaration import (
+    BUILD_DIAGNOSTICS_PROJECTION,
+    QuarantinableWriter,
+    delete_promotion_blocked_diagnostics,
+)
 from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.sidecar.schema import (
     create_claim_tables,
@@ -72,7 +76,6 @@ from propstore.families.micropublications.declaration import (
     create_micropublication_tables,
     populate_micropublications,
 )
-from propstore.sidecar.quarantine import QuarantinableWriter
 from propstore.sidecar.rules import create_grounded_fact_table, populate_grounded_facts
 from propstore.families.sources.declaration import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
@@ -459,11 +462,7 @@ def _populate_promotion_blocked_rows(
                 (claim_id,),
             )
         delete_claim_core_row(conn, claim_id)
-        conn.execute(
-            "DELETE FROM build_diagnostics "
-            "WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'",
-            (claim_id,),
-        )
+        delete_promotion_blocked_diagnostics(conn, claim_id)
     CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
     for row in diagnostic_rows:
         BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
