@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
+from quire.derived_store import DerivedStoreHandle
 
 from propstore.families.diagnostics.declaration import (
     has_build_diagnostics_table,
@@ -18,7 +18,6 @@ from propstore.families.claims.declaration import (
     has_claim_core_table,
     select_source_promotion_claim_rows,
 )
-from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.common import source_branch_name
 
 
@@ -52,10 +51,10 @@ def _escape_sql_like(value: str) -> str:
     return value.replace("!", "!!").replace("%", "!%").replace("_", "!_")
 
 
-def inspect_source_status(store_path: Path, name: str) -> SourceStatusReport:
+def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatusReport:
     branch = source_branch_name(name)
 
-    conn = connect_sidecar(store_path)
+    conn = handle.open_readonly()
     try:
         has_claim_core = has_claim_core_table(conn)
         has_diagnostics = has_build_diagnostics_table(conn)

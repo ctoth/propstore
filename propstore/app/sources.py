@@ -262,7 +262,7 @@ def inspect_source(repo: Repository, request: SourceNamedRequest):
     from propstore.source import inspect_source_status
 
     handle, _ = materialize_world_sidecar(repo)
-    return inspect_source_status(handle.path, request.name)
+    return inspect_source_status(handle, request.name)
 
 
 def sync_source(repo: Repository, request: SourceSyncRequest) -> SourceSyncReport:

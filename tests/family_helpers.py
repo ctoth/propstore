@@ -92,12 +92,12 @@ def build_sidecar(repo_or_path: Repository | TreePath | Path, sidecar_path: Path
     return _export_sidecar(repo, sidecar_path, **kwargs)
 
 
-def materialized_world_store_path(
+def materialized_world_store(
     repo: Repository,
     *,
     force: bool = False,
     **kwargs,
-) -> Path:
+) -> DerivedStoreHandle:
     if repo.git is None:
         _init_git_without_sync(repo.root)
         for cached_name in ("git", "_family_store", "families", "snapshot"):
@@ -106,7 +106,16 @@ def materialized_world_store_path(
     if kwargs.get("commit_hash") is None:
         _commit_worktree(repo)
     handle, _ = materialize_world_sidecar(repo, force=force, **kwargs)
-    return handle.path
+    return handle
+
+
+def materialized_world_store_path(
+    repo: Repository,
+    *,
+    force: bool = False,
+    **kwargs,
+) -> Path:
+    return materialized_world_store(repo, force=force, **kwargs).path
 
 
 def world_query_from_sqlite_path(sqlite_path: Path):

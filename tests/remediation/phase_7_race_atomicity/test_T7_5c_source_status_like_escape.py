@@ -4,7 +4,7 @@ from propstore.repository import Repository
 from propstore.sidecar.sqlite import connect_sidecar
 from propstore.source.common import source_branch_name
 from propstore.source.status import inspect_source_status
-from tests.family_helpers import materialized_world_store_path
+from tests.family_helpers import materialized_world_store
 
 
 def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
@@ -13,8 +13,8 @@ def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     alien_branch = target_branch.replace("_", "x")
     assert alien_branch != target_branch
 
-    store_path = materialized_world_store_path(repo, force=True)
-    conn = connect_sidecar(store_path)
+    handle = materialized_world_store(repo, force=True)
+    conn = connect_sidecar(handle.path)
     try:
         conn.execute(
             """
@@ -63,7 +63,7 @@ def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     finally:
         conn.close()
 
-    report = inspect_source_status(store_path, "foo_bar")
+    report = inspect_source_status(handle, "foo_bar")
 
     assert len(report.rows) == 1
     assert report.rows[0].claim_id == "claim-1"
