@@ -28,7 +28,7 @@ from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_a
 from propstore.context_lifting import LiftingDecision
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey
-from propstore.core.row_types import StanceRowInput
+from propstore.families.relations.declaration import StanceRowInput
 from argumentation.dung import ArgumentationFramework
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER

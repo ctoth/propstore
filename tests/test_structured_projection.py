@@ -20,7 +20,7 @@ from argumentation.dung import ArgumentationFramework, complete_extensions
 from propstore.world.bound import BoundWorld
 from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import Label, compile_environment_assumptions
-from propstore.core.row_types import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
 from propstore.worldline import WorldlineDefinition, run_worldline

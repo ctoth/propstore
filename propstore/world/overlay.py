@@ -44,18 +44,20 @@ from propstore.core.store_results import (
     ConceptSimilarityHit,
 )
 from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow, ClaimRowInput, coerce_claim_row
-from propstore.core.row_types import (
+from propstore.families.relations.declaration import (
     coerce_conflict_row,
-    coerce_parameterization_row,
     coerce_relationship_row,
     coerce_stance_row,
     ConflictRow,
     ConflictRowInput,
-    ParameterizationRow,
-    ParameterizationRowInput,
     RelationshipRowInput,
     StanceRow,
     StanceRowInput,
+)
+from propstore.core.row_types import (
+    coerce_parameterization_row,
+    ParameterizationRow,
+    ParameterizationRowInput,
 )
 from propstore.families.concepts.declaration import ConceptRowInput, coerce_concept_row
 from propstore.world.bound import BoundWorld, _recomputed_conflicts

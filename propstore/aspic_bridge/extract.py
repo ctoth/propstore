@@ -10,7 +10,7 @@ from propstore.core.justifications import (
     claim_justifications_from_active_graph,
 )
 from propstore.core.relation_types import ATTACK_TYPES, SUPPORT_TYPES
-from propstore.core.row_types import StanceRow, coerce_stance_row
+from propstore.families.relations.declaration import StanceRow, coerce_stance_row
 
 
 def _extract_stance_rows(

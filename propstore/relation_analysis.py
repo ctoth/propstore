@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from propstore.core.relation_types import NON_ATTACK_TYPES
-from propstore.core.row_types import coerce_stance_row
+from propstore.families.relations.declaration import coerce_stance_row
 from propstore.world.types import WorldStore
 
 

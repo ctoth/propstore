@@ -1083,7 +1083,7 @@ def populate_claims(
     diagnostic instead of silently taking the first writer.
     """
 
-    from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
+    from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 
     seen_claim_versions: dict[str, str] = {}
     emitted_conflicts: set[tuple[str, str, str]] = set()
@@ -1174,7 +1174,7 @@ def populate_stances(
     conn: sqlite3.Connection,
     rows: Sequence[ProjectionRow],
 ) -> None:
-    from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
+    from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 
     RELATION_EDGE_PROJECTION.insert_rows(conn, (row.values for row in rows))
 

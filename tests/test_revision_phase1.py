@@ -4,7 +4,7 @@ import json
 
 from propstore.world import BoundWorld, Environment, ReasoningBackend, RenderPolicy
 from propstore.core.conditions import ConditionSolver
-from propstore.core.row_types import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
 from tests.atms_helpers import (
     condition_registry_for_rows,
     leaf_lifting_system,

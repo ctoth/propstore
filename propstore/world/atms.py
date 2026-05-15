@@ -69,11 +69,13 @@ from propstore.core.labels import (
     SupportQuality,
 )
 from propstore.families.claims.declaration import ClaimRow
-from propstore.core.row_types import (
+from propstore.families.relations.declaration import (
     coerce_conflict_row,
-    coerce_parameterization_row,
     ConflictRow,
     ConflictRowInput,
+)
+from propstore.core.row_types import (
+    coerce_parameterization_row,
     ParameterizationRow,
     ParameterizationRowInput,
 )

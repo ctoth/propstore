@@ -9,7 +9,7 @@ import pytest
 from propstore.cli import cli
 from propstore.core.active_claims import ActiveClaim, coerce_active_claim
 from propstore.core.conditions import checked_condition_set_to_json
-from propstore.core.row_types import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
 from propstore.world.atms import BudgetExhausted
 from propstore.world import BoundWorld
 from propstore.core.labels import (

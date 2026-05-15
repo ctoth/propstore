@@ -45,7 +45,7 @@ from propstore.core.store_results import (
     ConceptSimilarityHit,
 )
 from propstore.families.claims.declaration import ClaimRow
-from propstore.core.row_types import ConflictRow, StanceRow
+from propstore.families.relations.declaration import ConflictRow, StanceRow
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph

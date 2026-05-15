@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
-from propstore.core.row_types import StanceRow
+from propstore.families.relations.declaration import StanceRow
 from propstore.stances import coerce_stance_type
 from argumentation.dung import ArgumentationFramework
 from propstore.aspic_bridge import build_aspic_projection

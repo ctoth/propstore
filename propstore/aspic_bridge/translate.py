@@ -22,7 +22,7 @@ from propstore.core.literal_keys import (
     REPOSITORY_ROOT_CONTEXT_ID,
     claim_key,
 )
-from propstore.core.row_types import StanceRow, StanceRowInput, coerce_stance_row
+from propstore.families.relations.declaration import StanceRow, StanceRowInput, coerce_stance_row
 from argumentation.preference import strict_partial_order_closure
 
 from propstore.preference import MetadataStrengthVector, metadata_strength_vector

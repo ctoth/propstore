@@ -31,7 +31,7 @@ from propstore.core.conditions.registry import (
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.declaration import coerce_claim_row
 from propstore.families.concepts.declaration import coerce_concept_row
-from propstore.core.row_types import (
+from propstore.families.relations.declaration import (
     coerce_conflict_row,
     coerce_stance_row,
     ConflictRowInput,

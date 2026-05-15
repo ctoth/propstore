@@ -5,7 +5,7 @@ import json
 from propstore.world import BoundWorld, Environment, OverlayWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
 from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import compile_environment_assumptions
-from propstore.core.row_types import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
 from tests.atms_helpers import condition_registry_for_rows, rows_with_condition_ir
 
 

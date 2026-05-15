@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections import deque
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -37,11 +36,18 @@ from propstore.families.claims.declaration import (
     resolve_claim_id,
     select_claim_rows,
 )
-from propstore.core.row_types import (
+from propstore.core.row_types import ParameterizationRow
+from propstore.families.relations.declaration import (
     ConflictRow,
-    ParameterizationRow,
     RelationshipRow,
     StanceRow,
+    count_conflicts,
+    select_all_claim_stances,
+    select_all_relationships,
+    select_claim_stances_with_policy,
+    select_conflicts,
+    select_explanation_stances,
+    select_stances_between,
 )
 from propstore.families.concepts.declaration import (
     ConceptRow,
@@ -564,57 +570,10 @@ class WorldQuery(WorldStore):
             self.resolve_claim(claim_id) or claim_id
             for claim_id in claim_ids
         }
-        placeholders = ",".join("?" for _ in resolved_ids)
-        rows = self._conn.execute(
-            f"""
-            SELECT
-                source_id AS claim_id,
-                target_id AS target_claim_id,
-                relation_type AS stance_type,
-                perspective_source_claim_id,
-                target_justification_id,
-                strength,
-                conditions_differ,
-                note,
-                resolution_method,
-                resolution_model,
-                embedding_model,
-                embedding_distance,
-                pass_number,
-                confidence,
-                opinion_belief,
-                opinion_disbelief,
-                opinion_uncertainty,
-                opinion_base_rate
-            FROM relation_edge
-            WHERE source_kind = 'claim'
-              AND target_kind = 'claim'
-              AND source_id IN ({placeholders})
-              AND target_id IN ({placeholders})
-            """,  # noqa: S608
-            list(resolved_ids) + list(resolved_ids),
-        ).fetchall()
-        return [StanceRow.from_mapping(dict(row)) for row in rows]
+        return select_stances_between(self._conn, resolved_ids)
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
-        if concept_id is not None:
-            rows = self._conn.execute(
-                """
-                SELECT concept_id, claim_a_id, claim_b_id, warning_class,
-                       conditions_a, conditions_b, value_a, value_b, derivation_chain
-                FROM conflict_witness WHERE concept_id = ?
-                """,
-                (concept_id,),
-            ).fetchall()
-        else:
-            rows = self._conn.execute(
-                """
-                SELECT concept_id, claim_a_id, claim_b_id, warning_class,
-                       conditions_a, conditions_b, value_a, value_b, derivation_chain
-                FROM conflict_witness
-                """
-            ).fetchall()
-        return [ConflictRow.from_mapping(dict(row)) for row in rows]
+        return select_conflicts(self._conn, concept_id)
 
     def all_concepts(self) -> list[ConceptRow]:
         return select_all_concepts(self._conn)
@@ -624,41 +583,10 @@ class WorldQuery(WorldStore):
         return [ParameterizationRow.from_mapping(dict(row)) for row in rows]
 
     def all_relationships(self) -> list[RelationshipRow]:
-        rows = self._conn.execute(
-            """
-            SELECT source_id, relation_type AS type, target_id, conditions_cel, note
-            FROM relation_edge
-            WHERE source_kind = 'concept' AND target_kind = 'concept'
-            """
-        ).fetchall()
-        return [RelationshipRow.from_mapping(dict(row)) for row in rows]
+        return select_all_relationships(self._conn)
 
     def all_claim_stances(self) -> list[StanceRow]:
-        rows = self._conn.execute(
-            """
-            SELECT
-                source_id AS claim_id,
-                target_id AS target_claim_id,
-                relation_type AS stance_type,
-                target_justification_id,
-                strength,
-                conditions_differ,
-                note,
-                resolution_method,
-                resolution_model,
-                embedding_model,
-                embedding_distance,
-                pass_number,
-                confidence,
-                opinion_belief,
-                opinion_disbelief,
-                opinion_uncertainty,
-                opinion_base_rate
-            FROM relation_edge
-            WHERE source_kind = 'claim' AND target_kind = 'claim'
-            """
-        ).fetchall()
-        return [StanceRow.from_mapping(dict(row)) for row in rows]
+        return select_all_claim_stances(self._conn)
 
     def all_authored_justifications(self) -> tuple[CanonicalJustification, ...]:
         rows = self._conn.execute(
@@ -769,48 +697,14 @@ class WorldQuery(WorldStore):
             policy,
             "target_core",
         )
-        predicates = [
-            "edge.source_kind = 'claim'",
-            "edge.target_kind = 'claim'",
-            "(edge.source_id = ? OR edge.target_id = ?)",
-            *source_predicates,
-            *target_predicates,
-        ]
-        params: list[Any] = [
+        return select_claim_stances_with_policy(
+            self._conn,
             focus_claim_id,
-            focus_claim_id,
-            *source_params,
-            *target_params,
-        ]
-        rows = self._conn.execute(
-            f"""
-            SELECT
-                edge.source_id AS claim_id,
-                edge.target_id AS target_claim_id,
-                edge.relation_type AS stance_type,
-                edge.perspective_source_claim_id,
-                edge.target_justification_id,
-                edge.strength,
-                edge.conditions_differ,
-                edge.note,
-                edge.resolution_method,
-                edge.resolution_model,
-                edge.embedding_model,
-                edge.embedding_distance,
-                edge.pass_number,
-                edge.confidence,
-                edge.opinion_belief,
-                edge.opinion_disbelief,
-                edge.opinion_uncertainty,
-                edge.opinion_base_rate
-            FROM relation_edge AS edge
-            JOIN claim_core AS source_core ON source_core.id = edge.source_id
-            JOIN claim_core AS target_core ON target_core.id = edge.target_id
-            WHERE {' AND '.join(predicates)}
-            """,  # noqa: S608
-            tuple(params),
-        ).fetchall()
-        return [StanceRow.from_mapping(dict(row)) for row in rows]
+            source_predicates=source_predicates,
+            source_params=source_params,
+            target_predicates=target_predicates,
+            target_params=target_params,
+        )
 
     def all_micropublications(self) -> list[ActiveMicropublication]:
         if not self._has_table("micropublication"):
@@ -956,7 +850,7 @@ class WorldQuery(WorldStore):
     def stats(self) -> WorldStoreStats:
         concepts = count_concepts(self._conn)
         claims = count_claims(self._conn)
-        conflicts = self._conn.execute("SELECT COUNT(*) FROM conflict_witness").fetchone()[0]
+        conflicts = count_conflicts(self._conn)
         return WorldStoreStats(
             concepts=int(concepts),
             claims=int(claims),
@@ -1042,47 +936,7 @@ class WorldQuery(WorldStore):
 
     def explain(self, claim_id: str) -> list[StanceRow]:
         """Walk normalized claim relation edges breadth-first from claim_id."""
-        result: list[StanceRow] = []
-        visited: set[str] = set()
-        queue: deque[str] = deque([claim_id])
-        visited.add(claim_id)
-
-        while queue:
-            current = queue.popleft()
-            rows = self._conn.execute(
-                """
-                SELECT
-                    source_id AS claim_id,
-                    target_id AS target_claim_id,
-                    relation_type AS stance_type,
-                    target_justification_id,
-                    strength,
-                    conditions_differ,
-                    note,
-                    resolution_method,
-                    resolution_model,
-                    embedding_model,
-                    embedding_distance,
-                    pass_number,
-                    confidence,
-                    opinion_belief,
-                    opinion_disbelief,
-                    opinion_uncertainty,
-                    opinion_base_rate
-                FROM relation_edge
-                WHERE source_kind = 'claim' AND target_kind = 'claim' AND source_id = ?
-                """,
-                (current,),
-            ).fetchall()
-            for row in rows:
-                stance = StanceRow.from_mapping(dict(row))
-                result.append(stance)
-                target = str(stance.target_claim_id)
-                if target not in visited:
-                    visited.add(target)
-                    queue.append(target)
-
-        return result
+        return select_explanation_stances(self._conn, claim_id)
 
     # ── Condition binding ────────────────────────────────────────────
 

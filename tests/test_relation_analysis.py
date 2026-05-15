@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.relation_analysis import stance_summary
-from propstore.core.row_types import StanceRow
+from propstore.families.relations.declaration import StanceRow
 
 
 class _TypedStanceStore:

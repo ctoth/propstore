@@ -21,11 +21,13 @@ from propstore.core.store_results import (
     ConceptSimilarityHit,
 )
 from propstore.families.claims.declaration import ClaimRowInput
-from propstore.core.row_types import (
+from propstore.families.relations.declaration import (
     ConflictRowInput,
-    ParameterizationRowInput,
     RelationshipRowInput,
     StanceRowInput,
+)
+from propstore.core.row_types import (
+    ParameterizationRowInput,
 )
 from propstore.families.concepts.declaration import ConceptRowInput
 

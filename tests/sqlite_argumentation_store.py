@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from propstore.core.row_types import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
 
 
 class SQLiteArgumentationStore:

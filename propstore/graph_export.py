@@ -12,10 +12,12 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.core.environment import Environment
 from propstore.families.claims.declaration import coerce_claim_row
-from propstore.core.row_types import (
-    coerce_parameterization_row,
+from propstore.families.relations.declaration import (
     coerce_relationship_row,
     coerce_stance_row,
+)
+from propstore.core.row_types import (
+    coerce_parameterization_row,
 )
 from propstore.families.concepts.declaration import coerce_concept_row
 from propstore.world import WorldStore, BeliefSpace

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
-from propstore.core.row_types import (
+from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
     StanceRow,

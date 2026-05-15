@@ -6,7 +6,7 @@ import rfc8785
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
-from propstore.core.row_types import StanceRow, coerce_stance_row
+from propstore.families.relations.declaration import StanceRow, coerce_stance_row
 from propstore.core.environment import StanceStore
 from propstore.world.types import (
     ClaimSupportView,

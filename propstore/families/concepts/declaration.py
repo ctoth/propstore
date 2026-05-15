@@ -302,7 +302,7 @@ def populate_concept_sidecar_rows(
     conn: sqlite3.Connection,
     rows: ConceptSidecarRows,
 ) -> None:
-    from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
+    from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 
     if rows.form_rows:
         FORM_PROJECTION.insert_rows(conn, rows.form_rows)

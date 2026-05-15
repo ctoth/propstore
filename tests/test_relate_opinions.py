@@ -32,7 +32,7 @@ from propstore.core.base_rates import BaseRateUnresolved
 from propstore.families.documents.stances import StanceDocument
 from propstore.opinion import Opinion, fuse
 from propstore.provenance import Provenance, ProvenanceStatus
-from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
+from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 
 
 def _vacuous_provenance_payload() -> dict:

@@ -20,7 +20,7 @@ from argumentation.aspic import (
 from propstore.core.active_claims import ActiveClaimInput
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import IstLiteralKey, LiteralKey, claim_key, ground_key
-from propstore.core.row_types import StanceRowInput
+from propstore.families.relations.declaration import StanceRowInput
 from propstore.grounding.bundle import GroundedRulesBundle
 
 from .build import (

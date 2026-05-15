@@ -14,7 +14,7 @@ from propstore.core.labels import (
     compile_environment_assumptions,
     merge_labels,
 )
-from propstore.core.row_types import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
 from propstore.world.types import DerivedResult, Environment, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
 

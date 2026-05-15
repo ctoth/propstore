@@ -25,7 +25,7 @@ from typing import cast
 import pytest
 
 from propstore.core.id_types import ClaimId, to_claim_id
-from propstore.core.row_types import ConflictRow, StanceRow
+from propstore.families.relations.declaration import ConflictRow, StanceRow
 from propstore.stances import StanceType
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (

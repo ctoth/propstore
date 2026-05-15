@@ -36,11 +36,13 @@ from propstore.core.graph_types import (
     RelationEdge,
 )
 from propstore.families.claims.declaration import ClaimRow, coerce_claim_row
-from propstore.core.row_types import (
+from propstore.families.relations.declaration import (
     coerce_conflict_row,
-    coerce_parameterization_row,
     coerce_relationship_row,
     coerce_stance_row,
+)
+from propstore.core.row_types import (
+    coerce_parameterization_row,
     ParameterizationRow,
 )
 from propstore.families.concepts.declaration import coerce_concept_row

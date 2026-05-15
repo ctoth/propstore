@@ -83,7 +83,7 @@ from propstore.sidecar.micropublications import (
     MicropublicationClaimProjectionRow,
     MicropublicationProjectionRow,
 )
-from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
+from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SourceProjectionRow
 from propstore.families.claims.storage import (
     coerce_stance_resolution,
