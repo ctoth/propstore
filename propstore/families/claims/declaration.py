@@ -596,6 +596,12 @@ class ClaimRow:
 ClaimRowInput = ClaimRow | Mapping[str, Any]
 
 
+@dataclass(frozen=True, slots=True)
+class SourcePromotionClaimRow:
+    claim_id: str
+    promotion_status: str
+
+
 def coerce_claim_row(row: ClaimRowInput) -> ClaimRow:
     if isinstance(row, ClaimRow):
         return row
@@ -770,6 +776,13 @@ def count_claims(conn: sqlite3.Connection) -> int:
     return int(conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0])
 
 
+def has_claim_core_table(conn: sqlite3.Connection) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='claim_core'"
+    ).fetchone()
+    return row is not None
+
+
 def delete_claim_core_row(conn: sqlite3.Connection, claim_id: str) -> None:
     conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
 
@@ -851,8 +864,8 @@ def select_all_claim_ids(conn: sqlite3.Connection) -> list[str]:
 def select_source_promotion_claim_rows(
     conn: sqlite3.Connection,
     branch: str,
-) -> list[sqlite3.Row]:
-    return conn.execute(
+) -> list[SourcePromotionClaimRow]:
+    rows = conn.execute(
         """
         SELECT id, promotion_status
         FROM claim_core
@@ -861,6 +874,13 @@ def select_source_promotion_claim_rows(
         """,
         (branch,),
     ).fetchall()
+    return [
+        SourcePromotionClaimRow(
+            claim_id=str(row[0]),
+            promotion_status=str(row[1]),
+        )
+        for row in rows
+    ]
 
 
 CLAIM_EMBEDDING_JOIN_SOURCE = """

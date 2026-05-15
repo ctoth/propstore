@@ -51,6 +51,14 @@ class Quarantined:
     message: str
 
 
+@dataclass(frozen=True, slots=True)
+class SourceStatusDiagnosticRow:
+    claim_id: str | None
+    source_ref: str | None
+    diagnostic_kind: str
+    message: str
+
+
 class QuarantinableWriter:
     def __init__(self, conn: sqlite3.Connection) -> None:
         self._conn = conn
@@ -170,13 +178,13 @@ def select_source_status_diagnostic_rows(
     *,
     claim_ids: Sequence[str],
     like_pattern: str,
-) -> list[sqlite3.Row]:
+) -> list[SourceStatusDiagnosticRow]:
     if not claim_ids:
         return []
     placeholders = ",".join("?" for _ in claim_ids)
-    return conn.execute(
+    rows = conn.execute(
         f"""
-        SELECT claim_id, source_ref, diagnostic_kind, blocking, message
+        SELECT claim_id, source_ref, diagnostic_kind, message
         FROM build_diagnostics
         WHERE source_kind = 'claim'
           AND (claim_id IN ({placeholders}) OR source_ref LIKE ? ESCAPE '!')
@@ -184,6 +192,15 @@ def select_source_status_diagnostic_rows(
         """,
         (*claim_ids, like_pattern),
     ).fetchall()
+    return [
+        SourceStatusDiagnosticRow(
+            claim_id=None if row[0] is None else str(row[0]),
+            source_ref=None if row[1] is None else str(row[1]),
+            diagnostic_kind=str(row[2]),
+            message=str(row[3]),
+        )
+        for row in rows
+    ]
 
 
 def delete_promotion_blocked_diagnostics(
@@ -195,4 +212,3 @@ def delete_promotion_blocked_diagnostics(
         "WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'",
         (claim_id,),
     )
-
