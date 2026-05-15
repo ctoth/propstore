@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 import ast
+import json
 import re
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 
 ROOTS = ("propstore", "tests")
@@ -18,7 +19,7 @@ CODEC_NAMES = {
     "from_mapping",
     "to_mapping",
 }
-ROW_CLASS_SUFFIXES = ("Row", "Record", "Report", "Request")
+CLASS_SURFACE_SUFFIXES = ("Request", "Report", "Result", "Row", "Record", "Spec", "Line", "View")
 SQL_WORDS = ("SELECT", "INSERT", "UPDATE", "DELETE", "PRAGMA")
 DIRECT_SQL_PATTERNS = (
     "sqlite3",
@@ -99,18 +100,26 @@ class FileInventory:
     lines: int = 0
     projection_columns: list[str] = field(default_factory=list)
     projection_tables: list[str] = field(default_factory=list)
+    projection_foreign_keys: list[str] = field(default_factory=list)
     fts_projections: list[str] = field(default_factory=list)
+    rowid_vec_projections: list[str] = field(default_factory=list)
+    embedding_status_projections: list[str] = field(default_factory=list)
     vec_mentions: int = 0
     sqlite_mentions: int = 0
     execute_calls: int = 0
     sql_literals: list[str] = field(default_factory=list)
     sidecar_imports: int = 0
+    sidecar_import_symbols: list[str] = field(default_factory=list)
+    quire_imports: int = 0
+    quire_import_symbols: list[str] = field(default_factory=list)
     materialize_calls: int = 0
     codec_methods: list[str] = field(default_factory=list)
     mapping_annotations: int = 0
     dict_any_annotations: int = 0
     dataclasses: int = 0
+    class_surfaces: list[str] = field(default_factory=list)
     row_classes: list[str] = field(default_factory=list)
+    json_report_mixins: int = 0
     row_types_imports: int = 0
     row_types_names: list[str] = field(default_factory=list)
     request_report_calls: list[str] = field(default_factory=list)
@@ -124,7 +133,7 @@ class FileInventory:
             + len(self.codec_methods)
             + self.mapping_annotations
             + self.dict_any_annotations
-            + len(self.row_classes)
+            + len(self.class_surfaces)
         )
 
     @property
@@ -162,6 +171,13 @@ def _string_arg(node: ast.Call, index: int = 0) -> str | None:
     return None
 
 
+def _string_keyword(node: ast.Call, name: str) -> str | None:
+    for keyword in node.keywords:
+        if keyword.arg == name and isinstance(keyword.value, ast.Constant) and isinstance(keyword.value.value, str):
+            return keyword.value.value
+    return None
+
+
 def _has_sql_word(value: str) -> bool:
     upper = value.upper()
     return any(word in upper for word in SQL_WORDS)
@@ -176,6 +192,16 @@ def _annotation_text(node: ast.AST) -> str:
 
 def _imported_names(node: ast.ImportFrom) -> list[str]:
     return [alias.asname or alias.name for alias in node.names]
+
+
+def _base_names(node: ast.ClassDef) -> list[str]:
+    names = []
+    for base in node.bases:
+        if isinstance(base, ast.Name):
+            names.append(base.id)
+        elif isinstance(base, ast.Attribute):
+            names.append(base.attr)
+    return names
 
 
 def _scan_ast(text: str, item: FileInventory) -> None:
@@ -194,6 +220,10 @@ def _scan_ast(text: str, item: FileInventory) -> None:
                 item.sqlite_mentions += 1
             if module.startswith("propstore.sidecar"):
                 item.sidecar_imports += 1
+                item.sidecar_import_symbols.extend(f"{module}.{name}" for name in _imported_names(node))
+            if module.startswith("quire"):
+                item.quire_imports += 1
+                item.quire_import_symbols.extend(f"{module}.{name}" for name in _imported_names(node))
             if module == "propstore.core.row_types":
                 item.row_types_imports += 1
                 item.row_types_names.extend(_imported_names(node))
@@ -204,13 +234,22 @@ def _scan_ast(text: str, item: FileInventory) -> None:
                 if column_name:
                     item.projection_columns.append(column_name)
             elif name == "ProjectionTable":
-                table_name = _string_arg(node)
+                table_name = _string_arg(node) or _string_keyword(node, "table") or _string_keyword(node, "name")
                 if table_name:
                     item.projection_tables.append(table_name)
+            elif name == "ProjectionForeignKey":
+                fk_target = _string_arg(node, 1) or _string_keyword(node, "target_table")
+                item.projection_foreign_keys.append(fk_target or "<dynamic>")
             elif name == "FtsProjection":
-                fts_name = _string_arg(node)
+                fts_name = _string_arg(node) or _string_keyword(node, "table") or _string_keyword(node, "name")
                 if fts_name:
                     item.fts_projections.append(fts_name)
+            elif name == "rowid_vec_projection":
+                vec_name = _string_arg(node) or _string_keyword(node, "table") or _string_keyword(node, "name")
+                item.rowid_vec_projections.append(vec_name or "<dynamic>")
+            elif name == "embedding_status_projection":
+                status_name = _string_arg(node) or _string_keyword(node, "table") or _string_keyword(node, "name")
+                item.embedding_status_projections.append(status_name or "<dynamic>")
             elif name == "execute":
                 item.execute_calls += 1
                 sql = _string_arg(node)
@@ -224,7 +263,12 @@ def _scan_ast(text: str, item: FileInventory) -> None:
             if node.name in CODEC_NAMES:
                 item.codec_methods.append(node.name)
         elif isinstance(node, ast.ClassDef):
-            if node.name.endswith(ROW_CLASS_SUFFIXES):
+            base_names = _base_names(node)
+            if "JsonReportMixin" in base_names:
+                item.json_report_mixins += 1
+            if node.name.endswith(CLASS_SURFACE_SUFFIXES):
+                item.class_surfaces.append(node.name)
+            if node.name.endswith("Row"):
                 item.row_classes.append(node.name)
         elif isinstance(node, ast.AnnAssign):
             text_value = _annotation_text(node.annotation)
@@ -236,7 +280,12 @@ def _scan_ast(text: str, item: FileInventory) -> None:
 
 def _scan_text(text: str, item: FileInventory) -> None:
     item.lines = len(text.splitlines())
-    item.vec_mentions = text.count("VecProjection") + text.count("sqlite-vec")
+    item.vec_mentions = (
+        text.count("VecProjection")
+        + text.count("sqlite-vec")
+        + text.count("rowid_vec_projection")
+        + text.count("embedding_status_projection")
+    )
     item.sqlite_mentions += sum(text.count(pattern) for pattern in DIRECT_SQL_PATTERNS)
     item.dataclasses = text.count("@dataclass")
     for table in TABLE_NAMES:
@@ -256,6 +305,195 @@ def collect_inventory(root: Path) -> list[FileInventory]:
         _scan_ast(text, item)
         items.append(item)
     return items
+
+
+def _file_record(item: FileInventory, root: Path) -> dict[str, Any]:
+    return {
+        "path": _relative(item.path, root),
+        "lines": item.lines,
+        "projection_columns": item.projection_columns,
+        "projection_tables": item.projection_tables,
+        "projection_foreign_keys": item.projection_foreign_keys,
+        "fts_projections": item.fts_projections,
+        "rowid_vec_projections": item.rowid_vec_projections,
+        "embedding_status_projections": item.embedding_status_projections,
+        "vec_mentions": item.vec_mentions,
+        "sqlite_mentions": item.sqlite_mentions,
+        "execute_calls": item.execute_calls,
+        "sql_literals": item.sql_literals,
+        "sidecar_imports": item.sidecar_imports,
+        "sidecar_import_symbols": item.sidecar_import_symbols,
+        "quire_imports": item.quire_imports,
+        "quire_import_symbols": item.quire_import_symbols,
+        "materialize_calls": item.materialize_calls,
+        "codec_methods": item.codec_methods,
+        "mapping_annotations": item.mapping_annotations,
+        "dict_any_annotations": item.dict_any_annotations,
+        "dataclasses": item.dataclasses,
+        "class_surfaces": item.class_surfaces,
+        "row_classes": item.row_classes,
+        "json_report_mixins": item.json_report_mixins,
+        "row_types_imports": item.row_types_imports,
+        "row_types_names": item.row_types_names,
+        "request_report_calls": item.request_report_calls,
+        "table_name_mentions": item.table_name_mentions,
+        "field_mentions": item.field_mentions,
+        "declaration_density": item.declaration_density,
+        "raw_sql_score": item.raw_sql_score,
+    }
+
+
+def _summary_metrics(items: list[FileInventory], root: Path) -> dict[str, int]:
+    propstore_items = [
+        item for item in items if _relative(item.path, root).startswith("propstore/")
+    ]
+    non_sidecar_items = [
+        item
+        for item in propstore_items
+        if not _relative(item.path, root).startswith("propstore/sidecar/")
+    ]
+    sidecar_items = [
+        item for item in propstore_items if _relative(item.path, root).startswith("propstore/sidecar/")
+    ]
+    sidecar_declaration_items = [
+        item
+        for item in sidecar_items
+        if any(
+            (
+                item.projection_columns,
+                item.projection_tables,
+                item.fts_projections,
+                item.projection_foreign_keys,
+                item.rowid_vec_projections,
+                item.embedding_status_projections,
+            )
+        )
+    ]
+    app_world_wrapper_classes = 0
+    for item in propstore_items:
+        rel = _relative(item.path, root)
+        if rel.startswith("propstore/app/") or rel.startswith("propstore/world/"):
+            app_world_wrapper_classes += sum(
+                1
+                for name in item.class_surfaces
+                if name.endswith(("Request", "Report", "Result", "Line", "View"))
+            )
+    return {
+        "propstore_python_files": len(propstore_items),
+        "propstore_python_lines": sum(item.lines for item in propstore_items),
+        "generated_propstore_python_lines": sum(
+            item.lines
+            for item in propstore_items
+            if "/_generated/" in _relative(item.path, root)
+            or "/generated/" in _relative(item.path, root)
+            or _relative(item.path, root).endswith("_generated.py")
+        ),
+        "handwritten_propstore_python_lines": sum(
+            item.lines
+            for item in propstore_items
+            if "/_generated/" not in _relative(item.path, root)
+            and "/generated/" not in _relative(item.path, root)
+            and not _relative(item.path, root).endswith("_generated.py")
+        ),
+        "sidecar_projection_columns": sum(len(item.projection_columns) for item in sidecar_items),
+        "handwritten_projection_tables": sum(len(item.projection_tables) for item in sidecar_declaration_items),
+        "handwritten_fts_projections": sum(len(item.fts_projections) for item in sidecar_items),
+        "handwritten_vec_declarations": sum(
+            len(item.rowid_vec_projections) + len(item.embedding_status_projections)
+            for item in sidecar_items
+        ),
+        "handwritten_fk_edges": sum(len(item.projection_foreign_keys) for item in sidecar_items),
+        "raw_sql_score_outside_sidecar": sum(item.raw_sql_score for item in non_sidecar_items),
+        "row_types_importers": sum(1 for item in propstore_items if item.row_types_imports),
+        "row_types_import_count": sum(item.row_types_imports for item in propstore_items),
+        "sidecar_importers_outside_sidecar": sum(1 for item in non_sidecar_items if item.sidecar_imports),
+        "sidecar_import_count_outside_sidecar": sum(item.sidecar_imports for item in non_sidecar_items),
+        "quire_importers": sum(1 for item in propstore_items if item.quire_imports),
+        "table_name_mentions_outside_sidecar": sum(len(item.table_name_mentions) for item in non_sidecar_items),
+        "class_surfaces_app_world": app_world_wrapper_classes,
+        "codec_methods_families_source": sum(
+            len(item.codec_methods)
+            for item in propstore_items
+            if _relative(item.path, root).startswith(("propstore/families/", "propstore/source/"))
+        ),
+    }
+
+
+def _repeated_projection_fields(items: list[FileInventory], root: Path) -> dict[str, list[str]]:
+    field_files: dict[str, set[str]] = defaultdict(set)
+    for item in items:
+        if not _relative(item.path, root).startswith("propstore/"):
+            continue
+        for name in item.projection_columns:
+            field_files[name].add(_relative(item.path, root))
+    return {
+        name: sorted(paths)
+        for name, paths in sorted(field_files.items(), key=lambda pair: (-len(pair[1]), pair[0]))
+        if len(paths) > 1
+    }
+
+
+def _sidecar_dispositions(items: list[FileInventory], root: Path) -> list[dict[str, Any]]:
+    records = []
+    for item in items:
+        rel = _relative(item.path, root)
+        if not rel.startswith("propstore/sidecar/"):
+            continue
+        disposition = "needs-ledger"
+        if item.projection_columns or item.fts_projections or item.projection_foreign_keys:
+            disposition = "derived-declaration-owner"
+        elif item.rowid_vec_projections or item.embedding_status_projections:
+            disposition = "vector-declaration-owner"
+        elif rel.endswith("sqlite.py"):
+            disposition = "quire-owned-candidate"
+        elif rel.endswith("query.py"):
+            disposition = "retained-product-escape-hatch-candidate"
+        records.append(
+            {
+                "path": rel,
+                "suggested_disposition": disposition,
+                "projection_columns": len(item.projection_columns),
+                "projection_tables": len(item.projection_tables),
+                "fts_projections": len(item.fts_projections),
+                "fk_edges": len(item.projection_foreign_keys),
+                "vec_declarations": len(item.rowid_vec_projections) + len(item.embedding_status_projections),
+                "raw_sql_score": item.raw_sql_score,
+                "class_surfaces": item.class_surfaces,
+            }
+        )
+    return records
+
+
+def _source_local_canonical_overlap(items: list[FileInventory], root: Path) -> list[dict[str, Any]]:
+    source_fields: set[str] = set()
+    family_fields: dict[str, set[str]] = defaultdict(set)
+    for item in items:
+        rel = _relative(item.path, root)
+        if rel == "propstore/families/documents/sources.py":
+            source_fields.update(item.field_mentions)
+        elif rel.startswith("propstore/families/"):
+            parts = Path(rel).parts
+            if len(parts) >= 3:
+                family_fields[parts[2]].update(item.field_mentions)
+    records = []
+    for family, fields in sorted(family_fields.items()):
+        overlap = sorted(source_fields & fields)
+        if overlap:
+            records.append({"family": family, "fields": overlap, "count": len(overlap)})
+    return records
+
+
+def build_json_report(items: list[FileInventory], root: Path) -> dict[str, Any]:
+    files = [_file_record(item, root) for item in items]
+    return {
+        "schema_version": 1,
+        "root": str(root),
+        "summary": _summary_metrics(items, root),
+        "repeated_projection_fields": _repeated_projection_fields(items, root),
+        "sidecar_dispositions": _sidecar_dispositions(items, root),
+        "source_local_canonical_overlap": _source_local_canonical_overlap(items, root),
+        "files": files,
+    }
 
 
 def _top(items: Iterable[FileInventory], key_name: str, limit: int) -> list[FileInventory]:
@@ -303,11 +541,11 @@ def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
                 sum(item.raw_sql_score for item in bucket_items),
                 sum(len(item.codec_methods) for item in bucket_items),
                 sum(item.mapping_annotations + item.dict_any_annotations for item in bucket_items),
-                sum(len(item.row_classes) for item in bucket_items),
+                sum(len(item.class_surfaces) for item in bucket_items),
             )
         )
     _print_table(
-        ("package", "lines", "projection_columns", "raw_sql_score", "codec_methods", "mapping_hints", "row_classes"),
+        ("package", "lines", "projection_columns", "raw_sql_score", "codec_methods", "mapping_hints", "class_surfaces"),
         bucket_rows,
     )
 
@@ -333,11 +571,43 @@ def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
             len(item.projection_columns),
             len(item.codec_methods),
             item.mapping_annotations + item.dict_any_annotations,
-            len(item.row_classes),
+            len(item.class_surfaces),
         )
         for item in _top(propstore_items, "declaration_density", limit)
     ]
-    _print_table(("path", "score", "projection_columns", "codecs", "mapping_hints", "row_classes"), rows)
+    _print_table(("path", "score", "projection_columns", "codecs", "mapping_hints", "class_surfaces"), rows)
+
+    print()
+    print("## FTS Vector and FK Declarations")
+    rows = [
+        (
+            _relative(item.path, root),
+            len(item.fts_projections),
+            len(item.rowid_vec_projections),
+            len(item.embedding_status_projections),
+            len(item.projection_foreign_keys),
+            ", ".join((item.fts_projections + item.rowid_vec_projections + item.embedding_status_projections)[:8]),
+        )
+        for item in sorted(
+            [
+                item
+                for item in propstore_items
+                if item.fts_projections
+                or item.rowid_vec_projections
+                or item.embedding_status_projections
+                or item.projection_foreign_keys
+            ],
+            key=lambda item: (
+                len(item.fts_projections)
+                + len(item.rowid_vec_projections)
+                + len(item.embedding_status_projections)
+                + len(item.projection_foreign_keys),
+                str(item.path),
+            ),
+            reverse=True,
+        )[:limit]
+    ]
+    _print_table(("path", "fts", "rowid_vec", "embedding_status", "fk_edges", "sample_names"), rows)
 
     print()
     print("## Raw SQL Outside Sidecar")
@@ -386,6 +656,22 @@ def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
     _print_table(("path", "sidecar_imports", "materialize_calls", "table_mentions"), rows)
 
     print()
+    print("## Quire Import Surface")
+    rows = [
+        (
+            _relative(item.path, root),
+            item.quire_imports,
+            ", ".join(sorted(set(item.quire_import_symbols))[:12]),
+        )
+        for item in sorted(
+            [item for item in propstore_items if item.quire_imports],
+            key=lambda item: (item.quire_imports, str(item.path)),
+            reverse=True,
+        )[:limit]
+    ]
+    _print_table(("path", "quire_imports", "sample_symbols"), rows)
+
+    print()
     print("## Core Row Type Importers")
     rows = [
         (_relative(item.path, root), item.row_types_imports, ", ".join(sorted(set(item.row_types_names))))
@@ -396,6 +682,23 @@ def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
         )
     ]
     _print_table(("path", "imports", "names"), rows)
+
+    print()
+    print("## Class Definition Surfaces")
+    rows = [
+        (
+            _relative(item.path, root),
+            len(item.class_surfaces),
+            item.json_report_mixins,
+            ", ".join(sorted(set(item.class_surfaces))[:12]),
+        )
+        for item in sorted(
+            [item for item in propstore_items if item.class_surfaces],
+            key=lambda item: (len(item.class_surfaces), str(item.path)),
+            reverse=True,
+        )[:limit]
+    ]
+    _print_table(("path", "class_surfaces", "json_report_mixins", "sample_names"), rows)
 
     print()
     print("## CLI Request/Report Adapter Surface")
@@ -417,6 +720,22 @@ def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
         )[:limit]
     ]
     _print_table(("path", "request_report_calls", "sample_names"), rows)
+
+    print()
+    print("## Sidecar File Disposition Candidates")
+    rows = [
+        (
+            record["path"],
+            record["suggested_disposition"],
+            record["projection_columns"],
+            record["fts_projections"],
+            record["fk_edges"],
+            record["vec_declarations"],
+            record["raw_sql_score"],
+        )
+        for record in _sidecar_dispositions(items, root)[:limit]
+    ]
+    _print_table(("path", "suggested_disposition", "projection_columns", "fts", "fk_edges", "vec", "raw_sql_score"), rows)
 
     print()
     print("## Test Pins")
@@ -444,16 +763,62 @@ def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
     _print_table(("path", "table_mentions", "field_mentions", "sidecar_imports", "sample_tables"), rows)
 
 
+def _load_summary(path: Path) -> dict[str, int]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    summary = data.get("summary")
+    if not isinstance(summary, dict):
+        raise ValueError(f"{path} does not contain a summary object")
+    result: dict[str, int] = {}
+    for key, value in summary.items():
+        if isinstance(value, int):
+            result[key] = value
+    return result
+
+
+def compare_baseline(current: dict[str, int], baseline_path: Path, metrics: list[str]) -> int:
+    baseline = _load_summary(baseline_path)
+    failed = False
+    for metric in metrics:
+        if metric not in baseline:
+            print(f"missing baseline metric: {metric}")
+            failed = True
+            continue
+        if metric not in current:
+            print(f"missing current metric: {metric}")
+            failed = True
+            continue
+        old = baseline[metric]
+        new = current[metric]
+        if new >= old:
+            print(f"{metric}: no improvement ({old} -> {new})")
+            failed = True
+        else:
+            print(f"{metric}: improved ({old} -> {new})")
+    return 1 if failed else 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Inventory typed metadata cleanup surfaces.")
     parser.add_argument("--root", type=Path, default=Path.cwd())
-    parser.add_argument("--format", choices=("markdown",), default="markdown")
+    parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
     parser.add_argument("--limit", type=int, default=40)
+    parser.add_argument("--compare-baseline", type=Path)
+    parser.add_argument("--require-improvement", action="append", default=[])
     args = parser.parse_args()
 
     root = args.root.resolve()
     items = collect_inventory(root)
-    render_markdown(items, root, args.limit)
+    report = build_json_report(items, root)
+    if args.compare_baseline:
+        return compare_baseline(
+            report["summary"],
+            args.compare_baseline,
+            list(args.require_improvement),
+        )
+    if args.format == "json":
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        render_markdown(items, root, args.limit)
     return 0
 
 
