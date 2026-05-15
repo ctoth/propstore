@@ -100,7 +100,7 @@ The target abstraction is a typed semantic metadata declaration graph:
    - runtime/wire reports;
    - journal/hash/replay codecs;
    - IO/import codecs at repository boundaries;
-   - raw sidecar inspection if product policy keeps it as an escape hatch.
+   - no raw sidecar SQL inspection escape hatch remains in this workstream.
 
 The abstraction must delete handwritten duplicate declarations. It must not
 collapse source-of-truth artifact identity into derived-store projection shape.
@@ -117,7 +117,8 @@ knowledge of its own.
 Status: executable through Phase 5 family verticals.
 
 Phase 3 and Phase 4 are complete. Phase 5 family verticals may open using the
-old-path searches below. Phase 7 remains blocked on QD-006 and QD-009.
+old-path searches below. Phase 7 remains blocked on QD-006, QD-009, and
+QD-011.
 
 Closed pre-production blockers:
 
@@ -133,9 +134,12 @@ Closed pre-production blockers:
 
 Remaining blockers:
 
-- QD-006 runtime catalog inspection API blocks Phase 7 raw query catalog work.
+- QD-006 runtime catalog inspection API blocks Phase 7 generated catalog
+  deletion work.
 - QD-009 SQLite connection/WAL/readonly policy API blocks Phase 7 sqlite
   disposition work.
+- QD-011 generic derived-store runtime machinery blocks Phase 7 deletion of
+  Propstore-owned sidecar schema/query/build plumbing.
 - Later family verticals must still mark their ledger rows complete as their
   deletion slices land.
 
@@ -276,7 +280,7 @@ Additional surface classifications:
 | `propstore/opinion.py` | subjective-logic semantic owner | Opinion projection fields should reference this semantic owner. |
 | `propstore/sidecar/quarantine.py` | current derived-store diagnostic writer | In-owner SQL until diagnostic writer is moved/generated. |
 | `propstore/sidecar/sqlite.py` | current SQLite connection owner | In-owner SQL until Quire fully owns connection policy. |
-| `propstore/sidecar/query.py` | explicit raw sidecar inspection command backend | Keep as deliberate escape hatch unless product policy deletes raw SQL query. |
+| `propstore/sidecar/query.py` | explicit raw sidecar inspection command backend | Delete; raw sidecar SQL query is not a retained product surface. |
 
 `propstore/core/row_types.py` importer count: 36 files. This is the blast
 radius gate for any row-type consolidation.
@@ -432,9 +436,9 @@ missing inventory surfaces.
 
 14. Yellow sunset gate:
    - Yellow derived-store coupling is not preserved indefinitely.
-   - Every yellow hit outside the declaration/generator owner must either move
-     behind a generated catalog/API or be explicitly retained as a product
-     escape hatch with zero hand-written column/table knowledge.
+   - Every yellow hit outside the declaration/generator owner must move behind
+     a generated catalog/API, move to Quire generic machinery, or be deleted.
+   - Raw sidecar SQL query/inspection is deleted, not retained.
 
 15. Request/report collapse gate:
    - Existing app/world request/report/read-model classes are not exempt from
@@ -450,10 +454,9 @@ missing inventory surfaces.
 
 16. Sidecar disposition gate:
    - Every `propstore/sidecar/*.py` file gets one final disposition before
-     implementation: deleted, generated output, Quire-owned, retained product
-     escape hatch, or semantic owner module moved out of sidecar.
-   - A sidecar file with disposition `retained product escape hatch` may not
-     declare table names, column names, FTS fields, vector tables, or FK policy.
+     implementation: deleted, generated output, Quire-owned, or semantic owner
+     module moved out of sidecar.
+   - No sidecar file may be retained as a raw SQL product escape hatch.
 
 17. FTS/vector ownership gate:
    - `FtsProjection`, `rowid_vec_projection`, `embedding_status_projection`,
@@ -492,8 +495,8 @@ The execution order is:
 9. Collapse `WorldQuery` direct SQL as the consequence of generated family
    query APIs.
 10. Sunset yellow derived-store coupling outside the declaration/generator owner.
-11. Rebuild or delete raw sidecar query inspection so it reads the generated
-   catalog and owns zero hand-written column names.
+11. Delete raw sidecar query inspection and move any legitimate catalog/runtime
+   machinery to Quire.
 12. Final line-count, inventory, pyright, targeted tests, and full-suite gates.
 
 Standalone red-SQL deletion is not a phase. Red SQL is removed inside the
@@ -579,11 +582,13 @@ Required rows:
 - declaration-to-vector rendering API;
 - generated row coercion API;
 - generated read-model/query API primitives;
-- runtime catalog inspection API for `propstore/sidecar/query.py`;
+- runtime catalog inspection API for generated schema/build validation;
 - derived-store lifecycle/cache-hash API;
 - family reference/FK declaration API;
 - SQLite connection/WAL/readonly policy API;
 - schema/DDL byte-equivalence dump API.
+- generic derived-store runtime machinery for catalog, SQLite policy,
+  materialization, schema validation, and projection execution.
 
 Each row names:
 
@@ -607,11 +612,12 @@ Gate:
 | QD-003 | Declaration-to-vector rendering API | `quire.sqlite_vec_store` / vector projection primitive | concept and claim embedding declarations | Phase 3 concept vertical, Phase 4 claim vertical, embedding vertical | `powershell -File scripts/run_logged_pytest.ps1 -Label vec-declaration tests/test_sidecar_projection_vec_contract.py tests/test_no_embedding_key_collision.py tests/test_embed_operational_error.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
 | QD-004 | Generated row coercion API | `quire.projections` | generated family row modules replacing `propstore/core/row_types.py` | Phase 3+ row-type deletion slices | `uv run pyright propstore`; row coercion focused tests from ledger | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
 | QD-005 | Generated read-model/query API primitives | `quire.projections` | generated family query APIs replacing app/world/source SQL | Phase 3 concept SQL deletion; Phase 6 WorldQuery collapse | `powershell -File scripts/run_logged_pytest.ps1 -Label generated-query tests/test_world_query.py tests/test_concept_views.py tests/test_claim_views.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
-| QD-006 | Runtime catalog inspection API | future Quire runtime catalog module | `propstore/sidecar/query.py` or its replacement | Phase 7 raw query catalog | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-query tests/test_sidecar_query_read_only.py` | TBD | pending |
+| QD-006 | Runtime catalog inspection API | future Quire runtime catalog module | generated schema/build validation; no raw query surface | Phase 7 generated catalog deletion | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-query tests/test_sidecar_query_read_only.py` until query deletion lands, then delete/update this test | TBD | pending |
 | QD-007 | Derived-store lifecycle/cache-hash API | `quire.derived_store` | sidecar build/materialization replacement | Phase 7 sidecar lifecycle disposition | `powershell -File scripts/run_logged_pytest.ps1 -Label derived-store tests/test_codex5_sidecar_cache_derived_invalidation.py tests/test_build_sidecar.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
 | QD-008 | Family reference/FK declaration API | `quire.references` / artifact family metadata | family declarations for context/claim/concept/source references | Phase 3+ FK deletion slices | `powershell -File scripts/run_logged_pytest.ps1 -Label fk-declaration tests/test_sidecar_projection_contract.py tests/test_source_promote_dangling_refs.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
 | QD-009 | SQLite connection/WAL/readonly policy API | future Quire SQLite connection policy module | replacement for `propstore/sidecar/sqlite.py` | Phase 7 sidecar sqlite disposition | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-sqlite tests/test_sidecar_sqlite_runtime_contract.py` | TBD | pending |
 | QD-010 | Schema/DDL byte-equivalence dump API | `quire.projections` / derived-store schema renderer | baseline comparison for generated DDL/FTS/vector output | Phase 3 before generated concept DDL lands | `powershell -File scripts/run_logged_pytest.ps1 -Label ddl-equivalence tests/test_sidecar_projection_contract.py tests/test_sidecar_projection_fts_contract.py tests/test_sidecar_projection_vec_contract.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
+| QD-011 | Generic derived-store runtime machinery | future Quire derived-store runtime package | replacement for Propstore sidecar schema/query/sqlite/build mechanics | Phase 7 sidecar deletion | Quire package tests for runtime catalog and SQLite policy; Propstore gates `powershell -File scripts/run_logged_pytest.ps1 -Label derived-store-runtime tests/test_build_sidecar.py tests/test_fixture_schema_parity.py tests/test_sidecar_sqlite_runtime_contract.py tests/test_required_schema_completeness.py` | TBD | pending |
 
 Phase 2 may proceed with the owner ledger while these rows remain `pending`,
 but no production implementation slice may open until every row referenced by
@@ -647,9 +653,10 @@ Closure evidence for pinned Quire commit
   `scripts/render_sidecar_ddl_baseline.py` for current sidecar byte-equivalence
   baselines.
 
-QD-006 and QD-009 stay pending because current Quire exposes only private
-catalog inspection helpers and does not own Propstore's sidecar
-WAL/busy-timeout/readonly connection policy.
+QD-006, QD-009, and QD-011 stay pending because current Quire exposes only
+private catalog inspection helpers and does not own Propstore's sidecar
+WAL/busy-timeout/readonly connection policy or the generic runtime machinery
+needed to delete Propstore-owned sidecar schema/query/build plumbing.
 
 ## Phase 2: Owner Classification Ledger
 
@@ -1076,10 +1083,11 @@ Tasks:
 - Move yellow derived-store coupling behind generated catalog/query APIs:
   `materialize_world_sidecar`, `collect_authoring_lints`, projection constants,
   and `WORLD_SIDECAR_SCHEMA` imports outside owner modules.
-- Rebuild `propstore/sidecar/query.py` so raw inspection reads table/column
-  metadata from the generated catalog at runtime.
-- Delete hand-written column knowledge from raw query support, or delete raw
-  query support if product policy chooses that.
+- Delete `propstore/sidecar/query.py` and the CLI/app raw SQL query path.
+  Raw sidecar SQL inspection is not a retained product surface.
+- Move any legitimate runtime table/column listing needed by tests or
+  diagnostics to Quire's generated runtime catalog API, not to a Propstore
+  query escape hatch.
 
 Sidecar file disposition:
 
@@ -1099,22 +1107,21 @@ Sidecar file disposition:
 - `claim_utils.py` and `concept_utils.py`: deleted unless every remaining
   function is semantic extraction logic that belongs under the family package.
 - `sqlite.py`: deleted after Quire owns connection/WAL/readonly policy.
-- `query.py`: retained only as product escape hatch backed by generated runtime
-  catalog inspection, or deleted.
+- `query.py`: deleted. No raw SQL product escape hatch remains.
 
 Gate:
 
-- `propstore/sidecar/query.py` contains zero hand-written derived-store column
-  names.
-- Yellow hits outside the generator/catalog owner are either gone or documented
-  product escape hatches with no table/column declarations.
+- `propstore/sidecar/query.py` is deleted, and CLI/app callers of raw sidecar
+  SQL query are deleted or replaced with named typed read-model APIs.
+- Yellow hits outside the generator/catalog owner are gone; no product escape
+  hatch may preserve raw derived-store SQL.
 - Projection compression is not a separate phase. Family declarations generate
   projections; if a separate compression pass is needed, the family vertical is
   incomplete.
 - `rg -n "WORLD_SIDECAR_SCHEMA|from propstore\\.sidecar\\..*import .*_PROJECTION|ProjectionTable\\(|ProjectionColumn\\(|FtsProjection\\(|rowid_vec_projection|embedding_status_projection" propstore --glob "*.py"`
   returns only generated/declaration owner hits.
-- `rg -n "FROM (concept|alias|claim_core|context|relation_edge|build_diagnostics|embedding_model|embedding_status|concept_embedding_status)\\b" propstore/sidecar/query.py`
-  is clean if raw inspection is retained.
+- `rg -n "query_sidecar|SidecarQuery|sidecar query|propstore\\.sidecar\\.query" propstore tests --glob "*.py"`
+  is clean after the raw query path is deleted.
 
 ## Phase 8: Runtime/Wire Codec Follow-Up
 
@@ -1163,7 +1170,7 @@ Required reduction metrics:
 | Raw SQL score outside sidecar/generator/query owner | 188 observed outside sidecar in current inventory | 0 in app/source/heuristic/merge; 0 `.execute(` in `world/model.py` final state |
 | App/world request/report wrappers that merely restate owner-layer fields | baseline to be emitted by JSON scanner | strictly decreases per touched family; no net growth |
 | `propstore/core/row_types.py` derived-row importers | 36 observed | 0 importers of derived-store row classes |
-| `propstore.sidecar.*` imports outside declaration/generator/catalog owner | baseline to be emitted by JSON scanner | 0 except named escape hatches |
+| `propstore.sidecar.*` imports outside declaration/generator/catalog owner | baseline to be emitted by JSON scanner | 0 |
 | Table-name token mentions outside declaration/generator/query owner | baseline to be emitted by JSON scanner | 0 |
 | Repeated-field declarer count for each repeated projection field | current repeated-field table above | 1 declaring owner per field, ignoring generated output |
 | `WORLD_SIDECAR_SCHEMA` handwritten projection imports | 28 projection constants observed | 0 |
@@ -1185,8 +1192,8 @@ Completion requires:
   class declarations;
 - `propstore/sidecar/{concepts,claims,contexts,relations,rules,micropublications,sources,diagnostics,calibration}.py`
   are deleted;
-- `propstore/sidecar/query.py` builds table/column listings from the generated
-  catalog and contains zero hand-written derived-store column names;
+- `propstore/sidecar/query.py` is deleted, along with the CLI/app raw sidecar
+  SQL query surface;
 - pyright passes;
 - targeted tests pass;
 - full suite passes.
