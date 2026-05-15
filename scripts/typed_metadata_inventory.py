@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import csv
 import json
 import re
 from collections import defaultdict
@@ -799,6 +800,100 @@ def compare_baseline(current: dict[str, int], baseline_path: Path, metrics: list
     return 1 if failed else 0
 
 
+LEDGER_COLUMNS = (
+    "field_name",
+    "declaring_file",
+    "declaration_kind",
+    "nullability",
+    "default",
+    "check",
+    "fk",
+    "enum_coercion",
+    "required",
+    "current_role",
+    "owner_category",
+    "target_owner_file",
+    "target_descriptor",
+    "deletion_proof",
+    "pinned_tests",
+    "metric_id",
+    "baseline_count",
+    "target_count",
+    "quire_dependency_id",
+    "sidecar_disposition",
+    "slice_id",
+    "status",
+)
+
+
+FINAL_TARGETS = {
+    "sidecar_projection_columns": 0,
+    "handwritten_fts_projections": 0,
+    "handwritten_vec_declarations": 0,
+    "handwritten_fk_edges": 0,
+    "raw_sql_score_outside_sidecar": 0,
+    "row_types_importers": 0,
+    "sidecar_import_count_outside_sidecar": 0,
+    "table_name_mentions_outside_sidecar": 0,
+}
+
+
+def _load_ledger(path: Path) -> list[dict[str, str]]:
+    with path.open(newline="", encoding="utf-8") as handle:
+        reader = csv.DictReader(handle)
+        missing = [column for column in LEDGER_COLUMNS if column not in (reader.fieldnames or ())]
+        if missing:
+            raise ValueError(f"{path} is missing ledger column(s): {', '.join(missing)}")
+        return [dict(row) for row in reader]
+
+
+def run_gates(report: dict[str, Any], ledger_path: Path | None) -> int:
+    failed = False
+    summary = report.get("summary", {})
+    if not isinstance(summary, dict):
+        print("inventory report has no summary")
+        return 1
+
+    for metric, target in FINAL_TARGETS.items():
+        value = summary.get(metric)
+        if not isinstance(value, int):
+            print(f"{metric}: missing current metric")
+            failed = True
+            continue
+        if value != target:
+            print(f"{metric}: gate failed ({value} != {target})")
+            failed = True
+        else:
+            print(f"{metric}: gate passed ({value})")
+
+    if ledger_path is None:
+        print("ledger: missing --ledger path")
+        failed = True
+    elif not ledger_path.exists():
+        print(f"ledger: file does not exist: {ledger_path}")
+        failed = True
+    else:
+        rows = _load_ledger(ledger_path)
+        if not rows:
+            print(f"ledger: no rows in {ledger_path}")
+            failed = True
+        statuses = {row.get("status", "") for row in rows}
+        open_statuses = sorted(status for status in statuses if status not in {"complete", "not-needed"})
+        if open_statuses:
+            print(f"ledger: open status values remain: {', '.join(open_statuses)}")
+            failed = True
+        else:
+            print(f"ledger: gate passed ({len(rows)} rows)")
+
+        metrics = {row.get("metric_id", "") for row in rows}
+        missing_metrics = sorted(metric for metric in metrics if metric and metric not in summary)
+        if missing_metrics:
+            print(f"ledger: metric_id values missing from inventory: {', '.join(missing_metrics)}")
+            failed = True
+
+    return 1 if failed else 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Inventory typed metadata cleanup surfaces.")
     parser.add_argument("--root", type=Path, default=Path.cwd())
@@ -806,11 +901,15 @@ def main() -> int:
     parser.add_argument("--limit", type=int, default=40)
     parser.add_argument("--compare-baseline", type=Path)
     parser.add_argument("--require-improvement", action="append", default=[])
+    parser.add_argument("--gates", action="store_true")
+    parser.add_argument("--ledger", type=Path)
     args = parser.parse_args()
 
     root = args.root.resolve()
     items = collect_inventory(root)
     report = build_json_report(items, root)
+    if args.gates:
+        return run_gates(report, args.ledger)
     if args.compare_baseline:
         return compare_baseline(
             report["summary"],
