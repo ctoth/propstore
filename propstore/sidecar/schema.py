@@ -43,6 +43,7 @@ from __future__ import annotations
 
 import sqlite3
 
+from quire.projections import ProjectionColumn, ProjectionSchemaError, ProjectionTable
 from propstore.families.calibration.declaration import CALIBRATION_COUNTS_PROJECTION
 from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
@@ -72,9 +73,9 @@ from propstore.families.contexts.declaration import (
 from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.families.embeddings.declaration import ensure_embedding_tables
 from propstore.families.micropublications.declaration import create_micropublication_tables
-from quire.projections import ProjectionColumn, ProjectionTable
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 from propstore.families.sources.declaration import SOURCE_PROJECTION
+from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
 
 SCHEMA_VERSION = 6
 SIDECAR_META_KEY = "sidecar"
@@ -107,6 +108,49 @@ def write_schema_metadata(conn: sqlite3.Connection) -> None:
         """,
         (SIDECAR_META_KEY, SCHEMA_VERSION),
     )
+
+
+def sidecar_table_exists(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
+        (name,),
+    ).fetchone()
+    return row is not None
+
+
+def read_sidecar_schema_version(conn: sqlite3.Connection) -> int:
+    if not sidecar_table_exists(conn, "meta"):
+        raise ValueError(
+            "Unsupported sidecar schema: missing table(s) meta. "
+            "Rebuild with 'pks build'."
+        )
+    meta_row = conn.execute(
+        "SELECT schema_version FROM meta WHERE key = ?",
+        (SIDECAR_META_KEY,),
+    ).fetchone()
+    if meta_row is None:
+        raise ValueError(
+            "Unsupported sidecar schema: missing metadata row for sidecar. "
+            "Rebuild with 'pks build'."
+        )
+    return int(meta_row["schema_version"])
+
+
+def validate_world_sidecar_schema(conn: sqlite3.Connection) -> None:
+    actual_version = read_sidecar_schema_version(conn)
+    if actual_version != SCHEMA_VERSION:
+        raise ValueError(
+            "Unsupported sidecar schema version: "
+            f"expected {SCHEMA_VERSION}, found {actual_version}. "
+            "Rebuild with 'pks build'."
+        )
+
+    try:
+        WORLD_SIDECAR_SCHEMA.validate_connection(conn)
+    except ProjectionSchemaError as error:
+        raise ValueError(
+            f"Unsupported sidecar schema: {error}. Rebuild with 'pks build'."
+        ) from error
 
 
 def create_tables(conn: sqlite3.Connection) -> None:

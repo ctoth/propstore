@@ -76,9 +76,10 @@ from propstore.families.concepts.declaration import (
     search_concept_ids,
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
-from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
-from quire.projections import ProjectionSchemaError
-from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
+from propstore.sidecar.schema import (
+    sidecar_table_exists,
+    validate_world_sidecar_schema,
+)
 from propstore.core.conditions.solver import ConditionSolver
 
 if TYPE_CHECKING:
@@ -225,34 +226,7 @@ class WorldQuery(WorldStore):
         return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:
-        if not self._has_table("meta"):
-            raise ValueError(
-                "Unsupported sidecar schema: missing table(s) meta. "
-                "Rebuild with 'pks build'."
-            )
-        meta_row = self._conn.execute(
-            "SELECT schema_version FROM meta WHERE key = ?",
-            (SIDECAR_META_KEY,),
-        ).fetchone()
-        if meta_row is None:
-            raise ValueError(
-                "Unsupported sidecar schema: missing metadata row for sidecar. "
-                "Rebuild with 'pks build'."
-            )
-        actual_version = meta_row["schema_version"]
-        if actual_version != SCHEMA_VERSION:
-            raise ValueError(
-                "Unsupported sidecar schema version: "
-                f"expected {SCHEMA_VERSION}, found {actual_version}. "
-                "Rebuild with 'pks build'."
-            )
-
-        try:
-            WORLD_SIDECAR_SCHEMA.validate_connection(self._conn)
-        except ProjectionSchemaError as error:
-            raise ValueError(
-                f"Unsupported sidecar schema: {error}. Rebuild with 'pks build'."
-            ) from error
+        validate_world_sidecar_schema(self._conn)
 
     # ── Lazy Z3 setup ────────────────────────────────────────────────
 
@@ -332,7 +306,7 @@ class WorldQuery(WorldStore):
 
         Both composite ``"namespace:value"`` keys AND bare ``"value"``
         keys populate the same map so the cache covers every form the
-        pre-memoized fallback already supported. A single SELECT +
+        pre-memoized fallback already supported. A single query plus a
         Python pass replaces per-miss full-table scans. WorldQuery is
         immutable per open sidecar (all rows live under a read-only
         connection, cleared only by ``close()``), so the index is safe
@@ -683,10 +657,7 @@ class WorldQuery(WorldStore):
     def _has_table(self, name: str) -> bool:
         if name in self._table_cache:
             return self._table_cache[name]
-        row = self._conn.execute(
-            "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (name,)
-        ).fetchone()
-        result = row is not None
+        result = sidecar_table_exists(self._conn, name)
         self._table_cache[name] = result
         return result
 
