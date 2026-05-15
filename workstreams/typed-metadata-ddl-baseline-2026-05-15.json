@@ -1,0 +1,3666 @@
+{
+  "bindings": {
+    "dimensions": "3",
+    "model_identity_hash": "baseline_model"
+  },
+  "catalog": [
+    {
+      "columns": [
+        "slug",
+        "source_id",
+        "kind",
+        "origin_type",
+        "origin_value",
+        "origin_retrieved",
+        "origin_content_ref",
+        "prior_base_rate",
+        "quality_json",
+        "derived_from_json",
+        "artifact_code"
+      ],
+      "ddl": [
+        "CREATE TABLE \"source\" (\n    \"slug\" TEXT PRIMARY KEY,\n    \"source_id\" TEXT NOT NULL,\n    \"kind\" TEXT NOT NULL,\n    \"origin_type\" TEXT,\n    \"origin_value\" TEXT,\n    \"origin_retrieved\" TEXT,\n    \"origin_content_ref\" TEXT,\n    \"prior_base_rate\" TEXT,\n    \"quality_json\" TEXT,\n    \"derived_from_json\" TEXT,\n    \"artifact_code\" TEXT\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_source_source_id\" ON \"source\"(\"source_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"source\" (\"slug\", \"source_id\", \"kind\", \"origin_type\", \"origin_value\", \"origin_retrieved\", \"origin_content_ref\", \"prior_base_rate\", \"quality_json\", \"derived_from_json\", \"artifact_code\") VALUES (:slug, :source_id, :kind, :origin_type, :origin_value, :origin_retrieved, :origin_content_ref, :prior_base_rate, :quality_json, :derived_from_json, :artifact_code)",
+      "kind": "table",
+      "name": "source",
+      "rendered_name": "source",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "slug",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "origin_type",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "origin_value",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "origin_retrieved",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "origin_content_ref",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "prior_base_rate",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "quality_json",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "derived_from_json",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "artifact_code",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "source_id"
+            ],
+            "name": "idx_source_source_id",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "source",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "primary_logical_id",
+        "logical_ids_json",
+        "version_id",
+        "content_hash",
+        "seq",
+        "canonical_name",
+        "status",
+        "domain",
+        "definition",
+        "kind_type",
+        "form",
+        "form_parameters",
+        "range_min",
+        "range_max",
+        "is_dimensionless",
+        "unit_symbol",
+        "created_date",
+        "last_modified"
+      ],
+      "ddl": [
+        "CREATE TABLE \"concept\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"primary_logical_id\" TEXT NOT NULL DEFAULT '',\n    \"logical_ids_json\" TEXT NOT NULL DEFAULT '[]',\n    \"version_id\" TEXT NOT NULL DEFAULT '',\n    \"content_hash\" TEXT NOT NULL,\n    \"seq\" INTEGER NOT NULL,\n    \"canonical_name\" TEXT NOT NULL,\n    \"status\" TEXT NOT NULL,\n    \"domain\" TEXT,\n    \"definition\" TEXT NOT NULL,\n    \"kind_type\" TEXT NOT NULL,\n    \"form\" TEXT NOT NULL,\n    \"form_parameters\" TEXT,\n    \"range_min\" REAL,\n    \"range_max\" REAL,\n    \"is_dimensionless\" INTEGER NOT NULL DEFAULT 0,\n    \"unit_symbol\" TEXT,\n    \"created_date\" TEXT,\n    \"last_modified\" TEXT\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_concept_primary_logical_id\" ON \"concept\"(\"primary_logical_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"concept\" (\"id\", \"primary_logical_id\", \"logical_ids_json\", \"version_id\", \"content_hash\", \"seq\", \"canonical_name\", \"status\", \"domain\", \"definition\", \"kind_type\", \"form\", \"form_parameters\", \"range_min\", \"range_max\", \"is_dimensionless\", \"unit_symbol\", \"created_date\", \"last_modified\") VALUES (:id, :primary_logical_id, :logical_ids_json, :version_id, :content_hash, :seq, :canonical_name, :status, :domain, :definition, :kind_type, :form, :form_parameters, :range_min, :range_max, :is_dimensionless, :unit_symbol, :created_date, :last_modified)",
+      "kind": "table",
+      "name": "concept",
+      "rendered_name": "concept",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "id",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "''",
+            "insertable": true,
+            "name": "primary_logical_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "'[]'",
+            "insertable": true,
+            "name": "logical_ids_json",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "''",
+            "insertable": true,
+            "name": "version_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "content_hash",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "seq",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "canonical_name",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "status",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "domain",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "definition",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "kind_type",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "form",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "form_parameters",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "range_min",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "range_max",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "0",
+            "insertable": true,
+            "name": "is_dimensionless",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "unit_symbol",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "created_date",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "last_modified",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "primary_logical_id"
+            ],
+            "name": "idx_concept_primary_logical_id",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "concept",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "concept_id",
+        "alias_name",
+        "source"
+      ],
+      "ddl": [
+        "CREATE TABLE \"alias\" (\n    \"concept_id\" TEXT NOT NULL,\n    \"alias_name\" TEXT NOT NULL,\n    \"source\" TEXT NOT NULL,\n    FOREIGN KEY (\"concept_id\") REFERENCES \"concept\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_alias_name\" ON \"alias\"(\"alias_name\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_alias_concept\" ON \"alias\"(\"concept_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"alias\" (\"concept_id\", \"alias_name\", \"source\") VALUES (:concept_id, :alias_name, :source)",
+      "kind": "table",
+      "name": "alias",
+      "rendered_name": "alias",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "concept_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "alias_name",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "concept_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "concept"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "alias_name"
+            ],
+            "name": "idx_alias_name",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "concept_id"
+            ],
+            "name": "idx_alias_concept",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "alias",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "output_concept_id",
+        "concept_ids",
+        "formula",
+        "sympy",
+        "exactness",
+        "conditions_cel",
+        "conditions_ir"
+      ],
+      "ddl": [
+        "CREATE TABLE \"parameterization\" (\n    \"output_concept_id\" TEXT NOT NULL,\n    \"concept_ids\" TEXT NOT NULL,\n    \"formula\" TEXT NOT NULL,\n    \"sympy\" TEXT,\n    \"exactness\" TEXT NOT NULL,\n    \"conditions_cel\" TEXT,\n    \"conditions_ir\" TEXT,\n    FOREIGN KEY (\"output_concept_id\") REFERENCES \"concept\"(\"id\")\n)"
+      ],
+      "insert_sql": "INSERT INTO \"parameterization\" (\"output_concept_id\", \"concept_ids\", \"formula\", \"sympy\", \"exactness\", \"conditions_cel\", \"conditions_ir\") VALUES (:output_concept_id, :concept_ids, :formula, :sympy, :exactness, :conditions_cel, :conditions_ir)",
+      "kind": "table",
+      "name": "parameterization",
+      "rendered_name": "parameterization",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "output_concept_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "concept_ids",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "formula",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "sympy",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "exactness",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_cel",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_ir",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "output_concept_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "concept"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [],
+        "kind": "table",
+        "name": "parameterization",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "concept_id",
+        "group_id"
+      ],
+      "ddl": [
+        "CREATE TABLE \"parameterization_group\" (\n    \"concept_id\" TEXT NOT NULL,\n    \"group_id\" INTEGER NOT NULL,\n    FOREIGN KEY (\"concept_id\") REFERENCES \"concept\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_param_group\" ON \"parameterization_group\"(\"group_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"parameterization_group\" (\"concept_id\", \"group_id\") VALUES (:concept_id, :group_id)",
+      "kind": "table",
+      "name": "parameterization_group",
+      "rendered_name": "parameterization_group",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "concept_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "group_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "concept_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "concept"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "group_id"
+            ],
+            "name": "idx_param_group",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "parameterization_group",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "source_kind",
+        "source_id",
+        "relation_type",
+        "target_kind",
+        "target_id",
+        "perspective_source_claim_id",
+        "target_justification_id",
+        "conditions_cel",
+        "strength",
+        "conditions_differ",
+        "note",
+        "resolution_method",
+        "resolution_model",
+        "embedding_model",
+        "embedding_distance",
+        "pass_number",
+        "confidence",
+        "opinion_belief",
+        "opinion_disbelief",
+        "opinion_uncertainty",
+        "opinion_base_rate"
+      ],
+      "ddl": [
+        "CREATE TABLE \"relation_edge\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"source_kind\" TEXT NOT NULL,\n    \"source_id\" TEXT NOT NULL,\n    \"relation_type\" TEXT NOT NULL,\n    \"target_kind\" TEXT NOT NULL,\n    \"target_id\" TEXT NOT NULL,\n    \"perspective_source_claim_id\" TEXT,\n    \"target_justification_id\" TEXT,\n    \"conditions_cel\" TEXT,\n    \"strength\" TEXT,\n    \"conditions_differ\" TEXT,\n    \"note\" TEXT,\n    \"resolution_method\" TEXT,\n    \"resolution_model\" TEXT,\n    \"embedding_model\" TEXT,\n    \"embedding_distance\" REAL,\n    \"pass_number\" INTEGER,\n    \"confidence\" REAL,\n    \"opinion_belief\" REAL CHECK(opinion_belief >= 0 AND opinion_belief <= 1),\n    \"opinion_disbelief\" REAL CHECK(opinion_disbelief >= 0 AND opinion_disbelief <= 1),\n    \"opinion_uncertainty\" REAL CHECK(opinion_uncertainty >= 0 AND opinion_uncertainty <= 1),\n    \"opinion_base_rate\" REAL CHECK(opinion_base_rate > 0 AND opinion_base_rate < 1),\n    CHECK(opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6)\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_relation_edge_source\" ON \"relation_edge\"(\"source_kind\", \"source_id\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_relation_edge_target\" ON \"relation_edge\"(\"target_kind\", \"target_id\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_relation_edge_type\" ON \"relation_edge\"(\"relation_type\")"
+      ],
+      "insert_sql": "INSERT INTO \"relation_edge\" (\"source_kind\", \"source_id\", \"relation_type\", \"target_kind\", \"target_id\", \"perspective_source_claim_id\", \"target_justification_id\", \"conditions_cel\", \"strength\", \"conditions_differ\", \"note\", \"resolution_method\", \"resolution_model\", \"embedding_model\", \"embedding_distance\", \"pass_number\", \"confidence\", \"opinion_belief\", \"opinion_disbelief\", \"opinion_uncertainty\", \"opinion_base_rate\") VALUES (:source_kind, :source_id, :relation_type, :target_kind, :target_id, :perspective_source_claim_id, :target_justification_id, :conditions_cel, :strength, :conditions_differ, :note, :resolution_method, :resolution_model, :embedding_model, :embedding_distance, :pass_number, :confidence, :opinion_belief, :opinion_disbelief, :opinion_uncertainty, :opinion_base_rate)",
+      "kind": "table",
+      "name": "relation_edge",
+      "rendered_name": "relation_edge",
+      "schema_hash_material": {
+        "checks": [
+          "opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6"
+        ],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": false,
+            "name": "id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "INTEGER PRIMARY KEY AUTOINCREMENT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "relation_type",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "target_kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "target_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "perspective_source_claim_id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "target_justification_id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_cel",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "strength",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_differ",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "note",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "resolution_method",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "resolution_model",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "embedding_model",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "embedding_distance",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "pass_number",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "confidence",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": "opinion_belief >= 0 AND opinion_belief <= 1",
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "opinion_belief",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": "opinion_disbelief >= 0 AND opinion_disbelief <= 1",
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "opinion_disbelief",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": "opinion_uncertainty >= 0 AND opinion_uncertainty <= 1",
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "opinion_uncertainty",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": "opinion_base_rate > 0 AND opinion_base_rate < 1",
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "opinion_base_rate",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "source_kind",
+              "source_id"
+            ],
+            "name": "idx_relation_edge_source",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "target_kind",
+              "target_id"
+            ],
+            "name": "idx_relation_edge_target",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "relation_type"
+            ],
+            "name": "idx_relation_edge_type",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "relation_edge",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "name",
+        "kind",
+        "unit_symbol",
+        "is_dimensionless",
+        "dimensions"
+      ],
+      "ddl": [
+        "CREATE TABLE \"form\" (\n    \"name\" TEXT PRIMARY KEY,\n    \"kind\" TEXT NOT NULL,\n    \"unit_symbol\" TEXT,\n    \"is_dimensionless\" INTEGER NOT NULL DEFAULT 0,\n    \"dimensions\" TEXT\n)"
+      ],
+      "insert_sql": "INSERT INTO \"form\" (\"name\", \"kind\", \"unit_symbol\", \"is_dimensionless\", \"dimensions\") VALUES (:name, :kind, :unit_symbol, :is_dimensionless, :dimensions)",
+      "kind": "table",
+      "name": "form",
+      "rendered_name": "form",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "name",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "unit_symbol",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "0",
+            "insertable": true,
+            "name": "is_dimensionless",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "dimensions",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": false,
+        "indexes": [],
+        "kind": "table",
+        "name": "form",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "output_form",
+        "input_forms",
+        "operation",
+        "source_concept_id",
+        "source_formula",
+        "dim_verified"
+      ],
+      "ddl": [
+        "CREATE TABLE \"form_algebra\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"output_form\" TEXT NOT NULL,\n    \"input_forms\" TEXT NOT NULL,\n    \"operation\" TEXT NOT NULL,\n    \"source_concept_id\" TEXT,\n    \"source_formula\" TEXT,\n    \"dim_verified\" INTEGER NOT NULL DEFAULT 1,\n    FOREIGN KEY (\"output_form\") REFERENCES \"form\"(\"name\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_form_algebra_output\" ON \"form_algebra\"(\"output_form\")"
+      ],
+      "insert_sql": "INSERT INTO \"form_algebra\" (\"output_form\", \"input_forms\", \"operation\", \"source_concept_id\", \"source_formula\", \"dim_verified\") VALUES (:output_form, :input_forms, :operation, :source_concept_id, :source_formula, :dim_verified)",
+      "kind": "table",
+      "name": "form_algebra",
+      "rendered_name": "form_algebra",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": false,
+            "name": "id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "INTEGER PRIMARY KEY AUTOINCREMENT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "output_form",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "input_forms",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "operation",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_concept_id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_formula",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "1",
+            "insertable": true,
+            "name": "dim_verified",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "output_form"
+            ],
+            "ref_columns": [
+              "name"
+            ],
+            "ref_table": "form"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "output_form"
+            ],
+            "name": "idx_form_algebra_output",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "form_algebra",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "concept_id",
+        "canonical_name",
+        "aliases",
+        "definition",
+        "conditions"
+      ],
+      "ddl": [
+        "CREATE VIRTUAL TABLE \"concept_fts\" USING fts5(\"concept_id\" UNINDEXED, \"canonical_name\", \"aliases\", \"definition\", \"conditions\")"
+      ],
+      "insert_sql": "INSERT INTO \"concept_fts\" (\"concept_id\", \"canonical_name\", \"aliases\", \"definition\", \"conditions\") VALUES (:concept_id, :canonical_name, :aliases, :definition, :conditions)",
+      "kind": "fts5",
+      "name": "concept_fts",
+      "population_plan": "\n        SELECT\n            c.id AS concept_id,\n            c.canonical_name AS canonical_name,\n            COALESCE(\n                (\n                    SELECT group_concat(a.alias_name, ' ')\n                    FROM alias a\n                    WHERE a.concept_id = c.id\n                ),\n                ''\n            ) AS aliases,\n            c.definition AS definition,\n            COALESCE(\n                (\n                    SELECT group_concat(value, ' ')\n                    FROM (\n                        SELECT rel_condition.value AS value\n                        FROM relationship r, json_each(r.conditions_cel) AS rel_condition\n                        WHERE r.source_id = c.id\n                          AND r.conditions_cel IS NOT NULL\n                        UNION ALL\n                        SELECT param_condition.value AS value\n                        FROM parameterization p, json_each(p.conditions_cel) AS param_condition\n                        WHERE p.output_concept_id = c.id\n                          AND p.conditions_cel IS NOT NULL\n                    )\n                ),\n                ''\n            ) AS conditions\n        FROM concept c\n        ORDER BY c.seq\n    ",
+      "population_sql": "INSERT INTO \"concept_fts\" (\"concept_id\", \"canonical_name\", \"aliases\", \"definition\", \"conditions\") \n        SELECT\n            c.id AS concept_id,\n            c.canonical_name AS canonical_name,\n            COALESCE(\n                (\n                    SELECT group_concat(a.alias_name, ' ')\n                    FROM alias a\n                    WHERE a.concept_id = c.id\n                ),\n                ''\n            ) AS aliases,\n            c.definition AS definition,\n            COALESCE(\n                (\n                    SELECT group_concat(value, ' ')\n                    FROM (\n                        SELECT rel_condition.value AS value\n                        FROM relationship r, json_each(r.conditions_cel) AS rel_condition\n                        WHERE r.source_id = c.id\n                          AND r.conditions_cel IS NOT NULL\n                        UNION ALL\n                        SELECT param_condition.value AS value\n                        FROM parameterization p, json_each(p.conditions_cel) AS param_condition\n                        WHERE p.output_concept_id = c.id\n                          AND p.conditions_cel IS NOT NULL\n                    )\n                ),\n                ''\n            ) AS conditions\n        FROM concept c\n        ORDER BY c.seq\n    ",
+      "rendered_name": "concept_fts",
+      "schema_hash_material": {
+        "columns": [
+          "canonical_name",
+          "aliases",
+          "definition",
+          "conditions"
+        ],
+        "key_column": "concept_id",
+        "kind": "fts5",
+        "row_plan": null,
+        "source_query": "\n        SELECT\n            c.id AS concept_id,\n            c.canonical_name AS canonical_name,\n            COALESCE(\n                (\n                    SELECT group_concat(a.alias_name, ' ')\n                    FROM alias a\n                    WHERE a.concept_id = c.id\n                ),\n                ''\n            ) AS aliases,\n            c.definition AS definition,\n            COALESCE(\n                (\n                    SELECT group_concat(value, ' ')\n                    FROM (\n                        SELECT rel_condition.value AS value\n                        FROM relationship r, json_each(r.conditions_cel) AS rel_condition\n                        WHERE r.source_id = c.id\n                          AND r.conditions_cel IS NOT NULL\n                        UNION ALL\n                        SELECT param_condition.value AS value\n                        FROM parameterization p, json_each(p.conditions_cel) AS param_condition\n                        WHERE p.output_concept_id = c.id\n                          AND p.conditions_cel IS NOT NULL\n                    )\n                ),\n                ''\n            ) AS conditions\n        FROM concept c\n        ORDER BY c.seq\n    ",
+        "table": "concept_fts"
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "name",
+        "description",
+        "parameters_json",
+        "perspective"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"context\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"name\" TEXT NOT NULL,\n    \"description\" TEXT,\n    \"parameters_json\" TEXT,\n    \"perspective\" TEXT\n)"
+      ],
+      "insert_sql": "INSERT INTO \"context\" (\"id\", \"name\", \"description\", \"parameters_json\", \"perspective\") VALUES (:id, :name, :description, :parameters_json, :perspective)",
+      "kind": "table",
+      "name": "context",
+      "rendered_name": "context",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "id",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "name",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "description",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "parameters_json",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "perspective",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [],
+        "kind": "table",
+        "name": "context",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "context_id",
+        "assumption_cel",
+        "seq"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"context_assumption\" (\n    \"context_id\" TEXT NOT NULL,\n    \"assumption_cel\" TEXT NOT NULL,\n    \"seq\" INTEGER NOT NULL,\n    FOREIGN KEY (\"context_id\") REFERENCES \"context\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_ctx_assumption\" ON \"context_assumption\"(\"context_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"context_assumption\" (\"context_id\", \"assumption_cel\", \"seq\") VALUES (:context_id, :assumption_cel, :seq)",
+      "kind": "table",
+      "name": "context_assumption",
+      "rendered_name": "context_assumption",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "context_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "assumption_cel",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "seq",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "context_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "context"
+          }
+        ],
+        "if_not_exists": true,
+        "indexes": [
+          {
+            "columns": [
+              "context_id"
+            ],
+            "name": "idx_ctx_assumption",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "context_assumption",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "source_context_id",
+        "target_context_id",
+        "conditions_cel",
+        "mode",
+        "justification"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"context_lifting_rule\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"source_context_id\" TEXT NOT NULL,\n    \"target_context_id\" TEXT NOT NULL,\n    \"conditions_cel\" TEXT,\n    \"mode\" TEXT NOT NULL,\n    \"justification\" TEXT,\n    FOREIGN KEY (\"source_context_id\") REFERENCES \"context\"(\"id\"),\n    FOREIGN KEY (\"target_context_id\") REFERENCES \"context\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_ctx_lift_source\" ON \"context_lifting_rule\"(\"source_context_id\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_ctx_lift_target\" ON \"context_lifting_rule\"(\"target_context_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"context_lifting_rule\" (\"id\", \"source_context_id\", \"target_context_id\", \"conditions_cel\", \"mode\", \"justification\") VALUES (:id, :source_context_id, :target_context_id, :conditions_cel, :mode, :justification)",
+      "kind": "table",
+      "name": "context_lifting_rule",
+      "rendered_name": "context_lifting_rule",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "id",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_context_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "target_context_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_cel",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "mode",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "justification",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "source_context_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "context"
+          },
+          {
+            "columns": [
+              "target_context_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "context"
+          }
+        ],
+        "if_not_exists": true,
+        "indexes": [
+          {
+            "columns": [
+              "source_context_id"
+            ],
+            "name": "idx_ctx_lift_source",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "target_context_id"
+            ],
+            "name": "idx_ctx_lift_target",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "context_lifting_rule",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "rule_id",
+        "source_context_id",
+        "target_context_id",
+        "proposition_id",
+        "status",
+        "exception_id",
+        "provenance_json"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"context_lifting_materialization\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"rule_id\" TEXT NOT NULL,\n    \"source_context_id\" TEXT NOT NULL,\n    \"target_context_id\" TEXT NOT NULL,\n    \"proposition_id\" TEXT NOT NULL,\n    \"status\" TEXT NOT NULL,\n    \"exception_id\" TEXT,\n    \"provenance_json\" TEXT NOT NULL,\n    FOREIGN KEY (\"rule_id\") REFERENCES \"context_lifting_rule\"(\"id\"),\n    FOREIGN KEY (\"source_context_id\") REFERENCES \"context\"(\"id\"),\n    FOREIGN KEY (\"target_context_id\") REFERENCES \"context\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_ctx_lift_mat_target\" ON \"context_lifting_materialization\"(\"target_context_id\", \"proposition_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"context_lifting_materialization\" (\"rule_id\", \"source_context_id\", \"target_context_id\", \"proposition_id\", \"status\", \"exception_id\", \"provenance_json\") VALUES (:rule_id, :source_context_id, :target_context_id, :proposition_id, :status, :exception_id, :provenance_json)",
+      "kind": "table",
+      "name": "context_lifting_materialization",
+      "rendered_name": "context_lifting_materialization",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": false,
+            "name": "id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "INTEGER PRIMARY KEY AUTOINCREMENT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "rule_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_context_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "target_context_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "proposition_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "status",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "exception_id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "provenance_json",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "rule_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "context_lifting_rule"
+          },
+          {
+            "columns": [
+              "source_context_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "context"
+          },
+          {
+            "columns": [
+              "target_context_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "context"
+          }
+        ],
+        "if_not_exists": true,
+        "indexes": [
+          {
+            "columns": [
+              "target_context_id",
+              "proposition_id"
+            ],
+            "name": "idx_ctx_lift_mat_target",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "context_lifting_materialization",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "primary_logical_id",
+        "logical_ids_json",
+        "version_id",
+        "content_hash",
+        "seq",
+        "type",
+        "target_concept",
+        "source_slug",
+        "source_paper",
+        "provenance_page",
+        "provenance_json",
+        "context_id",
+        "premise_kind",
+        "branch",
+        "build_status",
+        "stage",
+        "promotion_status"
+      ],
+      "ddl": [
+        "CREATE TABLE \"claim_core\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"primary_logical_id\" TEXT NOT NULL DEFAULT '',\n    \"logical_ids_json\" TEXT NOT NULL DEFAULT '[]',\n    \"version_id\" TEXT NOT NULL DEFAULT '',\n    \"content_hash\" TEXT NOT NULL DEFAULT '',\n    \"seq\" INTEGER NOT NULL,\n    \"type\" TEXT NOT NULL,\n    \"target_concept\" TEXT,\n    \"source_slug\" TEXT,\n    \"source_paper\" TEXT NOT NULL,\n    \"provenance_page\" INTEGER NOT NULL,\n    \"provenance_json\" TEXT,\n    \"context_id\" TEXT,\n    \"premise_kind\" TEXT NOT NULL DEFAULT 'ordinary',\n    \"branch\" TEXT,\n    \"build_status\" TEXT NOT NULL DEFAULT 'ingested',\n    \"stage\" TEXT,\n    \"promotion_status\" TEXT,\n    FOREIGN KEY (\"context_id\") REFERENCES \"context\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_core_target\" ON \"claim_core\"(\"target_concept\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_core_type\" ON \"claim_core\"(\"type\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_core_primary_logical_id\" ON \"claim_core\"(\"primary_logical_id\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_core_build_status\" ON \"claim_core\"(\"build_status\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_core_stage\" ON \"claim_core\"(\"stage\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_core_promotion_status\" ON \"claim_core\"(\"promotion_status\")"
+      ],
+      "insert_sql": "INSERT INTO \"claim_core\" (\"id\", \"primary_logical_id\", \"logical_ids_json\", \"version_id\", \"content_hash\", \"seq\", \"type\", \"target_concept\", \"source_slug\", \"source_paper\", \"provenance_page\", \"provenance_json\", \"context_id\", \"premise_kind\", \"branch\", \"build_status\", \"stage\", \"promotion_status\") VALUES (:id, :primary_logical_id, :logical_ids_json, :version_id, :content_hash, :seq, :type, :target_concept, :source_slug, :source_paper, :provenance_page, :provenance_json, :context_id, :premise_kind, :branch, :build_status, :stage, :promotion_status)",
+      "kind": "table",
+      "name": "claim_core",
+      "rendered_name": "claim_core",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "id",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "''",
+            "insertable": true,
+            "name": "primary_logical_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "'[]'",
+            "insertable": true,
+            "name": "logical_ids_json",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "''",
+            "insertable": true,
+            "name": "version_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "''",
+            "insertable": true,
+            "name": "content_hash",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "seq",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "type",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "target_concept",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_slug",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_paper",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "provenance_page",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "provenance_json",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "context_id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "'ordinary'",
+            "insertable": true,
+            "name": "premise_kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "branch",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "'ingested'",
+            "insertable": true,
+            "name": "build_status",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "stage",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "promotion_status",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "context_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "context"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "target_concept"
+            ],
+            "name": "idx_claim_core_target",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "type"
+            ],
+            "name": "idx_claim_core_type",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "primary_logical_id"
+            ],
+            "name": "idx_claim_core_primary_logical_id",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "build_status"
+            ],
+            "name": "idx_claim_core_build_status",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "stage"
+            ],
+            "name": "idx_claim_core_stage",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "promotion_status"
+            ],
+            "name": "idx_claim_core_promotion_status",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "claim_core",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "claim_id",
+        "concept_id",
+        "role",
+        "ordinal",
+        "binding_name"
+      ],
+      "ddl": [
+        "CREATE TABLE \"claim_concept_link\" (\n    \"claim_id\" TEXT NOT NULL,\n    \"concept_id\" TEXT NOT NULL,\n    \"role\" TEXT NOT NULL,\n    \"ordinal\" INTEGER NOT NULL,\n    \"binding_name\" TEXT,\n    PRIMARY KEY (\"claim_id\", \"role\", \"ordinal\", \"concept_id\"),\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\"),\n    FOREIGN KEY (\"concept_id\") REFERENCES \"concept\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_concept_link_claim\" ON \"claim_concept_link\"(\"claim_id\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_concept_link_concept\" ON \"claim_concept_link\"(\"concept_id\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_concept_link_role\" ON \"claim_concept_link\"(\"role\")"
+      ],
+      "insert_sql": "INSERT INTO \"claim_concept_link\" (\"claim_id\", \"concept_id\", \"role\", \"ordinal\", \"binding_name\") VALUES (:claim_id, :concept_id, :role, :ordinal, :binding_name)",
+      "kind": "table",
+      "name": "claim_concept_link",
+      "rendered_name": "claim_concept_link",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "concept_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "role",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "ordinal",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "binding_name",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "claim_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "claim_core"
+          },
+          {
+            "columns": [
+              "concept_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "concept"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "claim_id"
+            ],
+            "name": "idx_claim_concept_link_claim",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "concept_id"
+            ],
+            "name": "idx_claim_concept_link_concept",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "role"
+            ],
+            "name": "idx_claim_concept_link_role",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "claim_concept_link",
+        "primary_key": [
+          "claim_id",
+          "role",
+          "ordinal",
+          "concept_id"
+        ]
+      }
+    },
+    {
+      "columns": [
+        "claim_id",
+        "value",
+        "lower_bound",
+        "upper_bound",
+        "uncertainty",
+        "uncertainty_type",
+        "sample_size",
+        "unit",
+        "value_si",
+        "lower_bound_si",
+        "upper_bound_si"
+      ],
+      "ddl": [
+        "CREATE TABLE \"claim_numeric_payload\" (\n    \"claim_id\" TEXT PRIMARY KEY,\n    \"value\" REAL,\n    \"lower_bound\" REAL,\n    \"upper_bound\" REAL,\n    \"uncertainty\" REAL,\n    \"uncertainty_type\" TEXT,\n    \"sample_size\" INTEGER,\n    \"unit\" TEXT,\n    \"value_si\" REAL,\n    \"lower_bound_si\" REAL,\n    \"upper_bound_si\" REAL,\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\")\n)"
+      ],
+      "insert_sql": "INSERT INTO \"claim_numeric_payload\" (\"claim_id\", \"value\", \"lower_bound\", \"upper_bound\", \"uncertainty\", \"uncertainty_type\", \"sample_size\", \"unit\", \"value_si\", \"lower_bound_si\", \"upper_bound_si\") VALUES (:claim_id, :value, :lower_bound, :upper_bound, :uncertainty, :uncertainty_type, :sample_size, :unit, :value_si, :lower_bound_si, :upper_bound_si)",
+      "kind": "table",
+      "name": "claim_numeric_payload",
+      "rendered_name": "claim_numeric_payload",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_id",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "value",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "lower_bound",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "upper_bound",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "uncertainty",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "uncertainty_type",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "sample_size",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "unit",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "value_si",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "lower_bound_si",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "upper_bound_si",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "REAL"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "claim_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "claim_core"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [],
+        "kind": "table",
+        "name": "claim_numeric_payload",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "claim_id",
+        "conditions_cel",
+        "conditions_ir",
+        "statement",
+        "expression",
+        "sympy_generated",
+        "sympy_error",
+        "name",
+        "measure",
+        "listener_population",
+        "methodology",
+        "notes",
+        "description",
+        "auto_summary"
+      ],
+      "ddl": [
+        "CREATE TABLE \"claim_text_payload\" (\n    \"claim_id\" TEXT PRIMARY KEY,\n    \"conditions_cel\" TEXT,\n    \"conditions_ir\" TEXT,\n    \"statement\" TEXT,\n    \"expression\" TEXT,\n    \"sympy_generated\" TEXT,\n    \"sympy_error\" TEXT,\n    \"name\" TEXT,\n    \"measure\" TEXT,\n    \"listener_population\" TEXT,\n    \"methodology\" TEXT,\n    \"notes\" TEXT,\n    \"description\" TEXT,\n    \"auto_summary\" TEXT,\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\")\n)"
+      ],
+      "insert_sql": "INSERT INTO \"claim_text_payload\" (\"claim_id\", \"conditions_cel\", \"conditions_ir\", \"statement\", \"expression\", \"sympy_generated\", \"sympy_error\", \"name\", \"measure\", \"listener_population\", \"methodology\", \"notes\", \"description\", \"auto_summary\") VALUES (:claim_id, :conditions_cel, :conditions_ir, :statement, :expression, :sympy_generated, :sympy_error, :name, :measure, :listener_population, :methodology, :notes, :description, :auto_summary)",
+      "kind": "table",
+      "name": "claim_text_payload",
+      "rendered_name": "claim_text_payload",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_id",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_cel",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_ir",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "statement",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "expression",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "sympy_generated",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "sympy_error",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "name",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "measure",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "listener_population",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "methodology",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "notes",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "description",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "auto_summary",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "claim_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "claim_core"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [],
+        "kind": "table",
+        "name": "claim_text_payload",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "claim_id",
+        "body",
+        "canonical_ast",
+        "variables_json",
+        "algorithm_stage"
+      ],
+      "ddl": [
+        "CREATE TABLE \"claim_algorithm_payload\" (\n    \"claim_id\" TEXT PRIMARY KEY,\n    \"body\" TEXT,\n    \"canonical_ast\" TEXT,\n    \"variables_json\" TEXT,\n    \"algorithm_stage\" TEXT,\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_claim_algorithm_stage\" ON \"claim_algorithm_payload\"(\"algorithm_stage\")"
+      ],
+      "insert_sql": "INSERT INTO \"claim_algorithm_payload\" (\"claim_id\", \"body\", \"canonical_ast\", \"variables_json\", \"algorithm_stage\") VALUES (:claim_id, :body, :canonical_ast, :variables_json, :algorithm_stage)",
+      "kind": "table",
+      "name": "claim_algorithm_payload",
+      "rendered_name": "claim_algorithm_payload",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_id",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "body",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "canonical_ast",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "variables_json",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "algorithm_stage",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "claim_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "claim_core"
+          }
+        ],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "algorithm_stage"
+            ],
+            "name": "idx_claim_algorithm_stage",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "claim_algorithm_payload",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "claim_id",
+        "statement",
+        "conditions",
+        "expression"
+      ],
+      "ddl": [
+        "CREATE VIRTUAL TABLE \"claim_fts\" USING fts5(\"claim_id\" UNINDEXED, \"statement\", \"conditions\", \"expression\")"
+      ],
+      "insert_sql": "INSERT INTO \"claim_fts\" (\"claim_id\", \"statement\", \"conditions\", \"expression\") VALUES (:claim_id, :statement, :conditions, :expression)",
+      "kind": "fts5",
+      "name": "claim_fts",
+      "population_plan": "\n        SELECT\n            c.id AS claim_id,\n            COALESCE(t.statement, '') AS statement,\n            COALESCE(\n                (\n                    SELECT group_concat(value, ' ')\n                    FROM json_each(t.conditions_cel)\n                ),\n                ''\n            ) AS conditions,\n            COALESCE(t.expression, '') AS expression\n        FROM claim_core c\n        JOIN claim_text_payload t ON t.claim_id = c.id\n        ORDER BY c.seq\n    ",
+      "population_sql": "INSERT INTO \"claim_fts\" (\"claim_id\", \"statement\", \"conditions\", \"expression\") \n        SELECT\n            c.id AS claim_id,\n            COALESCE(t.statement, '') AS statement,\n            COALESCE(\n                (\n                    SELECT group_concat(value, ' ')\n                    FROM json_each(t.conditions_cel)\n                ),\n                ''\n            ) AS conditions,\n            COALESCE(t.expression, '') AS expression\n        FROM claim_core c\n        JOIN claim_text_payload t ON t.claim_id = c.id\n        ORDER BY c.seq\n    ",
+      "rendered_name": "claim_fts",
+      "schema_hash_material": {
+        "columns": [
+          "statement",
+          "conditions",
+          "expression"
+        ],
+        "key_column": "claim_id",
+        "kind": "fts5",
+        "row_plan": null,
+        "source_query": "\n        SELECT\n            c.id AS claim_id,\n            COALESCE(t.statement, '') AS statement,\n            COALESCE(\n                (\n                    SELECT group_concat(value, ' ')\n                    FROM json_each(t.conditions_cel)\n                ),\n                ''\n            ) AS conditions,\n            COALESCE(t.expression, '') AS expression\n        FROM claim_core c\n        JOIN claim_text_payload t ON t.claim_id = c.id\n        ORDER BY c.seq\n    ",
+        "table": "claim_fts"
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "concept_id",
+        "claim_a_id",
+        "claim_b_id",
+        "warning_class",
+        "conditions_a",
+        "conditions_b",
+        "value_a",
+        "value_b",
+        "derivation_chain"
+      ],
+      "ddl": [
+        "CREATE TABLE \"conflict_witness\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"concept_id\" TEXT NOT NULL,\n    \"claim_a_id\" TEXT NOT NULL,\n    \"claim_b_id\" TEXT NOT NULL,\n    \"warning_class\" TEXT NOT NULL,\n    \"conditions_a\" TEXT,\n    \"conditions_b\" TEXT,\n    \"value_a\" TEXT,\n    \"value_b\" TEXT,\n    \"derivation_chain\" TEXT\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_conflict_witness_concept\" ON \"conflict_witness\"(\"concept_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"conflict_witness\" (\"concept_id\", \"claim_a_id\", \"claim_b_id\", \"warning_class\", \"conditions_a\", \"conditions_b\", \"value_a\", \"value_b\", \"derivation_chain\") VALUES (:concept_id, :claim_a_id, :claim_b_id, :warning_class, :conditions_a, :conditions_b, :value_a, :value_b, :derivation_chain)",
+      "kind": "table",
+      "name": "conflict_witness",
+      "rendered_name": "conflict_witness",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": false,
+            "name": "id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "INTEGER PRIMARY KEY AUTOINCREMENT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "concept_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_a_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_b_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "warning_class",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_a",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conditions_b",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "value_a",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "value_b",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "derivation_chain",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": false,
+        "indexes": [
+          {
+            "columns": [
+              "concept_id"
+            ],
+            "name": "idx_conflict_witness_concept",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "conflict_witness",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "predicate",
+        "arguments",
+        "section"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"grounded_fact\" (\n    \"predicate\" TEXT NOT NULL,\n    \"arguments\" TEXT NOT NULL,\n    \"section\" TEXT NOT NULL,\n    PRIMARY KEY (\"predicate\", \"arguments\", \"section\")\n)"
+      ],
+      "insert_sql": "INSERT INTO \"grounded_fact\" (\"predicate\", \"arguments\", \"section\") VALUES (:predicate, :arguments, :section)",
+      "kind": "table",
+      "name": "grounded_fact",
+      "rendered_name": "grounded_fact",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "predicate",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "arguments",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "section",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [],
+        "kind": "table",
+        "name": "grounded_fact",
+        "primary_key": [
+          "predicate",
+          "arguments",
+          "section"
+        ]
+      }
+    },
+    {
+      "columns": [
+        "section",
+        "predicate"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"grounded_fact_empty_predicate\" (\n    \"section\" TEXT NOT NULL,\n    \"predicate\" TEXT NOT NULL,\n    PRIMARY KEY (\"section\", \"predicate\")\n)"
+      ],
+      "insert_sql": "INSERT INTO \"grounded_fact_empty_predicate\" (\"section\", \"predicate\") VALUES (:section, :predicate)",
+      "kind": "table",
+      "name": "grounded_fact_empty_predicate",
+      "rendered_name": "grounded_fact_empty_predicate",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "section",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "predicate",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [],
+        "kind": "table",
+        "name": "grounded_fact_empty_predicate",
+        "primary_key": [
+          "section",
+          "predicate"
+        ]
+      }
+    },
+    {
+      "columns": [
+        "kind",
+        "position",
+        "payload"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"grounded_bundle_input\" (\n    \"kind\" TEXT NOT NULL,\n    \"position\" INTEGER NOT NULL,\n    \"payload\" BLOB NOT NULL,\n    PRIMARY KEY (\"kind\", \"position\")\n)"
+      ],
+      "insert_sql": "INSERT INTO \"grounded_bundle_input\" (\"kind\", \"position\", \"payload\") VALUES (:kind, :position, :payload)",
+      "kind": "table",
+      "name": "grounded_bundle_input",
+      "rendered_name": "grounded_bundle_input",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "position",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "payload",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "BLOB"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [],
+        "kind": "table",
+        "name": "grounded_bundle_input",
+        "primary_key": [
+          "kind",
+          "position"
+        ]
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "justification_kind",
+        "conclusion_claim_id",
+        "premise_claim_ids",
+        "source_relation_type",
+        "source_claim_id",
+        "provenance_json",
+        "rule_strength"
+      ],
+      "ddl": [
+        "CREATE TABLE \"justification\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"justification_kind\" TEXT NOT NULL,\n    \"conclusion_claim_id\" TEXT NOT NULL,\n    \"premise_claim_ids\" TEXT NOT NULL,\n    \"source_relation_type\" TEXT,\n    \"source_claim_id\" TEXT,\n    \"provenance_json\" TEXT,\n    \"rule_strength\" TEXT NOT NULL DEFAULT 'defeasible'\n)"
+      ],
+      "insert_sql": "INSERT INTO \"justification\" (\"id\", \"justification_kind\", \"conclusion_claim_id\", \"premise_claim_ids\", \"source_relation_type\", \"source_claim_id\", \"provenance_json\", \"rule_strength\") VALUES (:id, :justification_kind, :conclusion_claim_id, :premise_claim_ids, :source_relation_type, :source_claim_id, :provenance_json, :rule_strength)",
+      "kind": "table",
+      "name": "justification",
+      "rendered_name": "justification",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "id",
+            "nullable": true,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "justification_kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "conclusion_claim_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "premise_claim_ids",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_relation_type",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_claim_id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "provenance_json",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "'defeasible'",
+            "insertable": true,
+            "name": "rule_strength",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": false,
+        "indexes": [],
+        "kind": "table",
+        "name": "justification",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "context_id",
+        "assumptions_json",
+        "evidence_json",
+        "stance",
+        "provenance_json",
+        "source_slug"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"micropublication\" (\n    \"id\" TEXT PRIMARY KEY NOT NULL,\n    \"context_id\" TEXT NOT NULL,\n    \"assumptions_json\" TEXT NOT NULL DEFAULT '[]',\n    \"evidence_json\" TEXT NOT NULL DEFAULT '[]',\n    \"stance\" TEXT,\n    \"provenance_json\" TEXT,\n    \"source_slug\" TEXT,\n    FOREIGN KEY (\"context_id\") REFERENCES \"context\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_micropub_context\" ON \"micropublication\"(\"context_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"micropublication\" (\"id\", \"context_id\", \"assumptions_json\", \"evidence_json\", \"stance\", \"provenance_json\", \"source_slug\") VALUES (:id, :context_id, :assumptions_json, :evidence_json, :stance, :provenance_json, :source_slug)",
+      "kind": "table",
+      "name": "micropublication",
+      "rendered_name": "micropublication",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "id",
+            "nullable": false,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "context_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "'[]'",
+            "insertable": true,
+            "name": "assumptions_json",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "'[]'",
+            "insertable": true,
+            "name": "evidence_json",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "stance",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "provenance_json",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_slug",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "context_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "context"
+          }
+        ],
+        "if_not_exists": true,
+        "indexes": [
+          {
+            "columns": [
+              "context_id"
+            ],
+            "name": "idx_micropub_context",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "micropublication",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "micropublication_id",
+        "claim_id",
+        "seq"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"micropublication_claim\" (\n    \"micropublication_id\" TEXT NOT NULL,\n    \"claim_id\" TEXT NOT NULL,\n    \"seq\" INTEGER NOT NULL,\n    PRIMARY KEY (\"micropublication_id\", \"claim_id\"),\n    FOREIGN KEY (\"micropublication_id\") REFERENCES \"micropublication\"(\"id\"),\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_micropub_claim\" ON \"micropublication_claim\"(\"claim_id\")"
+      ],
+      "insert_sql": "INSERT INTO \"micropublication_claim\" (\"micropublication_id\", \"claim_id\", \"seq\") VALUES (:micropublication_id, :claim_id, :seq)",
+      "kind": "table",
+      "name": "micropublication_claim",
+      "rendered_name": "micropublication_claim",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "micropublication_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "seq",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          }
+        ],
+        "foreign_keys": [
+          {
+            "columns": [
+              "micropublication_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "micropublication"
+          },
+          {
+            "columns": [
+              "claim_id"
+            ],
+            "ref_columns": [
+              "id"
+            ],
+            "ref_table": "claim_core"
+          }
+        ],
+        "if_not_exists": true,
+        "indexes": [
+          {
+            "columns": [
+              "claim_id"
+            ],
+            "name": "idx_micropub_claim",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "micropublication_claim",
+        "primary_key": [
+          "micropublication_id",
+          "claim_id"
+        ]
+      }
+    },
+    {
+      "columns": [
+        "pass_number",
+        "category",
+        "correct_count",
+        "total_count"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"calibration_counts\" (\n    \"pass_number\" INTEGER NOT NULL,\n    \"category\" TEXT NOT NULL,\n    \"correct_count\" INTEGER NOT NULL,\n    \"total_count\" INTEGER NOT NULL,\n    PRIMARY KEY (\"pass_number\", \"category\")\n)"
+      ],
+      "insert_sql": "INSERT INTO \"calibration_counts\" (\"pass_number\", \"category\", \"correct_count\", \"total_count\") VALUES (:pass_number, :category, :correct_count, :total_count)",
+      "kind": "table",
+      "name": "calibration_counts",
+      "rendered_name": "calibration_counts",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "pass_number",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "category",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "correct_count",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "total_count",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [],
+        "kind": "table",
+        "name": "calibration_counts",
+        "primary_key": [
+          "pass_number",
+          "category"
+        ]
+      }
+    },
+    {
+      "columns": [
+        "model_identity_hash",
+        "provider",
+        "model_name",
+        "model_version",
+        "content_digest",
+        "dimensions",
+        "created_at"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"embedding_model\" (\n    \"model_identity_hash\" TEXT PRIMARY KEY NOT NULL,\n    \"provider\" TEXT NOT NULL,\n    \"model_name\" TEXT NOT NULL,\n    \"model_version\" TEXT NOT NULL DEFAULT '',\n    \"content_digest\" TEXT NOT NULL,\n    \"dimensions\" INTEGER NOT NULL,\n    \"created_at\" TEXT NOT NULL\n)"
+      ],
+      "insert_sql": "INSERT INTO \"embedding_model\" (\"model_identity_hash\", \"provider\", \"model_name\", \"model_version\", \"content_digest\", \"dimensions\", \"created_at\") VALUES (:model_identity_hash, :provider, :model_name, :model_version, :content_digest, :dimensions, :created_at)",
+      "kind": "table",
+      "name": "embedding_model",
+      "rendered_name": "embedding_model",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "model_identity_hash",
+            "nullable": false,
+            "primary_key": true,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "provider",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "model_name",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": "''",
+            "insertable": true,
+            "name": "model_version",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "content_digest",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "dimensions",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "created_at",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [],
+        "kind": "table",
+        "name": "embedding_model",
+        "primary_key": []
+      }
+    },
+    {
+      "columns": [
+        "model_identity_hash",
+        "claim_id",
+        "content_hash",
+        "embedded_at"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"embedding_status\" (\n    \"model_identity_hash\" TEXT NOT NULL,\n    \"claim_id\" TEXT NOT NULL,\n    \"content_hash\" TEXT NOT NULL,\n    \"embedded_at\" TEXT NOT NULL,\n    PRIMARY KEY (\"model_identity_hash\", \"claim_id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_embedding_status_model_identity\" ON \"embedding_status\"(\"model_identity_hash\")"
+      ],
+      "insert_sql": "INSERT INTO \"embedding_status\" (\"model_identity_hash\", \"claim_id\", \"content_hash\", \"embedded_at\") VALUES (:model_identity_hash, :claim_id, :content_hash, :embedded_at)",
+      "kind": "table",
+      "name": "embedding_status",
+      "rendered_name": "embedding_status",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "model_identity_hash",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "content_hash",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "embedded_at",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [
+          {
+            "columns": [
+              "model_identity_hash"
+            ],
+            "name": "idx_embedding_status_model_identity",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "embedding_status",
+        "primary_key": [
+          "model_identity_hash",
+          "claim_id"
+        ]
+      }
+    },
+    {
+      "columns": [
+        "model_identity_hash",
+        "concept_id",
+        "content_hash",
+        "embedded_at"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"concept_embedding_status\" (\n    \"model_identity_hash\" TEXT NOT NULL,\n    \"concept_id\" TEXT NOT NULL,\n    \"content_hash\" TEXT NOT NULL,\n    \"embedded_at\" TEXT NOT NULL,\n    PRIMARY KEY (\"model_identity_hash\", \"concept_id\")\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_concept_embedding_status_model_identity\" ON \"concept_embedding_status\"(\"model_identity_hash\")"
+      ],
+      "insert_sql": "INSERT INTO \"concept_embedding_status\" (\"model_identity_hash\", \"concept_id\", \"content_hash\", \"embedded_at\") VALUES (:model_identity_hash, :concept_id, :content_hash, :embedded_at)",
+      "kind": "table",
+      "name": "concept_embedding_status",
+      "rendered_name": "concept_embedding_status",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "model_identity_hash",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "concept_id",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "content_hash",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "embedded_at",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [
+          {
+            "columns": [
+              "model_identity_hash"
+            ],
+            "name": "idx_concept_embedding_status_model_identity",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "concept_embedding_status",
+        "primary_key": [
+          "model_identity_hash",
+          "concept_id"
+        ]
+      }
+    },
+    {
+      "columns": [
+        "id",
+        "claim_id",
+        "source_kind",
+        "source_ref",
+        "diagnostic_kind",
+        "severity",
+        "blocking",
+        "message",
+        "file",
+        "detail_json"
+      ],
+      "ddl": [
+        "CREATE TABLE IF NOT EXISTS \"build_diagnostics\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"claim_id\" TEXT,\n    \"source_kind\" TEXT NOT NULL,\n    \"source_ref\" TEXT,\n    \"diagnostic_kind\" TEXT NOT NULL,\n    \"severity\" TEXT NOT NULL,\n    \"blocking\" INTEGER NOT NULL,\n    \"message\" TEXT NOT NULL,\n    \"file\" TEXT,\n    \"detail_json\" TEXT\n)",
+        "CREATE INDEX IF NOT EXISTS \"idx_build_diagnostics_claim\" ON \"build_diagnostics\"(\"claim_id\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_build_diagnostics_kind\" ON \"build_diagnostics\"(\"diagnostic_kind\")",
+        "CREATE INDEX IF NOT EXISTS \"idx_build_diagnostics_source\" ON \"build_diagnostics\"(\"source_kind\", \"source_ref\")"
+      ],
+      "insert_sql": "INSERT INTO \"build_diagnostics\" (\"claim_id\", \"source_kind\", \"source_ref\", \"diagnostic_kind\", \"severity\", \"blocking\", \"message\", \"file\", \"detail_json\") VALUES (:claim_id, :source_kind, :source_ref, :diagnostic_kind, :severity, :blocking, :message, :file, :detail_json)",
+      "kind": "table",
+      "name": "build_diagnostics",
+      "rendered_name": "build_diagnostics",
+      "schema_hash_material": {
+        "checks": [],
+        "columns": [
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": false,
+            "name": "id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "INTEGER PRIMARY KEY AUTOINCREMENT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "claim_id",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "source_ref",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "diagnostic_kind",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "severity",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "blocking",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "INTEGER"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "message",
+            "nullable": false,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "file",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          },
+          {
+            "check_sql": null,
+            "codec": null,
+            "default_sql": null,
+            "insertable": true,
+            "name": "detail_json",
+            "nullable": true,
+            "primary_key": false,
+            "sql_type": "TEXT"
+          }
+        ],
+        "foreign_keys": [],
+        "if_not_exists": true,
+        "indexes": [
+          {
+            "columns": [
+              "claim_id"
+            ],
+            "name": "idx_build_diagnostics_claim",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "diagnostic_kind"
+            ],
+            "name": "idx_build_diagnostics_kind",
+            "unique": false,
+            "where_sql": null
+          },
+          {
+            "columns": [
+              "source_kind",
+              "source_ref"
+            ],
+            "name": "idx_build_diagnostics_source",
+            "unique": false,
+            "where_sql": null
+          }
+        ],
+        "kind": "table",
+        "name": "build_diagnostics",
+        "primary_key": []
+      }
+    }
+  ],
+  "ddl_statements": [
+    "CREATE TABLE \"source\" (\n    \"slug\" TEXT PRIMARY KEY,\n    \"source_id\" TEXT NOT NULL,\n    \"kind\" TEXT NOT NULL,\n    \"origin_type\" TEXT,\n    \"origin_value\" TEXT,\n    \"origin_retrieved\" TEXT,\n    \"origin_content_ref\" TEXT,\n    \"prior_base_rate\" TEXT,\n    \"quality_json\" TEXT,\n    \"derived_from_json\" TEXT,\n    \"artifact_code\" TEXT\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_source_source_id\" ON \"source\"(\"source_id\")",
+    "CREATE TABLE \"concept\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"primary_logical_id\" TEXT NOT NULL DEFAULT '',\n    \"logical_ids_json\" TEXT NOT NULL DEFAULT '[]',\n    \"version_id\" TEXT NOT NULL DEFAULT '',\n    \"content_hash\" TEXT NOT NULL,\n    \"seq\" INTEGER NOT NULL,\n    \"canonical_name\" TEXT NOT NULL,\n    \"status\" TEXT NOT NULL,\n    \"domain\" TEXT,\n    \"definition\" TEXT NOT NULL,\n    \"kind_type\" TEXT NOT NULL,\n    \"form\" TEXT NOT NULL,\n    \"form_parameters\" TEXT,\n    \"range_min\" REAL,\n    \"range_max\" REAL,\n    \"is_dimensionless\" INTEGER NOT NULL DEFAULT 0,\n    \"unit_symbol\" TEXT,\n    \"created_date\" TEXT,\n    \"last_modified\" TEXT\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_concept_primary_logical_id\" ON \"concept\"(\"primary_logical_id\")",
+    "CREATE TABLE \"alias\" (\n    \"concept_id\" TEXT NOT NULL,\n    \"alias_name\" TEXT NOT NULL,\n    \"source\" TEXT NOT NULL,\n    FOREIGN KEY (\"concept_id\") REFERENCES \"concept\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_alias_name\" ON \"alias\"(\"alias_name\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_alias_concept\" ON \"alias\"(\"concept_id\")",
+    "CREATE TABLE \"parameterization\" (\n    \"output_concept_id\" TEXT NOT NULL,\n    \"concept_ids\" TEXT NOT NULL,\n    \"formula\" TEXT NOT NULL,\n    \"sympy\" TEXT,\n    \"exactness\" TEXT NOT NULL,\n    \"conditions_cel\" TEXT,\n    \"conditions_ir\" TEXT,\n    FOREIGN KEY (\"output_concept_id\") REFERENCES \"concept\"(\"id\")\n)",
+    "CREATE TABLE \"parameterization_group\" (\n    \"concept_id\" TEXT NOT NULL,\n    \"group_id\" INTEGER NOT NULL,\n    FOREIGN KEY (\"concept_id\") REFERENCES \"concept\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_param_group\" ON \"parameterization_group\"(\"group_id\")",
+    "CREATE TABLE \"relation_edge\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"source_kind\" TEXT NOT NULL,\n    \"source_id\" TEXT NOT NULL,\n    \"relation_type\" TEXT NOT NULL,\n    \"target_kind\" TEXT NOT NULL,\n    \"target_id\" TEXT NOT NULL,\n    \"perspective_source_claim_id\" TEXT,\n    \"target_justification_id\" TEXT,\n    \"conditions_cel\" TEXT,\n    \"strength\" TEXT,\n    \"conditions_differ\" TEXT,\n    \"note\" TEXT,\n    \"resolution_method\" TEXT,\n    \"resolution_model\" TEXT,\n    \"embedding_model\" TEXT,\n    \"embedding_distance\" REAL,\n    \"pass_number\" INTEGER,\n    \"confidence\" REAL,\n    \"opinion_belief\" REAL CHECK(opinion_belief >= 0 AND opinion_belief <= 1),\n    \"opinion_disbelief\" REAL CHECK(opinion_disbelief >= 0 AND opinion_disbelief <= 1),\n    \"opinion_uncertainty\" REAL CHECK(opinion_uncertainty >= 0 AND opinion_uncertainty <= 1),\n    \"opinion_base_rate\" REAL CHECK(opinion_base_rate > 0 AND opinion_base_rate < 1),\n    CHECK(opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6)\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_relation_edge_source\" ON \"relation_edge\"(\"source_kind\", \"source_id\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_relation_edge_target\" ON \"relation_edge\"(\"target_kind\", \"target_id\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_relation_edge_type\" ON \"relation_edge\"(\"relation_type\")",
+    "CREATE TABLE \"form\" (\n    \"name\" TEXT PRIMARY KEY,\n    \"kind\" TEXT NOT NULL,\n    \"unit_symbol\" TEXT,\n    \"is_dimensionless\" INTEGER NOT NULL DEFAULT 0,\n    \"dimensions\" TEXT\n)",
+    "CREATE TABLE \"form_algebra\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"output_form\" TEXT NOT NULL,\n    \"input_forms\" TEXT NOT NULL,\n    \"operation\" TEXT NOT NULL,\n    \"source_concept_id\" TEXT,\n    \"source_formula\" TEXT,\n    \"dim_verified\" INTEGER NOT NULL DEFAULT 1,\n    FOREIGN KEY (\"output_form\") REFERENCES \"form\"(\"name\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_form_algebra_output\" ON \"form_algebra\"(\"output_form\")",
+    "CREATE VIRTUAL TABLE \"concept_fts\" USING fts5(\"concept_id\" UNINDEXED, \"canonical_name\", \"aliases\", \"definition\", \"conditions\")",
+    "CREATE TABLE IF NOT EXISTS \"context\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"name\" TEXT NOT NULL,\n    \"description\" TEXT,\n    \"parameters_json\" TEXT,\n    \"perspective\" TEXT\n)",
+    "CREATE TABLE IF NOT EXISTS \"context_assumption\" (\n    \"context_id\" TEXT NOT NULL,\n    \"assumption_cel\" TEXT NOT NULL,\n    \"seq\" INTEGER NOT NULL,\n    FOREIGN KEY (\"context_id\") REFERENCES \"context\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_ctx_assumption\" ON \"context_assumption\"(\"context_id\")",
+    "CREATE TABLE IF NOT EXISTS \"context_lifting_rule\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"source_context_id\" TEXT NOT NULL,\n    \"target_context_id\" TEXT NOT NULL,\n    \"conditions_cel\" TEXT,\n    \"mode\" TEXT NOT NULL,\n    \"justification\" TEXT,\n    FOREIGN KEY (\"source_context_id\") REFERENCES \"context\"(\"id\"),\n    FOREIGN KEY (\"target_context_id\") REFERENCES \"context\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_ctx_lift_source\" ON \"context_lifting_rule\"(\"source_context_id\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_ctx_lift_target\" ON \"context_lifting_rule\"(\"target_context_id\")",
+    "CREATE TABLE IF NOT EXISTS \"context_lifting_materialization\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"rule_id\" TEXT NOT NULL,\n    \"source_context_id\" TEXT NOT NULL,\n    \"target_context_id\" TEXT NOT NULL,\n    \"proposition_id\" TEXT NOT NULL,\n    \"status\" TEXT NOT NULL,\n    \"exception_id\" TEXT,\n    \"provenance_json\" TEXT NOT NULL,\n    FOREIGN KEY (\"rule_id\") REFERENCES \"context_lifting_rule\"(\"id\"),\n    FOREIGN KEY (\"source_context_id\") REFERENCES \"context\"(\"id\"),\n    FOREIGN KEY (\"target_context_id\") REFERENCES \"context\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_ctx_lift_mat_target\" ON \"context_lifting_materialization\"(\"target_context_id\", \"proposition_id\")",
+    "CREATE TABLE \"claim_core\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"primary_logical_id\" TEXT NOT NULL DEFAULT '',\n    \"logical_ids_json\" TEXT NOT NULL DEFAULT '[]',\n    \"version_id\" TEXT NOT NULL DEFAULT '',\n    \"content_hash\" TEXT NOT NULL DEFAULT '',\n    \"seq\" INTEGER NOT NULL,\n    \"type\" TEXT NOT NULL,\n    \"target_concept\" TEXT,\n    \"source_slug\" TEXT,\n    \"source_paper\" TEXT NOT NULL,\n    \"provenance_page\" INTEGER NOT NULL,\n    \"provenance_json\" TEXT,\n    \"context_id\" TEXT,\n    \"premise_kind\" TEXT NOT NULL DEFAULT 'ordinary',\n    \"branch\" TEXT,\n    \"build_status\" TEXT NOT NULL DEFAULT 'ingested',\n    \"stage\" TEXT,\n    \"promotion_status\" TEXT,\n    FOREIGN KEY (\"context_id\") REFERENCES \"context\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_core_target\" ON \"claim_core\"(\"target_concept\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_core_type\" ON \"claim_core\"(\"type\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_core_primary_logical_id\" ON \"claim_core\"(\"primary_logical_id\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_core_build_status\" ON \"claim_core\"(\"build_status\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_core_stage\" ON \"claim_core\"(\"stage\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_core_promotion_status\" ON \"claim_core\"(\"promotion_status\")",
+    "CREATE TABLE \"claim_concept_link\" (\n    \"claim_id\" TEXT NOT NULL,\n    \"concept_id\" TEXT NOT NULL,\n    \"role\" TEXT NOT NULL,\n    \"ordinal\" INTEGER NOT NULL,\n    \"binding_name\" TEXT,\n    PRIMARY KEY (\"claim_id\", \"role\", \"ordinal\", \"concept_id\"),\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\"),\n    FOREIGN KEY (\"concept_id\") REFERENCES \"concept\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_concept_link_claim\" ON \"claim_concept_link\"(\"claim_id\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_concept_link_concept\" ON \"claim_concept_link\"(\"concept_id\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_concept_link_role\" ON \"claim_concept_link\"(\"role\")",
+    "CREATE TABLE \"claim_numeric_payload\" (\n    \"claim_id\" TEXT PRIMARY KEY,\n    \"value\" REAL,\n    \"lower_bound\" REAL,\n    \"upper_bound\" REAL,\n    \"uncertainty\" REAL,\n    \"uncertainty_type\" TEXT,\n    \"sample_size\" INTEGER,\n    \"unit\" TEXT,\n    \"value_si\" REAL,\n    \"lower_bound_si\" REAL,\n    \"upper_bound_si\" REAL,\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\")\n)",
+    "CREATE TABLE \"claim_text_payload\" (\n    \"claim_id\" TEXT PRIMARY KEY,\n    \"conditions_cel\" TEXT,\n    \"conditions_ir\" TEXT,\n    \"statement\" TEXT,\n    \"expression\" TEXT,\n    \"sympy_generated\" TEXT,\n    \"sympy_error\" TEXT,\n    \"name\" TEXT,\n    \"measure\" TEXT,\n    \"listener_population\" TEXT,\n    \"methodology\" TEXT,\n    \"notes\" TEXT,\n    \"description\" TEXT,\n    \"auto_summary\" TEXT,\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\")\n)",
+    "CREATE TABLE \"claim_algorithm_payload\" (\n    \"claim_id\" TEXT PRIMARY KEY,\n    \"body\" TEXT,\n    \"canonical_ast\" TEXT,\n    \"variables_json\" TEXT,\n    \"algorithm_stage\" TEXT,\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_claim_algorithm_stage\" ON \"claim_algorithm_payload\"(\"algorithm_stage\")",
+    "CREATE VIRTUAL TABLE \"claim_fts\" USING fts5(\"claim_id\" UNINDEXED, \"statement\", \"conditions\", \"expression\")",
+    "CREATE TABLE \"conflict_witness\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"concept_id\" TEXT NOT NULL,\n    \"claim_a_id\" TEXT NOT NULL,\n    \"claim_b_id\" TEXT NOT NULL,\n    \"warning_class\" TEXT NOT NULL,\n    \"conditions_a\" TEXT,\n    \"conditions_b\" TEXT,\n    \"value_a\" TEXT,\n    \"value_b\" TEXT,\n    \"derivation_chain\" TEXT\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_conflict_witness_concept\" ON \"conflict_witness\"(\"concept_id\")",
+    "CREATE TABLE IF NOT EXISTS \"grounded_fact\" (\n    \"predicate\" TEXT NOT NULL,\n    \"arguments\" TEXT NOT NULL,\n    \"section\" TEXT NOT NULL,\n    PRIMARY KEY (\"predicate\", \"arguments\", \"section\")\n)",
+    "CREATE TABLE IF NOT EXISTS \"grounded_fact_empty_predicate\" (\n    \"section\" TEXT NOT NULL,\n    \"predicate\" TEXT NOT NULL,\n    PRIMARY KEY (\"section\", \"predicate\")\n)",
+    "CREATE TABLE IF NOT EXISTS \"grounded_bundle_input\" (\n    \"kind\" TEXT NOT NULL,\n    \"position\" INTEGER NOT NULL,\n    \"payload\" BLOB NOT NULL,\n    PRIMARY KEY (\"kind\", \"position\")\n)",
+    "CREATE TABLE \"justification\" (\n    \"id\" TEXT PRIMARY KEY,\n    \"justification_kind\" TEXT NOT NULL,\n    \"conclusion_claim_id\" TEXT NOT NULL,\n    \"premise_claim_ids\" TEXT NOT NULL,\n    \"source_relation_type\" TEXT,\n    \"source_claim_id\" TEXT,\n    \"provenance_json\" TEXT,\n    \"rule_strength\" TEXT NOT NULL DEFAULT 'defeasible'\n)",
+    "CREATE TABLE IF NOT EXISTS \"micropublication\" (\n    \"id\" TEXT PRIMARY KEY NOT NULL,\n    \"context_id\" TEXT NOT NULL,\n    \"assumptions_json\" TEXT NOT NULL DEFAULT '[]',\n    \"evidence_json\" TEXT NOT NULL DEFAULT '[]',\n    \"stance\" TEXT,\n    \"provenance_json\" TEXT,\n    \"source_slug\" TEXT,\n    FOREIGN KEY (\"context_id\") REFERENCES \"context\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_micropub_context\" ON \"micropublication\"(\"context_id\")",
+    "CREATE TABLE IF NOT EXISTS \"micropublication_claim\" (\n    \"micropublication_id\" TEXT NOT NULL,\n    \"claim_id\" TEXT NOT NULL,\n    \"seq\" INTEGER NOT NULL,\n    PRIMARY KEY (\"micropublication_id\", \"claim_id\"),\n    FOREIGN KEY (\"micropublication_id\") REFERENCES \"micropublication\"(\"id\"),\n    FOREIGN KEY (\"claim_id\") REFERENCES \"claim_core\"(\"id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_micropub_claim\" ON \"micropublication_claim\"(\"claim_id\")",
+    "CREATE TABLE IF NOT EXISTS \"calibration_counts\" (\n    \"pass_number\" INTEGER NOT NULL,\n    \"category\" TEXT NOT NULL,\n    \"correct_count\" INTEGER NOT NULL,\n    \"total_count\" INTEGER NOT NULL,\n    PRIMARY KEY (\"pass_number\", \"category\")\n)",
+    "CREATE TABLE IF NOT EXISTS \"embedding_model\" (\n    \"model_identity_hash\" TEXT PRIMARY KEY NOT NULL,\n    \"provider\" TEXT NOT NULL,\n    \"model_name\" TEXT NOT NULL,\n    \"model_version\" TEXT NOT NULL DEFAULT '',\n    \"content_digest\" TEXT NOT NULL,\n    \"dimensions\" INTEGER NOT NULL,\n    \"created_at\" TEXT NOT NULL\n)",
+    "CREATE TABLE IF NOT EXISTS \"embedding_status\" (\n    \"model_identity_hash\" TEXT NOT NULL,\n    \"claim_id\" TEXT NOT NULL,\n    \"content_hash\" TEXT NOT NULL,\n    \"embedded_at\" TEXT NOT NULL,\n    PRIMARY KEY (\"model_identity_hash\", \"claim_id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_embedding_status_model_identity\" ON \"embedding_status\"(\"model_identity_hash\")",
+    "CREATE TABLE IF NOT EXISTS \"concept_embedding_status\" (\n    \"model_identity_hash\" TEXT NOT NULL,\n    \"concept_id\" TEXT NOT NULL,\n    \"content_hash\" TEXT NOT NULL,\n    \"embedded_at\" TEXT NOT NULL,\n    PRIMARY KEY (\"model_identity_hash\", \"concept_id\")\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_concept_embedding_status_model_identity\" ON \"concept_embedding_status\"(\"model_identity_hash\")",
+    "CREATE TABLE IF NOT EXISTS \"build_diagnostics\" (\n    \"id\" INTEGER PRIMARY KEY AUTOINCREMENT,\n    \"claim_id\" TEXT,\n    \"source_kind\" TEXT NOT NULL,\n    \"source_ref\" TEXT,\n    \"diagnostic_kind\" TEXT NOT NULL,\n    \"severity\" TEXT NOT NULL,\n    \"blocking\" INTEGER NOT NULL,\n    \"message\" TEXT NOT NULL,\n    \"file\" TEXT,\n    \"detail_json\" TEXT\n)",
+    "CREATE INDEX IF NOT EXISTS \"idx_build_diagnostics_claim\" ON \"build_diagnostics\"(\"claim_id\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_build_diagnostics_kind\" ON \"build_diagnostics\"(\"diagnostic_kind\")",
+    "CREATE INDEX IF NOT EXISTS \"idx_build_diagnostics_source\" ON \"build_diagnostics\"(\"source_kind\", \"source_ref\")"
+  ],
+  "schema_hash_material": "{\"metadata\":{\"projection\":\"propstore.world\"},\"projections\":[{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"slug\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"origin_type\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"origin_value\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"origin_retrieved\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"origin_content_ref\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"prior_base_rate\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"quality_json\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"derived_from_json\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"artifact_code\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"source_id\"],\"name\":\"idx_source_source_id\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"source\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"id\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"''\",\"insertable\":true,\"name\":\"primary_logical_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"'[]'\",\"insertable\":true,\"name\":\"logical_ids_json\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"''\",\"insertable\":true,\"name\":\"version_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"content_hash\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"seq\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"canonical_name\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"status\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"domain\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"definition\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"kind_type\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"form\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"form_parameters\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"range_min\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"range_max\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"0\",\"insertable\":true,\"name\":\"is_dimensionless\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"unit_symbol\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"created_date\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"last_modified\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"primary_logical_id\"],\"name\":\"idx_concept_primary_logical_id\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"concept\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"concept_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"alias_name\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"concept_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"concept\"}],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"alias_name\"],\"name\":\"idx_alias_name\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"concept_id\"],\"name\":\"idx_alias_concept\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"alias\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"output_concept_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"concept_ids\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"formula\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"sympy\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"exactness\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_cel\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_ir\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"output_concept_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"concept\"}],\"if_not_exists\":false,\"indexes\":[],\"kind\":\"table\",\"name\":\"parameterization\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"concept_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"group_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"}],\"foreign_keys\":[{\"columns\":[\"concept_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"concept\"}],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"group_id\"],\"name\":\"idx_param_group\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"parameterization_group\",\"primary_key\":[]},{\"checks\":[\"opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6\"],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":false,\"name\":\"id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"INTEGER PRIMARY KEY AUTOINCREMENT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"relation_type\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"target_kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"target_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"perspective_source_claim_id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"target_justification_id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_cel\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"strength\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_differ\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"note\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"resolution_method\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"resolution_model\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"embedding_model\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"embedding_distance\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"pass_number\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"confidence\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":\"opinion_belief >= 0 AND opinion_belief <= 1\",\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"opinion_belief\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":\"opinion_disbelief >= 0 AND opinion_disbelief <= 1\",\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"opinion_disbelief\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":\"opinion_uncertainty >= 0 AND opinion_uncertainty <= 1\",\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"opinion_uncertainty\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":\"opinion_base_rate > 0 AND opinion_base_rate < 1\",\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"opinion_base_rate\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"}],\"foreign_keys\":[],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"source_kind\",\"source_id\"],\"name\":\"idx_relation_edge_source\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"target_kind\",\"target_id\"],\"name\":\"idx_relation_edge_target\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"relation_type\"],\"name\":\"idx_relation_edge_type\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"relation_edge\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"name\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"unit_symbol\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"0\",\"insertable\":true,\"name\":\"is_dimensionless\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"dimensions\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":false,\"indexes\":[],\"kind\":\"table\",\"name\":\"form\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":false,\"name\":\"id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"INTEGER PRIMARY KEY AUTOINCREMENT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"output_form\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"input_forms\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"operation\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_concept_id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_formula\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"1\",\"insertable\":true,\"name\":\"dim_verified\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"}],\"foreign_keys\":[{\"columns\":[\"output_form\"],\"ref_columns\":[\"name\"],\"ref_table\":\"form\"}],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"output_form\"],\"name\":\"idx_form_algebra_output\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"form_algebra\",\"primary_key\":[]},{\"columns\":[\"canonical_name\",\"aliases\",\"definition\",\"conditions\"],\"key_column\":\"concept_id\",\"kind\":\"fts5\",\"row_plan\":null,\"source_query\":\"\\n        SELECT\\n            c.id AS concept_id,\\n            c.canonical_name AS canonical_name,\\n            COALESCE(\\n                (\\n                    SELECT group_concat(a.alias_name, ' ')\\n                    FROM alias a\\n                    WHERE a.concept_id = c.id\\n                ),\\n                ''\\n            ) AS aliases,\\n            c.definition AS definition,\\n            COALESCE(\\n                (\\n                    SELECT group_concat(value, ' ')\\n                    FROM (\\n                        SELECT rel_condition.value AS value\\n                        FROM relationship r, json_each(r.conditions_cel) AS rel_condition\\n                        WHERE r.source_id = c.id\\n                          AND r.conditions_cel IS NOT NULL\\n                        UNION ALL\\n                        SELECT param_condition.value AS value\\n                        FROM parameterization p, json_each(p.conditions_cel) AS param_condition\\n                        WHERE p.output_concept_id = c.id\\n                          AND p.conditions_cel IS NOT NULL\\n                    )\\n                ),\\n                ''\\n            ) AS conditions\\n        FROM concept c\\n        ORDER BY c.seq\\n    \",\"table\":\"concept_fts\"},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"id\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"name\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"description\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"parameters_json\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"perspective\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[],\"kind\":\"table\",\"name\":\"context\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"context_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"assumption_cel\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"seq\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"}],\"foreign_keys\":[{\"columns\":[\"context_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"context\"}],\"if_not_exists\":true,\"indexes\":[{\"columns\":[\"context_id\"],\"name\":\"idx_ctx_assumption\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"context_assumption\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"id\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_context_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"target_context_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_cel\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"mode\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"justification\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"source_context_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"context\"},{\"columns\":[\"target_context_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"context\"}],\"if_not_exists\":true,\"indexes\":[{\"columns\":[\"source_context_id\"],\"name\":\"idx_ctx_lift_source\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"target_context_id\"],\"name\":\"idx_ctx_lift_target\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"context_lifting_rule\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":false,\"name\":\"id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"INTEGER PRIMARY KEY AUTOINCREMENT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"rule_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_context_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"target_context_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"proposition_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"status\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"exception_id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"provenance_json\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"rule_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"context_lifting_rule\"},{\"columns\":[\"source_context_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"context\"},{\"columns\":[\"target_context_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"context\"}],\"if_not_exists\":true,\"indexes\":[{\"columns\":[\"target_context_id\",\"proposition_id\"],\"name\":\"idx_ctx_lift_mat_target\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"context_lifting_materialization\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"id\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"''\",\"insertable\":true,\"name\":\"primary_logical_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"'[]'\",\"insertable\":true,\"name\":\"logical_ids_json\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"''\",\"insertable\":true,\"name\":\"version_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"''\",\"insertable\":true,\"name\":\"content_hash\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"seq\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"type\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"target_concept\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_slug\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_paper\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"provenance_page\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"provenance_json\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"context_id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"'ordinary'\",\"insertable\":true,\"name\":\"premise_kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"branch\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"'ingested'\",\"insertable\":true,\"name\":\"build_status\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"stage\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"promotion_status\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"context_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"context\"}],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"target_concept\"],\"name\":\"idx_claim_core_target\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"type\"],\"name\":\"idx_claim_core_type\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"primary_logical_id\"],\"name\":\"idx_claim_core_primary_logical_id\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"build_status\"],\"name\":\"idx_claim_core_build_status\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"stage\"],\"name\":\"idx_claim_core_stage\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"promotion_status\"],\"name\":\"idx_claim_core_promotion_status\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"claim_core\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"concept_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"role\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"ordinal\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"binding_name\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"claim_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"claim_core\"},{\"columns\":[\"concept_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"concept\"}],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"claim_id\"],\"name\":\"idx_claim_concept_link_claim\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"concept_id\"],\"name\":\"idx_claim_concept_link_concept\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"role\"],\"name\":\"idx_claim_concept_link_role\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"claim_concept_link\",\"primary_key\":[\"claim_id\",\"role\",\"ordinal\",\"concept_id\"]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_id\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"value\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"lower_bound\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"upper_bound\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"uncertainty\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"uncertainty_type\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"sample_size\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"unit\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"value_si\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"lower_bound_si\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"upper_bound_si\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"REAL\"}],\"foreign_keys\":[{\"columns\":[\"claim_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"claim_core\"}],\"if_not_exists\":false,\"indexes\":[],\"kind\":\"table\",\"name\":\"claim_numeric_payload\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_id\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_cel\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_ir\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"statement\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"expression\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"sympy_generated\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"sympy_error\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"name\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"measure\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"listener_population\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"methodology\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"notes\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"description\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"auto_summary\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"claim_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"claim_core\"}],\"if_not_exists\":false,\"indexes\":[],\"kind\":\"table\",\"name\":\"claim_text_payload\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_id\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"body\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"canonical_ast\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"variables_json\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"algorithm_stage\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"claim_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"claim_core\"}],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"algorithm_stage\"],\"name\":\"idx_claim_algorithm_stage\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"claim_algorithm_payload\",\"primary_key\":[]},{\"columns\":[\"statement\",\"conditions\",\"expression\"],\"key_column\":\"claim_id\",\"kind\":\"fts5\",\"row_plan\":null,\"source_query\":\"\\n        SELECT\\n            c.id AS claim_id,\\n            COALESCE(t.statement, '') AS statement,\\n            COALESCE(\\n                (\\n                    SELECT group_concat(value, ' ')\\n                    FROM json_each(t.conditions_cel)\\n                ),\\n                ''\\n            ) AS conditions,\\n            COALESCE(t.expression, '') AS expression\\n        FROM claim_core c\\n        JOIN claim_text_payload t ON t.claim_id = c.id\\n        ORDER BY c.seq\\n    \",\"table\":\"claim_fts\"},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":false,\"name\":\"id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"INTEGER PRIMARY KEY AUTOINCREMENT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"concept_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_a_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_b_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"warning_class\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_a\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conditions_b\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"value_a\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"value_b\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"derivation_chain\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":false,\"indexes\":[{\"columns\":[\"concept_id\"],\"name\":\"idx_conflict_witness_concept\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"conflict_witness\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"predicate\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"arguments\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"section\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[],\"kind\":\"table\",\"name\":\"grounded_fact\",\"primary_key\":[\"predicate\",\"arguments\",\"section\"]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"section\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"predicate\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[],\"kind\":\"table\",\"name\":\"grounded_fact_empty_predicate\",\"primary_key\":[\"section\",\"predicate\"]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"position\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"payload\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"BLOB\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[],\"kind\":\"table\",\"name\":\"grounded_bundle_input\",\"primary_key\":[\"kind\",\"position\"]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"id\",\"nullable\":true,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"justification_kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"conclusion_claim_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"premise_claim_ids\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_relation_type\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_claim_id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"provenance_json\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"'defeasible'\",\"insertable\":true,\"name\":\"rule_strength\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":false,\"indexes\":[],\"kind\":\"table\",\"name\":\"justification\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"id\",\"nullable\":false,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"context_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"'[]'\",\"insertable\":true,\"name\":\"assumptions_json\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"'[]'\",\"insertable\":true,\"name\":\"evidence_json\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"stance\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"provenance_json\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_slug\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[{\"columns\":[\"context_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"context\"}],\"if_not_exists\":true,\"indexes\":[{\"columns\":[\"context_id\"],\"name\":\"idx_micropub_context\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"micropublication\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"micropublication_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"seq\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"}],\"foreign_keys\":[{\"columns\":[\"micropublication_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"micropublication\"},{\"columns\":[\"claim_id\"],\"ref_columns\":[\"id\"],\"ref_table\":\"claim_core\"}],\"if_not_exists\":true,\"indexes\":[{\"columns\":[\"claim_id\"],\"name\":\"idx_micropub_claim\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"micropublication_claim\",\"primary_key\":[\"micropublication_id\",\"claim_id\"]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"pass_number\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"category\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"correct_count\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"total_count\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[],\"kind\":\"table\",\"name\":\"calibration_counts\",\"primary_key\":[\"pass_number\",\"category\"]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"model_identity_hash\",\"nullable\":false,\"primary_key\":true,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"provider\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"model_name\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":\"''\",\"insertable\":true,\"name\":\"model_version\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"content_digest\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"dimensions\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"created_at\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[],\"kind\":\"table\",\"name\":\"embedding_model\",\"primary_key\":[]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"model_identity_hash\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"content_hash\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"embedded_at\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[{\"columns\":[\"model_identity_hash\"],\"name\":\"idx_embedding_status_model_identity\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"embedding_status\",\"primary_key\":[\"model_identity_hash\",\"claim_id\"]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"model_identity_hash\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"concept_id\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"content_hash\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"embedded_at\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[{\"columns\":[\"model_identity_hash\"],\"name\":\"idx_concept_embedding_status_model_identity\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"concept_embedding_status\",\"primary_key\":[\"model_identity_hash\",\"concept_id\"]},{\"checks\":[],\"columns\":[{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":false,\"name\":\"id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"INTEGER PRIMARY KEY AUTOINCREMENT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"claim_id\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"source_ref\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"diagnostic_kind\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"severity\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"blocking\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"INTEGER\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"message\",\"nullable\":false,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"file\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"},{\"check_sql\":null,\"codec\":null,\"default_sql\":null,\"insertable\":true,\"name\":\"detail_json\",\"nullable\":true,\"primary_key\":false,\"sql_type\":\"TEXT\"}],\"foreign_keys\":[],\"if_not_exists\":true,\"indexes\":[{\"columns\":[\"claim_id\"],\"name\":\"idx_build_diagnostics_claim\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"diagnostic_kind\"],\"name\":\"idx_build_diagnostics_kind\",\"unique\":false,\"where_sql\":null},{\"columns\":[\"source_kind\",\"source_ref\"],\"name\":\"idx_build_diagnostics_source\",\"unique\":false,\"where_sql\":null}],\"kind\":\"table\",\"name\":\"build_diagnostics\",\"primary_key\":[]}]}",
+  "schema_metadata": {
+    "projection": "propstore.world"
+  },
+  "schema_version": 1
+}
