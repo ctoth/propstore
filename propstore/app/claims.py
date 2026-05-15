@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING, Mapping
 from propstore.families.claims.declaration import (
     embed_claims_for_request,
     find_similar_claim_rows,
+    relate_all_from_sidecar,
+    relate_claim_from_sidecar,
 )
 from propstore.repository import Repository
 from quire.tree_path import TreePath as KnowledgePath
@@ -541,8 +543,6 @@ def relate_claims(
     on_progress: Callable[[int, int], None] | None = None,
 ) -> ClaimRelateReport:
     from propstore.proposals import commit_stance_proposals, stance_proposal_branch
-    from propstore.heuristic.relate import relate_all_from_sidecar
-    from propstore.heuristic.relate import relate_claim_from_sidecar
 
     try:
         repo.require_git().head_sha()

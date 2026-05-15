@@ -17,7 +17,6 @@ from propstore.app.claims import (
     find_similar_claims,
     relate_claims,
 )
-import propstore.heuristic.relate as relate_mod
 from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
 from tests.family_helpers import materialized_world_store_path
@@ -153,7 +152,7 @@ def test_relate_claims_commits_single_claim_proposals_to_branch(
     repo = _repo_with_sidecar(tmp_path)
 
     monkeypatch.setattr(
-        relate_mod,
+        claims_app,
         "relate_claim_from_sidecar",
         lambda sidecar, claim_id, model_name, embedding_model, top_k: [
             {
@@ -202,7 +201,7 @@ def test_relate_claims_all_reports_summary_without_empty_commit(
     progress: list[tuple[int, int]] = []
 
     monkeypatch.setattr(
-        relate_mod,
+        claims_app,
         "relate_all_from_sidecar",
         lambda sidecar, model_name, embedding_model, top_k, *, concurrency, on_progress: {
             "stances_by_claim": {},

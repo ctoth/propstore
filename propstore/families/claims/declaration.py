@@ -1079,6 +1079,50 @@ def find_similar_claim_rows(
     return [dict(row) for row in rows]
 
 
+def relate_claim_from_sidecar(
+    sidecar: Path,
+    claim_id: str,
+    model_name: str,
+    embedding_model: str | None = None,
+    top_k: int = 5,
+) -> list[dict[str, Any]]:
+    from propstore.heuristic.embed import _load_vec_extension
+    from propstore.heuristic.relate import relate_claim
+    from propstore.sidecar.sqlite import connect_sidecar
+
+    conn = connect_sidecar(sidecar)
+    with contextlib.closing(conn):
+        conn.row_factory = sqlite3.Row
+        _load_vec_extension(conn)
+        return relate_claim(conn, claim_id, model_name, embedding_model, top_k)
+
+
+def relate_all_from_sidecar(
+    sidecar: Path,
+    model_name: str,
+    embedding_model: str | None = None,
+    top_k: int = 5,
+    concurrency: int = 20,
+    on_progress: Callable[[int, int], None] | None = None,
+) -> dict[str, Any]:
+    from propstore.heuristic.embed import _load_vec_extension
+    from propstore.heuristic.relate import relate_all
+    from propstore.sidecar.sqlite import connect_sidecar
+
+    conn = connect_sidecar(sidecar)
+    with contextlib.closing(conn):
+        conn.row_factory = sqlite3.Row
+        _load_vec_extension(conn)
+        return relate_all(
+            conn,
+            model_name,
+            embedding_model,
+            top_k,
+            concurrency=concurrency,
+            on_progress=on_progress,
+        )
+
+
 def select_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict[str, Any] | None:
     rows = select_claim_texts(conn, [claim_id])
     return rows.get(claim_id)
