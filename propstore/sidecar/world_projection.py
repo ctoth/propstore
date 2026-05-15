@@ -26,7 +26,7 @@ from propstore.families.concepts.declaration import (
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
 )
-from propstore.sidecar.contexts import (
+from propstore.families.contexts.declaration import (
     CONTEXT_ASSUMPTION_PROJECTION,
     CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
     CONTEXT_LIFTING_RULE_PROJECTION,

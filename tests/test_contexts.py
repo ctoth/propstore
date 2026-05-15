@@ -353,7 +353,9 @@ class TestContextSidecar:
             ),
         ]
 
-        from propstore.sidecar.passes import compile_context_sidecar_rows
+        from propstore.families.contexts.declaration import (
+            compile_context_sidecar_rows,
+        )
 
         populate_contexts(conn, compile_context_sidecar_rows(contexts))
 

@@ -64,11 +64,10 @@ from propstore.families.concepts.declaration import (
     PARAMETERIZATION_GROUP_PROJECTION,
     RELATIONSHIP_PROJECTION,
 )
-from propstore.sidecar.contexts import (
-    CONTEXT_ASSUMPTION_PROJECTION,
-    CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
-    CONTEXT_LIFTING_RULE_PROJECTION,
-    CONTEXT_PROJECTION,
+from propstore.families.contexts.declaration import (
+    ContextSidecarRows,
+    create_context_tables,
+    populate_contexts as populate_context_projection_rows,
 )
 from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import ensure_embedding_tables
@@ -76,7 +75,6 @@ from propstore.sidecar.micropublications import create_micropublication_tables
 from quire.projections import ProjectionColumn, ProjectionTable
 from propstore.sidecar.relations import RELATION_EDGE_PROJECTION
 from propstore.sidecar.sources import SOURCE_PROJECTION
-from propstore.sidecar.stages import ContextSidecarRows
 
 SCHEMA_VERSION = 6
 SIDECAR_META_KEY = "sidecar"
@@ -141,25 +139,17 @@ def build_minimal_world_model_schema(conn: sqlite3.Connection) -> None:
     ensure_embedding_tables(conn)
 
 
-def create_context_tables(conn: sqlite3.Connection) -> None:
-    for projection in (
-        CONTEXT_PROJECTION,
-        CONTEXT_ASSUMPTION_PROJECTION,
-        CONTEXT_LIFTING_RULE_PROJECTION,
-        CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
-    ):
-        for statement in projection.ddl_statements():
-            conn.execute(statement)
-
-
 def populate_contexts(
     conn: sqlite3.Connection,
     rows: ContextSidecarRows,
 ) -> None:
-    CONTEXT_PROJECTION.insert_rows(conn, rows.context_rows)
-    CONTEXT_ASSUMPTION_PROJECTION.insert_rows(conn, rows.assumption_rows)
-    CONTEXT_LIFTING_RULE_PROJECTION.insert_rows(conn, rows.lifting_rule_rows)
-    CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.insert_rows(conn, rows.lifting_materialization_rows)
+    populate_context_projection_rows(
+        conn,
+        context_rows=rows.context_rows,
+        assumption_rows=rows.assumption_rows,
+        lifting_rule_rows=rows.lifting_rule_rows,
+        lifting_materialization_rows=rows.lifting_materialization_rows,
+    )
 
 
 def create_claim_tables(conn: sqlite3.Connection) -> None:

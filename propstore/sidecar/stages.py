@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from propstore.claims import ClaimFileEntry
 from propstore.families.claims.stages import ClaimCheckedBundle
 from propstore.families.concepts.stages import LoadedConcept
+from propstore.families.contexts.declaration import ContextSidecarRows
 from propstore.families.contexts.stages import LoadedContext
 from propstore.families.forms.stages import FormDefinition
 
@@ -51,14 +52,6 @@ class QuarantineDiagnostic:
 class MicropublicationSidecarRows:
     micropublication_rows: tuple["MicropublicationProjectionRow", ...]
     claim_rows: tuple["MicropublicationClaimProjectionRow", ...]
-
-
-@dataclass(frozen=True)
-class ContextSidecarRows:
-    context_rows: tuple["ProjectionRow", ...]
-    assumption_rows: tuple["ProjectionRow", ...]
-    lifting_rule_rows: tuple["ProjectionRow", ...]
-    lifting_materialization_rows: tuple["ProjectionRow", ...] = ()
 
 
 @dataclass(frozen=True)

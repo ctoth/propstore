@@ -17,7 +17,6 @@ from propstore.claims import (
     claim_file_filename,
     claim_file_stage,
 )
-from propstore.context_lifting import IstProposition, LiftedAssertion, LiftingDecision
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.compiler.ir import ClaimCompilationBundle
@@ -37,11 +36,8 @@ from propstore.families.concepts.declaration import (
     PARAMETERIZATION_GROUP_PROJECTION,
     PARAMETERIZATION_PROJECTION,
 )
-from propstore.families.contexts.stages import (
-    LoadedContext,
-    coerce_loaded_contexts,
-    loaded_contexts_to_lifting_system,
-)
+from propstore.families.contexts.stages import loaded_contexts_to_lifting_system
+from propstore.families.contexts.declaration import compile_context_sidecar_rows
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.sources import SourceDocument
@@ -65,7 +61,6 @@ from propstore.families.claims.storage import (
 )
 from propstore.sidecar.stages import (
     ClaimSidecarRows,
-    ContextSidecarRows,
     ConceptRelationshipProjectionRow,
     ConceptSidecarRows,
     MicropublicationSidecarRows,
@@ -82,12 +77,6 @@ from propstore.families.claims.declaration import (
     CLAIM_TEXT_PAYLOAD_PROJECTION,
     CONFLICT_WITNESS_PROJECTION,
     JUSTIFICATION_PROJECTION,
-)
-from propstore.sidecar.contexts import (
-    CONTEXT_ASSUMPTION_PROJECTION,
-    CONTEXT_LIFTING_MATERIALIZATION_PROJECTION,
-    CONTEXT_LIFTING_RULE_PROJECTION,
-    CONTEXT_PROJECTION,
 )
 from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.micropublications import (
@@ -145,110 +134,6 @@ def compile_source_sidecar_rows(
                 if not trust.derived_from
                 else json.dumps(list(trust.derived_from)),
                 artifact_code=source_doc.artifact_code,
-            )
-        )
-    return tuple(rows)
-
-
-def compile_context_sidecar_rows(
-    contexts: Sequence[LoadedContext],
-    *,
-    authored_ist_assertions: Sequence[IstProposition] = (),
-) -> ContextSidecarRows:
-    context_rows: list[ProjectionRow] = []
-    assumption_rows: list[ProjectionRow] = []
-    lifting_rule_rows: list[ProjectionRow] = []
-
-    for context in coerce_loaded_contexts(contexts):
-        record = context.record
-        if record.context_id is None:
-            continue
-        context_id = str(record.context_id)
-
-        context_rows.append(
-            CONTEXT_PROJECTION.row(
-                id=context_id,
-                name=record.name or "",
-                description=record.description,
-                parameters_json=json.dumps(dict(record.parameters), sort_keys=True)
-                if record.parameters
-                else None,
-                perspective=record.perspective,
-            )
-        )
-
-        for seq, assumption in enumerate(record.assumptions, 1):
-            assumption_rows.append(
-                CONTEXT_ASSUMPTION_PROJECTION.row(
-                    context_id=context_id,
-                    assumption_cel=assumption,
-                    seq=seq,
-                )
-            )
-
-        for rule in record.lifting_rules:
-            lifting_rule_rows.append(
-                CONTEXT_LIFTING_RULE_PROJECTION.row(
-                    id=rule.id,
-                    source_context_id=str(rule.source.id),
-                    target_context_id=str(rule.target.id),
-                    conditions_cel=json.dumps(list(rule.conditions), sort_keys=True)
-                    if rule.conditions
-                    else None,
-                    mode=rule.mode.value,
-                    justification=rule.justification,
-                )
-            )
-
-    materialization_rows = ()
-    if authored_ist_assertions:
-        lifting_system = loaded_contexts_to_lifting_system(contexts)
-        decisions = tuple(
-            decision
-            for assertion in authored_ist_assertions
-            for decision in lifting_system.lift_decisions_for(assertion)
-        )
-        materialization_rows = compile_context_lifting_materialization_rows(
-            decisions
-        )
-
-    return ContextSidecarRows(
-        context_rows=tuple(context_rows),
-        assumption_rows=tuple(assumption_rows),
-        lifting_rule_rows=tuple(lifting_rule_rows),
-        lifting_materialization_rows=materialization_rows,
-    )
-
-
-def compile_context_lifting_materialization_rows(
-    materializations: Sequence[LiftedAssertion | LiftingDecision],
-) -> tuple[ProjectionRow, ...]:
-    rows: list[ProjectionRow] = []
-    for materialization in materializations:
-        if isinstance(materialization, LiftingDecision):
-            provenance = materialization.provenance.to_payload()
-            exception_id = materialization.provenance.exception_id
-            rows.append(
-                CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.row(
-                    rule_id=materialization.rule_id,
-                    source_context_id=str(materialization.source_context.id),
-                    target_context_id=str(materialization.target_context.id),
-                    proposition_id=materialization.proposition_id,
-                    status=materialization.status.value,
-                    exception_id=exception_id,
-                    provenance_json=json.dumps(provenance, sort_keys=True),
-                )
-            )
-            continue
-        rows.append(
-            CONTEXT_LIFTING_MATERIALIZATION_PROJECTION.row(
-                rule_id=materialization.rule_id,
-                source_context_id=str(materialization.source_context.id),
-                target_context_id=str(materialization.target_context.id),
-                proposition_id=materialization.proposition_id,
-                status=materialization.status.value,
-                exception_id=materialization.exception_id,
-                provenance_json=json.dumps(materialization.provenance, sort_keys=True),
             )
         )
     return tuple(rows)

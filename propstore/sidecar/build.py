@@ -35,6 +35,7 @@ from propstore.compiler.context import (
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.families.claims.passes import register_claim_pipeline, run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
+from propstore.families.contexts.declaration import ContextSidecarRows
 from propstore.families.contexts.passes import register_context_pipeline
 from propstore.families.contexts.stages import (
     LoadedContext,
@@ -56,7 +57,7 @@ from propstore.families.claims.declaration import (
     populate_stances,
 )
 from propstore.sidecar.passes import compile_sidecar_build_plan
-from propstore.sidecar.stages import ContextSidecarRows, RepositoryCheckedBundle
+from propstore.sidecar.stages import RepositoryCheckedBundle
 from propstore.families.concepts.declaration import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
 from propstore.sidecar.diagnostics import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.sidecar.embedding_store import ensure_embedding_tables

@@ -18,8 +18,7 @@ from propstore.core.conditions.registry import (
     with_standard_synthetic_bindings,
 )
 from propstore.cel_registry import build_store_cel_registry
-from propstore.cel_types import to_cel_exprs
-from propstore.core.assertions import ContextReference
+from propstore.families.contexts.declaration import load_lifting_system
 from propstore.core.graph_types import ProvenanceRecord
 from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.justifications import CanonicalJustification
@@ -262,72 +261,7 @@ class WorldQuery(WorldStore):
             return self._lifting_system
         self._lifting_system_loaded = True
 
-        from propstore.context_lifting import (
-            LiftingMode,
-            LiftingRule,
-            LiftingSystem,
-        )
-
-        rows = self._conn.execute(
-            "SELECT id FROM context ORDER BY id"
-        ).fetchall()
-        if not rows:
-            self._lifting_system = None
-            return None
-
-        context_ids = [str(row["id"]) for row in rows]
-        context_refs = tuple(
-            ContextReference(id=to_context_id(context_id))
-            for context_id in context_ids
-        )
-
-        assumption_rows = self._conn.execute(
-            "SELECT context_id, assumption_cel FROM context_assumption "
-            "ORDER BY context_id, seq"
-        ).fetchall()
-        assumptions_by_id: dict[str, list[str]] = {
-            context_id: [] for context_id in context_ids
-        }
-        for row in assumption_rows:
-            context_id = row["context_id"]
-            if context_id not in assumptions_by_id:
-                continue
-            assumptions_by_id[context_id].append(row["assumption_cel"])
-
-        lifting_rows = self._conn.execute(
-            """
-            SELECT id, source_context_id, target_context_id,
-                   conditions_cel, mode, justification
-            FROM context_lifting_rule
-            ORDER BY id
-            """
-        ).fetchall()
-        lifting_rules: list[LiftingRule] = []
-        for row in lifting_rows:
-            raw_conditions = row["conditions_cel"]
-            if raw_conditions:
-                conditions = tuple(str(item) for item in json.loads(raw_conditions))
-            else:
-                conditions = ()
-            lifting_rules.append(
-                LiftingRule(
-                    id=row["id"],
-                    source=ContextReference(id=to_context_id(row["source_context_id"])),
-                    target=ContextReference(id=to_context_id(row["target_context_id"])),
-                    conditions=to_cel_exprs(conditions),
-                    mode=LiftingMode(row["mode"]),
-                    justification=row["justification"],
-                )
-            )
-
-        self._lifting_system = LiftingSystem(
-            contexts=context_refs,
-            lifting_rules=tuple(lifting_rules),
-            context_assumptions={
-                to_context_id(context_id): to_cel_exprs(assumptions)
-                for context_id, assumptions in assumptions_by_id.items()
-            },
-        )
+        self._lifting_system = load_lifting_system(self._conn)
         return self._lifting_system
 
     # ── Unbound queries ──────────────────────────────────────────────

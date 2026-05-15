@@ -11,13 +11,13 @@ from propstore.context_lifting import (
     LiftingSystem,
 )
 from propstore.core.assertions import ContextReference
-from propstore.families.contexts.stages import LoadedContext
-from propstore.sidecar.passes import (
+from propstore.families.contexts.declaration import (
+    ContextSidecarRows,
     compile_context_lifting_materialization_rows,
     compile_context_sidecar_rows,
 )
+from propstore.families.contexts.stages import LoadedContext
 from propstore.sidecar.schema import create_context_tables, populate_contexts
-from propstore.sidecar.stages import ContextSidecarRows
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from propstore.core.conditions.solver import (

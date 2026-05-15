@@ -9,7 +9,9 @@ from propstore.context_lifting import (
     LiftingSystem,
 )
 from propstore.core.assertions import ContextReference
-from propstore.sidecar.passes import compile_context_lifting_materialization_rows
+from propstore.families.contexts.declaration import (
+    compile_context_lifting_materialization_rows,
+)
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.solver import SolverSat, SolverUnknown, SolverUnknownReason
 
