@@ -12,7 +12,7 @@ import json
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from propstore.core.row_types import ParameterizationRowInput, coerce_parameterization_row
+from propstore.families.concepts.declaration import ParameterizationRowInput, coerce_parameterization_row
 
 
 def reachable_concepts(

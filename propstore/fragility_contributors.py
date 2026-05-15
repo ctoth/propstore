@@ -12,7 +12,7 @@ from argumentation.datalog_grounding import GroundRuleOrigin
 from propstore.aspic_bridge.build import build_bridge_csaf, compile_bridge_context
 from propstore.aspic_bridge.extract import _extract_justifications, _extract_stance_rows
 from propstore.aspic_bridge.grounding import _decode_grounded_predicate, project_grounded_rules
-from propstore.core.row_types import coerce_parameterization_row
+from propstore.families.concepts.declaration import coerce_parameterization_row
 from propstore.fragility_scoring import FragilityWarning, score_conflict, support_derivative_fragility
 from propstore.fragility_types import (
     AssumptionTarget,

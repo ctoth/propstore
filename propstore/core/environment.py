@@ -26,10 +26,7 @@ from propstore.families.relations.declaration import (
     RelationshipRowInput,
     StanceRowInput,
 )
-from propstore.core.row_types import (
-    ParameterizationRowInput,
-)
-from propstore.families.concepts.declaration import ConceptRowInput
+from propstore.families.concepts.declaration import ConceptRowInput, ParameterizationRowInput
 
 
 def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:

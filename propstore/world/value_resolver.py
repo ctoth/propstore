@@ -14,7 +14,7 @@ from ast_equiv import AlgorithmParseError, compare as ast_compare
 from propstore.core.claim_types import ClaimType
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.id_types import ConceptId, to_concept_id
-from propstore.core.row_types import ParameterizationRow
+from propstore.families.concepts.declaration import ParameterizationRow
 from propstore.propagation import rewrite_parameterization_symbols
 from propstore.world.types import (
     DerivedResult,

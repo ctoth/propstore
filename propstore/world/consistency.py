@@ -69,10 +69,10 @@ def _check_transitive_consistency(
 ) -> WorldConsistencyReport:
     from propstore.conflict_detector import detect_transitive_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-    from propstore.core.row_types import (
+    from propstore.families.concepts.declaration import (
+        coerce_concept_row,
         coerce_parameterization_row,
     )
-    from propstore.families.concepts.declaration import coerce_concept_row
 
     claim_files = [
         handle

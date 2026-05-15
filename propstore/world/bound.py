@@ -24,7 +24,7 @@ from propstore.families.relations.declaration import (
     ConflictRow,
     StanceRow,
 )
-from propstore.core.row_types import (
+from propstore.families.concepts.declaration import (
     coerce_parameterization_row,
     ParameterizationRow,
 )

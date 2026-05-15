@@ -20,6 +20,7 @@ from quire.projections import (
 from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
 
 from propstore.core.concept_status import ConceptStatus, coerce_concept_status
+from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ConceptId, to_concept_id
 
 if TYPE_CHECKING:
@@ -120,6 +121,99 @@ class ConceptEmbeddingSource:
     seq: int
     content_hash: str
     aliases: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class ParameterizationRow:
+    output_concept_id: ConceptId
+    concept_ids: str
+    formula: str | None = None
+    sympy: str | None = None
+    exactness: Exactness | None = None
+    conditions_cel: str | None = None
+    conditions_ir: str | None = None
+    attributes: Mapping[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
+        object.__setattr__(self, "attributes", dict(self.attributes))
+
+    def to_dict(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "output_concept_id": self.output_concept_id,
+            "concept_ids": self.concept_ids,
+        }
+        if self.formula is not None:
+            data["formula"] = self.formula
+        if self.sympy is not None:
+            data["sympy"] = self.sympy
+        if self.exactness is not None:
+            data["exactness"] = self.exactness.value
+        if self.conditions_cel is not None:
+            data["conditions_cel"] = self.conditions_cel
+        if self.conditions_ir is not None:
+            data["conditions_ir"] = self.conditions_ir
+        data.update(self.attributes)
+        return data
+
+    @classmethod
+    def from_mapping(
+        cls,
+        row_map: Mapping[str, Any],
+        *,
+        output_concept_id: ConceptId | str | None = None,
+    ) -> "ParameterizationRow":
+        known = {
+            "output_concept_id",
+            "concept_ids",
+            "formula",
+            "sympy",
+            "exactness",
+            "conditions_cel",
+            "conditions_ir",
+        }
+        attributes = {
+            str(key): value
+            for key, value in row_map.items()
+            if key not in known and value is not None
+        }
+        resolved_output_concept_id = row_map.get("output_concept_id", output_concept_id)
+        if resolved_output_concept_id is None:
+            raise KeyError("output_concept_id")
+        return cls(
+            output_concept_id=to_concept_id(resolved_output_concept_id),
+            concept_ids=str(row_map["concept_ids"]),
+            formula=None if row_map.get("formula") is None else str(row_map["formula"]),
+            sympy=None if row_map.get("sympy") is None else str(row_map["sympy"]),
+            exactness=coerce_exactness(row_map.get("exactness")),
+            conditions_cel=(
+                None
+                if row_map.get("conditions_cel") is None
+                else str(row_map["conditions_cel"])
+            ),
+            conditions_ir=(
+                None
+                if row_map.get("conditions_ir") is None
+                else str(row_map["conditions_ir"])
+            ),
+            attributes=attributes,
+        )
+
+
+ParameterizationRowInput = ParameterizationRow | Mapping[str, Any]
+
+
+def coerce_parameterization_row(
+    row: ParameterizationRowInput,
+    *,
+    output_concept_id: ConceptId | str | None = None,
+) -> ParameterizationRow:
+    if isinstance(row, ParameterizationRow):
+        return row
+    return ParameterizationRow.from_mapping(
+        row,
+        output_concept_id=output_concept_id,
+    )
 
 
 ConceptRowInput = ConceptRow | Mapping[str, Any]
@@ -225,6 +319,7 @@ PARAMETERIZATION_PROJECTION = ProjectionTable(
         ProjectionColumn("conditions_ir", "TEXT"),
     ),
     foreign_keys=(ProjectionForeignKey(("output_concept_id",), "concept", ("id",)),),
+    row_factory=ParameterizationRow.from_mapping,
 )
 
 

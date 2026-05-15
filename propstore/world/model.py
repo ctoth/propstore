@@ -40,7 +40,6 @@ from propstore.families.diagnostics.declaration import (
     has_build_diagnostics_table,
     select_build_diagnostics,
 )
-from propstore.core.row_types import ParameterizationRow
 from propstore.families.relations.declaration import (
     ConflictRow,
     RelationshipRow,
@@ -56,6 +55,7 @@ from propstore.families.relations.declaration import (
 from propstore.families.micropublications.declaration import select_all_micropublications
 from propstore.families.concepts.declaration import (
     ConceptRow,
+    ParameterizationRow,
     build_concept_logical_id_index,
     count_concepts,
     resolve_concept_alias,

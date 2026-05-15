@@ -16,10 +16,7 @@ from propstore.families.relations.declaration import (
     coerce_relationship_row,
     coerce_stance_row,
 )
-from propstore.core.row_types import (
-    coerce_parameterization_row,
-)
-from propstore.families.concepts.declaration import coerce_concept_row
+from propstore.families.concepts.declaration import coerce_concept_row, coerce_parameterization_row
 from propstore.world import WorldStore, BeliefSpace
 
 if TYPE_CHECKING:

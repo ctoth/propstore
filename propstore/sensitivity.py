@@ -14,7 +14,7 @@ from typing import Any
 from propstore.reporting import JsonReportMixin
 from propstore.core.environment import Environment
 from propstore.core.id_types import ConceptId, to_concept_id
-from propstore.core.row_types import coerce_parameterization_row
+from propstore.families.concepts.declaration import coerce_parameterization_row
 from propstore.propagation import parse_cached, rewrite_parameterization_symbols
 
 
