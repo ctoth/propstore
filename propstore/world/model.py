@@ -210,7 +210,7 @@ class WorldQuery(WorldStore):
         """Return the grounded-rule bundle materialized in this sidecar."""
 
         if self._grounding_bundle_cache is None:
-            from propstore.sidecar.rules import read_grounded_bundle
+            from propstore.families.rules.declaration import read_grounded_bundle
 
             self._grounding_bundle_cache = read_grounded_bundle(self._conn)
         return self._grounding_bundle_cache

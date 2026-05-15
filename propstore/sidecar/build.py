@@ -76,7 +76,10 @@ from propstore.families.micropublications.declaration import (
     create_micropublication_tables,
     populate_micropublications,
 )
-from propstore.sidecar.rules import create_grounded_fact_table, populate_grounded_facts
+from propstore.families.rules.declaration import (
+    create_grounded_fact_table,
+    populate_grounded_facts,
+)
 from propstore.families.sources.declaration import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.registry import PipelineRegistry

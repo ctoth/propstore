@@ -12,7 +12,7 @@ from propstore.families.documents.rules import (
 )
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from propstore.sidecar.rules import (
+from propstore.families.rules.declaration import (
     create_grounded_fact_table,
     populate_grounded_facts,
     read_grounded_bundle,

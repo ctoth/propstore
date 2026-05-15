@@ -173,7 +173,7 @@ class _BranchSnapshotStore:
 
 def _read_branch_grounding_bundle(repo, commit: str | None):
     from propstore.sidecar.build import build_grounding_sidecar
-    from propstore.sidecar.rules import read_grounded_bundle
+    from propstore.families.rules.declaration import read_grounded_bundle
     from propstore.sidecar.sqlite import connect_sidecar
 
     with tempfile.TemporaryDirectory(prefix="propstore-branch-sidecar-") as temp_dir:

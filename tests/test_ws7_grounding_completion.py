@@ -195,7 +195,7 @@ def test_ws7_extract_facts_materializes_claim_structural_sources() -> None:
 
 
 def test_ws7_sidecar_runtime_bundle_preserves_four_statuses() -> None:
-    from propstore.sidecar.rules import (
+    from propstore.families.rules.declaration import (
         create_grounded_fact_table,
         populate_grounded_facts,
         read_grounded_facts,
@@ -214,7 +214,7 @@ def test_ws7_sidecar_runtime_bundle_preserves_four_statuses() -> None:
 def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     tmp_path: Path,
 ) -> None:
-    from propstore.sidecar.rules import (
+    from propstore.families.rules.declaration import (
         populate_grounded_facts,
     )
     from propstore.sidecar.schema import build_minimal_world_model_schema

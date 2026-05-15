@@ -42,7 +42,7 @@ from propstore.families.micropublications.declaration import (
     MICROPUBLICATION_CLAIM_PROJECTION,
     MICROPUBLICATION_PROJECTION,
 )
-from propstore.sidecar.rules import (
+from propstore.families.rules.declaration import (
     GROUNDED_BUNDLE_INPUT_PROJECTION,
     GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION,
     GROUNDED_FACT_PROJECTION,

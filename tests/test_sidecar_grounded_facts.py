@@ -6,16 +6,16 @@ persists the four Garcia sections (``yes`` / ``no`` /
 ``propstore.grounding.bundle.GroundedRulesBundle`` into the sidecar's
 SQLite store.
 
-Target module: ``propstore.sidecar.rules`` (new). Chosen over
+Target module: ``propstore.families.rules.declaration`` (new). Chosen over
 extending ``propstore.families.claims.declaration`` because the existing sidecar
 convention is one topic module per subsystem (``claims.py``,
 ``concepts.py``, ``sources.py``); grounded facts are their own topic
 and deserve their own module. Schema creation helper also lives in
-``propstore.sidecar.rules`` to keep the grounded-fact table colocated
+``propstore.families.rules.declaration`` to keep the grounded-fact table colocated
 with the functions that write and read it.
 
 None of the target symbols exist yet — every import of
-``propstore.sidecar.rules`` is deferred into test/strategy bodies so
+``propstore.families.rules.declaration`` is deferred into test/strategy bodies so
 pytest can *collect* this file cleanly while every test fails at run
 time with ``ModuleNotFoundError``. That is the contract for this
 chunk's RED commit.
@@ -78,7 +78,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 # Deferred-import strategies and helpers.
 #
-# Every import of ``propstore.sidecar.rules`` and
+# Every import of ``propstore.families.rules.declaration`` and
 # ``propstore.grounding.bundle`` happens inside a function body so that
 # pytest *collection* does not fail even though the target module does
 # not exist yet. Runtime execution will then raise
@@ -92,14 +92,14 @@ def _fresh_conn_with_schema() -> sqlite3.Connection:
 
     Lives inside the tests (no fixtures, no conftest per the prompt
     constraints). Imports ``create_grounded_fact_table`` from the
-    as-yet-unbuilt ``propstore.sidecar.rules`` module so every test
+    as-yet-unbuilt ``propstore.families.rules.declaration`` module so every test
     using it fails with ``ModuleNotFoundError`` at runtime.
 
     Diller, Borg, Bex 2025 §3 Definition 7: a Datalog fact base is a
     finite set of ground atoms; the table stores one row per atom per
     section.
     """
-    from propstore.sidecar.rules import create_grounded_fact_table
+    from propstore.families.rules.declaration import create_grounded_fact_table
 
     conn = sqlite3.connect(":memory:")
     create_grounded_fact_table(conn)
@@ -305,7 +305,7 @@ def test_populate_empty_bundle_inserts_zero_rows() -> None:
     input and produces an empty ground model. Persisting that empty
     model must be lossless — zero rows, no error.
     """
-    from propstore.sidecar.rules import populate_grounded_facts
+    from propstore.families.rules.declaration import populate_grounded_facts
 
     conn = _fresh_conn_with_schema()
     try:
@@ -329,7 +329,7 @@ def test_populate_single_fact_one_section() -> None:
     base fact, the simplest possible instance of a definitely-true
     ground atom.
     """
-    from propstore.sidecar.rules import populate_grounded_facts
+    from propstore.families.rules.declaration import populate_grounded_facts
 
     conn = _fresh_conn_with_schema()
     try:
@@ -361,7 +361,7 @@ def test_populate_same_atom_multiple_sections() -> None:
     not a partition — a single atom can carry multiple verdicts
     simultaneously, and storage must preserve that multiplicity.
     """
-    from propstore.sidecar.rules import populate_grounded_facts
+    from propstore.families.rules.declaration import populate_grounded_facts
 
     conn = _fresh_conn_with_schema()
     try:
@@ -396,7 +396,7 @@ def test_populate_all_four_sections() -> None:
     individually persistable — that is the non-commitment discipline
     anchor.
     """
-    from propstore.sidecar.rules import populate_grounded_facts
+    from propstore.families.rules.declaration import populate_grounded_facts
 
     conn = _fresh_conn_with_schema()
     try:
@@ -442,7 +442,7 @@ def test_populate_row_count_matches_section_content(bundle) -> None:
     rows has to match the number of ground atoms in the bundle's
     ground model exactly — no duplicates, no drops.
     """
-    from propstore.sidecar.rules import populate_grounded_facts
+    from propstore.families.rules.declaration import populate_grounded_facts
 
     conn = _fresh_conn_with_schema()
     try:
@@ -475,7 +475,7 @@ def test_round_trip_empty_bundle() -> None:
     section keys are always present in the read result, even when the
     bundle is empty. Storage never silently drops a verdict.
     """
-    from propstore.sidecar.rules import (
+    from propstore.families.rules.declaration import (
         populate_grounded_facts,
         read_grounded_facts,
     )
@@ -507,7 +507,7 @@ def test_round_trip_single_fact() -> None:
     case — a single ``bird(tweety)`` fact in the ``definitely``
     section must round-trip byte-for-byte.
     """
-    from propstore.sidecar.rules import (
+    from propstore.families.rules.declaration import (
         populate_grounded_facts,
         read_grounded_facts,
     )
@@ -546,7 +546,7 @@ def test_round_trip_arbitrary_bundle(bundle) -> None:
     the sections map. This is the determinism property for the
     persistence layer.
     """
-    from propstore.sidecar.rules import (
+    from propstore.families.rules.declaration import (
         populate_grounded_facts,
         read_grounded_facts,
     )
@@ -576,7 +576,7 @@ def test_round_trip_delp_birds_fly_tweety() -> None:
 
     ``populate`` then ``read`` must recover both sections exactly.
     """
-    from propstore.sidecar.rules import (
+    from propstore.families.rules.declaration import (
         populate_grounded_facts,
         read_grounded_facts,
     )
@@ -624,7 +624,7 @@ def test_populate_requires_schema_created() -> None:
     dependencies have to be explicit, and failing loudly is the
     non-commitment-discipline-compatible behaviour for a misuse.
     """
-    from propstore.sidecar.rules import populate_grounded_facts
+    from propstore.families.rules.declaration import populate_grounded_facts
 
     conn = sqlite3.connect(":memory:")
     try:
