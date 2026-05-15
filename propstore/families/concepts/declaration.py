@@ -429,6 +429,15 @@ def populate_concept_sidecar_rows(
         FORM_ALGEBRA_PROJECTION.insert_rows(conn, rows.form_algebra_rows)
 
 
+class ConceptSearchQuerySyntaxError(ValueError):
+    pass
+
+
+def _is_concept_search_syntax_error(exc: sqlite3.OperationalError) -> bool:
+    message = str(exc).casefold()
+    return "fts5: syntax error" in message or "unterminated string" in message
+
+
 def fetch_concept_search_hits(
     conn: sqlite3.Connection,
     *,
@@ -473,7 +482,12 @@ def fetch_concept_search_hits_from_sidecar(
 
     conn = connect_sidecar_readonly(sidecar)
     try:
-        return fetch_concept_search_hits(conn, query=query, limit=limit)
+        try:
+            return fetch_concept_search_hits(conn, query=query, limit=limit)
+        except sqlite3.OperationalError as exc:
+            if _is_concept_search_syntax_error(exc):
+                raise ConceptSearchQuerySyntaxError(query) from exc
+            raise
     finally:
         conn.close()
 

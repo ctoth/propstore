@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import sqlite3
 from typing import TYPE_CHECKING, Mapping
 
 from .mutation import (
@@ -24,7 +23,10 @@ from .mutation import (
     _require_sidecar,
 )
 from propstore.app.repository_views import repository_view_label
-from propstore.families.concepts.declaration import fetch_concept_search_hits_from_sidecar
+from propstore.families.concepts.declaration import (
+    ConceptSearchQuerySyntaxError,
+    fetch_concept_search_hits_from_sidecar,
+)
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -48,10 +50,8 @@ def search_concepts(
             query=request.query,
             limit=request.limit,
         )
-    except sqlite3.OperationalError as exc:
-        if _is_fts_syntax_error(exc):
-            raise ConceptSearchSyntaxError(request.query) from exc
-        raise
+    except ConceptSearchQuerySyntaxError as exc:
+        raise ConceptSearchSyntaxError(request.query) from exc
     return ConceptSearchReport(
         hits=tuple(
             ConceptSearchHit(
@@ -64,12 +64,6 @@ def search_concepts(
             for row in rows
         )
     )
-
-
-def _is_fts_syntax_error(exc: sqlite3.OperationalError) -> bool:
-    message = str(exc).casefold()
-    return "fts5: syntax error" in message or "unterminated string" in message
-
 
 def list_concepts(
     repo: Repository,
