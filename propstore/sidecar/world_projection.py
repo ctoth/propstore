@@ -48,7 +48,7 @@ from propstore.sidecar.rules import (
     GROUNDED_FACT_PROJECTION,
 )
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
-from propstore.sidecar.sources import SOURCE_PROJECTION
+from propstore.families.sources.declaration import SOURCE_PROJECTION
 
 
 WORLD_SIDECAR_SCHEMA = create_projection_schema(

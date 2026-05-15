@@ -74,7 +74,7 @@ from propstore.families.micropublications.declaration import (
 )
 from propstore.sidecar.quarantine import QuarantinableWriter
 from propstore.sidecar.rules import create_grounded_fact_table, populate_grounded_facts
-from propstore.sidecar.sources import populate_sources
+from propstore.families.sources.declaration import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.types import PassDiagnostic

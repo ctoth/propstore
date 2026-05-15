@@ -74,7 +74,7 @@ from propstore.sidecar.embedding_store import ensure_embedding_tables
 from propstore.families.micropublications.declaration import create_micropublication_tables
 from quire.projections import ProjectionColumn, ProjectionTable
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
-from propstore.sidecar.sources import SOURCE_PROJECTION
+from propstore.families.sources.declaration import SOURCE_PROJECTION
 
 SCHEMA_VERSION = 6
 SIDECAR_META_KEY = "sidecar"

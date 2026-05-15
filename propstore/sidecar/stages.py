@@ -19,7 +19,7 @@ if TYPE_CHECKING:
         MicropublicationClaimProjectionRow,
         MicropublicationProjectionRow,
     )
-    from propstore.sidecar.sources import SourceProjectionRow
+    from propstore.families.sources.declaration import SourceProjectionRow
 
 
 @dataclass(frozen=True)

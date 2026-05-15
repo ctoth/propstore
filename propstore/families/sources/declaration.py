@@ -1,4 +1,4 @@
-"""Source SQL insertion helpers for the sidecar."""
+"""Source derived-store declaration helpers."""
 
 from __future__ import annotations
 

@@ -13,7 +13,7 @@ from propstore.families.documents.sources import (
 from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
 from propstore.sidecar.passes import compile_source_sidecar_rows
-from propstore.sidecar.sources import SOURCE_PROJECTION, SourceProjectionRow, populate_sources
+from propstore.families.sources.declaration import SOURCE_PROJECTION, SourceProjectionRow, populate_sources
 
 
 def test_source_rows_are_projection_rows_and_round_trip_artifact_code() -> None:
