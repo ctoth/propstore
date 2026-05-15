@@ -1,0 +1,23 @@
+artifact_id: ps:claim:fixture-algorithm
+logical_ids:
+  - namespace: fixture
+    value: algorithm
+type: algorithm
+context:
+  id: ctx_method
+name: drift diffusion update
+body: |
+  evidence = prior + stimulus_strength * dt
+  decision_variable = evidence - threshold
+output_concept: ps:concept:decision_variable
+variables:
+  - symbol: prior
+    concept: ps:concept:prior_evidence
+    role: input
+  - symbol: stimulus_strength
+    concept: ps:concept:stimulus_strength
+    role: input
+stage: pseudocode
+provenance:
+  paper: fixture-paper
+  page: 18

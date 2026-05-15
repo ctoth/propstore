@@ -114,11 +114,10 @@ knowledge of its own.
 
 ## Current Executability Verdict
 
-Status: executable for Phase 3 concept vertical only.
+Status: executable through the Phase 4 claim vertical.
 
-Phase 3 may open because the JSON baseline, owner ledger, slice test map,
-old-path search gates, DDL baseline renderer, DDL baseline artifact, and the
-Phase 3 Quire dependency rows are now committed. Phase 7 remains blocked on
+Phase 3 is complete. Phase 4 may open because the claim round-trip fixture
+path and focused fixture gate are now defined. Phase 7 remains blocked on
 QD-006 and QD-009.
 
 Closed pre-production blockers:
@@ -855,7 +854,7 @@ Any missing mandatory expansion row blocks Phase 3.
 
 ## Phase 3: Concept Vertical Prototype
 
-Status: pending.
+Status: complete.
 
 Preconditions:
 
@@ -933,18 +932,15 @@ slice is not complete.
 
 ## Phase 4: Claim Vertical
 
-Status: pending.
+Status: preconditions complete; claim vertical pending.
 
 Precondition:
 
-- Add or locate at least five claim YAML round-trip fixtures under a committed
-  path named in this workstream before Phase 4 opens. The fixture set must
-  cover numeric, text, algorithm, concept-link, source-local, and contextual
-  claim shapes. The current local `knowledge/` checkout does not contain claim
-  YAML files, so flat-vs-proposition claim shape cannot be inferred from local
-  sample data.
-- Add a focused round-trip command to the Phase 4 gate once the fixture path is
-  committed. Phase 4 is blocked until that command exists and passes.
+- Claim YAML round-trip fixtures live under
+  `tests/data/claim_roundtrip/`. The fixture set covers numeric, text,
+  algorithm, concept-link, source-local, and contextual claim shapes.
+- Focused round-trip gate:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label claim-roundtrip-fixtures tests/test_claim_roundtrip_fixtures.py`.
 
 Target surfaces:
 

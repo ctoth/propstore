@@ -1,0 +1,18 @@
+artifact_id: ps:claim:fixture-numeric-measurement
+logical_ids:
+  - namespace: fixture
+    value: numeric-measurement
+type: measurement
+context:
+  id: ctx_lab
+target_concept: ps:concept:reaction_time
+measure: mean
+value: 242.5
+unit: ms
+uncertainty: 12.0
+uncertainty_type: standard_error
+sample_size: 48
+methodology: two-alternative forced choice task
+provenance:
+  paper: fixture-paper
+  page: 12
