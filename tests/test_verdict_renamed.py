@@ -6,7 +6,7 @@ from pathlib import Path
 TARGETS = (
     Path("propstore/grounding/grounder.py"),
     Path("propstore/grounding/bundle.py"),
-    Path("propstore/sidecar/rules.py"),
+    Path("propstore/families/rules/declaration.py"),
     Path("propstore/world/atms.py"),
 )
 

@@ -151,7 +151,6 @@ def test_advanced_help_shows_advanced_commands() -> None:
         "contract-manifest",
         "export-aliases",
         "checkout",
-        "sidecar",
     ):
         assert command in result.output
 
