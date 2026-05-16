@@ -9,7 +9,7 @@ import pytest
 import yaml
 
 from propstore.repository import Repository
-from propstore.sidecar.build import export_sidecar as build_sidecar
+from propstore.derived_build import export_sidecar as build_sidecar
 
 
 @pytest.mark.parametrize(

@@ -8,7 +8,7 @@ from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
 from propstore.families.registry import ContextRef, PredicateRef, RuleRef
 from propstore.repository import Repository
-from propstore.sidecar.build import export_sidecar as build_sidecar
+from propstore.derived_build import export_sidecar as build_sidecar
 from propstore.source import promote_source_branch
 from tests.test_branch_head_cas_matrix import _seed_ready_source_branch
 
@@ -205,7 +205,7 @@ def test_sidecar_build_serializes_with_source_promote(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
-    import propstore.sidecar.build as build_module
+    import propstore.derived_build as build_module
 
     repo = Repository.init(tmp_path / "knowledge")
     _seed_ready_source_branch(repo, "race")

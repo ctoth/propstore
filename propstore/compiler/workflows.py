@@ -376,7 +376,7 @@ def build_repository(
     force: bool = False,
     strict_authoring: bool = False,
 ) -> RepositoryBuildReport:
-    from propstore.sidecar.build import materialize_world_sidecar
+    from propstore.derived_build import materialize_world_sidecar
 
     hash_key = repo.require_git().head_sha()
     tree = repo.snapshot.tree(commit=hash_key)

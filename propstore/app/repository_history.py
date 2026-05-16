@@ -258,7 +258,7 @@ def build_commit_show_report(repo: Repository, commit: str) -> CommitShowReport:
 
 
 def checkout_commit(repo: Repository, commit: str) -> CheckoutReport:
-    from propstore.sidecar.build import materialize_world_sidecar
+    from propstore.derived_build import materialize_world_sidecar
 
     try:
         repo.require_git().show_commit(commit)

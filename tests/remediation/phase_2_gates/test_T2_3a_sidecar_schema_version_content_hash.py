@@ -5,7 +5,7 @@ from pathlib import Path
 import yaml
 
 from propstore.repository import Repository
-from propstore.sidecar import build as sidecar_build
+import propstore.derived_build as sidecar_build
 
 
 def test_world_sidecar_hash_changes_on_schema_version_bump(

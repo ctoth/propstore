@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from propstore.repository import Repository
-from propstore.sidecar.build import materialize_world_sidecar
+from propstore.derived_build import materialize_world_sidecar
 
 
 @dataclass(frozen=True)

@@ -58,7 +58,7 @@ from propstore.families.claims.declaration import (
     populate_raw_id_quarantine_records,
     populate_stances,
 )
-from propstore.sidecar.passes import RepositoryCheckedBundle, compile_sidecar_build_plan
+from propstore.derived_build_plan import RepositoryCheckedBundle, compile_sidecar_build_plan
 from propstore.families.concepts.declaration import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
 from propstore.families.diagnostics.declaration import (
     record_authoring_diagnostics,
@@ -101,12 +101,16 @@ _SIDECAR_CACHE_DEPENDENCIES = (
 )
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
 def world_sidecar_hash_inputs(
     source_revision: str,
     *,
     source_branch_tips: tuple[tuple[str, str], ...] = (),
 ) -> dict[str, object]:
-    repo_root = Path(__file__).resolve().parents[2]
+    repo_root = _repo_root()
     dependency_pins = read_dependency_pins(
         repo_root / "uv.lock",
         _SIDECAR_CACHE_DEPENDENCIES,
@@ -148,7 +152,7 @@ def world_sidecar_hash(
         source_branch_tips=source_branch_tips,
     )
     dependencies = read_dependency_pins(
-        Path(__file__).resolve().parents[2] / "uv.lock",
+        _repo_root() / "uv.lock",
         _SIDECAR_CACHE_DEPENDENCIES,
     )
     content_hash = derived_store_content_hash(

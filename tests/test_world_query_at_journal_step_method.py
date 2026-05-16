@@ -211,7 +211,7 @@ def test_world_query_historical_query_builds_temp_sidecar_for_commit(
         )
         return _derived_store_for_path(sidecar_path, commit=str(kwargs["commit_hash"])), True
 
-    from propstore.sidecar import build as sidecar_build
+    import propstore.derived_build as sidecar_build
 
     monkeypatch.setattr(
         sidecar_build,

@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from propstore.repository import Repository
-from propstore.sidecar.build import export_sidecar as build_sidecar
+from propstore.derived_build import export_sidecar as build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 from tests.family_helpers import claim_artifact_commit_payloads
 
@@ -70,7 +70,7 @@ def test_sidecar_not_deleted_on_build_exception(tmp_path, monkeypatch) -> None:
     def fail_populate_claims(*args, **kwargs) -> None:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr("propstore.sidecar.build.populate_claims", fail_populate_claims)
+    monkeypatch.setattr("propstore.derived_build.populate_claims", fail_populate_claims)
 
     with pytest.raises(RuntimeError, match="boom"):
         build_sidecar(repo, sidecar_path, force=True)

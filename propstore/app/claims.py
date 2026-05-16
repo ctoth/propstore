@@ -415,7 +415,7 @@ def _concept_override_roots(
 
 
 def _require_sidecar(repo: Repository) -> Path:
-    from propstore.sidecar.build import materialize_world_sidecar
+    from propstore.derived_build import materialize_world_sidecar
 
     handle, _rebuilt = materialize_world_sidecar(repo)
     if not handle.path.exists():

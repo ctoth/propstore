@@ -32,7 +32,7 @@ from propstore.families.registry import ClaimRef
 from propstore.families.registry import JustificationRef, StanceRef
 from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
-from propstore.sidecar.build import (
+from propstore.derived_build import (
     export_sidecar as _export_sidecar,
     materialize_world_sidecar,
 )

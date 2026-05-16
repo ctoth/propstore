@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.sidecar import build as build_module
+import propstore.derived_build as build_module
 
 
 def test_sidecar_cache_key_document_contains_derived_inputs() -> None:

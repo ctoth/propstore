@@ -50,7 +50,7 @@ def test_build_repository_reports_missing_sidecar_instead_of_zero_success(
             True,
         )
 
-    monkeypatch.setattr("propstore.sidecar.build.materialize_world_sidecar", _no_sidecar)
+    monkeypatch.setattr("propstore.derived_build.materialize_world_sidecar", _no_sidecar)
 
     report = build_repository(repo, force=True)
 

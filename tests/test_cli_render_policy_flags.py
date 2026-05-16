@@ -49,7 +49,7 @@ from propstore.families.identity.justifications import stamp_justification_artif
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import ClaimRef, ContextRef, JustificationRef, StanceRef
 from propstore.repository import Repository
-from propstore.sidecar.build import materialize_world_sidecar
+from propstore.derived_build import materialize_world_sidecar
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
 from propstore.world.queries import (
