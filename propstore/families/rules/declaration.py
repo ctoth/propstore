@@ -68,7 +68,7 @@ from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocu
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from quire.projections import ProjectionColumn, ProjectionTable
+from quire.projections import ProjectionField, ProjectionTable, integer_field, text_field
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -87,9 +87,9 @@ _SECTION_NAMES: tuple[str, ...] = (
 GROUNDED_FACT_PROJECTION = ProjectionTable(
     name="grounded_fact",
     columns=(
-        ProjectionColumn("predicate", "TEXT", nullable=False),
-        ProjectionColumn("arguments", "TEXT", nullable=False),
-        ProjectionColumn("section", "TEXT", nullable=False),
+        text_field("predicate", nullable=False).column(),
+        text_field("arguments", nullable=False).column(),
+        text_field("section", nullable=False).column(),
     ),
     primary_key=("predicate", "arguments", "section"),
     if_not_exists=True,
@@ -99,8 +99,8 @@ GROUNDED_FACT_PROJECTION = ProjectionTable(
 GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION = ProjectionTable(
     name="grounded_fact_empty_predicate",
     columns=(
-        ProjectionColumn("section", "TEXT", nullable=False),
-        ProjectionColumn("predicate", "TEXT", nullable=False),
+        text_field("section", nullable=False).column(),
+        text_field("predicate", nullable=False).column(),
     ),
     primary_key=("section", "predicate"),
     if_not_exists=True,
@@ -110,9 +110,9 @@ GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION = ProjectionTable(
 GROUNDED_BUNDLE_INPUT_PROJECTION = ProjectionTable(
     name="grounded_bundle_input",
     columns=(
-        ProjectionColumn("kind", "TEXT", nullable=False),
-        ProjectionColumn("position", "INTEGER", nullable=False),
-        ProjectionColumn("payload", "BLOB", nullable=False),
+        text_field("kind", nullable=False).column(),
+        integer_field("position", nullable=False).column(),
+        ProjectionField("payload", "BLOB", nullable=False).column(),
     ),
     primary_key=("kind", "position"),
     if_not_exists=True,
