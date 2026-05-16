@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from propstore.sidecar.build import _populate_promotion_blocked_rows
+from propstore.families.claims.declaration import populate_promotion_blocked_claims
 from quire.derived_runtime import connect_sqlite_store
 from propstore.source.promote import compile_promotion_blocked_projection_rows
 from tests.sidecar_schema_helpers import build_world_projection_schema
@@ -47,7 +47,7 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
     )
     conn = connect_sqlite_store(sidecar_path)
     try:
-        _populate_promotion_blocked_rows(
+        populate_promotion_blocked_claims(
             conn,
             alpha_rows.claim_rows + beta_rows.claim_rows,
             alpha_rows.diagnostic_rows + beta_rows.diagnostic_rows,

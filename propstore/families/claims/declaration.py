@@ -75,6 +75,7 @@ from propstore.families.claims.stages import (
 from propstore.families.diagnostics.declaration import (
     BUILD_DIAGNOSTICS_PROJECTION,
     QuarantineDiagnostic,
+    delete_promotion_blocked_diagnostics,
 )
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.relations.declaration import claim_stance_projection_row
@@ -1774,6 +1775,61 @@ def populate_raw_id_quarantine_records(
 ) -> None:
     CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in rows.claim_rows))
     for row in rows.diagnostic_rows:
+        BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
+
+
+def populate_promotion_blocked_claims(
+    conn: sqlite3.Connection,
+    claim_rows: Sequence[ProjectionRow],
+    diagnostic_rows: Sequence[ProjectionRow],
+) -> None:
+    if not claim_rows and not diagnostic_rows:
+        return
+    child_claim_tables = {
+        row[0]
+        for row in conn.execute(
+            """
+            SELECT name
+            FROM sqlite_master
+            WHERE type = 'table'
+              AND name IN (
+                  'claim_concept_link',
+                  'claim_numeric_payload',
+                  'claim_text_payload',
+                  'claim_algorithm_payload',
+                  'micropublication_claim'
+              )
+            """
+        ).fetchall()
+    }
+    schema_tables = {
+        row[0]
+        for row in conn.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table'"
+        ).fetchall()
+    }
+    if "concept" not in schema_tables:
+        child_claim_tables.discard("claim_concept_link")
+    claim_rows_by_id = {str(row.values["id"]): row for row in claim_rows}
+    claim_ids = tuple(claim_rows_by_id)
+    for claim_id in claim_ids:
+        for table_name in (
+            "claim_concept_link",
+            "claim_numeric_payload",
+            "claim_text_payload",
+            "claim_algorithm_payload",
+            "micropublication_claim",
+        ):
+            if table_name not in child_claim_tables:
+                continue
+            conn.execute(
+                f"DELETE FROM {table_name} WHERE claim_id = ?",
+                (claim_id,),
+            )
+        delete_claim_core_row(conn, claim_id)
+        delete_promotion_blocked_diagnostics(conn, claim_id)
+    CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
+    for row in diagnostic_rows:
         BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
 
 

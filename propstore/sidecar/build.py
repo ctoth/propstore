@@ -50,11 +50,10 @@ from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.families.claims.declaration import (
     CLAIM_FTS_PROJECTION,
-    CLAIM_CORE_PROJECTION,
-    delete_claim_core_row,
     populate_authored_justifications,
     populate_claims,
     populate_conflicts,
+    populate_promotion_blocked_claims,
     populate_raw_id_quarantine_records,
     populate_stances,
 )
@@ -64,7 +63,6 @@ from propstore.families.diagnostics.declaration import (
     BUILD_DIAGNOSTICS_PROJECTION,
     QuarantinableWriter,
     QuarantineDiagnostic,
-    delete_promotion_blocked_diagnostics,
 )
 from propstore.families.projection_catalog import (
     PROPSTORE_WORLD_META_KEY,
@@ -409,61 +407,6 @@ def _compile_source_promotion_blocked_rows(repo: "Repository"):
     return tuple(claim_rows), tuple(diagnostic_rows)
 
 
-def _populate_promotion_blocked_rows(
-    conn: sqlite3.Connection,
-    claim_rows,
-    diagnostic_rows,
-) -> None:
-    if not claim_rows and not diagnostic_rows:
-        return
-    child_claim_tables = {
-        row[0]
-        for row in conn.execute(
-            """
-            SELECT name
-            FROM sqlite_master
-            WHERE type = 'table'
-              AND name IN (
-                  'claim_concept_link',
-                  'claim_numeric_payload',
-                  'claim_text_payload',
-                  'claim_algorithm_payload',
-                  'micropublication_claim'
-              )
-            """
-        ).fetchall()
-    }
-    schema_tables = {
-        row[0]
-        for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'table'"
-        ).fetchall()
-    }
-    if "concept" not in schema_tables:
-        child_claim_tables.discard("claim_concept_link")
-    claim_rows_by_id = {str(row.values["id"]): row for row in claim_rows}
-    claim_ids = tuple(claim_rows_by_id)
-    for claim_id in claim_ids:
-        for table_name in (
-            "claim_concept_link",
-            "claim_numeric_payload",
-            "claim_text_payload",
-            "claim_algorithm_payload",
-            "micropublication_claim",
-        ):
-            if table_name not in child_claim_tables:
-                continue
-            conn.execute(
-                f"DELETE FROM {table_name} WHERE claim_id = ?",
-                (claim_id,),
-            )
-        delete_claim_core_row(conn, claim_id)
-        delete_promotion_blocked_diagnostics(conn, claim_id)
-    CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
-    for row in diagnostic_rows:
-        BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
-
-
 def materialize_world_sidecar(
     repo: "Repository",
     force: bool = False,
@@ -760,7 +703,7 @@ def _build_sidecar_file(
                         conn,
                         sidecar_plan.raw_id_quarantine_rows,
                     )
-                _populate_promotion_blocked_rows(
+                populate_promotion_blocked_claims(
                     conn,
                     promotion_blocked_claim_rows,
                     promotion_blocked_diagnostic_rows,
@@ -769,7 +712,7 @@ def _build_sidecar_file(
                 populate_conflicts(conn, sidecar_plan.conflict_rows)
                 CLAIM_FTS_PROJECTION.populate_from_source_query(conn)
             else:
-                _populate_promotion_blocked_rows(
+                populate_promotion_blocked_claims(
                     conn,
                     promotion_blocked_claim_rows,
                     promotion_blocked_diagnostic_rows,
