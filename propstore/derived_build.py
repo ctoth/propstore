@@ -508,11 +508,12 @@ def _build_sidecar_file(
                         conn,
                         sidecar_plan.raw_id_quarantine_rows,
                     )
-                    populate_promotion_blocked_claims(
-                        conn,
-                        promotion_blocked_rows.claim_rows,
-                        promotion_blocked_rows.diagnostic_rows,
-                    )
+
+                populate_promotion_blocked_claims(
+                    conn,
+                    promotion_blocked_rows.claim_rows,
+                    promotion_blocked_rows.diagnostic_rows,
+                )
 
                 populate_conflicts(conn, sidecar_plan.conflict_rows)
                 CLAIM_FTS_PROJECTION.populate_from_source_query(conn)
