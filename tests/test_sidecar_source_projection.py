@@ -12,7 +12,7 @@ from propstore.families.documents.sources import (
 )
 from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
-from propstore.sidecar.passes import compile_source_sidecar_rows
+from propstore.families.sources.declaration import compile_source_sidecar_rows
 from propstore.families.sources.declaration import SOURCE_PROJECTION, SourceProjectionRow, populate_sources
 
 

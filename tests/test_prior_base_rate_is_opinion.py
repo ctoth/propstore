@@ -9,7 +9,7 @@ from propstore.families.documents.sources import SourceDocument
 from propstore.opinion import Opinion
 from propstore.praf.engine import p_arg_from_claim
 from propstore.provenance import ProvenanceStatus
-from propstore.sidecar.passes import compile_source_sidecar_rows
+from propstore.families.sources.declaration import compile_source_sidecar_rows
 
 
 PRIOR_PAYLOAD = {"b": 0.2, "d": 0.1, "u": 0.7, "a": 0.4}

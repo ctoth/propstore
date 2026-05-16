@@ -47,7 +47,6 @@ from propstore.families.contexts.declaration import (
 )
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
-from propstore.families.documents.sources import SourceDocument
 from propstore.families.claims.stages import (
     ClaimCheckedBundle,
     ClaimSidecarRows,
@@ -90,7 +89,10 @@ from propstore.families.micropublications.declaration import (
     MicropublicationSidecarRows,
 )
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
-from propstore.families.sources.declaration import SourceProjectionRow
+from propstore.families.sources.declaration import (
+    SourceProjectionRow,
+    compile_source_sidecar_rows,
+)
 from propstore.families.claims.storage import (
     coerce_stance_resolution,
     resolution_opinion_columns,
@@ -99,6 +101,7 @@ from propstore.stances import VALID_STANCE_TYPES
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
+    from propstore.families.documents.sources import SourceDocument
 
 
 @dataclass(frozen=True)
@@ -127,51 +130,8 @@ class SidecarBuildPlan:
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]
 
 
-def _opinion_json(opinion) -> str | None:
-    if opinion is None:
-        return None
-    return json.dumps(
-        {
-            "b": opinion.b,
-            "d": opinion.d,
-            "u": opinion.u,
-            "a": opinion.a,
-        },
-        sort_keys=True,
-    )
-
-
 def _concept_symbol_candidates(record: ConceptRecord) -> tuple[str, ...]:
     return record.reference_keys()
-
-
-def compile_source_sidecar_rows(
-    sources: Iterable[tuple[str, SourceDocument]],
-) -> tuple[SourceProjectionRow, ...]:
-    rows: list[SourceProjectionRow] = []
-    for slug, source_doc in sources:
-        origin = source_doc.origin
-        trust = source_doc.trust
-        rows.append(
-            SourceProjectionRow(
-                slug=slug,
-                source_id=str(source_doc.id or slug),
-                kind=source_doc.kind.value,
-                origin_type=origin.type.value,
-                origin_value=origin.value,
-                origin_retrieved=origin.retrieved,
-                origin_content_ref=origin.content_ref,
-                prior_base_rate=_opinion_json(trust.prior_base_rate),
-                quality_json=None
-                if trust.quality is None
-                else json.dumps(trust.quality.to_payload()),
-                derived_from_json=None
-                if not trust.derived_from
-                else json.dumps(list(trust.derived_from)),
-                artifact_code=source_doc.artifact_code,
-            )
-        )
-    return tuple(rows)
 
 
 def compile_concept_sidecar_rows(
