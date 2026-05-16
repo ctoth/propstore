@@ -7,7 +7,7 @@ import json
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
-from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
+from quire.projections import ProjectionIndex, ProjectionTable, text_field
 
 from propstore.families.documents.sources import SourceDocument
 
@@ -15,17 +15,17 @@ from propstore.families.documents.sources import SourceDocument
 SOURCE_PROJECTION = ProjectionTable(
     name="source",
     columns=(
-        ProjectionColumn("slug", "TEXT", primary_key=True),
-        ProjectionColumn("source_id", "TEXT", nullable=False),
-        ProjectionColumn("kind", "TEXT", nullable=False),
-        ProjectionColumn("origin_type", "TEXT"),
-        ProjectionColumn("origin_value", "TEXT"),
-        ProjectionColumn("origin_retrieved", "TEXT"),
-        ProjectionColumn("origin_content_ref", "TEXT"),
-        ProjectionColumn("prior_base_rate", "TEXT"),
-        ProjectionColumn("quality_json", "TEXT"),
-        ProjectionColumn("derived_from_json", "TEXT"),
-        ProjectionColumn("artifact_code", "TEXT"),
+        text_field("slug").column(primary_key=True),
+        text_field("source_id", nullable=False).column(),
+        text_field("kind", nullable=False).column(),
+        text_field("origin_type").column(),
+        text_field("origin_value").column(),
+        text_field("origin_retrieved").column(),
+        text_field("origin_content_ref").column(),
+        text_field("prior_base_rate").column(),
+        text_field("quality_json").column(),
+        text_field("derived_from_json").column(),
+        text_field("artifact_code").column(),
     ),
     indexes=(ProjectionIndex("idx_source_source_id", ("source_id",)),),
 )
