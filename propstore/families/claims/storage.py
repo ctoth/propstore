@@ -29,8 +29,8 @@ from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
 )
+from propstore.families.identity.concepts import resolve_concept_reference
 from propstore.families.forms.stages import FormDefinition
-from propstore.sidecar.concept_utils import resolve_concept_reference
 from propstore.sidecar.stages import QuarantineDiagnostic
 from propstore.stances import VALID_STANCE_TYPES
 
