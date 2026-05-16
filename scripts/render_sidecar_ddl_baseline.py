@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from quire.projections import FtsProjection, ProjectionTable, VecProjection, projection_name
-from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
+from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
 
 
 def projection_kind(projection: object) -> str:
@@ -57,14 +57,14 @@ def build_baseline(*, model_identity_hash: str, dimensions: int) -> dict[str, An
     }
     projections = [
         projection_record(projection, bindings=bindings)
-        for projection in WORLD_SIDECAR_SCHEMA.projections
+        for projection in PROPSTORE_WORLD_PROJECTION_SCHEMA.projections
     ]
     return {
         "schema_version": 1,
         "bindings": bindings,
-        "schema_metadata": dict(WORLD_SIDECAR_SCHEMA.metadata),
-        "schema_hash_material": WORLD_SIDECAR_SCHEMA.schema_hash_material(),
-        "ddl_statements": WORLD_SIDECAR_SCHEMA.ddl_statements(bindings),
+        "schema_metadata": dict(PROPSTORE_WORLD_PROJECTION_SCHEMA.metadata),
+        "schema_hash_material": PROPSTORE_WORLD_PROJECTION_SCHEMA.schema_hash_material(),
+        "ddl_statements": PROPSTORE_WORLD_PROJECTION_SCHEMA.ddl_statements(bindings),
         "catalog": projections,
     }
 
