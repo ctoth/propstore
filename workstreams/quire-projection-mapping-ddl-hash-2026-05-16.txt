@@ -1,0 +1,5 @@
+
+Algorithm : SHA256
+Hash      : 563697C88356A7D6B30D79A0BA4FC98C664CE99E4DBFD5CC2BF0DA8F0E309E57
+Path      : C:\Users\Q\code\propstore\workstreams\quire-projection-mapping-ddl-baseline-2026-05-16.json
+
