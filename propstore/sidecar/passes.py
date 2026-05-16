@@ -46,7 +46,6 @@ from propstore.families.contexts.declaration import (
 from propstore.families.claims.stages import (
     ClaimCheckedBundle,
     ClaimSidecarRows,
-    RawIdQuarantineRecord,
     RawIdQuarantineSidecarRows,
 )
 from propstore.families.claims.references import (
@@ -71,9 +70,9 @@ from propstore.families.claims.declaration import (
     CLAIM_TEXT_PAYLOAD_PROJECTION,
     CONFLICT_WITNESS_PROJECTION,
     compile_authored_justification_sidecar_rows_with_diagnostics,
+    compile_raw_id_quarantine_sidecar_rows,
 )
 from propstore.families.diagnostics.declaration import (
-    BUILD_DIAGNOSTICS_PROJECTION,
     QuarantineDiagnostic,
 )
 from propstore.families.micropublications.declaration import (
@@ -573,55 +572,6 @@ def compile_conflict_sidecar_rows(
             derivation_chain=record.derivation_chain,
         )
         for record in records
-    )
-
-
-def compile_raw_id_quarantine_sidecar_rows(
-    records: Sequence[RawIdQuarantineRecord],
-) -> RawIdQuarantineSidecarRows:
-    claim_rows: list[ProjectionRow] = []
-    diagnostic_rows: list[ProjectionRow] = []
-
-    for record in records:
-        claim_rows.append(
-            CLAIM_CORE_PROJECTION.row(
-                id=record.synthetic_id,
-                primary_logical_id="",
-                logical_ids_json="[]",
-                version_id="",
-                content_hash="",
-                seq=record.seq,
-                type="quarantine",
-                target_concept=None,
-                source_slug=record.source_paper,
-                source_paper=record.source_paper,
-                provenance_page=0,
-                provenance_json=None,
-                context_id=None,
-                premise_kind="ordinary",
-                branch=None,
-                build_status="blocked",
-                stage=None,
-                promotion_status=None,
-            )
-        )
-        diagnostic_rows.append(
-            BUILD_DIAGNOSTICS_PROJECTION.row(
-                claim_id=record.synthetic_id,
-                source_kind="claim",
-                source_ref=record.raw_id,
-                diagnostic_kind="raw_id_input",
-                severity="error",
-                blocking=1,
-                message=record.message,
-                file=record.filename,
-                detail_json=record.detail_json,
-            )
-        )
-
-    return RawIdQuarantineSidecarRows(
-        claim_rows=tuple(claim_rows),
-        diagnostic_rows=tuple(diagnostic_rows),
     )
 
 
