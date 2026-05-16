@@ -8,10 +8,14 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from quire.projections import (
-    ProjectionColumn,
+    ARTIFACT_ID_FIELD,
+    PROVENANCE_JSON_FIELD,
     ProjectionForeignKey,
     ProjectionIndex,
     ProjectionTable,
+    SEQUENCE_FIELD,
+    family_reference_field,
+    text_field,
 )
 from quire.references import FamilyReferenceIndex
 
@@ -24,23 +28,13 @@ from propstore.families.documents.micropubs import MicropublicationDocument
 MICROPUBLICATION_PROJECTION = ProjectionTable(
     name="micropublication",
     columns=(
-        ProjectionColumn("id", "TEXT", nullable=False, primary_key=True),
-        ProjectionColumn("context_id", "TEXT", nullable=False),
-        ProjectionColumn(
-            "assumptions_json",
-            "TEXT",
-            nullable=False,
-            default_sql="'[]'",
-        ),
-        ProjectionColumn(
-            "evidence_json",
-            "TEXT",
-            nullable=False,
-            default_sql="'[]'",
-        ),
-        ProjectionColumn("stance", "TEXT"),
-        ProjectionColumn("provenance_json", "TEXT"),
-        ProjectionColumn("source_slug", "TEXT"),
+        ARTIFACT_ID_FIELD.column(nullable=False, primary_key=True),
+        family_reference_field("context", nullable=False).column(),
+        text_field("assumptions_json", nullable=False).column(default_sql="'[]'"),
+        text_field("evidence_json", nullable=False).column(default_sql="'[]'"),
+        text_field("stance").column(),
+        PROVENANCE_JSON_FIELD.column(),
+        text_field("source_slug").column(),
     ),
     foreign_keys=(ProjectionForeignKey(("context_id",), "context", ("id",)),),
     indexes=(ProjectionIndex("idx_micropub_context", ("context_id",)),),
@@ -51,9 +45,9 @@ MICROPUBLICATION_PROJECTION = ProjectionTable(
 MICROPUBLICATION_CLAIM_PROJECTION = ProjectionTable(
     name="micropublication_claim",
     columns=(
-        ProjectionColumn("micropublication_id", "TEXT", nullable=False),
-        ProjectionColumn("claim_id", "TEXT", nullable=False),
-        ProjectionColumn("seq", "INTEGER", nullable=False),
+        family_reference_field("micropublication", nullable=False).column(),
+        family_reference_field("claim", nullable=False).column(),
+        SEQUENCE_FIELD.column(),
     ),
     primary_key=("micropublication_id", "claim_id"),
     foreign_keys=(
