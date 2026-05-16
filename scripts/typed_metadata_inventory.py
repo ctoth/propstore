@@ -180,8 +180,29 @@ def _string_keyword(node: ast.Call, name: str) -> str | None:
 
 
 def _has_sql_word(value: str) -> bool:
-    upper = value.upper()
-    return any(word in upper for word in SQL_WORDS)
+    return any(
+        (
+            bool(re.search(r"\bSELECT\b", value, flags=re.IGNORECASE))
+            and bool(re.search(r"\bFROM\b", value, flags=re.IGNORECASE)),
+            bool(re.search(r"\bINSERT\b", value, flags=re.IGNORECASE))
+            and bool(re.search(r"\bINTO\b", value, flags=re.IGNORECASE)),
+            bool(re.search(r"\bUPDATE\b", value, flags=re.IGNORECASE))
+            and bool(re.search(r"\bSET\b", value, flags=re.IGNORECASE)),
+            bool(re.search(r"\bDELETE\b", value, flags=re.IGNORECASE))
+            and bool(re.search(r"\bFROM\b", value, flags=re.IGNORECASE)),
+            bool(re.search(r"^\s*PRAGMA\b", value, flags=re.IGNORECASE)),
+        )
+    )
+
+
+def _table_names_in_sql(value: str) -> list[str]:
+    if not _has_sql_word(value):
+        return []
+    return [
+        table
+        for table in TABLE_NAMES
+        if re.search(rf"\b{re.escape(table)}\b", value)
+    ]
 
 
 def _annotation_text(node: ast.AST) -> str:
@@ -260,6 +281,8 @@ def _scan_ast(text: str, item: FileInventory) -> None:
                 item.materialize_calls += 1
             if name.endswith(("Request", "Report")):
                 item.request_report_calls.append(name)
+        elif isinstance(node, ast.Constant) and isinstance(node.value, str):
+            item.table_name_mentions.extend(_table_names_in_sql(node.value))
         elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             if node.name in CODEC_NAMES:
                 item.codec_methods.append(node.name)
@@ -289,9 +312,6 @@ def _scan_text(text: str, item: FileInventory) -> None:
     )
     item.sqlite_mentions += sum(text.count(pattern) for pattern in DIRECT_SQL_PATTERNS)
     item.dataclasses = text.count("@dataclass")
-    for table in TABLE_NAMES:
-        if re.search(rf"\b{re.escape(table)}\b", text):
-            item.table_name_mentions.append(table)
     for field_name in REPEATED_FIELD_NAMES:
         if re.search(rf"\b{re.escape(field_name)}\b", text):
             item.field_mentions.append(field_name)
@@ -356,6 +376,11 @@ def _summary_metrics(items: list[FileInventory], root: Path) -> dict[str, int]:
     sidecar_items = [
         item for item in propstore_items if _relative(item.path, root).startswith("propstore/sidecar/")
     ]
+    non_declaration_query_owner_items = [
+        item
+        for item in non_sidecar_items
+        if not _is_declaration_or_query_owner(_relative(item.path, root))
+    ]
     sidecar_declaration_items = [
         item
         for item in sidecar_items
@@ -404,13 +429,17 @@ def _summary_metrics(items: list[FileInventory], root: Path) -> dict[str, int]:
             for item in sidecar_items
         ),
         "handwritten_fk_edges": sum(len(item.projection_foreign_keys) for item in sidecar_items),
-        "raw_sql_score_outside_sidecar": sum(item.raw_sql_score for item in non_sidecar_items),
+        "raw_sql_score_outside_sidecar": sum(
+            item.raw_sql_score for item in non_declaration_query_owner_items
+        ),
         "row_types_importers": sum(1 for item in propstore_items if item.row_types_imports),
         "row_types_import_count": sum(item.row_types_imports for item in propstore_items),
         "sidecar_importers_outside_sidecar": sum(1 for item in non_sidecar_items if item.sidecar_imports),
         "sidecar_import_count_outside_sidecar": sum(item.sidecar_imports for item in non_sidecar_items),
         "quire_importers": sum(1 for item in propstore_items if item.quire_imports),
-        "table_name_mentions_outside_sidecar": sum(len(item.table_name_mentions) for item in non_sidecar_items),
+        "table_name_mentions_outside_sidecar": sum(
+            len(item.table_name_mentions) for item in non_declaration_query_owner_items
+        ),
         "class_surfaces_total": sum(len(item.class_surfaces) for item in propstore_items),
         "class_surfaces_app_world": app_world_wrapper_classes,
         "codec_methods_total": sum(len(item.codec_methods) for item in propstore_items),
@@ -420,6 +449,33 @@ def _summary_metrics(items: list[FileInventory], root: Path) -> dict[str, int]:
             if _relative(item.path, root).startswith(("propstore/families/", "propstore/source/"))
         ),
     }
+
+
+def _is_generated_path(rel: str) -> bool:
+    return "/_generated/" in rel or "/generated/" in rel or rel.endswith("_generated.py")
+
+
+def _is_family_declaration_owner(rel: str) -> bool:
+    parts = Path(rel).parts
+    return (
+        len(parts) == 4
+        and parts[0] == "propstore"
+        and parts[1] == "families"
+        and parts[3] == "declaration.py"
+    )
+
+
+def _is_declaration_or_query_owner(rel: str) -> bool:
+    return (
+        _is_generated_path(rel)
+        or _is_family_declaration_owner(rel)
+        or rel
+        in {
+            "propstore/families/projection_catalog.py",
+            "propstore/world/model.py",
+            "propstore/world/queries.py",
+        }
+    )
 
 
 def _repeated_projection_fields(items: list[FileInventory], root: Path) -> dict[str, list[str]]:
@@ -628,6 +684,7 @@ def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
                 item
                 for item in propstore_items
                 if not _relative(item.path, root).startswith("propstore/sidecar/")
+                and not _is_declaration_or_query_owner(_relative(item.path, root))
                 and item.raw_sql_score
             ],
             key=lambda item: (item.raw_sql_score, item.execute_calls, str(item.path)),
