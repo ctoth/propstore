@@ -25,7 +25,7 @@ from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.repository import Repository
 from propstore.provenance import ProvenanceStatus
-from propstore.sidecar.authoring_lints import collect_authoring_lints
+from propstore.families.diagnostics.authoring_lints import collect_authoring_lints
 from propstore.stances import StanceType
 from tests.family_helpers import (
     _materialize_claim_fixture_batches,

@@ -1,4 +1,4 @@
-"""Authoring-quality lints surfaced during sidecar builds."""
+"""Authoring-quality diagnostics surfaced during builds."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ def _authoring_warning(
         stage=ClaimStage.AUTHORED,
         filename=filename,
         artifact_id=artifact_id,
-        pass_name="sidecar.authoring_lints",
+        pass_name="diagnostics.authoring_lints",
     )
 
 

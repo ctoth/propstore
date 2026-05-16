@@ -38,7 +38,7 @@ from propstore.families.forms.stages import FormCheckedRegistry, FormStage, Load
 from propstore.families.registry import PropstoreFamily
 from propstore.repository import Repository
 from propstore.semantic_passes.types import PassDiagnostic
-from propstore.sidecar.authoring_lints import collect_authoring_lints
+from propstore.families.diagnostics.authoring_lints import collect_authoring_lints
 
 
 @dataclass(frozen=True)
