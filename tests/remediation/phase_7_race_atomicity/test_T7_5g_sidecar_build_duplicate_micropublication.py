@@ -16,7 +16,7 @@ from propstore.families.micropublications.declaration import (
     populate_micropublications,
 )
 from quire.derived_runtime import connect_sqlite_store
-from propstore.sidecar.stages import MicropublicationSidecarRows
+from propstore.families.micropublications.declaration import MicropublicationSidecarRows
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 

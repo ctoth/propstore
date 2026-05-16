@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 
 from propstore.families.concepts.declaration import ALIAS_PROJECTION, populate_concept_sidecar_rows
-from propstore.sidecar.stages import ConceptSidecarRows
+from propstore.families.concepts.declaration import ConceptSidecarRows
 
 
 def test_alias_rows_use_generated_insert() -> None:

@@ -6,10 +6,15 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCompilationBundle
+
+if TYPE_CHECKING:
+    from quire.projections import ProjectionRow
+    from propstore.families.diagnostics.declaration import QuarantineDiagnostic
 
 
 class ClaimStage(StrEnum):
@@ -42,6 +47,23 @@ class ClaimAuthoredFiles:
 class ClaimCheckedBundle:
     bundle: ClaimCompilationBundle
     raw_id_quarantine_records: tuple[RawIdQuarantineRecord, ...] = ()
+
+
+@dataclass(frozen=True)
+class ClaimSidecarRows:
+    claim_core_rows: tuple["ProjectionRow", ...]
+    numeric_payload_rows: tuple["ProjectionRow", ...]
+    text_payload_rows: tuple["ProjectionRow", ...]
+    algorithm_payload_rows: tuple["ProjectionRow", ...]
+    claim_link_rows: tuple["ProjectionRow", ...]
+    stance_rows: tuple["ProjectionRow", ...]
+    quarantine_diagnostics: tuple["QuarantineDiagnostic", ...]
+
+
+@dataclass(frozen=True)
+class RawIdQuarantineSidecarRows:
+    claim_rows: tuple["ProjectionRow", ...]
+    diagnostic_rows: tuple["ProjectionRow", ...]
 
 
 @dataclass(frozen=True)

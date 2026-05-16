@@ -58,12 +58,12 @@ from propstore.families.claims.declaration import (
     populate_raw_id_quarantine_records,
     populate_stances,
 )
-from propstore.sidecar.passes import compile_sidecar_build_plan
-from propstore.sidecar.stages import RepositoryCheckedBundle
+from propstore.sidecar.passes import RepositoryCheckedBundle, compile_sidecar_build_plan
 from propstore.families.concepts.declaration import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
 from propstore.families.diagnostics.declaration import (
     BUILD_DIAGNOSTICS_PROJECTION,
     QuarantinableWriter,
+    QuarantineDiagnostic,
     delete_promotion_blocked_diagnostics,
 )
 from propstore.families.projection_catalog import (
@@ -80,7 +80,6 @@ from propstore.families.sources.declaration import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.types import PassDiagnostic
-from propstore.sidecar.stages import QuarantineDiagnostic
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext

@@ -4,7 +4,7 @@ import sqlite3
 
 from propstore.families.concepts.declaration import populate_concept_sidecar_rows
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
-from propstore.sidecar.stages import ConceptSidecarRows
+from propstore.families.concepts.declaration import ConceptSidecarRows
 
 
 def test_concept_relation_edge_rows_use_generated_insert() -> None:

@@ -11,6 +11,15 @@ from typing import Any
 from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
 
 
+@dataclass(frozen=True)
+class QuarantineDiagnostic:
+    artifact_id: str
+    kind: str
+    diagnostic_kind: str
+    message: str
+    file: str | None = None
+
+
 BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(
     name="build_diagnostics",
     columns=(

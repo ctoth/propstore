@@ -53,7 +53,7 @@ from propstore.core.source_types import coerce_source_kind, coerce_source_origin
 if TYPE_CHECKING:
     from propstore.core.graph_types import ProvenanceRecord
     from propstore.core.justifications import CanonicalJustification
-    from propstore.sidecar.stages import (
+    from propstore.families.claims.stages import (
         ClaimSidecarRows,
         RawIdQuarantineSidecarRows,
     )

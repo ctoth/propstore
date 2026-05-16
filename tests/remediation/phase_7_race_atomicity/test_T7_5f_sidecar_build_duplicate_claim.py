@@ -19,7 +19,7 @@ from propstore.families.claims.declaration import (
     populate_claims,
 )
 from quire.derived_runtime import connect_sqlite_store
-from propstore.sidecar.stages import ClaimSidecarRows
+from propstore.families.claims.stages import ClaimSidecarRows
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 

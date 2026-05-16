@@ -9,12 +9,12 @@ from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.identity.micropubs import micropub_artifact_id
 from propstore.families.micropublications.declaration import (
     MicropublicationProjectionRow,
+    MicropublicationSidecarRows,
     create_micropublication_tables,
     populate_micropublications,
 )
 from propstore.families.contexts.declaration import create_context_tables
 from quire.derived_runtime import connect_sqlite_store
-from propstore.sidecar.stages import MicropublicationSidecarRows
 
 
 def _micropub(page: int) -> MicropublicationDocument:

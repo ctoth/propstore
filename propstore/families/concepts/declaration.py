@@ -24,7 +24,28 @@ from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ConceptId, to_concept_id
 
 if TYPE_CHECKING:
-    from propstore.sidecar.stages import ConceptSidecarRows
+    from quire.projections import ProjectionRow
+
+
+@dataclass(frozen=True)
+class ConceptRelationshipProjectionRow:
+    source_id: str
+    relationship_type: str
+    target_id: str
+    conditions_cel: str | None
+    note: str | None
+
+
+@dataclass(frozen=True)
+class ConceptSidecarRows:
+    form_rows: tuple["ProjectionRow", ...]
+    concept_rows: tuple["ProjectionRow", ...]
+    alias_rows: tuple["ProjectionRow", ...]
+    relationship_rows: tuple[ConceptRelationshipProjectionRow, ...]
+    relation_edge_rows: tuple["ProjectionRow", ...]
+    parameterization_rows: tuple["ProjectionRow", ...]
+    parameterization_group_rows: tuple["ProjectionRow", ...]
+    form_algebra_rows: tuple["ProjectionRow", ...]
 
 
 @dataclass(frozen=True)

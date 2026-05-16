@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterable, Sequence
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
@@ -31,17 +33,27 @@ from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
 from propstore.families.concepts.declaration import (
     ALIAS_PROJECTION,
     CONCEPT_PROJECTION,
+    ConceptRelationshipProjectionRow,
+    ConceptSidecarRows,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
     PARAMETERIZATION_PROJECTION,
 )
-from propstore.families.contexts.stages import loaded_contexts_to_lifting_system
-from propstore.families.contexts.declaration import compile_context_sidecar_rows
+from propstore.families.contexts.stages import LoadedContext, loaded_contexts_to_lifting_system
+from propstore.families.contexts.declaration import (
+    ContextSidecarRows,
+    compile_context_sidecar_rows,
+)
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.sources import SourceDocument
-from propstore.families.claims.stages import RawIdQuarantineRecord
+from propstore.families.claims.stages import (
+    ClaimCheckedBundle,
+    ClaimSidecarRows,
+    RawIdQuarantineRecord,
+    RawIdQuarantineSidecarRows,
+)
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
@@ -59,16 +71,6 @@ from propstore.families.claims.storage import (
     prepare_claim_insert_row,
     prepare_claim_concept_link_rows,
 )
-from propstore.sidecar.stages import (
-    ClaimSidecarRows,
-    ConceptRelationshipProjectionRow,
-    ConceptSidecarRows,
-    MicropublicationSidecarRows,
-    RawIdQuarantineSidecarRows,
-    QuarantineDiagnostic,
-    RepositoryCheckedBundle,
-    SidecarBuildPlan,
-)
 from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
     CLAIM_CONCEPT_LINK_PROJECTION,
@@ -78,10 +80,14 @@ from propstore.families.claims.declaration import (
     CONFLICT_WITNESS_PROJECTION,
     JUSTIFICATION_PROJECTION,
 )
-from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
+from propstore.families.diagnostics.declaration import (
+    BUILD_DIAGNOSTICS_PROJECTION,
+    QuarantineDiagnostic,
+)
 from propstore.families.micropublications.declaration import (
     MicropublicationClaimProjectionRow,
     MicropublicationProjectionRow,
+    MicropublicationSidecarRows,
 )
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 from propstore.families.sources.declaration import SourceProjectionRow
@@ -90,6 +96,35 @@ from propstore.families.claims.storage import (
     resolution_opinion_columns,
 )
 from propstore.stances import VALID_STANCE_TYPES
+
+if TYPE_CHECKING:
+    from propstore.compiler.context import CompilationContext
+
+
+@dataclass(frozen=True)
+class RepositoryCheckedBundle:
+    concepts: list[LoadedConcept]
+    form_registry: dict[str, FormDefinition]
+    context_files: tuple[LoadedContext, ...]
+    context_ids: frozenset[str]
+    compilation_context: "CompilationContext"
+    concept_registry: dict
+    claim_checked_bundle: ClaimCheckedBundle | None
+    normalized_claim_files: tuple[ClaimFileEntry, ...] | None
+
+
+@dataclass(frozen=True)
+class SidecarBuildPlan:
+    source_rows: tuple[SourceProjectionRow, ...]
+    concept_rows: ConceptSidecarRows
+    context_rows: ContextSidecarRows
+    claim_rows: ClaimSidecarRows | None
+    raw_id_quarantine_rows: RawIdQuarantineSidecarRows
+    conflict_rows: tuple[ProjectionRow, ...]
+    micropublication_rows: MicropublicationSidecarRows
+    stance_rows: tuple[ProjectionRow, ...]
+    justification_rows: tuple[ProjectionRow, ...]
+    quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]
 
 
 def _opinion_json(opinion) -> str | None:

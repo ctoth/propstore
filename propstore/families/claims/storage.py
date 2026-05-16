@@ -31,7 +31,7 @@ from propstore.families.identity.claims import (
 )
 from propstore.families.identity.concepts import resolve_concept_reference
 from propstore.families.forms.stages import FormDefinition
-from propstore.sidecar.stages import QuarantineDiagnostic
+from propstore.families.diagnostics.declaration import QuarantineDiagnostic
 from propstore.stances import VALID_STANCE_TYPES
 
 
