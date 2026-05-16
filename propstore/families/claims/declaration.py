@@ -119,30 +119,9 @@ class ClaimConceptLinkRow:
     binding_name: str | None = None
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "claim_id", to_claim_id(self.claim_id))
+        object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
         object.__setattr__(self, "role", _require_claim_concept_link_role(self.role))
-
-    @classmethod
-    def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimConceptLinkRow:
-        return cls(
-            claim_id=to_claim_id(row_map["claim_id"]),
-            concept_id=to_concept_id(row_map["concept_id"]),
-            role=_require_claim_concept_link_role(row_map["role"]),
-            ordinal=0 if row_map.get("ordinal") is None else int(row_map["ordinal"]),
-            binding_name=(
-                None if row_map.get("binding_name") is None else str(row_map["binding_name"])
-            ),
-        )
-
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "claim_id": self.claim_id,
-            "concept_id": self.concept_id,
-            "role": self.role.value,
-            "ordinal": self.ordinal,
-        }
-        if self.binding_name is not None:
-            data["binding_name"] = self.binding_name
-        return data
 
 
 @dataclass(frozen=True)
@@ -286,12 +265,7 @@ class ClaimRow:
             if namespace and value:
                 logical_ids.append(LogicalId(namespace=namespace, value=value))
         concept_link_entries = row_map.get("concept_links")
-        concept_links: list[ClaimConceptLinkRow] = []
-        if isinstance(concept_link_entries, list | tuple):
-            for entry in concept_link_entries:
-                if not isinstance(entry, Mapping):
-                    continue
-                concept_links.append(ClaimConceptLinkRow.from_mapping(entry))
+        concept_links = CLAIM_CONCEPT_LINKS_PATH.decode_rows(concept_link_entries)
 
         nested_source = row_map.get("source") if isinstance(row_map.get("source"), Mapping) else None
         quality_trust = (
@@ -625,7 +599,14 @@ class ClaimRow:
         data["logical_id"] = self.primary_logical_id
         data["logical_ids"] = logical_ids_payload
         if self.concept_links:
-            data["concept_links"] = [link.to_dict() for link in self.concept_links]
+            data["concept_links"] = [
+                {
+                    key: value
+                    for key, value in row.values.items()
+                    if value is not None
+                }
+                for row in CLAIM_CONCEPT_LINKS_PATH.encode_rows(self)
+            ]
         if source_dict is not None:
             data["source"] = source_dict
         if source_quality is not None:
@@ -635,6 +616,12 @@ class ClaimRow:
 
 
 ClaimRowInput = ClaimRow | Mapping[str, Any]
+
+
+from propstore.families.claims.projection_model import (  # noqa: E402
+    CLAIM_CONCEPT_LINK_ROW_MODEL,
+    CLAIM_CONCEPT_LINKS_PATH,
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1150,6 +1137,7 @@ CLAIM_CONCEPT_LINK_PROJECTION = ProjectionTable(
         ProjectionIndex("idx_claim_concept_link_concept", ("concept_id",)),
         ProjectionIndex("idx_claim_concept_link_role", ("role",)),
     ),
+    row_factory=CLAIM_CONCEPT_LINK_ROW_MODEL.from_row,
 )
 
 
