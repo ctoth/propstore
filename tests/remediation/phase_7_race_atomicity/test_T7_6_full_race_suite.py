@@ -14,7 +14,7 @@ from quire.refs import RefName
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
 from propstore.sidecar.build import export_sidecar as build_sidecar
-from propstore.sidecar.sqlite import connect_sidecar
+from quire.derived_runtime import connect_sqlite_store
 from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.ws_l_merge_helpers import claim_payloads
@@ -172,7 +172,7 @@ class FullRaceMachine(RuleBasedStateMachine):
         sidecar_path = repo.root / ".tmp-race-suite.sqlite"
         assert sidecar_path.exists()
         assert sidecar_path.with_suffix(".hash").exists()
-        conn = connect_sidecar(sidecar_path)
+        conn = connect_sqlite_store(sidecar_path)
         try:
             schema_version = conn.execute(
                 "SELECT schema_version FROM meta WHERE key = 'sidecar'"

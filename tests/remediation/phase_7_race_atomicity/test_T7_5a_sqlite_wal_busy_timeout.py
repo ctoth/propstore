@@ -5,28 +5,28 @@ import threading
 import time
 from contextlib import closing
 
-from propstore.sidecar.sqlite import SIDECAR_BUSY_TIMEOUT_MS, connect_sidecar
+from quire.derived_runtime import DEFAULT_SQLITE_BUSY_TIMEOUT_MS, connect_sqlite_store
 
 
-def test_sidecar_connect_enables_wal_and_busy_timeout(tmp_path):
+def test_derived_store_connect_enables_wal_and_busy_timeout(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
 
-    with closing(connect_sidecar(sidecar_path)) as conn:
+    with closing(connect_sqlite_store(sidecar_path)) as conn:
         conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY)")
         journal_mode = conn.execute("PRAGMA journal_mode").fetchone()[0]
         busy_timeout = conn.execute("PRAGMA busy_timeout").fetchone()[0]
 
     assert str(journal_mode).lower() == "wal"
-    assert int(busy_timeout) >= SIDECAR_BUSY_TIMEOUT_MS
+    assert int(busy_timeout) >= DEFAULT_SQLITE_BUSY_TIMEOUT_MS
 
 
 def test_concurrent_sqlite_writer_waits_for_busy_timeout(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
-    with closing(connect_sidecar(sidecar_path)) as conn:
+    with closing(connect_sqlite_store(sidecar_path)) as conn:
         conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY)")
         conn.commit()
 
-    blocker = connect_sidecar(sidecar_path)
+    blocker = connect_sqlite_store(sidecar_path)
     blocker.execute("BEGIN IMMEDIATE")
     blocker.execute("INSERT INTO item (id) VALUES (1)")
 
@@ -36,7 +36,7 @@ def test_concurrent_sqlite_writer_waits_for_busy_timeout(tmp_path):
     def write_waiting() -> None:
         started.set()
         try:
-            with closing(connect_sidecar(sidecar_path)) as conn:
+            with closing(connect_sqlite_store(sidecar_path)) as conn:
                 conn.execute("INSERT INTO item (id) VALUES (2)")
                 conn.commit()
         except sqlite3.OperationalError as exc:
@@ -50,9 +50,9 @@ def test_concurrent_sqlite_writer_waits_for_busy_timeout(tmp_path):
 
     blocker.commit()
     blocker.close()
-    writer.join(timeout=SIDECAR_BUSY_TIMEOUT_MS / 1000)
+    writer.join(timeout=DEFAULT_SQLITE_BUSY_TIMEOUT_MS / 1000)
 
     assert errors == []
-    with closing(connect_sidecar(sidecar_path)) as conn:
+    with closing(connect_sqlite_store(sidecar_path)) as conn:
         rows = conn.execute("SELECT id FROM item ORDER BY id").fetchall()
     assert [row[0] for row in rows] == [1, 2]

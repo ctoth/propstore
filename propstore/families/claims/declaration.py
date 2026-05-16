@@ -991,11 +991,11 @@ def embed_claims_for_request(
         get_registered_models,
         load_vec_extension,
     )
-    from propstore.sidecar.sqlite import connect_sidecar
+    from quire.derived_runtime import connect_sqlite_store
 
     ids = [claim_id] if claim_id else None
     reports: list[tuple[str, Any]] = []
-    conn = connect_sidecar(sidecar)
+    conn = connect_sqlite_store(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         load_vec_extension(conn)
@@ -1054,9 +1054,9 @@ def find_similar_claim_rows(
         get_registered_models,
         load_vec_extension,
     )
-    from propstore.sidecar.sqlite import connect_sidecar
+    from quire.derived_runtime import connect_sqlite_store
 
-    conn = connect_sidecar(sidecar)
+    conn = connect_sqlite_store(sidecar)
     conn.row_factory = sqlite3.Row
     load_vec_extension(conn)
 
@@ -1121,10 +1121,10 @@ def relate_claim_from_sidecar(
     embedding_model: str | None = None,
     top_k: int = 5,
 ) -> list[dict[str, Any]]:
+    from quire.derived_runtime import connect_sqlite_store
     from propstore.heuristic.relate import relate_claim
-    from propstore.sidecar.sqlite import connect_sidecar
 
-    conn = connect_sidecar(sidecar)
+    conn = connect_sqlite_store(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         return relate_claim(
@@ -1144,10 +1144,10 @@ def relate_all_from_sidecar(
     concurrency: int = 20,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> dict[str, Any]:
+    from quire.derived_runtime import connect_sqlite_store
     from propstore.heuristic.relate import relate_all
-    from propstore.sidecar.sqlite import connect_sidecar
 
-    conn = connect_sidecar(sidecar)
+    conn = connect_sqlite_store(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         return relate_all(

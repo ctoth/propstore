@@ -28,6 +28,7 @@ from quire.derived_store import (
     materialize_sqlite_file,
     read_dependency_pins,
 )
+from quire.derived_runtime import connect_sqlite_store
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
@@ -86,7 +87,6 @@ from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.types import PassDiagnostic
 import propstore.sidecar.schema as sidecar_schema
 from propstore.sidecar.stages import QuarantineDiagnostic
-from propstore.sidecar.sqlite import connect_sidecar
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -696,7 +696,7 @@ def _build_sidecar_file(
         try:
             from propstore.families.embeddings.declaration import extract_embeddings, load_vec_extension
 
-            snapshot_conn = connect_sidecar(output_path)
+            snapshot_conn = connect_sqlite_store(output_path)
             snapshot_conn.row_factory = sqlite3.Row
             load_vec_extension(snapshot_conn)
             embedding_snapshot = extract_embeddings(snapshot_conn)
@@ -722,7 +722,7 @@ def _build_sidecar_file(
                 snapshot_conn.close()
 
     def _write_sidecar(target_path: Path) -> None:
-        conn = connect_sidecar(target_path)
+        conn = connect_sqlite_store(target_path)
         try:
             write_schema_metadata(conn)
             create_tables(conn)
@@ -841,7 +841,7 @@ def build_grounding_sidecar(
     """Materialize the grounding substrate into a sidecar-shaped SQLite file."""
 
     def _write_grounding(target_path: Path) -> None:
-        conn = connect_sidecar(target_path)
+        conn = connect_sqlite_store(target_path)
         try:
             write_schema_metadata(conn)
             create_grounded_fact_table(conn)

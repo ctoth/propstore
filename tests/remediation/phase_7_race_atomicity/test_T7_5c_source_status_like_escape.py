@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.repository import Repository
-from propstore.sidecar.sqlite import connect_sidecar
+from quire.derived_runtime import connect_sqlite_store
 from propstore.source.common import source_branch_name
 from propstore.source.status import inspect_source_status
 from tests.family_helpers import materialized_world_store
@@ -14,7 +14,7 @@ def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     assert alien_branch != target_branch
 
     handle = materialized_world_store(repo, force=True)
-    conn = connect_sidecar(handle.path)
+    conn = connect_sqlite_store(handle.path)
     try:
         conn.execute(
             """

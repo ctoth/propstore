@@ -478,9 +478,9 @@ def fetch_concept_search_hits_from_sidecar(
     query: str,
     limit: int,
 ) -> list[dict[str, Any]]:
-    from propstore.sidecar.sqlite import connect_sidecar_readonly
+    from quire.derived_runtime import connect_sqlite_store_readonly
 
-    conn = connect_sidecar_readonly(sidecar)
+    conn = connect_sqlite_store_readonly(sidecar)
     try:
         try:
             return fetch_concept_search_hits(conn, query=query, limit=limit)
@@ -765,10 +765,10 @@ def embed_concepts_for_request(
         get_registered_models,
         load_vec_extension,
     )
-    from propstore.sidecar.sqlite import connect_sidecar
+    from quire.derived_runtime import connect_sqlite_store
 
     reports: list[tuple[str, Any]] = []
-    conn = connect_sidecar(sidecar)
+    conn = connect_sqlite_store(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         load_vec_extension(conn)
@@ -829,9 +829,9 @@ def find_similar_concept_rows(
         get_registered_models,
         load_vec_extension,
     )
-    from propstore.sidecar.sqlite import connect_sidecar
+    from quire.derived_runtime import connect_sqlite_store
 
-    conn = connect_sidecar(sidecar)
+    conn = connect_sqlite_store(sidecar)
     conn.row_factory = sqlite3.Row
     load_vec_extension(conn)
 

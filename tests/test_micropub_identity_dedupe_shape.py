@@ -13,7 +13,7 @@ from propstore.families.micropublications.declaration import (
     populate_micropublications,
 )
 from propstore.sidecar.schema import create_context_tables
-from propstore.sidecar.sqlite import connect_sidecar
+from quire.derived_runtime import connect_sqlite_store
 from propstore.sidecar.stages import MicropublicationSidecarRows
 
 
@@ -60,7 +60,7 @@ def test_micropublication_sidecar_dedupe_keeps_distinct_payload_ids(
     assert micropub_artifact_id(first) != micropub_artifact_id(changed)
 
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         create_context_tables(conn)
         create_micropublication_tables(conn)

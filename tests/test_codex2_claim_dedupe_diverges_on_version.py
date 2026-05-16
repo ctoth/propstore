@@ -12,7 +12,7 @@ from propstore.families.claims.declaration import (
     populate_claims,
 )
 from propstore.sidecar.schema import create_claim_tables, create_context_tables, create_tables
-from propstore.sidecar.sqlite import connect_sidecar
+from quire.derived_runtime import connect_sqlite_store
 from propstore.sidecar.stages import ClaimSidecarRows
 
 
@@ -150,7 +150,7 @@ def _claim_core_row(row: dict):
 
 
 def _open_claim_sidecar(path: Path):
-    conn = connect_sidecar(path)
+    conn = connect_sqlite_store(path)
     create_tables(conn)
     create_context_tables(conn)
     create_claim_tables(conn)

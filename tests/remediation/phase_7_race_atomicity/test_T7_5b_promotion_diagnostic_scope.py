@@ -4,13 +4,13 @@ from types import SimpleNamespace
 
 from propstore.sidecar.build import _populate_promotion_blocked_rows
 from propstore.sidecar.schema import create_claim_tables, create_context_tables
-from propstore.sidecar.sqlite import connect_sidecar
+from quire.derived_runtime import connect_sqlite_store
 from propstore.source.promote import compile_promotion_blocked_projection_rows
 
 
 def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         create_context_tables(conn)
         create_claim_tables(conn)
@@ -69,7 +69,7 @@ def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path
         [claim],
         {"claim-1": [("concept_mapping", "keep branch b")]},
     )
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         _populate_promotion_blocked_rows(
             conn,
@@ -80,7 +80,7 @@ def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path
     finally:
         conn.close()
 
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         rows = conn.execute(
             """

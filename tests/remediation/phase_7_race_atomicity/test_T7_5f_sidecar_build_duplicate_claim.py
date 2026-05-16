@@ -22,7 +22,7 @@ from propstore.sidecar.schema import (
     create_claim_tables,
     create_context_tables,
 )
-from propstore.sidecar.sqlite import connect_sidecar
+from quire.derived_runtime import connect_sqlite_store
 from propstore.sidecar.stages import ClaimSidecarRows
 
 
@@ -153,7 +153,7 @@ def _claim_core_row(row: dict):
 
 def test_populate_claims_tolerates_duplicate_artifact_ids(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         create_context_tables(conn)
         create_claim_tables(conn)

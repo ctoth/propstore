@@ -4,7 +4,7 @@ import sqlite3
 from contextlib import closing
 
 from quire.derived_store import checkpoint_and_close_sqlite
-from propstore.sidecar.sqlite import connect_sidecar, connect_sidecar_readonly
+from quire.derived_runtime import connect_sqlite_store, connect_sqlite_store_readonly
 
 
 def _sqlite_artifacts(path):
@@ -17,7 +17,7 @@ def _sqlite_artifacts(path):
 
 def test_readonly_connection_to_wal_database_creates_runtime_wal_or_shm(tmp_path) -> None:
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY, value TEXT NOT NULL)")
     conn.execute("INSERT INTO item (id, value) VALUES (1, 'alpha')")
     conn.commit()
@@ -26,7 +26,7 @@ def test_readonly_connection_to_wal_database_creates_runtime_wal_or_shm(tmp_path
     for artifact in _sqlite_artifacts(sidecar_path)[1:]:
         assert not artifact.exists()
 
-    with closing(connect_sidecar_readonly(sidecar_path)) as readonly:
+    with closing(connect_sqlite_store_readonly(sidecar_path)) as readonly:
         row = readonly.execute("SELECT value FROM item WHERE id = 1").fetchone()
 
     assert row[0] == "alpha"
@@ -37,7 +37,7 @@ def test_checkpointed_sqlite_file_can_publish_without_wal_or_shm_siblings(tmp_pa
     final_path = tmp_path / "published.sqlite"
     temp_path = tmp_path / ".published.sqlite.tmp"
 
-    conn = connect_sidecar(temp_path)
+    conn = connect_sqlite_store(temp_path)
     conn.execute("CREATE TABLE item (id INTEGER PRIMARY KEY, value TEXT NOT NULL)")
     conn.execute("INSERT INTO item (id, value) VALUES (1, 'published')")
     conn.commit()

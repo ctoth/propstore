@@ -24,7 +24,7 @@ from propstore.sidecar.schema import (
     create_claim_tables,
     create_context_tables,
 )
-from propstore.sidecar.sqlite import connect_sidecar
+from quire.derived_runtime import connect_sqlite_store
 from propstore.source.promote import compile_promotion_blocked_projection_rows
 
 
@@ -32,7 +32,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
     tmp_path,
 ):
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         create_tables(conn)
         create_context_tables(conn)
@@ -119,7 +119,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
         [claim],
         {"claim-shared": [("concept_mapping", "unresolved in beta")]},
     )
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         _populate_promotion_blocked_rows(
             conn,
@@ -130,7 +130,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
     finally:
         conn.close()
 
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         core_rows = conn.execute(
             "SELECT id, branch, promotion_status FROM claim_core "

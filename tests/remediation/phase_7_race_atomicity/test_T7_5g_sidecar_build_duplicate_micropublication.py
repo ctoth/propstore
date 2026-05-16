@@ -17,7 +17,7 @@ from propstore.families.micropublications.declaration import (
     populate_micropublications,
 )
 from propstore.sidecar.schema import create_context_tables
-from propstore.sidecar.sqlite import connect_sidecar
+from quire.derived_runtime import connect_sqlite_store
 from propstore.sidecar.stages import MicropublicationSidecarRows
 
 
@@ -39,7 +39,7 @@ def _make_micropub_values(
 
 def test_populate_micropublications_tolerates_duplicate_ids(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         create_context_tables(conn)
         create_micropublication_tables(conn)
@@ -94,7 +94,7 @@ def test_populate_micropublications_tolerates_duplicate_claim_link_ids(
     from propstore.sidecar.schema import create_claim_tables
 
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sidecar(sidecar_path)
+    conn = connect_sqlite_store(sidecar_path)
     try:
         create_context_tables(conn)
         create_claim_tables(conn)
