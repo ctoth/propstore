@@ -117,8 +117,8 @@ knowledge of its own.
 Status: executable through Phase 5 family verticals.
 
 Phase 3 and Phase 4 are complete. Phase 5 family verticals may open using the
-old-path searches below. Phase 7 remains blocked on QD-006, QD-009, and
-QD-011.
+old-path searches below. Phase 7 may proceed now that QD-006, QD-009, and
+QD-011 are complete.
 
 Closed pre-production blockers:
 
@@ -134,12 +134,6 @@ Closed pre-production blockers:
 
 Remaining blockers:
 
-- QD-006 runtime catalog inspection API blocks Phase 7 generated catalog
-  deletion work.
-- QD-009 SQLite connection/WAL/readonly policy API blocks Phase 7 sqlite
-  disposition work.
-- QD-011 generic derived-store runtime machinery blocks Phase 7 deletion of
-  Propstore-owned sidecar schema/query/build plumbing.
 - Later family verticals must still mark their ledger rows complete as their
   deletion slices land.
 
@@ -571,7 +565,7 @@ Gate result:
 
 ## Phase 1.6: Quire Dependency Plan
 
-Status: pending owner decision.
+Status: complete.
 
 Create a Quire dependency ledger in this workstream before Phase 2 opens.
 
@@ -612,17 +606,15 @@ Gate:
 | QD-003 | Declaration-to-vector rendering API | `quire.sqlite_vec_store` / vector projection primitive | concept and claim embedding declarations | Phase 3 concept vertical, Phase 4 claim vertical, embedding vertical | `powershell -File scripts/run_logged_pytest.ps1 -Label vec-declaration tests/test_sidecar_projection_vec_contract.py tests/test_no_embedding_key_collision.py tests/test_embed_operational_error.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
 | QD-004 | Generated row coercion API | `quire.projections` | generated family row modules replacing `propstore/core/row_types.py` | Phase 3+ row-type deletion slices | `uv run pyright propstore`; row coercion focused tests from ledger | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
 | QD-005 | Generated read-model/query API primitives | `quire.projections` | generated family query APIs replacing app/world/source SQL | Phase 3 concept SQL deletion; Phase 6 WorldQuery collapse | `powershell -File scripts/run_logged_pytest.ps1 -Label generated-query tests/test_world_query.py tests/test_concept_views.py tests/test_claim_views.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
-| QD-006 | Runtime catalog inspection API | future Quire runtime catalog module | generated schema/build validation; no raw query surface | Phase 7 generated catalog deletion | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-query tests/test_sidecar_query_read_only.py` until query deletion lands, then delete/update this test | TBD | pending |
+| QD-006 | Runtime catalog inspection API | `quire.projections` runtime catalog | generated schema/build validation; no raw query surface | Phase 7 generated catalog deletion | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-query tests/test_sidecar_query_read_only.py` until query deletion lands, then delete/update this test | `4b8837b11e4dcc5fc076b70eca117393fc4d2b76` | complete |
 | QD-007 | Derived-store lifecycle/cache-hash API | `quire.derived_store` | sidecar build/materialization replacement | Phase 7 sidecar lifecycle disposition | `powershell -File scripts/run_logged_pytest.ps1 -Label derived-store tests/test_codex5_sidecar_cache_derived_invalidation.py tests/test_build_sidecar.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
 | QD-008 | Family reference/FK declaration API | `quire.references` / artifact family metadata | family declarations for context/claim/concept/source references | Phase 3+ FK deletion slices | `powershell -File scripts/run_logged_pytest.ps1 -Label fk-declaration tests/test_sidecar_projection_contract.py tests/test_source_promote_dangling_refs.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
-| QD-009 | SQLite connection/WAL/readonly policy API | future Quire SQLite connection policy module | replacement for `propstore/sidecar/sqlite.py` | Phase 7 sidecar sqlite disposition | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-sqlite tests/test_sidecar_sqlite_runtime_contract.py` | TBD | pending |
+| QD-009 | SQLite connection/WAL/readonly policy API | `quire.derived_runtime` | replacement for `propstore/sidecar/sqlite.py` | Phase 7 sidecar sqlite disposition | `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-sqlite tests/test_sidecar_sqlite_runtime_contract.py` | `4b8837b11e4dcc5fc076b70eca117393fc4d2b76` | complete |
 | QD-010 | Schema/DDL byte-equivalence dump API | `quire.projections` / derived-store schema renderer | baseline comparison for generated DDL/FTS/vector output | Phase 3 before generated concept DDL lands | `powershell -File scripts/run_logged_pytest.ps1 -Label ddl-equivalence tests/test_sidecar_projection_contract.py tests/test_sidecar_projection_fts_contract.py tests/test_sidecar_projection_vec_contract.py` | `dfd643071d52834c3502ce4c26e1719a6d518de2` | complete |
-| QD-011 | Generic derived-store runtime machinery | future Quire derived-store runtime package | replacement for Propstore sidecar schema/query/sqlite/build mechanics | Phase 7 sidecar deletion | Quire package tests for runtime catalog and SQLite policy; Propstore gates `powershell -File scripts/run_logged_pytest.ps1 -Label derived-store-runtime tests/test_build_sidecar.py tests/test_fixture_schema_parity.py tests/test_sidecar_sqlite_runtime_contract.py tests/test_required_schema_completeness.py` | TBD | pending |
+| QD-011 | Generic derived-store runtime machinery | `quire.derived_runtime` plus `quire.projections` runtime catalog | replacement for Propstore sidecar schema/query/sqlite/build mechanics | Phase 7 sidecar deletion | Quire package tests for runtime catalog and SQLite policy; Propstore gates `powershell -File scripts/run_logged_pytest.ps1 -Label derived-store-runtime tests/test_build_sidecar.py tests/test_fixture_schema_parity.py tests/test_sidecar_sqlite_runtime_contract.py tests/test_required_schema_completeness.py` | `4b8837b11e4dcc5fc076b70eca117393fc4d2b76` | complete |
 
-Phase 2 may proceed with the owner ledger while these rows remain `pending`,
-but no production implementation slice may open until every row referenced by
-that slice has a pushed Quire commit/tag or is explicitly marked `not-needed`
-with evidence from the current Quire API.
+Production implementation slices may proceed because every Quire row referenced
+by this workstream has a pushed Quire commit/tag.
 
 Closure evidence for pinned Quire commit
 `dfd643071d52834c3502ce4c26e1719a6d518de2`:
@@ -653,10 +645,19 @@ Closure evidence for pinned Quire commit
   `scripts/render_sidecar_ddl_baseline.py` for current sidecar byte-equivalence
   baselines.
 
-QD-006, QD-009, and QD-011 stay pending because current Quire exposes only
-private catalog inspection helpers and does not own Propstore's sidecar
-WAL/busy-timeout/readonly connection policy or the generic runtime machinery
-needed to delete Propstore-owned sidecar schema/query/build plumbing.
+QD-006, QD-009, and QD-011 are closed by pushed Quire commit
+`4b8837b11e4dcc5fc076b70eca117393fc4d2b76`.
+
+- QD-006: `ProjectionSchema.runtime_catalog`,
+  `ProjectionRuntimeCatalog`, `ProjectionCatalogEntry`, and
+  `projection_catalog_entry` provide public runtime table/column catalog
+  inspection from projection declarations.
+- QD-009: `SqliteConnectionPolicy`, `connect_sqlite_store`,
+  `connect_sqlite_store_readonly`, and `configure_sqlite_connection` provide
+  public WAL/busy-timeout/readonly/query-only connection policy.
+- QD-011: `quire.derived_runtime` provides generic metadata table helpers and
+  schema validation, and `DerivedStoreHandle.open_readonly` uses the shared
+  readonly SQLite policy.
 
 ## Phase 2: Owner Classification Ledger
 
