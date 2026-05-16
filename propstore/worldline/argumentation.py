@@ -38,10 +38,7 @@ def capture_argumentation_state(
     )
 
     argumentation_state: WorldlineArgumentationState | None = None
-    if (
-        reasoning_backend == ReasoningBackend.CLAIM_GRAPH
-        and world.has_table("relation_edge")
-    ):
+    if reasoning_backend == ReasoningBackend.CLAIM_GRAPH:
         argumentation_state = _capture_claim_graph(
             world,
             active_ids,
@@ -49,10 +46,7 @@ def capture_argumentation_state(
             definition.policy,
             normalized_semantics,
         )
-    elif (
-        reasoning_backend == ReasoningBackend.ASPIC
-        and world.has_table("relation_edge")
-    ):
+    elif reasoning_backend == ReasoningBackend.ASPIC:
         argumentation_state = _capture_aspic(
             bound,
             world,
@@ -64,10 +58,7 @@ def capture_argumentation_state(
         )
     elif reasoning_backend == ReasoningBackend.ATMS:
         argumentation_state = _capture_atms(bound, definition.policy)
-    elif (
-        reasoning_backend == ReasoningBackend.PRAF
-        and world.has_table("relation_edge")
-    ):
+    elif reasoning_backend == ReasoningBackend.PRAF:
         argumentation_state = _capture_praf(
             world,
             active_ids,
@@ -356,7 +347,7 @@ def active_stance_dependencies(
             )
         return sorted(_stance_dependency_key(row) for row in stance_rows)
 
-    if isinstance(world, StanceStore) and world.has_table("relation_edge"):
+    if isinstance(world, StanceStore):
         return sorted(
             _stance_dependency_key(coerce_stance_row(row))
             for row in world.stances_between({str(claim_id) for claim_id in active_ids})

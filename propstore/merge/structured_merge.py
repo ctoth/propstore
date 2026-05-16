@@ -157,9 +157,6 @@ class _BranchSnapshotStore:
             if row.claim_id in claim_ids and row.target_claim_id in claim_ids
         ]
 
-    def has_table(self, name: str) -> bool:
-        return name == "relation_edge"
-
     def grounding_bundle(self):
         if self._grounding_bundle is None:
             self._grounding_bundle = _read_branch_grounding_bundle(

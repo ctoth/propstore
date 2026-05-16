@@ -39,11 +39,6 @@ class _ConflictStore(Protocol):
     def conflicts(self) -> Sequence[ConflictRowInput]: ...
 
 
-@runtime_checkable
-class _TableStore(Protocol):
-    def has_table(self, name: str) -> bool: ...
-
-
 class RevisionArgumentationStore:
     """Read-only store overlay exposing the claims active in a revision state."""
 
@@ -100,11 +95,6 @@ class RevisionArgumentationStore:
             ):
                 result.append(row)
         return result
-
-    def has_table(self, name: str) -> bool:
-        if not isinstance(self._backing_store, _TableStore):
-            return False
-        return bool(self._backing_store.has_table(name))
 
     def __getattr__(self, name: str) -> Any:
         if name == "compiled_graph":

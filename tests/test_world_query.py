@@ -2478,33 +2478,6 @@ class TestAlgorithmWorldQuery:
         assert result.status == "conflicted"
 
 
-# ── Performance: _has_table caching ──────────────────────────────────
-
-class TestHasTableCaching:
-    def test_has_table_consistent(self, world):
-        """_has_table returns same result on repeated calls."""
-        result1 = world._has_table("claim")
-        result2 = world._has_table("claim")
-        assert result1 == result2
-
-    def test_has_table_caches(self, world):
-        """_has_table should cache results in _table_cache."""
-        # Clear any existing cache
-        world._table_cache.clear()
-        # First call populates cache
-        result = world._has_table("claim")
-        assert "claim" in world._table_cache
-        assert world._table_cache["claim"] == result
-        # Second call should return from cache (same result)
-        result2 = world._has_table("claim")
-        assert result2 == result
-        # Non-existent table should also be cached
-        result3 = world._has_table("nonexistent_table_xyz")
-        assert result3 is False
-        assert "nonexistent_table_xyz" in world._table_cache
-        assert world._table_cache["nonexistent_table_xyz"] is False
-
-
 # ── Performance: conflicts caching ───────────────────────────────────
 
 class TestConflictsCaching:

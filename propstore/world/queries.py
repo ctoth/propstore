@@ -7,11 +7,11 @@ Request/result/failure types owned here:
 """
 from __future__ import annotations
 
-import sqlite3
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.reporting import JsonReportMixin
+from propstore.families.concepts.declaration import ConceptSearchQuerySyntaxError
 from propstore.world.types import RenderPolicy
 
 if TYPE_CHECKING:
@@ -399,7 +399,7 @@ def _resolve_world_query_target(
 
     try:
         hits = world.search(_fts_phrase(target))
-    except sqlite3.OperationalError:
+    except ConceptSearchQuerySyntaxError:
         hits = []
     candidate_ids = tuple(dict.fromkeys(str(hit.concept_id) for hit in hits))
     candidates = tuple(

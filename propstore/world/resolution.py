@@ -483,9 +483,6 @@ def _resolve_claim_graph_argumentation(
         shared_analyzer_input_from_store,
     )
 
-    if not world.has_table("relation_edge"):
-        return None, "no stance data"
-
     active_views = tuple(_coerce_resolution_claim(claim) for claim in active_claims)
     target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
     active_ids = {str(c.id) for c in active_views}
@@ -540,9 +537,6 @@ def _resolve_structured_argumentation(
     )
     from propstore.aspic_bridge import build_aspic_projection
     from propstore.structured_projection import compute_structured_justified_arguments
-
-    if not world.has_table("relation_edge"):
-        return None, "no stance data"
 
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     if isinstance(view, ClaimSupportView):
@@ -655,9 +649,6 @@ def _resolve_praf(
         ReasoningBackend.PRAF,
         semantics,
     )
-
-    if not world.has_table("relation_edge"):
-        return None, "no stance data", None
 
     target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
     active_views = tuple(_coerce_resolution_claim(claim) for claim in active_claims)

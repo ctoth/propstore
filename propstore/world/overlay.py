@@ -460,9 +460,6 @@ class _GraphOverlayStore:
     def condition_solver(self):
         return self._base.condition_solver()
 
-    def has_table(self, name: str) -> bool:
-        return self._base.has_table(name)
-
     def group_members(self, concept_id: str) -> list[str]:
         return list(self._base.group_members(concept_id))
 

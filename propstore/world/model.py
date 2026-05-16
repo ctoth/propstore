@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from quire.derived_store import DerivedStoreHandle
-from quire.derived_runtime import sqlite_table_exists, validate_derived_store_schema
+from quire.derived_runtime import validate_derived_store_schema
 from propstore.core.conditions.registry import (
     ConceptInfo,
     KindType,
@@ -174,7 +174,6 @@ class WorldQuery(WorldStore):
         self._registry: dict[str, ConceptInfo] | None = None
         self._lifting_system: LiftingSystem | None = None
         self._lifting_system_loaded = False
-        self._table_cache: dict[str, bool] = {}
         self._compiled_graph_cache = None
         self._active_graph_cache: dict[str, Any] = {}
         self._claim_logical_id_index: dict[str, str] | None = None
@@ -608,8 +607,6 @@ class WorldQuery(WorldStore):
         )
 
     def all_micropublications(self) -> list[ActiveMicropublication]:
-        if not self._has_table("micropublication"):
-            return []
         return select_all_micropublications(self._conn)
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
@@ -668,16 +665,6 @@ class WorldQuery(WorldStore):
             ConceptSimilarityHit.from_mapping(result)
             for result in find_similar_concepts(self._conn, concept_id, model_name, top_k=top_k)
         ]
-
-    def _has_table(self, name: str) -> bool:
-        if name in self._table_cache:
-            return self._table_cache[name]
-        result = sqlite_table_exists(self._conn, name)
-        self._table_cache[name] = result
-        return result
-
-    def has_table(self, name: str) -> bool:
-        return self._has_table(name)
 
     # ── Form algebra queries ────────────────────────────────────────
 

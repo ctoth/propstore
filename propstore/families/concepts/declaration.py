@@ -1028,10 +1028,15 @@ def select_all_form_algebra_rows(conn: sqlite3.Connection) -> list[dict[str, Any
 
 
 def search_concept_ids(conn: sqlite3.Connection, query: str) -> list[dict[str, Any]]:
-    rows = conn.execute(
-        "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH ?",
-        (query,),
-    ).fetchall()
+    try:
+        rows = conn.execute(
+            "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH ?",
+            (query,),
+        ).fetchall()
+    except sqlite3.OperationalError as exc:
+        if _is_concept_search_syntax_error(exc):
+            raise ConceptSearchQuerySyntaxError(query) from exc
+        raise
     return [dict(row) for row in rows]
 
 
