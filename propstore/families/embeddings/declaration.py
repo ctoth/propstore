@@ -6,8 +6,10 @@ import dataclasses
 import importlib
 import sqlite3
 from collections.abc import Callable, Sequence
+from pathlib import Path
 from typing import ClassVar
 
+from quire.derived_runtime import connect_sqlite_store
 from quire.sqlite_vec_store import (
     EMBEDDING_MODEL_PROJECTION,
     RestoreReport,
@@ -125,6 +127,13 @@ class EmbeddingSnapshot:
                 ),
             },
         )
+
+
+@dataclasses.dataclass(frozen=True)
+class EmbeddingSnapshotReport:
+    model_count: int
+    claim_vector_count: int
+    concept_vector_count: int
 
 
 def ensure_embedding_tables(conn: sqlite3.Connection) -> None:
@@ -412,6 +421,41 @@ def extract_embeddings(conn: sqlite3.Connection) -> EmbeddingSnapshot | None:
     return SidecarEmbeddingSnapshotStore(conn).extract()
 
 
+def extract_embedding_snapshot_from_store(
+    sidecar: Path,
+    *,
+    on_snapshot: Callable[[EmbeddingSnapshotReport], None] | None = None,
+) -> EmbeddingSnapshot | None:
+    if not sidecar.exists():
+        return None
+    snapshot_conn = None
+    try:
+        snapshot_conn = connect_sqlite_store(sidecar)
+        snapshot_conn.row_factory = sqlite3.Row
+        load_vec_extension(snapshot_conn)
+        snapshot = extract_embeddings(snapshot_conn)
+        if snapshot is None:
+            return None
+        if on_snapshot is not None:
+            on_snapshot(
+                EmbeddingSnapshotReport(
+                    model_count=len(snapshot.models),
+                    claim_vector_count=sum(
+                        len(vectors) for vectors in snapshot.claim_vectors.values()
+                    ),
+                    concept_vector_count=sum(
+                        len(vectors) for vectors in snapshot.concept_vectors.values()
+                    ),
+                )
+            )
+        return snapshot
+    except ImportError:
+        return None
+    finally:
+        if snapshot_conn is not None:
+            snapshot_conn.close()
+
+
 def restore_embeddings(
     conn: sqlite3.Connection,
     snapshot: EmbeddingSnapshot,
@@ -419,3 +463,15 @@ def restore_embeddings(
     """Restore embeddings after sidecar rebuild."""
 
     return SidecarEmbeddingSnapshotStore(conn).restore(snapshot)
+
+
+def restore_embedding_snapshot(
+    conn: sqlite3.Connection,
+    snapshot: EmbeddingSnapshot,
+) -> RestoreReport:
+    conn.row_factory = sqlite3.Row
+    try:
+        load_vec_extension(conn)
+        return restore_embeddings(conn, snapshot)
+    finally:
+        conn.row_factory = None

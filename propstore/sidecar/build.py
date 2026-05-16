@@ -15,8 +15,6 @@ whether to show these rows. This implements the discipline declared in
 from __future__ import annotations
 
 import os
-import sqlite3
-from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
@@ -66,6 +64,11 @@ from propstore.families.diagnostics.declaration import (
     record_pass_diagnostics,
     record_quarantine_diagnostics,
 )
+from propstore.families.embeddings.declaration import (
+    EmbeddingSnapshotReport,
+    extract_embedding_snapshot_from_store,
+    restore_embedding_snapshot,
+)
 from propstore.families.projection_catalog import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_PROJECTION_SCHEMA,
@@ -92,13 +95,6 @@ _SIDECAR_CACHE_DEPENDENCIES = (
     "gunray",
     "quire",
 )
-
-
-@dataclass(frozen=True)
-class EmbeddingSnapshotReport:
-    model_count: int
-    claim_vector_count: int
-    concept_vector_count: int
 
 
 def world_sidecar_hash_inputs(
@@ -467,36 +463,10 @@ def _build_sidecar_file(
         _compile_source_promotion_blocked_rows(repo)
     )
 
-    embedding_snapshot = None
-    if output_path.exists():
-        snapshot_conn = None
-        try:
-            from propstore.families.embeddings.declaration import extract_embeddings, load_vec_extension
-
-            snapshot_conn = connect_sqlite_store(output_path)
-            snapshot_conn.row_factory = sqlite3.Row
-            load_vec_extension(snapshot_conn)
-            embedding_snapshot = extract_embeddings(snapshot_conn)
-            if embedding_snapshot is not None:
-                claim_count = sum(
-                    len(vectors) for vectors in embedding_snapshot.claim_vectors.values()
-                )
-                concept_count = sum(
-                    len(vectors) for vectors in embedding_snapshot.concept_vectors.values()
-                )
-                if on_embedding_snapshot is not None:
-                    on_embedding_snapshot(
-                        EmbeddingSnapshotReport(
-                            model_count=len(embedding_snapshot.models),
-                            claim_vector_count=claim_count,
-                            concept_vector_count=concept_count,
-                        )
-                    )
-        except ImportError:
-            pass
-        finally:
-            if snapshot_conn is not None:
-                snapshot_conn.close()
+    embedding_snapshot = extract_embedding_snapshot_from_store(
+        output_path,
+        on_snapshot=on_embedding_snapshot,
+    )
 
     def _write_sidecar(target_path: Path) -> None:
         conn = connect_sqlite_store(target_path)
@@ -590,18 +560,11 @@ def _build_sidecar_file(
 
             if embedding_snapshot is not None:
                 try:
-                    from propstore.families.embeddings.declaration import load_vec_extension, restore_embeddings
-
-                    conn.row_factory = sqlite3.Row
-                    load_vec_extension(conn)
-                    restore_embeddings(conn, embedding_snapshot)
-                    conn.row_factory = None
+                    restore_embedding_snapshot(conn, embedding_snapshot)
                 except ImportError as exc:
                     record_embedding_restore_diagnostic(conn, exc)
-                    conn.row_factory = None
                 except Exception as exc:
                     record_embedding_restore_diagnostic(conn, exc)
-                    conn.row_factory = None
 
             if sidecar_plan.claim_rows is not None:
                 populate_stances(conn, sidecar_plan.stance_rows)
