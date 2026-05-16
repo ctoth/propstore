@@ -13,13 +13,9 @@ from quire.projections import ProjectionRow
 
 from propstore.claims import (
     ClaimFileEntry,
-    claim_file_claims,
-    claim_file_filename,
-    claim_file_stage,
 )
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.conditions import (
     check_condition_ir,
     checked_condition_set,
@@ -57,19 +53,10 @@ from propstore.families.forms.stages import (
 )
 from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols
-from propstore.families.claims.storage import (
-    extract_deferred_stance_rows_with_diagnostics,
-    prepare_claim_insert_row,
-    prepare_claim_concept_link_rows,
-)
 from propstore.families.claims.declaration import (
-    CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
-    CLAIM_CONCEPT_LINK_PROJECTION,
-    CLAIM_CORE_PROJECTION,
-    CLAIM_NUMERIC_PAYLOAD_PROJECTION,
-    CLAIM_TEXT_PAYLOAD_PROJECTION,
     CONFLICT_WITNESS_PROJECTION,
     compile_authored_justification_sidecar_rows_with_diagnostics,
+    compile_claim_sidecar_rows,
     compile_raw_id_quarantine_sidecar_rows,
 )
 from propstore.families.diagnostics.declaration import (
@@ -81,7 +68,6 @@ from propstore.families.micropublications.declaration import (
 )
 from propstore.families.relations.declaration import (
     RELATION_EDGE_PROJECTION,
-    claim_stance_projection_row,
     compile_authored_stance_sidecar_rows_with_diagnostics,
 )
 from propstore.families.sources.declaration import (
@@ -403,140 +389,6 @@ def _compile_form_algebra_rows(
             )
 
     return tuple(rows)
-
-
-def compile_claim_sidecar_rows(
-    claim_bundle: ClaimCompilationBundle,
-    concept_registry: dict,
-    *,
-    form_registry: dict | None = None,
-) -> ClaimSidecarRows:
-    claim_seq = 0
-    claim_core_rows: list[ProjectionRow] = []
-    numeric_payload_rows: list[ProjectionRow] = []
-    text_payload_rows: list[ProjectionRow] = []
-    algorithm_payload_rows: list[ProjectionRow] = []
-    claim_link_rows: list[ProjectionRow] = []
-    stance_rows: list[ProjectionRow] = []
-    quarantine_diagnostics: list[QuarantineDiagnostic] = []
-    claim_index = build_claim_file_reference_index(
-        claim_bundle.normalized_claim_files
-    )
-    file_stage_by_filename: dict[str, str | None] = {
-        claim_file_filename(claim_file): claim_file_stage(claim_file)
-        for claim_file in claim_bundle.normalized_claim_files
-    }
-
-    for semantic_file in claim_bundle.semantic_files:
-        file_stage = file_stage_by_filename.get(
-            claim_file_filename(semantic_file.normalized_entry)
-        )
-        for semantic_claim in semantic_file.claims:
-            claim_seq += 1
-            row = prepare_claim_insert_row(
-                semantic_claim,
-                semantic_claim.source_paper,
-                claim_seq=claim_seq,
-                concept_registry=concept_registry,
-                form_registry=form_registry,
-            )
-            if file_stage is not None:
-                row["stage"] = file_stage
-            claim_core_rows.append(
-                CLAIM_CORE_PROJECTION.row(
-                    id=row["id"],
-                    primary_logical_id=row["primary_logical_id"],
-                    logical_ids_json=row["logical_ids_json"],
-                    version_id=row["version_id"],
-                    content_hash=row.get("content_hash") or "",
-                    seq=row["seq"],
-                    type=row["type"],
-                    target_concept=row["target_concept"],
-                    source_slug=row["source_slug"],
-                    source_paper=row["source_paper"],
-                    provenance_page=row["provenance_page"],
-                    provenance_json=row["provenance_json"],
-                    context_id=row["context_id"],
-                    premise_kind=row.get("premise_kind") or "ordinary",
-                    branch=row.get("branch"),
-                    build_status=row.get("build_status") or "ingested",
-                    stage=row.get("stage"),
-                    promotion_status=row.get("promotion_status"),
-                )
-            )
-            numeric_payload_rows.append(
-                CLAIM_NUMERIC_PAYLOAD_PROJECTION.row(
-                    claim_id=row["id"],
-                    value=row["value"],
-                    lower_bound=row["lower_bound"],
-                    upper_bound=row["upper_bound"],
-                    uncertainty=row["uncertainty"],
-                    uncertainty_type=row["uncertainty_type"],
-                    sample_size=row["sample_size"],
-                    unit=row["unit"],
-                    value_si=row["value_si"],
-                    lower_bound_si=row["lower_bound_si"],
-                    upper_bound_si=row["upper_bound_si"],
-                )
-            )
-            text_payload_rows.append(
-                CLAIM_TEXT_PAYLOAD_PROJECTION.row(
-                    claim_id=row["id"],
-                    conditions_cel=row["conditions_cel"],
-                    conditions_ir=row["conditions_ir"],
-                    statement=row["statement"],
-                    expression=row["expression"],
-                    sympy_generated=row["sympy_generated"],
-                    sympy_error=row["sympy_error"],
-                    name=row["name"],
-                    measure=row["measure"],
-                    listener_population=row["listener_population"],
-                    methodology=row["methodology"],
-                    notes=row["notes"],
-                    description=row["description"],
-                    auto_summary=row["auto_summary"],
-                )
-            )
-            algorithm_payload_rows.append(
-                CLAIM_ALGORITHM_PAYLOAD_PROJECTION.row(
-                    claim_id=row["id"],
-                    body=row["body"],
-                    canonical_ast=row["canonical_ast"],
-                    variables_json=row["variables_json"],
-                    algorithm_stage=row["algorithm_stage"],
-                )
-            )
-            for values in prepare_claim_concept_link_rows(semantic_claim):
-                claim_link_rows.append(
-                    CLAIM_CONCEPT_LINK_PROJECTION.row(
-                        claim_id=values[0],
-                        concept_id=values[1],
-                        role=values[2],
-                        ordinal=values[3],
-                        binding_name=values[4],
-                    )
-                )
-            deferred_stance_rows, deferred_stance_diagnostics = (
-                extract_deferred_stance_rows_with_diagnostics(
-                    semantic_claim,
-                    claim_index,
-                )
-            )
-            stance_rows.extend(
-                claim_stance_projection_row(values)
-                for values in deferred_stance_rows
-            )
-            quarantine_diagnostics.extend(deferred_stance_diagnostics)
-
-    return ClaimSidecarRows(
-        claim_core_rows=tuple(claim_core_rows),
-        numeric_payload_rows=tuple(numeric_payload_rows),
-        text_payload_rows=tuple(text_payload_rows),
-        algorithm_payload_rows=tuple(algorithm_payload_rows),
-        claim_link_rows=tuple(claim_link_rows),
-        stance_rows=tuple(stance_rows),
-        quarantine_diagnostics=tuple(quarantine_diagnostics),
-    )
 
 
 def compile_conflict_sidecar_rows(
