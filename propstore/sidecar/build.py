@@ -35,7 +35,10 @@ from propstore.compiler.context import (
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.families.claims.passes import register_claim_pipeline, run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
-from propstore.families.contexts.declaration import ContextSidecarRows, populate_contexts
+from propstore.families.contexts.declaration import (
+    filter_invalid_context_lifting_rows,
+    populate_contexts,
+)
 from propstore.families.contexts.passes import register_context_pipeline
 from propstore.families.contexts.stages import (
     LoadedContext,
@@ -209,24 +212,6 @@ def _semantic_pass_versions() -> tuple[dict[str, str], ...]:
                 item["output_stage"],
             ),
         )
-    )
-
-
-def _filter_invalid_context_lifting_rows(
-    rows: ContextSidecarRows,
-) -> ContextSidecarRows:
-    context_ids = {row.values["id"] for row in rows.context_rows}
-    valid_lifting_rows = tuple(
-        row
-        for row in rows.lifting_rule_rows
-        if row.values["source_context_id"] in context_ids
-        and row.values["target_context_id"] in context_ids
-    )
-    return ContextSidecarRows(
-        context_rows=rows.context_rows,
-        assumption_rows=rows.assumption_rows,
-        lifting_rule_rows=valid_lifting_rows,
-        lifting_materialization_rows=rows.lifting_materialization_rows,
     )
 
 
@@ -498,7 +483,7 @@ def _build_sidecar_file(
             record_authoring_diagnostics(conn, authoring_diagnostics)
             record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
             context_rows = (
-                _filter_invalid_context_lifting_rows(sidecar_plan.context_rows)
+                filter_invalid_context_lifting_rows(sidecar_plan.context_rows)
                 if context_diagnostics
                 else sidecar_plan.context_rows
             )

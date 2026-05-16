@@ -146,6 +146,24 @@ def populate_contexts(
     )
 
 
+def filter_invalid_context_lifting_rows(
+    rows: ContextSidecarRows,
+) -> ContextSidecarRows:
+    context_ids = {row.values["id"] for row in rows.context_rows}
+    valid_lifting_rows = tuple(
+        row
+        for row in rows.lifting_rule_rows
+        if row.values["source_context_id"] in context_ids
+        and row.values["target_context_id"] in context_ids
+    )
+    return ContextSidecarRows(
+        context_rows=rows.context_rows,
+        assumption_rows=rows.assumption_rows,
+        lifting_rule_rows=valid_lifting_rows,
+        lifting_materialization_rows=rows.lifting_materialization_rows,
+    )
+
+
 def compile_context_sidecar_rows(
     contexts: Sequence[LoadedContext],
     *,
