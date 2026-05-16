@@ -73,9 +73,9 @@ from propstore.families.contexts.declaration import (
 from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
 from propstore.families.embeddings.declaration import ensure_embedding_tables
 from propstore.families.micropublications.declaration import create_micropublication_tables
+from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
 from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 from propstore.families.sources.declaration import SOURCE_PROJECTION
-from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
 
 SCHEMA_VERSION = 6
 SIDECAR_META_KEY = "sidecar"
@@ -146,7 +146,7 @@ def validate_world_sidecar_schema(conn: sqlite3.Connection) -> None:
         )
 
     try:
-        WORLD_SIDECAR_SCHEMA.validate_connection(conn)
+        PROPSTORE_WORLD_PROJECTION_SCHEMA.validate_connection(conn)
     except ProjectionSchemaError as error:
         raise ValueError(
             f"Unsupported sidecar schema: {error}. Rebuild with 'pks build'."

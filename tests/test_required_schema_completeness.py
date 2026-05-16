@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from quire.projections import projection_name
 
-from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
+from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
 
 
 def _required_columns_by_table() -> dict[str, frozenset[str]]:
     return {
         projection_name(projection): frozenset(projection.column_names)
-        for projection in WORLD_SIDECAR_SCHEMA.projections
+        for projection in PROPSTORE_WORLD_PROJECTION_SCHEMA.projections
     }
 
 

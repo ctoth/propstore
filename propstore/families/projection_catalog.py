@@ -1,11 +1,9 @@
-"""Propstore world sidecar projection contract."""
+"""Family-owned derived projection catalog."""
 
 from __future__ import annotations
 
-from quire.projections import (
-    ProjectionSchema,
-    create_projection_schema,
-)
+from quire.projections import ProjectionSchema, create_projection_schema
+
 from propstore.families.calibration.declaration import CALIBRATION_COUNTS_PROJECTION
 from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
@@ -20,12 +18,13 @@ from propstore.families.claims.declaration import (
 )
 from propstore.families.concepts.declaration import (
     ALIAS_PROJECTION,
+    CONCEPT_EMBEDDING_STATUS_PROJECTION,
     CONCEPT_FTS_PROJECTION,
     CONCEPT_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     FORM_PROJECTION,
-    PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
+    PARAMETERIZATION_PROJECTION,
 )
 from propstore.families.contexts.declaration import (
     CONTEXT_ASSUMPTION_PROJECTION,
@@ -34,24 +33,20 @@ from propstore.families.contexts.declaration import (
     CONTEXT_PROJECTION,
 )
 from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
-from propstore.families.embeddings.declaration import (
-    CONCEPT_EMBEDDING_STATUS_PROJECTION,
-    EMBEDDING_MODEL_PROJECTION,
-)
+from propstore.families.embeddings.declaration import EMBEDDING_MODEL_PROJECTION
 from propstore.families.micropublications.declaration import (
     MICROPUBLICATION_CLAIM_PROJECTION,
     MICROPUBLICATION_PROJECTION,
 )
+from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 from propstore.families.rules.declaration import (
     GROUNDED_BUNDLE_INPUT_PROJECTION,
     GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION,
     GROUNDED_FACT_PROJECTION,
 )
-from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
 from propstore.families.sources.declaration import SOURCE_PROJECTION
 
-
-WORLD_SIDECAR_SCHEMA = create_projection_schema(
+PROPSTORE_WORLD_PROJECTION_SCHEMA: ProjectionSchema = create_projection_schema(
     SOURCE_PROJECTION,
     CONCEPT_PROJECTION,
     ALIAS_PROJECTION,

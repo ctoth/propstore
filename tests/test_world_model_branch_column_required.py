@@ -32,7 +32,7 @@ from tests.family_helpers import world_query_from_sqlite_path
 
 from quire.projections import projection_name
 
-from propstore.sidecar.world_projection import WORLD_SIDECAR_SCHEMA
+from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
 from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
 from propstore.world.model import WorldQuery
 
@@ -82,7 +82,7 @@ def _build_legacy_sidecar(path: Path) -> None:
 def _required_columns_by_table() -> dict[str, frozenset[str]]:
     return {
         projection_name(projection): frozenset(projection.column_names)
-        for projection in WORLD_SIDECAR_SCHEMA.projections
+        for projection in PROPSTORE_WORLD_PROJECTION_SCHEMA.projections
     }
 
 
