@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from ast_equiv import canonical_dump
+from ast_equiv.canonicalizer import AlgorithmParseError
 from quire.projections import (
     FtsProjection,
     ProjectionColumn,
@@ -20,11 +22,23 @@ from quire.projections import (
 from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
 
 from propstore.core.concept_status import ConceptStatus, coerce_concept_status
+from propstore.core.conditions import (
+    check_condition_ir,
+    checked_condition_set,
+    checked_condition_set_to_json,
+)
+from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.dimensions import verify_form_algebra_dimensions
+from propstore.families.forms.stages import FormDefinition, kind_value_from_form_name
+from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
+from propstore.parameterization_groups import build_groups
+from propstore.propagation import rewrite_parameterization_symbols
 
 if TYPE_CHECKING:
     from quire.projections import ProjectionRow
+    from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
 
 
 @dataclass(frozen=True)
@@ -46,6 +60,288 @@ class ConceptSidecarRows:
     parameterization_rows: tuple["ProjectionRow", ...]
     parameterization_group_rows: tuple["ProjectionRow", ...]
     form_algebra_rows: tuple["ProjectionRow", ...]
+
+
+def _concept_symbol_candidates(record: "ConceptRecord") -> tuple[str, ...]:
+    return record.reference_keys()
+
+
+def compile_concept_sidecar_rows(
+    concepts: list["LoadedConcept"],
+    form_registry: dict[str, FormDefinition],
+    cel_registry: dict[str, ConceptInfo],
+) -> ConceptSidecarRows:
+    form_rows: list["ProjectionRow"] = []
+    concept_rows: list["ProjectionRow"] = []
+    alias_rows: list["ProjectionRow"] = []
+    relationship_rows: list[ConceptRelationshipProjectionRow] = []
+    relation_edge_rows: list["ProjectionRow"] = []
+    parameterization_rows: list["ProjectionRow"] = []
+    parameterization_group_rows: list["ProjectionRow"] = []
+    form_algebra_rows: list["ProjectionRow"] = []
+
+    for form_definition in form_registry.values():
+        dimensions_json = (
+            json.dumps(form_definition.dimensions)
+            if form_definition.dimensions is not None
+            else None
+        )
+        form_rows.append(
+            FORM_PROJECTION.row(
+                name=form_definition.name,
+                kind=form_definition.kind.value
+                if hasattr(form_definition.kind, "value")
+                else str(form_definition.kind),
+                unit_symbol=form_definition.unit_symbol,
+                is_dimensionless=1 if form_definition.is_dimensionless else 0,
+                dimensions=dimensions_json,
+            )
+        )
+
+    condition_registry = with_standard_synthetic_bindings(cel_registry)
+
+    for seq, concept in enumerate(concepts, 1):
+        record = concept.record
+        content_hash = record.version_id.removeprefix("sha256:")[:16]
+        form_definition = form_registry.get(record.form)
+        is_dimensionless = (
+            1
+            if form_definition is not None and form_definition.is_dimensionless
+            else 0
+        )
+        unit_symbol = form_definition.unit_symbol if form_definition is not None else None
+        form_parameters_json = (
+            json.dumps(record.form_parameters)
+            if record.form_parameters
+            else None
+        )
+        range_min = None if record.range is None else record.range[0]
+        range_max = None if record.range is None else record.range[1]
+        concept_id = str(record.artifact_id)
+
+        concept_rows.append(
+            CONCEPT_PROJECTION.row(
+                id=concept_id,
+                primary_logical_id=record.primary_logical_id or "",
+                logical_ids_json=json.dumps(
+                    [logical_id.to_payload() for logical_id in record.logical_ids]
+                ),
+                version_id=record.version_id,
+                content_hash=content_hash,
+                seq=seq,
+                canonical_name=record.canonical_name,
+                status=record.status.value,
+                domain=record.domain,
+                definition=record.definition,
+                kind_type=form_definition.kind.value
+                if form_definition is not None
+                else kind_value_from_form_name(record.form),
+                form=record.form,
+                form_parameters=form_parameters_json,
+                range_min=range_min,
+                range_max=range_max,
+                is_dimensionless=is_dimensionless,
+                unit_symbol=unit_symbol,
+                created_date=record.created_date,
+                last_modified=record.last_modified,
+            )
+        )
+
+        for alias in record.aliases:
+            alias_rows.append(
+                ALIAS_PROJECTION.row(
+                    concept_id=concept_id,
+                    alias_name=alias.name,
+                    source=alias.source,
+                )
+            )
+
+        for relationship in record.relationships:
+            conditions_json = (
+                json.dumps(list(relationship.conditions))
+                if relationship.conditions
+                else None
+            )
+            target_id = str(relationship.target)
+            relationship_rows.append(
+                ConceptRelationshipProjectionRow(
+                    source_id=concept_id,
+                    relationship_type=relationship.relationship_type,
+                    target_id=target_id,
+                    conditions_cel=conditions_json,
+                    note=relationship.note,
+                )
+            )
+            relation_edge_rows.append(
+                RELATION_EDGE_PROJECTION.row(
+                    source_kind="concept",
+                    source_id=concept_id,
+                    relation_type=relationship.relationship_type,
+                    target_kind="concept",
+                    target_id=target_id,
+                    conditions_cel=conditions_json,
+                    note=relationship.note,
+                )
+            )
+
+        for parameterization in record.parameterizations:
+            if parameterization.formula is None:
+                raise ValueError(f"Parameterization for {concept_id} is missing formula")
+            if parameterization.exactness is None:
+                raise ValueError(f"Parameterization for {concept_id} is missing exactness")
+            inputs = [str(input_id) for input_id in parameterization.inputs]
+            conditions_json = (
+                json.dumps(list(parameterization.conditions))
+                if parameterization.conditions
+                else None
+            )
+            conditions_ir = (
+                json.dumps(
+                    checked_condition_set_to_json(
+                        checked_condition_set(
+                            check_condition_ir(condition, condition_registry)
+                            for condition in parameterization.conditions
+                        )
+                    ),
+                    sort_keys=True,
+                )
+                if parameterization.conditions
+                else None
+            )
+            parameterization_rows.append(
+                PARAMETERIZATION_PROJECTION.row(
+                    output_concept_id=concept_id,
+                    concept_ids=json.dumps(inputs),
+                    formula=parameterization.formula,
+                    sympy=parameterization.sympy,
+                    exactness=str(parameterization.exactness),
+                    conditions_cel=conditions_json,
+                    conditions_ir=conditions_ir,
+                )
+            )
+
+    groups = build_groups(concepts)
+    for group_id, group_members in enumerate(sorted(groups, key=lambda group: min(group))):
+        for concept_id in sorted(group_members):
+            parameterization_group_rows.append(
+                PARAMETERIZATION_GROUP_PROJECTION.row(
+                    concept_id=concept_id,
+                    group_id=group_id,
+                )
+            )
+
+    form_algebra_rows.extend(_compile_form_algebra_rows(concepts, form_registry))
+
+    return ConceptSidecarRows(
+        form_rows=tuple(form_rows),
+        concept_rows=tuple(concept_rows),
+        alias_rows=tuple(alias_rows),
+        relationship_rows=tuple(relationship_rows),
+        relation_edge_rows=tuple(relation_edge_rows),
+        parameterization_rows=tuple(parameterization_rows),
+        parameterization_group_rows=tuple(parameterization_group_rows),
+        form_algebra_rows=tuple(form_algebra_rows),
+    )
+
+
+def _compile_form_algebra_rows(
+    concepts: list["LoadedConcept"],
+    form_registry: dict[str, FormDefinition],
+) -> tuple["ProjectionRow", ...]:
+    if not form_registry:
+        return ()
+
+    id_to_form: dict[str, str] = {}
+    id_to_symbols: dict[str, tuple[str, ...]] = {}
+    for concept in concepts:
+        record = concept.record
+        concept_id = str(record.artifact_id)
+        id_to_form[concept_id] = record.form
+        id_to_symbols[concept_id] = _concept_symbol_candidates(record)
+
+    seen: set[tuple[object, ...]] = set()
+    rows: list["ProjectionRow"] = []
+
+    for concept in concepts:
+        record = concept.record
+        concept_id = str(record.artifact_id)
+        output_form = id_to_form.get(concept_id)
+        if not output_form:
+            continue
+
+        for parameterization in record.parameterizations:
+            inputs = [str(input_id) for input_id in parameterization.inputs]
+            if not inputs:
+                continue
+
+            input_forms: list[str] = []
+            all_resolved = True
+            for input_id in inputs:
+                input_form = id_to_form.get(input_id)
+                if not input_form:
+                    all_resolved = False
+                    break
+                input_forms.append(input_form)
+            if not all_resolved:
+                continue
+
+            sympy_str = parameterization.sympy
+            operation = ""
+            if sympy_str:
+                operation = rewrite_parameterization_symbols(
+                    sympy_str,
+                    symbol_aliases={
+                        concept_id: id_to_symbols.get(concept_id, ()),
+                        **{
+                            input_id: id_to_symbols.get(input_id, ())
+                            for input_id in inputs
+                        },
+                    },
+                    symbol_targets={
+                        concept_id: output_form,
+                        **{
+                            input_id: id_to_form[input_id]
+                            for input_id in inputs
+                        },
+                    },
+                )
+            if not operation:
+                operation = parameterization.formula or ""
+
+            dim_verified = 1
+            if sympy_str and operation:
+                output_fd = form_registry.get(output_form)
+                input_fd_list = [form_registry.get(form_name) for form_name in input_forms]
+                if output_fd is not None and all(fd is not None for fd in input_fd_list):
+                    if not verify_form_algebra_dimensions(
+                        output_fd,
+                        input_fd_list,  # type: ignore[arg-type]
+                        operation,
+                    ):
+                        dim_verified = 0
+                else:
+                    dim_verified = 0
+
+            try:
+                canonical_operation = canonical_dump(operation, {})
+            except AlgorithmParseError:
+                canonical_operation = operation
+            dedup_key = (output_form, tuple(sorted(input_forms)), canonical_operation)
+            if dedup_key in seen:
+                continue
+            seen.add(dedup_key)
+            rows.append(
+                FORM_ALGEBRA_PROJECTION.row(
+                    output_form=output_form,
+                    input_forms=json.dumps(input_forms),
+                    operation=operation,
+                    source_concept_id=concept_id,
+                    source_formula=parameterization.formula or "",
+                    dim_verified=dim_verified,
+                )
+            )
+
+    return tuple(rows)
 
 
 @dataclass(frozen=True)

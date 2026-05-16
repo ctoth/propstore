@@ -5,8 +5,11 @@ import sqlite3
 
 from propstore.core.conditions.registry import KindType
 from propstore.families.forms.stages import FormDefinition
-from propstore.families.concepts.declaration import FORM_PROJECTION, populate_concept_sidecar_rows
-from propstore.sidecar.passes import compile_concept_sidecar_rows
+from propstore.families.concepts.declaration import (
+    FORM_PROJECTION,
+    compile_concept_sidecar_rows,
+    populate_concept_sidecar_rows,
+)
 
 
 def test_form_rows_are_projection_rows_and_round_trip_dimensions() -> None:
