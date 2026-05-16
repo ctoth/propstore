@@ -23,6 +23,7 @@ from propstore.core.active_claims import (
     ActiveClaimInput,
     coerce_active_claims,
 )
+from propstore.core.environment import AuthoredJustificationStore
 from propstore.core.claim_values import ClaimProvenance
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.families.forms.stages import kind_type_from_form_name
@@ -547,14 +548,33 @@ def _resolve_structured_argumentation(
     if not isinstance(world, GroundingBundleStore):
         return None, "ASPIC backend requires a grounded bundle-capable store"
 
+    active_ids = {str(_claim_id(claim)) for claim in active_claim_rows}
+    active_graph = view._active_graph if isinstance(view, HasActiveGraph) else None
+    bundle = world.grounding_bundle()
+    if active_graph is None:
+        stance_rows = tuple(world.stances_between(active_ids))
+        authored_justifications = (
+            tuple(world.justifications_for_claim_scope(active_ids))
+            if isinstance(world, AuthoredJustificationStore)
+            else ()
+        )
+        has_grounded_rule_input = bool(
+            bundle.source_rules
+            or bundle.source_facts
+            or bundle.arguments
+            or bundle.projection_frames
+        )
+        if not stance_rows and not authored_justifications and not has_grounded_rule_input:
+            return None, "no stance data"
+
     projection = build_aspic_projection(
         world,
         cast(list[ActiveClaimInput], active_claim_rows),
-        bundle=world.grounding_bundle(),
+        bundle=bundle,
         support_metadata=support_metadata,
         comparison=comparison,
         link=link,
-        active_graph=view._active_graph if isinstance(view, HasActiveGraph) else None,
+        active_graph=active_graph,
     )
     result = compute_structured_justified_arguments(
         projection,
