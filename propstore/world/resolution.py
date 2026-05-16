@@ -23,7 +23,7 @@ from propstore.core.active_claims import (
     ActiveClaimInput,
     coerce_active_claims,
 )
-from propstore.core.environment import AuthoredJustificationStore
+from propstore.core.environment import AuthoredJustificationStore, StanceStore
 from propstore.core.claim_values import ClaimProvenance
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.families.forms.stages import kind_type_from_form_name
@@ -552,10 +552,16 @@ def _resolve_structured_argumentation(
     active_graph = view._active_graph if isinstance(view, HasActiveGraph) else None
     bundle = world.grounding_bundle()
     if active_graph is None:
-        stance_rows = tuple(world.stances_between(active_ids))
+        has_stance_surface = isinstance(world, StanceStore)
+        stance_rows = (
+            tuple(world.stances_between(active_ids))
+            if has_stance_surface
+            else ()
+        )
+        has_authored_justification_surface = isinstance(world, AuthoredJustificationStore)
         authored_justifications = (
             tuple(world.justifications_for_claim_scope(active_ids))
-            if isinstance(world, AuthoredJustificationStore)
+            if has_authored_justification_surface
             else ()
         )
         has_grounded_rule_input = bool(
@@ -564,7 +570,12 @@ def _resolve_structured_argumentation(
             or bundle.arguments
             or bundle.projection_frames
         )
-        if not stance_rows and not authored_justifications and not has_grounded_rule_input:
+        if (
+            (has_stance_surface or has_authored_justification_surface)
+            and not stance_rows
+            and not authored_justifications
+            and not has_grounded_rule_input
+        ):
             return None, "no stance data"
 
     projection = build_aspic_projection(
