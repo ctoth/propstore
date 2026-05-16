@@ -11,9 +11,9 @@ from propstore.families.claims.declaration import (
     CLAIM_TEXT_PAYLOAD_PROJECTION,
     populate_claims,
 )
-from propstore.sidecar.schema import create_claim_tables, create_context_tables, create_tables
 from quire.derived_runtime import connect_sqlite_store
 from propstore.sidecar.stages import ClaimSidecarRows
+from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
 def _claim_row(
@@ -151,9 +151,7 @@ def _claim_core_row(row: dict):
 
 def _open_claim_sidecar(path: Path):
     conn = connect_sqlite_store(path)
-    create_tables(conn)
-    create_context_tables(conn)
-    create_claim_tables(conn)
+    build_world_projection_schema(conn)
     conn.execute(
         """
         INSERT INTO concept (

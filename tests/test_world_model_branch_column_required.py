@@ -17,7 +17,7 @@ These tests pin two guarantees:
 Co-located helper `_build_legacy_sidecar` constructs a minimal on-disk
 sidecar fixture, bypassing the real compiler. It writes the full
 projection contract's required columns except that `claim_core` omits the
-`branch` column. Then it writes `meta.schema_version = SCHEMA_VERSION` so
+`branch` column. Then it writes the current sidecar schema version so
 the version guard passes (we want to prove the column check fires, not the
 version check).
 """
@@ -33,7 +33,10 @@ from tests.family_helpers import world_query_from_sqlite_path
 from quire.projections import projection_name
 
 from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
-from propstore.sidecar.schema import SCHEMA_VERSION, SIDECAR_META_KEY
+from propstore.families.projection_catalog import (
+    PROPSTORE_WORLD_META_KEY,
+    PROPSTORE_WORLD_SCHEMA_VERSION,
+)
 from propstore.world.model import WorldQuery
 
 
@@ -55,7 +58,7 @@ def _build_legacy_sidecar(path: Path) -> None:
     every required column verbatim from the schema dict, so the only
     validator-visible defect is the missing `branch` column.
 
-    The meta row is written with the current `SCHEMA_VERSION` so the
+    The meta row is written with the current sidecar schema version so the
     version guard passes cleanly and we isolate the column check.
     """
     conn = sqlite3.connect(path)
@@ -72,7 +75,7 @@ def _build_legacy_sidecar(path: Path) -> None:
             conn.execute(f"CREATE TABLE {table} ({column_defs})")  # noqa: S608
         conn.execute(
             "INSERT INTO meta (key, schema_version) VALUES (?, ?)",
-            (SIDECAR_META_KEY, SCHEMA_VERSION),
+            (PROPSTORE_WORLD_META_KEY, PROPSTORE_WORLD_SCHEMA_VERSION),
         )
         conn.commit()
     finally:
@@ -90,7 +93,7 @@ def test_legacy_sidecar_without_branch_column_is_rejected(tmp_path: Path) -> Non
     """`WorldQuery` must reject a sidecar where `claim_core.branch` is absent.
 
     We construct a sidecar that satisfies every other row of
-    the projection contract verbatim and writes the current `SCHEMA_VERSION`
+    the projection contract verbatim and writes the current sidecar schema version
     so only the missing `branch` column can trigger the error. The
     validator must raise `ValueError` whose message mentions both
     `branch` and `claim_core` so a human reviewer can see which column

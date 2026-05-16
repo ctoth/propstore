@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from quire.derived_store import DerivedStoreHandle
-from quire.derived_runtime import sqlite_table_exists
+from quire.derived_runtime import sqlite_table_exists, validate_derived_store_schema
 from propstore.core.conditions.registry import (
     ConceptInfo,
     KindType,
@@ -76,8 +76,12 @@ from propstore.families.concepts.declaration import (
     select_parameterizations_for_output_concept,
     search_concept_ids,
 )
+from propstore.families.projection_catalog import (
+    PROPSTORE_WORLD_META_KEY,
+    PROPSTORE_WORLD_PROJECTION_SCHEMA,
+    PROPSTORE_WORLD_SCHEMA_VERSION,
+)
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
-from propstore.sidecar.schema import validate_world_sidecar_schema
 from propstore.core.conditions.solver import ConditionSolver
 
 if TYPE_CHECKING:
@@ -224,7 +228,20 @@ class WorldQuery(WorldStore):
         return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:
-        validate_world_sidecar_schema(self._conn)
+        try:
+            validate_derived_store_schema(
+                self._conn,
+                schema=PROPSTORE_WORLD_PROJECTION_SCHEMA,
+                expected_version=PROPSTORE_WORLD_SCHEMA_VERSION,
+                key=PROPSTORE_WORLD_META_KEY,
+            )
+        except ValueError as error:
+            message = str(error).replace(
+                "Unsupported derived store schema",
+                "Unsupported sidecar schema",
+                1,
+            )
+            raise ValueError(f"{message} Rebuild with 'pks build'.") from error
 
     # ── Lazy Z3 setup ────────────────────────────────────────────────
 

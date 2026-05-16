@@ -18,12 +18,9 @@ from propstore.families.claims.declaration import (
     CLAIM_TEXT_PAYLOAD_PROJECTION,
     populate_claims,
 )
-from propstore.sidecar.schema import (
-    create_claim_tables,
-    create_context_tables,
-)
 from quire.derived_runtime import connect_sqlite_store
 from propstore.sidecar.stages import ClaimSidecarRows
+from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
 def _make_claim_row(artifact_id: str, source_paper: str, seq: int) -> dict:
@@ -155,8 +152,7 @@ def test_populate_claims_tolerates_duplicate_artifact_ids(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = connect_sqlite_store(sidecar_path)
     try:
-        create_context_tables(conn)
-        create_claim_tables(conn)
+        build_world_projection_schema(conn)
 
         # Two rows share the artifact_id. Simulates aspirin's two
         # McNeil claim files that share 43 artifact_ids.

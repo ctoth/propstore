@@ -13,12 +13,11 @@ from __future__ import annotations
 
 from propstore.families.micropublications.declaration import (
     MicropublicationProjectionRow,
-    create_micropublication_tables,
     populate_micropublications,
 )
-from propstore.sidecar.schema import create_context_tables
 from quire.derived_runtime import connect_sqlite_store
 from propstore.sidecar.stages import MicropublicationSidecarRows
+from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
 def _make_micropub_values(
@@ -41,8 +40,7 @@ def test_populate_micropublications_tolerates_duplicate_ids(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = connect_sqlite_store(sidecar_path)
     try:
-        create_context_tables(conn)
-        create_micropublication_tables(conn)
+        build_world_projection_schema(conn)
 
         # Minimum context row to satisfy the FK from micropublication.
         conn.execute(
@@ -91,14 +89,10 @@ def test_populate_micropublications_tolerates_duplicate_claim_link_ids(
     micropub files so the second file's claim-link rows don't hit the
     composite PK on ``micropublication_claim``.
     """
-    from propstore.sidecar.schema import create_claim_tables
-
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = connect_sqlite_store(sidecar_path)
     try:
-        create_context_tables(conn)
-        create_claim_tables(conn)
-        create_micropublication_tables(conn)
+        build_world_projection_schema(conn)
 
         conn.execute(
             "INSERT INTO context (id, name) VALUES (?, ?)",

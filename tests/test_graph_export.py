@@ -8,7 +8,7 @@ import yaml
 from tests.family_helpers import materialized_world_store_path, world_query_from_sqlite_path
 from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
 from propstore.families.identity.concepts import derive_concept_artifact_id
-from propstore.sidecar.schema import build_minimal_world_model_schema
+from tests.sidecar_schema_helpers import build_world_projection_schema
 from propstore.world import WorldQuery
 from tests.conftest import (
     normalize_claims_payload,
@@ -359,7 +359,7 @@ class TestUnboundGraph:
     def test_measurement_claim_of_edge_uses_target_concept(self, tmp_path):
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        build_minimal_world_model_schema(conn)
+        build_world_projection_schema(conn)
         conn.execute(
             "INSERT INTO concept ("
             "id, content_hash, seq, canonical_name, status, domain, "

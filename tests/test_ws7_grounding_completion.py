@@ -217,12 +217,12 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     from propstore.families.rules.declaration import (
         populate_grounded_facts,
     )
-    from propstore.sidecar.schema import build_minimal_world_model_schema
+    from tests.sidecar_schema_helpers import build_world_projection_schema
     from propstore.world.model import WorldQuery
 
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = sqlite3.connect(sidecar_path)
-    build_minimal_world_model_schema(conn)
+    build_world_projection_schema(conn)
     populate_grounded_facts(conn, _runtime_grounded_bundle())
     conn.commit()
     conn.close()

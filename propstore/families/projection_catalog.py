@@ -25,6 +25,7 @@ from propstore.families.concepts.declaration import (
     FORM_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
     PARAMETERIZATION_PROJECTION,
+    RELATIONSHIP_PROJECTION,
 )
 from propstore.families.contexts.declaration import (
     CONTEXT_ASSUMPTION_PROJECTION,
@@ -46,12 +47,16 @@ from propstore.families.rules.declaration import (
 )
 from propstore.families.sources.declaration import SOURCE_PROJECTION
 
+PROPSTORE_WORLD_SCHEMA_VERSION = 6
+PROPSTORE_WORLD_META_KEY = "sidecar"
+
 PROPSTORE_WORLD_PROJECTION_SCHEMA: ProjectionSchema = create_projection_schema(
     SOURCE_PROJECTION,
     CONCEPT_PROJECTION,
     ALIAS_PROJECTION,
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
+    RELATIONSHIP_PROJECTION,
     RELATION_EDGE_PROJECTION,
     FORM_PROJECTION,
     FORM_ALGEBRA_PROJECTION,

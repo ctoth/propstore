@@ -31,15 +31,12 @@ from propstore.families.contexts.stages import (
     loaded_contexts_to_lifting_system,
     parse_context_record,
 )
-from propstore.sidecar.schema import (
-    build_minimal_world_model_schema,
-    create_context_tables,
-    populate_contexts,
-)
+from propstore.families.contexts.declaration import create_context_tables, populate_contexts
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from tests.conftest import make_compilation_context
 from tests.family_helpers import world_query_from_sqlite_path
+from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
 def write_context(ctx_dir: Path, name: str, data: dict) -> Path:
@@ -357,7 +354,14 @@ class TestContextSidecar:
             compile_context_sidecar_rows,
         )
 
-        populate_contexts(conn, compile_context_sidecar_rows(contexts))
+        rows = compile_context_sidecar_rows(contexts)
+        populate_contexts(
+            conn,
+            context_rows=rows.context_rows,
+            assumption_rows=rows.assumption_rows,
+            lifting_rule_rows=rows.lifting_rule_rows,
+            lifting_materialization_rows=rows.lifting_materialization_rows,
+        )
 
         row = conn.execute("SELECT * FROM context WHERE id='ctx_target'").fetchone()
         assert json.loads(row["parameters_json"]) == {"domain": "speech"}
@@ -443,7 +447,7 @@ class TestWorldQueryContextLifting:
     def test_world_query_bind_loads_lifting_rules_from_sidecar(self, tmp_path: Path) -> None:
         sidecar = tmp_path / "propstore.sqlite"
         conn = sqlite3.connect(sidecar)
-        build_minimal_world_model_schema(conn)
+        build_world_projection_schema(conn)
         conn.execute(
             "INSERT INTO context (id, name, parameters_json, perspective) VALUES (?, ?, ?, ?)",
             ("ctx_root", "Root", "{}", None),

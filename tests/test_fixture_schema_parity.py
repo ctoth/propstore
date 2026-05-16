@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 
 import tests.conftest as project_conftest
 
 from quire.derived_runtime import write_derived_store_schema_metadata
 
-from propstore.sidecar import schema
-from propstore.families.micropublications.declaration import create_micropublication_tables
-from propstore.families.embeddings.declaration import ensure_embedding_tables
-from propstore.families.rules.declaration import create_grounded_fact_table
+from propstore.families.projection_catalog import (
+    PROPSTORE_WORLD_META_KEY,
+    PROPSTORE_WORLD_PROJECTION_SCHEMA,
+    PROPSTORE_WORLD_SCHEMA_VERSION,
+)
+from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
 def _table_info(conn: sqlite3.Connection, table: str) -> list[tuple[object, ...]]:
@@ -36,27 +39,22 @@ def _table_names(conn: sqlite3.Connection) -> set[str]:
     return {str(row[0]) for row in rows}
 
 
-def test_world_query_fixture_schema_is_built_by_production_helper() -> None:
+def test_world_query_fixture_schema_is_built_from_projection_catalog() -> None:
     assert not hasattr(project_conftest, "create_world_model_schema")
-    assert hasattr(schema, "build_minimal_world_model_schema")
+    assert not (Path(__file__).parents[1] / "propstore" / "sidecar" / "schema.py").exists()
 
 
 def test_minimal_world_model_schema_matches_production_builders() -> None:
     fixture_conn = sqlite3.connect(":memory:")
     production_conn = sqlite3.connect(":memory:")
 
-    schema.build_minimal_world_model_schema(fixture_conn)
+    build_world_projection_schema(fixture_conn)
     write_derived_store_schema_metadata(
         production_conn,
-        schema_version=schema.SCHEMA_VERSION,
-        key=schema.SIDECAR_META_KEY,
+        schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
+        key=PROPSTORE_WORLD_META_KEY,
     )
-    schema.create_tables(production_conn)
-    schema.create_context_tables(production_conn)
-    schema.create_claim_tables(production_conn)
-    create_micropublication_tables(production_conn)
-    create_grounded_fact_table(production_conn)
-    ensure_embedding_tables(production_conn)
+    PROPSTORE_WORLD_PROJECTION_SCHEMA.create_all(production_conn)
 
     assert _table_names(fixture_conn) == _table_names(production_conn)
     for table in sorted(_table_names(production_conn)):

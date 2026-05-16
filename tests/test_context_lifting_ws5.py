@@ -15,9 +15,10 @@ from propstore.families.contexts.declaration import (
     ContextSidecarRows,
     compile_context_lifting_materialization_rows,
     compile_context_sidecar_rows,
+    create_context_tables,
+    populate_contexts,
 )
 from propstore.families.contexts.stages import LoadedContext
-from propstore.sidecar.schema import create_context_tables, populate_contexts
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from propstore.core.conditions.solver import (
@@ -247,14 +248,18 @@ def test_sidecar_stores_lifting_materialization_provenance() -> None:
         materializations
     )
 
+    rows = ContextSidecarRows(
+        context_rows=(),
+        assumption_rows=(),
+        lifting_rule_rows=(),
+        lifting_materialization_rows=materialization_rows,
+    )
     populate_contexts(
         conn,
-        ContextSidecarRows(
-            context_rows=(),
-            assumption_rows=(),
-            lifting_rule_rows=(),
-            lifting_materialization_rows=materialization_rows,
-        ),
+        context_rows=rows.context_rows,
+        assumption_rows=rows.assumption_rows,
+        lifting_rule_rows=rows.lifting_rule_rows,
+        lifting_materialization_rows=rows.lifting_materialization_rows,
     )
 
     row = conn.execute(

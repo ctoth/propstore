@@ -13,7 +13,6 @@ from typing import Any, cast
 
 from quire.derived_store import DerivedStoreHandle
 from propstore.conflict_detector import ConflictClass
-from propstore.sidecar.schema import build_minimal_world_model_schema
 from propstore.stances import StanceType
 from propstore.support_revision.history import (
     JournalOperator,
@@ -23,6 +22,7 @@ from propstore.support_revision.history import (
 from propstore.world.model import WorldQuery
 from quire.tree_path import FilesystemTreePath
 from tests.family_helpers import world_query_from_sqlite_path
+from tests.sidecar_schema_helpers import build_world_projection_schema
 from tests.fixtures.journal import (
     make_assertion_atom,
     make_journal_entry,
@@ -53,7 +53,7 @@ def _write_sidecar(
     sidecar_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(sidecar_path)
     try:
-        build_minimal_world_model_schema(conn)
+        build_world_projection_schema(conn)
         for seq, claim_id in enumerate(claim_ids):
             conn.execute(
                 """

@@ -12,7 +12,7 @@ from propstore.families.micropublications.declaration import (
     create_micropublication_tables,
     populate_micropublications,
 )
-from propstore.sidecar.schema import create_context_tables
+from propstore.families.contexts.declaration import create_context_tables
 from quire.derived_runtime import connect_sqlite_store
 from propstore.sidecar.stages import MicropublicationSidecarRows
 

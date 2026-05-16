@@ -12,8 +12,8 @@ import pytest
 from hypothesis import given, settings, assume
 from hypothesis import strategies as st
 
+from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
 from propstore.opinion import Opinion
-from propstore.sidecar.schema import create_tables
 from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 
 
@@ -64,7 +64,7 @@ class TestOpinionSchemaColumns:
 
     def test_sidecar_opinion_base_rate_has_no_schema_default(self):
         sidecar = sqlite3.connect(":memory:")
-        create_tables(sidecar)
+        PROPSTORE_WORLD_PROJECTION_SCHEMA.create_all(sidecar)
         cur = sidecar.execute("PRAGMA table_info(relation_edge)")
         defaults = {row[1]: row[4] for row in cur.fetchall()}
 

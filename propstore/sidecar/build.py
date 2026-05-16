@@ -37,7 +37,7 @@ from propstore.compiler.context import (
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.families.claims.passes import register_claim_pipeline, run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
-from propstore.families.contexts.declaration import ContextSidecarRows
+from propstore.families.contexts.declaration import ContextSidecarRows, populate_contexts
 from propstore.families.contexts.passes import register_context_pipeline
 from propstore.families.contexts.stages import (
     LoadedContext,
@@ -66,19 +66,12 @@ from propstore.families.diagnostics.declaration import (
     QuarantinableWriter,
     delete_promotion_blocked_diagnostics,
 )
-from propstore.families.embeddings.declaration import ensure_embedding_tables
-from propstore.sidecar.schema import (
-    SCHEMA_VERSION,
-    SIDECAR_META_KEY,
-    create_claim_tables,
-    create_context_tables,
-    create_tables,
-    populate_contexts,
+from propstore.families.projection_catalog import (
+    PROPSTORE_WORLD_META_KEY,
+    PROPSTORE_WORLD_PROJECTION_SCHEMA,
+    PROPSTORE_WORLD_SCHEMA_VERSION,
 )
-from propstore.families.micropublications.declaration import (
-    create_micropublication_tables,
-    populate_micropublications,
-)
+from propstore.families.micropublications.declaration import populate_micropublications
 from propstore.families.rules.declaration import (
     create_grounded_fact_table,
     populate_grounded_facts,
@@ -87,7 +80,6 @@ from propstore.families.sources.declaration import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.types import PassDiagnostic
-import propstore.sidecar.schema as sidecar_schema
 from propstore.sidecar.stages import QuarantineDiagnostic
 
 if TYPE_CHECKING:
@@ -123,7 +115,7 @@ def world_sidecar_hash_inputs(
     return {
         "source_revision": source_revision,
         "source_branch_tips": source_branch_tips,
-        "sidecar_schema_version": sidecar_schema.SCHEMA_VERSION,
+        "sidecar_schema_version": PROPSTORE_WORLD_SCHEMA_VERSION,
         "passes": _semantic_pass_versions(),
         "family_contract_versions": _family_contract_versions(),
         "build_time_config": {
@@ -161,7 +153,7 @@ def world_sidecar_hash(
         _SIDECAR_CACHE_DEPENDENCIES,
     )
     content_hash = derived_store_content_hash(
-        projection_version=str(sidecar_schema.SCHEMA_VERSION),
+        projection_version=str(PROPSTORE_WORLD_SCHEMA_VERSION),
         schema_hash=str(inputs["generated_schema_version"]),
         dependencies=dependencies,
         extra_inputs={
@@ -728,12 +720,10 @@ def _build_sidecar_file(
         try:
             write_derived_store_schema_metadata(
                 conn,
-                schema_version=SCHEMA_VERSION,
-                key=SIDECAR_META_KEY,
+                schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
+                key=PROPSTORE_WORLD_META_KEY,
             )
-            create_tables(conn)
-            create_context_tables(conn)
-            create_grounded_fact_table(conn)
+            PROPSTORE_WORLD_PROJECTION_SCHEMA.create_all(conn)
             populate_sources(
                 conn,
                 sidecar_plan.source_rows,
@@ -743,23 +733,25 @@ def _build_sidecar_file(
                 sidecar_plan.concept_rows,
             )
             CONCEPT_FTS_PROJECTION.populate_from_source_query(conn)
-            create_claim_tables(conn)
-            ensure_embedding_tables(conn)
             _record_form_diagnostics(conn, form_diagnostics)
             _record_concept_diagnostics(conn, concept_diagnostics)
             _record_context_diagnostics(conn, context_diagnostics)
             _record_claim_diagnostics(conn, tuple(recorded_claim_diagnostics))
             _record_authoring_diagnostics(conn, authoring_diagnostics)
             _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
-            create_micropublication_tables(conn)
-
             context_rows = (
                 _filter_invalid_context_lifting_rows(sidecar_plan.context_rows)
                 if context_diagnostics
                 else sidecar_plan.context_rows
             )
             if context_rows.context_rows:
-                populate_contexts(conn, context_rows)
+                populate_contexts(
+                    conn,
+                    context_rows=context_rows.context_rows,
+                    assumption_rows=context_rows.assumption_rows,
+                    lifting_rule_rows=context_rows.lifting_rule_rows,
+                    lifting_materialization_rows=context_rows.lifting_materialization_rows,
+                )
 
             if sidecar_plan.claim_rows is not None:
                 populate_claims(conn, sidecar_plan.claim_rows)
@@ -851,8 +843,8 @@ def build_grounding_sidecar(
         try:
             write_derived_store_schema_metadata(
                 conn,
-                schema_version=SCHEMA_VERSION,
-                key=SIDECAR_META_KEY,
+                schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
+                key=PROPSTORE_WORLD_META_KEY,
             )
             create_grounded_fact_table(conn)
             grounded_bundle = build_grounded_bundle(

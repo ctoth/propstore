@@ -5,8 +5,7 @@ from pathlib import Path
 import yaml
 
 from propstore.repository import Repository
-from propstore.sidecar.build import export_sidecar as build_sidecar
-from propstore.sidecar import schema
+from propstore.sidecar import build as sidecar_build
 
 
 def test_world_sidecar_hash_changes_on_schema_version_bump(
@@ -26,12 +25,16 @@ def test_world_sidecar_hash_changes_on_schema_version_bump(
     sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
     hash_path = sidecar_path.with_suffix(".hash")
 
-    assert build_sidecar(repo, sidecar_path, force=True) is True
+    assert sidecar_build.export_sidecar(repo, sidecar_path, force=True) is True
     first_hash = hash_path.read_text().strip()
 
-    monkeypatch.setattr(schema, "SCHEMA_VERSION", schema.SCHEMA_VERSION + 1)
+    monkeypatch.setattr(
+        sidecar_build,
+        "PROPSTORE_WORLD_SCHEMA_VERSION",
+        sidecar_build.PROPSTORE_WORLD_SCHEMA_VERSION + 1,
+    )
 
-    assert build_sidecar(repo, sidecar_path) is True
+    assert sidecar_build.export_sidecar(repo, sidecar_path) is True
     second_hash = hash_path.read_text().strip()
 
     assert second_hash != first_hash

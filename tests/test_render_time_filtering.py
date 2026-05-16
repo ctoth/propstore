@@ -346,10 +346,10 @@ class TestNoDefeatTable:
 
     def test_build_schema_has_no_defeat_table(self):
         """The build schema should not contain a defeat table."""
-        from propstore.sidecar.schema import create_claim_tables, create_tables
+        from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
+
         conn = sqlite3.connect(":memory:")
-        create_tables(conn)
-        create_claim_tables(conn)
+        PROPSTORE_WORLD_PROJECTION_SCHEMA.create_all(conn)
         tables = {
             row[0] for row in
             conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()

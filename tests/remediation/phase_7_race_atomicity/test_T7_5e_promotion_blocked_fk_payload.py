@@ -18,14 +18,9 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 from propstore.sidecar.build import _populate_promotion_blocked_rows
-from propstore.families.micropublications.declaration import create_micropublication_tables
-from propstore.sidecar.schema import (
-    create_tables,
-    create_claim_tables,
-    create_context_tables,
-)
 from quire.derived_runtime import connect_sqlite_store
 from propstore.source.promote import compile_promotion_blocked_projection_rows
+from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
 def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
@@ -34,10 +29,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
     sidecar_path = tmp_path / "propstore.sqlite"
     conn = connect_sqlite_store(sidecar_path)
     try:
-        create_tables(conn)
-        create_context_tables(conn)
-        create_claim_tables(conn)
-        create_micropublication_tables(conn)
+        build_world_projection_schema(conn)
         # Seed a claim_core row as a sibling branch would have produced
         # it, with all three payload child tables populated. This is
         # exactly the shape that ``insert_claim_row`` produces in

@@ -14,9 +14,7 @@ These tests exercise the contract described in
   lifts the two blocked filters; ``show_quarantined=True`` surfaces
   ``build_diagnostics`` rows.
 
-Fixtures populate a real sqlite sidecar via
-``propstore.sidecar.schema``'s real ``create_tables`` +
-``create_claim_tables`` helpers and the grounding sidecar schema helper,
+Fixtures populate a real sqlite sidecar from the family projection catalog,
 then insert a small hand-crafted mix of rows covering each lifecycle
 state. No compile path is exercised — the tests target the render
 layer's filtering behavior in isolation.
@@ -29,14 +27,14 @@ from pathlib import Path
 
 import pytest
 
-from propstore.sidecar.schema import (
-    SCHEMA_VERSION,
-    SIDECAR_META_KEY,
-    build_minimal_world_model_schema,
+from propstore.families.projection_catalog import (
+    PROPSTORE_WORLD_META_KEY,
+    PROPSTORE_WORLD_SCHEMA_VERSION,
 )
 from propstore.world.model import WorldQuery
 from propstore.world.types import RenderPolicy
 from tests.family_helpers import world_query_from_sqlite_path
+from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
 def _insert_minimal_source(conn: sqlite3.Connection, slug: str = "test-source") -> None:
@@ -153,7 +151,7 @@ def lifecycle_sidecar(tmp_path: Path) -> Path:
 
     conn = sqlite3.connect(sidecar_path)
     try:
-        build_minimal_world_model_schema(conn)
+        build_world_projection_schema(conn)
 
         _insert_minimal_source(conn)
         _insert_concept(conn)
@@ -211,10 +209,10 @@ def test_fixture_sidecar_is_schema_v6(lifecycle_sidecar: Path) -> None:
     try:
         row = conn.execute(
             "SELECT schema_version FROM meta WHERE key = ?",
-            (SIDECAR_META_KEY,),
+            (PROPSTORE_WORLD_META_KEY,),
         ).fetchone()
         assert row is not None
-        assert row[0] == SCHEMA_VERSION == 6
+        assert row[0] == PROPSTORE_WORLD_SCHEMA_VERSION == 6
     finally:
         conn.close()
 
