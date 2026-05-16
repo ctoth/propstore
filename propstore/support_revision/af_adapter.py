@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, cast, runtime_checkable
 
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.families.relations.declaration import (
@@ -10,9 +10,8 @@ from propstore.families.relations.declaration import (
     ConflictRowInput,
     StanceRow,
     StanceRowInput,
-    coerce_conflict_row,
-    coerce_stance_row,
 )
+from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.support_revision.state import EpistemicState
 from propstore.core.labels import Label, SupportQuality
 from propstore.support_revision.state import is_assertion_atom, is_assumption_atom
@@ -78,7 +77,7 @@ class RevisionArgumentationStore:
             return []
         result: list[StanceRow] = []
         for row_input in self._backing_store.stances_between(set(requested)):
-            row = coerce_stance_row(row_input)
+            row = cast(StanceRow, STANCE_ROW_MODEL.coerce(row_input))
             if str(row.claim_id) in requested and str(row.target_claim_id) in requested:
                 result.append(row)
         return result
@@ -88,7 +87,7 @@ class RevisionArgumentationStore:
             return []
         result: list[ConflictRow] = []
         for row_input in self._backing_store.conflicts():
-            row = coerce_conflict_row(row_input)
+            row = cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row_input))
             if (
                 str(row.claim_a_id) in self._active_claim_ids
                 and str(row.claim_b_id) in self._active_claim_ids

@@ -11,6 +11,7 @@ TDD tests:
 
 import json
 import sqlite3
+from typing import cast
 
 import pytest
 import yaml
@@ -32,11 +33,12 @@ from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.declaration import coerce_claim_row
 from propstore.families.concepts.declaration import coerce_concept_row
 from propstore.families.relations.declaration import (
-    coerce_conflict_row,
-    coerce_stance_row,
+    ConflictRow,
     ConflictRowInput,
+    StanceRow,
     StanceRowInput,
 )
+from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.core.store_results import (
     WorldStoreStats,
     ClaimSimilarityHit,
@@ -109,12 +111,12 @@ def _runtime_claim_id_set(claims) -> set[str]:
 
 
 def _conflict_pair(conflict) -> frozenset[str]:
-    row = coerce_conflict_row(conflict)
+    row = cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict))
     return frozenset((str(row.claim_a_id), str(row.claim_b_id)))
 
 
 def _conflict_concept_id(conflict) -> str | None:
-    row = coerce_conflict_row(conflict)
+    row = cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict))
     return None if row.concept_id is None else str(row.concept_id)
 
 
@@ -977,7 +979,7 @@ class TestUnboundQueries:
         conflicts = world.conflicts()
         assert len(conflicts) >= 1
         assert all(
-            isinstance(coerce_conflict_row(conflict).warning_class, ConflictClass)
+            isinstance(cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict)).warning_class, ConflictClass)
             for conflict in conflicts
         )
 
@@ -1076,7 +1078,7 @@ class TestExplain:
     def test_explain_returns_stance_chain(self, world):
         chain = world.explain(_claim_artifact("test_paper_alpha", "claim2"))
         assert len(chain) >= 1
-        first = coerce_stance_row(chain[0])
+        first = cast(StanceRow, STANCE_ROW_MODEL.coerce(chain[0]))
         assert first.target_claim_id == _claim_artifact("test_paper_alpha", "claim1")
         assert first.stance_type is StanceType.REBUTS
 
@@ -1891,7 +1893,10 @@ class TestHypothesisProperties:
     def test_unbound_conflicts_match_build_time(self, world):
         world_conflict_pairs = {
             (conflict.claim_a_id, conflict.claim_b_id)
-            for conflict in (coerce_conflict_row(row) for row in world.conflicts())
+            for conflict in (
+                cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row))
+                for row in world.conflicts()
+            )
         }
         bound_conflict_pairs = {
             (c.claim_a_id, c.claim_b_id) for c in world.bind().conflicts()
@@ -2176,12 +2181,17 @@ class TestTransitiveConsistency:
         monkeypatch.setattr(
             "propstore.world.overlay._recomputed_conflicts",
             lambda store, claims: [
-                coerce_conflict_row({
-                    "concept_id": "concept1",
-                    "claim_a_id": "claim2",
-                    "claim_b_id": "claim1",
-                    "warning_class": "CONFLICT",
-                })
+                cast(
+                    ConflictRow,
+                    CONFLICT_ROW_MODEL.from_row(
+                        {
+                            "concept_id": "concept1",
+                            "claim_a_id": "claim2",
+                            "claim_b_id": "claim1",
+                            "warning_class": "CONFLICT",
+                        }
+                    ),
+                )
             ],
         )
 

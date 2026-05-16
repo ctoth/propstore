@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 from propstore.core.conditions import checked_condition_set, checked_condition_set_from_json
 from propstore.core.conditions.cel_frontend import check_condition_ir
@@ -19,11 +19,10 @@ from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore
 from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_context_id
 from propstore.families.claims.declaration import ClaimRowInput, coerce_claim_row
 from propstore.families.relations.declaration import (
-    coerce_conflict_row,
-    coerce_stance_row,
     ConflictRow,
     StanceRow,
 )
+from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import (
     coerce_parameterization_row,
     ParameterizationRow,
@@ -977,7 +976,7 @@ class BoundWorld(BeliefSpace):
 
         result: list[ConflictRow] = []
         all_conflicts = [
-            coerce_conflict_row(conflict)
+            cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict))
             for conflict in self._store.conflicts()
         ]
         for conflict in all_conflicts:
@@ -1020,7 +1019,7 @@ class BoundWorld(BeliefSpace):
         full_chain = self._store.explain(resolved_claim_id)
         result: list[StanceRow] = []
         for stance_input in full_chain:
-            stance = coerce_stance_row(stance_input)
+            stance = cast(StanceRow, STANCE_ROW_MODEL.coerce(stance_input))
             target = self._store.get_claim(stance.target_claim_id)
             if target is not None and self.is_active(target):
                 result.append(stance)

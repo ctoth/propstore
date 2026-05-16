@@ -19,7 +19,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from collections.abc import Iterable, Mapping, Sequence
 from itertools import combinations, product
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, cast, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.active_claims import ActiveClaim
@@ -70,10 +70,10 @@ from propstore.core.labels import (
 )
 from propstore.families.claims.declaration import ClaimRow
 from propstore.families.relations.declaration import (
-    coerce_conflict_row,
     ConflictRow,
     ConflictRowInput,
 )
+from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL
 from propstore.families.concepts.declaration import (
     coerce_parameterization_row,
     ParameterizationRow,
@@ -1618,7 +1618,7 @@ class ATMSEngine:
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
         for conflict_input in self._runtime.conflicts():
-            conflict = coerce_conflict_row(conflict_input)
+            conflict = cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict_input))
             claim_a = str(conflict.claim_a_id)
             claim_b = str(conflict.claim_b_id)
 

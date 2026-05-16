@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, cast
 
 from argumentation.aspic import (
     ContrarinessFn,
@@ -22,7 +22,8 @@ from propstore.core.literal_keys import (
     REPOSITORY_ROOT_CONTEXT_ID,
     claim_key,
 )
-from propstore.families.relations.declaration import StanceRow, StanceRowInput, coerce_stance_row
+from propstore.families.relations.declaration import StanceRow, StanceRowInput
+from propstore.families.relations.projection_model import STANCE_ROW_MODEL
 from argumentation.preference import strict_partial_order_closure
 
 from propstore.preference import MetadataStrengthVector, metadata_strength_vector
@@ -30,12 +31,6 @@ from propstore.preference import MetadataStrengthVector, metadata_strength_vecto
 
 def _claim_attr(claim: ActiveClaim, key: str) -> Any:
     return getattr(claim, key, claim.attributes.get(key))
-
-
-def _coerce_bridge_stance_row(row: StanceRowInput) -> StanceRow:
-    """Coerce a bridge stance row through the shared typed stance boundary."""
-
-    return coerce_stance_row(row)
 
 
 def _claim_context_id(claim: ActiveClaim) -> str:
@@ -172,7 +167,7 @@ def stances_to_contrariness(
     authored_directional: set[tuple[Literal, Literal]] = set()
 
     for stance_input in stances:
-        stance = _coerce_bridge_stance_row(stance_input)
+        stance = cast(StanceRow, STANCE_ROW_MODEL.coerce(stance_input))
         src_key = _literal_key_for_proposition(stance.claim_id, literals)
         tgt_key = _literal_key_for_proposition(stance.target_claim_id, literals)
         if src_key not in literals or tgt_key not in literals:
@@ -251,7 +246,7 @@ def preference_sensitive_stance_pairs(
 ) -> frozenset[tuple[Literal, Literal]]:
     pairs: set[tuple[Literal, Literal]] = set()
     for stance_input in stances:
-        stance = _coerce_bridge_stance_row(stance_input)
+        stance = cast(StanceRow, STANCE_ROW_MODEL.coerce(stance_input))
         if stance.stance_type not in ("supersedes", "undermines"):
             continue
         src_key = _literal_key_for_proposition(stance.claim_id, literals)

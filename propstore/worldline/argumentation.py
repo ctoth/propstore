@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 import rfc8785
 from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
-from propstore.families.relations.declaration import StanceRow, coerce_stance_row
+from propstore.families.relations.declaration import StanceRow
+from propstore.families.relations.projection_model import STANCE_ROW_MODEL
 from propstore.core.environment import StanceStore
 from propstore.world.types import (
     ClaimSupportView,
@@ -307,7 +308,7 @@ def _capture_praf(
 
 
 def _stance_dependency_key(row: StanceRow) -> str:
-    return rfc8785.dumps(row.to_dict()).decode("utf-8")
+    return rfc8785.dumps(cast(Any, STANCE_ROW_MODEL.to_row(row))).decode("utf-8")
 
 
 def active_stance_dependencies(
@@ -336,20 +337,23 @@ def active_stance_dependencies(
             ):
                 continue
             stance_rows.append(
-                StanceRow.from_mapping(
-                    {
-                        "claim_id": edge.source_id,
-                        "target_claim_id": edge.target_id,
-                        "stance_type": edge.relation_type,
-                        **dict(edge.attributes),
-                    }
+                cast(
+                    StanceRow,
+                    STANCE_ROW_MODEL.from_row(
+                        {
+                            "claim_id": edge.source_id,
+                            "target_claim_id": edge.target_id,
+                            "stance_type": edge.relation_type,
+                            **dict(edge.attributes),
+                        }
+                    ),
                 )
             )
         return sorted(_stance_dependency_key(row) for row in stance_rows)
 
     if isinstance(world, StanceStore):
         return sorted(
-            _stance_dependency_key(coerce_stance_row(row))
+            _stance_dependency_key(cast(StanceRow, STANCE_ROW_MODEL.coerce(row)))
             for row in world.stances_between({str(claim_id) for claim_id in active_ids})
         )
     return []

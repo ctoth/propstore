@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 from propstore.core.relation_types import NON_ATTACK_TYPES
-from propstore.families.relations.declaration import coerce_stance_row
+from propstore.families.relations.declaration import StanceRow
+from propstore.families.relations.projection_model import STANCE_ROW_MODEL
 from propstore.world.types import WorldStore
 
 
@@ -32,7 +35,7 @@ def stance_summary(
     uncertainties: list[float] = []
 
     for row_input in rows:
-        row = coerce_stance_row(row_input)
+        row = cast(StanceRow, STANCE_ROW_MODEL.coerce(row_input))
         total += 1
         stype = row.stance_type
         model = row.attributes.get("resolution_model")

@@ -45,15 +45,13 @@ from propstore.core.store_results import (
 )
 from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow, ClaimRowInput, coerce_claim_row
 from propstore.families.relations.declaration import (
-    coerce_conflict_row,
-    coerce_relationship_row,
-    coerce_stance_row,
     ConflictRow,
     ConflictRowInput,
     RelationshipRowInput,
     StanceRow,
     StanceRowInput,
 )
+from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import (
     coerce_parameterization_row,
     ParameterizationRow,
@@ -449,7 +447,7 @@ class _GraphOverlayStore:
         return [
             stance
             for stance_input in self._base.explain(claim_id)
-            if (stance := coerce_stance_row(stance_input)).target_claim_id in active_ids
+            if (stance := cast(StanceRow, STANCE_ROW_MODEL.coerce(stance_input))).target_claim_id in active_ids
         ]
 
     def compiled_graph(self) -> CompiledWorldGraph:
@@ -585,7 +583,7 @@ class OverlayWorld(BeliefSpace):
         }
         overlay_stances = (
             [
-                coerce_stance_row(stance)
+                cast(StanceRow, STANCE_ROW_MODEL.coerce(stance))
                 for stance in base._store.stances_between(overlay_claim_ids)
             ]
             if isinstance(base._store, StanceStore)
@@ -595,7 +593,7 @@ class OverlayWorld(BeliefSpace):
         overlay_conflicts = [
             conflict
             for conflict in (
-                coerce_conflict_row(conflict_input)
+                cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict_input))
                 for conflict_input in base._store.conflicts()
             )
             if conflict.claim_a_id in overlay_claim_ids

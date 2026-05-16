@@ -359,12 +359,12 @@ def test_world_query_compiled_graph_matches_normalized_storage_projection(
         def all_relationships(self) -> list[dict]:
             cursor = self._conn.execute(
                 """
-                SELECT
-                    source_id,
-                    relation_type AS type,
-                    target_id,
-                    conditions_cel,
-                    note
+                    SELECT
+                        source_id,
+                        relation_type,
+                        target_id,
+                        conditions_cel,
+                        note
                 FROM relation_edge
                 WHERE source_kind = 'concept' AND target_kind = 'concept'
                 ORDER BY source_id, relation_type, target_id

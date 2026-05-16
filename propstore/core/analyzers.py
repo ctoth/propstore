@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import cast
 
 from argumentation.bipolar import (
     BipolarArgumentationFramework,
@@ -48,11 +49,12 @@ from propstore.core.environment import (
 )
 from propstore.families.claims.declaration import ClaimRowInput, coerce_claim_row
 from propstore.families.relations.declaration import (
-    coerce_conflict_row,
-    coerce_stance_row,
+    ConflictRow,
     ConflictRowInput,
+    StanceRow,
     StanceRowInput,
 )
+from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.world.types import (
     ArgumentationSemantics,
     ReasoningBackend,
@@ -210,10 +212,10 @@ def _claim_node_from_row(row_input: ClaimRowInput | dict) -> ClaimNode:
 
 
 def _relation_edge_from_row(row: StanceRowInput) -> RelationEdge:
-    stance = coerce_stance_row(row)
+    stance = cast(StanceRow, STANCE_ROW_MODEL.coerce(row))
     attributes = tuple(
         (str(key), value)
-        for key, value in stance.to_dict().items()
+        for key, value in STANCE_ROW_MODEL.to_row(stance).items()
         if key not in {"claim_id", "target_claim_id", "stance_type"}
         and value is not None
     )
@@ -232,11 +234,11 @@ def _relation_edge_from_row(row: StanceRowInput) -> RelationEdge:
 
 
 def _conflict_witness_from_row(row: ConflictRowInput) -> ConflictWitness:
-    conflict = coerce_conflict_row(row)
+    conflict = cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row))
     warning_class = conflict.warning_class or conflict.conflict_class or "conflict"
     details = tuple(
         (str(key), value)
-        for key, value in conflict.to_dict().items()
+        for key, value in CONFLICT_ROW_MODEL.to_row(conflict).items()
         if key not in {"claim_a_id", "claim_b_id", "warning_class", "conflict_class"}
         and value is not None
     )
@@ -263,8 +265,8 @@ def _minimal_compiled_graph(
     conflicts = tuple(
         _conflict_witness_from_row(row)
         for row in (store.conflicts() if isinstance(store, ConflictStore) else ())
-        if str(coerce_conflict_row(row).claim_a_id) in active_claim_ids
-        and str(coerce_conflict_row(row).claim_b_id) in active_claim_ids
+        if str(cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row)).claim_a_id) in active_claim_ids
+        and str(cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row)).claim_b_id) in active_claim_ids
     )
     return CompiledWorldGraph(
         claims=claims,
