@@ -56,7 +56,6 @@ from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
 )
-from propstore.families.documents.stances import StanceDocument
 from propstore.families.forms.stages import (
     FormDefinition,
     kind_value_from_form_name,
@@ -65,7 +64,6 @@ from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols
 from propstore.families.claims.storage import (
     extract_deferred_stance_rows_with_diagnostics,
-    normalize_conditions_differ,
     prepare_claim_insert_row,
     prepare_claim_concept_link_rows,
 )
@@ -86,21 +84,21 @@ from propstore.families.micropublications.declaration import (
     MicropublicationSidecarRows,
     compile_micropublication_sidecar_rows_with_diagnostics,
 )
-from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
+from propstore.families.relations.declaration import (
+    RELATION_EDGE_PROJECTION,
+    claim_stance_projection_row,
+    compile_authored_stance_sidecar_rows_with_diagnostics,
+)
 from propstore.families.sources.declaration import (
     SourceProjectionRow,
     compile_source_sidecar_rows,
 )
-from propstore.families.claims.storage import (
-    coerce_stance_resolution,
-    resolution_opinion_columns,
-)
-from propstore.stances import VALID_STANCE_TYPES
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
     from propstore.families.documents.micropubs import MicropublicationDocument
     from propstore.families.documents.sources import SourceDocument
+    from propstore.families.documents.stances import StanceDocument
 
 
 @dataclass(frozen=True)
@@ -411,32 +409,6 @@ def _compile_form_algebra_rows(
     return tuple(rows)
 
 
-def _claim_stance_projection_row(values: tuple[object, ...]) -> ProjectionRow:
-    return RELATION_EDGE_PROJECTION.row(
-        source_kind="claim",
-        source_id=values[0],
-        relation_type=values[2],
-        target_kind="claim",
-        target_id=values[1],
-        perspective_source_claim_id=values[17],
-        target_justification_id=values[3],
-        conditions_cel=None,
-        strength=values[4],
-        conditions_differ=normalize_conditions_differ(values[5]),
-        note=values[6],
-        resolution_method=values[7],
-        resolution_model=values[8],
-        embedding_model=values[9],
-        embedding_distance=values[10],
-        pass_number=values[11],
-        confidence=values[12],
-        opinion_belief=values[13],
-        opinion_disbelief=values[14],
-        opinion_uncertainty=values[15],
-        opinion_base_rate=values[16],
-    )
-
-
 def compile_claim_sidecar_rows(
     claim_bundle: ClaimCompilationBundle,
     concept_registry: dict,
@@ -555,7 +527,7 @@ def compile_claim_sidecar_rows(
                 )
             )
             stance_rows.extend(
-                _claim_stance_projection_row(values)
+                claim_stance_projection_row(values)
                 for values in deferred_stance_rows
             )
             quarantine_diagnostics.extend(deferred_stance_diagnostics)
@@ -569,109 +541,6 @@ def compile_claim_sidecar_rows(
         stance_rows=tuple(stance_rows),
         quarantine_diagnostics=tuple(quarantine_diagnostics),
     )
-
-
-def compile_authored_stance_sidecar_rows(
-    stance_entries: Iterable[tuple[str, StanceDocument]],
-    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[ProjectionRow, ...]:
-    rows, diagnostics = _compile_authored_stance_sidecar_rows_with_diagnostics(
-        stance_entries,
-        claim_index,
-    )
-    if diagnostics:
-        raise sqlite3.IntegrityError(diagnostics[0].message)
-    return rows
-
-
-def _compile_authored_stance_sidecar_rows_with_diagnostics(
-    stance_entries: Iterable[tuple[str, StanceDocument]],
-    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[tuple[ProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
-    valid_claims = set(claim_index.ids())
-    rows: list[ProjectionRow] = []
-    diagnostics: list[QuarantineDiagnostic] = []
-
-    for filename, stance in stance_entries:
-        source_claim = claim_index.resolve_id(stance.source_claim)
-        if source_claim is None or source_claim not in valid_claims:
-            missing_source = stance.source_claim or filename
-            message = (
-                f"stance artifact {filename} references nonexistent source claim "
-                f"'{missing_source}'"
-            )
-            diagnostics.append(
-                QuarantineDiagnostic(
-                    artifact_id=missing_source,
-                    kind="stance",
-                    diagnostic_kind="stance_validation",
-                    message=message,
-                    file=filename,
-                )
-            )
-            continue
-
-        stance_payload = stance.to_payload()
-        target = claim_index.resolve_id(stance.target or "")
-        stance_type = stance_payload.get("type") or ""
-        if target is None or target not in valid_claims:
-            missing_target = stance.target or filename
-            message = (
-                f"stance artifact {filename} references nonexistent target claim "
-                f"'{missing_target}'"
-            )
-            diagnostics.append(
-                QuarantineDiagnostic(
-                    artifact_id=missing_target,
-                    kind="stance",
-                    diagnostic_kind="stance_validation",
-                    message=message,
-                    file=filename,
-                )
-            )
-            continue
-        if stance_type not in VALID_STANCE_TYPES:
-            raise ValueError(
-                f"stance artifact {filename} uses unrecognized stance type "
-                f"'{stance_type}'"
-            )
-
-        resolution = coerce_stance_resolution(
-            stance_payload.get("resolution"),
-            f"stance artifact {filename}",
-        )
-        opinion_columns = resolution_opinion_columns(resolution)
-        perspective_source_claim = (
-            claim_index.resolve_id(
-                stance.perspective_source_claim_id or stance.source_claim
-            )
-            or source_claim
-        )
-        rows.append(
-            _claim_stance_projection_row(
-                (
-                    source_claim,
-                    target,
-                    stance_type,
-                    stance.target_justification_id,
-                    stance.strength,
-                    stance.conditions_differ,
-                    stance.note,
-                    resolution.get("method"),
-                    resolution.get("model"),
-                    resolution.get("embedding_model"),
-                    resolution.get("embedding_distance"),
-                    resolution.get("pass_number"),
-                    resolution.get("confidence"),
-                    opinion_columns[0],
-                    opinion_columns[1],
-                    opinion_columns[2],
-                    opinion_columns[3],
-                    perspective_source_claim,
-                )
-            )
-        )
-    return tuple(rows), tuple(diagnostics)
 
 
 def compile_authored_justification_sidecar_rows(
@@ -905,7 +774,7 @@ def compile_sidecar_build_plan(
             lifting_system=lifting_system,
         )
         stance_rows, stance_quarantine_diagnostics = (
-            _compile_authored_stance_sidecar_rows_with_diagnostics(
+            compile_authored_stance_sidecar_rows_with_diagnostics(
                 stance_entries,
                 claim_index,
             )

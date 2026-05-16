@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import sqlite3
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionRow, ProjectionTable
+from quire.references import FamilyReferenceIndex
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
 from propstore.core.concept_relationship_types import (
@@ -22,7 +23,16 @@ from propstore.core.id_types import (
     to_concept_id,
     to_justification_id,
 )
+from propstore.families.claims.references import ClaimReferenceRecord
+from propstore.families.claims.storage import (
+    coerce_stance_resolution,
+    normalize_conditions_differ,
+    resolution_opinion_columns,
+)
+from propstore.families.diagnostics.declaration import QuarantineDiagnostic
+from propstore.families.documents.stances import StanceDocument
 from propstore.stances import StanceType, coerce_stance_type
+from propstore.stances import VALID_STANCE_TYPES
 
 
 def _require_concept_relationship_type(value: object) -> ConceptRelationshipType:
@@ -244,6 +254,135 @@ RELATION_EDGE_PROJECTION = ProjectionTable(
         ProjectionIndex("idx_relation_edge_type", ("relation_type",)),
     ),
 )
+
+
+def claim_stance_projection_row(values: tuple[object, ...]) -> ProjectionRow:
+    return RELATION_EDGE_PROJECTION.row(
+        source_kind="claim",
+        source_id=values[0],
+        relation_type=values[2],
+        target_kind="claim",
+        target_id=values[1],
+        perspective_source_claim_id=values[17],
+        target_justification_id=values[3],
+        conditions_cel=None,
+        strength=values[4],
+        conditions_differ=normalize_conditions_differ(values[5]),
+        note=values[6],
+        resolution_method=values[7],
+        resolution_model=values[8],
+        embedding_model=values[9],
+        embedding_distance=values[10],
+        pass_number=values[11],
+        confidence=values[12],
+        opinion_belief=values[13],
+        opinion_disbelief=values[14],
+        opinion_uncertainty=values[15],
+        opinion_base_rate=values[16],
+    )
+
+
+def compile_authored_stance_sidecar_rows(
+    stance_entries: Iterable[tuple[str, StanceDocument]],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
+) -> tuple[ProjectionRow, ...]:
+    rows, diagnostics = compile_authored_stance_sidecar_rows_with_diagnostics(
+        stance_entries,
+        claim_index,
+    )
+    if diagnostics:
+        raise sqlite3.IntegrityError(diagnostics[0].message)
+    return rows
+
+
+def compile_authored_stance_sidecar_rows_with_diagnostics(
+    stance_entries: Iterable[tuple[str, StanceDocument]],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
+) -> tuple[tuple[ProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
+    valid_claims = set(claim_index.ids())
+    rows: list[ProjectionRow] = []
+    diagnostics: list[QuarantineDiagnostic] = []
+
+    for filename, stance in stance_entries:
+        source_claim = claim_index.resolve_id(stance.source_claim)
+        if source_claim is None or source_claim not in valid_claims:
+            missing_source = stance.source_claim or filename
+            message = (
+                f"stance artifact {filename} references nonexistent source claim "
+                f"'{missing_source}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=missing_source,
+                    kind="stance",
+                    diagnostic_kind="stance_validation",
+                    message=message,
+                    file=filename,
+                )
+            )
+            continue
+
+        stance_payload = stance.to_payload()
+        target = claim_index.resolve_id(stance.target or "")
+        stance_type = stance_payload.get("type") or ""
+        if target is None or target not in valid_claims:
+            missing_target = stance.target or filename
+            message = (
+                f"stance artifact {filename} references nonexistent target claim "
+                f"'{missing_target}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=missing_target,
+                    kind="stance",
+                    diagnostic_kind="stance_validation",
+                    message=message,
+                    file=filename,
+                )
+            )
+            continue
+        if stance_type not in VALID_STANCE_TYPES:
+            raise ValueError(
+                f"stance artifact {filename} uses unrecognized stance type "
+                f"'{stance_type}'"
+            )
+
+        resolution = coerce_stance_resolution(
+            stance_payload.get("resolution"),
+            f"stance artifact {filename}",
+        )
+        opinion_columns = resolution_opinion_columns(resolution)
+        perspective_source_claim = (
+            claim_index.resolve_id(
+                stance.perspective_source_claim_id or stance.source_claim
+            )
+            or source_claim
+        )
+        rows.append(
+            claim_stance_projection_row(
+                (
+                    source_claim,
+                    target,
+                    stance_type,
+                    stance.target_justification_id,
+                    stance.strength,
+                    stance.conditions_differ,
+                    stance.note,
+                    resolution.get("method"),
+                    resolution.get("model"),
+                    resolution.get("embedding_model"),
+                    resolution.get("embedding_distance"),
+                    resolution.get("pass_number"),
+                    resolution.get("confidence"),
+                    opinion_columns[0],
+                    opinion_columns[1],
+                    opinion_columns[2],
+                    opinion_columns[3],
+                    perspective_source_claim,
+                )
+            )
+        )
+    return tuple(rows), tuple(diagnostics)
 
 
 STANCE_SELECT_COLUMNS = """
