@@ -29,6 +29,7 @@ from quire.derived_store import (
     read_dependency_pins,
 )
 from quire.derived_runtime import connect_sqlite_store
+from quire.derived_runtime import write_derived_store_schema_metadata
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
@@ -67,11 +68,12 @@ from propstore.families.diagnostics.declaration import (
 )
 from propstore.families.embeddings.declaration import ensure_embedding_tables
 from propstore.sidecar.schema import (
+    SCHEMA_VERSION,
+    SIDECAR_META_KEY,
     create_claim_tables,
     create_context_tables,
     create_tables,
     populate_contexts,
-    write_schema_metadata,
 )
 from propstore.families.micropublications.declaration import (
     create_micropublication_tables,
@@ -724,7 +726,11 @@ def _build_sidecar_file(
     def _write_sidecar(target_path: Path) -> None:
         conn = connect_sqlite_store(target_path)
         try:
-            write_schema_metadata(conn)
+            write_derived_store_schema_metadata(
+                conn,
+                schema_version=SCHEMA_VERSION,
+                key=SIDECAR_META_KEY,
+            )
             create_tables(conn)
             create_context_tables(conn)
             create_grounded_fact_table(conn)
@@ -843,7 +849,11 @@ def build_grounding_sidecar(
     def _write_grounding(target_path: Path) -> None:
         conn = connect_sqlite_store(target_path)
         try:
-            write_schema_metadata(conn)
+            write_derived_store_schema_metadata(
+                conn,
+                schema_version=SCHEMA_VERSION,
+                key=SIDECAR_META_KEY,
+            )
             create_grounded_fact_table(conn)
             grounded_bundle = build_grounded_bundle(
                 repo,

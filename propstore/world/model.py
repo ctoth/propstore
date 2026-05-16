@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from quire.derived_store import DerivedStoreHandle
+from quire.derived_runtime import sqlite_table_exists
 from propstore.core.conditions.registry import (
     ConceptInfo,
     KindType,
@@ -76,10 +77,7 @@ from propstore.families.concepts.declaration import (
     search_concept_ids,
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
-from propstore.sidecar.schema import (
-    sidecar_table_exists,
-    validate_world_sidecar_schema,
-)
+from propstore.sidecar.schema import validate_world_sidecar_schema
 from propstore.core.conditions.solver import ConditionSolver
 
 if TYPE_CHECKING:
@@ -657,7 +655,7 @@ class WorldQuery(WorldStore):
     def _has_table(self, name: str) -> bool:
         if name in self._table_cache:
             return self._table_cache[name]
-        result = sidecar_table_exists(self._conn, name)
+        result = sqlite_table_exists(self._conn, name)
         self._table_cache[name] = result
         return result
 

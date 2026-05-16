@@ -43,7 +43,10 @@ from __future__ import annotations
 
 import sqlite3
 
-from quire.projections import ProjectionColumn, ProjectionSchemaError, ProjectionTable
+from quire.derived_runtime import (
+    validate_derived_store_schema,
+    write_derived_store_schema_metadata,
+)
 from propstore.families.calibration.declaration import CALIBRATION_COUNTS_PROJECTION
 from propstore.families.claims.declaration import (
     CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
@@ -81,76 +84,21 @@ SCHEMA_VERSION = 6
 SIDECAR_META_KEY = "sidecar"
 
 
-META_PROJECTION = ProjectionTable(
-    name="meta",
-    columns=(
-        ProjectionColumn("key", "TEXT", primary_key=True),
-        ProjectionColumn("schema_version", "INTEGER", nullable=False),
-    ),
-    if_not_exists=True,
-)
-
-
-def create_meta_table(conn: sqlite3.Connection) -> None:
-    """Create the sidecar metadata table."""
-    for statement in META_PROJECTION.ddl_statements():
-        conn.execute(statement)
-
-
-def write_schema_metadata(conn: sqlite3.Connection) -> None:
-    """Persist the current schema version for this compiled sidecar."""
-    create_meta_table(conn)
-    conn.execute(
-        """
-        INSERT INTO meta (key, schema_version)
-        VALUES (?, ?)
-        ON CONFLICT(key) DO UPDATE SET schema_version=excluded.schema_version
-        """,
-        (SIDECAR_META_KEY, SCHEMA_VERSION),
-    )
-
-
-def sidecar_table_exists(conn: sqlite3.Connection, name: str) -> bool:
-    row = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?",
-        (name,),
-    ).fetchone()
-    return row is not None
-
-
-def read_sidecar_schema_version(conn: sqlite3.Connection) -> int:
-    if not sidecar_table_exists(conn, "meta"):
-        raise ValueError(
-            "Unsupported sidecar schema: missing table(s) meta. "
-            "Rebuild with 'pks build'."
-        )
-    meta_row = conn.execute(
-        "SELECT schema_version FROM meta WHERE key = ?",
-        (SIDECAR_META_KEY,),
-    ).fetchone()
-    if meta_row is None:
-        raise ValueError(
-            "Unsupported sidecar schema: missing metadata row for sidecar. "
-            "Rebuild with 'pks build'."
-        )
-    return int(meta_row["schema_version"])
-
-
 def validate_world_sidecar_schema(conn: sqlite3.Connection) -> None:
-    actual_version = read_sidecar_schema_version(conn)
-    if actual_version != SCHEMA_VERSION:
-        raise ValueError(
-            "Unsupported sidecar schema version: "
-            f"expected {SCHEMA_VERSION}, found {actual_version}. "
-            "Rebuild with 'pks build'."
-        )
-
     try:
-        PROPSTORE_WORLD_PROJECTION_SCHEMA.validate_connection(conn)
-    except ProjectionSchemaError as error:
-        raise ValueError(
-            f"Unsupported sidecar schema: {error}. Rebuild with 'pks build'."
-        ) from error
+        validate_derived_store_schema(
+            conn,
+            schema=PROPSTORE_WORLD_PROJECTION_SCHEMA,
+            expected_version=SCHEMA_VERSION,
+            key=SIDECAR_META_KEY,
+        )
+    except ValueError as error:
+        message = str(error).replace(
+            "Unsupported derived store schema",
+            "Unsupported sidecar schema",
+            1,
+        )
+        raise ValueError(f"{message} Rebuild with 'pks build'.") from error
 
 
 def create_tables(conn: sqlite3.Connection) -> None:
@@ -174,7 +122,11 @@ def build_minimal_world_model_schema(conn: sqlite3.Connection) -> None:
     """Build the production schema surface required by WorldQuery tests."""
     from propstore.families.rules.declaration import create_grounded_fact_table
 
-    write_schema_metadata(conn)
+    write_derived_store_schema_metadata(
+        conn,
+        schema_version=SCHEMA_VERSION,
+        key=SIDECAR_META_KEY,
+    )
     create_tables(conn)
     create_context_tables(conn)
     create_claim_tables(conn)

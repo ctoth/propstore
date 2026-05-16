@@ -4,6 +4,8 @@ import sqlite3
 
 import tests.conftest as project_conftest
 
+from quire.derived_runtime import write_derived_store_schema_metadata
+
 from propstore.sidecar import schema
 from propstore.families.micropublications.declaration import create_micropublication_tables
 from propstore.families.embeddings.declaration import ensure_embedding_tables
@@ -44,7 +46,11 @@ def test_minimal_world_model_schema_matches_production_builders() -> None:
     production_conn = sqlite3.connect(":memory:")
 
     schema.build_minimal_world_model_schema(fixture_conn)
-    schema.write_schema_metadata(production_conn)
+    write_derived_store_schema_metadata(
+        production_conn,
+        schema_version=schema.SCHEMA_VERSION,
+        key=schema.SIDECAR_META_KEY,
+    )
     schema.create_tables(production_conn)
     schema.create_context_tables(production_conn)
     schema.create_claim_tables(production_conn)
