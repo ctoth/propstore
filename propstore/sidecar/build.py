@@ -60,9 +60,11 @@ from propstore.families.claims.declaration import (
 from propstore.sidecar.passes import RepositoryCheckedBundle, compile_sidecar_build_plan
 from propstore.families.concepts.declaration import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
 from propstore.families.diagnostics.declaration import (
-    BUILD_DIAGNOSTICS_PROJECTION,
-    QuarantinableWriter,
-    QuarantineDiagnostic,
+    record_authoring_diagnostics,
+    record_build_exception,
+    record_embedding_restore_diagnostic,
+    record_pass_diagnostics,
+    record_quarantine_diagnostics,
 )
 from propstore.families.projection_catalog import (
     PROPSTORE_WORLD_META_KEY,
@@ -213,150 +215,6 @@ def _semantic_pass_versions() -> tuple[dict[str, str], ...]:
     )
 
 
-def _record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
-    """Persist a build-exception diagnostic instead of deleting the sidecar.
-
-    Rule 5 from the render-gates workstream keeps build failures inspectable at
-    render time; the partial sidecar is evidence, not trash to unlink.
-    """
-    for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
-        conn.execute(statement)
-    BUILD_DIAGNOSTICS_PROJECTION.insert_row(
-        conn,
-        BUILD_DIAGNOSTICS_PROJECTION.row(
-            claim_id=None,
-            source_kind="sidecar_build",
-            source_ref=None,
-            diagnostic_kind="build_exception",
-            severity="error",
-            blocking=1,
-            message=str(exc),
-            file=None,
-            detail_json=None,
-        ),
-    )
-    conn.commit()
-
-
-def _record_embedding_restore_diagnostic(
-    conn: sqlite3.Connection,
-    exc: Exception,
-) -> None:
-    for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
-        conn.execute(statement)
-    BUILD_DIAGNOSTICS_PROJECTION.insert_row(
-        conn,
-        BUILD_DIAGNOSTICS_PROJECTION.row(
-            claim_id=None,
-            source_kind="embedding",
-            source_ref="restore",
-            diagnostic_kind="embedding_restore",
-            severity="warning",
-            blocking=0,
-            message=f"embedding restore failed: {exc}",
-            file=None,
-            detail_json=None,
-        ),
-    )
-
-
-def _record_form_diagnostics(
-    conn: sqlite3.Connection,
-    diagnostics: tuple[PassDiagnostic, ...],
-) -> None:
-    if not diagnostics:
-        return
-    writer = QuarantinableWriter(conn)
-    for diagnostic in diagnostics:
-        if not diagnostic.is_error:
-            continue
-        writer.quarantine(
-            artifact_id=diagnostic.filename or diagnostic.artifact_id or "unknown",
-            kind="form",
-            diagnostic_kind="form_validation",
-            message=diagnostic.render(),
-            file=diagnostic.filename,
-        )
-
-
-def _record_claim_diagnostics(
-    conn: sqlite3.Connection,
-    diagnostics: tuple[PassDiagnostic, ...],
-) -> None:
-    if not diagnostics:
-        return
-    writer = QuarantinableWriter(conn)
-    for diagnostic in diagnostics:
-        if not diagnostic.is_error:
-            continue
-        writer.quarantine(
-            artifact_id=diagnostic.artifact_id or diagnostic.filename or "unknown",
-            kind="claim",
-            diagnostic_kind="claim_validation",
-            message=diagnostic.render(),
-            file=diagnostic.filename,
-        )
-
-
-def _record_concept_diagnostics(
-    conn: sqlite3.Connection,
-    diagnostics: tuple[PassDiagnostic, ...],
-) -> None:
-    if not diagnostics:
-        return
-    writer = QuarantinableWriter(conn)
-    for diagnostic in diagnostics:
-        if not diagnostic.is_error:
-            continue
-        writer.quarantine(
-            artifact_id=diagnostic.artifact_id or diagnostic.filename or "unknown",
-            kind="concept",
-            diagnostic_kind="concept_validation",
-            message=diagnostic.render(),
-            file=diagnostic.filename,
-        )
-
-
-def _record_context_diagnostics(
-    conn: sqlite3.Connection,
-    diagnostics: tuple[PassDiagnostic, ...],
-) -> None:
-    if not diagnostics:
-        return
-    writer = QuarantinableWriter(conn)
-    for diagnostic in diagnostics:
-        if not diagnostic.is_error:
-            continue
-        writer.quarantine(
-            artifact_id=diagnostic.artifact_id or diagnostic.filename or "unknown",
-            kind="context",
-            diagnostic_kind="context_validation",
-            message=diagnostic.render(),
-            file=diagnostic.filename,
-        )
-
-
-def _record_authoring_diagnostics(
-    conn: sqlite3.Connection,
-    diagnostics: tuple[PassDiagnostic, ...],
-) -> None:
-    for diagnostic in diagnostics:
-        BUILD_DIAGNOSTICS_PROJECTION.insert_row(
-            conn,
-            BUILD_DIAGNOSTICS_PROJECTION.row(
-                claim_id=diagnostic.artifact_id,
-                source_kind="authoring",
-                source_ref=diagnostic.artifact_id or diagnostic.filename,
-                diagnostic_kind=diagnostic.code,
-                severity=diagnostic.level,
-                blocking=1 if diagnostic.is_error else 0,
-                message=diagnostic.render(),
-                file=diagnostic.filename,
-                detail_json=None,
-            ),
-        )
-
-
 def _filter_invalid_context_lifting_rows(
     rows: ContextSidecarRows,
 ) -> ContextSidecarRows:
@@ -373,23 +231,6 @@ def _filter_invalid_context_lifting_rows(
         lifting_rule_rows=valid_lifting_rows,
         lifting_materialization_rows=rows.lifting_materialization_rows,
     )
-
-
-def _record_quarantine_diagnostics(
-    conn: sqlite3.Connection,
-    diagnostics: tuple[QuarantineDiagnostic, ...],
-) -> None:
-    if not diagnostics:
-        return
-    writer = QuarantinableWriter(conn)
-    for diagnostic in diagnostics:
-        writer.quarantine(
-            artifact_id=diagnostic.artifact_id,
-            kind=diagnostic.kind,
-            diagnostic_kind=diagnostic.diagnostic_kind,
-            message=diagnostic.message,
-            file=diagnostic.file,
-        )
 
 
 def _compile_source_promotion_blocked_rows(repo: "Repository"):
@@ -675,12 +516,33 @@ def _build_sidecar_file(
                 sidecar_plan.concept_rows,
             )
             CONCEPT_FTS_PROJECTION.populate_from_source_query(conn)
-            _record_form_diagnostics(conn, form_diagnostics)
-            _record_concept_diagnostics(conn, concept_diagnostics)
-            _record_context_diagnostics(conn, context_diagnostics)
-            _record_claim_diagnostics(conn, tuple(recorded_claim_diagnostics))
-            _record_authoring_diagnostics(conn, authoring_diagnostics)
-            _record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
+            record_pass_diagnostics(
+                conn,
+                form_diagnostics,
+                kind="form",
+                diagnostic_kind="form_validation",
+                prefer_filename=True,
+            )
+            record_pass_diagnostics(
+                conn,
+                concept_diagnostics,
+                kind="concept",
+                diagnostic_kind="concept_validation",
+            )
+            record_pass_diagnostics(
+                conn,
+                context_diagnostics,
+                kind="context",
+                diagnostic_kind="context_validation",
+            )
+            record_pass_diagnostics(
+                conn,
+                tuple(recorded_claim_diagnostics),
+                kind="claim",
+                diagnostic_kind="claim_validation",
+            )
+            record_authoring_diagnostics(conn, authoring_diagnostics)
+            record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
             context_rows = (
                 _filter_invalid_context_lifting_rows(sidecar_plan.context_rows)
                 if context_diagnostics
@@ -735,10 +597,10 @@ def _build_sidecar_file(
                     restore_embeddings(conn, embedding_snapshot)
                     conn.row_factory = None
                 except ImportError as exc:
-                    _record_embedding_restore_diagnostic(conn, exc)
+                    record_embedding_restore_diagnostic(conn, exc)
                     conn.row_factory = None
                 except Exception as exc:
-                    _record_embedding_restore_diagnostic(conn, exc)
+                    record_embedding_restore_diagnostic(conn, exc)
                     conn.row_factory = None
 
             if sidecar_plan.claim_rows is not None:
@@ -751,7 +613,7 @@ def _build_sidecar_file(
             conn.commit()
         except Exception as exc:
             try:
-                _record_build_exception(conn, exc)
+                record_build_exception(conn, exc)
                 conn.commit()
             except Exception as diagnostic_error:
                 exc.add_note(f"failed to record build diagnostic: {diagnostic_error}")

@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
+from propstore.semantic_passes.types import PassDiagnostic
 
 
 @dataclass(frozen=True)
@@ -156,6 +157,114 @@ class QuarantinableWriter:
             kind=kind,
             diagnostic_id=cursor.lastrowid,
             message=message,
+        )
+
+
+def record_build_exception(conn: sqlite3.Connection, exc: Exception) -> None:
+    for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
+        conn.execute(statement)
+    BUILD_DIAGNOSTICS_PROJECTION.insert_row(
+        conn,
+        BUILD_DIAGNOSTICS_PROJECTION.row(
+            claim_id=None,
+            source_kind="sidecar_build",
+            source_ref=None,
+            diagnostic_kind="build_exception",
+            severity="error",
+            blocking=1,
+            message=str(exc),
+            file=None,
+            detail_json=None,
+        ),
+    )
+    conn.commit()
+
+
+def record_embedding_restore_diagnostic(
+    conn: sqlite3.Connection,
+    exc: Exception,
+) -> None:
+    for statement in BUILD_DIAGNOSTICS_PROJECTION.ddl_statements():
+        conn.execute(statement)
+    BUILD_DIAGNOSTICS_PROJECTION.insert_row(
+        conn,
+        BUILD_DIAGNOSTICS_PROJECTION.row(
+            claim_id=None,
+            source_kind="embedding",
+            source_ref="restore",
+            diagnostic_kind="embedding_restore",
+            severity="warning",
+            blocking=0,
+            message=f"embedding restore failed: {exc}",
+            file=None,
+            detail_json=None,
+        ),
+    )
+
+
+def record_pass_diagnostics(
+    conn: sqlite3.Connection,
+    diagnostics: tuple[PassDiagnostic, ...],
+    *,
+    kind: str,
+    diagnostic_kind: str,
+    prefer_filename: bool = False,
+) -> None:
+    if not diagnostics:
+        return
+    writer = QuarantinableWriter(conn)
+    for diagnostic in diagnostics:
+        if not diagnostic.is_error:
+            continue
+        artifact_id = (
+            diagnostic.filename or diagnostic.artifact_id or "unknown"
+            if prefer_filename
+            else diagnostic.artifact_id or diagnostic.filename or "unknown"
+        )
+        writer.quarantine(
+            artifact_id=artifact_id,
+            kind=kind,
+            diagnostic_kind=diagnostic_kind,
+            message=diagnostic.render(),
+            file=diagnostic.filename,
+        )
+
+
+def record_authoring_diagnostics(
+    conn: sqlite3.Connection,
+    diagnostics: tuple[PassDiagnostic, ...],
+) -> None:
+    for diagnostic in diagnostics:
+        BUILD_DIAGNOSTICS_PROJECTION.insert_row(
+            conn,
+            BUILD_DIAGNOSTICS_PROJECTION.row(
+                claim_id=diagnostic.artifact_id,
+                source_kind="authoring",
+                source_ref=diagnostic.artifact_id or diagnostic.filename,
+                diagnostic_kind=diagnostic.code,
+                severity=diagnostic.level,
+                blocking=1 if diagnostic.is_error else 0,
+                message=diagnostic.render(),
+                file=diagnostic.filename,
+                detail_json=None,
+            ),
+        )
+
+
+def record_quarantine_diagnostics(
+    conn: sqlite3.Connection,
+    diagnostics: tuple[QuarantineDiagnostic, ...],
+) -> None:
+    if not diagnostics:
+        return
+    writer = QuarantinableWriter(conn)
+    for diagnostic in diagnostics:
+        writer.quarantine(
+            artifact_id=diagnostic.artifact_id,
+            kind=diagnostic.kind,
+            diagnostic_kind=diagnostic.diagnostic_kind,
+            message=diagnostic.message,
+            file=diagnostic.file,
         )
 
 
