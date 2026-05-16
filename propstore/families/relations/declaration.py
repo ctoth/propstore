@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, cast
+from typing import Any
 
 from quire.projections import (
     AUTOINCREMENT_ID_FIELD,
@@ -339,7 +339,7 @@ def select_stances_between(
         """,  # noqa: S608
         list(claim_ids) + list(claim_ids),
     ).fetchall()
-    return [cast(StanceRow, STANCE_ROW_MODEL.from_row(dict(row))) for row in rows]
+    return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def select_conflicts(
@@ -363,7 +363,7 @@ def select_conflicts(
             FROM conflict_witness
             """
         ).fetchall()
-    return [cast(ConflictRow, CONFLICT_ROW_MODEL.from_row(dict(row))) for row in rows]
+    return [CONFLICT_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def select_all_relationships(conn: sqlite3.Connection) -> list[RelationshipRow]:
@@ -374,7 +374,7 @@ def select_all_relationships(conn: sqlite3.Connection) -> list[RelationshipRow]:
         WHERE source_kind = 'concept' AND target_kind = 'concept'
         """
     ).fetchall()
-    return [cast(RelationshipRow, RELATIONSHIP_ROW_MODEL.from_row(dict(row))) for row in rows]
+    return [RELATIONSHIP_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def select_all_claim_stances(conn: sqlite3.Connection) -> list[StanceRow]:
@@ -385,7 +385,7 @@ def select_all_claim_stances(conn: sqlite3.Connection) -> list[StanceRow]:
         WHERE source_kind = 'claim' AND target_kind = 'claim'
         """
     ).fetchall()
-    return [cast(StanceRow, STANCE_ROW_MODEL.from_row(dict(row))) for row in rows]
+    return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def select_claim_stances_with_policy(
@@ -438,7 +438,7 @@ def select_claim_stances_with_policy(
         """,  # noqa: S608
         tuple(params),
     ).fetchall()
-    return [cast(StanceRow, STANCE_ROW_MODEL.from_row(dict(row))) for row in rows]
+    return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def select_explanation_stances(
@@ -460,7 +460,7 @@ def select_explanation_stances(
             (current,),
         ).fetchall()
         for row in rows:
-            stance = cast(StanceRow, STANCE_ROW_MODEL.from_row(dict(row)))
+            stance = STANCE_ROW_MODEL.from_row(dict(row))
             result.append(stance)
             target = str(stance.target_claim_id)
             if target not in visited:

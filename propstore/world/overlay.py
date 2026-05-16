@@ -53,11 +53,12 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import (
-    coerce_parameterization_row,
+    ConceptRow,
     ParameterizationRow,
     ParameterizationRowInput,
 )
-from propstore.families.concepts.declaration import ConceptRowInput, coerce_concept_row
+from propstore.families.concepts.declaration import ConceptRowInput
+from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARAMETERIZATION_ROW_MODEL
 from propstore.world.bound import BoundWorld, _recomputed_conflicts
 from propstore.world.types import (
     BeliefSpace,
@@ -140,11 +141,20 @@ class _ParameterizationCatalogAdapter:
         seen: set[tuple[object, ...]] = set()
         rows: list[ParameterizationRow] = []
         for concept_input in self.base.all_concepts():
-            concept_id = str(coerce_concept_row(concept_input).concept_id)
+            concept_id = str(CONCEPT_ROW_MODEL.coerce(concept_input).concept_id)
             for row_input in self.base.parameterizations_for(concept_id):
-                row = coerce_parameterization_row(
-                    row_input,
-                    output_concept_id=concept_id,
+                row = (
+                    row_input
+                    if isinstance(row_input, ParameterizationRow)
+                    else PARAMETERIZATION_ROW_MODEL.from_row(
+                        {
+                            **dict(row_input),
+                            "output_concept_id": dict(row_input).get(
+                                "output_concept_id",
+                                concept_id,
+                            ),
+                        }
+                    )
                 )
                 row_key = (
                     row.output_concept_id,
@@ -330,7 +340,7 @@ class _GraphOverlayStore:
         if not hasattr(self._base, "all_concepts"):
             return None
         for concept_input in self._base.all_concepts():
-            concept = coerce_concept_row(concept_input)
+            concept = CONCEPT_ROW_MODEL.coerce(concept_input)
             if str(concept.concept_id) == concept_id or concept.canonical_name == concept_id:
                 return concept
         return None
@@ -447,7 +457,7 @@ class _GraphOverlayStore:
         return [
             stance
             for stance_input in self._base.explain(claim_id)
-            if (stance := cast(StanceRow, STANCE_ROW_MODEL.coerce(stance_input))).target_claim_id in active_ids
+            if (stance := STANCE_ROW_MODEL.coerce(stance_input)).target_claim_id in active_ids
         ]
 
     def compiled_graph(self) -> CompiledWorldGraph:
@@ -583,7 +593,7 @@ class OverlayWorld(BeliefSpace):
         }
         overlay_stances = (
             [
-                cast(StanceRow, STANCE_ROW_MODEL.coerce(stance))
+                STANCE_ROW_MODEL.coerce(stance)
                 for stance in base._store.stances_between(overlay_claim_ids)
             ]
             if isinstance(base._store, StanceStore)
@@ -593,7 +603,7 @@ class OverlayWorld(BeliefSpace):
         overlay_conflicts = [
             conflict
             for conflict in (
-                cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict_input))
+                CONFLICT_ROW_MODEL.coerce(conflict_input)
                 for conflict_input in base._store.conflicts()
             )
             if conflict.claim_a_id in overlay_claim_ids

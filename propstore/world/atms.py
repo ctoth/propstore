@@ -75,10 +75,10 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL
 from propstore.families.concepts.declaration import (
-    coerce_parameterization_row,
     ParameterizationRow,
     ParameterizationRowInput,
 )
+from propstore.families.concepts.projection_model import PARAMETERIZATION_ROW_MODEL
 from propstore.support_revision.projection import situated_assertion_from_active_claim
 from propstore.world.types import (
     ATMSConceptFutureStatusEntry,
@@ -1517,7 +1517,7 @@ class ATMSEngine:
         provider_ids_by_concept = self._provider_node_ids_by_concept()
 
         for index, param_input in enumerate(self._all_parameterizations):
-            param = coerce_parameterization_row(param_input)
+            param = PARAMETERIZATION_ROW_MODEL.coerce(param_input)
             if not self._runtime.is_param_compatible(param):
                 continue
 
@@ -1618,7 +1618,7 @@ class ATMSEngine:
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
         for conflict_input in self._runtime.conflicts():
-            conflict = cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict_input))
+            conflict = CONFLICT_ROW_MODEL.coerce(conflict_input)
             claim_a = str(conflict.claim_a_id)
             claim_b = str(conflict.claim_b_id)
 
@@ -1701,13 +1701,17 @@ class ATMSEngine:
         }
 
     def _sorted_parameterizations(self) -> list[ParameterizationRowInput]:
+        def sort_key(row: ParameterizationRowInput) -> tuple[str, str, str]:
+            parameterization = PARAMETERIZATION_ROW_MODEL.coerce(row)
+            return (
+                str(parameterization.output_concept_id),
+                parameterization.formula or "",
+                parameterization.sympy or "",
+            )
+
         return sorted(
             self._runtime.all_parameterizations(),
-            key=lambda row: (
-                str(coerce_parameterization_row(row).output_concept_id),
-                coerce_parameterization_row(row).formula or "",
-                coerce_parameterization_row(row).sympy or "",
-            ),
+            key=sort_key,
         )
 
     def _exact_antecedent_sets(

@@ -12,7 +12,8 @@ import json
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from propstore.families.concepts.declaration import ParameterizationRowInput, coerce_parameterization_row
+from propstore.families.concepts.declaration import ParameterizationRow, ParameterizationRowInput
+from propstore.families.concepts.projection_model import PARAMETERIZATION_ROW_MODEL
 
 
 def reachable_concepts(
@@ -43,9 +44,15 @@ def reachable_concepts(
         visited.add(cid)
 
         for param_input in parameterizations_for(cid):
-            param = coerce_parameterization_row(
-                param_input,
-                output_concept_id=cid,
+            param = (
+                param_input
+                if isinstance(param_input, ParameterizationRow)
+                else PARAMETERIZATION_ROW_MODEL.from_row(
+                    {
+                        **dict(param_input),
+                        "output_concept_id": dict(param_input).get("output_concept_id", cid),
+                    }
+                )
             )
             concept_ids_json = param.concept_ids
             if not concept_ids_json:

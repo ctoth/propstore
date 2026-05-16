@@ -81,7 +81,7 @@ CONFLICT_CLASS_CODEC = ProjectionCodec(
 )
 
 
-RELATIONSHIP_ROW_MODEL = ProjectionModel(
+RELATIONSHIP_ROW_MODEL: ProjectionModel[RelationshipRow] = ProjectionModel(
     name="relationship_row",
     table="relation_edge",
     result_type=RelationshipRow,
@@ -102,7 +102,7 @@ RELATIONSHIP_ROW_MODEL = ProjectionModel(
 )
 
 
-STANCE_ROW_MODEL = ProjectionModel(
+STANCE_ROW_MODEL: ProjectionModel[StanceRow] = ProjectionModel(
     name="stance_row",
     table="relation_edge",
     result_type=StanceRow,
@@ -128,7 +128,7 @@ STANCE_ROW_MODEL = ProjectionModel(
 )
 
 
-CONFLICT_ROW_MODEL = ProjectionModel(
+CONFLICT_ROW_MODEL: ProjectionModel[ConflictRow] = ProjectionModel(
     name="conflict_row",
     table="conflict_witness",
     result_type=ConflictRow,

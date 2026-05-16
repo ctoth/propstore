@@ -30,7 +30,8 @@ from propstore.families.forms.stages import kind_type_from_form_name
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
 from propstore.families.claims.declaration import ClaimRowInput, coerce_claim_row
-from propstore.families.concepts.declaration import ConceptRowInput, coerce_concept_row
+from propstore.families.concepts.declaration import ConceptRow, ConceptRowInput
+from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.world.types import (
     ArgumentationSemantics,
     BeliefSpace,
@@ -209,7 +210,7 @@ def _resolve_sample_size(
 def _normalized_form_parameters(concept: ConceptRowInput | None) -> Mapping[str, object]:
     if concept is None:
         return {}
-    raw = coerce_concept_row(concept).form_parameters
+    raw = CONCEPT_ROW_MODEL.coerce(concept).form_parameters
     if isinstance(raw, Mapping):
         return raw
     if isinstance(raw, str):
@@ -229,8 +230,8 @@ def _concept_integrity_constraints(
     concept = world.get_concept(concept_id)
     if concept is None:
         return tuple()
-    concept_row = coerce_concept_row(concept)
-    concept_data = concept_row.to_dict()
+    concept_row = CONCEPT_ROW_MODEL.coerce(concept)
+    concept_data = CONCEPT_ROW_MODEL.to_mapping(concept_row)
 
     constraints: list[IntegrityConstraint] = []
     lower = concept_data.get("range_min")
@@ -299,7 +300,7 @@ def _cel_registry_for_concepts(
     concept_ids: Sequence[str],
 ) -> dict[str, ConceptInfo]:
     rows = [
-        coerce_concept_row(concept)
+        CONCEPT_ROW_MODEL.coerce(concept)
         for concept_id in concept_ids
         if (concept := world.get_concept(concept_id)) is not None
     ]

@@ -76,6 +76,7 @@ from propstore.families.concepts.declaration import (
     select_parameterizations_for_output_concept,
     search_concept_ids,
 )
+from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.families.projection_catalog import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_PROJECTION_SCHEMA,
@@ -286,7 +287,7 @@ class WorldQuery(WorldStore):
             concept = select_concept_by_id(self._conn, resolved)
         if concept is None:
             return None
-        data = concept.to_dict()
+        data = dict(CONCEPT_ROW_MODEL.to_mapping(concept))
         logical_ids_json = data.get("logical_ids_json")
         if isinstance(logical_ids_json, str) and logical_ids_json:
             try:
@@ -296,7 +297,7 @@ class WorldQuery(WorldStore):
         else:
             data["logical_ids"] = []
         data["logical_id"] = data.get("primary_logical_id")
-        return ConceptRow.from_mapping(data)
+        return CONCEPT_ROW_MODEL.from_row(data)
 
     def concept_name(self, concept_id: str) -> str | None:
         """Return the canonical name for a concept, or None if not found."""

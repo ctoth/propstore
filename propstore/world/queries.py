@@ -11,7 +11,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.reporting import JsonReportMixin
-from propstore.families.concepts.declaration import ConceptSearchQuerySyntaxError
+from propstore.families.concepts.declaration import ConceptRow, ConceptSearchQuerySyntaxError
+from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.world.types import RenderPolicy
 
 if TYPE_CHECKING:
@@ -352,10 +353,11 @@ def _format_value_with_si(
             if isinstance(concept_id, str):
                 concept = world.get_concept(concept_id)
                 if concept is not None:
-                    from propstore.families.concepts.declaration import coerce_concept_row
-
                     canonical_unit = str(
-                        coerce_concept_row(concept).attributes.get("unit_symbol") or ""
+                        CONCEPT_ROW_MODEL.coerce(concept).attributes.get(
+                            "unit_symbol"
+                        )
+                        or ""
                     )
         si_label = f"{value_si} {canonical_unit}".rstrip()
         return f"value={value} {unit} (SI: {si_label})"
@@ -376,12 +378,10 @@ def _concept_resolution_candidate(
     world: WorldQuery,
     concept_id: str,
 ) -> WorldConceptResolutionCandidate | None:
-    from propstore.families.concepts.declaration import coerce_concept_row
-
     concept = world.get_concept(concept_id)
     if concept is None:
         return None
-    row = coerce_concept_row(concept)
+    row = CONCEPT_ROW_MODEL.coerce(concept)
     return WorldConceptResolutionCandidate(
         concept_id=concept_id,
         display_id=world_concept_display_id(world, concept_id),
@@ -416,12 +416,10 @@ def _resolve_world_query_target(
 
 
 def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
-    from propstore.families.concepts.declaration import coerce_concept_row
-
     concept = world.get_concept(concept_id)
     if concept is None:
         return concept_id
-    row = coerce_concept_row(concept)
+    row = CONCEPT_ROW_MODEL.coerce(concept)
     logical_id = row.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return logical_id
@@ -442,11 +440,9 @@ def _world_chain_concept_line(
     world: WorldQuery,
     concept_id: str,
 ) -> WorldChainConceptLine:
-    from propstore.families.concepts.declaration import coerce_concept_row
-
     concept = world.get_concept(concept_id)
     canonical_name = (
-        coerce_concept_row(concept).canonical_name
+        CONCEPT_ROW_MODEL.coerce(concept).canonical_name
         if concept is not None
         else None
     )
@@ -461,14 +457,13 @@ def query_world_concept(
     request: WorldConceptQueryRequest,
 ) -> WorldConceptQueryReport:
     from propstore.families.claims.declaration import coerce_claim_row
-    from propstore.families.concepts.declaration import coerce_concept_row
 
     resolved, resolved_from = _resolve_world_query_target(world, request.target)
     concept = world.get_concept(resolved)
     if concept is None:
         raise UnknownConceptError(request.target)
 
-    concept_row = coerce_concept_row(concept)
+    concept_row = CONCEPT_ROW_MODEL.coerce(concept)
     claims = tuple(
         WorldClaimLine(
             display_id=world_claim_display_id(claim_row),

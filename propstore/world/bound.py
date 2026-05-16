@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.conditions import checked_condition_set, checked_condition_set_from_json
 from propstore.core.conditions.cel_frontend import check_condition_ir
@@ -24,10 +24,10 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import (
-    coerce_parameterization_row,
+    ConceptRow,
     ParameterizationRow,
 )
-from propstore.families.concepts.declaration import coerce_concept_row
+from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARAMETERIZATION_ROW_MODEL
 from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
@@ -106,9 +106,9 @@ def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, Concep
     registry: dict[str, dict] = {}
     rows = []
     for concept_input in world.all_concepts():
-        concept = coerce_concept_row(concept_input)
+        concept = CONCEPT_ROW_MODEL.coerce(concept_input)
         rows.append(concept)
-        cdata = concept.to_dict()
+        cdata = dict(CONCEPT_ROW_MODEL.to_mapping(concept))
         cid = str(concept.concept_id)
         if concept.form_parameters is not None:
             try:
@@ -119,9 +119,18 @@ def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, Concep
         if params:
             cdata["parameterization_relationships"] = []
             for param_input in params:
-                param = coerce_parameterization_row(
-                    param_input,
-                    output_concept_id=cid,
+                param = (
+                    param_input
+                    if isinstance(param_input, ParameterizationRow)
+                    else PARAMETERIZATION_ROW_MODEL.from_row(
+                        {
+                            **dict(param_input),
+                            "output_concept_id": dict(param_input).get(
+                                "output_concept_id",
+                                cid,
+                            ),
+                        }
+                    )
                 )
                 cdata["parameterization_relationships"].append({
                     "inputs": json.loads(param.concept_ids),
@@ -265,9 +274,18 @@ class BoundWorld(BeliefSpace):
         self._conflict_inputs_cache: _ConflictInputs | None = None
         self._resolver = ActiveClaimResolver(
             parameterizations_for=lambda concept_id: [
-                coerce_parameterization_row(
-                    row,
-                    output_concept_id=concept_id,
+                (
+                    row
+                    if isinstance(row, ParameterizationRow)
+                    else PARAMETERIZATION_ROW_MODEL.from_row(
+                        {
+                            **dict(row),
+                            "output_concept_id": dict(row).get(
+                                "output_concept_id",
+                                concept_id,
+                            ),
+                        }
+                    )
                 )
                 for row in self._store.parameterizations_for(concept_id)
             ],
@@ -395,15 +413,19 @@ class BoundWorld(BeliefSpace):
     def _concept_symbol_candidates(self, concept_id: ConceptId | str) -> list[str]:
         candidates: list[str] = []
         concept_input = self._store.get_concept(str(concept_id))
-        concept = None if concept_input is None else coerce_concept_row(concept_input).to_dict()
+        concept = (
+            None
+            if concept_input is None
+            else dict(CONCEPT_ROW_MODEL.to_mapping(CONCEPT_ROW_MODEL.coerce(concept_input)))
+        )
         if concept is None:
             for entry in self._store.all_concepts():
-                row = coerce_concept_row(entry)
+                row = CONCEPT_ROW_MODEL.coerce(entry)
                 if (
                     str(row.concept_id) == str(concept_id)
                     or row.canonical_name == str(concept_id)
                 ):
-                    concept = row.to_dict()
+                    concept = dict(CONCEPT_ROW_MODEL.to_mapping(row))
                     break
         if concept is None:
             return candidates
@@ -976,7 +998,7 @@ class BoundWorld(BeliefSpace):
 
         result: list[ConflictRow] = []
         all_conflicts = [
-            cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(conflict))
+            CONFLICT_ROW_MODEL.coerce(conflict)
             for conflict in self._store.conflicts()
         ]
         for conflict in all_conflicts:
@@ -1019,7 +1041,7 @@ class BoundWorld(BeliefSpace):
         full_chain = self._store.explain(resolved_claim_id)
         result: list[StanceRow] = []
         for stance_input in full_chain:
-            stance = cast(StanceRow, STANCE_ROW_MODEL.coerce(stance_input))
+            stance = STANCE_ROW_MODEL.coerce(stance_input)
             target = self._store.get_claim(stance.target_claim_id)
             if target is not None and self.is_active(target):
                 result.append(stance)

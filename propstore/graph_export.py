@@ -8,13 +8,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Mapping, cast
+from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.core.environment import Environment
 from propstore.families.claims.declaration import coerce_claim_row
 from propstore.families.relations.declaration import RelationshipRow, StanceRow
 from propstore.families.relations.projection_model import RELATIONSHIP_ROW_MODEL, STANCE_ROW_MODEL
-from propstore.families.concepts.declaration import coerce_concept_row, coerce_parameterization_row
+from propstore.families.concepts.declaration import ConceptRow, ParameterizationRow
+from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARAMETERIZATION_ROW_MODEL
 from propstore.world import WorldStore, BeliefSpace
 
 if TYPE_CHECKING:
@@ -180,7 +181,7 @@ def build_knowledge_graph(
     # ---- 1. Concept nodes ----
     concept_rows = world.all_concepts()
     for row_input in concept_rows:
-        row = coerce_concept_row(row_input)
+        row = CONCEPT_ROW_MODEL.coerce(row_input)
         cid = str(row.concept_id)
         if allowed_concept_ids is not None and cid not in allowed_concept_ids:
             continue
@@ -242,7 +243,7 @@ def build_knowledge_graph(
 
     # ---- 3. Parameterization edges ----
     for row_input in world.all_parameterizations():
-        row = coerce_parameterization_row(row_input)
+        row = PARAMETERIZATION_ROW_MODEL.coerce(row_input)
         output_id = str(row.output_concept_id)
         if output_id not in node_ids:
             continue
@@ -262,7 +263,7 @@ def build_knowledge_graph(
 
     # ---- 4. Relationship edges ----
     for row_input in world.all_relationships():
-        row = cast(RelationshipRow, RELATIONSHIP_ROW_MODEL.coerce(row_input))
+        row = RELATIONSHIP_ROW_MODEL.coerce(row_input)
         src = row.source_id
         tgt = row.target_id
         if src not in node_ids or tgt not in node_ids:
@@ -276,7 +277,7 @@ def build_knowledge_graph(
 
     # ---- 5. Stance edges ----
     for row_input in world.all_claim_stances():
-        row = cast(StanceRow, STANCE_ROW_MODEL.coerce(row_input))
+        row = STANCE_ROW_MODEL.coerce(row_input)
         cid = _display_claim_id_from_store(world, row.claim_id)
         tid = _display_claim_id_from_store(world, row.target_claim_id)
         if cid not in node_ids or tid not in node_ids:

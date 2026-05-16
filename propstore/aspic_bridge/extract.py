@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import cast
-
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import AuthoredJustificationStore, StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
@@ -36,22 +34,19 @@ def _extract_stance_rows(
             ):
                 continue
             rows.append(
-                cast(
-                    StanceRow,
-                    STANCE_ROW_MODEL.from_row(
-                        {
-                            "claim_id": relation.source_id,
-                            "target_claim_id": relation.target_id,
-                            "stance_type": relation.relation_type,
-                            **dict(relation.attributes),
-                        }
-                    ),
+                STANCE_ROW_MODEL.from_row(
+                    {
+                        "claim_id": relation.source_id,
+                        "target_claim_id": relation.target_id,
+                        "stance_type": relation.relation_type,
+                        **dict(relation.attributes),
+                    }
                 )
             )
         return rows
 
     return [
-        cast(StanceRow, STANCE_ROW_MODEL.coerce(row))
+        STANCE_ROW_MODEL.coerce(row)
         for row in store.stances_between(set(active_by_id))
     ]
 

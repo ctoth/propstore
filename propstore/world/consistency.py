@@ -69,9 +69,9 @@ def _check_transitive_consistency(
 ) -> WorldConsistencyReport:
     from propstore.conflict_detector import detect_transitive_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-    from propstore.families.concepts.declaration import (
-        coerce_concept_row,
-        coerce_parameterization_row,
+    from propstore.families.concepts.projection_model import (
+        CONCEPT_ROW_MODEL,
+        PARAMETERIZATION_ROW_MODEL,
     )
 
     claim_files = [
@@ -80,21 +80,30 @@ def _check_transitive_consistency(
     ]
     concept_registry: dict[str, dict] = {}
     for concept_input in world.all_concepts():
-        concept_data = coerce_concept_row(concept_input).to_dict()
+        concept_data = dict(
+            CONCEPT_ROW_MODEL.to_mapping(
+                CONCEPT_ROW_MODEL.coerce(concept_input)
+            )
+        )
         concept_id = str(concept_data["id"])
         param_rows = world.parameterizations_for(concept_id)
         if param_rows:
             concept_data["parameterization_relationships"] = []
             for param_row in param_rows:
-                param_data = coerce_parameterization_row(param_row).to_dict()
+                parameterization = PARAMETERIZATION_ROW_MODEL.coerce(param_row)
+                param_data = dict(
+                    PARAMETERIZATION_ROW_MODEL.to_mapping(
+                        parameterization
+                    )
+                )
                 concept_data["parameterization_relationships"].append(
                     {
-                        "inputs": json.loads(param_data["concept_ids"]),
+                        "inputs": json.loads(parameterization.concept_ids),
                         "sympy": param_data.get("sympy"),
                         "exactness": param_data.get("exactness"),
                         "conditions": (
-                            json.loads(param_data["conditions_cel"])
-                            if param_data.get("conditions_cel")
+                            json.loads(parameterization.conditions_cel)
+                            if parameterization.conditions_cel
                             else []
                         ),
                     }

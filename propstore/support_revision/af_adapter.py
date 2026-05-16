@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Protocol, cast, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.families.relations.declaration import (
@@ -77,7 +77,7 @@ class RevisionArgumentationStore:
             return []
         result: list[StanceRow] = []
         for row_input in self._backing_store.stances_between(set(requested)):
-            row = cast(StanceRow, STANCE_ROW_MODEL.coerce(row_input))
+            row = STANCE_ROW_MODEL.coerce(row_input)
             if str(row.claim_id) in requested and str(row.target_claim_id) in requested:
                 result.append(row)
         return result
@@ -87,7 +87,7 @@ class RevisionArgumentationStore:
             return []
         result: list[ConflictRow] = []
         for row_input in self._backing_store.conflicts():
-            row = cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row_input))
+            row = CONFLICT_ROW_MODEL.coerce(row_input)
             if (
                 str(row.claim_a_id) in self._active_claim_ids
                 and str(row.claim_b_id) in self._active_claim_ids

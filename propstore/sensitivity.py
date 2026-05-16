@@ -14,7 +14,7 @@ from typing import Any
 from propstore.reporting import JsonReportMixin
 from propstore.core.environment import Environment
 from propstore.core.id_types import ConceptId, to_concept_id
-from propstore.families.concepts.declaration import coerce_parameterization_row
+from propstore.families.concepts.projection_model import PARAMETERIZATION_ROW_MODEL
 from propstore.propagation import parse_cached, rewrite_parameterization_symbols
 
 
@@ -129,7 +129,7 @@ def analyze_sensitivity(
     raw_params = world.parameterizations_for(str(lookup_concept_id))
     if not raw_params:
         return None
-    params = [coerce_parameterization_row(param) for param in raw_params]
+    params = [PARAMETERIZATION_ROW_MODEL.coerce(param) for param in raw_params]
 
     # Find first compatible parameterization
     param = None

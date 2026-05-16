@@ -374,39 +374,6 @@ class ConceptRow:
             object.__setattr__(self, "status", coerce_concept_status(self.status))
         object.__setattr__(self, "attributes", dict(self.attributes))
 
-    @classmethod
-    def from_mapping(cls, row_map: Mapping[str, Any]) -> ConceptRow:
-        known = {
-            "id",
-            "canonical_name",
-            "status",
-            "definition",
-            "kind_type",
-            "form",
-            "domain",
-            "form_parameters",
-            "primary_logical_id",
-            "logical_ids_json",
-        }
-        attributes = {
-            str(key): value
-            for key, value in row_map.items()
-            if key not in known and value is not None
-        }
-        return cls(
-            concept_id=to_concept_id(row_map["id"]),
-            canonical_name=str(row_map["canonical_name"]),
-            status=None if row_map.get("status") is None else coerce_concept_status(row_map["status"]),
-            definition=None if row_map.get("definition") is None else str(row_map["definition"]),
-            kind_type=None if row_map.get("kind_type") is None else str(row_map["kind_type"]),
-            form=None if row_map.get("form") is None else str(row_map["form"]),
-            domain=None if row_map.get("domain") is None else str(row_map["domain"]),
-            form_parameters=None if row_map.get("form_parameters") is None else str(row_map["form_parameters"]),
-            primary_logical_id=None if row_map.get("primary_logical_id") is None else str(row_map["primary_logical_id"]),
-            logical_ids_json=None if row_map.get("logical_ids_json") is None else str(row_map["logical_ids_json"]),
-            attributes=attributes,
-        )
-
     def parsed_logical_ids(self) -> list[dict[str, Any]]:
         if not self.logical_ids_json:
             return []
@@ -415,32 +382,6 @@ class ConceptRow:
         except json.JSONDecodeError:
             return []
         return loaded if isinstance(loaded, list) else []
-
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "id": self.concept_id,
-            "canonical_name": self.canonical_name,
-        }
-        if self.status is not None:
-            data["status"] = self.status.value
-        if self.definition is not None:
-            data["definition"] = self.definition
-        if self.kind_type is not None:
-            data["kind_type"] = self.kind_type
-        if self.form is not None:
-            data["form"] = self.form
-        if self.domain is not None:
-            data["domain"] = self.domain
-        if self.form_parameters is not None:
-            data["form_parameters"] = self.form_parameters
-        if self.primary_logical_id is not None:
-            data["primary_logical_id"] = self.primary_logical_id
-            data["logical_id"] = self.primary_logical_id
-        if self.logical_ids_json is not None:
-            data["logical_ids_json"] = self.logical_ids_json
-        data["logical_ids"] = self.parsed_logical_ids()
-        data.update(self.attributes)
-        return data
 
 
 @dataclass(frozen=True)
@@ -466,91 +407,17 @@ class ParameterizationRow:
         object.__setattr__(self, "exactness", coerce_exactness(self.exactness))
         object.__setattr__(self, "attributes", dict(self.attributes))
 
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "output_concept_id": self.output_concept_id,
-            "concept_ids": self.concept_ids,
-        }
-        if self.formula is not None:
-            data["formula"] = self.formula
-        if self.sympy is not None:
-            data["sympy"] = self.sympy
-        if self.exactness is not None:
-            data["exactness"] = self.exactness.value
-        if self.conditions_cel is not None:
-            data["conditions_cel"] = self.conditions_cel
-        if self.conditions_ir is not None:
-            data["conditions_ir"] = self.conditions_ir
-        data.update(self.attributes)
-        return data
-
-    @classmethod
-    def from_mapping(
-        cls,
-        row_map: Mapping[str, Any],
-        *,
-        output_concept_id: ConceptId | str | None = None,
-    ) -> "ParameterizationRow":
-        known = {
-            "output_concept_id",
-            "concept_ids",
-            "formula",
-            "sympy",
-            "exactness",
-            "conditions_cel",
-            "conditions_ir",
-        }
-        attributes = {
-            str(key): value
-            for key, value in row_map.items()
-            if key not in known and value is not None
-        }
-        resolved_output_concept_id = row_map.get("output_concept_id", output_concept_id)
-        if resolved_output_concept_id is None:
-            raise KeyError("output_concept_id")
-        return cls(
-            output_concept_id=to_concept_id(resolved_output_concept_id),
-            concept_ids=str(row_map["concept_ids"]),
-            formula=None if row_map.get("formula") is None else str(row_map["formula"]),
-            sympy=None if row_map.get("sympy") is None else str(row_map["sympy"]),
-            exactness=coerce_exactness(row_map.get("exactness")),
-            conditions_cel=(
-                None
-                if row_map.get("conditions_cel") is None
-                else str(row_map["conditions_cel"])
-            ),
-            conditions_ir=(
-                None
-                if row_map.get("conditions_ir") is None
-                else str(row_map["conditions_ir"])
-            ),
-            attributes=attributes,
-        )
-
 
 ParameterizationRowInput = ParameterizationRow | Mapping[str, Any]
-
-
-def coerce_parameterization_row(
-    row: ParameterizationRowInput,
-    *,
-    output_concept_id: ConceptId | str | None = None,
-) -> ParameterizationRow:
-    if isinstance(row, ParameterizationRow):
-        return row
-    return ParameterizationRow.from_mapping(
-        row,
-        output_concept_id=output_concept_id,
-    )
 
 
 ConceptRowInput = ConceptRow | Mapping[str, Any]
 
 
-def coerce_concept_row(row: ConceptRowInput) -> ConceptRow:
-    if isinstance(row, ConceptRow):
-        return row
-    return ConceptRow.from_mapping(row)
+from propstore.families.concepts.projection_model import (  # noqa: E402
+    CONCEPT_ROW_MODEL,
+    PARAMETERIZATION_ROW_MODEL,
+)
 
 
 CONCEPT_PROJECTION = ProjectionTable(
@@ -577,7 +444,7 @@ CONCEPT_PROJECTION = ProjectionTable(
         text_field("last_modified").column(),
     ),
     indexes=(ProjectionIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
-    row_factory=ConceptRow.from_mapping,
+    row_factory=CONCEPT_ROW_MODEL.from_row,
 )
 
 
@@ -647,7 +514,7 @@ PARAMETERIZATION_PROJECTION = ProjectionTable(
         CONDITIONS_IR_FIELD.column(),
     ),
     foreign_keys=(ProjectionForeignKey(("output_concept_id",), "concept", ("id",)),),
-    row_factory=ParameterizationRow.from_mapping,
+    row_factory=PARAMETERIZATION_ROW_MODEL.from_row,
 )
 
 
@@ -824,12 +691,12 @@ def select_concept_by_id(conn: sqlite3.Connection, concept_id: str) -> ConceptRo
     row = conn.execute("SELECT * FROM concept WHERE id = ?", (concept_id,)).fetchone()
     if row is None:
         return None
-    return ConceptRow.from_mapping(dict(row))
+    return CONCEPT_ROW_MODEL.from_row(dict(row))
 
 
 def select_all_concepts(conn: sqlite3.Connection) -> list[ConceptRow]:
     rows = conn.execute("SELECT * FROM concept").fetchall()
-    return [ConceptRow.from_mapping(dict(row)) for row in rows]
+    return [CONCEPT_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def select_concept_embedding_sources(
@@ -854,7 +721,7 @@ def select_concept_embedding_sources(
     aliases = select_aliases_by_concept_id(conn, tuple(str(row["id"]) for row in rows))
     return [
         ConceptEmbeddingSource(
-            concept=ConceptRow.from_mapping(dict(row)),
+            concept=CONCEPT_ROW_MODEL.from_row(dict(row)),
             seq=int(row["seq"]),
             content_hash=str(row["content_hash"]),
             aliases=aliases.get(str(row["id"]), ()),
@@ -897,7 +764,7 @@ def select_concept_registry_rows(conn: sqlite3.Connection) -> list[ConceptRow]:
     rows = conn.execute(
         "SELECT id, canonical_name, kind_type, form_parameters FROM concept"
     ).fetchall()
-    return [ConceptRow.from_mapping(dict(row)) for row in rows]
+    return [CONCEPT_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def build_concept_logical_id_index(conn: sqlite3.Connection) -> dict[str, str]:
@@ -987,9 +854,11 @@ def select_parameterizations_for_output_concept(
         (concept_id,),
     ).fetchall()
     return [
-        ParameterizationRow.from_mapping(
-            dict(row),
-            output_concept_id=concept_id,
+        PARAMETERIZATION_ROW_MODEL.from_row(
+            {
+                **dict(row),
+                "output_concept_id": dict(row).get("output_concept_id", concept_id),
+            }
         )
         for row in rows
     ]
@@ -997,7 +866,7 @@ def select_parameterizations_for_output_concept(
 
 def select_all_parameterizations(conn: sqlite3.Connection) -> list[ParameterizationRow]:
     rows = conn.execute("SELECT * FROM parameterization").fetchall()
-    return [ParameterizationRow.from_mapping(dict(row)) for row in rows]
+    return [PARAMETERIZATION_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def select_parameterization_group_members(

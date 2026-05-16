@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import cast
-
 from argumentation.bipolar import (
     BipolarArgumentationFramework,
     cayrol_derived_defeats as _cayrol_derived_defeats_impl,
@@ -212,7 +210,7 @@ def _claim_node_from_row(row_input: ClaimRowInput | dict) -> ClaimNode:
 
 
 def _relation_edge_from_row(row: StanceRowInput) -> RelationEdge:
-    stance = cast(StanceRow, STANCE_ROW_MODEL.coerce(row))
+    stance = STANCE_ROW_MODEL.coerce(row)
     attributes = tuple(
         (str(key), value)
         for key, value in STANCE_ROW_MODEL.to_row(stance).items()
@@ -234,7 +232,7 @@ def _relation_edge_from_row(row: StanceRowInput) -> RelationEdge:
 
 
 def _conflict_witness_from_row(row: ConflictRowInput) -> ConflictWitness:
-    conflict = cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row))
+    conflict = CONFLICT_ROW_MODEL.coerce(row)
     warning_class = conflict.warning_class or conflict.conflict_class or "conflict"
     details = tuple(
         (str(key), value)
@@ -265,8 +263,8 @@ def _minimal_compiled_graph(
     conflicts = tuple(
         _conflict_witness_from_row(row)
         for row in (store.conflicts() if isinstance(store, ConflictStore) else ())
-        if str(cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row)).claim_a_id) in active_claim_ids
-        and str(cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row)).claim_b_id) in active_claim_ids
+        if str(CONFLICT_ROW_MODEL.coerce(row).claim_a_id) in active_claim_ids
+        and str(CONFLICT_ROW_MODEL.coerce(row).claim_b_id) in active_claim_ids
     )
     return CompiledWorldGraph(
         claims=claims,

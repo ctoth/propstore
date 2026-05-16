@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from propstore.conflict_detector import ConflictClass
 from propstore.cel_types import to_cel_exprs
@@ -47,10 +47,10 @@ from propstore.families.relations.projection_model import (
     STANCE_ROW_MODEL,
 )
 from propstore.families.concepts.declaration import (
+    ConceptRow,
     ParameterizationRow,
-    coerce_concept_row,
-    coerce_parameterization_row,
 )
+from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARAMETERIZATION_ROW_MODEL
 
 
 def _row_provenance(
@@ -242,7 +242,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         raise TypeError("build_compiled_world_graph requires conflicts()")
 
     concept_rows = [
-        coerce_concept_row(row)
+        CONCEPT_ROW_MODEL.coerce(row)
         for row in store.all_concepts()
     ]
     claim_rows = [
@@ -251,24 +251,24 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
     ]
     relationship_rows = (
         [
-            cast(RelationshipRow, RELATIONSHIP_ROW_MODEL.coerce(row))
+            RELATIONSHIP_ROW_MODEL.coerce(row)
             for row in store.all_relationships()
         ]
         if isinstance(store, RelationshipCatalogStore)
         else []
     )
     parameterization_rows = [
-        coerce_parameterization_row(row)
+        PARAMETERIZATION_ROW_MODEL.coerce(row)
         for row in store.all_parameterizations()
     ]
     conflict_rows = [
-        cast(ConflictRow, CONFLICT_ROW_MODEL.coerce(row))
+        CONFLICT_ROW_MODEL.coerce(row)
         for row in store.conflicts()
     ]
 
     if isinstance(store, ClaimStanceInventoryStore):
         claim_stance_rows = [
-            cast(StanceRow, STANCE_ROW_MODEL.coerce(row))
+            STANCE_ROW_MODEL.coerce(row)
             for row in store.all_claim_stances()
         ]
     elif isinstance(store, StanceStore):
@@ -277,7 +277,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
             for row in claim_rows
         }
         claim_stance_rows = [
-            cast(StanceRow, STANCE_ROW_MODEL.coerce(row))
+            STANCE_ROW_MODEL.coerce(row)
             for row in store.stances_between(claim_ids)
         ]
     else:
@@ -292,7 +292,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
             status=row.status,
             form=row.form,
             kind_type=row.kind_type,
-            attributes=_concept_attributes(row.to_dict()),
+            attributes=_concept_attributes(CONCEPT_ROW_MODEL.to_mapping(row)),
         )
         for row in concept_rows
     )
