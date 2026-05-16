@@ -8,7 +8,14 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
+from quire.projections import (
+    AUTOINCREMENT_ID_FIELD,
+    ProjectionIndex,
+    ProjectionTable,
+    family_reference_field,
+    integer_field,
+    text_field,
+)
 from propstore.semantic_passes.types import PassDiagnostic
 
 
@@ -24,16 +31,16 @@ class QuarantineDiagnostic:
 BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(
     name="build_diagnostics",
     columns=(
-        ProjectionColumn("id", "INTEGER PRIMARY KEY AUTOINCREMENT", insertable=False),
-        ProjectionColumn("claim_id", "TEXT"),
-        ProjectionColumn("source_kind", "TEXT", nullable=False),
-        ProjectionColumn("source_ref", "TEXT"),
-        ProjectionColumn("diagnostic_kind", "TEXT", nullable=False),
-        ProjectionColumn("severity", "TEXT", nullable=False),
-        ProjectionColumn("blocking", "INTEGER", nullable=False),
-        ProjectionColumn("message", "TEXT", nullable=False),
-        ProjectionColumn("file", "TEXT"),
-        ProjectionColumn("detail_json", "TEXT"),
+        AUTOINCREMENT_ID_FIELD.column(),
+        family_reference_field("claim").column(),
+        text_field("source_kind", nullable=False).column(),
+        text_field("source_ref").column(),
+        text_field("diagnostic_kind", nullable=False).column(),
+        text_field("severity", nullable=False).column(),
+        integer_field("blocking", nullable=False).column(),
+        text_field("message", nullable=False).column(),
+        text_field("file").column(),
+        text_field("detail_json").column(),
     ),
     indexes=(
         ProjectionIndex("idx_build_diagnostics_claim", ("claim_id",)),
