@@ -12,11 +12,23 @@ from typing import TYPE_CHECKING, Any
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
 from quire.projections import (
+    ARTIFACT_ID_FIELD,
+    AUTOINCREMENT_ID_FIELD,
+    CONDITIONS_CEL_FIELD,
+    CONDITIONS_IR_FIELD,
+    CONTENT_HASH_FIELD,
     FtsProjection,
-    ProjectionColumn,
     ProjectionForeignKey,
     ProjectionIndex,
     ProjectionTable,
+    LOGICAL_IDS_JSON_FIELD,
+    PRIMARY_LOGICAL_ID_FIELD,
+    SEQUENCE_FIELD,
+    VERSION_ID_FIELD,
+    family_reference_field,
+    integer_field,
+    real_field,
+    text_field,
 )
 from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
 
@@ -544,25 +556,25 @@ def coerce_concept_row(row: ConceptRowInput) -> ConceptRow:
 CONCEPT_PROJECTION = ProjectionTable(
     name="concept",
     columns=(
-        ProjectionColumn("id", "TEXT", primary_key=True),
-        ProjectionColumn("primary_logical_id", "TEXT", nullable=False, default_sql="''"),
-        ProjectionColumn("logical_ids_json", "TEXT", nullable=False, default_sql="'[]'"),
-        ProjectionColumn("version_id", "TEXT", nullable=False, default_sql="''"),
-        ProjectionColumn("content_hash", "TEXT", nullable=False),
-        ProjectionColumn("seq", "INTEGER", nullable=False),
-        ProjectionColumn("canonical_name", "TEXT", nullable=False),
-        ProjectionColumn("status", "TEXT", nullable=False),
-        ProjectionColumn("domain", "TEXT"),
-        ProjectionColumn("definition", "TEXT", nullable=False),
-        ProjectionColumn("kind_type", "TEXT", nullable=False),
-        ProjectionColumn("form", "TEXT", nullable=False),
-        ProjectionColumn("form_parameters", "TEXT"),
-        ProjectionColumn("range_min", "REAL"),
-        ProjectionColumn("range_max", "REAL"),
-        ProjectionColumn("is_dimensionless", "INTEGER", nullable=False, default_sql="0"),
-        ProjectionColumn("unit_symbol", "TEXT"),
-        ProjectionColumn("created_date", "TEXT"),
-        ProjectionColumn("last_modified", "TEXT"),
+        ARTIFACT_ID_FIELD.column(primary_key=True),
+        PRIMARY_LOGICAL_ID_FIELD.column(),
+        LOGICAL_IDS_JSON_FIELD.column(),
+        VERSION_ID_FIELD.column(),
+        CONTENT_HASH_FIELD.column(),
+        SEQUENCE_FIELD.column(),
+        text_field("canonical_name", nullable=False).column(),
+        text_field("status", nullable=False).column(),
+        text_field("domain").column(),
+        text_field("definition", nullable=False).column(),
+        text_field("kind_type", nullable=False).column(),
+        text_field("form", nullable=False).column(),
+        text_field("form_parameters").column(),
+        real_field("range_min").column(),
+        real_field("range_max").column(),
+        integer_field("is_dimensionless", nullable=False).column(default_sql="0"),
+        text_field("unit_symbol").column(),
+        text_field("created_date").column(),
+        text_field("last_modified").column(),
     ),
     indexes=(ProjectionIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
     row_factory=ConceptRow.from_mapping,
@@ -572,11 +584,11 @@ CONCEPT_PROJECTION = ProjectionTable(
 FORM_PROJECTION = ProjectionTable(
     name="form",
     columns=(
-        ProjectionColumn("name", "TEXT", primary_key=True),
-        ProjectionColumn("kind", "TEXT", nullable=False),
-        ProjectionColumn("unit_symbol", "TEXT"),
-        ProjectionColumn("is_dimensionless", "INTEGER", nullable=False, default_sql="0"),
-        ProjectionColumn("dimensions", "TEXT"),
+        text_field("name").column(primary_key=True),
+        text_field("kind", nullable=False).column(),
+        text_field("unit_symbol").column(),
+        integer_field("is_dimensionless", nullable=False).column(default_sql="0"),
+        text_field("dimensions").column(),
     ),
 )
 
@@ -584,13 +596,13 @@ FORM_PROJECTION = ProjectionTable(
 FORM_ALGEBRA_PROJECTION = ProjectionTable(
     name="form_algebra",
     columns=(
-        ProjectionColumn("id", "INTEGER PRIMARY KEY AUTOINCREMENT", insertable=False),
-        ProjectionColumn("output_form", "TEXT", nullable=False),
-        ProjectionColumn("input_forms", "TEXT", nullable=False),
-        ProjectionColumn("operation", "TEXT", nullable=False),
-        ProjectionColumn("source_concept_id", "TEXT"),
-        ProjectionColumn("source_formula", "TEXT"),
-        ProjectionColumn("dim_verified", "INTEGER", nullable=False, default_sql="1"),
+        AUTOINCREMENT_ID_FIELD.column(),
+        text_field("output_form", nullable=False).column(),
+        text_field("input_forms", nullable=False).column(),
+        text_field("operation", nullable=False).column(),
+        family_reference_field("concept", role="source").column(),
+        text_field("source_formula").column(),
+        integer_field("dim_verified", nullable=False).column(default_sql="1"),
     ),
     foreign_keys=(ProjectionForeignKey(("output_form",), "form", ("name",)),),
     indexes=(ProjectionIndex("idx_form_algebra_output", ("output_form",)),),
@@ -600,9 +612,9 @@ FORM_ALGEBRA_PROJECTION = ProjectionTable(
 ALIAS_PROJECTION = ProjectionTable(
     name="alias",
     columns=(
-        ProjectionColumn("concept_id", "TEXT", nullable=False),
-        ProjectionColumn("alias_name", "TEXT", nullable=False),
-        ProjectionColumn("source", "TEXT", nullable=False),
+        family_reference_field("concept", nullable=False).column(),
+        text_field("alias_name", nullable=False).column(),
+        text_field("source", nullable=False).column(),
     ),
     foreign_keys=(ProjectionForeignKey(("concept_id",), "concept", ("id",)),),
     indexes=(
@@ -615,8 +627,8 @@ ALIAS_PROJECTION = ProjectionTable(
 PARAMETERIZATION_GROUP_PROJECTION = ProjectionTable(
     name="parameterization_group",
     columns=(
-        ProjectionColumn("concept_id", "TEXT", nullable=False),
-        ProjectionColumn("group_id", "INTEGER", nullable=False),
+        family_reference_field("concept", nullable=False).column(),
+        integer_field("group_id", nullable=False).column(),
     ),
     foreign_keys=(ProjectionForeignKey(("concept_id",), "concept", ("id",)),),
     indexes=(ProjectionIndex("idx_param_group", ("group_id",)),),
@@ -626,13 +638,13 @@ PARAMETERIZATION_GROUP_PROJECTION = ProjectionTable(
 PARAMETERIZATION_PROJECTION = ProjectionTable(
     name="parameterization",
     columns=(
-        ProjectionColumn("output_concept_id", "TEXT", nullable=False),
-        ProjectionColumn("concept_ids", "TEXT", nullable=False),
-        ProjectionColumn("formula", "TEXT", nullable=False),
-        ProjectionColumn("sympy", "TEXT"),
-        ProjectionColumn("exactness", "TEXT", nullable=False),
-        ProjectionColumn("conditions_cel", "TEXT"),
-        ProjectionColumn("conditions_ir", "TEXT"),
+        family_reference_field("concept", role="output", nullable=False).column(),
+        text_field("concept_ids", nullable=False).column(),
+        text_field("formula", nullable=False).column(),
+        text_field("sympy").column(),
+        text_field("exactness", nullable=False).column(),
+        CONDITIONS_CEL_FIELD.column(),
+        CONDITIONS_IR_FIELD.column(),
     ),
     foreign_keys=(ProjectionForeignKey(("output_concept_id",), "concept", ("id",)),),
     row_factory=ParameterizationRow.from_mapping,
@@ -642,11 +654,11 @@ PARAMETERIZATION_PROJECTION = ProjectionTable(
 RELATIONSHIP_PROJECTION = ProjectionTable(
     name="relationship",
     columns=(
-        ProjectionColumn("source_id", "TEXT", nullable=False),
-        ProjectionColumn("type", "TEXT", nullable=False),
-        ProjectionColumn("target_id", "TEXT", nullable=False),
-        ProjectionColumn("conditions_cel", "TEXT"),
-        ProjectionColumn("note", "TEXT"),
+        text_field("source_id", nullable=False).column(),
+        text_field("type", nullable=False).column(),
+        text_field("target_id", nullable=False).column(),
+        CONDITIONS_CEL_FIELD.column(),
+        text_field("note").column(),
     ),
     foreign_keys=(
         ProjectionForeignKey(("source_id",), "concept", ("id",)),
@@ -1067,4 +1079,3 @@ def resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:
     if alias is not None:
         return str(alias["concept_id"])
     raise ValueError(f"Unknown concept: {handle}")
-
