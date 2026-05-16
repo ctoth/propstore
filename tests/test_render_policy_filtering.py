@@ -225,10 +225,9 @@ def test_fixture_sidecar_is_schema_v6(lifecycle_sidecar: Path) -> None:
 def test_default_policy_hides_draft(wm: WorldQuery) -> None:
     """Default ``RenderPolicy()`` hides ``stage='draft'`` rows.
 
-    Per ws-z-render-gates.md exit criterion: ``pks sidecar query`` default output
-    matches pre-fix behaviour for clean trees — drafts stay queryable
-    through opt-in (include_drafts=True) but are not in the default
-    view.
+    Per ws-z-render-gates.md exit criterion: default rendered output matches
+    pre-fix behaviour for clean trees: drafts stay queryable through opt-in
+    (include_drafts=True) but are not in the default view.
     """
     policy = RenderPolicy()
     rows = wm.claims_with_policy(None, policy)

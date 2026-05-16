@@ -963,27 +963,18 @@ class TestClaimValidate:
         assert "Validation passed" in result.output
 
 
-class TestQuery:
-    def test_query_returns_rows(self, workspace: Path) -> None:
-        runner = CliRunner()
-        build_result = runner.invoke(cli, ["build"])
-        assert build_result.exit_code == 0, build_result.output
-
-        query_result = runner.invoke(
-            cli,
-            ["sidecar", "query", "SELECT count(*) AS n FROM concept"],
-        )
-        assert query_result.exit_code == 0, query_result.output
-        assert "n" in query_result.output
-        assert "2" in query_result.output
-
-
 class TestSourceCutover:
     def test_import_papers_command_removed(self, workspace: Path) -> None:
         runner = CliRunner()
         result = runner.invoke(cli, ["import-papers"])
         assert result.exit_code != 0
         assert "No such command 'import-papers'" in result.output
+
+    def test_sidecar_command_removed(self, workspace: Path) -> None:
+        runner = CliRunner()
+        result = runner.invoke(cli, ["sidecar"])
+        assert result.exit_code != 0
+        assert "No such command 'sidecar'" in result.output
 
 
 # ── build (extended) ────────────────────────────────────────────────
@@ -1492,77 +1483,6 @@ class TestConceptAddValue:
         ])
         assert result.exit_code != 0
         assert "extensible" in result.output.lower()
-
-
-# ── query (SQL injection protection) ────────────────────────────────
-
-class TestQueryReadOnly:
-    """Verify that `pks sidecar query` enforces read-only mode on the sidecar."""
-
-    @pytest.fixture()
-    def built_workspace(self, workspace: Path) -> Path:
-        """Build a derived store so `pks sidecar query` has something to query."""
-        runner = CliRunner()
-        result = runner.invoke(cli, ["build"])
-        assert result.exit_code == 0, result.output
-        assert not (workspace / "knowledge" / "sidecar").exists()
-        return workspace
-
-    def test_select_works(self, built_workspace: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(cli, ["sidecar", "query", "SELECT count(*) FROM concept"])
-        assert result.exit_code == 0, result.output
-
-    def test_select_json_uses_report_shape(self, built_workspace: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(
-            cli,
-            [
-                "sidecar",
-                "query",
-                "SELECT count(*) AS concept_count FROM concept",
-                "--format",
-                "json",
-            ],
-        )
-        assert result.exit_code == 0, result.output
-
-        data = json.loads(result.output)
-        assert data["columns"] == ["concept_count"]
-        assert data["rows"][0] == ["2"]
-
-    def test_drop_table_rejected(self, built_workspace: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(cli, ["sidecar", "query", "DROP TABLE IF EXISTS concept"])
-        assert result.exit_code != 0
-
-    def test_insert_rejected(self, built_workspace: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(cli, [
-            "sidecar",
-            "query",
-            "INSERT INTO concept (id, canonical_name, status, definition, domain, form) "
-            "VALUES ('evil', 'evil', 'accepted', 'evil', 'evil', 'evil')",
-        ])
-        assert result.exit_code != 0
-
-    def test_update_rejected(self, built_workspace: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(cli, [
-            "sidecar",
-            "query",
-            "UPDATE concept SET canonical_name='hacked' WHERE 1=1",
-        ])
-        assert result.exit_code != 0
-
-    def test_delete_rejected(self, built_workspace: Path) -> None:
-        runner = CliRunner()
-        result = runner.invoke(cli, [
-            "sidecar",
-            "query",
-            "DELETE FROM concept WHERE 1=1",
-        ])
-        assert result.exit_code != 0
 
 
 # ── Resource leak tests ──────────────────────────────────────────────

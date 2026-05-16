@@ -38,7 +38,6 @@ _COMMANDS: dict[str, tuple[str, str, str]] = {
     "proposal": ("propstore.cli.proposal", "proposal", "Manage proposal artifacts."),
     "rule": ("propstore.cli.rule", "rule", "Author DeLP rules."),
     "show": ("propstore.cli.history_cmds", "show_cmd", "Show a repository commit."),
-    "sidecar": ("propstore.cli.sidecar", "sidecar", "Inspect compiled sidecar artifacts."),
     "source": ("propstore.cli.source", "source", "Manage source-local authoring state."),
     "validate": ("propstore.cli.compiler_cmds", "validate", "Validate concepts and claims."),
     "verify": ("propstore.cli.verify", "verify", "Verify repository evidence."),
@@ -79,7 +78,6 @@ _ADVANCED_COMMANDS = (
     "contract-manifest",
     "export-aliases",
     "checkout",
-    "sidecar",
 )
 
 _COMMAND_ALIASES = {

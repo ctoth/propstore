@@ -1,7 +1,6 @@
 """Compiler-facing CLI commands.
 
-Exposes top-level commands for validation, sidecar builds, raw sidecar SQL,
-and alias export.
+Exposes top-level commands for validation, sidecar builds, and alias export.
 """
 from __future__ import annotations
 
@@ -11,13 +10,13 @@ import click
 
 from propstore.cli.output import emit, emit_error, emit_success
 
+from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code, fail
 from propstore.app.compiler import (
-    CompilerWorkflowError,
     build_repository,
     export_aliases as run_export_aliases,
     validate_repository,
 )
-from propstore.cli.helpers import EXIT_VALIDATION, exit_with_code, fail
+from propstore.compiler.errors import CompilerWorkflowError
 from propstore.repository import Repository
 
 

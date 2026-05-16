@@ -1,4 +1,4 @@
-"""Typed concept sidecar query and embedding workflows."""
+"""Typed concept query and embedding workflows."""
 
 from __future__ import annotations
 

@@ -139,9 +139,8 @@ def checkout_cmd(ctx: click.Context, commit: str) -> None:
     """Rebuild the sidecar from a historical commit's tree.
 
     Leaves git state, working tree, and source YAML untouched, but
-    overwrites the on-disk sidecar at ``<repo>/sidecar/propstore.sqlite``
-    so that subsequent ``pks world`` / ``pks sidecar query`` commands see the
-    historical state until the next ``pks build``.
+    overwrites the derived store so subsequent world queries see the historical
+    state until the next ``pks build``.
     """
     repo = ctx.obj["repo"]
 
