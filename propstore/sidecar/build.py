@@ -83,6 +83,7 @@ from propstore.families.sources.declaration import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.types import PassDiagnostic
+from propstore.source.promote import compile_all_source_promotion_blocked_projection_rows
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -227,21 +228,6 @@ def _filter_invalid_context_lifting_rows(
         lifting_rule_rows=valid_lifting_rows,
         lifting_materialization_rows=rows.lifting_materialization_rows,
     )
-
-
-def _compile_source_promotion_blocked_rows(repo: "Repository"):
-    from propstore.source.promote import compile_source_promotion_blocked_projection_rows
-
-    claim_rows = []
-    diagnostic_rows = []
-    for branch in repo.snapshot.iter_branches():
-        if branch.kind != "source":
-            continue
-        source_name = branch.name.removeprefix("source/")
-        rows = compile_source_promotion_blocked_projection_rows(repo, source_name)
-        claim_rows.extend(rows.claim_rows)
-        diagnostic_rows.extend(rows.diagnostic_rows)
-    return tuple(claim_rows), tuple(diagnostic_rows)
 
 
 def materialize_world_sidecar(
@@ -459,9 +445,7 @@ def _build_sidecar_file(
             for handle in repo.families.micropubs.iter_handles(commit=commit_hash)
         ),
     )
-    promotion_blocked_claim_rows, promotion_blocked_diagnostic_rows = (
-        _compile_source_promotion_blocked_rows(repo)
-    )
+    promotion_blocked_rows = compile_all_source_promotion_blocked_projection_rows(repo)
 
     embedding_snapshot = extract_embedding_snapshot_from_store(
         output_path,
@@ -535,19 +519,19 @@ def _build_sidecar_file(
                         conn,
                         sidecar_plan.raw_id_quarantine_rows,
                     )
-                populate_promotion_blocked_claims(
-                    conn,
-                    promotion_blocked_claim_rows,
-                    promotion_blocked_diagnostic_rows,
-                )
+                    populate_promotion_blocked_claims(
+                        conn,
+                        promotion_blocked_rows.claim_rows,
+                        promotion_blocked_rows.diagnostic_rows,
+                    )
 
                 populate_conflicts(conn, sidecar_plan.conflict_rows)
                 CLAIM_FTS_PROJECTION.populate_from_source_query(conn)
             else:
                 populate_promotion_blocked_claims(
                     conn,
-                    promotion_blocked_claim_rows,
-                    promotion_blocked_diagnostic_rows,
+                    promotion_blocked_rows.claim_rows,
+                    promotion_blocked_rows.diagnostic_rows,
                 )
 
             populate_micropublications(conn, sidecar_plan.micropublication_rows)

@@ -853,6 +853,24 @@ def compile_source_promotion_blocked_projection_rows(
     )
 
 
+def compile_all_source_promotion_blocked_projection_rows(
+    repo: Repository,
+) -> PromotionBlockedProjectionRows:
+    claim_rows: list[ProjectionRow] = []
+    diagnostic_rows: list[ProjectionRow] = []
+    for branch in repo.snapshot.iter_branches():
+        if branch.kind != "source":
+            continue
+        source_name = branch.name.removeprefix("source/")
+        rows = compile_source_promotion_blocked_projection_rows(repo, source_name)
+        claim_rows.extend(rows.claim_rows)
+        diagnostic_rows.extend(rows.diagnostic_rows)
+    return PromotionBlockedProjectionRows(
+        claim_rows=tuple(claim_rows),
+        diagnostic_rows=tuple(diagnostic_rows),
+    )
+
+
 def promote_source_branch(
     repo: Repository,
     source_name: str,
