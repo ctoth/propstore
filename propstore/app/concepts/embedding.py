@@ -17,7 +17,7 @@ from .mutation import (
     _concept_embed_model_report,
     _require_sidecar,
 )
-from propstore.families.concepts.declaration import (
+from propstore.families.concepts.sidecar_runtime import (
     embed_concepts_for_request,
     find_similar_concept_rows,
 )

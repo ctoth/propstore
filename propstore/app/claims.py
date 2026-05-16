@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Mapping
 
-from propstore.families.claims.declaration import (
+from propstore.families.claims.sidecar_runtime import (
     embed_claims_for_request,
     find_similar_claim_rows,
     relate_all_from_sidecar,

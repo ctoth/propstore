@@ -469,6 +469,10 @@ def _is_declaration_or_query_owner(rel: str) -> bool:
     return (
         _is_generated_path(rel)
         or _is_family_declaration_owner(rel)
+        or (
+            rel.startswith("propstore/families/")
+            and rel.endswith("/sidecar_runtime.py")
+        )
         or rel
         in {
             "propstore/families/projection_catalog.py",
