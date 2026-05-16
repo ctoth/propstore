@@ -93,6 +93,37 @@ REPEATED_FIELD_NAMES = (
     "opinion_base_rate",
     "diagnostic_kind",
 )
+ROW_DECODER_HELPER_RE = re.compile(r"^(?:coerce_.*_row|_decode_.*_row|_load_.*_row|build_.*_row|make_.*_row)$")
+FLAT_SOURCE_RE = re.compile(
+    r"\b(?:source_[a-z_]+|provenance_[a-z_]+|logical_ids_json|conditions_cel|conditions_ir|opinion_[a-z_]+)\b"
+)
+NESTED_SOURCE_RE = re.compile(r"(?:\bsource\b|nested_source|row_map\.(?:get|pop)\(\"source\"|\[\"source\"\])")
+NESTED_CONSTRUCTOR_NAMES = {
+    "LogicalId",
+    "SourceOrigin",
+}
+NESTED_DOCUMENT_CODEC_TYPES = {
+    "ActiveMicropublication",
+    "ClaimSource",
+    "ProvenanceRecord",
+    "SourceTrust",
+}
+PROJECTION_DECLARATION_NAMES = {
+    "ProjectionTable",
+    "ProjectionForeignKey",
+    "ProjectionIndex",
+}
+ROW_MAPPING_FAMILY_FILES = {
+    "propstore/families/calibration/declaration.py",
+    "propstore/families/claims/declaration.py",
+    "propstore/families/concepts/declaration.py",
+    "propstore/families/contexts/declaration.py",
+    "propstore/families/diagnostics/declaration.py",
+    "propstore/families/micropublications/declaration.py",
+    "propstore/families/relations/declaration.py",
+    "propstore/families/rules/declaration.py",
+    "propstore/families/sources/declaration.py",
+}
 
 
 @dataclass
@@ -159,6 +190,17 @@ def _call_name(node: ast.AST) -> str:
     if isinstance(node, ast.Name):
         return node.id
     if isinstance(node, ast.Attribute):
+        return node.attr
+    return ""
+
+
+def _call_qualname(node: ast.AST) -> str:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parent = _call_qualname(node.value)
+        if parent:
+            return f"{parent}.{node.attr}"
         return node.attr
     return ""
 
@@ -546,12 +588,194 @@ def _source_local_canonical_overlap(items: list[FileInventory], root: Path) -> l
     return records
 
 
+def _source_for_node(text: str, node: ast.AST) -> str:
+    return ast.get_source_segment(text, node) or ""
+
+
+def _node_loc(node: ast.AST) -> int:
+    lineno = getattr(node, "lineno", 0)
+    end_lineno = getattr(node, "end_lineno", lineno)
+    if not lineno or not end_lineno:
+        return 0
+    return max(0, end_lineno - lineno + 1)
+
+
+def _row_mapping_files(root: Path) -> list[Path]:
+    return [root / rel for rel in sorted(ROW_MAPPING_FAMILY_FILES) if (root / rel).exists()]
+
+
+def _row_mapping_inventory(root: Path) -> dict[str, Any]:
+    row_methods: list[dict[str, Any]] = []
+    decoder_helpers: list[dict[str, Any]] = []
+    attribute_bucket_classes: list[dict[str, Any]] = []
+    row_factories: list[dict[str, Any]] = []
+    child_row_assembly_loops: list[dict[str, Any]] = []
+    multi_source_merge_methods: list[dict[str, Any]] = []
+    nested_document_methods: list[dict[str, Any]] = []
+    nested_constructor_sites: list[dict[str, Any]] = []
+    quire_projection_mapping_imports: list[dict[str, Any]] = []
+    projection_declarations: list[dict[str, Any]] = []
+    from_mapping_loc = 0
+    to_dict_loc = 0
+    flat_source_refs = 0
+    nested_source_refs = 0
+    projection_column_count = 0
+
+    for path in _row_mapping_files(root):
+        rel = _relative(path, root)
+        text = path.read_text(encoding="utf-8")
+        flat_source_refs += len(FLAT_SOURCE_RE.findall(text))
+        nested_source_refs += len(NESTED_SOURCE_RE.findall(text))
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            continue
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom):
+                module = node.module or ""
+                if module == "quire.projection_mapping" or module.startswith("quire.projection_mapping."):
+                    quire_projection_mapping_imports.append(
+                        {"path": rel, "line": node.lineno, "symbols": _imported_names(node)}
+                    )
+            elif isinstance(node, ast.FunctionDef):
+                if ROW_DECODER_HELPER_RE.match(node.name):
+                    decoder_helpers.append({"path": rel, "name": node.name, "line": node.lineno, "loc": _node_loc(node)})
+                body_text = _source_for_node(text, node)
+                if FLAT_SOURCE_RE.search(body_text) and NESTED_SOURCE_RE.search(body_text):
+                    multi_source_merge_methods.append(
+                        {"path": rel, "name": node.name, "line": node.lineno, "loc": _node_loc(node)}
+                    )
+            elif isinstance(node, ast.ClassDef):
+                class_name = node.name
+                for stmt in node.body:
+                    if isinstance(stmt, ast.AnnAssign):
+                        target_name = stmt.target.id if isinstance(stmt.target, ast.Name) else ""
+                        annotation = _annotation_text(stmt.annotation)
+                        if target_name == "attributes" and "Mapping" in annotation:
+                            attribute_bucket_classes.append({"path": rel, "class": class_name, "line": stmt.lineno})
+                    if isinstance(stmt, ast.FunctionDef) and stmt.name in {"from_mapping", "to_dict"}:
+                        loc = _node_loc(stmt)
+                        record = {
+                            "path": rel,
+                            "class": class_name,
+                            "method": stmt.name,
+                            "line": stmt.lineno,
+                            "loc": loc,
+                        }
+                        if class_name.endswith("Row"):
+                            row_methods.append(record)
+                            if stmt.name == "from_mapping":
+                                from_mapping_loc += loc
+                            else:
+                                to_dict_loc += loc
+                        elif stmt.name == "from_mapping":
+                            nested_document_methods.append(record)
+                    if isinstance(stmt, ast.FunctionDef) and stmt.name == "from_mapping" and class_name.endswith("Row"):
+                        for call in ast.walk(stmt):
+                            if isinstance(call, ast.Call) and _call_name(call.func) in NESTED_CONSTRUCTOR_NAMES:
+                                nested_constructor_sites.append(
+                                    {
+                                        "path": rel,
+                                        "class": class_name,
+                                        "constructor": _call_name(call.func),
+                                        "line": call.lineno,
+                                    }
+                                )
+            elif isinstance(node, ast.Call):
+                name = _call_name(node.func)
+                if name == "ProjectionColumn":
+                    projection_column_count += 1
+                qualname = _call_qualname(node.func)
+                if qualname.endswith(".from_mapping"):
+                    owner = qualname.rsplit(".", 1)[0].rsplit(".", 1)[-1]
+                    if owner in NESTED_DOCUMENT_CODEC_TYPES:
+                        nested_document_methods.append(
+                            {"path": rel, "target": qualname, "line": node.lineno}
+                        )
+                if name in PROJECTION_DECLARATION_NAMES:
+                    projection_declarations.append({"path": rel, "kind": name, "line": node.lineno})
+                if name == "ProjectionTable":
+                    target = "<none>"
+                    for keyword in node.keywords:
+                        if keyword.arg == "row_factory":
+                            target = _annotation_text(keyword.value) or "<dynamic>"
+                    if target != "<none>":
+                        row_factories.append({"path": rel, "line": node.lineno, "target": target})
+            elif isinstance(node, (ast.ListComp, ast.For)):
+                snippet = _source_for_node(text, node)
+                if ".from_mapping" in snippet and "row" in snippet:
+                    child_row_assembly_loops.append(
+                        {"path": rel, "line": getattr(node, "lineno", 0), "kind": type(node).__name__}
+                    )
+
+    cross_table_select_sql: list[dict[str, Any]] = []
+    for path in _py_files(root):
+        rel = _relative(path, root)
+        if not rel.startswith("propstore/"):
+            continue
+        text = path.read_text(encoding="utf-8")
+        try:
+            tree = ast.parse(text)
+        except SyntaxError:
+            continue
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                value = node.value
+                if re.search(r"\bSELECT\b", value, flags=re.IGNORECASE) and re.search(
+                    r"\bJOIN\b", value, flags=re.IGNORECASE
+                ):
+                    cross_table_select_sql.append({"path": rel, "line": node.lineno})
+
+    summary = {
+        "row_class_from_mapping_loc": from_mapping_loc,
+        "row_class_to_dict_loc": to_dict_loc,
+        "coerce_row_helpers": sum(1 for record in decoder_helpers if record["name"].startswith("coerce_")),
+        "row_decoder_helper_count": len(decoder_helpers),
+        "attributes_bucket_classes": len(attribute_bucket_classes),
+        "flat_source_column_refs": flat_source_refs,
+        "nested_source_dict_refs": nested_source_refs,
+        "cross_table_select_sql": len(cross_table_select_sql),
+        "projection_table_column_count": projection_column_count,
+        "row_factory_targets": len(row_factories),
+        "child_row_assembly_loops": len(child_row_assembly_loops),
+        "multi_source_merge_methods": len(multi_source_merge_methods),
+        "nested_document_from_mapping_methods": len(
+            {record.get("target", f"{record.get('class')}.from_mapping") for record in nested_document_methods}
+        ),
+        "nested_constructor_decode_sites": len(nested_constructor_sites),
+        "quire_projection_mapping_imports": len(quire_projection_mapping_imports),
+        "projection_declarations_count": len(projection_declarations),
+        "ddl_hash": 0,
+        "fts_ddl_hash": 0,
+        "fts_population_sql_hash": 0,
+    }
+    return {
+        "summary": summary,
+        "row_methods": row_methods,
+        "decoder_helpers": decoder_helpers,
+        "attribute_bucket_classes": attribute_bucket_classes,
+        "row_factory_targets": row_factories,
+        "child_row_assembly_loops": child_row_assembly_loops,
+        "multi_source_merge_methods": multi_source_merge_methods,
+        "nested_document_from_mapping_methods": nested_document_methods,
+        "nested_constructor_decode_sites": nested_constructor_sites,
+        "quire_projection_mapping_imports": quire_projection_mapping_imports,
+        "projection_declarations": projection_declarations,
+        "cross_table_select_sql": cross_table_select_sql,
+    }
+
+
 def build_json_report(items: list[FileInventory], root: Path) -> dict[str, Any]:
     files = [_file_record(item, root) for item in items]
+    row_mapping = _row_mapping_inventory(root)
+    summary = _summary_metrics(items, root)
+    summary.update(row_mapping["summary"])
     return {
         "schema_version": 1,
         "root": str(root),
-        "summary": _summary_metrics(items, root),
+        "summary": summary,
+        "row_mapping_metrics": {key: value for key, value in row_mapping.items() if key != "summary"},
         "repeated_projection_fields": _repeated_projection_fields(items, root),
         "sidecar_dispositions": _sidecar_dispositions(items, root),
         "source_local_canonical_overlap": _source_local_canonical_overlap(items, root),
@@ -839,7 +1063,16 @@ def _load_summary(path: Path) -> dict[str, int]:
     return result
 
 
-def compare_baseline(current: dict[str, int], baseline_path: Path, metrics: list[str]) -> int:
+def compare_baseline(
+    current: dict[str, int],
+    baseline_path: Path,
+    metrics: list[str],
+    *,
+    require_improvement: bool,
+) -> int:
+    if not baseline_path.exists():
+        print(f"baseline file does not exist: {baseline_path}")
+        return 1
     baseline = _load_summary(baseline_path)
     failed = False
     for metric in metrics:
@@ -853,11 +1086,15 @@ def compare_baseline(current: dict[str, int], baseline_path: Path, metrics: list
             continue
         old = baseline[metric]
         new = current[metric]
-        if new >= old:
+        if require_improvement and new >= old:
             print(f"{metric}: no improvement ({old} -> {new})")
             failed = True
-        else:
+        elif new < old:
             print(f"{metric}: improved ({old} -> {new})")
+        elif new > old:
+            print(f"{metric}: regressed ({old} -> {new})")
+        else:
+            print(f"{metric}: unchanged ({old} -> {new})")
     return 1 if failed else 0
 
 
@@ -960,6 +1197,9 @@ def main() -> int:
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--format", choices=("markdown", "json"), default="markdown")
     parser.add_argument("--limit", type=int, default=40)
+    parser.add_argument("--emit-row-mapping-metrics", action="store_true")
+    parser.add_argument("--diff", type=Path)
+    parser.add_argument("--metric", action="append", default=[])
     parser.add_argument("--compare-baseline", type=Path)
     parser.add_argument("--require-improvement", action="append", default=[])
     parser.add_argument("--gates", action="store_true")
@@ -971,11 +1211,19 @@ def main() -> int:
     report = build_json_report(items, root)
     if args.gates:
         return run_gates(report, args.ledger)
+    if args.diff:
+        return compare_baseline(
+            report["summary"],
+            args.diff,
+            list(args.metric),
+            require_improvement=False,
+        )
     if args.compare_baseline:
         return compare_baseline(
             report["summary"],
             args.compare_baseline,
             list(args.require_improvement),
+            require_improvement=True,
         )
     if args.format == "json":
         print(json.dumps(report, indent=2, sort_keys=True))
