@@ -7,7 +7,17 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionRow, ProjectionTable
+from quire.projections import (
+    AUTOINCREMENT_ID_FIELD,
+    CONDITIONS_CEL_FIELD,
+    ProjectionIndex,
+    ProjectionRow,
+    ProjectionTable,
+    family_reference_field,
+    integer_field,
+    real_field,
+    text_field,
+)
 from quire.references import FamilyReferenceIndex
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
@@ -222,28 +232,36 @@ def coerce_conflict_row(row: ConflictRowInput) -> ConflictRow:
 RELATION_EDGE_PROJECTION = ProjectionTable(
     name="relation_edge",
     columns=(
-        ProjectionColumn("id", "INTEGER PRIMARY KEY AUTOINCREMENT", insertable=False),
-        ProjectionColumn("source_kind", "TEXT", nullable=False),
-        ProjectionColumn("source_id", "TEXT", nullable=False),
-        ProjectionColumn("relation_type", "TEXT", nullable=False),
-        ProjectionColumn("target_kind", "TEXT", nullable=False),
-        ProjectionColumn("target_id", "TEXT", nullable=False),
-        ProjectionColumn("perspective_source_claim_id", "TEXT"),
-        ProjectionColumn("target_justification_id", "TEXT"),
-        ProjectionColumn("conditions_cel", "TEXT"),
-        ProjectionColumn("strength", "TEXT"),
-        ProjectionColumn("conditions_differ", "TEXT"),
-        ProjectionColumn("note", "TEXT"),
-        ProjectionColumn("resolution_method", "TEXT"),
-        ProjectionColumn("resolution_model", "TEXT"),
-        ProjectionColumn("embedding_model", "TEXT"),
-        ProjectionColumn("embedding_distance", "REAL"),
-        ProjectionColumn("pass_number", "INTEGER"),
-        ProjectionColumn("confidence", "REAL"),
-        ProjectionColumn("opinion_belief", "REAL", check_sql="opinion_belief >= 0 AND opinion_belief <= 1"),
-        ProjectionColumn("opinion_disbelief", "REAL", check_sql="opinion_disbelief >= 0 AND opinion_disbelief <= 1"),
-        ProjectionColumn("opinion_uncertainty", "REAL", check_sql="opinion_uncertainty >= 0 AND opinion_uncertainty <= 1"),
-        ProjectionColumn("opinion_base_rate", "REAL", check_sql="opinion_base_rate > 0 AND opinion_base_rate < 1"),
+        AUTOINCREMENT_ID_FIELD.column(),
+        text_field("source_kind", nullable=False).column(),
+        text_field("source_id", nullable=False).column(),
+        text_field("relation_type", nullable=False).column(),
+        text_field("target_kind", nullable=False).column(),
+        text_field("target_id", nullable=False).column(),
+        family_reference_field("claim", role="perspective_source").column(),
+        family_reference_field("justification", role="target").column(),
+        CONDITIONS_CEL_FIELD.column(),
+        text_field("strength").column(),
+        text_field("conditions_differ").column(),
+        text_field("note").column(),
+        text_field("resolution_method").column(),
+        text_field("resolution_model").column(),
+        text_field("embedding_model").column(),
+        real_field("embedding_distance").column(),
+        integer_field("pass_number").column(),
+        real_field("confidence").column(),
+        real_field("opinion_belief").column(
+            check_sql="opinion_belief >= 0 AND opinion_belief <= 1"
+        ),
+        real_field("opinion_disbelief").column(
+            check_sql="opinion_disbelief >= 0 AND opinion_disbelief <= 1"
+        ),
+        real_field("opinion_uncertainty").column(
+            check_sql="opinion_uncertainty >= 0 AND opinion_uncertainty <= 1"
+        ),
+        real_field("opinion_base_rate").column(
+            check_sql="opinion_base_rate > 0 AND opinion_base_rate < 1"
+        ),
     ),
     checks=(
         "opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6",
