@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -11,7 +10,6 @@ from typing import TYPE_CHECKING
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
 from quire.projections import ProjectionRow
-from quire.references import FamilyReferenceIndex
 
 from propstore.claims import (
     ClaimFileEntry,
@@ -45,7 +43,6 @@ from propstore.families.contexts.declaration import (
     ContextSidecarRows,
     compile_context_sidecar_rows,
 )
-from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.claims.stages import (
     ClaimCheckedBundle,
     ClaimSidecarRows,
@@ -53,7 +50,6 @@ from propstore.families.claims.stages import (
     RawIdQuarantineSidecarRows,
 )
 from propstore.families.claims.references import (
-    ClaimReferenceRecord,
     build_claim_file_reference_index,
 )
 from propstore.families.forms.stages import (
@@ -74,7 +70,7 @@ from propstore.families.claims.declaration import (
     CLAIM_NUMERIC_PAYLOAD_PROJECTION,
     CLAIM_TEXT_PAYLOAD_PROJECTION,
     CONFLICT_WITNESS_PROJECTION,
-    JUSTIFICATION_PROJECTION,
+    compile_authored_justification_sidecar_rows_with_diagnostics,
 )
 from propstore.families.diagnostics.declaration import (
     BUILD_DIAGNOSTICS_PROJECTION,
@@ -96,6 +92,7 @@ from propstore.families.sources.declaration import (
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
+    from propstore.families.documents.justifications import JustificationDocument
     from propstore.families.documents.micropubs import MicropublicationDocument
     from propstore.families.documents.sources import SourceDocument
     from propstore.families.documents.stances import StanceDocument
@@ -543,107 +540,6 @@ def compile_claim_sidecar_rows(
     )
 
 
-def compile_authored_justification_sidecar_rows(
-    justification_entries: Iterable[tuple[str, JustificationDocument]],
-    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[ProjectionRow, ...]:
-    rows, diagnostics = _compile_authored_justification_sidecar_rows_with_diagnostics(
-        justification_entries,
-        claim_index,
-    )
-    if diagnostics:
-        raise sqlite3.IntegrityError(diagnostics[0].message)
-    return rows
-
-
-def _compile_authored_justification_sidecar_rows_with_diagnostics(
-    justification_entries: Iterable[tuple[str, JustificationDocument]],
-    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[tuple[ProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
-    valid_claims = set(claim_index.ids())
-    rows: list[ProjectionRow] = []
-    diagnostics: list[QuarantineDiagnostic] = []
-
-    for filename, justification in justification_entries:
-        justification_payload = justification.to_payload()
-        justification_id = justification.id
-        conclusion = claim_index.resolve_id(justification.conclusion)
-        if not isinstance(justification_id, str) or not justification_id:
-            raise ValueError(
-                f"justification artifact {filename} missing id"
-            )
-        if not isinstance(conclusion, str) or conclusion not in valid_claims:
-            message = (
-                f"justification artifact {filename} references "
-                f"nonexistent conclusion '{conclusion}'"
-            )
-            diagnostics.append(
-                QuarantineDiagnostic(
-                    artifact_id=conclusion or justification.conclusion or filename,
-                    kind="justification",
-                    diagnostic_kind="justification_validation",
-                    message=message,
-                    file=filename,
-                )
-            )
-            continue
-        resolved_premises: list[str] = []
-        missing_premise_ref: str | None = None
-        for premise in justification.premises:
-            resolved_premise = claim_index.resolve_id(premise)
-            if (
-                not isinstance(resolved_premise, str)
-                or resolved_premise not in valid_claims
-            ):
-                if isinstance(resolved_premise, str) and resolved_premise:
-                    missing_premise_ref = resolved_premise
-                elif isinstance(premise, str) and premise:
-                    missing_premise_ref = premise
-                else:
-                    missing_premise_ref = filename
-                break
-            resolved_premises.append(resolved_premise)
-        if missing_premise_ref is not None:
-            message = (
-                f"justification artifact {filename} references "
-                f"nonexistent premise '{missing_premise_ref}'"
-            )
-            diagnostics.append(
-                QuarantineDiagnostic(
-                    artifact_id=missing_premise_ref,
-                    kind="justification",
-                    diagnostic_kind="justification_validation",
-                    message=message,
-                    file=filename,
-                )
-            )
-            continue
-
-        provenance = justification_payload.get("provenance")
-        attack_target = justification_payload.get("attack_target")
-        provenance_payload: dict[str, object] = {}
-        if isinstance(provenance, dict):
-            provenance_payload.update(provenance)
-        if isinstance(attack_target, dict):
-            provenance_payload["attack_target"] = attack_target
-
-        rows.append(
-            JUSTIFICATION_PROJECTION.row(
-                id=justification_id,
-                justification_kind=str(justification.rule_kind or "reported_claim"),
-                conclusion_claim_id=conclusion,
-                premise_claim_ids=json.dumps(resolved_premises),
-                source_relation_type=None,
-                source_claim_id=None,
-                provenance_json=json.dumps(provenance_payload)
-                if provenance_payload
-                else None,
-                rule_strength=str(justification.rule_strength or "defeasible"),
-            )
-        )
-    return tuple(rows), tuple(diagnostics)
-
-
 def compile_conflict_sidecar_rows(
     claim_files: Sequence[ClaimFileEntry],
     concept_registry: dict,
@@ -780,7 +676,7 @@ def compile_sidecar_build_plan(
             )
         )
         justification_rows, justification_quarantine_diagnostics = (
-            _compile_authored_justification_sidecar_rows_with_diagnostics(
+            compile_authored_justification_sidecar_rows_with_diagnostics(
                 justification_entries,
                 claim_index,
             )

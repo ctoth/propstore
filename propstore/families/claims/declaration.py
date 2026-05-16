@@ -13,11 +13,12 @@ from __future__ import annotations
 import contextlib
 import json
 import sqlite3
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from quire.references import FamilyReferenceIndex
 from quire.projections import (
     FtsProjection,
     ProjectionColumn,
@@ -49,6 +50,9 @@ from propstore.core.relations import (
     coerce_claim_concept_link_role,
 )
 from propstore.core.source_types import coerce_source_kind, coerce_source_origin_type
+from propstore.families.claims.references import ClaimReferenceRecord
+from propstore.families.diagnostics.declaration import QuarantineDiagnostic
+from propstore.families.documents.justifications import JustificationDocument
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ProvenanceRecord
@@ -1421,6 +1425,107 @@ CLAIM_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
 
 
 CLAIM_VEC_PROJECTION = rowid_vec_projection("claim_vec_{model_identity_hash}")
+
+
+def compile_authored_justification_sidecar_rows(
+    justification_entries: Iterable[tuple[str, JustificationDocument]],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
+) -> tuple[ProjectionRow, ...]:
+    rows, diagnostics = compile_authored_justification_sidecar_rows_with_diagnostics(
+        justification_entries,
+        claim_index,
+    )
+    if diagnostics:
+        raise sqlite3.IntegrityError(diagnostics[0].message)
+    return rows
+
+
+def compile_authored_justification_sidecar_rows_with_diagnostics(
+    justification_entries: Iterable[tuple[str, JustificationDocument]],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
+) -> tuple[tuple[ProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
+    valid_claims = set(claim_index.ids())
+    rows: list[ProjectionRow] = []
+    diagnostics: list[QuarantineDiagnostic] = []
+
+    for filename, justification in justification_entries:
+        justification_payload = justification.to_payload()
+        justification_id = justification.id
+        conclusion = claim_index.resolve_id(justification.conclusion)
+        if not isinstance(justification_id, str) or not justification_id:
+            raise ValueError(
+                f"justification artifact {filename} missing id"
+            )
+        if not isinstance(conclusion, str) or conclusion not in valid_claims:
+            message = (
+                f"justification artifact {filename} references "
+                f"nonexistent conclusion '{conclusion}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=conclusion or justification.conclusion or filename,
+                    kind="justification",
+                    diagnostic_kind="justification_validation",
+                    message=message,
+                    file=filename,
+                )
+            )
+            continue
+        resolved_premises: list[str] = []
+        missing_premise_ref: str | None = None
+        for premise in justification.premises:
+            resolved_premise = claim_index.resolve_id(premise)
+            if (
+                not isinstance(resolved_premise, str)
+                or resolved_premise not in valid_claims
+            ):
+                if isinstance(resolved_premise, str) and resolved_premise:
+                    missing_premise_ref = resolved_premise
+                elif isinstance(premise, str) and premise:
+                    missing_premise_ref = premise
+                else:
+                    missing_premise_ref = filename
+                break
+            resolved_premises.append(resolved_premise)
+        if missing_premise_ref is not None:
+            message = (
+                f"justification artifact {filename} references "
+                f"nonexistent premise '{missing_premise_ref}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=missing_premise_ref,
+                    kind="justification",
+                    diagnostic_kind="justification_validation",
+                    message=message,
+                    file=filename,
+                )
+            )
+            continue
+
+        provenance = justification_payload.get("provenance")
+        attack_target = justification_payload.get("attack_target")
+        provenance_payload: dict[str, object] = {}
+        if isinstance(provenance, dict):
+            provenance_payload.update(provenance)
+        if isinstance(attack_target, dict):
+            provenance_payload["attack_target"] = attack_target
+
+        rows.append(
+            JUSTIFICATION_PROJECTION.row(
+                id=justification_id,
+                justification_kind=str(justification.rule_kind or "reported_claim"),
+                conclusion_claim_id=conclusion,
+                premise_claim_ids=json.dumps(resolved_premises),
+                source_relation_type=None,
+                source_claim_id=None,
+                provenance_json=json.dumps(provenance_payload)
+                if provenance_payload
+                else None,
+                rule_strength=str(justification.rule_strength or "defeasible"),
+            )
+        )
+    return tuple(rows), tuple(diagnostics)
 
 
 def populate_raw_id_quarantine_records(
