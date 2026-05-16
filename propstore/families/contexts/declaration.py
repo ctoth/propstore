@@ -8,11 +8,17 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from quire.projections import (
-    ProjectionColumn,
+    ARTIFACT_ID_FIELD,
+    AUTOINCREMENT_ID_FIELD,
+    CONDITIONS_CEL_FIELD,
+    PROVENANCE_JSON_FIELD,
+    SEQUENCE_FIELD,
     ProjectionForeignKey,
     ProjectionIndex,
     ProjectionRow,
     ProjectionTable,
+    family_reference_field,
+    text_field,
 )
 
 from propstore.context_lifting import (
@@ -44,11 +50,11 @@ class ContextSidecarRows:
 CONTEXT_PROJECTION = ProjectionTable(
     name="context",
     columns=(
-        ProjectionColumn("id", "TEXT", primary_key=True),
-        ProjectionColumn("name", "TEXT", nullable=False),
-        ProjectionColumn("description", "TEXT"),
-        ProjectionColumn("parameters_json", "TEXT"),
-        ProjectionColumn("perspective", "TEXT"),
+        ARTIFACT_ID_FIELD.column(primary_key=True),
+        text_field("name", nullable=False).column(),
+        text_field("description").column(),
+        text_field("parameters_json").column(),
+        text_field("perspective").column(),
     ),
     if_not_exists=True,
 )
@@ -57,9 +63,9 @@ CONTEXT_PROJECTION = ProjectionTable(
 CONTEXT_ASSUMPTION_PROJECTION = ProjectionTable(
     name="context_assumption",
     columns=(
-        ProjectionColumn("context_id", "TEXT", nullable=False),
-        ProjectionColumn("assumption_cel", "TEXT", nullable=False),
-        ProjectionColumn("seq", "INTEGER", nullable=False),
+        family_reference_field("context", nullable=False).column(),
+        text_field("assumption_cel", nullable=False).column(),
+        SEQUENCE_FIELD.column(),
     ),
     foreign_keys=(ProjectionForeignKey(("context_id",), "context", ("id",)),),
     indexes=(ProjectionIndex("idx_ctx_assumption", ("context_id",)),),
@@ -70,12 +76,12 @@ CONTEXT_ASSUMPTION_PROJECTION = ProjectionTable(
 CONTEXT_LIFTING_RULE_PROJECTION = ProjectionTable(
     name="context_lifting_rule",
     columns=(
-        ProjectionColumn("id", "TEXT", primary_key=True),
-        ProjectionColumn("source_context_id", "TEXT", nullable=False),
-        ProjectionColumn("target_context_id", "TEXT", nullable=False),
-        ProjectionColumn("conditions_cel", "TEXT"),
-        ProjectionColumn("mode", "TEXT", nullable=False),
-        ProjectionColumn("justification", "TEXT"),
+        ARTIFACT_ID_FIELD.column(primary_key=True),
+        family_reference_field("context", role="source", nullable=False).column(),
+        family_reference_field("context", role="target", nullable=False).column(),
+        CONDITIONS_CEL_FIELD.column(),
+        text_field("mode", nullable=False).column(),
+        text_field("justification").column(),
     ),
     foreign_keys=(
         ProjectionForeignKey(("source_context_id",), "context", ("id",)),
@@ -92,14 +98,14 @@ CONTEXT_LIFTING_RULE_PROJECTION = ProjectionTable(
 CONTEXT_LIFTING_MATERIALIZATION_PROJECTION = ProjectionTable(
     name="context_lifting_materialization",
     columns=(
-        ProjectionColumn("id", "INTEGER PRIMARY KEY AUTOINCREMENT", insertable=False),
-        ProjectionColumn("rule_id", "TEXT", nullable=False),
-        ProjectionColumn("source_context_id", "TEXT", nullable=False),
-        ProjectionColumn("target_context_id", "TEXT", nullable=False),
-        ProjectionColumn("proposition_id", "TEXT", nullable=False),
-        ProjectionColumn("status", "TEXT", nullable=False),
-        ProjectionColumn("exception_id", "TEXT"),
-        ProjectionColumn("provenance_json", "TEXT", nullable=False),
+        AUTOINCREMENT_ID_FIELD.column(),
+        text_field("rule_id", nullable=False).column(),
+        family_reference_field("context", role="source", nullable=False).column(),
+        family_reference_field("context", role="target", nullable=False).column(),
+        text_field("proposition_id", nullable=False).column(),
+        text_field("status", nullable=False).column(),
+        text_field("exception_id").column(),
+        PROVENANCE_JSON_FIELD.column(nullable=False),
     ),
     foreign_keys=(
         ProjectionForeignKey(("rule_id",), "context_lifting_rule", ("id",)),
