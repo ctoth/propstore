@@ -11,7 +11,7 @@ from quire.artifacts import ArtifactFamily
 from quire.family_store import DocumentFamilyStore
 
 from propstore.families.addresses import SemanticFamilyAddress
-from propstore.source.reference_indexes import ImportedClaimHandle
+from propstore.families.claims.references import ImportedClaimReference
 
 
 class SourceStage(StrEnum):
@@ -44,5 +44,5 @@ class SourceImportNormalizedWrites:
 class SourceImportState:
     repository_name: str
     concept_ref_map: dict[str, str] = field(default_factory=dict)
-    imported_claim_handles: list[ImportedClaimHandle] = field(default_factory=list)
+    imported_claim_handles: list[ImportedClaimReference] = field(default_factory=list)
     warnings: list[str] = field(default_factory=list)
