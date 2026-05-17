@@ -44,6 +44,206 @@ and test surfaces:
 - `STANCE_SELECT_COLUMNS`
 - `claim_stance_projection_row`
 
+## Phase 0 Refresh - 2026-05-17
+
+Command status:
+
+- `git status --short --branch`: tracked files clean before Phase 0 edits;
+  unrelated untracked diagnostics remain.
+- `uv run scripts/typed_metadata_inventory.py --format markdown --limit 120`:
+  completed.
+- `uv run scripts/typed_metadata_inventory.py --format json --emit-row-mapping-metrics`:
+  completed and emitted `child_row_assembly_loops`.
+- `uv run scripts/typed_metadata_inventory.py --gates --ledger workstreams/typed-metadata-owner-ledger-2026-05-15.csv`:
+  all gates passed; ledger had 1343 rows.
+- `workstreams/phase-0-family-surface-baseline-2026-05-17.txt`: created
+  from the exact Phase 0 `rg` command and committed in `cc63d2ab`.
+
+Current scanner metrics:
+
+| Package | Lines | Projection Columns | Raw SQL Score | Codec Methods | Mapping Hints | Class Surfaces |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `families` | 16727 | 18 | 273 | 51 | 82 | 24 |
+| `world` | 11186 | 0 | 4 | 2 | 26 | 52 |
+| `app` | 10221 | 0 | 0 | 5 | 52 | 179 |
+| `core` | 9109 | 0 | 0 | 45 | 26 | 7 |
+| `source` | 3598 | 0 | 0 | 0 | 12 | 3 |
+
+User-provided current cloc context: 78 KLOC. The inventory scanner reports
+95041 Propstore Python lines because it uses its own Python-file scan, not
+the user's cloc command.
+
+Row-mapping metrics relevant to this workstream:
+
+- `child_row_assembly_loops`: 1, at
+  `propstore/families/micropublications/declaration.py:242`.
+- `attribute_bucket_classes`: 6:
+  `ClaimRow`, `ConceptRow`, `ParameterizationRow`, `RelationshipRow`,
+  `StanceRow`, `ConflictRow`.
+- `cross_table_select_sql`: 5, all in claims/concepts declaration surfaces.
+- `multi_source_merge_methods`: 7, including contexts, concepts,
+  micropublications, relations, and claims.
+- `nested_document_from_mapping_methods`: 2.
+- `row_factory_targets`: 2, both in concepts.
+
+Exact context old-path hit counts:
+
+```text
+rg -n --count-matches "FROM context\b|FROM context_assumption\b|FROM context_lifting_rule\b|FROM context_lifting_materialization\b" propstore tests
+propstore\families\contexts\declaration.py:3
+tests\test_contexts.py:3
+tests\test_context_lifting_ws5.py:1
+tests\remediation\phase_2_gates\test_T2_2l_compiler_context_validation_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2m_compiler_context_lifting_quarantine.py:2
+
+rg -n --count-matches "CONTEXT_.*PROJECTION|ContextSidecarRows" propstore tests
+propstore\derived_build_plan.py:2
+propstore\families\projection_catalog.py:8
+propstore\families\contexts\declaration.py:25
+tests\test_context_lifting_ws5.py:2
+
+rg -n --count-matches "ProjectionTable\(|ProjectionForeignKey\(|ProjectionIndex\(" propstore/families/contexts propstore/context_lifting.py propstore/compiler/context.py --glob "*.py"
+propstore/families/contexts\declaration.py:14
+```
+
+Context deletion targets from those searches:
+
+- `ContextSidecarRows`
+- `CONTEXT_PROJECTION`
+- `CONTEXT_ASSUMPTION_PROJECTION`
+- `CONTEXT_LIFTING_RULE_PROJECTION`
+- `CONTEXT_LIFTING_MATERIALIZATION_PROJECTION`
+- raw SQL in `load_lifting_system`
+- context projection catalog entries that only expose those concrete tables
+
+Context behavior tests:
+
+- `tests/test_contexts.py`
+- `tests/test_context_workflows.py`
+- `tests/test_context_lifting_ws5.py`
+- `tests/test_context_lifting_phase4.py`
+- `tests/test_sidecar_contexts.py`
+- `tests/test_source_list_and_context.py`
+- Phase 1 gate also includes `tests/test_build_sidecar.py` and
+  `tests/test_world_query.py`.
+
+Exact claim old-path hit counts:
+
+```text
+rg -n --count-matches "ClaimRow\b|ClaimConceptLinkRow\b|SourcePromotionClaimRow\b" propstore tests
+propstore\app\concept_views.py:2
+propstore\core\active_claims.py:7
+propstore\core\embeddings.py:2
+propstore\core\graph_build.py:5
+propstore\families\claims\declaration.py:11
+propstore\families\claims\projection_model.py:7
+propstore\praf\engine.py:2
+propstore\world\bridge.py:2
+propstore\world\journal_replay.py:2
+propstore\world\model.py:7
+propstore\world\overlay.py:7
+propstore\world\types.py:2
+tests\fixtures\journal.py:8
+tests\test_algorithm_stage_types.py:2
+tests\test_claim_views.py:15
+tests\test_concept_views.py:10
+tests\test_neighborhoods.py:8
+
+rg -n --count-matches "FROM claim_core\b|FROM claim_concept_link\b|FROM claim_numeric_payload\b|FROM claim_text_payload\b|FROM claim_algorithm_payload\b|FROM justification\b|FROM conflict_witness\b" propstore tests
+propstore\families\claims\declaration.py:16
+propstore\families\relations\declaration.py:3
+tests\sqlite_argumentation_store.py:2
+tests\test_build_sidecar.py:26
+tests\test_cas_rejection_no_orphan_rows.py:1
+tests\test_claim_notes.py:2
+tests\test_cli.py:1
+tests\test_cli_render_policy_flags.py:3
+tests\test_codex2_claim_dedupe_diverges_on_version.py:2
+tests\test_conftest_insert_claim_regression.py:1
+tests\test_graph_build.py:4
+tests\test_promote_atomicity.py:1
+tests\test_source_promotion_alignment.py:2
+tests\test_source_relations.py:1
+tests\remediation\phase_2_gates\test_T2_2c_stance_source_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2d_stance_target_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2e_justification_conclusion_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2f_justification_premise_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2g_micropublication_claim_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2h_in_claim_stance_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2o_compiler_claim_schema_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2r_source_promote_ambiguous_concept_quarantine.py:1
+tests\remediation\phase_2_gates\test_T2_2s_source_promote_unresolved_concept_quarantine.py:1
+tests\remediation\phase_7_race_atomicity\test_T7_5d_promotion_blocked_id_collision.py:1
+tests\remediation\phase_7_race_atomicity\test_T7_5e_promotion_blocked_fk_payload.py:1
+tests\remediation\phase_7_race_atomicity\test_T7_5f_sidecar_build_duplicate_claim.py:4
+
+rg -n --count-matches "CLAIM_.*PROJECTION|CONFLICT_WITNESS_PROJECTION|JUSTIFICATION_PROJECTION|CLAIM_FTS_PROJECTION|CLAIM_VEC_PROJECTION|CLAIM_EMBEDDING_STATUS_PROJECTION" propstore tests
+propstore\derived_build.py:2
+propstore\families\claims\declaration.py:32
+propstore\families\embeddings\declaration.py:4
+propstore\families\micropublications\declaration.py:3
+propstore\families\projection_catalog.py:20
+propstore\families\relations\declaration.py:2
+tests\test_codex2_claim_dedupe_diverges_on_version.py:11
+tests\remediation\phase_7_race_atomicity\test_T7_5f_sidecar_build_duplicate_claim.py:8
+
+rg -n --count-matches "ProjectionTable\(|ProjectionForeignKey\(|ProjectionIndex\(|FtsProjection\(|rowid_vec_projection|embedding_status_projection" propstore/families/claims --glob "*.py"
+propstore/families/claims\declaration.py:29
+
+rg -n --count-matches "SourcePromotionClaimRow|ClaimsPass|ClaimReference\b|ClaimIdentity\b|claim_diagnostics|claim_check" propstore tests
+propstore\compiler\workflows.py:5
+propstore\core\graph_build.py:2
+propstore\derived_build.py:12
+propstore\derived_build_plan.py:2
+propstore\families\claims\declaration.py:3
+propstore\families\claims\references.py:4
+propstore\importing\passes.py:2
+propstore\importing\stages.py:2
+tests\test_artifact_reference_resolver.py:6
+```
+
+Claim deletion targets from those searches:
+
+- `ClaimRow`
+- `ClaimConceptLinkRow`
+- `SourcePromotionClaimRow`
+- `CLAIM_CORE_PROJECTION`
+- `CLAIM_CONCEPT_LINK_PROJECTION`
+- `CLAIM_NUMERIC_PAYLOAD_PROJECTION`
+- `CLAIM_TEXT_PAYLOAD_PROJECTION`
+- `CLAIM_ALGORITHM_PAYLOAD_PROJECTION`
+- `CONFLICT_WITNESS_PROJECTION`
+- `JUSTIFICATION_PROJECTION`
+- `CLAIM_FTS_PROJECTION`
+- `CLAIM_EMBEDDING_STATUS_PROJECTION`
+- `CLAIM_VEC_PROJECTION`
+- raw SQL query helpers over claim, payload, justification, and conflict tables
+
+Claim behavior tests:
+
+- `tests/test_claim_roundtrip_fixtures.py`
+- `tests/test_claim_views.py`
+- `tests/test_claim_workflows.py`
+- `tests/test_claim_type_contracts.py`
+- `tests/test_source_claims.py`
+- `tests/test_promote_claim_immutability.py`
+- `tests/test_validate_claims.py`
+- `tests/test_materialized_claim_provenance_preserved.py`
+- Phase 2 gate also includes `tests/test_build_sidecar.py`,
+  `tests/test_world_query.py`, and `tests/test_relate_opinions.py`.
+
+Known Quire capability blockers before deletion can proceed:
+
+- Contexts: Quire has projection declarations and projection mapping, but this
+  inventory has not yet verified a Quire query API that replaces
+  `load_lifting_system` without a Propstore-local query wrapper. Phase 1 must
+  verify that API or add a `BLOCKED:` entry to the workstream before deleting
+  context query helpers.
+- Claims: Quire-backed generated decoders and child-row declaration/query
+  paths must be verified against a non-claim family in the same claim slice.
+  If that non-claim consumer cannot be named before implementation, Phase 2
+  must add a `BLOCKED:` entry rather than create a claim-only abstraction.
+
 ## Cleanup Target
 
 For each family, one semantic declaration must own:
