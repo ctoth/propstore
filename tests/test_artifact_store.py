@@ -14,7 +14,7 @@ from propstore.families.registry import (
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PropstoreFamily
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.source.common import initial_source_document, source_branch_name
+from propstore.source.common import initial_source_document
 from propstore.families.documents.sources import (
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
@@ -47,7 +47,8 @@ def test_artifact_transaction_is_quire_family_transaction(tmp_path: Path) -> Non
 
 def test_artifact_store_roundtrips_source_document(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.git.create_branch(source_branch_name("demo"))
+    branch = repo.families.source_documents.address(SourceRef("demo")).branch
+    repo.git.create_branch(branch)
 
     source_doc = initial_source_document(
         repo,
@@ -72,7 +73,8 @@ def test_artifact_store_roundtrips_source_document(tmp_path: Path) -> None:
 
 def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.git.create_branch(source_branch_name("demo"))
+    branch = repo.families.source_documents.address(SourceRef("demo")).branch
+    repo.git.create_branch(branch)
 
     source_doc = initial_source_document(
         repo,
@@ -100,7 +102,7 @@ def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -
 
     with repo.families.transact(
         message="Write source artifacts",
-        branch=source_branch_name("demo"),
+        branch=branch,
     ) as transaction:
         transaction.source_documents.save(SourceRef("demo"), source_doc)
         transaction.source_finalize_reports.save(SourceRef("demo"), report)
@@ -142,7 +144,8 @@ def test_artifact_store_roundtrips_and_lists_worldlines(tmp_path: Path) -> None:
 
 def test_artifact_store_renders_typed_documents(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.git.create_branch(source_branch_name("demo"))
+    branch = repo.families.source_documents.address(SourceRef("demo")).branch
+    repo.git.create_branch(branch)
 
     source_doc = initial_source_document(
         repo,
