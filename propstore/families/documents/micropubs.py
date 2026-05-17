@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from propstore.families.claims.documents import ClaimSourceDocument, ProvenanceDocument
+from propstore.families.claims.documents import ProvenanceDocument
 from propstore.families.contexts.documents import ContextReferenceDocument
 from quire.documents import DocumentStruct
 from propstore.stances import StanceType
@@ -54,17 +54,4 @@ class MicropublicationDocument(DocumentStruct):
             payload["provenance"] = self.provenance.to_payload()
         if self.source is not None:
             payload["source"] = self.source
-        return payload
-
-
-class MicropublicationsFileDocument(DocumentStruct):
-    micropubs: tuple[MicropublicationDocument, ...]
-    source: ClaimSourceDocument | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "micropubs": [micropub.to_payload() for micropub in self.micropubs],
-        }
-        if self.source is not None:
-            payload["source"] = self.source.to_payload()
         return payload

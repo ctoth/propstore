@@ -23,7 +23,7 @@ from propstore.families.documents.sources import (
     SourceStanceEntryDocument,
     SourceTrustDocument,
 )
-from propstore.families.documents.micropubs import MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationDocument
 
 TDocument = TypeVar("TDocument")
 
@@ -182,7 +182,7 @@ def load_source_claims_document(repo: Repository, name: str) -> tuple[SourceClai
     return repo.families.source_claims.load(SourceRef(name))
 
 
-def load_source_micropubs_document(repo: Repository, name: str) -> MicropublicationsFileDocument | None:
+def load_source_micropubs_document(repo: Repository, name: str) -> tuple[MicropublicationDocument, ...] | None:
     return repo.families.source_micropubs.load(SourceRef(name))
 
 

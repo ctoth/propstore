@@ -147,8 +147,8 @@ def test_source_finalize_composes_claims_into_micropubs(tmp_path: Path) -> None:
     report = yaml.safe_load(repo.git.read_file("merge/finalize/demo.yaml", commit=branch_tip))
 
     assert report["micropub_status"] == "complete"
-    assert len(micropubs["micropubs"]) == 1
-    micropub = micropubs["micropubs"][0]
+    assert len(micropubs["micropublications"]) == 1
+    micropub = micropubs["micropublications"][0]
     assert micropub["claims"][0].startswith("ps:claim:")
     assert micropub["context"] == {"id": "ctx_test"}
     assert micropub["evidence"] == [{"kind": "paper_page", "reference": "demo:1"}]

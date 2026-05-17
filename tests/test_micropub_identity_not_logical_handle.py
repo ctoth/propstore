@@ -61,7 +61,7 @@ def test_source_finalize_assigns_micropub_id_from_authored_payload() -> None:
     )
 
     assert micropubs_doc is not None
-    micropub = micropubs_doc.micropubs[0]
+    micropub = micropubs_doc[0]
     assert micropub.artifact_id == micropub_artifact_id(micropub)
     assert micropub.artifact_id.startswith("ni:///sha-256;")
 

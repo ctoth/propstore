@@ -9,7 +9,7 @@ from propstore.families.identity.micropubs import (
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value
-from propstore.families.claims.documents import ClaimSourceDocument, ProvenanceDocument
+from propstore.families.claims.documents import ProvenanceDocument
 from propstore.families.contexts.documents import ContextReferenceDocument
 
 from .common import (
@@ -30,7 +30,6 @@ from propstore.families.documents.sources import (
 from propstore.families.documents.micropubs import (
     MicropublicationDocument,
     MicropublicationEvidenceDocument,
-    MicropublicationsFileDocument,
 )
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
@@ -58,7 +57,7 @@ def _compose_source_micropubs(
     source_id: str,
     source_slug: str,
     claims_doc: tuple[SourceClaimDocument, ...] | None,
-) -> MicropublicationsFileDocument | None:
+) -> tuple[MicropublicationDocument, ...] | None:
     if claims_doc is None or not claims_doc:
         return None
     micropubs: list[MicropublicationDocument] = []
@@ -100,10 +99,7 @@ def _compose_source_micropubs(
         )
     if not micropubs:
         return None
-    return MicropublicationsFileDocument(
-        source=ClaimSourceDocument(paper=source_slug),
-        micropubs=tuple(micropubs),
-    )
+    return tuple(micropubs)
 
 
 def finalize_source_branch(

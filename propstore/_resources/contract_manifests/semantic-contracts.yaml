@@ -486,10 +486,10 @@ contracts:
   contract_version: 2026.05.02
   body:
     coerce_payload: null
-    decode_bytes: null
-    doc_type: propstore.families.documents.micropubs.MicropublicationsFileDocument
-    document_payload: null
-    encode_document: null
+    decode_bytes: propstore.families.registry.decode_source_micropubs_document
+    doc_type: builtins.tuple
+    document_payload: propstore.families.registry.source_micropubs_document_payload
+    encode_document: propstore.families.registry.encode_source_micropubs_document
     normalize_for_write: null
     placement:
       branch:
@@ -500,8 +500,8 @@ contracts:
         template: source/{stem}
       filename: micropubs.yaml
       kind: fixed-file
-    render_document: null
-    scan_type: null
+    render_document: propstore.families.registry.render_source_micropubs_document
+    scan_type: propstore.families.documents.micropubs.MicropublicationDocument
     validate_for_write: null
 - kind: artifact_family
   name: source_notes
@@ -1715,18 +1715,6 @@ contracts:
     - name: reference
       required: true
       type: str
-    module: propstore.families.documents.micropubs
-- kind: document_schema
-  name: MicropublicationsFileDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: micropubs
-      required: true
-      type: tuple[MicropublicationDocument, ...]
-    - name: source
-      required: true
-      type: ClaimSourceDocument | None
     module: propstore.families.documents.micropubs
 - kind: document_schema
   name: OntologyReferenceDocument
@@ -3838,7 +3826,7 @@ contracts:
     accessor: source_micropubs
     artifact_family: source_micropubs
     artifact_family_contract:
-      doc_type: propstore.families.documents.micropubs.MicropublicationsFileDocument
+      doc_type: builtins.tuple
       placement:
         branch:
           codec: safe_slug

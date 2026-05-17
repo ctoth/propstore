@@ -49,7 +49,7 @@ from propstore.families.concepts.stages import (
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.contexts.stages import parse_context_record_document
-from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.forms.stages import parse_form
 from propstore.provenance import (
@@ -299,7 +299,7 @@ def _promoted_claim_document(
 
 
 def _filter_promoted_micropubs(
-    micropubs_doc: MicropublicationsFileDocument | None,
+    micropubs_doc: tuple[MicropublicationDocument, ...] | None,
     *,
     valid_artifact_ids: set[str],
 ) -> tuple[MicropublicationDocument, ...]:
@@ -307,7 +307,7 @@ def _filter_promoted_micropubs(
         return ()
     kept = tuple(
         micropub
-        for micropub in micropubs_doc.micropubs
+        for micropub in micropubs_doc
         if all(claim_id in valid_artifact_ids for claim_id in micropub.claims)
     )
     return kept
@@ -392,7 +392,7 @@ def _assemble_source_promotion_plan(
     slug: str,
     source_doc: SourceDocument,
     claims_doc: tuple[SourceClaimDocument, ...] | None,
-    micropubs_doc: MicropublicationsFileDocument | None,
+    micropubs_doc: tuple[MicropublicationDocument, ...] | None,
     justifications_doc: tuple[SourceJustificationDocument, ...] | None,
     stances_doc: tuple[SourceStanceEntryDocument, ...] | None,
     concept_map: dict[str, str],

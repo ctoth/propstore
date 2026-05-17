@@ -39,6 +39,7 @@ from propstore.families.batch_specs import (
     SOURCE_CLAIM_BATCH_SPEC,
     SOURCE_CONCEPT_BATCH_SPEC,
     SOURCE_JUSTIFICATION_BATCH_SPEC,
+    SOURCE_MICROPUBLICATION_BATCH_SPEC,
     SOURCE_STANCE_BATCH_SPEC,
 )
 from propstore.families.claims.documents import ClaimDocument
@@ -47,7 +48,7 @@ from propstore.families.contexts.documents import ContextDocument
 from propstore.families.forms.documents import FormDocument
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
-from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
+from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
 from propstore.families.documents.rules import RuleDocument, RuleProposalDocument, RuleSuperiorityDocument
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
@@ -753,6 +754,45 @@ def source_stances_document_payload(
     }
 
 
+def decode_source_micropubs_document(
+    payload: bytes,
+    source: str,
+) -> tuple[MicropublicationDocument, ...]:
+    return decode_document_batch_bytes(
+        payload,
+        SOURCE_MICROPUBLICATION_BATCH_SPEC,
+        source=source,
+    )
+
+
+def encode_source_micropubs_document(
+    document: tuple[MicropublicationDocument, ...],
+) -> bytes:
+    return render_source_micropubs_document(document).encode("utf-8")
+
+
+def render_source_micropubs_document(
+    document: tuple[MicropublicationDocument, ...],
+) -> str:
+    source = _shared_batch_field(document, "source")
+    inherited: dict[str, object] = {}
+    if source is not None:
+        inherited["source"] = _batch_field_payload(source)
+    return render_document_batch(
+        document,
+        SOURCE_MICROPUBLICATION_BATCH_SPEC,
+        inherited_item_values=inherited,
+    )
+
+
+def source_micropubs_document_payload(
+    document: tuple[MicropublicationDocument, ...],
+) -> dict[str, object]:
+    return {
+        "micropublications": [entry.to_payload() for entry in document],
+    }
+
+
 def _shared_batch_field(
     document: tuple[object, ...],
     field: str,
@@ -1038,8 +1078,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             name=PropstoreFamily.SOURCE_MICROPUBS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_micropubs",
-            doc_type=MicropublicationsFileDocument,
+            doc_type=tuple,
             placement=FixedFilePlacement("micropubs.yaml", branch=SOURCE_BRANCH),
+            decode_bytes=decode_source_micropubs_document,
+            encode_document=encode_source_micropubs_document,
+            render_document=render_source_micropubs_document,
+            document_payload=source_micropubs_document_payload,
+            scan_type=MicropublicationDocument,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_JUSTIFICATIONS,
