@@ -3,10 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from propstore.families.batch_specs import SOURCE_JUSTIFICATION_BATCH_SPEC
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository, retry_live_branch_update
-from quire.documents import convert_document_value, decode_document_path
+from quire.documents import convert_document_value, decode_document_batch_bytes, decode_document_path
 from quire.references import FamilyReferenceIndex
 from propstore.stances import StanceType, coerce_stance_type
 
@@ -20,7 +21,6 @@ from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceAttackTargetDocument,
     SourceJustificationDocument,
-    SourceJustificationsDocument,
     SourceProvenanceDocument,
     SourceStanceEntryDocument,
     SourceStancesDocument,
@@ -65,13 +65,13 @@ def _validate_justification_rule_fields(
 
 
 def normalize_source_justifications_payload(
-    data: SourceJustificationsDocument,
+    data: tuple[SourceJustificationDocument, ...],
     *,
     claim_index: FamilyReferenceIndex[SourceClaimDocument],
     primary_claim_index: FamilyReferenceIndex[Any] | None = None,
-) -> SourceJustificationsDocument:
+) -> tuple[SourceJustificationDocument, ...]:
     normalized_justifications: list[SourceJustificationDocument] = []
-    for index, justification in enumerate(data.justifications, start=1):
+    for index, justification in enumerate(data, start=1):
         if justification.conclusion is None:
             raise ValueError("justification conclusion must be a non-empty string")
         normalized = justification.to_payload()
@@ -100,11 +100,7 @@ def normalize_source_justifications_payload(
                 source=f"justifications[{index}]",
             )
         )
-    return SourceJustificationsDocument(
-        source=data.source,
-        justifications=tuple(normalized_justifications),
-        produced_by=data.produced_by,
-    )
+    return tuple(normalized_justifications)
 
 
 def commit_source_justifications_batch(
@@ -119,16 +115,27 @@ def commit_source_justifications_batch(
 
     claim_index = build_source_claim_index(repo, source_name)
     primary_claim_index = build_primary_claim_index(repo)
-    raw = decode_document_path(justifications_file, SourceJustificationsDocument)
+    raw = decode_document_batch_bytes(
+        justifications_file.read_bytes(),
+        SOURCE_JUSTIFICATION_BATCH_SPEC,
+        source=str(justifications_file),
+    )
     if reader is not None:
-        raw = SourceJustificationsDocument(
-            source=raw.source,
-            justifications=raw.justifications,
-            produced_by=ExtractionProvenanceDocument(
+        provenance = ExtractionProvenanceDocument(
                 reader=reader,
                 method=method,
                 timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            ),
+        )
+        raw = tuple(
+            convert_document_value(
+                {
+                    **justification.to_payload(),
+                    "produced_by": provenance.to_payload(),
+                },
+                SourceJustificationDocument,
+                source=f"{justifications_file}:justifications[{index}]",
+            )
+            for index, justification in enumerate(raw, start=1)
         )
     normalized = normalize_source_justifications_payload(
         raw,
@@ -254,15 +261,13 @@ def commit_source_justification_proposal(
         rule_strength=rule_strength,
     )
 
-    def update(expected_head: str | None) -> SourceJustificationsDocument:
+    def update(expected_head: str | None) -> tuple[SourceJustificationDocument, ...]:
         claim_index = build_source_claim_index(repo, source_name)
         primary_claim_index = build_primary_claim_index(repo)
         existing = load_source_justifications_document(
             repo, source_name
-        ) or SourceJustificationsDocument(justifications=())
-        justifications = [
-            entry for entry in existing.justifications if entry.id != just_id
-        ]
+        ) or ()
+        justifications = [entry for entry in existing if entry.id != just_id]
 
         justification = SourceJustificationDocument(
             id=just_id,
@@ -309,7 +314,7 @@ def commit_source_justification_proposal(
             )
         justifications.append(justification)
         normalized = normalize_source_justifications_payload(
-            SourceJustificationsDocument(source=existing.source, justifications=tuple(justifications)),
+            tuple(justifications),
             claim_index=claim_index,
             primary_claim_index=primary_claim_index,
         )
@@ -323,10 +328,10 @@ def commit_source_justification_proposal(
         return normalized
 
     normalized = retry_live_branch_update(repo, branch, update)
-    for entry in normalized.justifications:
+    for entry in normalized:
         if entry.id == just_id:
             return entry
-    return normalized.justifications[-1]
+    return normalized[-1]
 
 
 def commit_source_stance_proposal(

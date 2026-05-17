@@ -15,7 +15,7 @@ from propstore.artifact_codes import stamp_source_artifact_codes
 from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import (
     SourceDocument,
-    SourceJustificationsDocument,
+    SourceJustificationDocument,
     SourceStancesDocument,
 )
 from propstore.families.registry import ClaimRef
@@ -304,10 +304,13 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
     left = stamp_source_artifact_codes(
         source_doc,
         claims_doc,
-        convert_document_value(
-            {"justifications": [justifications[i] for i in order]},
-            SourceJustificationsDocument,
-            source="test:justifications-left",
+        tuple(
+            convert_document_value(
+                justifications[i],
+                SourceJustificationDocument,
+                source=f"test:justifications-left[{i}]",
+            )
+            for i in order
         ),
         convert_document_value(
             {"stances": [stances[i] for i in order]},
@@ -318,10 +321,13 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
     right = stamp_source_artifact_codes(
         source_doc,
         claims_doc,
-        convert_document_value(
-            {"justifications": justifications},
-            SourceJustificationsDocument,
-            source="test:justifications-right",
+        tuple(
+            convert_document_value(
+                justification,
+                SourceJustificationDocument,
+                source=f"test:justifications-right[{index}]",
+            )
+            for index, justification in enumerate(justifications)
         ),
         convert_document_value(
             {"stances": stances},

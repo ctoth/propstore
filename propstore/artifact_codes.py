@@ -15,7 +15,6 @@ from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceDocument,
     SourceJustificationDocument,
-    SourceJustificationsDocument,
     SourceStanceEntryDocument,
     SourceStancesDocument,
 )
@@ -199,12 +198,12 @@ def stamp_canonical_artifact_codes(
 def stamp_source_artifact_codes(
     source_doc: SourceDocument,
     claims_doc: tuple[SourceClaimDocument, ...] | None,
-    justifications_doc: SourceJustificationsDocument | None,
+    justifications_doc: tuple[SourceJustificationDocument, ...] | None,
     stances_doc: SourceStancesDocument | None,
 ) -> tuple[
     SourceDocument,
     tuple[SourceClaimDocument, ...] | None,
-    SourceJustificationsDocument | None,
+    tuple[SourceJustificationDocument, ...] | None,
     SourceStancesDocument | None,
 ]:
     source_code = source_artifact_code(source_doc)
@@ -212,7 +211,7 @@ def stamp_source_artifact_codes(
 
     justification_codes_by_conclusion: dict[str, list[str]] = defaultdict(list)
     rewritten_justifications: list[SourceJustificationDocument] = []
-    for justification in (() if justifications_doc is None else justifications_doc.justifications):
+    for justification in (() if justifications_doc is None else justifications_doc):
         artifact_code = justification_artifact_code(justification)
         rewritten = _stamp_source_justification(justification, artifact_code)
         conclusion = rewritten.conclusion
@@ -221,16 +220,7 @@ def stamp_source_artifact_codes(
         rewritten_justifications.append(rewritten)
     updated_justifications = None
     if justifications_doc is not None:
-        justifications_payload = _payload(justifications_doc)
-        justifications_payload["justifications"] = [
-            justification.to_payload()
-            for justification in rewritten_justifications
-        ]
-        updated_justifications = convert_document_value(
-            justifications_payload,
-            SourceJustificationsDocument,
-            source="artifact-codes:justifications",
-        )
+        updated_justifications = tuple(rewritten_justifications)
 
     stance_codes_by_source: dict[str, list[str]] = defaultdict(list)
     rewritten_stances: list[SourceStanceEntryDocument] = []

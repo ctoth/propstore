@@ -35,7 +35,11 @@ from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
 from propstore.families.addresses import SemanticFamilyAddress
-from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC, SOURCE_CONCEPT_BATCH_SPEC
+from propstore.families.batch_specs import (
+    SOURCE_CLAIM_BATCH_SPEC,
+    SOURCE_CONCEPT_BATCH_SPEC,
+    SOURCE_JUSTIFICATION_BATCH_SPEC,
+)
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
@@ -51,7 +55,7 @@ from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceDocument,
     SourceFinalizeReportDocument,
-    SourceJustificationsDocument,
+    SourceJustificationDocument,
     SourceStancesDocument,
 )
 from propstore.families.documents.stances import StanceDocument
@@ -664,6 +668,48 @@ def source_claims_document_payload(
     }
 
 
+def decode_source_justifications_document(
+    payload: bytes,
+    source: str,
+) -> tuple[SourceJustificationDocument, ...]:
+    return decode_document_batch_bytes(
+        payload,
+        SOURCE_JUSTIFICATION_BATCH_SPEC,
+        source=source,
+    )
+
+
+def encode_source_justifications_document(
+    document: tuple[SourceJustificationDocument, ...],
+) -> bytes:
+    return render_source_justifications_document(document).encode("utf-8")
+
+
+def render_source_justifications_document(
+    document: tuple[SourceJustificationDocument, ...],
+) -> str:
+    source = _shared_batch_field(document, "source")
+    produced_by = _shared_batch_field(document, "produced_by")
+    inherited: dict[str, object] = {}
+    if source is not None:
+        inherited["source"] = _batch_field_payload(source)
+    if produced_by is not None:
+        inherited["produced_by"] = _batch_field_payload(produced_by)
+    return render_document_batch(
+        document,
+        SOURCE_JUSTIFICATION_BATCH_SPEC,
+        inherited_item_values=inherited,
+    )
+
+
+def source_justifications_document_payload(
+    document: tuple[SourceJustificationDocument, ...],
+) -> dict[str, object]:
+    return {
+        "justifications": [entry.to_payload() for entry in document],
+    }
+
+
 def _shared_batch_field(
     document: tuple[object, ...],
     field: str,
@@ -957,8 +1003,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             name=PropstoreFamily.SOURCE_JUSTIFICATIONS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_justifications",
-            doc_type=SourceJustificationsDocument,
+            doc_type=tuple,
             placement=FixedFilePlacement("justifications.yaml", branch=SOURCE_BRANCH),
+            decode_bytes=decode_source_justifications_document,
+            encode_document=encode_source_justifications_document,
+            render_document=render_source_justifications_document,
+            document_payload=source_justifications_document_payload,
+            scan_type=SourceJustificationDocument,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_STANCES,

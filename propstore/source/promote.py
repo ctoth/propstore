@@ -68,7 +68,7 @@ from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceConceptEntryDocument,
     SourceDocument,
-    SourceJustificationsDocument,
+    SourceJustificationDocument,
     SourceStancesDocument,
     SourceTrustDocument,
 )
@@ -352,14 +352,14 @@ def _promoted_stance_documents(
 
 
 def _promoted_justification_documents(
-    justifications_doc: SourceJustificationsDocument | None,
+    justifications_doc: tuple[SourceJustificationDocument, ...] | None,
     *,
     reference_resolves_to_promoted_or_primary,
 ) -> tuple[JustificationDocument, ...]:
     if justifications_doc is None:
         return ()
     promoted: list[JustificationDocument] = []
-    for justification in justifications_doc.justifications:
+    for justification in justifications_doc:
         conclusion = justification.conclusion
         if not isinstance(conclusion, str):
             continue
@@ -393,7 +393,7 @@ def _assemble_source_promotion_plan(
     source_doc: SourceDocument,
     claims_doc: tuple[SourceClaimDocument, ...] | None,
     micropubs_doc: MicropublicationsFileDocument | None,
-    justifications_doc: SourceJustificationsDocument | None,
+    justifications_doc: tuple[SourceJustificationDocument, ...] | None,
     stances_doc: SourceStancesDocument | None,
     concept_map: dict[str, str],
     promoted_concept_documents: dict[str, ConceptDocument],
@@ -720,7 +720,7 @@ def _compute_blocked_claim_artifact_ids(
     # (b) justifications with unresolved conclusion or premises block the
     # claims those references point at (when they resolve to valid
     # artifact ids on the source branch).
-    for justification in () if justifications_doc is None else justifications_doc.justifications:
+    for justification in () if justifications_doc is None else justifications_doc:
         conclusion = justification.conclusion
         if isinstance(conclusion, str) and not source_claim_index.exists(conclusion):
             _record(

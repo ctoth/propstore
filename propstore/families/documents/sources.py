@@ -408,6 +408,8 @@ class SourceProvenanceDocument(DocumentStruct):
 
 
 class SourceJustificationDocument(DocumentStruct):
+    source: ClaimSourceDocument | None = None
+    produced_by: ExtractionProvenanceDocument | None = None
     id: str | None = None
     conclusion: str | None = None
     premises: tuple[str, ...] = ()
@@ -419,6 +421,10 @@ class SourceJustificationDocument(DocumentStruct):
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
+        if self.source is not None:
+            payload["source"] = self.source.to_payload()
+        if self.produced_by is not None:
+            payload["produced_by"] = self.produced_by.to_payload()
         if self.id is not None:
             payload["id"] = self.id
         if self.conclusion is not None:
@@ -435,25 +441,6 @@ class SourceJustificationDocument(DocumentStruct):
             payload["attack_target"] = self.attack_target.to_payload()
         if self.artifact_code is not None:
             payload["artifact_code"] = self.artifact_code
-        return payload
-
-
-class SourceJustificationsDocument(DocumentStruct):
-    justifications: tuple[SourceJustificationDocument, ...]
-    source: ClaimSourceDocument | None = None
-    produced_by: ExtractionProvenanceDocument | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "justifications": [
-                justification.to_payload()
-                for justification in self.justifications
-            ]
-        }
-        if self.source is not None:
-            payload["source"] = self.source.to_payload()
-        if self.produced_by is not None:
-            payload["produced_by"] = self.produced_by.to_payload()
         return payload
 
 

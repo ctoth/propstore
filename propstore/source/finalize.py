@@ -26,7 +26,6 @@ from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceDocument,
     SourceFinalizeReportDocument,
-    SourceJustificationsDocument,
     SourceStancesDocument,
 )
 from propstore.families.documents.micropubs import (
@@ -135,7 +134,7 @@ def finalize_source_branch(
             )
 
     justification_errors: list[str] = []
-    for justification in (() if justifications_doc is None else justifications_doc.justifications):
+    for justification in (() if justifications_doc is None else justifications_doc):
         conclusion = justification.conclusion
         if not source_claim_index.exists(conclusion):
             justification_errors.append(str(conclusion))
@@ -215,7 +214,7 @@ def finalize_source_branch(
                         ref,
                         updated_claims,
                     )
-                if updated_justifications is not None and updated_justifications.justifications:
+                if updated_justifications is not None and updated_justifications:
                     transaction.source_justifications.save(
                         ref,
                         updated_justifications,
