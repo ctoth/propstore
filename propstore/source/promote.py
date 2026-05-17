@@ -69,7 +69,7 @@ from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceDocument,
     SourceJustificationDocument,
-    SourceStancesDocument,
+    SourceStanceEntryDocument,
     SourceTrustDocument,
 )
 from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
@@ -314,14 +314,14 @@ def _filter_promoted_micropubs(
 
 
 def _promoted_stance_documents(
-    stances_doc: SourceStancesDocument | None,
+    stances_doc: tuple[SourceStanceEntryDocument, ...] | None,
     *,
     reference_resolves_to_promoted_or_primary,
     source_claim_index,
     primary_claim_index,
 ) -> tuple[StanceDocument, ...]:
     promoted: list[StanceDocument] = []
-    for stance in (() if stances_doc is None else stances_doc.stances):
+    for stance in (() if stances_doc is None else stances_doc):
         source_claim = stance.source_claim
         if not isinstance(source_claim, str) or not source_claim:
             raise ValueError("stance source_claim must be normalized before promotion")
@@ -394,7 +394,7 @@ def _assemble_source_promotion_plan(
     claims_doc: tuple[SourceClaimDocument, ...] | None,
     micropubs_doc: MicropublicationsFileDocument | None,
     justifications_doc: tuple[SourceJustificationDocument, ...] | None,
-    stances_doc: SourceStancesDocument | None,
+    stances_doc: tuple[SourceStanceEntryDocument, ...] | None,
     concept_map: dict[str, str],
     promoted_concept_documents: dict[str, ConceptDocument],
     valid_claims: list[SourceClaimDocument],

@@ -16,7 +16,6 @@ from propstore.families.documents.sources import (
     SourceDocument,
     SourceJustificationDocument,
     SourceStanceEntryDocument,
-    SourceStancesDocument,
 )
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.claims import canonicalize_claim_for_version
@@ -199,12 +198,12 @@ def stamp_source_artifact_codes(
     source_doc: SourceDocument,
     claims_doc: tuple[SourceClaimDocument, ...] | None,
     justifications_doc: tuple[SourceJustificationDocument, ...] | None,
-    stances_doc: SourceStancesDocument | None,
+    stances_doc: tuple[SourceStanceEntryDocument, ...] | None,
 ) -> tuple[
     SourceDocument,
     tuple[SourceClaimDocument, ...] | None,
     tuple[SourceJustificationDocument, ...] | None,
-    SourceStancesDocument | None,
+    tuple[SourceStanceEntryDocument, ...] | None,
 ]:
     source_code = source_artifact_code(source_doc)
     updated_source = _stamp_source_doc(source_doc, source_code)
@@ -224,7 +223,7 @@ def stamp_source_artifact_codes(
 
     stance_codes_by_source: dict[str, list[str]] = defaultdict(list)
     rewritten_stances: list[SourceStanceEntryDocument] = []
-    for stance in (() if stances_doc is None else stances_doc.stances):
+    for stance in (() if stances_doc is None else stances_doc):
         artifact_code = stance_artifact_code(stance)
         rewritten = _stamp_source_stance(stance, artifact_code)
         source_claim = rewritten.source_claim
@@ -233,16 +232,7 @@ def stamp_source_artifact_codes(
         rewritten_stances.append(rewritten)
     updated_stances = None
     if stances_doc is not None:
-        stances_payload = _payload(stances_doc)
-        stances_payload["stances"] = [
-            stance.to_payload()
-            for stance in rewritten_stances
-        ]
-        updated_stances = convert_document_value(
-            stances_payload,
-            SourceStancesDocument,
-            source="artifact-codes:stances",
-        )
+        updated_stances = tuple(rewritten_stances)
 
     rewritten_claims: list[SourceClaimDocument] = []
     for claim in (() if claims_doc is None else claims_doc):

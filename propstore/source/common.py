@@ -20,7 +20,7 @@ from propstore.families.documents.sources import (
     SourceMetadataDocument,
     SourceOriginDocument,
     SourceJustificationDocument,
-    SourceStancesDocument,
+    SourceStanceEntryDocument,
     SourceTrustDocument,
 )
 from propstore.families.documents.micropubs import MicropublicationsFileDocument
@@ -190,7 +190,7 @@ def load_source_justifications_document(repo: Repository, name: str) -> tuple[So
     return repo.families.source_justifications.load(SourceRef(name))
 
 
-def load_source_stances_document(repo: Repository, name: str) -> SourceStancesDocument | None:
+def load_source_stances_document(repo: Repository, name: str) -> tuple[SourceStanceEntryDocument, ...] | None:
     return repo.families.source_stances.load(SourceRef(name))
 
 

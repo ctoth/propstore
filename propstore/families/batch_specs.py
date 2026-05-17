@@ -42,7 +42,7 @@ SOURCE_STANCE_BATCH_SPEC = DocumentBatchSpec(
     batch_name="source-stances",
     item_type=SourceStanceEntryDocument,
     items_field="stances",
-    inherited_item_fields=("source",),
+    inherited_item_fields=("source", "produced_by"),
 )
 
 SOURCE_MICROPUBLICATION_BATCH_SPEC = DocumentBatchSpec(

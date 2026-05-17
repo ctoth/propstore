@@ -16,7 +16,7 @@ from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import (
     SourceDocument,
     SourceJustificationDocument,
-    SourceStancesDocument,
+    SourceStanceEntryDocument,
 )
 from propstore.families.registry import ClaimRef
 from propstore.cli import cli
@@ -312,10 +312,13 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
             )
             for i in order
         ),
-        convert_document_value(
-            {"stances": [stances[i] for i in order]},
-            SourceStancesDocument,
-            source="test:stances-left",
+        tuple(
+            convert_document_value(
+                stances[i],
+                SourceStanceEntryDocument,
+                source=f"test:stances-left[{i}]",
+            )
+            for i in order
         ),
     )
     right = stamp_source_artifact_codes(
@@ -329,10 +332,13 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
             )
             for index, justification in enumerate(justifications)
         ),
-        convert_document_value(
-            {"stances": stances},
-            SourceStancesDocument,
-            source="test:stances-right",
+        tuple(
+            convert_document_value(
+                stance,
+                SourceStanceEntryDocument,
+                source=f"test:stances-right[{index}]",
+            )
+            for index, stance in enumerate(stances)
         ),
     )
 

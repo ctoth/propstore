@@ -445,6 +445,8 @@ class SourceJustificationDocument(DocumentStruct):
 
 
 class SourceStanceEntryDocument(DocumentStruct):
+    source: ClaimSourceDocument | None = None
+    produced_by: ExtractionProvenanceDocument | None = None
     source_claim: str | None = None
     perspective_source_claim_id: str | None = None
     target: str | None = None
@@ -458,6 +460,10 @@ class SourceStanceEntryDocument(DocumentStruct):
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
+        if self.source is not None:
+            payload["source"] = self.source.to_payload()
+        if self.produced_by is not None:
+            payload["produced_by"] = self.produced_by.to_payload()
         if self.source_claim is not None:
             payload["source_claim"] = self.source_claim
         if self.perspective_source_claim_id is not None:
@@ -478,20 +484,6 @@ class SourceStanceEntryDocument(DocumentStruct):
             payload["target_justification_id"] = self.target_justification_id
         if self.artifact_code is not None:
             payload["artifact_code"] = self.artifact_code
-        return payload
-
-
-class SourceStancesDocument(DocumentStruct):
-    stances: tuple[SourceStanceEntryDocument, ...]
-    source: ClaimSourceDocument | None = None
-    produced_by: ExtractionProvenanceDocument | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {"stances": [stance.to_payload() for stance in self.stances]}
-        if self.source is not None:
-            payload["source"] = self.source.to_payload()
-        if self.produced_by is not None:
-            payload["produced_by"] = self.produced_by.to_payload()
         return payload
 
 

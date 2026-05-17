@@ -39,6 +39,7 @@ from propstore.families.batch_specs import (
     SOURCE_CLAIM_BATCH_SPEC,
     SOURCE_CONCEPT_BATCH_SPEC,
     SOURCE_JUSTIFICATION_BATCH_SPEC,
+    SOURCE_STANCE_BATCH_SPEC,
 )
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
@@ -56,7 +57,7 @@ from propstore.families.documents.sources import (
     SourceDocument,
     SourceFinalizeReportDocument,
     SourceJustificationDocument,
-    SourceStancesDocument,
+    SourceStanceEntryDocument,
 )
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.documents.worldlines import WorldlineDefinitionDocument
@@ -710,6 +711,48 @@ def source_justifications_document_payload(
     }
 
 
+def decode_source_stances_document(
+    payload: bytes,
+    source: str,
+) -> tuple[SourceStanceEntryDocument, ...]:
+    return decode_document_batch_bytes(
+        payload,
+        SOURCE_STANCE_BATCH_SPEC,
+        source=source,
+    )
+
+
+def encode_source_stances_document(
+    document: tuple[SourceStanceEntryDocument, ...],
+) -> bytes:
+    return render_source_stances_document(document).encode("utf-8")
+
+
+def render_source_stances_document(
+    document: tuple[SourceStanceEntryDocument, ...],
+) -> str:
+    source = _shared_batch_field(document, "source")
+    produced_by = _shared_batch_field(document, "produced_by")
+    inherited: dict[str, object] = {}
+    if source is not None:
+        inherited["source"] = _batch_field_payload(source)
+    if produced_by is not None:
+        inherited["produced_by"] = _batch_field_payload(produced_by)
+    return render_document_batch(
+        document,
+        SOURCE_STANCE_BATCH_SPEC,
+        inherited_item_values=inherited,
+    )
+
+
+def source_stances_document_payload(
+    document: tuple[SourceStanceEntryDocument, ...],
+) -> dict[str, object]:
+    return {
+        "stances": [entry.to_payload() for entry in document],
+    }
+
+
 def _shared_batch_field(
     document: tuple[object, ...],
     field: str,
@@ -1016,8 +1059,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             name=PropstoreFamily.SOURCE_STANCES.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_stances",
-            doc_type=SourceStancesDocument,
+            doc_type=tuple,
             placement=FixedFilePlacement("stances.yaml", branch=SOURCE_BRANCH),
+            decode_bytes=decode_source_stances_document,
+            encode_document=encode_source_stances_document,
+            render_document=render_source_stances_document,
+            document_payload=source_stances_document_payload,
+            scan_type=SourceStanceEntryDocument,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_FINALIZE_REPORTS,

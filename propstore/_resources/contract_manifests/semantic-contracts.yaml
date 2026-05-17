@@ -530,10 +530,10 @@ contracts:
   contract_version: 2026.05.02
   body:
     coerce_payload: null
-    decode_bytes: null
-    doc_type: propstore.families.documents.sources.SourceStancesDocument
-    document_payload: null
-    encode_document: null
+    decode_bytes: propstore.families.registry.decode_source_stances_document
+    doc_type: builtins.tuple
+    document_payload: propstore.families.registry.source_stances_document_payload
+    encode_document: propstore.families.registry.encode_source_stances_document
     normalize_for_write: null
     placement:
       branch:
@@ -544,8 +544,8 @@ contracts:
         template: source/{stem}
       filename: stances.yaml
       kind: fixed-file
-    render_document: null
-    scan_type: null
+    render_document: propstore.families.registry.render_source_stances_document
+    scan_type: propstore.families.documents.sources.SourceStanceEntryDocument
     validate_for_write: null
 - kind: artifact_family
   name: stance
@@ -2540,6 +2540,12 @@ contracts:
   contract_version: 2026.05.01
   body:
     fields:
+    - name: source
+      required: true
+      type: ClaimSourceDocument | None
+    - name: produced_by
+      required: true
+      type: ExtractionProvenanceDocument | None
     - name: source_claim
       required: true
       type: str | None
@@ -2570,21 +2576,6 @@ contracts:
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceStancesDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: stances
-      required: true
-      type: tuple[SourceStanceEntryDocument, ...]
-    - name: source
-      required: true
-      type: ClaimSourceDocument | None
-    - name: produced_by
-      required: true
-      type: ExtractionProvenanceDocument | None
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceTrustDocument
@@ -3887,7 +3878,7 @@ contracts:
     accessor: source_stances
     artifact_family: source_stances
     artifact_family_contract:
-      doc_type: propstore.families.documents.sources.SourceStancesDocument
+      doc_type: builtins.tuple
       placement:
         branch:
           codec: safe_slug

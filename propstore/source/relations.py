@@ -3,11 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from propstore.families.batch_specs import SOURCE_JUSTIFICATION_BATCH_SPEC
+from propstore.families.batch_specs import SOURCE_JUSTIFICATION_BATCH_SPEC, SOURCE_STANCE_BATCH_SPEC
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository, retry_live_branch_update
-from quire.documents import convert_document_value, decode_document_batch_bytes, decode_document_path
+from quire.documents import convert_document_value, decode_document_batch_bytes
 from quire.references import FamilyReferenceIndex
 from propstore.stances import StanceType, coerce_stance_type
 
@@ -23,7 +23,6 @@ from propstore.families.documents.sources import (
     SourceJustificationDocument,
     SourceProvenanceDocument,
     SourceStanceEntryDocument,
-    SourceStancesDocument,
 )
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
@@ -150,13 +149,13 @@ def commit_source_justifications_batch(
 
 
 def normalize_source_stances_payload(
-    data: SourceStancesDocument,
+    data: tuple[SourceStanceEntryDocument, ...],
     *,
     claim_index: FamilyReferenceIndex[SourceClaimDocument],
     primary_claim_index: FamilyReferenceIndex[Any] | None = None,
-) -> SourceStancesDocument:
+) -> tuple[SourceStanceEntryDocument, ...]:
     normalized_stances: list[SourceStanceEntryDocument] = []
-    for index, stance in enumerate(data.stances, start=1):
+    for index, stance in enumerate(data, start=1):
         if stance.source_claim is None:
             raise ValueError("stance source_claim must be a non-empty string")
         normalized = stance.to_payload()
@@ -176,11 +175,7 @@ def normalize_source_stances_payload(
                 source=f"stances[{index}]",
             )
         )
-    return SourceStancesDocument(
-        source=data.source,
-        stances=tuple(normalized_stances),
-        produced_by=data.produced_by,
-    )
+    return tuple(normalized_stances)
 
 
 def _require_source_or_primary_claim_id(
@@ -214,16 +209,27 @@ def commit_source_stances_batch(
 
     claim_index = build_source_claim_index(repo, source_name)
     primary_claim_index = build_primary_claim_index(repo)
-    raw = decode_document_path(stances_file, SourceStancesDocument)
+    raw = decode_document_batch_bytes(
+        stances_file.read_bytes(),
+        SOURCE_STANCE_BATCH_SPEC,
+        source=str(stances_file),
+    )
     if reader is not None:
-        raw = SourceStancesDocument(
-            source=raw.source,
-            stances=raw.stances,
-            produced_by=ExtractionProvenanceDocument(
+        provenance = ExtractionProvenanceDocument(
                 reader=reader,
                 method=method,
                 timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            ),
+        )
+        raw = tuple(
+            convert_document_value(
+                {
+                    **stance.to_payload(),
+                    "produced_by": provenance.to_payload(),
+                },
+                SourceStanceEntryDocument,
+                source=f"{stances_file}:stances[{index}]",
+            )
+            for index, stance in enumerate(raw, start=1)
         )
     normalized = normalize_source_stances_payload(
         raw,
@@ -348,13 +354,11 @@ def commit_source_stance_proposal(
     normalized_stance_type = coerce_stance_type(stance_type)
     assert normalized_stance_type is not None
 
-    def update(expected_head: str | None) -> SourceStancesDocument:
+    def update(expected_head: str | None) -> tuple[SourceStanceEntryDocument, ...]:
         claim_index = build_source_claim_index(repo, source_name)
         primary_claim_index = build_primary_claim_index(repo)
-        existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(
-            stances=()
-        )
-        stances = list(existing.stances)
+        existing = load_source_stances_document(repo, source_name) or ()
+        stances = list(existing)
 
         stance = SourceStanceEntryDocument(
             source_claim=source_claim,
@@ -375,7 +379,7 @@ def commit_source_stance_proposal(
             )
         stances.append(stance)
         normalized = normalize_source_stances_payload(
-            SourceStancesDocument(source=existing.source, stances=tuple(stances)),
+            tuple(stances),
             claim_index=claim_index,
             primary_claim_index=primary_claim_index,
         )
@@ -389,4 +393,4 @@ def commit_source_stance_proposal(
         return normalized
 
     normalized = retry_live_branch_update(repo, branch, update)
-    return normalized.stances[-1]
+    return normalized[-1]

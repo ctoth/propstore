@@ -37,7 +37,7 @@ from propstore.source import (
 from propstore.families.documents.sources import (
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
-    SourceStancesDocument,
+    SourceStanceEntryDocument,
 )
 from propstore.source.promote import load_finalize_report
 from tests.family_helpers import build_sidecar, materialized_world_store_path
@@ -598,19 +598,17 @@ def _setup_source_with_partial_validity(
     branch = repo.families.source_stances.address(SourceRef(source_name)).branch
     repo.families.source_stances.save(
         SourceRef(source_name),
-        convert_document_value(
-            {
-                "source": {"paper": source_name},
-                "stances": [
-                    {
-                        "source_claim": "broken_source",
-                        "type": "rebuts",
-                        "target": "missing_source:claim_zzz",
-                    }
-                ],
-            },
-            SourceStancesDocument,
-            source=f"{branch}:stances.yaml",
+        (
+            convert_document_value(
+                {
+                    "source": {"paper": source_name},
+                    "source_claim": "broken_source",
+                    "type": "rebuts",
+                    "target": "missing_source:claim_zzz",
+                },
+                SourceStanceEntryDocument,
+                source=f"{branch}:stances.yaml[1]",
+            ),
         ),
         message=f"Write legacy invalid stance for {source_name}",
         branch=branch,
@@ -698,7 +696,7 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
 
     repo.families.source_stances.save(
         SourceRef(source_name),
-        SourceStancesDocument(stances=()),
+        (),
         message=f"Remove broken stance from {source_name}",
         branch=repo.families.source_stances.address(SourceRef(source_name)).branch,
     )
