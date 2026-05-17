@@ -44,9 +44,10 @@ from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.forms.stages import FormDefinition, kind_value_from_form_name
 from propstore.families.relations.declaration import (
+    CONCEPT_RELATIONSHIP_DISCRIMINATORS,
+    CONCEPT_RELATIONSHIP_STORAGE_MODEL,
     RelationshipRow,
     RELATION_EDGE_TABLE,
-    concept_relationship_relation_edge_row,
 )
 from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols
@@ -187,16 +188,19 @@ def compile_concept_sidecar_rows(
                     note=relationship.note,
                 )
             )
+            relationship_row = RelationshipRow(
+                source_id=concept_id,
+                relation_type=relationship.relationship_type,
+                target_id=target_id,
+                conditions_cel=conditions_json,
+                note=relationship.note,
+            )
+            row_values: dict[str, object] = {}
+            for discriminator in CONCEPT_RELATIONSHIP_DISCRIMINATORS:
+                row_values.update(discriminator.row_values())
+            row_values.update(CONCEPT_RELATIONSHIP_STORAGE_MODEL.to_row(relationship_row))
             relation_edge_rows.append(
-                concept_relationship_relation_edge_row(
-                    RelationshipRow(
-                        source_id=concept_id,
-                        relation_type=relationship.relationship_type,
-                        target_id=target_id,
-                        conditions_cel=conditions_json,
-                        note=relationship.note,
-                    )
-                )
+                RELATION_EDGE_TABLE.row(**row_values)
             )
 
         for parameterization in record.parameterizations:
