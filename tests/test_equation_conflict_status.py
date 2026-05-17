@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
+
 from propstore.conflict_detector.equations import detect_equation_conflicts
 from propstore.conflict_detector.models import (
     ConflictClaim,
@@ -48,3 +52,24 @@ def test_equation_conflict_detector_reports_undecidable_domain_sensitive_pair() 
 
     assert len(records) == 1
     assert records[0].warning_class == ConflictClass.UNKNOWN
+
+
+@pytest.mark.property
+@given(
+    left_offset=st.integers(min_value=1, max_value=5),
+    right_offset=st.integers(min_value=1, max_value=5),
+)
+@settings(deadline=None, max_examples=25)
+def test_equation_conflict_detection_is_symmetric(
+    left_offset: int,
+    right_offset: int,
+) -> None:
+    claim_a = _claim("claim_a", f"y = x + {left_offset}")
+    claim_b = _claim("claim_b", f"y = x + {right_offset}")
+
+    records_ab = detect_equation_conflicts([claim_a, claim_b], {})
+    records_ba = detect_equation_conflicts([claim_b, claim_a], {})
+
+    assert len(records_ab) == len(records_ba)
+    if records_ab:
+        assert records_ab[0].warning_class == records_ba[0].warning_class
