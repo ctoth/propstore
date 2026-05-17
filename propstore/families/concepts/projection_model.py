@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from quire.projection_mapping import DerivedPath, ProjectionCodec, ProjectionModel, ScalarPath
+from quire.projection_mapping import ProjectionCodec, ProjectionModel, ProjectionRenderView, ScalarPath
 
 from propstore.core.concept_status import coerce_concept_status
 from propstore.core.exactness_types import coerce_exactness
@@ -81,8 +81,12 @@ CONCEPT_ROW_MODEL: ProjectionModel[ConceptRow] = ProjectionModel(
         ScalarPath(("form_parameters",), "form_parameters", codec=TEXT_CODEC),
         ScalarPath(("primary_logical_id",), "primary_logical_id", codec=TEXT_CODEC),
         ScalarPath(("logical_ids_json",), "logical_ids_json", codec=TEXT_CODEC),
-        DerivedPath(("primary_logical_id",), "logical_id", codec=TEXT_CODEC),
-        DerivedPath(("logical_ids_json",), "logical_ids", codec=LOGICAL_IDS_PAYLOAD_CODEC),
+        ProjectionRenderView(source_path=("primary_logical_id",), output_key="logical_id", codec=TEXT_CODEC),
+        ProjectionRenderView(
+            source_path=("logical_ids_json",),
+            output_key="logical_ids",
+            codec=LOGICAL_IDS_PAYLOAD_CODEC,
+        ),
     ),
     attribute_bucket=("attributes",),
 )
