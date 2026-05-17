@@ -124,7 +124,10 @@ class _ATMSStore:
         return self._solver
 
     def conflicts(self) -> list[ConflictRowInput]:
-        return list(self._conflicts)
+        return [
+            {"warning_class": "CONFLICT", **conflict}
+            for conflict in self._conflicts
+        ]
 
     def all_concepts(self) -> list[dict]:
         return []
