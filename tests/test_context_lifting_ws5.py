@@ -256,7 +256,7 @@ def test_sidecar_stores_lifting_materialization_provenance() -> None:
     assert row["target_context_id"] == "ctx_target"
     assert row["proposition_id"] == "claim_alpha"
     assert row["status"] == "lifted"
-    assert json.loads(row["provenance_json"])["source_proposition_id"] == "claim_alpha"
+    assert row["provenance"]["source_proposition_id"] == "claim_alpha"
 
 
 def test_context_sidecar_compiler_materializes_authored_ist_assertions() -> None:
