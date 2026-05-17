@@ -2,13 +2,15 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from contextlib import contextmanager
 from functools import cached_property
 from pathlib import Path
+from typing import TypeVar
 
 from quire.derived_store import DerivedStoreManager
 from quire.documents import DocumentStruct, decode_document_bytes
-from quire.git_store import GitStore
+from quire.git_store import GitStore, HeadMismatchError
 from quire.refs import RefName
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
 from propstore.families.registry import (
@@ -21,6 +23,7 @@ from propstore.uri_authority import TaggingAuthority, parse_tagging_authority
 PROPSTORE_BOOTSTRAP_REF = RefName("refs/propstore/bootstrap")
 PROPSTORE_REPOSITORY_FORMAT_VERSION = "2026.04.store-only-init"
 REPOSITORY_CONFIG_PATH = "propstore.yaml"
+TUpdate = TypeVar("TUpdate")
 
 
 class RepositoryNotFound(Exception):
@@ -175,6 +178,27 @@ class Repository:
         repo = cls(root)
         repo.write_bootstrap_manifest()
         return repo
+
+
+def retry_live_branch_update(
+    repo: Repository,
+    branch: str,
+    update: Callable[[str | None], TUpdate],
+    *,
+    attempts: int = 8,
+) -> TUpdate:
+    """Run an update with the live branch head, retrying stale-head failures."""
+
+    if attempts < 1:
+        raise ValueError("attempts must be at least 1")
+    for attempt in range(attempts):
+        expected_head = None if repo.git is None else repo.require_git().branch_sha(branch)
+        try:
+            return update(expected_head)
+        except HeadMismatchError:
+            if attempt == attempts - 1:
+                raise
+    raise AssertionError("unreachable")
 
 
 def _bootstrap_manifest(seed_commit: str | None) -> dict[str, object]:
