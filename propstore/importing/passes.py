@@ -13,6 +13,10 @@ from quire.references import AmbiguousReferenceError
 
 from propstore.families.addresses import SemanticFamilyAddress
 from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.references import (
+    ImportedClaimReference,
+    imported_claim_reference_index,
+)
 from propstore.families.registry import (
     ClaimRef,
     PROPSTORE_FAMILY_REGISTRY,
@@ -27,10 +31,6 @@ from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassResult, PipelineResult
 from propstore.source.claim_concepts import normalize_imported_claim_artifact
-from propstore.source.reference_indexes import (
-    ImportedClaimHandle,
-    imported_claim_handle_index,
-)
 from propstore.importing.stages import (
     PlannedSemanticWrite,
     SourceImportAuthoredWrites,
@@ -244,14 +244,14 @@ def _normalize_claim_batch(
         normalized[planned_write.relpath] = planned_write
         for local_id, artifact_id in normalized_claim.local_handle_map.items():
             state.imported_claim_handles.append(
-                ImportedClaimHandle(handle=local_id, artifact_id=artifact_id)
+                ImportedClaimReference(handle=local_id, artifact_id=artifact_id)
             )
     return normalized
 
 
 def _record_imported_claim_handle_ambiguities(state: SourceImportState) -> None:
     try:
-        imported_claim_handle_index(state.imported_claim_handles)
+        imported_claim_reference_index(state.imported_claim_handles)
     except AmbiguousReferenceError as exc:
         state.warnings.append(
             "ambiguous imported claim handle "
@@ -266,7 +266,7 @@ def _normalize_stance_batch(
     state: SourceImportState,
 ) -> Mapping[str, PlannedSemanticWrite]:
     normalized: dict[str, PlannedSemanticWrite] = {}
-    claim_index = imported_claim_handle_index(state.imported_claim_handles)
+    claim_index = imported_claim_reference_index(state.imported_claim_handles)
     for path in paths:
         payload = dict(_decode_yaml(writes[path], path=path))
         payload["source_claim"] = _rewrite_indexed_reference(
