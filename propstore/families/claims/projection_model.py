@@ -393,7 +393,11 @@ def claim_row_query_plan(
             )
             + selected("core", claim_core, ("provenance_page", "provenance_json"))
             + selected("num", numeric_payload, ("value_si", "lower_bound_si", "upper_bound_si"))
-            + selected("core", claim_core, ("context_id", "branch", "build_status", "stage", "promotion_status"))
+            + selected(
+                "core",
+                claim_core,
+                ("context_id", "premise_kind", "branch", "build_status", "stage", "promotion_status"),
+            )
         ),
         joins=(
             ProjectionJoin(
@@ -675,6 +679,14 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
                 ScalarPath(("opinion_base_rate",), "opinion_base_rate", codec=REAL_CODEC),
                 ScalarPath(("source_assertion_ids",), "source_assertion_ids", codec=RAW_CODEC),
                 ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC),
+            ),
+            result_type=dict,
+        ),
+        ProjectionMetadata(
+            path=("attributes",),
+            fields=(
+                ScalarPath(("conditions",), "conditions", codec=RAW_CODEC),
+                ScalarPath(("premise_kind",), "premise_kind", codec=TEXT_CODEC),
             ),
             result_type=dict,
         ),
