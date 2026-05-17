@@ -448,6 +448,7 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
                 encoder=TEXT_CODEC.encode,
                 decoder=TEXT_CODEC.decode,
             ),
+            read_name="id",
             missing="raise",
         ),
         ProjectionBinding(
