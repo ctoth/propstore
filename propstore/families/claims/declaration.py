@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field, replace
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
@@ -189,27 +189,6 @@ class ClaimRow:
                 self, "algorithm_stage", coerce_algorithm_stage(self.algorithm_stage)
             )
 
-    @classmethod
-    def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimRow:
-        base = CLAIM_ROW_GENERIC_MODEL.from_row(row_map)
-        nested_source = row_map.get("source") if isinstance(row_map.get("source"), Mapping) else None
-        flat_source = base.source
-        source = ClaimSource.from_mapping(
-            nested_source,
-            slug=None if flat_source is None else flat_source.slug,
-        )
-        if source is None:
-            source = flat_source
-        elif source is not None:
-            source = ClaimSource(
-                source_id=source.source_id if source.source_id is not None or flat_source is None else flat_source.source_id,
-                kind=source.kind if source.kind is not None or flat_source is None else flat_source.kind,
-                slug=source.slug if source.slug is not None or flat_source is None else flat_source.slug,
-                origin=source.origin if source.origin is not None or flat_source is None else flat_source.origin,
-                trust=source.trust if source.trust is not None or flat_source is None else flat_source.trust,
-            )
-        return replace(base, source=source)
-
     @property
     def primary_logical_id(self) -> str | None:
         if not self.logical_ids:
@@ -292,85 +271,6 @@ class ClaimRow:
                 return value
         return dict(self.attributes).get(key)
 
-    def to_dict(self) -> dict[str, Any]:
-        data = {
-            key: value
-            for key, value in CLAIM_ROW_GENERIC_MODEL.to_mapping(self).items()
-            if key != "source" and (value is not None or key in {"logical_id", "logical_ids"})
-        }
-        source_dict = None if self.source is None or self.source.is_empty else self.source.to_dict()
-        source_quality = (
-            None
-            if self.source is None or self.source.trust is None
-            else self.source.trust.quality_dict()
-        )
-        source_prior_base_rate = (
-            None
-            if self.source is None or self.source.trust is None
-            else self.source.trust.prior_base_rate_dict()
-        )
-        source_derived_from = (
-            None
-            if self.source is None or self.source.trust is None or not self.source.trust.derived_from
-            else json.dumps(list(self.source.trust.derived_from))
-        )
-        optional_fields = {
-            "source_slug": None if self.source is None else self.source.slug,
-            "source_id": None if self.source is None else self.source.source_id,
-            "source_kind": (
-                None
-                if self.source is None or self.source.kind is None
-                else self.source.kind.value
-            ),
-            "source_origin_type": (
-                None
-                if self.source is None
-                or self.source.origin is None
-                or self.source.origin.origin_type is None
-                else self.source.origin.origin_type.value
-            ),
-            "source_origin_value": (
-                None
-                if self.source is None or self.source.origin is None
-                else self.source.origin.value
-            ),
-            "source_origin_retrieved": (
-                None
-                if self.source is None or self.source.origin is None
-                else self.source.origin.retrieved
-            ),
-            "source_origin_content_ref": (
-                None
-                if self.source is None or self.source.origin is None
-                else self.source.origin.content_ref
-            ),
-            "source_prior_base_rate": (
-                source_prior_base_rate
-            ),
-            "source_quality_json": (
-                None if source_quality is None else json.dumps(source_quality)
-            ),
-            "source_derived_from_json": source_derived_from,
-        }
-        for key, value in optional_fields.items():
-            if value is not None:
-                data[key] = value
-        if self.concept_links:
-            data["concept_links"] = [
-                {
-                    key: value
-                    for key, value in row.values.items()
-                    if value is not None
-                }
-                for row in CLAIM_CONCEPT_LINKS_PATH.encode_rows(self)
-            ]
-        if source_dict is not None:
-            data["source"] = source_dict
-        if source_quality is not None:
-            data["source_quality_opinion"] = source_quality
-        data.update(self.attribute_mapping())
-        return data
-
 
 ClaimRowInput = ClaimRow | Mapping[str, Any]
 
@@ -387,12 +287,6 @@ from propstore.families.claims.projection_model import (  # noqa: E402
 class SourcePromotionClaimRow:
     claim_id: str
     promotion_status: str
-
-
-def coerce_claim_row(row: ClaimRowInput) -> ClaimRow:
-    if isinstance(row, ClaimRow):
-        return row
-    return ClaimRow.from_mapping(row)
 
 
 def select_claim_rows(
@@ -417,7 +311,7 @@ def select_claim_rows(
         row_dicts,
         {"claim_concept_link": link_rows},
     )
-    return [ClaimRow.from_mapping(row_dict) for row_dict in attached_rows]
+    return [CLAIM_ROW_GENERIC_MODEL.from_row(row_dict) for row_dict in attached_rows]
 
 
 def select_claim_rows_linked_to_concept(
@@ -677,7 +571,10 @@ def select_claim_embedding_rows(
         placeholders = ",".join("?" for _ in entity_ids)
         query += f" WHERE core.id IN ({placeholders})"
         params = tuple(entity_ids)
-    return [ClaimRow.from_mapping(dict(row)) for row in conn.execute(query, params).fetchall()]
+    return [
+        CLAIM_ROW_GENERIC_MODEL.from_row(dict(row))
+        for row in conn.execute(query, params).fetchall()
+    ]
 
 
 def resolve_claim_embedding_entity(conn: sqlite3.Connection, entity_id: str) -> tuple[str, int]:
