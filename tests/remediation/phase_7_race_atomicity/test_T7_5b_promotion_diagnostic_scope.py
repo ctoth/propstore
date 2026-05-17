@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from types import SimpleNamespace
-
-from propstore.families.claims.declaration import populate_promotion_blocked_claims
+from propstore.families.claims.declaration import (
+    compile_promotion_blocked_sidecar_rows,
+    populate_promotion_blocked_claims,
+)
+from propstore.families.claims.stages import (
+    PromotionBlockedClaimFact,
+    PromotionBlockedReason,
+)
 from quire.derived_runtime import connect_sqlite_store
-from propstore.source.promote import compile_promotion_blocked_projection_rows
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
@@ -55,18 +59,37 @@ def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path
     finally:
         conn.close()
 
-    claim = SimpleNamespace(artifact_id="claim-1", id="local-claim")
-    alpha_rows = compile_promotion_blocked_projection_rows(
-        "source/a",
-        "paper-a",
-        [claim],
-        {"claim-1": [("concept_mapping", "fresh branch a")]},
+    alpha_rows = compile_promotion_blocked_sidecar_rows(
+        (
+            PromotionBlockedClaimFact(
+                artifact_id="claim-1",
+                source_branch="source/a",
+                source_paper="paper-a",
+                raw_id="local-claim",
+                reasons=(
+                    PromotionBlockedReason(
+                        kind="concept_mapping",
+                        detail="fresh branch a",
+                    ),
+                ),
+            ),
+        )
     )
-    beta_rows = compile_promotion_blocked_projection_rows(
-        "source/b",
-        "paper-b",
-        [claim],
-        {"claim-1": [("concept_mapping", "keep branch b")]},
+    beta_rows = compile_promotion_blocked_sidecar_rows(
+        (
+            PromotionBlockedClaimFact(
+                artifact_id="claim-1",
+                source_branch="source/b",
+                source_paper="paper-b",
+                raw_id="local-claim",
+                reasons=(
+                    PromotionBlockedReason(
+                        kind="concept_mapping",
+                        detail="keep branch b",
+                    ),
+                ),
+            ),
+        )
     )
     conn = connect_sqlite_store(sidecar_path)
     try:
