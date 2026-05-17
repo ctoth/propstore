@@ -368,14 +368,14 @@ class TestContextSidecar:
             for row in CONTEXT_TABLE.select_all(conn)
         }
         row = rows["ctx_target"]
-        assert json.loads(row["parameters_json"]) == {"domain": "speech"}
+        assert row["parameters"] == {"domain": "speech"}
         assert row["perspective"] == "local-model"
         assumption = CONTEXT_ASSUMPTION_TABLE.select_all(conn)[0]
         assert assumption["assumption_cel"] == "framework == 'target'"
         rule = CONTEXT_LIFTING_RULE_TABLE.select_all(conn)[0]
         assert rule["source_context_id"] == "ctx_source"
         assert rule["target_context_id"] == "ctx_target"
-        assert json.loads(rule["conditions_cel"]) == ["variant == 'controlled'"]
+        assert rule["conditions"] == ("variant == 'controlled'",)
         assert rule["mode"] == "specialization"
 
 
