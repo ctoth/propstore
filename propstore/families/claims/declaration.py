@@ -61,6 +61,7 @@ from propstore.core.id_types import (
     to_claim_id,
     to_concept_id,
     to_context_id,
+    to_justification_id,
 )
 from propstore.core.relations import (
     ClaimConceptLinkRole,
@@ -92,6 +93,7 @@ from propstore.families.relations.declaration import (
     RELATION_EDGE_TABLE,
     StanceRow,
 )
+from propstore.stances import coerce_stance_type
 from propstore.families.sources.declaration import SOURCE_PROJECTION
 
 if TYPE_CHECKING:
@@ -982,12 +984,15 @@ def compile_claim_sidecar_rows(
                 )
             )
             for values in deferred_stance_rows:
+                stance_type = coerce_stance_type(values[2])
+                if stance_type is None:
+                    raise ValueError("deferred stance row requires a stance type")
                 stance = StanceRow(
-                    claim_id=str(values[0]),
-                    target_claim_id=str(values[1]),
-                    stance_type=str(values[2]),
+                    claim_id=to_claim_id(values[0]),
+                    target_claim_id=to_claim_id(values[1]),
+                    stance_type=stance_type,
                     target_justification_id=(
-                        None if values[3] is None else str(values[3])
+                        None if values[3] is None else to_justification_id(values[3])
                     ),
                     strength=None if values[4] is None else str(values[4]),
                     conditions_differ=(
@@ -1019,7 +1024,7 @@ def compile_claim_sidecar_rows(
                         None if values[16] is None else float(values[16])
                     ),
                     perspective_source_claim_id=(
-                        None if values[17] is None else str(values[17])
+                        None if values[17] is None else to_claim_id(values[17])
                     ),
                 )
                 row_values: dict[str, object] = {}
