@@ -180,17 +180,34 @@ LOGICAL_IDS_PAYLOAD_CODEC = ProjectionCodec(
 )
 
 
+CLAIM_CONCEPT_LINK_CLAIM_ID_PATH = ScalarPath(
+    ("claim_id",), "claim_id", codec=CLAIM_ID_CODEC, nullable=False, missing="raise"
+)
+CLAIM_CONCEPT_LINK_CONCEPT_ID_PATH = ScalarPath(
+    ("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"
+)
+CLAIM_CONCEPT_LINK_ROLE_PATH = ScalarPath(
+    ("role",), "role", codec=CLAIM_CONCEPT_LINK_ROLE_CODEC, nullable=False, missing="raise"
+)
+CLAIM_CONCEPT_LINK_ORDINAL_PATH = ScalarPath(
+    ("ordinal",), "ordinal", codec=ORDINAL_CODEC, nullable=False
+)
+CLAIM_CONCEPT_LINK_BINDING_NAME_PATH = ScalarPath(
+    ("binding_name",), "binding_name", codec=TEXT_CODEC
+)
+CLAIM_CONCEPT_LINK_ITEM_FIELDS = (
+    CLAIM_CONCEPT_LINK_CONCEPT_ID_PATH,
+    CLAIM_CONCEPT_LINK_ROLE_PATH,
+    CLAIM_CONCEPT_LINK_ORDINAL_PATH,
+    CLAIM_CONCEPT_LINK_BINDING_NAME_PATH,
+)
+
+
 CLAIM_CONCEPT_LINK_ROW_MODEL: ProjectionModel[ClaimConceptLinkRow] = ProjectionModel(
     name="claim_concept_link_row",
     table="claim_concept_link",
     result_type=ClaimConceptLinkRow,
-    fields=(
-        ScalarPath(("claim_id",), "claim_id", codec=CLAIM_ID_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("role",), "role", codec=CLAIM_CONCEPT_LINK_ROLE_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("ordinal",), "ordinal", codec=ORDINAL_CODEC, nullable=False),
-        ScalarPath(("binding_name",), "binding_name", codec=TEXT_CODEC),
-    ),
+    fields=(CLAIM_CONCEPT_LINK_CLAIM_ID_PATH,) + CLAIM_CONCEPT_LINK_ITEM_FIELDS,
 )
 
 
@@ -201,12 +218,8 @@ CLAIM_CONCEPT_LINKS_PATH = ProjectionAttachedRows(
     parent_path=("claim_id",),
     item_parent_path=("claim_id",),
     item_type=ClaimConceptLinkRow,
-    fields=(
-        ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("role",), "role", codec=CLAIM_CONCEPT_LINK_ROLE_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("ordinal",), "ordinal", codec=ORDINAL_CODEC, nullable=False),
-        ScalarPath(("binding_name",), "binding_name", codec=TEXT_CODEC),
-    ),
+    order_by=(CLAIM_CONCEPT_LINK_ORDINAL_PATH, CLAIM_CONCEPT_LINK_CONCEPT_ID_PATH),
+    fields=CLAIM_CONCEPT_LINK_ITEM_FIELDS,
 )
 
 
