@@ -51,6 +51,7 @@ from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.families.claims.declaration import (
     CLAIM_FTS_PROJECTION,
+    compile_promotion_blocked_sidecar_rows,
     populate_authored_justifications,
     populate_claims,
     populate_conflicts,
@@ -86,7 +87,7 @@ from propstore.families.sources.declaration import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.types import PassDiagnostic
-from propstore.source.promote import compile_all_source_promotion_blocked_projection_rows
+from propstore.source.promote import collect_all_source_promotion_blocked_facts
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -434,7 +435,9 @@ def _build_sidecar_file(
             for handle in repo.families.micropubs.iter_handles(commit=commit_hash)
         ),
     )
-    promotion_blocked_rows = compile_all_source_promotion_blocked_projection_rows(repo)
+    promotion_blocked_rows = compile_promotion_blocked_sidecar_rows(
+        collect_all_source_promotion_blocked_facts(repo)
+    )
 
     embedding_snapshot = extract_embedding_snapshot_from_store(
         output_path,
