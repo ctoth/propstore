@@ -18,7 +18,6 @@ from propstore.families.concepts.declaration import (
 )
 from propstore.families.contexts.stages import LoadedContext, loaded_contexts_to_lifting_system
 from propstore.families.contexts.declaration import (
-    ContextSidecarRows,
     compile_context_sidecar_rows,
 )
 from propstore.families.claims.stages import (
@@ -77,7 +76,7 @@ class RepositoryCheckedBundle:
 class SidecarBuildPlan:
     source_rows: tuple[SourceProjectionRow, ...]
     concept_rows: ConceptSidecarRows
-    context_rows: ContextSidecarRows
+    context_rows: tuple[ProjectionRow, ...]
     claim_rows: ClaimSidecarRows | None
     raw_id_quarantine_rows: RawIdQuarantineSidecarRows
     conflict_rows: tuple[ProjectionRow, ...]
