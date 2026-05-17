@@ -164,9 +164,13 @@ Existing Quire owners that must be reused:
 
 Do not introduce:
 
-- `ProjectionColumnDef`;
-- `ProjectionFieldDef`;
-- a second column/field descriptor layer inside `projection_mapping.py`;
+- any new public type whose responsibility is to own physical column identity,
+  SQL type, nullability, primary-key/insertability, default SQL, check SQL,
+  physical storage codec, DDL, index identity, FK identity, FTS identity, vector
+  identity, schema validation, or schema collection;
+- a second descriptor layer inside `projection_mapping.py` that can be rendered
+  into `ProjectionColumn` or `ProjectionTable` without referencing the existing
+  Quire owner;
 - Propstore-local equivalents of any of the existing Quire projection
   primitives.
 
@@ -408,9 +412,9 @@ Owned repo:
 
 Delete first:
 
-- any Phase 1 wording, tests, or implementation that introduces
-  `ProjectionColumnDef`, `ProjectionFieldDef`, or another duplicate field/column
-  descriptor;
+- any Phase 1 wording, tests, or implementation that assigns existing physical
+  projection ownership to a new type instead of reusing the owner in
+  `quire/projections.py`;
 - any test that treats a query alias as an ad hoc alternate string rather than
   as a read-name on a binding to an existing `ProjectionField`/`ProjectionColumn`
   owner.
@@ -423,8 +427,7 @@ Implement:
 - schema-hash material for binding references without duplicating physical
   column facts;
 - validation that a binding references exactly one existing physical owner;
-- tests proving `ProjectionField` and `ProjectionColumn` remain the only
-  physical field/column definition owners.
+- tests proving bindings cannot carry independent physical column policy.
 
 Hard gates:
 
@@ -433,14 +436,19 @@ uv run pytest tests/test_projection_mapping.py
 uv run pytest tests/test_derived_store.py
 uv run pyright quire
 rg -n -F "cast(" quire/projection_mapping.py
-rg -n "ProjectionColumnDef|ProjectionFieldDef" quire tests
+git diff -- quire/projection_mapping.py quire/projections.py tests/test_projection_mapping.py
 ```
 
 Required result:
 
 - no casts in `quire/projection_mapping.py`;
-- zero `ProjectionColumnDef` or `ProjectionFieldDef` references;
-- no duplicate physical column/field definition layer;
+- no new public type in `projection_mapping.py` owns physical projection facts
+  already owned by `ProjectionField`, `ProjectionColumn`, `ProjectionTable`,
+  `ProjectionForeignKey`, `ProjectionIndex`, `FtsProjection`, `VecProjection`,
+  `ProjectionSchema`, or `ProjectionBuildStep`;
+- any new public type in `projection_mapping.py` is only a binding, component,
+  render/view, attachment, join, query-plan, discriminator, or typed metadata
+  boundary over existing projection owners;
 - existing `ProjectionModel` tests still pass.
 
 Commit and push Quire. Pin Propstore to the pushed SHA. Reread this workstream
