@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sqlite3
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
@@ -160,7 +161,9 @@ ConflictRowInput = ConflictRow | Mapping[str, Any]
 
 
 from propstore.families.relations.projection_model import (  # noqa: E402
+    CLAIM_STANCE_DISCRIMINATORS,
     CLAIM_STANCE_QUERY_PLAN,
+    CLAIM_STANCE_STORAGE_MODEL,
     CLAIM_STANCE_WITH_PERSPECTIVE_QUERY_PLAN,
     CONFLICT_ROW_MODEL,
     CONCEPT_RELATIONSHIP_QUERY_PLAN,
@@ -168,8 +171,6 @@ from propstore.families.relations.projection_model import (  # noqa: E402
     RELATIONSHIP_ROW_MODEL,
     STANCE_ROW_MODEL,
     claim_stance_policy_query_plan,
-    claim_stance_relation_edge_row,
-    concept_relationship_relation_edge_row,
 )
 
 
@@ -254,30 +255,55 @@ def compile_authored_stance_sidecar_rows_with_diagnostics(
             )
             or source_claim
         )
-        rows.append(
-            claim_stance_relation_edge_row(
-                (
-                    source_claim,
-                    target,
-                    stance_type,
-                    stance.target_justification_id,
-                    stance.strength,
-                    stance.conditions_differ,
-                    stance.note,
-                    resolution.get("method"),
-                    resolution.get("model"),
-                    resolution.get("embedding_model"),
-                    resolution.get("embedding_distance"),
-                    resolution.get("pass_number"),
-                    resolution.get("confidence"),
-                    opinion_columns[0],
-                    opinion_columns[1],
-                    opinion_columns[2],
-                    opinion_columns[3],
-                    perspective_source_claim,
+        stance_row = StanceRow(
+            claim_id=source_claim,
+            target_claim_id=target,
+            stance_type=stance_type,
+            target_justification_id=stance.target_justification_id,
+            strength=stance.strength,
+            conditions_differ=(
+                None
+                if stance.conditions_differ is None
+                else str(
+                    json.dumps(stance.conditions_differ)
+                    if isinstance(stance.conditions_differ, list)
+                    else stance.conditions_differ
                 )
-            )
+            ),
+            note=stance.note,
+            resolution_method=(
+                None if resolution.get("method") is None else str(resolution["method"])
+            ),
+            resolution_model=(
+                None if resolution.get("model") is None else str(resolution["model"])
+            ),
+            embedding_model=(
+                None
+                if resolution.get("embedding_model") is None
+                else str(resolution["embedding_model"])
+            ),
+            embedding_distance=(
+                None
+                if resolution.get("embedding_distance") is None
+                else float(resolution["embedding_distance"])
+            ),
+            pass_number=(
+                None if resolution.get("pass_number") is None else int(resolution["pass_number"])
+            ),
+            confidence=(
+                None if resolution.get("confidence") is None else float(resolution["confidence"])
+            ),
+            opinion_belief=opinion_columns[0],
+            opinion_disbelief=opinion_columns[1],
+            opinion_uncertainty=opinion_columns[2],
+            opinion_base_rate=opinion_columns[3],
+            perspective_source_claim_id=perspective_source_claim,
         )
+        row_values: dict[str, object] = {}
+        for discriminator in CLAIM_STANCE_DISCRIMINATORS:
+            row_values.update(discriminator.row_values())
+        row_values.update(CLAIM_STANCE_STORAGE_MODEL.to_row(stance_row))
+        rows.append(RELATION_EDGE_TABLE.row(**row_values))
     return tuple(rows), tuple(diagnostics)
 
 
