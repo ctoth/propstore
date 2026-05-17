@@ -29,7 +29,7 @@ from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.families.forms.stages import kind_type_from_form_name
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
-from propstore.families.claims.declaration import ClaimRowInput, coerce_claim_row
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL, ClaimRowInput
 from propstore.families.concepts.declaration import ConceptRow, ConceptRowInput
 from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.world.types import (
@@ -138,7 +138,7 @@ def _display_claim_id(store: WorldStore | None, claim_id: str | None) -> str | N
         return claim_id
     claim = cast(Callable[[str], ClaimRowInput | None], getter)(claim_id)
     if claim is not None:
-        row = coerce_claim_row(claim)
+        row = CLAIM_ROW_MODEL.coerce(claim)
         logical_value = row.primary_logical_value
         if isinstance(logical_value, str) and logical_value:
             return logical_value
