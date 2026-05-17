@@ -135,8 +135,8 @@ uv run pyright eq_equiv
 `eq_equiv.__init__` exports:
 
 - `BinaryExpr`
+- `BoundEquation`
 - `DomainAssumption`
-- `EquationClaimInput`
 - `EquationComparison`
 - `EquationComparisonStatus`
 - `EquationExpr`
@@ -157,7 +157,7 @@ uv run pyright eq_equiv
 - `UnaryExpr`
 - `canonicalize_equation`
 - `check_symbols`
-- `compare_equation_claims`
+- `compare_equations`
 - `equation_signature`
 - `generate_sympy_equation`
 - `generate_sympy_rhs`
@@ -168,17 +168,17 @@ uv run pyright eq_equiv
 - `split_equation_relation`
 - `structural_signature`
 
-`EquationClaimInput` is the library-owned input shape:
+`BoundEquation` is the library-owned input shape:
 
 ```python
 @dataclass(frozen=True)
-class EquationClaimInput:
+class BoundEquation:
     expression: str | None = None
     sympy: str | None = None
     variables: tuple[EquationSymbolBinding, ...] = ()
 ```
 
-The comparison layer accepts only `EquationClaimInput`. It must not import or
+The comparison layer accepts only `BoundEquation`. It must not import or
 type-check against Propstore classes.
 
 ## Non-Goals
@@ -334,10 +334,10 @@ Move into `../eq-equiv`:
 - normalization/cache logic;
 - SymPy conversion and residual simplification;
 - `canonicalize_equation`;
-- `compare_equation_claims`;
+- `compare_equations`;
 - `equation_signature`.
 
-Change the input contract to `EquationClaimInput`. Do not import Propstore under
+Change the input contract to `BoundEquation`. Do not import Propstore under
 `TYPE_CHECKING` or at runtime.
 
 Move pure comparison tests from Propstore into `../eq-equiv/tests/`:
@@ -425,7 +425,7 @@ location:
 
 Owned responsibilities:
 
-- convert `ConflictClaim` to `eq_equiv.EquationClaimInput`;
+- convert `ConflictClaim` to `eq_equiv.BoundEquation`;
 - convert `ConflictClaimVariable` to `eq_equiv.EquationSymbolBinding`;
 - expose only Propstore integration helpers needed by conflict detection.
 
