@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
@@ -178,95 +178,7 @@ class ClaimRow:
 
     @classmethod
     def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimRow:
-        known = {
-            "id",
-            "artifact_id",
-            "type",
-            "claim_type",
-            "concept_links",
-            "target_concept",
-            "primary_logical_id",
-            "logical_id",
-            "logical_ids",
-            "logical_ids_json",
-            "version_id",
-            "seq",
-            "value",
-            "lower_bound",
-            "upper_bound",
-            "uncertainty",
-            "uncertainty_type",
-            "sample_size",
-            "unit",
-            "conditions_cel",
-            "conditions_ir",
-            "statement",
-            "expression",
-            "sympy_generated",
-            "sympy_error",
-            "name",
-            "measure",
-            "listener_population",
-            "methodology",
-            "notes",
-            "description",
-            "auto_summary",
-            "body",
-            "canonical_ast",
-            "variables_json",
-            "algorithm_stage",
-            "source_slug",
-            "source_quality_opinion",
-            "source_paper",
-            "source_id",
-            "source_kind",
-            "source_origin_type",
-            "source_origin_value",
-            "source_origin_retrieved",
-            "source_origin_content_ref",
-            "source_prior_base_rate",
-            "source_quality_json",
-            "source_derived_from_json",
-            "provenance_page",
-            "provenance_json",
-            "value_si",
-            "lower_bound_si",
-            "upper_bound_si",
-            "context_id",
-            "source",
-        }
-        attributes = {
-            str(key): value
-            for key, value in row_map.items()
-            if key not in known and value is not None
-        }
-        artifact_id = row_map.get("artifact_id", row_map.get("id"))
-        if artifact_id is None:
-            raise KeyError("id")
-        logical_id_entries = row_map.get("logical_ids")
-        logical_ids_json = row_map.get("logical_ids_json")
-        if logical_id_entries is None and isinstance(logical_ids_json, str) and logical_ids_json:
-            try:
-                logical_id_entries = json.loads(logical_ids_json)
-            except json.JSONDecodeError:
-                logical_id_entries = None
-        logical_ids: list[LogicalId] = []
-        if isinstance(logical_id_entries, list):
-            for entry in logical_id_entries:
-                if not isinstance(entry, Mapping):
-                    continue
-                namespace = entry.get("namespace")
-                value = entry.get("value")
-                if isinstance(namespace, str) and isinstance(value, str) and namespace and value:
-                    logical_ids.append(LogicalId(namespace=namespace, value=value))
-        primary_logical_id = row_map.get("primary_logical_id", row_map.get("logical_id"))
-        if not logical_ids and isinstance(primary_logical_id, str) and ":" in primary_logical_id:
-            namespace, value = primary_logical_id.split(":", 1)
-            if namespace and value:
-                logical_ids.append(LogicalId(namespace=namespace, value=value))
-        concept_link_entries = row_map.get("concept_links")
-        concept_links = CLAIM_CONCEPT_LINKS_PATH.decode_rows(concept_link_entries)
-
+        base = CLAIM_ROW_GENERIC_MODEL.from_row(row_map)
         nested_source = row_map.get("source") if isinstance(row_map.get("source"), Mapping) else None
         quality_trust = (
             SourceTrust.from_mapping(
@@ -342,102 +254,7 @@ class ClaimRow:
                     None if flat_source.trust is None or flat_source.trust.is_empty else flat_source.trust
                 ),
             )
-        provenance = ClaimProvenance.from_components(
-            paper=(
-                None if row_map.get("source_paper") is None else str(row_map["source_paper"])
-            ),
-            page=(
-                None if row_map.get("provenance_page") is None else int(row_map["provenance_page"])
-            ),
-            provenance_json=row_map.get("provenance_json"),
-        )
-        return cls(
-            claim_id=to_claim_id(row_map["id"]),
-            artifact_id=str(artifact_id),
-            claim_type=(
-                None
-                if row_map.get("type", row_map.get("claim_type")) is None
-                else _require_claim_type(row_map.get("type", row_map.get("claim_type")))
-            ),
-            concept_links=tuple(concept_links),
-            target_concept=(
-                None
-                if row_map.get("target_concept") is None
-                else to_concept_id(row_map["target_concept"])
-            ),
-            logical_ids=tuple(logical_ids),
-            version_id=None if row_map.get("version_id") is None else str(row_map["version_id"]),
-            seq=None if row_map.get("seq") is None else int(row_map["seq"]),
-            value=row_map.get("value"),
-            lower_bound=(
-                None if row_map.get("lower_bound") is None else float(row_map["lower_bound"])
-            ),
-            upper_bound=(
-                None if row_map.get("upper_bound") is None else float(row_map["upper_bound"])
-            ),
-            uncertainty=(
-                None if row_map.get("uncertainty") is None else float(row_map["uncertainty"])
-            ),
-            uncertainty_type=(
-                None if row_map.get("uncertainty_type") is None else str(row_map["uncertainty_type"])
-            ),
-            sample_size=(
-                None if row_map.get("sample_size") is None else int(row_map["sample_size"])
-            ),
-            unit=None if row_map.get("unit") is None else str(row_map["unit"]),
-            conditions_cel=(
-                None if row_map.get("conditions_cel") is None else str(row_map["conditions_cel"])
-            ),
-            conditions_ir=(
-                None if row_map.get("conditions_ir") is None else str(row_map["conditions_ir"])
-            ),
-            statement=None if row_map.get("statement") is None else str(row_map["statement"]),
-            expression=None if row_map.get("expression") is None else str(row_map["expression"]),
-            sympy_generated=(
-                None if row_map.get("sympy_generated") is None else str(row_map["sympy_generated"])
-            ),
-            sympy_error=(
-                None if row_map.get("sympy_error") is None else str(row_map["sympy_error"])
-            ),
-            name=None if row_map.get("name") is None else str(row_map["name"]),
-            measure=None if row_map.get("measure") is None else str(row_map["measure"]),
-            listener_population=(
-                None
-                if row_map.get("listener_population") is None
-                else str(row_map["listener_population"])
-            ),
-            methodology=(
-                None if row_map.get("methodology") is None else str(row_map["methodology"])
-            ),
-            notes=None if row_map.get("notes") is None else str(row_map["notes"]),
-            description=(
-                None if row_map.get("description") is None else str(row_map["description"])
-            ),
-            auto_summary=(
-                None if row_map.get("auto_summary") is None else str(row_map["auto_summary"])
-            ),
-            body=None if row_map.get("body") is None else str(row_map["body"]),
-            canonical_ast=(
-                None if row_map.get("canonical_ast") is None else str(row_map["canonical_ast"])
-            ),
-            variables_json=(
-                None if row_map.get("variables_json") is None else str(row_map["variables_json"])
-            ),
-            algorithm_stage=coerce_algorithm_stage(row_map.get("algorithm_stage")),
-            source=source,
-            provenance=provenance,
-            value_si=None if row_map.get("value_si") is None else float(row_map["value_si"]),
-            lower_bound_si=(
-                None if row_map.get("lower_bound_si") is None else float(row_map["lower_bound_si"])
-            ),
-            upper_bound_si=(
-                None if row_map.get("upper_bound_si") is None else float(row_map["upper_bound_si"])
-            ),
-            context_id=(
-                None if row_map.get("context_id") is None else to_context_id(row_map["context_id"])
-            ),
-            attributes=attributes,
-        )
+        return replace(base, source=source)
 
     @property
     def primary_logical_id(self) -> str | None:
@@ -492,16 +309,12 @@ class ClaimRow:
         return self.concept_ids_for_role(ClaimConceptLinkRole.TARGET)
 
     def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
-            "id": self.claim_id,
-            "artifact_id": self.artifact_id,
+        data = {
+            key: value
+            for key, value in CLAIM_ROW_GENERIC_MODEL.to_mapping(self).items()
+            if value is not None or key in {"logical_id", "logical_ids"}
         }
-        logical_ids_payload = [logical_id.to_payload() for logical_id in self.logical_ids]
-        logical_ids_json = json.dumps(logical_ids_payload) if logical_ids_payload else None
         source_dict = None if self.source is None or self.source.is_empty else self.source.to_dict()
-        provenance_json = None if self.provenance is None else self.provenance.to_json()
-        provenance_page = None if self.provenance is None else self.provenance.page
-        source_paper = None if self.provenance is None else self.provenance.paper
         source_quality = (
             None
             if self.source is None or self.source.trust is None
@@ -518,39 +331,7 @@ class ClaimRow:
             else json.dumps(list(self.source.trust.derived_from))
         )
         optional_fields = {
-            "primary_logical_id": self.primary_logical_id,
-            "version_id": self.version_id,
-            "seq": self.seq,
-            "type": self.claim_type,
-            "target_concept": self.target_concept,
-            "value": self.value,
-            "lower_bound": self.lower_bound,
-            "upper_bound": self.upper_bound,
-            "uncertainty": self.uncertainty,
-            "uncertainty_type": self.uncertainty_type,
-            "sample_size": self.sample_size,
-            "unit": self.unit,
-            "conditions_cel": self.conditions_cel,
-            "conditions_ir": self.conditions_ir,
-            "statement": self.statement,
-            "expression": self.expression,
-            "sympy_generated": self.sympy_generated,
-            "sympy_error": self.sympy_error,
-            "name": self.name,
-            "measure": self.measure,
-            "listener_population": self.listener_population,
-            "methodology": self.methodology,
-            "notes": self.notes,
-            "description": self.description,
-            "auto_summary": self.auto_summary,
-            "body": self.body,
-            "canonical_ast": self.canonical_ast,
-            "variables_json": self.variables_json,
-            "algorithm_stage": (
-                None if self.algorithm_stage is None else str(self.algorithm_stage)
-            ),
             "source_slug": None if self.source is None else self.source.slug,
-            "source_paper": source_paper,
             "source_id": None if self.source is None else self.source.source_id,
             "source_kind": (
                 None
@@ -586,18 +367,10 @@ class ClaimRow:
                 None if source_quality is None else json.dumps(source_quality)
             ),
             "source_derived_from_json": source_derived_from,
-            "provenance_page": provenance_page,
-            "provenance_json": provenance_json,
-            "value_si": self.value_si,
-            "lower_bound_si": self.lower_bound_si,
-            "upper_bound_si": self.upper_bound_si,
-            "context_id": self.context_id,
         }
         for key, value in optional_fields.items():
             if value is not None:
                 data[key] = value
-        data["logical_id"] = self.primary_logical_id
-        data["logical_ids"] = logical_ids_payload
         if self.concept_links:
             data["concept_links"] = [
                 {
@@ -621,6 +394,7 @@ ClaimRowInput = ClaimRow | Mapping[str, Any]
 from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_CONCEPT_LINK_ROW_MODEL,
     CLAIM_CONCEPT_LINKS_PATH,
+    CLAIM_ROW_GENERIC_MODEL,
 )
 
 
