@@ -10,7 +10,7 @@ from propstore.cli import cli
 from propstore.families.documents.sources import SourceClaimsDocument
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
-from propstore.source import normalize_source_claims_payload, source_branch_name
+from propstore.source import normalize_source_claims_payload
 from propstore.source.common import load_source_document
 from tests.builders import (
     SourceClaimSpec,
@@ -157,10 +157,11 @@ def _save_claims_directly(
     claims_payload: dict,
 ) -> dict[str, str]:
     source_doc = load_source_document(repo, source_name)
+    branch = repo.families.source_claims.address(SourceRef(source_name)).branch
     raw_claims = convert_document_value(
         claims_payload,
         SourceClaimsDocument,
-        source=f"{source_branch_name(source_name)}:claims.yaml",
+        source=f"{branch}:claims.yaml",
     )
     normalized_claims, _ = normalize_source_claims_payload(
         raw_claims,
@@ -171,7 +172,7 @@ def _save_claims_directly(
         SourceRef(source_name),
         normalized_claims,
         message=f"Write drifted claims for {source_name}",
-        branch=source_branch_name(source_name),
+        branch=branch,
     )
     return {
         claim.source_local_id: claim.artifact_id
