@@ -152,7 +152,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-contexts tests/test_contexts.py tests/test_context_lifting_ws5.py tests/test_build_sidecar.py tests/test_world_query.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric row_factory_targets --metric row_class_from_mapping_loc --metric row_class_to_dict_loc
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric row_factory_targets --metric row_class_from_mapping_loc --metric row_class_to_dict_loc
 ```
 
 Required result:
@@ -216,7 +216,7 @@ Gate per sub-slice:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-claims tests/test_claim_roundtrip_fixtures.py tests/test_claim_views.py tests/test_build_sidecar.py tests/test_world_query.py tests/test_source_claims.py tests/test_relate_opinions.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric row_class_from_mapping_loc --metric row_class_to_dict_loc --metric child_row_assembly_loops --metric projection_table_column_count --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric row_class_from_mapping_loc --metric row_class_to_dict_loc --metric child_row_assembly_loops --metric projection_table_column_count --metric raw_sql_score
 ```
 
 Each new declaration/query API introduced for a claim sub-slice must be
@@ -257,7 +257,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-relations tests/test_sidecar_relation_edge_projection.py tests/test_relate_opinions.py tests/test_graph_build.py tests/test_world_query.py tests/test_praf.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric row_class_from_mapping_loc --metric row_class_to_dict_loc --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric row_class_from_mapping_loc --metric row_class_to_dict_loc --metric raw_sql_score
 ```
 
 ## Phase 4: Concepts And Parameterization Vertical
@@ -282,7 +282,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-concepts tests/test_sidecar_concept_projection.py tests/test_concept_views.py tests/test_build_sidecar.py tests/test_graph_build.py tests/test_world_query.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric raw_sql_score --metric attributes_bucket_classes
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric raw_sql_score --metric attributes_bucket_classes
 ```
 
 ## Phase 5: Forms Vertical
@@ -306,7 +306,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-forms tests/test_form_algebra.py tests/test_build_sidecar.py tests/test_world_query.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric raw_sql_score
 ```
 
 ## Phase 6: Identity And Shared Document Surfaces
@@ -330,7 +330,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-identity-documents tests/test_claim_type_contracts.py tests/test_claim_and_stance_document_enums.py tests/test_micropublications_phase4.py tests/test_build_sidecar.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric nested_document_from_mapping_methods --metric row_class_from_mapping_loc --metric row_class_to_dict_loc
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric nested_document_from_mapping_methods --metric row_class_from_mapping_loc --metric row_class_to_dict_loc
 ```
 
 ## Phase 7: Diagnostics And Quarantine Vertical
@@ -354,7 +354,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-diagnostics tests/test_build_sidecar.py tests/test_cli_source_status.py tests/test_render_policy_filtering.py tests/remediation/phase_2_gates
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric raw_sql_score
 ```
 
 ## Phase 8: Micropublications Vertical
@@ -378,7 +378,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-micropublications tests/test_build_sidecar.py tests/test_micropublications_phase4.py tests/test_micropub_identity_dedupe_shape.py tests/test_world_query.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric raw_sql_score
 ```
 
 ## Phase 9: Grounded Rules Vertical
@@ -402,7 +402,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-grounded-rules tests/test_sidecar_grounded_facts.py tests/test_argumentation_integration.py tests/test_build_sidecar.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric raw_sql_score
 ```
 
 ## Phase 10: Sources Vertical
@@ -426,7 +426,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-sources tests/test_build_sidecar.py tests/test_source_cli.py tests/test_source_trust.py tests/test_world_query.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric raw_sql_score
 ```
 
 ## Phase 11: Family Registry, Projection Catalog, And Addresses
@@ -449,7 +449,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-registry tests/test_init.py tests/test_build_sidecar.py tests/test_import_repo.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric quire_projection_mapping_imports --metric projection_table_column_count
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric quire_projection_mapping_imports --metric projection_table_column_count
 ```
 
 ## Phase 12: Calibration Vertical
@@ -472,7 +472,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-calibration tests/test_calibrate.py tests/test_source_trust.py tests/test_build_sidecar.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric raw_sql_score
 ```
 
 ## Phase 13: Embeddings And Vector Vertical
@@ -498,7 +498,7 @@ Gate:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-embeddings tests/test_embed_operational_error.py tests/test_build_sidecar.py tests/test_claim_views.py tests/test_concept_views.py
-uv run scripts/typed_metadata_inventory.py --diff workstreams/typed-metadata-cleanup-baseline-2026-05-15.json --metric projection_table_column_count --metric raw_sql_score
+uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric projection_table_column_count --metric raw_sql_score
 ```
 
 ## Phase 14: World/App Consequence Sweep
