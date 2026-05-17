@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from propstore.source.promote import sync_source_branch
+from propstore.repository import export_branch_tree
 from quire.git_store import TreeFile
 
 
@@ -37,7 +37,7 @@ class _Repository:
         "./safe/../../escape.txt",
     ],
 )
-def test_sync_source_branch_rejects_paths_that_escape_output_dir(
+def test_export_branch_tree_rejects_paths_that_escape_output_dir(
     tmp_path: Path,
     evil_path: str,
 ) -> None:
@@ -45,7 +45,7 @@ def test_sync_source_branch_rejects_paths_that_escape_output_dir(
     output_dir = tmp_path / "out"
 
     with pytest.raises(ValueError, match="path escapes output_dir"):
-        sync_source_branch(repo, "paper-one", output_dir=output_dir)  # type: ignore[arg-type]
+        export_branch_tree(repo, "source/paper-one", output_dir)  # type: ignore[arg-type]
 
     assert not (tmp_path / "escape.txt").exists()
     assert not (tmp_path / "windows-escape.txt").exists()
