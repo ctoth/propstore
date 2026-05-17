@@ -83,11 +83,15 @@ def _require_claim_type(value: object) -> ClaimType:
 
 
 from propstore.families.claims.projection_model import (  # noqa: E402
+    CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL,
     CLAIM_ALGORITHM_PAYLOAD_TABLE,
     CLAIM_CONCEPT_LINK_TABLE,
+    CLAIM_CORE_STORAGE_MODEL,
     CLAIM_CORE_TABLE,
+    CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL,
     CLAIM_NUMERIC_PAYLOAD_TABLE,
     CLAIM_ROW_MODEL,
+    CLAIM_TEXT_PAYLOAD_STORAGE_MODEL,
     CLAIM_TEXT_PAYLOAD_TABLE,
     JUSTIFICATION_TABLE,
     claim_row_query_plan,
@@ -522,69 +526,15 @@ def compile_claim_sidecar_rows(
             )
             if file_stage is not None:
                 row["stage"] = file_stage
-            claim_core_rows.append(
-                CLAIM_CORE_TABLE.row(
-                    id=row["id"],
-                    primary_logical_id=row["primary_logical_id"],
-                    logical_ids_json=row["logical_ids_json"],
-                    version_id=row["version_id"],
-                    content_hash=row.get("content_hash") or "",
-                    seq=row["seq"],
-                    type=row["type"],
-                    target_concept=row["target_concept"],
-                    source_slug=row["source_slug"],
-                    source_paper=row["source_paper"],
-                    provenance_page=row["provenance_page"],
-                    provenance_json=row["provenance_json"],
-                    context_id=row["context_id"],
-                    premise_kind=row.get("premise_kind") or "ordinary",
-                    branch=row.get("branch"),
-                    build_status=row.get("build_status") or "ingested",
-                    stage=row.get("stage"),
-                    promotion_status=row.get("promotion_status"),
-                )
-            )
+            claim_core_rows.append(CLAIM_CORE_TABLE.row(**CLAIM_CORE_STORAGE_MODEL.to_row(row)))
             numeric_payload_rows.append(
-                CLAIM_NUMERIC_PAYLOAD_TABLE.row(
-                    claim_id=row["id"],
-                    value=row["value"],
-                    lower_bound=row["lower_bound"],
-                    upper_bound=row["upper_bound"],
-                    uncertainty=row["uncertainty"],
-                    uncertainty_type=row["uncertainty_type"],
-                    sample_size=row["sample_size"],
-                    unit=row["unit"],
-                    value_si=row["value_si"],
-                    lower_bound_si=row["lower_bound_si"],
-                    upper_bound_si=row["upper_bound_si"],
-                )
+                CLAIM_NUMERIC_PAYLOAD_TABLE.row(**CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL.to_row(row))
             )
             text_payload_rows.append(
-                CLAIM_TEXT_PAYLOAD_TABLE.row(
-                    claim_id=row["id"],
-                    conditions_cel=row["conditions_cel"],
-                    conditions_ir=row["conditions_ir"],
-                    statement=row["statement"],
-                    expression=row["expression"],
-                    sympy_generated=row["sympy_generated"],
-                    sympy_error=row["sympy_error"],
-                    name=row["name"],
-                    measure=row["measure"],
-                    listener_population=row["listener_population"],
-                    methodology=row["methodology"],
-                    notes=row["notes"],
-                    description=row["description"],
-                    auto_summary=row["auto_summary"],
-                )
+                CLAIM_TEXT_PAYLOAD_TABLE.row(**CLAIM_TEXT_PAYLOAD_STORAGE_MODEL.to_row(row))
             )
             algorithm_payload_rows.append(
-                CLAIM_ALGORITHM_PAYLOAD_TABLE.row(
-                    claim_id=row["id"],
-                    body=row["body"],
-                    canonical_ast=row["canonical_ast"],
-                    variables_json=row["variables_json"],
-                    algorithm_stage=row["algorithm_stage"],
-                )
+                CLAIM_ALGORITHM_PAYLOAD_TABLE.row(**CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL.to_row(row))
             )
             for values in prepare_claim_concept_link_rows(semantic_claim):
                 claim_link_rows.append(
