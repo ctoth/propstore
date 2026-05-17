@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from eq_equiv import equation_signature
+
+from propstore.conflict_detector.equation_inputs import bound_equation_from_conflict_claim
 from propstore.conflict_detector.models import ConflictClaim, ConflictClaimVariable
-from propstore.equation_comparison import equation_signature
 
 
 def test_equation_signature_ignores_author_dependent_role_choice() -> None:
@@ -26,4 +28,8 @@ def test_equation_signature_ignores_author_dependent_role_choice() -> None:
         ),
     )
 
-    assert equation_signature(first) == equation_signature(second)
+    assert equation_signature(
+        bound_equation_from_conflict_claim(first)
+    ) == equation_signature(
+        bound_equation_from_conflict_claim(second)
+    )
