@@ -30,7 +30,7 @@ from .concepts import (
     validate_form_name,
 )
 from .finalize import finalize_source_branch
-from .promote import load_finalize_report, promote_source_branch, sync_source_branch
+from .promote import load_finalize_report, promote_source_branch
 from .registry import (
     load_primary_branch_concept_docs,
     load_primary_branch_concepts,
@@ -88,7 +88,6 @@ __all__ = [
     "source_paper_slug",
     "SourceStatusState",
     "source_tag_uri",
-    "sync_source_branch",
     "validate_form_name",
     "inspect_source_status",
 ]
