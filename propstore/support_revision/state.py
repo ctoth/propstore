@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any, TypeGuard
 
-from quire.hashing import canonical_json_bytes
+from quire import canonical_json_bytes
 
 from propstore.cel_types import to_cel_expr
 from propstore.core.active_claims import ActiveClaim, coerce_active_claim

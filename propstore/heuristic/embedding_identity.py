@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from quire.hashing import canonical_json_sha256
+from quire import canonical_json_sha256
 
 
 @dataclass(frozen=True)

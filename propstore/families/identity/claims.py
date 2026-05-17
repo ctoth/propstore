@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-from quire.hashing import canonical_json_sha256
+from quire import canonical_json_sha256
 
 from propstore.families.identity import logical_ids
 

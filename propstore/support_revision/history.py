@@ -6,7 +6,7 @@ from dataclasses import dataclass, field, replace
 from enum import Enum
 from typing import Any
 
-from quire.hashing import canonical_json_bytes
+from quire import canonical_json_bytes
 from propstore.support_revision.explanation_types import (
     RevisionAtomDetail,
     coerce_revision_atom_detail,

@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from quire.hashing import canonical_json_bytes
+from quire import canonical_json_bytes
 
 
 _TRACE_VERSION = "propstore.semantic_trace.v1"

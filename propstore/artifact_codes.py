@@ -6,7 +6,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from typing import Any, Protocol
 
-from quire.hashing import canonical_json_sha256
+from quire import canonical_json_sha256
 from quire.documents import convert_document_value
 
 from propstore.families.claims.documents import ClaimDocument

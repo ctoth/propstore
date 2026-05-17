@@ -16,7 +16,7 @@ from typing import Any
 
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.uri import compute_ni_uri
-from quire.hashing import canonical_json_sha256
+from quire import canonical_json_sha256
 
 MICROPUB_IDENTITY_EXCLUDED_FIELDS = ("artifact_id", "version_id")
 MICROPUB_SORTED_STRING_LIST_FIELDS = ("claims", "assumptions")

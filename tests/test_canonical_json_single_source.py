@@ -7,7 +7,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 import pytest
 
-from quire.hashing import canonical_json_bytes
+from quire import canonical_json_bytes
 
 
 @pytest.mark.property

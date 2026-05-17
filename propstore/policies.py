@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from quire.hashing import canonical_json_bytes
+from quire import canonical_json_bytes
 
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
