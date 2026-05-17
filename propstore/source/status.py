@@ -18,7 +18,7 @@ from propstore.families.claims.declaration import (
     has_claim_core_table,
     select_source_promotion_claim_rows,
 )
-from propstore.source.common import source_branch_name
+from propstore.families.registry import SOURCE_BRANCH, SourceRef
 
 
 class SourceStatusState(str, Enum):
@@ -52,7 +52,7 @@ def _escape_sql_like(value: str) -> str:
 
 
 def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatusReport:
-    branch = source_branch_name(name)
+    branch = SOURCE_BRANCH.branch_name(handle, SourceRef(name))
 
     conn = handle.open_readonly()
     try:
