@@ -7,9 +7,11 @@ from collections.abc import Mapping, Sequence
 from dataclasses import replace
 from typing import Any
 
-from propstore.claims import ClaimFileEntry, claim_file_claims, claim_file_source_paper
-from propstore.equation_comparison import equation_signature
+from eq_equiv import equation_signature
 
+from propstore.claims import ClaimFileEntry, claim_file_claims, claim_file_source_paper
+
+from .equation_inputs import bound_equation_from_conflict_claim
 from .models import ConflictClaim
 
 
@@ -70,7 +72,7 @@ def _collect_equation_claims(
     for claim in claims:
         if claim.claim_type != "equation":
             continue
-        signature = equation_signature(claim)
+        signature = equation_signature(bound_equation_from_conflict_claim(claim))
         if signature is None:
             continue
         by_signature[signature].append(claim)
