@@ -85,8 +85,6 @@ def _require_claim_type(value: object) -> ClaimType:
 from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_ALGORITHM_PAYLOAD_TABLE,
     CLAIM_CONCEPT_LINK_TABLE,
-    CLAIM_CONCEPT_LINK_ROW_MODEL,
-    CLAIM_CONCEPT_LINKS_PATH,
     CLAIM_CORE_TABLE,
     CLAIM_NUMERIC_PAYLOAD_TABLE,
     CLAIM_ROW_MODEL,
@@ -101,24 +99,14 @@ def select_claim_rows(
     where_sql: str = "",
     params: tuple[Any, ...] = (),
 ) -> list[ActiveClaim]:
-    rows = conn.execute(
-        CLAIM_ROW_QUERY_PLAN.select_sql(where_sql),
-        params,
-    ).fetchall()
-    row_dicts = [dict(row) for row in rows]
-    if not row_dicts:
-        return []
-    claim_ids = [
-        str(row_dict["id"])
-        for row_dict in row_dicts
-        if isinstance(row_dict.get("id"), str)
-    ]
-    link_rows = select_claim_concept_link_rows(conn, claim_ids)
-    attached_rows = CLAIM_ROW_MODEL.attach_child_rows(
-        row_dicts,
-        {"claim_concept_link": link_rows},
+    return list(
+        CLAIM_ROW_MODEL.select_with_attached_rows(
+            conn,
+            CLAIM_ROW_QUERY_PLAN,
+            where_sql,
+            params,
+        )
     )
-    return [CLAIM_ROW_MODEL.from_row(row_dict) for row_dict in attached_rows]
 
 
 def select_claim_rows_linked_to_concept(
@@ -180,25 +168,6 @@ def _claim_concept_link_where_sql(
         ") "
     )
     return where_sql, tuple(params)
-
-
-def select_claim_concept_link_rows(
-    conn: sqlite3.Connection,
-    claim_ids: Sequence[str],
-) -> tuple[dict[str, Any], ...]:
-    if not claim_ids:
-        return ()
-    placeholders = ",".join("?" for _ in claim_ids)
-    rows = conn.execute(
-        f"""
-        SELECT claim_id, concept_id, role, ordinal, binding_name
-        FROM claim_concept_link
-        WHERE claim_id IN ({placeholders})
-        ORDER BY claim_id, ordinal, concept_id
-        """,
-        tuple(claim_ids),
-    ).fetchall()
-    return tuple(dict(row) for row in rows)
 
 
 def build_claim_logical_id_index(conn: sqlite3.Connection) -> dict[str, str]:

@@ -20,7 +20,12 @@ def _parse_string_tuple(value: object) -> tuple[str, ...]:
         except json.JSONDecodeError:
             return (value,)
     if isinstance(loaded, (list, tuple, set)):
-        return tuple(str(item) for item in loaded)
+        values: list[str] = []
+        for item in loaded:
+            if isinstance(item, Mapping):
+                item = item.get("claim_id") or item.get("id")
+            values.append(str(item))
+        return tuple(values)
     return (str(loaded),)
 
 
@@ -39,7 +44,7 @@ class ActiveMicropublication:
         if not self.claim_ids:
             raise ValueError("micropublication claim_ids must not be empty")
         object.__setattr__(self, "context_id", to_context_id(self.context_id))
-        object.__setattr__(self, "claim_ids", tuple(str(claim_id) for claim_id in self.claim_ids))
+        object.__setattr__(self, "claim_ids", _parse_string_tuple(self.claim_ids))
         object.__setattr__(self, "assumptions", tuple(str(item) for item in self.assumptions))
 
     @classmethod

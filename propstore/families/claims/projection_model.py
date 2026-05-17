@@ -298,14 +298,6 @@ CLAIM_CONCEPT_LINK_ITEM_FIELDS = (
 )
 
 
-CLAIM_CONCEPT_LINK_ROW_MODEL: ProjectionModel[SimpleNamespace] = ProjectionModel(
-    name="claim_concept_link_row",
-    table="claim_concept_link",
-    result_type=SimpleNamespace,
-    fields=(CLAIM_CONCEPT_LINK_CLAIM_ID_PATH,) + CLAIM_CONCEPT_LINK_ITEM_FIELDS,
-)
-
-
 CLAIM_CONCEPT_LINKS_PATH = ProjectionAttachedRows(
     path=("concept_links",),
     table="claim_concept_link",

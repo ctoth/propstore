@@ -7,6 +7,14 @@ import sqlite3
 from collections.abc import Iterable
 from dataclasses import dataclass
 
+from quire.projection_mapping import (
+    JsonPath,
+    ProjectionAttachedRows,
+    ProjectionModel,
+    ProjectionQueryPlan,
+    ProjectionSelectedColumn,
+    ScalarPath,
+)
 from quire.projections import (
     ARTIFACT_ID_FIELD,
     PROVENANCE_JSON_FIELD,
@@ -56,6 +64,45 @@ MICROPUBLICATION_CLAIM_PROJECTION = ProjectionTable(
     ),
     indexes=(ProjectionIndex("idx_micropub_claim", ("claim_id",)),),
     if_not_exists=True,
+)
+
+
+MICROPUBLICATION_ROW_MODEL: ProjectionModel[ActiveMicropublication] = ProjectionModel(
+    name="micropublication_row",
+    table="micropublication",
+    result_type=ActiveMicropublication,
+    fields=(
+        ScalarPath(("artifact_id",), "id", nullable=False, missing="raise"),
+        ScalarPath(("context_id",), "context_id", nullable=False, missing="raise"),
+        JsonPath(("assumptions",), "assumptions_json", nullable=False, default=()),
+        ScalarPath(("stance",), "stance"),
+        ScalarPath(("source",), "source_slug"),
+        ProjectionAttachedRows(
+            path=("claim_ids",),
+            table="micropublication_claim",
+            parent_fk="micropublication_id",
+            parent_path=("artifact_id",),
+            order_by=("seq", "claim_id"),
+            fields=(
+                ScalarPath(("claim_id",), "claim_id", nullable=False, missing="raise"),
+                ScalarPath(("seq",), "seq", nullable=False, missing="raise"),
+            ),
+        ),
+    ),
+)
+
+
+MICROPUBLICATION_ROW_QUERY_PLAN = ProjectionQueryPlan(
+    name="micropublication_rows",
+    base_table=MICROPUBLICATION_PROJECTION,
+    base_alias="mp",
+    selections=(
+        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("id")),
+        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("context_id")),
+        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("assumptions_json")),
+        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("stance")),
+        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("source_slug")),
+    ),
 )
 
 
@@ -221,34 +268,10 @@ def populate_micropublications(
 def select_all_micropublications(
     conn: sqlite3.Connection,
 ) -> list[ActiveMicropublication]:
-    rows = conn.execute(
-        """
-        SELECT
-            mp.id AS artifact_id,
-            mp.context_id,
-            mp.assumptions_json,
-            mp.stance,
-            mp.source_slug,
-            (
-                SELECT json_group_array(mc.claim_id)
-                FROM micropublication_claim mc
-                WHERE mc.micropublication_id = mp.id
-                ORDER BY mc.seq
-            ) AS claim_ids
-        FROM micropublication mp
-        ORDER BY mp.id
-        """
-    ).fetchall()
-    return [
-        ActiveMicropublication.from_mapping(
-            {
-                "artifact_id": row["artifact_id"],
-                "context_id": row["context_id"],
-                "claim_ids": row["claim_ids"],
-                "assumptions": row["assumptions_json"],
-                "stance": row["stance"],
-                "source": row["source_slug"],
-            }
+    return list(
+        MICROPUBLICATION_ROW_MODEL.select_with_attached_rows(
+            conn,
+            MICROPUBLICATION_ROW_QUERY_PLAN,
+            'ORDER BY "mp"."id"',
         )
-        for row in rows
-    ]
+    )
