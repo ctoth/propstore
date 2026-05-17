@@ -7,8 +7,9 @@ from pathlib import Path
 
 from propstore.families.registry import SourceRef
 from propstore.provenance import ProvenanceStatus
-from propstore.repository import Repository
+from propstore.repository import Repository, export_branch_tree
 from propstore.source import SourceStatusState
+from propstore.source.common import source_paper_slug
 
 
 class SourceAppError(Exception):
@@ -269,14 +270,11 @@ def inspect_source(repo: Repository, request: SourceNamedRequest):
 
 
 def sync_source(repo: Repository, request: SourceSyncRequest) -> SourceSyncReport:
-    from propstore.source import sync_source_branch
-
-    destination = sync_source_branch(
-        repo,
-        request.name,
-        output_dir=request.output_dir,
-    )
     branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    destination = request.output_dir
+    if destination is None:
+        destination = repo.root.parent / "papers" / source_paper_slug(request.name)
+    export_branch_tree(repo, branch, destination)
     return SourceSyncReport(branch=branch, destination=destination)
 
 
