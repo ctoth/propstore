@@ -6,15 +6,17 @@ import logging
 from collections.abc import Sequence
 from typing import TYPE_CHECKING
 
-from propstore.condition_classifier import classify_conditions as _classify_conditions
-from propstore.equation_comparison import (
+from eq_equiv import (
     EquationComparisonStatus,
     EquationFailure,
-    compare_equation_claims,
+    compare_equations,
 )
+
+from propstore.condition_classifier import classify_conditions as _classify_conditions
 
 from .collectors import _collect_equation_claims
 from .context import _append_context_classified_record, _claim_context
+from .equation_inputs import bound_equation_from_conflict_claim
 from .models import ConflictClaim, ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
@@ -44,7 +46,10 @@ def detect_equation_conflicts(
             for j in range(i + 1, len(claims)):
                 claim_a = claims[i]
                 claim_b = claims[j]
-                comparison = compare_equation_claims(claim_a, claim_b)
+                comparison = compare_equations(
+                    bound_equation_from_conflict_claim(claim_a),
+                    bound_equation_from_conflict_claim(claim_b),
+                )
                 if isinstance(comparison.left, EquationFailure):
                     _log_equation_failure(claim_a, comparison.left)
                     continue
