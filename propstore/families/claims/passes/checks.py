@@ -755,7 +755,7 @@ def _validate_equation_sympy_generation(
     filename: str,
     diagnostics: list[PassDiagnostic],
 ) -> None:
-    from propstore.sympy_generator import generate_sympy_rhs_with_error
+    from eq_equiv import generate_sympy_rhs_with_error
 
     expression = claim.get("expression")
     sympy_field = claim.get("sympy")
