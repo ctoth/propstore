@@ -51,6 +51,8 @@ def _json_or_none(value: object) -> str | None:
 def _json_mapping(value: object) -> dict[str, str]:
     if value is None:
         return {}
+    if isinstance(value, Mapping):
+        return {str(key): str(item) for key, item in value.items()}
     if not isinstance(value, str):
         raise TypeError(f"expected JSON text, got {type(value).__name__}")
     decoded = json.loads(value)
@@ -62,6 +64,8 @@ def _json_mapping(value: object) -> dict[str, str]:
 def _json_string_tuple(value: object) -> tuple[str, ...]:
     if value is None:
         return ()
+    if isinstance(value, Sequence) and not isinstance(value, str):
+        return tuple(str(item) for item in value)
     if not isinstance(value, str):
         raise TypeError(f"expected JSON text, got {type(value).__name__}")
     decoded = json.loads(value)
@@ -87,7 +91,9 @@ PROVENANCE_CODEC = ProjectionCodec(
     "context_lifting_provenance",
     "TEXT",
     encoder=_json_or_none,
-    decoder=lambda value: {} if value is None else json.loads(str(value)),
+    decoder=lambda value: dict(value)
+    if isinstance(value, Mapping)
+    else ({} if value is None else json.loads(str(value))),
 )
 AUTOINCREMENT_CODEC = ProjectionCodec("autoincrement", "INTEGER PRIMARY KEY AUTOINCREMENT")
 
