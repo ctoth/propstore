@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 import bridgman
+from eq_equiv import (
+    EquationComparisonStatus,
+    compare_equations,
+)
 
+from propstore.conflict_detector.equation_inputs import bound_equation_from_conflict_claim
 from propstore.conflict_detector.models import ConflictClaim, ConflictClaimVariable
 from propstore.dimensional_invariants import (
     check_dimensionless_product,
     count_dimensionless_groups,
-)
-from propstore.equation_comparison import (
-    EquationComparisonStatus,
-    compare_equation_claims,
 )
 
 
@@ -81,7 +82,10 @@ def test_pi_diagnostics_do_not_make_equations_equivalent() -> None:
     left = _equation_claim("Re = rho*v*L/mu")
     right = _equation_claim("Re = rho*v + L/mu")
 
-    comparison = compare_equation_claims(left, right)
+    comparison = compare_equations(
+        bound_equation_from_conflict_claim(left),
+        bound_equation_from_conflict_claim(right),
+    )
 
     assert comparison.status is not EquationComparisonStatus.EQUIVALENT
 
