@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.core.environment import Environment
-from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.families.relations.declaration import RelationshipRow, StanceRow
 from propstore.families.relations.projection_model import RELATIONSHIP_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import ConceptRow, ParameterizationRow
@@ -24,7 +24,7 @@ if TYPE_CHECKING:
 
 def _coerce_claim_like(claim_input):
     row_input = getattr(claim_input, "row", claim_input)
-    return CLAIM_ROW_GENERIC_MODEL.coerce(row_input)
+    return CLAIM_ROW_MODEL.coerce(row_input)
 
 
 def _claim_concept_id(claim_input) -> Any:
