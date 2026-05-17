@@ -2,14 +2,14 @@ from __future__ import annotations
 
 from propstore.repository import Repository
 from quire.derived_runtime import connect_sqlite_store
-from propstore.source.common import source_branch_name
+from propstore.families.registry import SOURCE_BRANCH, SourceRef
 from propstore.source.status import inspect_source_status
 from tests.family_helpers import materialized_world_store
 
 
 def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     repo = Repository.init(tmp_path / "knowledge")
-    target_branch = source_branch_name("foo_bar")
+    target_branch = SOURCE_BRANCH.branch_name(repo, SourceRef("foo_bar"))
     alien_branch = target_branch.replace("_", "x")
     assert alien_branch != target_branch
 
