@@ -35,7 +35,7 @@ from propstore.core.graph_types import (
     ProvenanceRecord,
     RelationEdge,
 )
-from propstore.families.claims.declaration import ClaimRow, coerce_claim_row
+from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL, ClaimRow
 from propstore.families.relations.declaration import (
     ConflictRow,
     RelationshipRow,
@@ -144,7 +144,7 @@ def _claim_attributes(row: ClaimRow) -> tuple[tuple[str, Any], ...]:
 
 
 def _display_claim_id_from_row(row_input) -> str:
-    row = coerce_claim_row(row_input)
+    row = CLAIM_ROW_GENERIC_MODEL.coerce(row_input)
     logical_value = row.primary_logical_value
     if isinstance(logical_value, str) and logical_value:
         return logical_value
@@ -246,7 +246,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         for row in store.all_concepts()
     ]
     claim_rows = [
-        coerce_claim_row(row)
+        CLAIM_ROW_GENERIC_MODEL.coerce(row)
         for row in store.claims_for(None)
     ]
     relationship_rows = (
