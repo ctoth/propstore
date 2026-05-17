@@ -5,7 +5,7 @@ from pathlib import Path
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.source.common import initial_source_document, source_branch_name
+from propstore.source.common import initial_source_document
 from propstore.families.documents.sources import SourceDocument
 from propstore.storage.snapshot import MaterializeConflictError
 
@@ -13,7 +13,7 @@ from propstore.storage.snapshot import MaterializeConflictError
 def test_snapshot_can_read_typed_document_from_branch(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     source_name = "paper_source"
-    branch = source_branch_name(source_name)
+    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     repo.git.create_branch(branch)
 
     source_doc = initial_source_document(
@@ -37,7 +37,7 @@ def test_snapshot_can_read_typed_document_from_branch(tmp_path: Path) -> None:
 def test_snapshot_lists_directory_entries_with_relpaths(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     source_name = "paper_source"
-    branch = source_branch_name(source_name)
+    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     repo.git.create_branch(branch)
 
     source_doc = initial_source_document(
