@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 from quire.documents import convert_document_value
 
-from propstore.families.claims.declaration import coerce_claim_row
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.registry import ClaimRef
@@ -97,7 +97,7 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
 
 
 def test_p_arg_from_claim_accepts_typed_claim_rows() -> None:
-    claim = coerce_claim_row(
+    claim = CLAIM_ROW_MODEL.coerce(
         {
             "id": "claim-1",
             "artifact_id": "claim-1",
@@ -396,7 +396,7 @@ def test_world_query_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) ->
         wm.close()
 
     assert claim is not None
-    claim_data = coerce_claim_row(claim).to_dict()
+    claim_data = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim)))
     assert "prior_base_rate" not in claim_data["source"].get("trust", {})
     result = p_arg_from_claim(claim_data)
     assert isinstance(result, NoCalibration)
