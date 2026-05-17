@@ -45,6 +45,7 @@ from propstore.families.concepts.stages import (
     parse_concept_record_document,
 )
 from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.contexts.stages import parse_context_record_document
 from propstore.families.documents.micropubs import MicropublicationDocument, MicropublicationsFileDocument
 from propstore.families.documents.justifications import JustificationDocument
@@ -95,7 +96,6 @@ from .common import (
 from .registry import load_primary_branch_concepts
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
-    resolve_source_or_primary_claim_id,
     source_claim_index as build_source_claim_index,
 )
 from .stages import SourcePromotionPlan
@@ -337,10 +337,10 @@ def _promoted_stance_documents(
             raise ValueError("stance source_claim must be normalized before promotion")
         if not reference_resolves_to_promoted_or_primary(source_claim):
             continue
-        target = resolve_source_or_primary_claim_id(
+        target = resolve_first_claim_reference_id(
             stance.target,
-            source=source_claim_index,
-            primary=primary_claim_index,
+            source_claim_index,
+            primary_claim_index,
         )
         if target is None or not reference_resolves_to_promoted_or_primary(target):
             continue
