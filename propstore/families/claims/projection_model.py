@@ -446,7 +446,7 @@ def claim_row_query_plan(
     )
 
 
-CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
+CLAIM_ROW_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
     name="claim_row",
     table="claim_core",
     result_type=ClaimRow,
