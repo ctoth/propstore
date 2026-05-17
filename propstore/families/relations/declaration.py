@@ -160,6 +160,14 @@ StanceRowInput = StanceRow | Mapping[str, Any]
 ConflictRowInput = ConflictRow | Mapping[str, Any]
 
 
+def _optional_numeric(value: object, *, field: str) -> float | None:
+    if value is None:
+        return None
+    if not isinstance(value, str | int | float):
+        raise TypeError(f"{field} must be numeric")
+    return float(value)
+
+
 from propstore.families.relations.projection_model import (  # noqa: E402
     CLAIM_STANCE_DISCRIMINATORS,
     CLAIM_STANCE_QUERY_PLAN,
@@ -281,25 +289,21 @@ def compile_authored_stance_sidecar_rows_with_diagnostics(
             raw_opinion_uncertainty,
             raw_opinion_base_rate,
         ) = opinion_columns
-        for value in (
+        opinion_belief = _optional_numeric(
             raw_opinion_belief,
+            field="resolution opinion belief",
+        )
+        opinion_disbelief = _optional_numeric(
             raw_opinion_disbelief,
+            field="resolution opinion disbelief",
+        )
+        opinion_uncertainty = _optional_numeric(
             raw_opinion_uncertainty,
+            field="resolution opinion uncertainty",
+        )
+        opinion_base_rate = _optional_numeric(
             raw_opinion_base_rate,
-        ):
-            if value is not None and not isinstance(value, str | int | float):
-                raise TypeError("resolution opinion values must be numeric")
-        opinion_belief = (
-            None if raw_opinion_belief is None else float(raw_opinion_belief)
-        )
-        opinion_disbelief = (
-            None if raw_opinion_disbelief is None else float(raw_opinion_disbelief)
-        )
-        opinion_uncertainty = (
-            None if raw_opinion_uncertainty is None else float(raw_opinion_uncertainty)
-        )
-        opinion_base_rate = (
-            None if raw_opinion_base_rate is None else float(raw_opinion_base_rate)
+            field="resolution opinion base rate",
         )
         stance_row = StanceRow(
             claim_id=to_claim_id(source_claim),
