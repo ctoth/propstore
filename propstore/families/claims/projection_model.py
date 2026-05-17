@@ -9,12 +9,14 @@ from typing import Any
 from quire.projection_mapping import (
     CompositePath,
     DerivedPath,
+    ProjectionBinding,
     ProjectionCodec,
     ProjectionModel,
     ReferencePath,
     RepeatedPath,
     ScalarPath,
 )
+from quire.projections import ProjectionColumn
 
 from propstore.core.algorithm_stage import coerce_algorithm_stage
 from propstore.core.claim_types import coerce_claim_type
@@ -215,22 +217,53 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
     result_type=ClaimRow,
     fields=(
         ScalarPath(("claim_id",), "id", codec=CLAIM_ID_CODEC, nullable=False, missing="raise"),
-        ScalarPath(
+        ProjectionBinding(
             ("artifact_id",),
-            "artifact_id",
-            codec=TEXT_CODEC,
-            nullable=False,
+            projection_column_owner=ProjectionColumn(
+                "artifact_id",
+                TEXT_CODEC.sql_type,
+                nullable=False,
+                encoder=TEXT_CODEC.encode,
+                decoder=TEXT_CODEC.decode,
+            ),
+            read_name="id",
             missing="raise",
-            decode_columns=("id",),
         ),
-        ScalarPath(("claim_type",), "type", codec=CLAIM_TYPE_CODEC, decode_columns=("claim_type",)),
+        ProjectionBinding(
+            ("claim_type",),
+            projection_column_owner=ProjectionColumn(
+                "type",
+                CLAIM_TYPE_CODEC.sql_type,
+                encoder=CLAIM_TYPE_CODEC.encode,
+                decoder=CLAIM_TYPE_CODEC.decode,
+            ),
+            read_name="claim_type",
+        ),
         CLAIM_CONCEPT_LINKS_PATH,
         ReferencePath(("target_concept",), "target_concept", family="concept", codec=CONCEPT_ID_CODEC),
         CompositePath(
             path=("logical_ids",),
             fields=(
-                ScalarPath(("primary",), "primary_logical_id", codec=TEXT_CODEC, decode_columns=("logical_id",)),
-                ScalarPath(("payload",), "logical_ids_json", codec=RAW_CODEC, decode_columns=("logical_ids",)),
+                ProjectionBinding(
+                    ("primary",),
+                    projection_column_owner=ProjectionColumn(
+                        "primary_logical_id",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                    read_name="logical_id",
+                ),
+                ProjectionBinding(
+                    ("payload",),
+                    projection_column_owner=ProjectionColumn(
+                        "logical_ids_json",
+                        RAW_CODEC.sql_type,
+                        encoder=RAW_CODEC.encode,
+                        decoder=RAW_CODEC.decode,
+                    ),
+                    read_name="logical_ids",
+                ),
             ),
             encoder=_logical_ids_to_columns,
             decoder=_logical_ids_from_columns,
