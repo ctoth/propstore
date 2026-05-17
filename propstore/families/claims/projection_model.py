@@ -436,7 +436,7 @@ CONFLICT_WITNESS_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionM
     result_type=dict,
     fields=(
         ScalarPath(("id",), "id", codec=AUTOINCREMENT_CODEC, insertable=False),
-        ReferencePath(("concept_id",), "concept_id", family="concept", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
         ScalarPath(("claim_a_id",), "claim_a_id", codec=TEXT_CODEC, nullable=False, missing="raise"),
         ScalarPath(("claim_b_id",), "claim_b_id", codec=TEXT_CODEC, nullable=False, missing="raise"),
         ScalarPath(("warning_class",), "warning_class", codec=TEXT_CODEC, nullable=False, missing="raise"),
