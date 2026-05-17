@@ -7,10 +7,10 @@ be batch-shaped, but promotion must not carry that batch shape into master.
 
 These files are source branch authoring state:
 
-- `claims.yaml` as `SourceClaimsDocument`
-- `justifications.yaml` as `SourceJustificationsDocument`
-- `stances.yaml` as `SourceStancesDocument`
-- `micropubs.yaml` as source composition state
+- `claims.yaml` as a Quire batch of `SourceClaimDocument` items
+- `justifications.yaml` as a Quire batch of `SourceJustificationDocument` items
+- `stances.yaml` as a Quire batch of `SourceStanceEntryDocument` items
+- `micropubs.yaml` as a Quire batch of `MicropublicationDocument` items
 
 They support ingestion, paper review, and source-local validation. They do not
 define canonical artifact identity.
