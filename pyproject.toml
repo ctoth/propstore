@@ -15,6 +15,7 @@ dependencies = [
     "z3-solver>=4.12",
     "graphviz>=0.20",
     "ast-equiv @ git+https://github.com/ctoth/ast-equiv@b7423889daef74154193317099ae9992ecbcd958",
+    "eq-equiv @ git+https://github.com/ctoth/eq-equiv@6f3b85f5a28fb8dcd30c2de4bfdc0c2c7d8f3a64",
     "formal-argumentation @ git+https://github.com/ctoth/argumentation.git@90dcbe29895337d593dfc681f2a60bfe8cb71718",
     "bridgman @ git+https://github.com/ctoth/bridgman@5eb6118bb2e346122aae6f7e3e9cd8581ec6c781",
     "pint>=0.25.3",
@@ -75,7 +76,7 @@ markers = [
 ]
 
 [tool.uv.sources]
-quire = { git = "https://github.com/ctoth/quire", rev = "337428cce3074ffb6c93e229b1bf14a5f946e51e" }
+quire = { git = "https://github.com/ctoth/quire", rev = "1343248a218577cb2f63f338c06a02145dd8bf40" }
 formal-belief-set = { git = "https://github.com/ctoth/belief-set", rev = "2ebe82cab23a3f379d7c8d1b62eac7ccd12977bd" }
 
 [dependency-groups]
