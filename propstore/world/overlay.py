@@ -43,7 +43,7 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL, ClaimConceptLinkRow, ClaimRow, ClaimRowInput
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL, ClaimConceptLinkRow, ClaimRow, ClaimRowInput
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -282,7 +282,7 @@ def _synthetic_row(
             ),
         )
 
-    row = CLAIM_ROW_GENERIC_MODEL.coerce(existing_row)
+    row = CLAIM_ROW_MODEL.coerce(existing_row)
     return replace(
         row,
         claim_id=to_claim_id(synthetic.id),
@@ -322,7 +322,7 @@ class _GraphOverlayStore:
         compiled: CompiledWorldGraph | None,
     ) -> None:
         self._base = base_store
-        self._claims = [CLAIM_ROW_GENERIC_MODEL.coerce(claim) for claim in claims]
+        self._claims = [CLAIM_ROW_MODEL.coerce(claim) for claim in claims]
         self._claims_by_id = {str(claim.claim_id): claim for claim in self._claims}
         self._stances = list(stances)
         self._conflicts = list(conflicts)
@@ -552,7 +552,7 @@ class OverlayWorld(BeliefSpace):
             self._compiled_graph = None
 
         base_claim_rows = [
-            CLAIM_ROW_GENERIC_MODEL.coerce(claim)
+            CLAIM_ROW_MODEL.coerce(claim)
             for claim in base._store.claims_for(None)
         ]
         base_claim_rows_by_id = {
@@ -722,7 +722,7 @@ class OverlayWorld(BeliefSpace):
         for claim_id in self._removed_ids:
             claim = self._base._store.get_claim(claim_id)
             if claim:
-                claim_row = CLAIM_ROW_GENERIC_MODEL.coerce(claim)
+                claim_row = CLAIM_ROW_MODEL.coerce(claim)
                 if claim_row.value_concept_id is not None:
                     affected.add(str(claim_row.value_concept_id))
 
