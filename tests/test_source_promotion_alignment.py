@@ -11,6 +11,7 @@ from propstore.families.registry import (
     CanonicalSourceRef,
     ConceptAlignmentRef,
     ConceptFileRef,
+    SOURCE_BRANCH,
     SourceRef,
 )
 from propstore.cli import cli
@@ -31,7 +32,6 @@ from propstore.source import (
     normalize_source_claims_payload,
     promote_alignment,
     promote_source_branch,
-    source_branch_name,
 )
 from propstore.families.documents.sources import (
     SourceClaimsDocument,
@@ -49,7 +49,7 @@ def _promoted_claims(repo: Repository):
 
 
 def _save_source(repo: Repository, source_name: str, concepts_payload: dict, claims_payload: dict | None = None) -> None:
-    branch = source_branch_name(source_name)
+    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     repo.git.create_branch(branch)
     for concept in concepts_payload.get("concepts", ()):
         if isinstance(concept, dict) and isinstance(concept.get("form"), str):
@@ -158,7 +158,10 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
 
     artifact = align_sources(
         repo,
-        [source_branch_name("paper_a"), source_branch_name("paper_b")],
+        [
+            repo.families.source_documents.address(SourceRef("paper_a")).branch,
+            repo.families.source_documents.address(SourceRef("paper_b")).branch,
+        ],
     )
     slug = artifact.id.split(":", 1)[1]
     stored = repo.families.concept_alignments.require(
@@ -593,6 +596,7 @@ def _setup_source_with_partial_validity(
     )
     assert result.exit_code == 0, result.output
 
+    branch = repo.families.source_stances.address(SourceRef(source_name)).branch
     repo.families.source_stances.save(
         SourceRef(source_name),
         convert_document_value(
@@ -607,10 +611,10 @@ def _setup_source_with_partial_validity(
                 ],
             },
             SourceStancesDocument,
-            source=f"{source_branch_name(source_name)}:stances.yaml",
+            source=f"{branch}:stances.yaml",
         ),
         message=f"Write legacy invalid stance for {source_name}",
-        branch=source_branch_name(source_name),
+        branch=branch,
     )
 
     return repo
@@ -693,13 +697,11 @@ def test_promote_source_branch_re_promote_after_fix(tmp_path: Path) -> None:
     }
     assert "Claim whose stance targets a missing ref." in initial_statements
 
-    from propstore.source.common import source_branch_name as _branch_name
-
     repo.families.source_stances.save(
         SourceRef(source_name),
         SourceStancesDocument(stances=()),
         message=f"Remove broken stance from {source_name}",
-        branch=_branch_name(source_name),
+        branch=repo.families.source_stances.address(SourceRef(source_name)).branch,
     )
 
     # Re-finalize: now status should be ready.
@@ -736,14 +738,11 @@ def test_source_paper_slug_matches_source_branch_stem_for_unicode_name(
     ``knowledge/claims/<stem>.yaml`` share one logical id.
     """
 
-    from propstore.source.common import (
-        source_branch_name,
-        source_paper_slug,
-    )
+    from propstore.source.common import source_paper_slug
 
     unicode_name = "McNeil_2018_EffectAspirinAll‐CauseMortality"  # U+2010
 
-    branch = source_branch_name(unicode_name)
+    branch = SOURCE_BRANCH.branch_name(object(), SourceRef(unicode_name))
     assert branch.startswith("source/"), branch
     branch_stem = branch[len("source/"):]
 
@@ -765,8 +764,6 @@ def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
     source branch. This test verifies the master claim filename
     equals ``<branch_stem>.yaml``.
     """
-
-    from propstore.source.common import source_branch_name
 
     unicode_name = "UnicodeHyphen‐2026_paper"
     repo = Repository.init(tmp_path / "knowledge")
@@ -803,7 +800,7 @@ def test_promote_source_branch_unicode_name_writes_single_branch_matching_stem(
     result = promote_source_branch(repo, unicode_name)
     assert result.commit_sha
 
-    branch = source_branch_name(unicode_name)
+    branch = repo.families.source_documents.address(SourceRef(unicode_name)).branch
     assert branch.startswith("source/"), branch
     branch_stem = branch[len("source/"):]
 
@@ -826,6 +823,7 @@ def test_promote_source_branch_materializes_blocked_rows_from_source_state(
     source_name = "atomicity_paper"
     repo = _setup_source_with_partial_validity(tmp_path, source_name=source_name)
     source_doc = repo.families.source_documents.require(SourceRef(source_name))
+    branch = repo.families.source_claims.address(SourceRef(source_name)).branch
     raw_claims = convert_document_value(
         {
             "source": {"paper": source_name},
@@ -849,7 +847,7 @@ def test_promote_source_branch_materializes_blocked_rows_from_source_state(
             ],
         },
         SourceClaimsDocument,
-        source=f"{source_branch_name(source_name)}:claims.yaml",
+        source=f"{branch}:claims.yaml",
     )
     normalized_claims, _ = normalize_source_claims_payload(
         raw_claims,
@@ -860,7 +858,7 @@ def test_promote_source_branch_materializes_blocked_rows_from_source_state(
         SourceRef(source_name),
         normalized_claims,
         message=f"Write drifted blocked claim for {source_name}",
-        branch=source_branch_name(source_name),
+        branch=branch,
     )
     finalize_source_branch(repo, source_name)
 
@@ -893,4 +891,4 @@ def test_promote_source_branch_materializes_blocked_rows_from_source_state(
         ).fetchall()
     finally:
         conn.close()
-    assert rows == [(source_branch_name(source_name), "blocked")]
+    assert rows == [(branch, "blocked")]
