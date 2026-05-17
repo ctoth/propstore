@@ -6,7 +6,7 @@ import json
 import sqlite3
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from quire.projections import (
     AUTOINCREMENT_ID_FIELD,
@@ -17,8 +17,10 @@ from quire.projections import (
     integer_field,
     text_field,
 )
-from propstore.families.claims.stages import PromotionBlockedClaimFact
 from propstore.semantic_passes.types import PassDiagnostic
+
+if TYPE_CHECKING:
+    from propstore.families.claims.stages import PromotionBlockedClaimFact
 
 
 @dataclass(frozen=True)
