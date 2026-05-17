@@ -17,7 +17,6 @@ from propstore.source import (
     finalize_source_branch,
     initial_source_document,
     promote_source_branch,
-    source_branch_name,
 )
 from propstore.importing.repository_import import (
     commit_repository_import,
@@ -29,7 +28,7 @@ MutationRunner = Callable[[Repository], None]
 
 
 def _seed_source_branch(repo: Repository, source_name: str) -> str:
-    branch = source_branch_name(source_name)
+    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     repo.git.create_branch(branch)
     source_doc = initial_source_document(
         repo,
