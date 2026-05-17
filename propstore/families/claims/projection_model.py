@@ -7,13 +7,13 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from quire.projection_mapping import (
+    ProjectionAttachedRows,
     ProjectionBinding,
     ProjectionCodec,
     ProjectionComponent,
     ProjectionModel,
     ProjectionRenderView,
     ReferencePath,
-    RepeatedPath,
     ScalarPath,
 )
 from quire.projections import ProjectionColumn
@@ -194,14 +194,13 @@ CLAIM_CONCEPT_LINK_ROW_MODEL: ProjectionModel[ClaimConceptLinkRow] = ProjectionM
 )
 
 
-CLAIM_CONCEPT_LINKS_PATH = RepeatedPath(
+CLAIM_CONCEPT_LINKS_PATH = ProjectionAttachedRows(
     path=("concept_links",),
     table="claim_concept_link",
     parent_fk="claim_id",
     parent_path=("claim_id",),
     item_parent_path=("claim_id",),
     item_type=ClaimConceptLinkRow,
-    decode_key="concept_links",
     fields=(
         ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
         ScalarPath(("role",), "role", codec=CLAIM_CONCEPT_LINK_ROLE_CODEC, nullable=False, missing="raise"),

@@ -491,10 +491,12 @@ def select_claim_rows(
         for row_dict in row_dicts
         if isinstance(row_dict.get("id"), str)
     ]
-    links_by_claim_id = select_claim_concept_links_by_claim_id(conn, claim_ids)
-    for row_dict in row_dicts:
-        row_dict["concept_links"] = links_by_claim_id.get(str(row_dict["id"]), [])
-    return [ClaimRow.from_mapping(row_dict) for row_dict in row_dicts]
+    link_rows = select_claim_concept_link_rows(conn, claim_ids)
+    attached_rows = CLAIM_ROW_GENERIC_MODEL.attach_child_rows(
+        row_dicts,
+        {"claim_concept_link": link_rows},
+    )
+    return [ClaimRow.from_mapping(row_dict) for row_dict in attached_rows]
 
 
 def select_claim_rows_linked_to_concept(
@@ -558,12 +560,12 @@ def _claim_concept_link_where_sql(
     return where_sql, tuple(params)
 
 
-def select_claim_concept_links_by_claim_id(
+def select_claim_concept_link_rows(
     conn: sqlite3.Connection,
     claim_ids: Sequence[str],
-) -> dict[str, list[dict[str, Any]]]:
+) -> tuple[dict[str, Any], ...]:
     if not claim_ids:
-        return {}
+        return ()
     placeholders = ",".join("?" for _ in claim_ids)
     rows = conn.execute(
         f"""
@@ -574,12 +576,7 @@ def select_claim_concept_links_by_claim_id(
         """,
         tuple(claim_ids),
     ).fetchall()
-    links_by_claim_id: dict[str, list[dict[str, Any]]] = {
-        claim_id: [] for claim_id in claim_ids
-    }
-    for row in rows:
-        links_by_claim_id.setdefault(str(row["claim_id"]), []).append(dict(row))
-    return links_by_claim_id
+    return tuple(dict(row) for row in rows)
 
 
 def build_claim_logical_id_index(conn: sqlite3.Connection) -> dict[str, str]:
