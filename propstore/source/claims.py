@@ -23,7 +23,6 @@ from .common import (
     load_source_concepts_document,
     load_source_document,
     normalize_source_slug,
-    source_branch_name,
     source_tag_uri,
 )
 from propstore.families.documents.sources import ExtractionProvenanceDocument, SourceClaimDocument, SourceClaimsDocument
@@ -475,7 +474,7 @@ def commit_source_claim_proposal(
     table: str | None = None,
     figure: str | None = None,
 ) -> SourceClaimDocument:
-    branch = source_branch_name(source_name)
+    branch = repo.families.source_claims.address(SourceRef(source_name)).branch
     source_doc = load_source_document(repo, source_name)
     normalized_claim_type = coerce_claim_type(claim_type)
     assert normalized_claim_type is not None
