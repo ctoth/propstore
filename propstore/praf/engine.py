@@ -17,7 +17,7 @@ from argumentation.probabilistic import (
     summarize_defeat_relations as _summarize_defeat_probabilities,
 )
 
-from propstore.families.claims.declaration import ClaimRow, ClaimRowInput, coerce_claim_row
+from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL, ClaimRow, ClaimRowInput
 from propstore.opinion import Opinion, W, discount, from_probability
 from propstore.probabilistic_relations import ProbabilisticRelation, relation_from_row
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -237,7 +237,7 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
         return discount(quality_opinion, omega_claim)
 
     if not isinstance(claim, dict):
-        claim = coerce_claim_row(claim)
+        claim = CLAIM_ROW_GENERIC_MODEL.coerce(claim)
         return p_arg_from_claim(claim)
 
     source = claim.get("source")
