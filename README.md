@@ -284,7 +284,8 @@ uv sync
 uv run pks --help
 ```
 
-The current development setup expects a sibling `../ast-equiv` checkout via `uv.lock`.
+The current development setup expects sibling `../ast-equiv` and `../eq-equiv`
+checkouts via `uv.lock`.
 
 Optional for embeddings and LLM-assisted stance classification:
 
@@ -374,5 +375,6 @@ See [docs/data-model.md](docs/data-model.md) for concrete YAML examples.
 | [pint](https://pint.readthedocs.io/) | Unit parsing and conversion |
 | [graphviz](https://graphviz.readthedocs.io/) | Graph export (DOT format) |
 | `ast-equiv` | Algorithm canonicalization and equivalence comparison |
+| `eq-equiv` | Equation parsing, SymPy generation, and equivalence comparison |
 | [litellm](https://github.com/BerriAI/litellm) | Optional embeddings and stance classification |
 | [sqlite-vec](https://github.com/asg017/sqlite-vec) | Optional vector search in SQLite |
