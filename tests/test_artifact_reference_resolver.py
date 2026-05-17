@@ -12,7 +12,6 @@ from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
 from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
 from propstore.families.documents.sources import SourceProvenanceDocument
-from propstore.source.common import source_branch_name
 from propstore.source.reference_indexes import (
     ImportedClaimHandle,
     imported_claim_handle_index,
@@ -24,7 +23,8 @@ from propstore.source.reference_indexes import (
 
 def test_source_claim_index_reads_source_claim_artifacts(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.git.create_branch(source_branch_name("paper"))
+    branch = repo.families.source_claims.address(SourceRef("paper")).branch
+    repo.git.create_branch(branch)
 
     repo.families.source_claims.save(
         SourceRef("paper"),
