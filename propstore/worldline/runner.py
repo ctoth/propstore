@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from propstore.core.id_types import ConceptId, ContextId, to_concept_id
-from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
@@ -250,7 +250,7 @@ def _lifting_dependencies(
     rule_ids: set[str] = set()
     blocked_exception_ids: set[str] = set()
     for claim_input in world.claims_for(None):
-        claim = CLAIM_ROW_GENERIC_MODEL.coerce(claim_input)
+        claim = CLAIM_ROW_MODEL.coerce(claim_input)
         if claim.context_id is None or claim.context_id == environment.context_id:
             continue
         decisions = lifting_system.lift_decisions_for(
