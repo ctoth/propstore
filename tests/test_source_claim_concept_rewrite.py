@@ -113,7 +113,7 @@ def test_source_claim_concept_rewrite_preserves_global_refs_and_reports_unresolv
 
 def test_old_source_claim_concept_placement_helpers_are_deleted() -> None:
     promote = importlib.import_module("propstore.source.promote")
-    passes = importlib.import_module("propstore.source.passes")
+    passes = importlib.import_module("propstore.importing.passes")
 
     assert not hasattr(promote, "_place_promoted_singular_concept")
     assert not hasattr(passes, "_place_rewritten_singular_concept")

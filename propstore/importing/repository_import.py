@@ -16,8 +16,8 @@ from propstore.families.registry import (
     semantic_import_roots,
     semantic_import_families,
 )
-from propstore.source.passes import run_source_import_pipeline
-from propstore.source.stages import (
+from propstore.importing.passes import run_source_import_pipeline
+from propstore.importing.stages import (
     PlannedSemanticWrite,
     SourceImportAuthoredWrites,
     SourceImportNormalizedWrites,

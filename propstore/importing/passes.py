@@ -31,7 +31,7 @@ from propstore.source.reference_indexes import (
     ImportedClaimHandle,
     imported_claim_handle_index,
 )
-from propstore.source.stages import (
+from propstore.importing.stages import (
     PlannedSemanticWrite,
     SourceImportAuthoredWrites,
     SourceImportNormalizedWrites,
