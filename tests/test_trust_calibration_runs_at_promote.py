@@ -13,7 +13,6 @@ from propstore.source import (
     finalize_source_branch,
     init_source_branch,
     promote_source_branch,
-    source_branch_name,
 )
 
 
@@ -56,7 +55,9 @@ def test_trust_calibration_runs_at_promote(tmp_path: Path) -> None:
     )
     finalize_source_branch(repo, "direct_replication_source")
 
-    branch = source_branch_name("direct_replication_source")
+    branch = repo.families.source_documents.address(
+        SourceRef("direct_replication_source")
+    ).branch
     source_head_before_promote = repo.git.branch_sha(branch)
     source_before = yaml.safe_load(repo.git.read_file("source.yaml", commit=source_head_before_promote))
     assert source_before["trust"]["status"] == "defaulted"
