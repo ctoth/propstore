@@ -7,11 +7,11 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from quire.projection_mapping import (
-    DerivedPath,
     ProjectionBinding,
     ProjectionCodec,
     ProjectionComponent,
     ProjectionModel,
+    ProjectionRenderView,
     ReferencePath,
     RepeatedPath,
     ScalarPath,
@@ -268,8 +268,8 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
             encoder=_logical_ids_to_columns,
             decoder=_logical_ids_from_columns,
         ),
-        DerivedPath(("primary_logical_id",), "logical_id", codec=TEXT_CODEC),
-        DerivedPath(("logical_ids",), "logical_ids", codec=LOGICAL_IDS_PAYLOAD_CODEC),
+        ProjectionRenderView(source_path=("primary_logical_id",), output_key="logical_id", codec=TEXT_CODEC),
+        ProjectionRenderView(source_path=("logical_ids",), output_key="logical_ids", codec=LOGICAL_IDS_PAYLOAD_CODEC),
         ScalarPath(("version_id",), "version_id", codec=TEXT_CODEC),
         ScalarPath(("seq",), "seq", codec=INTEGER_CODEC),
         ScalarPath(("value",), "value", codec=RAW_CODEC),
