@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from quire.references import FamilyReferenceIndex
@@ -37,6 +37,12 @@ class ClaimReferenceRecord:
                 normalize_logical_value(raw_id),
             )
         return None
+
+
+@dataclass(frozen=True)
+class ImportedClaimReference:
+    handle: str
+    artifact_id: str
 
 
 def claim_reference_keys(record: ClaimReferenceRecord) -> tuple[str, ...]:
@@ -76,3 +82,28 @@ def build_claim_file_reference_index(
         artifact_id=lambda record: record.artifact_id,
         keys=(claim_reference_keys,),
     )
+
+
+def imported_claim_reference_index(
+    handles: Iterable[ImportedClaimReference],
+) -> FamilyReferenceIndex[ImportedClaimReference]:
+    def reference_keys(record: ImportedClaimReference) -> tuple[str]:
+        return (record.handle,)
+
+    return FamilyReferenceIndex.from_records(
+        handles,
+        family="imported_claims",
+        artifact_id=lambda handle: handle.artifact_id,
+        keys=(reference_keys,),
+    )
+
+
+def resolve_first_claim_reference_id(
+    reference: object,
+    *indexes: FamilyReferenceIndex[object],
+) -> str | None:
+    for index in indexes:
+        resolved = index.resolve_id(reference)
+        if resolved is not None:
+            return resolved
+    return None
