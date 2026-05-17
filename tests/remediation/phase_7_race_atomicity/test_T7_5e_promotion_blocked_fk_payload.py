@@ -15,11 +15,15 @@ blocked.
 """
 from __future__ import annotations
 
-from types import SimpleNamespace
-
-from propstore.families.claims.declaration import populate_promotion_blocked_claims
+from propstore.families.claims.declaration import (
+    compile_promotion_blocked_sidecar_rows,
+    populate_promotion_blocked_claims,
+)
+from propstore.families.claims.stages import (
+    PromotionBlockedClaimFact,
+    PromotionBlockedReason,
+)
 from quire.derived_runtime import connect_sqlite_store
-from propstore.source.promote import compile_promotion_blocked_projection_rows
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
@@ -104,12 +108,21 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
 
     # Belch_2008 (here ``source/beta``) needs to mirror this claim as
     # blocked. Prior behavior crashes with a FOREIGN KEY violation.
-    claim = SimpleNamespace(artifact_id="claim-shared", id="local-claim")
-    rows = compile_promotion_blocked_projection_rows(
-        "source/beta",
-        "paper-beta",
-        [claim],
-        {"claim-shared": [("concept_mapping", "unresolved in beta")]},
+    rows = compile_promotion_blocked_sidecar_rows(
+        (
+            PromotionBlockedClaimFact(
+                artifact_id="claim-shared",
+                source_branch="source/beta",
+                source_paper="paper-beta",
+                raw_id="local-claim",
+                reasons=(
+                    PromotionBlockedReason(
+                        kind="concept_mapping",
+                        detail="unresolved in beta",
+                    ),
+                ),
+            ),
+        )
     )
     conn = connect_sqlite_store(sidecar_path)
     try:
