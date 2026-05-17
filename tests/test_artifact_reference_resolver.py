@@ -10,13 +10,15 @@ from propstore.families.contexts.documents import ContextReferenceDocument
 from propstore.families.registry import ClaimRef, ContextRef, SourceRef
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
+from propstore.families.claims.references import (
+    ImportedClaimReference,
+    imported_claim_reference_index,
+    resolve_first_claim_reference_id,
+)
 from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
 from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.source.reference_indexes import (
-    ImportedClaimHandle,
-    imported_claim_handle_index,
     primary_claim_index,
-    resolve_source_or_primary_claim_id,
     source_claim_index,
 )
 
@@ -84,50 +86,50 @@ def test_primary_claim_index_reads_canonical_claim_artifacts(tmp_path) -> None:
 def test_source_before_primary_resolution_and_imported_ambiguity_are_quire_indexed() -> None:
     source_index = FamilyReferenceIndex.from_records(
         (
-            ImportedClaimHandle("local", "ps:claim:local"),
-            ImportedClaimHandle("paper:logical", "ps:claim:logical"),
+            ImportedClaimReference("local", "ps:claim:local"),
+            ImportedClaimReference("paper:logical", "ps:claim:logical"),
         ),
         family="source_claims",
         artifact_id=lambda handle: handle.artifact_id,
         keys=(lambda handle: (handle.handle,),),
     )
     canonical_index = FamilyReferenceIndex.from_records(
-        (ImportedClaimHandle("master:logical", "ps:claim:master"),),
+        (ImportedClaimReference("master:logical", "ps:claim:master"),),
         family="claims",
         artifact_id=lambda handle: handle.artifact_id,
         keys=(lambda handle: (handle.handle,),),
     )
 
-    assert resolve_source_or_primary_claim_id(
+    assert resolve_first_claim_reference_id(
         "local",
-        source=source_index,
-        primary=canonical_index,
+        source_index,
+        canonical_index,
     ) == "ps:claim:local"
-    assert resolve_source_or_primary_claim_id(
+    assert resolve_first_claim_reference_id(
         "paper:logical",
-        source=source_index,
-        primary=canonical_index,
+        source_index,
+        canonical_index,
     ) == "ps:claim:logical"
-    assert resolve_source_or_primary_claim_id(
+    assert resolve_first_claim_reference_id(
         "master:logical",
-        source=source_index,
-        primary=canonical_index,
+        source_index,
+        canonical_index,
     ) == "ps:claim:master"
-    assert resolve_source_or_primary_claim_id(
+    assert resolve_first_claim_reference_id(
         "ps:claim:master",
-        source=source_index,
-        primary=canonical_index,
+        source_index,
+        canonical_index,
     ) == "ps:claim:master"
-    assert resolve_source_or_primary_claim_id(
+    assert resolve_first_claim_reference_id(
         "missing",
-        source=source_index,
-        primary=canonical_index,
+        source_index,
+        canonical_index,
     ) is None
 
     with pytest.raises(AmbiguousReferenceError, match="dup"):
-        imported_claim_handle_index(
+        imported_claim_reference_index(
             (
-                ImportedClaimHandle("dup", "ps:claim:a"),
-                ImportedClaimHandle("dup", "ps:claim:b"),
+                ImportedClaimReference("dup", "ps:claim:a"),
+                ImportedClaimReference("dup", "ps:claim:b"),
             )
         )
