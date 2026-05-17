@@ -11,8 +11,8 @@ These tests pin two guarantees:
    all other required tables and columns present, but `claim_core.branch`
    absent) is rejected by `WorldQuery` with a `ValueError` whose message
    mentions both `branch` and `claim_core`. This is the end-to-end
-   proof that the `_claim_select_sql` conditional fallback is gone and
-   the validator is the gatekeeper.
+   proof that the old conditional select fallback is gone and the
+   validator is the gatekeeper.
 
 Co-located helper `_build_legacy_sidecar` constructs a minimal on-disk
 sidecar fixture, bypassing the real compiler. It writes the full

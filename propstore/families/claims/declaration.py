@@ -52,8 +52,6 @@ from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.claim_values import (
     ClaimProvenance,
     ClaimSource,
-    SourceOrigin,
-    SourceTrust,
 )
 from propstore.core.id_types import (
     ClaimId,
@@ -68,7 +66,6 @@ from propstore.core.relations import (
     ClaimConceptLinkRole,
     coerce_claim_concept_link_role,
 )
-from propstore.core.source_types import coerce_source_kind, coerce_source_origin_type
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
@@ -90,6 +87,7 @@ from propstore.families.diagnostics.declaration import (
 )
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.relations.declaration import claim_stance_projection_row
+from propstore.families.sources.declaration import SOURCE_PROJECTION
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ProvenanceRecord
@@ -194,79 +192,20 @@ class ClaimRow:
     def from_mapping(cls, row_map: Mapping[str, Any]) -> ClaimRow:
         base = CLAIM_ROW_GENERIC_MODEL.from_row(row_map)
         nested_source = row_map.get("source") if isinstance(row_map.get("source"), Mapping) else None
-        quality_trust = (
-            SourceTrust.from_mapping(
-                {"quality": row_map.get("source_quality_json") or row_map.get("source_quality_opinion")}
-            )
-            if row_map.get("source_quality_json") is not None
-            or row_map.get("source_quality_opinion") is not None
-            else None
+        flat_source = base.source
+        source = ClaimSource.from_mapping(
+            nested_source,
+            slug=None if flat_source is None else flat_source.slug,
         )
-        derived_from_trust = (
-            SourceTrust.from_mapping(
-                {"derived_from": row_map.get("source_derived_from_json")}
-            )
-            if row_map.get("source_derived_from_json") is not None
-            else None
-        )
-        flat_source = ClaimSource(
-            source_id=(None if row_map.get("source_id") is None else str(row_map["source_id"])),
-            kind=(
-                None
-                if row_map.get("source_kind") is None
-                else coerce_source_kind(row_map["source_kind"])
-            ),
-            slug=(None if row_map.get("source_slug") is None else str(row_map["source_slug"])),
-            origin=SourceOrigin(
-                origin_type=(
-                    None
-                    if row_map.get("source_origin_type") is None
-                    else coerce_source_origin_type(row_map["source_origin_type"])
-                ),
-                value=(
-                    None
-                    if row_map.get("source_origin_value") is None
-                    else str(row_map["source_origin_value"])
-                ),
-                retrieved=(
-                    None
-                    if row_map.get("source_origin_retrieved") is None
-                    else str(row_map["source_origin_retrieved"])
-                ),
-                content_ref=(
-                    None
-                    if row_map.get("source_origin_content_ref") is None
-                    else str(row_map["source_origin_content_ref"])
-                ),
-            ),
-            trust=SourceTrust.from_mapping(
-                {
-                    "prior_base_rate": row_map.get("source_prior_base_rate"),
-                    "quality": row_map.get("source_quality_json"),
-                    "derived_from": row_map.get("source_derived_from_json"),
-                }
-            ),
-        )
-        source = ClaimSource.from_mapping(nested_source, slug=flat_source.slug)
-        if source is None and not flat_source.is_empty:
-            source = ClaimSource(
-                source_id=flat_source.source_id,
-                kind=flat_source.kind,
-                slug=flat_source.slug,
-                origin=None if flat_source.origin is None or flat_source.origin.is_empty else flat_source.origin,
-                trust=None if flat_source.trust is None or flat_source.trust.is_empty else flat_source.trust,
-            )
+        if source is None:
+            source = flat_source
         elif source is not None:
             source = ClaimSource(
-                source_id=source.source_id if source.source_id is not None else flat_source.source_id,
-                kind=source.kind if source.kind is not None else flat_source.kind,
-                slug=source.slug if source.slug is not None else flat_source.slug,
-                origin=source.origin if source.origin is not None else (
-                    None if flat_source.origin is None or flat_source.origin.is_empty else flat_source.origin
-                ),
-                trust=source.trust if source.trust is not None else (
-                    None if flat_source.trust is None or flat_source.trust.is_empty else flat_source.trust
-                ),
+                source_id=source.source_id if source.source_id is not None or flat_source is None else flat_source.source_id,
+                kind=source.kind if source.kind is not None or flat_source is None else flat_source.kind,
+                slug=source.slug if source.slug is not None or flat_source is None else flat_source.slug,
+                origin=source.origin if source.origin is not None or flat_source is None else flat_source.origin,
+                trust=source.trust if source.trust is not None or flat_source is None else flat_source.trust,
             )
         return replace(base, source=source)
 
@@ -356,7 +295,7 @@ class ClaimRow:
         data = {
             key: value
             for key, value in CLAIM_ROW_GENERIC_MODEL.to_mapping(self).items()
-            if value is not None or key in {"logical_id", "logical_ids"}
+            if key != "source" and (value is not None or key in {"logical_id", "logical_ids"})
         }
         source_dict = None if self.source is None or self.source.is_empty else self.source.to_dict()
         source_quality = (
@@ -439,6 +378,7 @@ from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_CONCEPT_LINK_ROW_MODEL,
     CLAIM_CONCEPT_LINKS_PATH,
     CLAIM_ROW_GENERIC_MODEL,
+    claim_row_query_plan,
 )
 
 
@@ -454,77 +394,13 @@ def coerce_claim_row(row: ClaimRowInput) -> ClaimRow:
     return ClaimRow.from_mapping(row)
 
 
-def claim_select_sql() -> str:
-    return """
-        SELECT
-            core.id,
-            core.id AS artifact_id,
-            core.primary_logical_id,
-            core.logical_ids_json,
-            core.version_id,
-            core.seq,
-            core.type,
-            core.target_concept,
-            num.value,
-            num.lower_bound,
-            num.upper_bound,
-            num.uncertainty,
-            num.uncertainty_type,
-            num.sample_size,
-            num.unit,
-            txt.conditions_cel,
-            txt.conditions_ir,
-            txt.statement,
-            txt.expression,
-            txt.sympy_generated,
-            txt.sympy_error,
-            txt.name,
-            txt.measure,
-            txt.listener_population,
-            txt.methodology,
-            txt.notes,
-            txt.description,
-            txt.auto_summary,
-            alg.body,
-            alg.canonical_ast,
-            alg.variables_json,
-            alg.algorithm_stage,
-            core.source_slug,
-            core.source_paper,
-            src.source_id AS source_id,
-            src.kind AS source_kind,
-            src.origin_type AS source_origin_type,
-            src.origin_value AS source_origin_value,
-            src.origin_retrieved AS source_origin_retrieved,
-            src.origin_content_ref AS source_origin_content_ref,
-            src.prior_base_rate AS source_prior_base_rate,
-            src.quality_json AS source_quality_json,
-            src.derived_from_json AS source_derived_from_json,
-            core.provenance_page,
-            core.provenance_json,
-            num.value_si,
-            num.lower_bound_si,
-            num.upper_bound_si,
-            core.context_id,
-            core.branch,
-            core.build_status,
-            core.stage,
-            core.promotion_status
-        FROM claim_core AS core
-        LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
-        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-        LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
-        LEFT JOIN source AS src ON src.slug = core.source_slug
-    """
-
-
 def select_claim_rows(
     conn: sqlite3.Connection,
     where_sql: str = "",
     params: tuple[Any, ...] = (),
 ) -> list[ClaimRow]:
     rows = conn.execute(
-        f"{claim_select_sql()} {where_sql}",
+        CLAIM_ROW_QUERY_PLAN.select_sql(where_sql),
         params,
     ).fetchall()
     row_dicts = [dict(row) for row in rows]
@@ -1008,6 +884,15 @@ CLAIM_ALGORITHM_PAYLOAD_PROJECTION = ProjectionTable(
     ),
     foreign_keys=(ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),),
     indexes=(ProjectionIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
+)
+
+
+CLAIM_ROW_QUERY_PLAN = claim_row_query_plan(
+    claim_core=CLAIM_CORE_PROJECTION,
+    numeric_payload=CLAIM_NUMERIC_PAYLOAD_PROJECTION,
+    text_payload=CLAIM_TEXT_PAYLOAD_PROJECTION,
+    algorithm_payload=CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
+    source=SOURCE_PROJECTION,
 )
 
 

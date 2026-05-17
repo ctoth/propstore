@@ -11,19 +11,23 @@ from quire.projection_mapping import (
     ProjectionBinding,
     ProjectionCodec,
     ProjectionComponent,
+    ProjectionJoin,
     ProjectionModel,
     ProjectionMetadata,
+    ProjectionQueryPlan,
     ProjectionRenderView,
+    ProjectionSelectedColumn,
     ReferencePath,
     ScalarPath,
 )
-from quire.projections import ProjectionColumn
+from quire.projections import ProjectionColumn, ProjectionTable
 
 from propstore.core.algorithm_stage import coerce_algorithm_stage
 from propstore.core.claim_types import coerce_claim_type
-from propstore.core.claim_values import ClaimProvenance
+from propstore.core.claim_values import ClaimProvenance, ClaimSource, SourceOrigin, SourceTrust
 from propstore.core.id_types import LogicalId, to_claim_id, to_concept_id, to_context_id
 from propstore.core.relations import coerce_claim_concept_link_role
+from propstore.core.source_types import coerce_source_kind, coerce_source_origin_type
 from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow
 
 
@@ -152,6 +156,80 @@ def _provenance_from_columns(values: Mapping[str, Any]) -> ClaimProvenance | Non
     )
 
 
+def _source_to_columns(value: Any) -> Mapping[str, Any]:
+    source = value if isinstance(value, ClaimSource) else ClaimSource.from_mapping(value)
+    if source is None:
+        return {
+            "source_slug": None,
+            "source_id": None,
+            "source_kind": None,
+            "source_origin_type": None,
+            "source_origin_value": None,
+            "source_origin_retrieved": None,
+            "source_origin_content_ref": None,
+            "source_prior_base_rate": None,
+            "source_quality_json": None,
+            "source_derived_from_json": None,
+        }
+    trust = source.trust
+    origin = source.origin
+    return {
+        "source_slug": source.slug,
+        "source_id": source.source_id,
+        "source_kind": None if source.kind is None else source.kind.value,
+        "source_origin_type": None if origin is None or origin.origin_type is None else origin.origin_type.value,
+        "source_origin_value": None if origin is None else origin.value,
+        "source_origin_retrieved": None if origin is None else origin.retrieved,
+        "source_origin_content_ref": None if origin is None else origin.content_ref,
+            "source_prior_base_rate": None if trust is None else trust.prior_base_rate_dict(),
+            "source_quality_json": None if trust is None else trust.quality_dict(),
+            "source_quality_opinion": None if trust is None else trust.quality_dict(),
+            "source_derived_from_json": None if trust is None or not trust.derived_from else json.dumps(list(trust.derived_from)),
+        }
+
+
+def _source_from_columns(values: Mapping[str, Any]) -> ClaimSource | None:
+    source = ClaimSource(
+        source_id=None if values.get("source_id") is None else str(values["source_id"]),
+        kind=None if values.get("source_kind") is None else coerce_source_kind(values["source_kind"]),
+        slug=None if values.get("source_slug") is None else str(values["source_slug"]),
+        origin=SourceOrigin(
+            origin_type=(
+                None
+                if values.get("source_origin_type") is None
+                else coerce_source_origin_type(values["source_origin_type"])
+            ),
+            value=None if values.get("source_origin_value") is None else str(values["source_origin_value"]),
+            retrieved=(
+                None
+                if values.get("source_origin_retrieved") is None
+                else str(values["source_origin_retrieved"])
+            ),
+            content_ref=(
+                None
+                if values.get("source_origin_content_ref") is None
+                else str(values["source_origin_content_ref"])
+            ),
+        ),
+        trust=SourceTrust.from_mapping(
+            {
+                "prior_base_rate": values.get("source_prior_base_rate"),
+                "quality": values.get("source_quality_json") or values.get("source_quality_opinion"),
+                "derived_from": values.get("source_derived_from_json"),
+            }
+        ),
+    )
+    if source.is_empty:
+        return None
+    return ClaimSource(
+        source_id=source.source_id,
+        kind=source.kind,
+        slug=source.slug,
+        origin=None if source.origin is None or source.origin.is_empty else source.origin,
+        trust=None if source.trust is None or source.trust.is_empty else source.trust,
+    )
+
+
 TEXT_CODEC = ProjectionCodec("text", "TEXT", encoder=_nullable_text, decoder=_nullable_text)
 RAW_CODEC = ProjectionCodec("raw", "TEXT")
 CLAIM_ID_CODEC = ProjectionCodec("claim_id", "TEXT", encoder=_nullable_text, decoder=_claim_id)
@@ -222,6 +300,132 @@ CLAIM_CONCEPT_LINKS_PATH = ProjectionAttachedRows(
     order_by=(CLAIM_CONCEPT_LINK_ORDINAL_PATH, CLAIM_CONCEPT_LINK_CONCEPT_ID_PATH),
     fields=CLAIM_CONCEPT_LINK_ITEM_FIELDS,
 )
+
+
+def claim_row_query_plan(
+    *,
+    claim_core: ProjectionTable,
+    numeric_payload: ProjectionTable,
+    text_payload: ProjectionTable,
+    algorithm_payload: ProjectionTable,
+    source: ProjectionTable,
+) -> ProjectionQueryPlan:
+    def selected(alias: str, table: ProjectionTable, names: tuple[str, ...]) -> tuple[ProjectionSelectedColumn, ...]:
+        return tuple(ProjectionSelectedColumn(alias, table.column(name)) for name in names)
+
+    def selected_as(
+        alias: str,
+        table: ProjectionTable,
+        pairs: tuple[tuple[str, str], ...],
+    ) -> tuple[ProjectionSelectedColumn, ...]:
+        return tuple(
+            ProjectionSelectedColumn(alias, table.column(name), read_name=read_name)
+            for name, read_name in pairs
+        )
+
+    return ProjectionQueryPlan(
+        name="claim_row",
+        base_table=claim_core,
+        base_alias="core",
+        selections=(
+            selected(
+                "core",
+                claim_core,
+                (
+                    "id",
+                    "primary_logical_id",
+                    "logical_ids_json",
+                    "version_id",
+                    "seq",
+                    "type",
+                    "target_concept",
+                ),
+            )
+            + (ProjectionSelectedColumn("core", claim_core.column("id"), read_name="artifact_id"),)
+            + selected(
+                "num",
+                numeric_payload,
+                (
+                    "value",
+                    "lower_bound",
+                    "upper_bound",
+                    "uncertainty",
+                    "uncertainty_type",
+                    "sample_size",
+                    "unit",
+                ),
+            )
+            + selected(
+                "txt",
+                text_payload,
+                (
+                    "conditions_cel",
+                    "conditions_ir",
+                    "statement",
+                    "expression",
+                    "sympy_generated",
+                    "sympy_error",
+                    "name",
+                    "measure",
+                    "listener_population",
+                    "methodology",
+                    "notes",
+                    "description",
+                    "auto_summary",
+                ),
+            )
+            + selected("alg", algorithm_payload, ("body", "canonical_ast", "variables_json", "algorithm_stage"))
+            + selected("core", claim_core, ("source_slug", "source_paper"))
+            + selected("src", source, ("source_id",))
+            + selected_as(
+                "src",
+                source,
+                (
+                    ("kind", "source_kind"),
+                    ("origin_type", "source_origin_type"),
+                    ("origin_value", "source_origin_value"),
+                    ("origin_retrieved", "source_origin_retrieved"),
+                    ("origin_content_ref", "source_origin_content_ref"),
+                    ("prior_base_rate", "source_prior_base_rate"),
+                    ("quality_json", "source_quality_json"),
+                    ("derived_from_json", "source_derived_from_json"),
+                ),
+            )
+            + selected("core", claim_core, ("provenance_page", "provenance_json"))
+            + selected("num", numeric_payload, ("value_si", "lower_bound_si", "upper_bound_si"))
+            + selected("core", claim_core, ("context_id", "branch", "build_status", "stage", "promotion_status"))
+        ),
+        joins=(
+            ProjectionJoin(
+                table=numeric_payload,
+                alias="num",
+                left_alias="core",
+                left_column=claim_core.column("id"),
+                right_column=numeric_payload.column("claim_id"),
+            ),
+            ProjectionJoin(
+                table=text_payload,
+                alias="txt",
+                left_alias="core",
+                left_column=claim_core.column("id"),
+                right_column=text_payload.column("claim_id"),
+            ),
+            ProjectionJoin(
+                table=algorithm_payload,
+                alias="alg",
+                left_alias="core",
+                left_column=claim_core.column("id"),
+                right_column=algorithm_payload.column("claim_id"),
+            ),
+            ProjectionJoin(
+                table=source,
+                alias="src",
+                left_alias="core",
+                left_column=claim_core.column("source_slug"),
+                right_column=source.column("slug"),
+            ),
+        ),
+    )
 
 
 CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
@@ -310,6 +514,113 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
         ScalarPath(("variables_json",), "variables_json", codec=TEXT_CODEC),
         ScalarPath(("algorithm_stage",), "algorithm_stage", codec=ALGORITHM_STAGE_CODEC),
         ProjectionComponent(
+            path=("source",),
+            bindings=(
+                ProjectionBinding(
+                    ("slug",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_slug",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("source_id",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_id",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("kind",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_kind",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("origin_type",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_origin_type",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("origin_value",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_origin_value",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("origin_retrieved",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_origin_retrieved",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("origin_content_ref",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_origin_content_ref",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("prior_base_rate",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_prior_base_rate",
+                        RAW_CODEC.sql_type,
+                        encoder=RAW_CODEC.encode,
+                        decoder=RAW_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("quality",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_quality_json",
+                        RAW_CODEC.sql_type,
+                        encoder=RAW_CODEC.encode,
+                        decoder=RAW_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("quality_opinion",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_quality_opinion",
+                        RAW_CODEC.sql_type,
+                        encoder=RAW_CODEC.encode,
+                        decoder=RAW_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("derived_from",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_derived_from_json",
+                        RAW_CODEC.sql_type,
+                        encoder=RAW_CODEC.encode,
+                        decoder=RAW_CODEC.decode,
+                    ),
+                ),
+            ),
+            encoder=_source_to_columns,
+            decoder=_source_from_columns,
+        ),
+        ProjectionRenderView(source_path=("source",), output_key="source"),
+        ProjectionComponent(
             path=("provenance",),
             bindings=(
                 ProjectionBinding(
@@ -367,19 +678,5 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
             ),
             result_type=dict,
         ),
-    ),
-    ignored_columns=(
-        "source",
-        "source_slug",
-        "source_id",
-        "source_kind",
-        "source_origin_type",
-        "source_origin_value",
-        "source_origin_retrieved",
-        "source_origin_content_ref",
-        "source_prior_base_rate",
-        "source_quality_json",
-        "source_quality_opinion",
-        "source_derived_from_json",
     ),
 )
