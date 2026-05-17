@@ -179,7 +179,7 @@ def compare_algorithm_claims(
     request: ClaimCompareRequest,
 ) -> ClaimCompareReport:
     from ast_equiv import compare as ast_compare
-    from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL
+    from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 
     claim_a_input = world.get_claim(request.claim_a_id)
     if claim_a_input is None:
@@ -188,8 +188,8 @@ def compare_algorithm_claims(
     if claim_b_input is None:
         raise UnknownClaimError(request.claim_b_id)
 
-    claim_a = dict(CLAIM_ROW_GENERIC_MODEL.to_mapping(CLAIM_ROW_GENERIC_MODEL.coerce(claim_a_input)))
-    claim_b = dict(CLAIM_ROW_GENERIC_MODEL.to_mapping(CLAIM_ROW_GENERIC_MODEL.coerce(claim_b_input)))
+    claim_a = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim_a_input)))
+    claim_b = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim_b_input)))
     body_a = claim_a.get("body")
     body_b = claim_b.get("body")
     if not body_a or not body_b:
