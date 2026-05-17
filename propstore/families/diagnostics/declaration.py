@@ -11,11 +11,13 @@ from typing import Any
 from quire.projections import (
     AUTOINCREMENT_ID_FIELD,
     ProjectionIndex,
+    ProjectionRow,
     ProjectionTable,
     family_reference_field,
     integer_field,
     text_field,
 )
+from propstore.families.claims.stages import PromotionBlockedClaimFact
 from propstore.semantic_passes.types import PassDiagnostic
 
 
@@ -273,6 +275,34 @@ def record_quarantine_diagnostics(
             message=diagnostic.message,
             file=diagnostic.file,
         )
+
+
+def compile_promotion_blocked_diagnostic_rows(
+    facts: Sequence[PromotionBlockedClaimFact],
+) -> tuple[ProjectionRow, ...]:
+    rows: list[ProjectionRow] = []
+    for fact in facts:
+        for reason in fact.reasons:
+            rows.append(
+                BUILD_DIAGNOSTICS_PROJECTION.row(
+                    claim_id=fact.artifact_id,
+                    source_kind="claim",
+                    source_ref=fact.source_ref,
+                    diagnostic_kind="promotion_blocked",
+                    severity="error",
+                    blocking=1,
+                    message=reason.detail,
+                    file=None,
+                    detail_json=json.dumps(
+                        {
+                            "reason_kind": reason.kind,
+                            "source_branch": fact.source_branch,
+                        },
+                        sort_keys=True,
+                    ),
+                )
+            )
+    return tuple(rows)
 
 
 def has_build_diagnostics_table(conn: sqlite3.Connection) -> bool:
