@@ -12,6 +12,7 @@ from propstore.context_lifting import (
 )
 from propstore.core.assertions import ContextReference
 from propstore.families.contexts.declaration import (
+    CONTEXT_LIFTING_MATERIALIZATION_TABLE,
     compile_context_lifting_materialization_rows,
     compile_context_sidecar_rows,
     create_context_tables,
@@ -249,9 +250,7 @@ def test_sidecar_stores_lifting_materialization_provenance() -> None:
 
     populate_contexts(conn, materialization_rows)
 
-    row = conn.execute(
-        "SELECT * FROM context_lifting_materialization"
-    ).fetchone()
+    row = CONTEXT_LIFTING_MATERIALIZATION_TABLE.select_all(conn)[0]
     assert row["rule_id"] == "lift-source-target"
     assert row["source_context_id"] == "ctx_source"
     assert row["target_context_id"] == "ctx_target"
