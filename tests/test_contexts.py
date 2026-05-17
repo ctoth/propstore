@@ -31,7 +31,13 @@ from propstore.families.contexts.stages import (
     loaded_contexts_to_lifting_system,
     parse_context_record,
 )
-from propstore.families.contexts.declaration import create_context_tables, populate_contexts
+from propstore.families.contexts.declaration import (
+    CONTEXT_ASSUMPTION_TABLE,
+    CONTEXT_LIFTING_RULE_TABLE,
+    CONTEXT_TABLE,
+    create_context_tables,
+    populate_contexts,
+)
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from tests.conftest import make_compilation_context
@@ -357,12 +363,16 @@ class TestContextSidecar:
         rows = compile_context_sidecar_rows(contexts)
         populate_contexts(conn, rows)
 
-        row = conn.execute("SELECT * FROM context WHERE id='ctx_target'").fetchone()
+        rows = {
+            str(row["id"]): row
+            for row in CONTEXT_TABLE.select_all(conn)
+        }
+        row = rows["ctx_target"]
         assert json.loads(row["parameters_json"]) == {"domain": "speech"}
         assert row["perspective"] == "local-model"
-        assumption = conn.execute("SELECT assumption_cel FROM context_assumption").fetchone()
+        assumption = CONTEXT_ASSUMPTION_TABLE.select_all(conn)[0]
         assert assumption["assumption_cel"] == "framework == 'target'"
-        rule = conn.execute("SELECT * FROM context_lifting_rule").fetchone()
+        rule = CONTEXT_LIFTING_RULE_TABLE.select_all(conn)[0]
         assert rule["source_context_id"] == "ctx_source"
         assert rule["target_context_id"] == "ctx_target"
         assert json.loads(rule["conditions_cel"]) == ["variant == 'controlled'"]
