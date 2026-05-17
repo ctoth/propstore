@@ -494,14 +494,8 @@ def _build_sidecar_file(
                 if context_diagnostics
                 else sidecar_plan.context_rows
             )
-            if context_rows.context_rows:
-                populate_contexts(
-                    conn,
-                    context_rows=context_rows.context_rows,
-                    assumption_rows=context_rows.assumption_rows,
-                    lifting_rule_rows=context_rows.lifting_rule_rows,
-                    lifting_materialization_rows=context_rows.lifting_materialization_rows,
-                )
+            if context_rows:
+                populate_contexts(conn, context_rows)
 
             if sidecar_plan.claim_rows is not None:
                 populate_claims(conn, sidecar_plan.claim_rows)
