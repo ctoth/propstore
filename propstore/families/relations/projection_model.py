@@ -6,6 +6,7 @@ import json
 from typing import Any
 
 from quire.projection_mapping import (
+    ProjectionBinding,
     ProjectionCodec,
     ProjectionDiscriminator,
     ProjectionJoin,
@@ -457,11 +458,11 @@ CONFLICT_ROW_MODEL: ProjectionModel[ConflictRow] = ProjectionModel(
     table="conflict_witness",
     result_type=ConflictRow,
     fields=(
+        ProjectionBinding(("id",), field=AUTOINCREMENT_ID_FIELD),
         ScalarPath(("claim_a_id",), "claim_a_id", codec=CLAIM_ID_CODEC, nullable=False, missing="raise"),
         ScalarPath(("claim_b_id",), "claim_b_id", codec=CLAIM_ID_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC),
-        ScalarPath(("warning_class",), "warning_class", codec=CONFLICT_CLASS_CODEC),
-        ScalarPath(("conflict_class",), "conflict_class", codec=CONFLICT_CLASS_CODEC),
+        ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("warning_class",), "warning_class", codec=CONFLICT_CLASS_CODEC, nullable=False, missing="raise"),
         ProjectionMetadata(
             path=(),
             fields=(
@@ -474,4 +475,8 @@ CONFLICT_ROW_MODEL: ProjectionModel[ConflictRow] = ProjectionModel(
             result_type=dict,
         ),
     ),
+    indexes=(ProjectionIndex("idx_conflict_witness_concept", ("concept_id",)),),
 )
+
+
+CONFLICT_WITNESS_TABLE = CONFLICT_ROW_MODEL.projection_tables()[0]

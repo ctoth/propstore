@@ -76,6 +76,7 @@ from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.relations.declaration import (
     CLAIM_STANCE_DISCRIMINATORS,
     CLAIM_STANCE_STORAGE_MODEL,
+    CONFLICT_WITNESS_TABLE,
     RELATION_EDGE_TABLE,
     StanceRow,
 )
@@ -277,7 +278,6 @@ from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_NUMERIC_PAYLOAD_TABLE,
     CLAIM_ROW_MODEL,
     CLAIM_TEXT_PAYLOAD_TABLE,
-    CONFLICT_WITNESS_TABLE,
     JUSTIFICATION_TABLE,
     claim_row_query_plan,
 )

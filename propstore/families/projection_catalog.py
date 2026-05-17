@@ -13,7 +13,6 @@ from propstore.families.claims.declaration import (
     CLAIM_FTS_PROJECTION,
     CLAIM_NUMERIC_PAYLOAD_TABLE,
     CLAIM_TEXT_PAYLOAD_TABLE,
-    CONFLICT_WITNESS_TABLE,
     JUSTIFICATION_TABLE,
 )
 from propstore.families.concepts.declaration import (
@@ -39,7 +38,7 @@ from propstore.families.micropublications.declaration import (
     MICROPUBLICATION_CLAIM_PROJECTION,
     MICROPUBLICATION_PROJECTION,
 )
-from propstore.families.relations.declaration import RELATION_EDGE_TABLE
+from propstore.families.relations.declaration import CONFLICT_WITNESS_TABLE, RELATION_EDGE_TABLE
 from propstore.families.rules.declaration import (
     GROUNDED_BUNDLE_INPUT_PROJECTION,
     GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION,

@@ -430,26 +430,6 @@ CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL: ProjectionModel[dict[str, object]] = Proj
 )
 
 
-CONFLICT_WITNESS_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
-    name="conflict_witness_storage",
-    table="conflict_witness",
-    result_type=dict,
-    fields=(
-        ScalarPath(("id",), "id", codec=AUTOINCREMENT_CODEC, insertable=False),
-        ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("claim_a_id",), "claim_a_id", codec=TEXT_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("claim_b_id",), "claim_b_id", codec=TEXT_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("warning_class",), "warning_class", codec=TEXT_CODEC, nullable=False, missing="raise"),
-        ScalarPath(("conditions_a",), "conditions_a", codec=TEXT_CODEC),
-        ScalarPath(("conditions_b",), "conditions_b", codec=TEXT_CODEC),
-        ScalarPath(("value_a",), "value_a", codec=TEXT_CODEC),
-        ScalarPath(("value_b",), "value_b", codec=TEXT_CODEC),
-        ScalarPath(("derivation_chain",), "derivation_chain", codec=TEXT_CODEC),
-    ),
-    indexes=(ProjectionIndex("idx_conflict_witness_concept", ("concept_id",)),),
-)
-
-
 JUSTIFICATION_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
     name="justification_storage",
     table="justification",
@@ -472,7 +452,6 @@ CLAIM_CONCEPT_LINK_TABLE = CLAIM_CONCEPT_LINK_STORAGE_MODEL.projection_tables()[
 CLAIM_NUMERIC_PAYLOAD_TABLE = CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL.projection_tables()[0]
 CLAIM_TEXT_PAYLOAD_TABLE = CLAIM_TEXT_PAYLOAD_STORAGE_MODEL.projection_tables()[0]
 CLAIM_ALGORITHM_PAYLOAD_TABLE = CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL.projection_tables()[0]
-CONFLICT_WITNESS_TABLE = CONFLICT_WITNESS_STORAGE_MODEL.projection_tables()[0]
 JUSTIFICATION_TABLE = JUSTIFICATION_STORAGE_MODEL.projection_tables()[0]
 
 
@@ -482,7 +461,6 @@ CLAIM_STORAGE_TABLES = (
     CLAIM_NUMERIC_PAYLOAD_TABLE,
     CLAIM_TEXT_PAYLOAD_TABLE,
     CLAIM_ALGORITHM_PAYLOAD_TABLE,
-    CONFLICT_WITNESS_TABLE,
     JUSTIFICATION_TABLE,
 )
 
