@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.reporting import JsonReportMixin
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.families.concepts.declaration import ConceptRow, ConceptSearchQuerySyntaxError
 from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.world.types import RenderPolicy
@@ -424,9 +425,7 @@ def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
 
 
 def world_claim_display_id(claim: Mapping[str, object] | Any) -> str:
-    from propstore.families.claims.declaration import coerce_claim_row
-
-    row = coerce_claim_row(claim)
+    row = CLAIM_ROW_MODEL.coerce(claim)
     logical_id = row.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return logical_id
@@ -453,8 +452,6 @@ def query_world_concept(
     world: WorldQuery,
     request: WorldConceptQueryRequest,
 ) -> WorldConceptQueryReport:
-    from propstore.families.claims.declaration import coerce_claim_row
-
     resolved, resolved_from = _resolve_world_query_target(world, request.target)
     concept = world.get_concept(resolved)
     if concept is None:
@@ -469,10 +466,10 @@ def query_world_concept(
             conditions=str(claim_dict.get("conditions_cel") or "[]"),
         )
         for claim_row in (
-            coerce_claim_row(claim)
+            CLAIM_ROW_MODEL.coerce(claim)
             for claim in world.claims_with_policy(resolved, request.policy)
         )
-        for claim_dict in (claim_row.to_dict(),)
+        for claim_dict in (CLAIM_ROW_MODEL.to_mapping(claim_row),)
     )
     diagnostics = tuple(
         WorldDiagnosticLine(
@@ -517,7 +514,7 @@ def query_bound_world(
                     ),
                 )
                 for active_claim in result.claims
-                for claim_dict in (active_claim.row.to_dict(),)
+                for claim_dict in (CLAIM_ROW_MODEL.to_mapping(active_claim.row),)
             ),
         )
 
@@ -535,7 +532,7 @@ def query_bound_world(
                 conditions=str(claim_dict.get("conditions_cel") or "[]"),
             )
             for active_claim in active_claims
-            for claim_dict in (active_claim.row.to_dict(),)
+            for claim_dict in (CLAIM_ROW_MODEL.to_mapping(active_claim.row),)
         ),
     )
 
@@ -544,12 +541,10 @@ def explain_world_claim(
     world: WorldQuery,
     request: WorldExplainRequest,
 ) -> WorldExplainReport:
-    from propstore.families.claims.declaration import coerce_claim_row
-
     claim_input = world.get_claim(request.claim_id)
     if claim_input is None:
         raise UnknownClaimError(request.claim_id)
-    claim = coerce_claim_row(claim_input)
+    claim = CLAIM_ROW_MODEL.coerce(claim_input)
     claim_display_id = world_claim_display_id(claim)
     stances: list[WorldStanceLine] = []
     for stance in world.explain(str(claim.claim_id)):
@@ -590,9 +585,8 @@ def list_world_algorithms(
 ) -> WorldAlgorithmsReport:
     from propstore.core.algorithm_stage import coerce_algorithm_stage
     from propstore.core.claim_types import ClaimType
-    from propstore.families.claims.declaration import coerce_claim_row
 
-    claims = [coerce_claim_row(claim) for claim in world.claims_for(None)]
+    claims = [CLAIM_ROW_MODEL.coerce(claim) for claim in world.claims_for(None)]
     algorithms = [claim for claim in claims if claim.claim_type is ClaimType.ALGORITHM]
     stage_filter = (
         coerce_algorithm_stage(request.stage)
