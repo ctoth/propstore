@@ -7,8 +7,9 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.families.registry import SourceRef
 from propstore.repository import Repository
-from propstore.source import finalize_source_branch, promote_source_branch, source_branch_name
+from propstore.source import finalize_source_branch, promote_source_branch
 from propstore.source.promote import PromotionResult
 
 from tests.family_helpers import materialized_world_store_path
@@ -133,10 +134,11 @@ def test_promote_returns_in_memory_blocked_diagnostics_after_committed_mirror(
         commit_hash=repo.git.head_sha(),
     )
     conn = sqlite3.connect(store_path)
+    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     try:
         mirrored_rows = conn.execute(
             "SELECT id FROM claim_core WHERE branch = ? AND promotion_status = 'blocked'",
-            (source_branch_name(source_name),),
+            (branch,),
         ).fetchall()
     finally:
         conn.close()
