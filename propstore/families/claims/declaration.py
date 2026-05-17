@@ -86,7 +86,12 @@ from propstore.families.diagnostics.declaration import (
     delete_promotion_blocked_diagnostics,
 )
 from propstore.families.documents.justifications import JustificationDocument
-from propstore.families.relations.declaration import claim_stance_relation_edge_row
+from propstore.families.relations.declaration import (
+    CLAIM_STANCE_DISCRIMINATORS,
+    CLAIM_STANCE_STORAGE_MODEL,
+    RELATION_EDGE_TABLE,
+    StanceRow,
+)
 from propstore.families.sources.declaration import SOURCE_PROJECTION
 
 if TYPE_CHECKING:
@@ -976,10 +981,52 @@ def compile_claim_sidecar_rows(
                     claim_index,
                 )
             )
-            stance_rows.extend(
-                claim_stance_relation_edge_row(values)
-                for values in deferred_stance_rows
-            )
+            for values in deferred_stance_rows:
+                stance = StanceRow(
+                    claim_id=str(values[0]),
+                    target_claim_id=str(values[1]),
+                    stance_type=str(values[2]),
+                    target_justification_id=(
+                        None if values[3] is None else str(values[3])
+                    ),
+                    strength=None if values[4] is None else str(values[4]),
+                    conditions_differ=(
+                        None
+                        if values[5] is None
+                        else str(
+                            json.dumps(values[5])
+                            if isinstance(values[5], list)
+                            else values[5]
+                        )
+                    ),
+                    note=None if values[6] is None else str(values[6]),
+                    resolution_method=None if values[7] is None else str(values[7]),
+                    resolution_model=None if values[8] is None else str(values[8]),
+                    embedding_model=None if values[9] is None else str(values[9]),
+                    embedding_distance=(
+                        None if values[10] is None else float(values[10])
+                    ),
+                    pass_number=None if values[11] is None else int(values[11]),
+                    confidence=None if values[12] is None else float(values[12]),
+                    opinion_belief=None if values[13] is None else float(values[13]),
+                    opinion_disbelief=(
+                        None if values[14] is None else float(values[14])
+                    ),
+                    opinion_uncertainty=(
+                        None if values[15] is None else float(values[15])
+                    ),
+                    opinion_base_rate=(
+                        None if values[16] is None else float(values[16])
+                    ),
+                    perspective_source_claim_id=(
+                        None if values[17] is None else str(values[17])
+                    ),
+                )
+                row_values: dict[str, object] = {}
+                for discriminator in CLAIM_STANCE_DISCRIMINATORS:
+                    row_values.update(discriminator.row_values())
+                row_values.update(CLAIM_STANCE_STORAGE_MODEL.to_row(stance))
+                stance_rows.append(RELATION_EDGE_TABLE.row(**row_values))
             quarantine_diagnostics.extend(deferred_stance_diagnostics)
 
     return ClaimSidecarRows(
