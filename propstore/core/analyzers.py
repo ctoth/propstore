@@ -143,7 +143,7 @@ def _claim_mapping_from_node(claim: ClaimNode) -> dict:
         "type": claim.claim_type,
         "value": claim.scalar_value,
     }
-    data.update(dict(claim.attributes))
+    data.update(claim.attribute_mapping())
     if claim.provenance is not None:
         if claim.provenance.paper is not None:
             data.setdefault("source_paper", claim.provenance.paper)

@@ -414,7 +414,8 @@ def _claim_status(claim, visible: bool) -> ClaimViewStatus:
 
 
 def _attribute_text(claim, key: str, default: str) -> str:
-    raw = claim.attributes.get(key)
+    getter = getattr(claim, "attribute_value", None)
+    raw = getter(key) if callable(getter) else dict(getattr(claim, "attributes", {})).get(key)
     if raw is None or raw == "":
         return default
     return str(raw)

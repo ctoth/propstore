@@ -104,7 +104,7 @@ def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
 
 
 def _claim_attributes(row: ClaimRow) -> tuple[tuple[str, Any], ...]:
-    claim_data: dict[str, Any] = dict(row.attributes)
+    claim_data: dict[str, Any] = row.attribute_mapping()
     optional_fields = {
         "seq": row.seq,
         "lower_bound": row.lower_bound,
@@ -378,7 +378,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                             f"{claim_display_ids.get(str(stance.target_claim_id), (_display_claim_id(store, str(stance.target_claim_id)) if prefer_logical_claim_ids else str(stance.target_claim_id)))}:{stance.stance_type}"
                         ),
                     ),
-                    attributes=tuple(stance.attributes.items()),
+                    attributes=tuple(stance.attribute_mapping().items()),
                 )
                 for stance in claim_stance_rows
             )
@@ -463,7 +463,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                                 if conflict.concept_id is not None
                                 else None
                             ),
-                            *tuple(conflict.attributes.items()),
+                            *tuple(conflict.attribute_mapping().items()),
                         )
                         if entry is not None
                     ),

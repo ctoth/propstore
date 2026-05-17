@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from quire.projection_mapping import ProjectionCodec, ProjectionModel, ProjectionRenderView, ScalarPath
+from quire.projection_mapping import ProjectionCodec, ProjectionMetadata, ProjectionModel, ProjectionRenderView, ScalarPath
 
 from propstore.core.concept_status import coerce_concept_status
 from propstore.core.exactness_types import coerce_exactness
@@ -46,6 +46,18 @@ def _logical_ids_payload(value: Any) -> object:
 
 
 TEXT_CODEC = ProjectionCodec("text", "TEXT", encoder=_nullable_text, decoder=_nullable_text)
+INTEGER_CODEC = ProjectionCodec(
+    "integer",
+    "INTEGER",
+    encoder=lambda value: None if value is None else int(value),
+    decoder=lambda value: None if value is None else int(value),
+)
+REAL_CODEC = ProjectionCodec(
+    "real",
+    "REAL",
+    encoder=lambda value: None if value is None else float(value),
+    decoder=lambda value: None if value is None else float(value),
+)
 CONCEPT_ID_CODEC = ProjectionCodec("concept_id", "TEXT", encoder=_nullable_text, decoder=_concept_id)
 CONCEPT_STATUS_CODEC = ProjectionCodec(
     "concept_status",
@@ -87,8 +99,22 @@ CONCEPT_ROW_MODEL: ProjectionModel[ConceptRow] = ProjectionModel(
             output_key="logical_ids",
             codec=LOGICAL_IDS_PAYLOAD_CODEC,
         ),
+        ProjectionMetadata(
+            path=(),
+            fields=(
+                ScalarPath(("version_id",), "version_id", codec=TEXT_CODEC),
+                ScalarPath(("content_hash",), "content_hash", codec=TEXT_CODEC),
+                ScalarPath(("seq",), "seq", codec=INTEGER_CODEC),
+                ScalarPath(("range_min",), "range_min", codec=REAL_CODEC),
+                ScalarPath(("range_max",), "range_max", codec=REAL_CODEC),
+                ScalarPath(("is_dimensionless",), "is_dimensionless", codec=INTEGER_CODEC),
+                ScalarPath(("unit_symbol",), "unit_symbol", codec=TEXT_CODEC),
+                ScalarPath(("created_date",), "created_date", codec=TEXT_CODEC),
+                ScalarPath(("last_modified",), "last_modified", codec=TEXT_CODEC),
+            ),
+            result_type=dict,
+        ),
     ),
-    attribute_bucket=("attributes",),
 )
 
 
@@ -111,5 +137,4 @@ PARAMETERIZATION_ROW_MODEL: ProjectionModel[ParameterizationRow] = ProjectionMod
         ScalarPath(("conditions_cel",), "conditions_cel", codec=TEXT_CODEC),
         ScalarPath(("conditions_ir",), "conditions_ir", codec=TEXT_CODEC),
     ),
-    attribute_bucket=("attributes",),
 )

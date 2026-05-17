@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from quire.projection_mapping import ProjectionCodec, ProjectionModel, ScalarPath
+from quire.projection_mapping import ProjectionCodec, ProjectionMetadata, ProjectionModel, ScalarPath
 
 from propstore.conflict_detector.models import coerce_conflict_class
 from propstore.core.concept_relationship_types import coerce_concept_relationship_type
@@ -53,6 +53,19 @@ def _conflict_class_value(value: Any) -> str | None:
 
 
 TEXT_CODEC = ProjectionCodec("text", "TEXT", encoder=_nullable_text, decoder=_nullable_text)
+RAW_CODEC = ProjectionCodec("raw", "TEXT")
+INTEGER_CODEC = ProjectionCodec(
+    "integer",
+    "INTEGER",
+    encoder=lambda value: None if value is None else int(value),
+    decoder=lambda value: None if value is None else int(value),
+)
+REAL_CODEC = ProjectionCodec(
+    "real",
+    "REAL",
+    encoder=lambda value: None if value is None else float(value),
+    decoder=lambda value: None if value is None else float(value),
+)
 CLAIM_ID_CODEC = ProjectionCodec("claim_id", "TEXT", encoder=_nullable_text, decoder=_claim_id)
 CONCEPT_ID_CODEC = ProjectionCodec("concept_id", "TEXT", encoder=_nullable_text, decoder=_concept_id)
 JUSTIFICATION_ID_CODEC = ProjectionCodec(
@@ -98,7 +111,6 @@ RELATIONSHIP_ROW_MODEL: ProjectionModel[RelationshipRow] = ProjectionModel(
         ScalarPath(("conditions_cel",), "conditions_cel", codec=TEXT_CODEC),
         ScalarPath(("note",), "note", codec=TEXT_CODEC),
     ),
-    attribute_bucket=("attributes",),
 )
 
 
@@ -123,8 +135,27 @@ STANCE_ROW_MODEL: ProjectionModel[StanceRow] = ProjectionModel(
             missing="raise",
         ),
         ScalarPath(("target_justification_id",), "target_justification_id", codec=JUSTIFICATION_ID_CODEC),
+        ProjectionMetadata(
+            path=(),
+            fields=(
+                ScalarPath(("perspective_source_claim_id",), "perspective_source_claim_id", codec=CLAIM_ID_CODEC),
+                ScalarPath(("strength",), "strength", codec=TEXT_CODEC),
+                ScalarPath(("conditions_differ",), "conditions_differ", codec=TEXT_CODEC),
+                ScalarPath(("note",), "note", codec=TEXT_CODEC),
+                ScalarPath(("resolution_method",), "resolution_method", codec=TEXT_CODEC),
+                ScalarPath(("resolution_model",), "resolution_model", codec=TEXT_CODEC),
+                ScalarPath(("embedding_model",), "embedding_model", codec=TEXT_CODEC),
+                ScalarPath(("embedding_distance",), "embedding_distance", codec=REAL_CODEC),
+                ScalarPath(("pass_number",), "pass_number", codec=INTEGER_CODEC),
+                ScalarPath(("confidence",), "confidence", codec=REAL_CODEC),
+                ScalarPath(("opinion_belief",), "opinion_belief", codec=REAL_CODEC),
+                ScalarPath(("opinion_disbelief",), "opinion_disbelief", codec=REAL_CODEC),
+                ScalarPath(("opinion_uncertainty",), "opinion_uncertainty", codec=REAL_CODEC),
+                ScalarPath(("opinion_base_rate",), "opinion_base_rate", codec=REAL_CODEC),
+            ),
+            result_type=dict,
+        ),
     ),
-    attribute_bucket=("attributes",),
 )
 
 
@@ -138,6 +169,16 @@ CONFLICT_ROW_MODEL: ProjectionModel[ConflictRow] = ProjectionModel(
         ScalarPath(("concept_id",), "concept_id", codec=CONCEPT_ID_CODEC),
         ScalarPath(("warning_class",), "warning_class", codec=CONFLICT_CLASS_CODEC),
         ScalarPath(("conflict_class",), "conflict_class", codec=CONFLICT_CLASS_CODEC),
+        ProjectionMetadata(
+            path=(),
+            fields=(
+                ScalarPath(("conditions_a",), "conditions_a", codec=TEXT_CODEC),
+                ScalarPath(("conditions_b",), "conditions_b", codec=TEXT_CODEC),
+                ScalarPath(("value_a",), "value_a", codec=RAW_CODEC),
+                ScalarPath(("value_b",), "value_b", codec=RAW_CODEC),
+                ScalarPath(("derivation_chain",), "derivation_chain", codec=TEXT_CODEC),
+            ),
+            result_type=dict,
+        ),
     ),
-    attribute_bucket=("attributes",),
 )

@@ -186,7 +186,7 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
     """Derive argument-existence opinion from a calibrated claim row."""
     if isinstance(claim, ClaimRow):
         claim_opinion = _opinion_from_payload(
-            claim.attributes,
+            claim.attribute_mapping(),
             prefix="opinion_",
             operation="claim_opinion_columns",
         )
@@ -199,10 +199,10 @@ def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
         prior_base_rate = (
             None if source_trust is None else source_trust.prior_base_rate
         )
-        claim_probability = claim.attributes.get("claim_probability")
-        effective_sample_size = claim.attributes.get("effective_sample_size", claim.sample_size)
-        if claim_probability is None and claim.attributes.get("confidence") is not None:
-            claim_probability = claim.attributes.get("confidence")
+        claim_probability = claim.attribute_value("claim_probability")
+        effective_sample_size = claim.attribute_value("effective_sample_size") or claim.sample_size
+        if claim_probability is None and claim.attribute_value("confidence") is not None:
+            claim_probability = claim.attribute_value("confidence")
         quality_opinion = None if source_trust is None else source_trust.quality
 
         has_structured_fields = (

@@ -125,7 +125,7 @@ def claim_source_assertion_ids_from_active_graph(
     for claim in active_graph.compiled.claims:
         if claim.claim_id not in active_claim_ids:
             continue
-        raw = dict(claim.attributes).get("source_assertion_ids")
+        raw = claim.attribute_value("source_assertion_ids")
         assertion_ids = _coerce_source_assertion_ids(raw)
         if assertion_ids:
             mapping[str(claim.claim_id)] = assertion_ids

@@ -119,7 +119,7 @@ class ActiveClaim:
     @classmethod
     def from_claim_row(cls, row: ClaimRow) -> ActiveClaim:
         variables = _parse_variables(row.variables_json)
-        branch = row.attributes.get("branch")
+        branch = row.branch
         checked_conditions = _parse_checked_conditions(row.conditions_ir)
         if row.conditions_cel and checked_conditions is None:
             raise ValueError(
@@ -203,7 +203,7 @@ class ActiveClaim:
 
     @property
     def attributes(self) -> Mapping[str, Any]:
-        return self.row.attributes
+        return self.row.attribute_mapping()
 
     @property
     def display_claim_id(self) -> str:

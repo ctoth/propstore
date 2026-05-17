@@ -79,7 +79,7 @@ def metadata_strength_vector(
     if isinstance(claim, ActiveClaim):
         sample_size = claim.sample_size
         uncertainty = claim.uncertainty
-        confidence = claim.attributes.get("confidence")
+        confidence = claim.row.attribute_value("confidence")
         source_artifact_code = claim.artifact_id
     else:
         sample_size = claim.get("sample_size")

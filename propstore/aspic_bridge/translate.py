@@ -30,7 +30,8 @@ from propstore.preference import MetadataStrengthVector, metadata_strength_vecto
 
 
 def _claim_attr(claim: ActiveClaim, key: str) -> Any:
-    return getattr(claim, key, claim.attributes.get(key))
+    value = getattr(claim, key, None)
+    return value if value is not None else claim.attribute_value(key)
 
 
 def _claim_context_id(claim: ActiveClaim) -> str:

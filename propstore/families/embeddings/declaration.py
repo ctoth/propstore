@@ -226,7 +226,7 @@ class SidecarClaimEmbeddingStore(_SidecarEntityEmbeddingStore):
                 EmbeddingEntity(
                     entity_id=str(claim.claim_id),
                     seq=claim.seq,
-                    content_hash=str(claim.attributes["content_hash"]),
+                    content_hash=str(claim.content_hash),
                     text=claim_embedding_text(claim),
                 )
             )

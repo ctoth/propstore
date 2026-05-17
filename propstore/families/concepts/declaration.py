@@ -367,6 +367,15 @@ class ConceptRow:
     form_parameters: str | None = None
     primary_logical_id: str | None = None
     logical_ids_json: str | None = None
+    version_id: str | None = None
+    content_hash: str | None = None
+    seq: int | None = None
+    range_min: float | None = None
+    range_max: float | None = None
+    is_dimensionless: int | None = None
+    unit_symbol: str | None = None
+    created_date: str | None = None
+    last_modified: str | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -382,6 +391,31 @@ class ConceptRow:
         except json.JSONDecodeError:
             return []
         return loaded if isinstance(loaded, list) else []
+
+    def attribute_mapping(self) -> dict[str, Any]:
+        data = dict(self.attributes)
+        for key in (
+            "version_id",
+            "content_hash",
+            "seq",
+            "range_min",
+            "range_max",
+            "is_dimensionless",
+            "unit_symbol",
+            "created_date",
+            "last_modified",
+        ):
+            value = getattr(self, key)
+            if value is not None:
+                data[key] = value
+        return data
+
+    def attribute_value(self, key: str) -> Any:
+        if hasattr(self, key):
+            value = getattr(self, key)
+            if value is not None:
+                return value
+        return dict(self.attributes).get(key)
 
 
 @dataclass(frozen=True)

@@ -57,6 +57,14 @@ class RelationshipRow:
         )
         object.__setattr__(self, "attributes", dict(self.attributes))
 
+    def attribute_mapping(self) -> dict[str, Any]:
+        data = dict(self.attributes)
+        if self.conditions_cel is not None:
+            data["conditions_cel"] = self.conditions_cel
+        if self.note is not None:
+            data["note"] = self.note
+        return data
+
 
 @dataclass(frozen=True)
 class StanceRow:
@@ -64,11 +72,62 @@ class StanceRow:
     target_claim_id: ClaimId
     stance_type: StanceType
     target_justification_id: JustificationId | None = None
+    perspective_source_claim_id: ClaimId | None = None
+    strength: str | None = None
+    conditions_differ: str | None = None
+    note: str | None = None
+    resolution_method: str | None = None
+    resolution_model: str | None = None
+    embedding_model: str | None = None
+    embedding_distance: float | None = None
+    pass_number: int | None = None
+    confidence: float | None = None
+    opinion_belief: float | None = None
+    opinion_disbelief: float | None = None
+    opinion_uncertainty: float | None = None
+    opinion_base_rate: float | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "stance_type", coerce_stance_type(self.stance_type))
+        if self.perspective_source_claim_id is not None:
+            object.__setattr__(
+                self,
+                "perspective_source_claim_id",
+                to_claim_id(self.perspective_source_claim_id),
+            )
         object.__setattr__(self, "attributes", dict(self.attributes))
+
+    def attribute_mapping(self) -> dict[str, Any]:
+        data = dict(self.attributes)
+        for key in (
+            "perspective_source_claim_id",
+            "target_justification_id",
+            "strength",
+            "conditions_differ",
+            "note",
+            "resolution_method",
+            "resolution_model",
+            "embedding_model",
+            "embedding_distance",
+            "pass_number",
+            "confidence",
+            "opinion_belief",
+            "opinion_disbelief",
+            "opinion_uncertainty",
+            "opinion_base_rate",
+        ):
+            value = getattr(self, key)
+            if value is not None:
+                data[key] = value
+        return data
+
+    def attribute_value(self, key: str) -> Any:
+        if hasattr(self, key):
+            value = getattr(self, key)
+            if value is not None:
+                return value
+        return dict(self.attributes).get(key)
 
 
 @dataclass(frozen=True)
@@ -78,12 +137,31 @@ class ConflictRow:
     concept_id: ConceptId | None = None
     warning_class: ConflictClass | None = None
     conflict_class: ConflictClass | None = None
+    conditions_a: str | None = None
+    conditions_b: str | None = None
+    value_a: Any = None
+    value_b: Any = None
+    derivation_chain: str | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "warning_class", coerce_conflict_class(self.warning_class))
         object.__setattr__(self, "conflict_class", coerce_conflict_class(self.conflict_class))
         object.__setattr__(self, "attributes", dict(self.attributes))
+
+    def attribute_mapping(self) -> dict[str, Any]:
+        data = dict(self.attributes)
+        for key in (
+            "conditions_a",
+            "conditions_b",
+            "value_a",
+            "value_b",
+            "derivation_chain",
+        ):
+            value = getattr(self, key)
+            if value is not None:
+                data[key] = value
+        return data
 
 
 RelationshipRowInput = RelationshipRow | Mapping[str, Any]

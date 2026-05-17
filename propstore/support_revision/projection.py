@@ -170,7 +170,7 @@ def _claim_subject(claim: ActiveClaim) -> str:
     for value in (
         claim.value_concept_id,
         claim.target_concept,
-        claim.attributes.get("concept_id"),
+        claim.attribute_value("concept_id"),
     ):
         if value is not None:
             return str(value)

@@ -36,8 +36,8 @@ def stance_summary(
         row = STANCE_ROW_MODEL.coerce(row_input)
         total += 1
         stype = row.stance_type
-        model = row.attributes.get("resolution_model")
-        opinion_u = row.attributes.get("opinion_uncertainty")
+        model = row.attribute_value("resolution_model")
+        opinion_u = row.attribute_value("opinion_uncertainty")
 
         if stype in NON_ATTACK_TYPES:
             excluded_non_attack += 1

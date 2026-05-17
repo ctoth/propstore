@@ -172,6 +172,12 @@ class ConceptNode:
     def __post_init__(self) -> None:
         object.__setattr__(self, "attributes", _normalize_pairs(self.attributes))
 
+    def attribute_mapping(self) -> dict[str, Any]:
+        return dict(self.attributes)
+
+    def attribute_value(self, key: str) -> Any:
+        return self.attribute_mapping().get(key)
+
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
             "concept_id": self.concept_id,
@@ -261,6 +267,12 @@ class ClaimNode:
     def __post_init__(self) -> None:
         object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
         object.__setattr__(self, "attributes", _normalize_pairs(self.attributes))
+
+    def attribute_mapping(self) -> dict[str, Any]:
+        return dict(self.attributes)
+
+    def attribute_value(self, key: str) -> Any:
+        return self.attribute_mapping().get(key)
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {

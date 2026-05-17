@@ -91,7 +91,7 @@ def _conflict_witness_from_row(row: ConflictRow) -> ConflictWitness:
             entry
             for entry in (
                 (("concept_id", conflict.concept_id) if conflict.concept_id is not None else None),
-                *tuple(conflict.attributes.items()),
+                *tuple(conflict.attribute_mapping().items()),
             )
             if entry is not None
         ),

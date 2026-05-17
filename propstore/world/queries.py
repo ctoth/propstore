@@ -354,10 +354,7 @@ def _format_value_with_si(
                 concept = world.get_concept(concept_id)
                 if concept is not None:
                     canonical_unit = str(
-                        CONCEPT_ROW_MODEL.coerce(concept).attributes.get(
-                            "unit_symbol"
-                        )
-                        or ""
+                        CONCEPT_ROW_MODEL.coerce(concept).unit_symbol or ""
                     )
         si_label = f"{value_si} {canonical_unit}".rstrip()
         return f"value={value} {unit} (SI: {si_label})"
@@ -573,8 +570,8 @@ def explain_world_claim(
                 source_display_id=source_display_id,
                 stance_type=str(stance.stance_type),
                 target_display_id=target_display_id,
-                strength=stance.attributes.get("strength"),
-                note=stance.attributes.get("note"),
+                strength=stance.attribute_value("strength"),
+                note=stance.attribute_value("note"),
                 nested=source_id != str(claim.claim_id),
             )
         )

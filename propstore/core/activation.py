@@ -90,7 +90,7 @@ def claim_lifting_materializations(
 
 
 def _claim_attributes(claim: ClaimNode) -> dict[str, Any]:
-    return dict(claim.attributes)
+    return claim.attribute_mapping()
 
 
 def _claim_context_id(claim: ClaimNode) -> str | None:

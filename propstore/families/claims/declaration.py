@@ -164,6 +164,20 @@ class ClaimRow:
     lower_bound_si: float | None = None
     upper_bound_si: float | None = None
     context_id: ContextId | None = None
+    content_hash: str | None = None
+    branch: str | None = None
+    build_status: str | None = None
+    stage: str | None = None
+    promotion_status: str | None = None
+    confidence: float | None = None
+    claim_probability: float | None = None
+    effective_sample_size: int | None = None
+    opinion_belief: float | None = None
+    opinion_disbelief: float | None = None
+    opinion_uncertainty: float | None = None
+    opinion_base_rate: float | None = None
+    source_assertion_ids: Any = None
+    concept_id: ConceptId | None = None
     attributes: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
@@ -308,6 +322,36 @@ class ClaimRow:
     def target_concept_ids(self) -> tuple[ConceptId, ...]:
         return self.concept_ids_for_role(ClaimConceptLinkRole.TARGET)
 
+    def attribute_mapping(self) -> dict[str, Any]:
+        data = dict(self.attributes)
+        for key in (
+            "content_hash",
+            "branch",
+            "build_status",
+            "stage",
+            "promotion_status",
+            "confidence",
+            "claim_probability",
+            "effective_sample_size",
+            "opinion_belief",
+            "opinion_disbelief",
+            "opinion_uncertainty",
+            "opinion_base_rate",
+            "source_assertion_ids",
+            "concept_id",
+        ):
+            value = getattr(self, key)
+            if value is not None:
+                data[key] = value
+        return data
+
+    def attribute_value(self, key: str) -> Any:
+        if hasattr(self, key):
+            value = getattr(self, key)
+            if value is not None:
+                return value
+        return dict(self.attributes).get(key)
+
     def to_dict(self) -> dict[str, Any]:
         data = {
             key: value
@@ -384,7 +428,7 @@ class ClaimRow:
             data["source"] = source_dict
         if source_quality is not None:
             data["source_quality_opinion"] = source_quality
-        data.update(self.attributes)
+        data.update(self.attribute_mapping())
         return data
 
 

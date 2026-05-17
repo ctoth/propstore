@@ -64,7 +64,7 @@ def _projection_backend_atom_id(literal: Literal) -> str:
 def _source_assertion_ids_for_claim(claim: ActiveClaim | None) -> tuple[str, ...]:
     if claim is None:
         return ()
-    raw = claim.attributes.get("source_assertion_ids")
+    raw = claim.attribute_value("source_assertion_ids")
     if isinstance(raw, str):
         return (raw,)
     if isinstance(raw, Sequence) and not isinstance(raw, str | bytes):

@@ -85,7 +85,9 @@ def _claim_value(claim: ActiveClaim) -> float | str | None:
 
 
 def _claim_optional_int(claim: ActiveClaim, key: str) -> int | None:
-    value = getattr(claim, key, claim.attributes.get(key))
+    value = getattr(claim, key, None)
+    if value is None:
+        value = claim.attribute_value(key)
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -94,7 +96,9 @@ def _claim_optional_int(claim: ActiveClaim, key: str) -> int | None:
 
 
 def _claim_optional_float(claim: ActiveClaim, key: str) -> float | None:
-    value = getattr(claim, key, claim.attributes.get(key))
+    value = getattr(claim, key, None)
+    if value is None:
+        value = claim.attribute_value(key)
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):
