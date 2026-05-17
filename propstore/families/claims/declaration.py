@@ -162,6 +162,7 @@ class ClaimRow:
     lower_bound_si: float | None = None
     upper_bound_si: float | None = None
     context_id: ContextId | None = None
+    premise_kind: str | None = None
     content_hash: str | None = None
     branch: str | None = None
     build_status: str | None = None

@@ -448,7 +448,6 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
                 encoder=TEXT_CODEC.encode,
                 decoder=TEXT_CODEC.decode,
             ),
-            read_name="id",
             missing="raise",
         ),
         ProjectionBinding(
@@ -671,6 +670,7 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
                 ScalarPath(("build_status",), "build_status", codec=TEXT_CODEC),
                 ScalarPath(("stage",), "stage", codec=TEXT_CODEC),
                 ScalarPath(("promotion_status",), "promotion_status", codec=TEXT_CODEC),
+                ScalarPath(("premise_kind",), "premise_kind", codec=TEXT_CODEC),
                 ScalarPath(("confidence",), "confidence", codec=REAL_CODEC),
                 ScalarPath(("claim_probability",), "claim_probability", codec=REAL_CODEC),
                 ScalarPath(("effective_sample_size",), "effective_sample_size", codec=INTEGER_CODEC),
@@ -687,7 +687,6 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
             path=("attributes",),
             fields=(
                 ScalarPath(("conditions",), "conditions", codec=RAW_CODEC),
-                ScalarPath(("premise_kind",), "premise_kind", codec=TEXT_CODEC),
             ),
             result_type=dict,
         ),
