@@ -192,7 +192,7 @@ def compare_algorithm_claims(
     claim_b = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim_b_input)))
     body_a = claim_a.get("body")
     body_b = claim_b.get("body")
-    if not body_a or not body_b:
+    if not isinstance(body_a, str) or not isinstance(body_b, str) or not body_a or not body_b:
         raise ClaimComparisonError("Both claims must be algorithm claims with a body.")
 
     try:
