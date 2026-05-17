@@ -4,14 +4,14 @@ from pathlib import Path
 
 from propstore.repository import Repository, retry_live_branch_update
 from propstore.families.registry import SourceRef
-from quire.documents import decode_document_path
+from quire.documents import decode_document_batch_bytes
 
 from .common import load_source_concepts_document
+from propstore.families.batch_specs import SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,
     SourceConceptRegistryMatchDocument,
-    SourceConceptsDocument,
 )
 from .registry import primary_branch_concept_match
 
@@ -31,10 +31,10 @@ def validate_form_name(form: str, repo: Repository) -> None:
 
 def normalize_source_concepts_document(
     repo: Repository,
-    data: SourceConceptsDocument,
-) -> SourceConceptsDocument:
+    data: tuple[SourceConceptEntryDocument, ...],
+) -> tuple[SourceConceptEntryDocument, ...]:
     normalized_concepts: list[SourceConceptEntryDocument] = []
-    for index, entry in enumerate(data.concepts, start=1):
+    for index, entry in enumerate(data, start=1):
         local_name = (entry.local_name or entry.proposed_name or "").strip()
         proposed_name = (entry.proposed_name or entry.local_name or "").strip()
         definition = (entry.definition or "").strip()
@@ -67,11 +67,15 @@ def normalize_source_concepts_document(
                 artifact_code=entry.artifact_code,
             )
         )
-    return SourceConceptsDocument(concepts=tuple(normalized_concepts))
+    return tuple(normalized_concepts)
 
 
 def commit_source_concepts_batch(repo: Repository, source_name: str, concepts_file: Path) -> str:
-    loaded = decode_document_path(concepts_file, SourceConceptsDocument)
+    loaded = decode_document_batch_bytes(
+        concepts_file.read_bytes(),
+        SOURCE_CONCEPT_BATCH_SPEC,
+        source=str(concepts_file),
+    )
     normalized = normalize_source_concepts_document(repo, loaded)
     return repo.families.source_concepts.save(
         SourceRef(source_name),
@@ -90,9 +94,9 @@ def commit_source_concept_proposal(
     form_parameters: SourceConceptFormParametersDocument | None = None,
 ) -> SourceConceptEntryDocument:
     validate_form_name(form, repo)
-    def update(expected_head: str | None) -> SourceConceptsDocument:
-        existing = load_source_concepts_document(repo, source_name) or SourceConceptsDocument(concepts=())
-        concepts = [entry for entry in existing.concepts if entry.local_name != local_name]
+    def update(expected_head: str | None) -> tuple[SourceConceptEntryDocument, ...]:
+        existing = load_source_concepts_document(repo, source_name) or ()
+        concepts = [entry for entry in existing if entry.local_name != local_name]
         entry = SourceConceptEntryDocument(
             local_name=local_name,
             proposed_name=local_name,
@@ -101,7 +105,7 @@ def commit_source_concept_proposal(
             form_parameters=form_parameters,
         )
         concepts.append(entry)
-        doc = normalize_source_concepts_document(repo, SourceConceptsDocument(concepts=tuple(concepts)))
+        doc = normalize_source_concepts_document(repo, tuple(concepts))
         repo.families.source_concepts.save(
             SourceRef(source_name),
             doc,
@@ -112,7 +116,7 @@ def commit_source_concept_proposal(
 
     branch = repo.families.source_concepts.address(SourceRef(source_name)).branch
     doc = retry_live_branch_update(repo, branch, update)
-    for normalized_entry in doc.concepts:
+    for normalized_entry in doc:
         if normalized_entry.local_name == local_name:
             return normalized_entry
     return SourceConceptEntryDocument(

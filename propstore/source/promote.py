@@ -549,7 +549,7 @@ def resolve_source_concept_promotions(
             blocked_concept_refs[handle] = detail
             mapping.pop(handle, None)
 
-    for entry in (() if concepts_doc is None else concepts_doc.concepts):
+    for entry in (() if concepts_doc is None else concepts_doc):
         registry_match = entry.registry_match
         if registry_match is not None:
             artifact_id = registry_match.artifact_id
@@ -971,4 +971,3 @@ def promote_source_branch(
         sidecar_mirror_ok=sidecar_mirror_ok,
         sidecar_mirror_error=sidecar_mirror_error,
     )
-

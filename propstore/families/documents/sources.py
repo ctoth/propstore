@@ -232,13 +232,6 @@ class SourceConceptEntryDocument(DocumentStruct):
         return payload
 
 
-class SourceConceptsDocument(DocumentStruct):
-    concepts: tuple[SourceConceptEntryDocument, ...]
-
-    def to_payload(self) -> dict[str, Any]:
-        return {"concepts": [entry.to_payload() for entry in self.concepts]}
-
-
 class SourceClaimDocument(DocumentStruct):
     artifact_id: str | None = None
     logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()

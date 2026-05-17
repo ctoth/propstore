@@ -20,12 +20,14 @@ from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistr
 from quire.documents import (
     coerce_json_mapping,
     coerce_text_document,
+    decode_document_batch_bytes,
     decode_json_mapping,
     decode_text_document,
     encode_json_mapping,
     encode_text_document,
     identity_json_mapping,
     identity_text_document,
+    render_document_batch,
     render_json_mapping,
 )
 from quire.references import ForeignKeySpec, ReferenceKey
@@ -33,6 +35,7 @@ from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
 from propstore.families.addresses import SemanticFamilyAddress
+from propstore.families.batch_specs import SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
@@ -45,7 +48,7 @@ from propstore.families.documents.rules import RuleDocument, RuleProposalDocumen
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
 from propstore.families.documents.sources import (
     SourceClaimsDocument,
-    SourceConceptsDocument,
+    SourceConceptEntryDocument,
     SourceDocument,
     SourceFinalizeReportDocument,
     SourceJustificationsDocument,
@@ -588,6 +591,37 @@ def _family_definition(
     )
 
 
+def decode_source_concepts_document(
+    payload: bytes,
+    source: str,
+) -> tuple[SourceConceptEntryDocument, ...]:
+    return decode_document_batch_bytes(
+        payload,
+        SOURCE_CONCEPT_BATCH_SPEC,
+        source=source,
+    )
+
+
+def encode_source_concepts_document(
+    document: tuple[SourceConceptEntryDocument, ...],
+) -> bytes:
+    return render_source_concepts_document(document).encode("utf-8")
+
+
+def render_source_concepts_document(
+    document: tuple[SourceConceptEntryDocument, ...],
+) -> str:
+    return render_document_batch(document, SOURCE_CONCEPT_BATCH_SPEC)
+
+
+def source_concepts_document_payload(
+    document: tuple[SourceConceptEntryDocument, ...],
+) -> dict[str, object]:
+    return {
+        "concepts": [entry.to_payload() for entry in document],
+    }
+
+
 PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
     name="propstore",
     contract_version=PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
@@ -823,8 +857,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             name=PropstoreFamily.SOURCE_CONCEPTS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_concepts",
-            doc_type=SourceConceptsDocument,
+            doc_type=tuple,
             placement=FixedFilePlacement("concepts.yaml", branch=SOURCE_BRANCH),
+            decode_bytes=decode_source_concepts_document,
+            encode_document=encode_source_concepts_document,
+            render_document=render_source_concepts_document,
+            document_payload=source_concepts_document_payload,
+            scan_type=SourceConceptEntryDocument,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_CLAIMS,

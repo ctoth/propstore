@@ -13,7 +13,7 @@ from propstore.repository import Repository
 from propstore.parameterization_groups import build_groups
 
 from .common import normalize_source_slug
-from propstore.families.documents.sources import SourceConceptsDocument
+from propstore.families.documents.sources import SourceConceptEntryDocument
 
 
 @dataclass(frozen=True)
@@ -91,7 +91,7 @@ def primary_branch_concept_match(repo: Repository, handle: str) -> dict[str, str
 
 def projected_source_concepts(
     repo: Repository,
-    concepts_doc: SourceConceptsDocument | None,
+    concepts_doc: tuple[SourceConceptEntryDocument, ...] | None,
 ) -> tuple[list[dict[str, Any]], set[str]]:
     primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
     primary_concept_index: FamilyReferenceIndex[ConceptDocument]
@@ -106,7 +106,7 @@ def projected_source_concepts(
     projected: list[dict[str, Any]] = []
     projected_reference_records: list[SourceConceptProjectionReference] = []
     parameterized_artifacts: set[str] = set()
-    concept_entries = () if concepts_doc is None else concepts_doc.concepts
+    concept_entries = () if concepts_doc is None else concepts_doc
 
     for entry in concept_entries:
         registry_match = entry.registry_match
@@ -245,7 +245,7 @@ def parameterization_group_merge_preview(
 
 def preview_source_parameterization_group_merges(
     repo: Repository,
-    concepts_doc: SourceConceptsDocument | None,
+    concepts_doc: tuple[SourceConceptEntryDocument, ...] | None,
 ) -> list[dict[str, Any]]:
     primary_branch_concepts = load_primary_branch_concept_docs(repo)
     projected_concepts, parameterized_artifacts = projected_source_concepts(repo, concepts_doc)

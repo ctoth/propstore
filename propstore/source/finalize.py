@@ -162,7 +162,7 @@ def finalize_source_branch(
     concept_alignment_candidates = sorted(
         {
             f"align:{normalize_source_slug(str(entry.proposed_name or entry.local_name or 'concept'))}"
-            for entry in (() if concepts_doc is None else concepts_doc.concepts)
+            for entry in (() if concepts_doc is None else concepts_doc)
             if entry.registry_match is None
         }
     )

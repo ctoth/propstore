@@ -14,7 +14,7 @@ from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
 from propstore.families.documents.sources import (
     SourceClaimsDocument,
-    SourceConceptsDocument,
+    SourceConceptEntryDocument,
     SourceDocument,
     SourceFinalizeReportDocument,
     SourceMetadataDocument,
@@ -174,7 +174,7 @@ def load_source_document(repo: Repository, name: str) -> SourceDocument:
     return document
 
 
-def load_source_concepts_document(repo: Repository, name: str) -> SourceConceptsDocument | None:
+def load_source_concepts_document(repo: Repository, name: str) -> tuple[SourceConceptEntryDocument, ...] | None:
     return repo.families.source_concepts.load(SourceRef(name))
 
 

@@ -16,7 +16,8 @@ from propstore.families.registry import (
 )
 from propstore.cli import cli
 from propstore.repository import Repository
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
+from propstore.families.batch_specs import SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,
@@ -35,7 +36,6 @@ from propstore.source import (
 )
 from propstore.families.documents.sources import (
     SourceClaimsDocument,
-    SourceConceptsDocument,
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
     SourceStancesDocument,
@@ -70,9 +70,9 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
         message=f"Init source {source_name}",
     )
 
-    concepts_doc = convert_document_value(
-        concepts_payload,
-        SourceConceptsDocument,
+    concepts_doc = decode_document_batch_bytes(
+        encode_yaml_value(concepts_payload),
+        SOURCE_CONCEPT_BATCH_SPEC,
         source=f"{branch}:concepts.yaml",
     )
     repo.families.source_concepts.save(

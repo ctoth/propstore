@@ -50,7 +50,7 @@ def source_concept_handles(repo: Repository, source_name: str) -> set[str]:
     concepts_doc = load_source_concepts_document(repo, source_name)
     if concepts_doc is None:
         return handles
-    for entry in concepts_doc.concepts:
+    for entry in concepts_doc:
         if entry.local_name:
             handles.add(entry.local_name)
         if entry.proposed_name:
@@ -157,7 +157,7 @@ def _source_branch_cel_concepts(
         return []
     infos: list[ConceptInfo] = []
     seen_names: set[str] = set()
-    for entry in concepts_doc.concepts:
+    for entry in concepts_doc:
         canonical = entry.proposed_name or entry.local_name
         if not isinstance(canonical, str) or not canonical:
             continue
@@ -271,7 +271,7 @@ def _source_branch_concept_form_map(
     if concepts_doc is None:
         return {}
     mapping: dict[str, str] = {}
-    for entry in concepts_doc.concepts:
+    for entry in concepts_doc:
         if not isinstance(entry.form, str) or not entry.form:
             continue
         for handle in (entry.proposed_name, entry.local_name):

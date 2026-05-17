@@ -17,7 +17,7 @@ from propstore.families.registry import (
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.repository import Repository
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, decode_document_batch_bytes
 from argumentation.partial_af import PartialArgumentationFramework
 from argumentation.partial_af import credulously_accepted_arguments, skeptically_accepted_arguments
 from propstore.families.documents.source_alignment import (
@@ -39,8 +39,8 @@ from propstore.opinion import Opinion
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 from propstore.uri_authority import TaggingAuthority
 
-from .common import load_document_from_branch, load_source_document
-from propstore.families.documents.sources import SourceConceptsDocument
+from .common import load_source_document
+from propstore.families.batch_specs import SOURCE_CONCEPT_BATCH_SPEC
 
 
 def _serialized_alignment_mutation(function):
@@ -214,11 +214,21 @@ def align_sources(
 ) -> ConceptAlignmentArtifactDocument:
     proposals: list[dict[str, Any]] = []
     for branch in source_branches:
-        concepts_doc = load_document_from_branch(repo, branch, "concepts.yaml", SourceConceptsDocument)
+        branch_tip = repo.require_git().branch_sha(branch)
+        concepts_doc = None
+        if branch_tip is not None:
+            try:
+                concepts_doc = decode_document_batch_bytes(
+                    repo.require_git().read_file("concepts.yaml", commit=branch_tip),
+                    SOURCE_CONCEPT_BATCH_SPEC,
+                    source=f"{branch}:concepts.yaml",
+                )
+            except FileNotFoundError:
+                concepts_doc = None
         branch_source_name = branch.split("/", 1)[1] if "/" in branch else branch
         source_doc = load_source_document(repo, branch_source_name)
         source_uri = str(source_doc.id or source_tag_uri(branch_source_name, authority=repo.uri_authority))
-        for entry in (() if concepts_doc is None else concepts_doc.concepts):
+        for entry in (() if concepts_doc is None else concepts_doc):
             proposals.append(
                 {
                     "source": source_uri,
