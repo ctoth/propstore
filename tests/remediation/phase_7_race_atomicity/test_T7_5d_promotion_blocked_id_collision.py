@@ -13,11 +13,15 @@ sidecar write, so every failed mirror left master polluted.
 """
 from __future__ import annotations
 
-from types import SimpleNamespace
-
-from propstore.families.claims.declaration import populate_promotion_blocked_claims
+from propstore.families.claims.declaration import (
+    compile_promotion_blocked_sidecar_rows,
+    populate_promotion_blocked_claims,
+)
+from propstore.families.claims.stages import (
+    PromotionBlockedClaimFact,
+    PromotionBlockedReason,
+)
 from quire.derived_runtime import connect_sqlite_store
-from propstore.source.promote import compile_promotion_blocked_projection_rows
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
@@ -31,19 +35,37 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
     finally:
         conn.close()
 
-    claim = SimpleNamespace(artifact_id="claim-dup", id="local-claim")
-
-    alpha_rows = compile_promotion_blocked_projection_rows(
-        "source/alpha",
-        "paper-alpha",
-        [claim],
-        {"claim-dup": [("concept_mapping", "unresolved in alpha")]},
+    alpha_rows = compile_promotion_blocked_sidecar_rows(
+        (
+            PromotionBlockedClaimFact(
+                artifact_id="claim-dup",
+                source_branch="source/alpha",
+                source_paper="paper-alpha",
+                raw_id="local-claim",
+                reasons=(
+                    PromotionBlockedReason(
+                        kind="concept_mapping",
+                        detail="unresolved in alpha",
+                    ),
+                ),
+            ),
+        )
     )
-    beta_rows = compile_promotion_blocked_projection_rows(
-        "source/beta",
-        "paper-beta",
-        [claim],
-        {"claim-dup": [("concept_mapping", "unresolved in beta")]},
+    beta_rows = compile_promotion_blocked_sidecar_rows(
+        (
+            PromotionBlockedClaimFact(
+                artifact_id="claim-dup",
+                source_branch="source/beta",
+                source_paper="paper-beta",
+                raw_id="local-claim",
+                reasons=(
+                    PromotionBlockedReason(
+                        kind="concept_mapping",
+                        detail="unresolved in beta",
+                    ),
+                ),
+            ),
+        )
     )
     conn = connect_sqlite_store(sidecar_path)
     try:
