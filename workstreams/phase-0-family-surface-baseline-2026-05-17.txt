@@ -1,0 +1,258 @@
+propstore/families\calibration\declaration.py:11:CALIBRATION_COUNTS_PROJECTION = ProjectionTable(
+propstore/families\calibration\declaration.py:25:class CalibrationCountsProjectionRow:
+propstore/families\calibration\declaration.py:38:        rows = conn.execute(CALIBRATION_COUNTS_PROJECTION.select_all_sql()).fetchall()
+propstore/families\micropublications\declaration.py:28:MICROPUBLICATION_PROJECTION = ProjectionTable(
+propstore/families\micropublications\declaration.py:39:    foreign_keys=(ProjectionForeignKey(("context_id",), "context", ("id",)),),
+propstore/families\micropublications\declaration.py:40:    indexes=(ProjectionIndex("idx_micropub_context", ("context_id",)),),
+propstore/families\micropublications\declaration.py:45:MICROPUBLICATION_CLAIM_PROJECTION = ProjectionTable(
+propstore/families\micropublications\declaration.py:54:        ProjectionForeignKey(("micropublication_id",), "micropublication", ("id",)),
+propstore/families\micropublications\declaration.py:55:        ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),
+propstore/families\micropublications\declaration.py:57:    indexes=(ProjectionIndex("idx_micropub_claim", ("claim_id",)),),
+propstore/families\micropublications\declaration.py:63:class MicropublicationProjectionRow:
+propstore/families\micropublications\declaration.py:74:class MicropublicationClaimProjectionRow:
+propstore/families\micropublications\declaration.py:81:class MicropublicationSidecarRows:
+propstore/families\micropublications\declaration.py:189:            conn.execute(statement)
+propstore/families\micropublications\declaration.py:224:    rows = conn.execute(
+propstore/families\micropublications\declaration.py:233:                SELECT json_group_array(mc.claim_id)
+propstore/families\micropublications\declaration.py:234:                FROM micropublication_claim mc
+propstore/families\micropublications\declaration.py:238:        FROM micropublication mp
+propstore/families\concepts\declaration.py:33:from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
+propstore/families\concepts\declaration.py:61:class ConceptRelationshipProjectionRow:
+propstore/families\concepts\declaration.py:70:class ConceptSidecarRows:
+propstore/families\concepts\declaration.py:367:class ConceptRow:
+propstore/families\concepts\declaration.py:438:class ParameterizationRow:
+propstore/families\concepts\declaration.py:465:CONCEPT_PROJECTION = ProjectionTable(
+propstore/families\concepts\declaration.py:488:    indexes=(ProjectionIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
+propstore/families\concepts\declaration.py:493:FORM_PROJECTION = ProjectionTable(
+propstore/families\concepts\declaration.py:505:FORM_ALGEBRA_PROJECTION = ProjectionTable(
+propstore/families\concepts\declaration.py:516:    foreign_keys=(ProjectionForeignKey(("output_form",), "form", ("name",)),),
+propstore/families\concepts\declaration.py:517:    indexes=(ProjectionIndex("idx_form_algebra_output", ("output_form",)),),
+propstore/families\concepts\declaration.py:521:ALIAS_PROJECTION = ProjectionTable(
+propstore/families\concepts\declaration.py:528:    foreign_keys=(ProjectionForeignKey(("concept_id",), "concept", ("id",)),),
+propstore/families\concepts\declaration.py:530:        ProjectionIndex("idx_alias_name", ("alias_name",)),
+propstore/families\concepts\declaration.py:531:        ProjectionIndex("idx_alias_concept", ("concept_id",)),
+propstore/families\concepts\declaration.py:536:PARAMETERIZATION_GROUP_PROJECTION = ProjectionTable(
+propstore/families\concepts\declaration.py:542:    foreign_keys=(ProjectionForeignKey(("concept_id",), "concept", ("id",)),),
+propstore/families\concepts\declaration.py:543:    indexes=(ProjectionIndex("idx_param_group", ("group_id",)),),
+propstore/families\concepts\declaration.py:547:PARAMETERIZATION_PROJECTION = ProjectionTable(
+propstore/families\concepts\declaration.py:558:    foreign_keys=(ProjectionForeignKey(("output_concept_id",), "concept", ("id",)),),
+propstore/families\concepts\declaration.py:563:RELATIONSHIP_PROJECTION = ProjectionTable(
+propstore/families\concepts\declaration.py:573:        ProjectionForeignKey(("source_id",), "concept", ("id",)),
+propstore/families\concepts\declaration.py:574:        ProjectionForeignKey(("target_id",), "concept", ("id",)),
+propstore/families\concepts\declaration.py:577:        ProjectionIndex("idx_rel_source", ("source_id",)),
+propstore/families\concepts\declaration.py:578:        ProjectionIndex("idx_rel_target", ("target_id",)),
+propstore/families\concepts\declaration.py:583:CONCEPT_FTS_PROJECTION = FtsProjection(
+propstore/families\concepts\declaration.py:593:                    SELECT group_concat(a.alias_name, ' ')
+propstore/families\concepts\declaration.py:594:                    FROM alias a
+propstore/families\concepts\declaration.py:602:                    SELECT group_concat(value, ' ')
+propstore/families\concepts\declaration.py:603:                    FROM (
+propstore/families\concepts\declaration.py:604:                        SELECT rel_condition.value AS value
+propstore/families\concepts\declaration.py:605:                        FROM relationship r, json_each(r.conditions_cel) AS rel_condition
+propstore/families\concepts\declaration.py:609:                        SELECT param_condition.value AS value
+propstore/families\concepts\declaration.py:610:                        FROM parameterization p, json_each(p.conditions_cel) AS param_condition
+propstore/families\concepts\declaration.py:617:        FROM concept c
+propstore/families\concepts\declaration.py:623:CONCEPT_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
+propstore/families\concepts\declaration.py:630:CONCEPT_VEC_PROJECTION = rowid_vec_projection("concept_vec_{model_identity_hash}")
+propstore/families\concepts\declaration.py:648:        conn.execute(
+propstore/families\concepts\declaration.py:684:    rows = conn.execute(
+propstore/families\concepts\declaration.py:685:        "SELECT "
+propstore/families\concepts\declaration.py:691:        "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
+propstore/families\concepts\declaration.py:733:    row = conn.execute("SELECT * FROM concept WHERE id = ?", (concept_id,)).fetchone()
+propstore/families\concepts\declaration.py:740:    rows = conn.execute("SELECT * FROM concept").fetchall()
+propstore/families\concepts\declaration.py:755:        FROM concept
+propstore/families\concepts\declaration.py:762:    rows = conn.execute(query, params).fetchall()
+propstore/families\concepts\declaration.py:776:    row = conn.execute(
+propstore/families\concepts\declaration.py:777:        "SELECT id, seq FROM concept WHERE id = ? OR canonical_name = ?",
+propstore/families\concepts\declaration.py:792:    rows = conn.execute(
+propstore/families\concepts\declaration.py:793:        f"SELECT concept_id, alias_name FROM alias WHERE concept_id IN ({placeholders})",
+propstore/families\concepts\declaration.py:806:    rows = conn.execute(
+propstore/families\concepts\declaration.py:807:        "SELECT id, canonical_name, kind_type, form_parameters FROM concept"
+propstore/families\concepts\declaration.py:814:    rows = conn.execute(
+propstore/families\concepts\declaration.py:815:        "SELECT id, primary_logical_id, logical_ids_json FROM concept"
+propstore/families\concepts\declaration.py:843:    row = conn.execute(
+propstore/families\concepts\declaration.py:844:        "SELECT concept_id FROM alias WHERE alias_name = ?",
+propstore/families\concepts\declaration.py:860:    row = conn.execute("SELECT id FROM concept WHERE id = ?", (name,)).fetchone()
+propstore/families\concepts\declaration.py:864:    row = conn.execute(
+propstore/families\concepts\declaration.py:865:        "SELECT id FROM concept WHERE primary_logical_id = ?",
+propstore/families\concepts\declaration.py:875:    row = conn.execute(
+propstore/families\concepts\declaration.py:876:        "SELECT id FROM concept WHERE canonical_name = ?",
+propstore/families\concepts\declaration.py:883:    rows = conn.execute(
+propstore/families\concepts\declaration.py:884:        "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
+propstore/families\concepts\declaration.py:894:    rows = conn.execute(
+propstore/families\concepts\declaration.py:895:        "SELECT * FROM parameterization WHERE output_concept_id = ?",
+propstore/families\concepts\declaration.py:910:    rows = conn.execute("SELECT * FROM parameterization").fetchall()
+propstore/families\concepts\declaration.py:918:    row = conn.execute(
+propstore/families\concepts\declaration.py:919:        "SELECT group_id FROM parameterization_group WHERE concept_id = ?",
+propstore/families\concepts\declaration.py:924:    rows = conn.execute(
+propstore/families\concepts\declaration.py:925:        "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
+propstore/families\concepts\declaration.py:932:    rows = conn.execute("SELECT * FROM form").fetchall()
+propstore/families\concepts\declaration.py:940:    rows = conn.execute(
+propstore/families\concepts\declaration.py:941:        "SELECT * FROM form_algebra WHERE output_form = ?",
+propstore/families\concepts\declaration.py:948:    rows = conn.execute("SELECT * FROM form_algebra").fetchall()
+propstore/families\concepts\declaration.py:954:        rows = conn.execute(
+propstore/families\concepts\declaration.py:955:            "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH ?",
+propstore/families\concepts\declaration.py:966:    return int(conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0])
+propstore/families\concepts\declaration.py:971:    direct = conn.execute("SELECT id FROM concept WHERE id = ?", (handle,)).fetchone()
+propstore/families\concepts\declaration.py:974:    primary = conn.execute(
+propstore/families\concepts\declaration.py:975:        "SELECT id FROM concept WHERE primary_logical_id = ?",
+propstore/families\concepts\declaration.py:980:    canonical = conn.execute(
+propstore/families\concepts\declaration.py:981:        "SELECT id FROM concept WHERE canonical_name = ?",
+propstore/families\concepts\declaration.py:986:    alias = conn.execute(
+propstore/families\concepts\declaration.py:987:        "SELECT concept_id FROM alias WHERE alias_name = ?",
+propstore/families\sources\declaration.py:15:SOURCE_PROJECTION = ProjectionTable(
+propstore/families\sources\declaration.py:30:    indexes=(ProjectionIndex("idx_source_source_id", ("source_id",)),),
+propstore/families\sources\declaration.py:35:class SourceProjectionRow:
+propstore/families\relations\declaration.py:35:class RelationshipRow:
+propstore/families\relations\declaration.py:61:class StanceRow:
+propstore/families\relations\declaration.py:125:class ConflictRow:
+propstore/families\relations\declaration.py:369:    rows = conn.execute(
+propstore/families\relations\declaration.py:384:        rows = conn.execute(
+propstore/families\relations\declaration.py:386:            SELECT concept_id, claim_a_id, claim_b_id, warning_class,
+propstore/families\relations\declaration.py:388:            FROM conflict_witness WHERE concept_id = ?
+propstore/families\relations\declaration.py:393:        rows = conn.execute(
+propstore/families\relations\declaration.py:395:            SELECT concept_id, claim_a_id, claim_b_id, warning_class,
+propstore/families\relations\declaration.py:397:            FROM conflict_witness
+propstore/families\relations\declaration.py:404:    rows = conn.execute(
+propstore/families\relations\declaration.py:411:    rows = conn.execute(
+propstore/families\relations\declaration.py:442:    rows = conn.execute(
+propstore/families\relations\declaration.py:459:        rows = conn.execute(
+propstore/families\relations\declaration.py:475:    return int(conn.execute("SELECT COUNT(*) FROM conflict_witness").fetchone()[0])
+propstore/families\claims\declaration.py:41:from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
+propstore/families\claims\declaration.py:122:class ClaimConceptLinkRow:
+propstore/families\claims\declaration.py:136:class ClaimRow:
+propstore/families\claims\declaration.py:297:class SourcePromotionClaimRow:
+propstore/families\claims\declaration.py:307:    rows = conn.execute(
+propstore/families\claims\declaration.py:381:        "SELECT 1 FROM claim_concept_link AS link "
+propstore/families\claims\declaration.py:395:    rows = conn.execute(
+propstore/families\claims\declaration.py:397:        SELECT claim_id, concept_id, role, ordinal, binding_name
+propstore/families\claims\declaration.py:398:        FROM claim_concept_link
+propstore/families\claims\declaration.py:409:    rows = conn.execute(
+propstore/families\claims\declaration.py:410:        "SELECT id, primary_logical_id, logical_ids_json FROM claim_core"
+propstore/families\claims\declaration.py:443:    row = conn.execute(
+propstore/families\claims\declaration.py:444:        "SELECT id FROM claim_core WHERE id = ?",
+propstore/families\claims\declaration.py:450:    row = conn.execute(
+propstore/families\claims\declaration.py:451:        "SELECT id FROM claim_core WHERE primary_logical_id = ?",
+propstore/families\claims\declaration.py:461:    return int(conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0])
+propstore/families\claims\declaration.py:467:    rows = conn.execute(
+propstore/families\claims\declaration.py:469:        SELECT id, justification_kind, conclusion_claim_id,
+propstore/families\claims\declaration.py:472:        FROM justification
+propstore/families\claims\declaration.py:480:    return int(conn.execute("SELECT COUNT(*) FROM justification").fetchone()[0])
+propstore/families\claims\declaration.py:552:    row = conn.execute(
+propstore/families\claims\declaration.py:553:        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='claim_core'"
+propstore/families\claims\declaration.py:559:    conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
+propstore/families\claims\declaration.py:576:        FROM claim_core AS core
+propstore/families\claims\declaration.py:577:        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+propstore/families\claims\declaration.py:586:        for row in conn.execute(query, params).fetchall()
+propstore/families\claims\declaration.py:591:    row = conn.execute(
+propstore/families\claims\declaration.py:592:        "SELECT id, seq FROM claim_core WHERE id = ?",
+propstore/families\claims\declaration.py:612:    rows = conn.execute(
+propstore/families\claims\declaration.py:614:        SELECT core.id, txt.auto_summary, txt.statement, txt.expression, core.source_paper
+propstore/families\claims\declaration.py:615:        FROM claim_core AS core
+propstore/families\claims\declaration.py:616:        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+propstore/families\claims\declaration.py:635:    rows = conn.execute("SELECT id FROM claim_core").fetchall()
+propstore/families\claims\declaration.py:643:    rows = conn.execute(
+propstore/families\claims\declaration.py:645:        SELECT id, promotion_status
+propstore/families\claims\declaration.py:646:        FROM claim_core
+propstore/families\claims\declaration.py:671:        FROM claim_core AS core
+propstore/families\claims\declaration.py:672:        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+propstore/families\claims\declaration.py:673:        LEFT JOIN claim_concept_link AS output_link
+propstore/families\claims\declaration.py:675:        LEFT JOIN claim_concept_link AS target_link
+propstore/families\claims\declaration.py:686:CLAIM_CORE_PROJECTION = ProjectionTable(
+propstore/families\claims\declaration.py:708:    foreign_keys=(ProjectionForeignKey(("context_id",), "context", ("id",)),),
+propstore/families\claims\declaration.py:710:        ProjectionIndex("idx_claim_core_target", ("target_concept",)),
+propstore/families\claims\declaration.py:711:        ProjectionIndex("idx_claim_core_type", ("type",)),
+propstore/families\claims\declaration.py:712:        ProjectionIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)),
+propstore/families\claims\declaration.py:713:        ProjectionIndex("idx_claim_core_build_status", ("build_status",)),
+propstore/families\claims\declaration.py:714:        ProjectionIndex("idx_claim_core_stage", ("stage",)),
+propstore/families\claims\declaration.py:715:        ProjectionIndex("idx_claim_core_promotion_status", ("promotion_status",)),
+propstore/families\claims\declaration.py:720:CLAIM_CONCEPT_LINK_PROJECTION = ProjectionTable(
+propstore/families\claims\declaration.py:731:        ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),
+propstore/families\claims\declaration.py:732:        ProjectionForeignKey(("concept_id",), "concept", ("id",)),
+propstore/families\claims\declaration.py:735:        ProjectionIndex("idx_claim_concept_link_claim", ("claim_id",)),
+propstore/families\claims\declaration.py:736:        ProjectionIndex("idx_claim_concept_link_concept", ("concept_id",)),
+propstore/families\claims\declaration.py:737:        ProjectionIndex("idx_claim_concept_link_role", ("role",)),
+propstore/families\claims\declaration.py:742:CLAIM_NUMERIC_PAYLOAD_PROJECTION = ProjectionTable(
+propstore/families\claims\declaration.py:757:    foreign_keys=(ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),),
+propstore/families\claims\declaration.py:761:CLAIM_TEXT_PAYLOAD_PROJECTION = ProjectionTable(
+propstore/families\claims\declaration.py:779:    foreign_keys=(ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),),
+propstore/families\claims\declaration.py:783:CLAIM_ALGORITHM_PAYLOAD_PROJECTION = ProjectionTable(
+propstore/families\claims\declaration.py:792:    foreign_keys=(ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),),
+propstore/families\claims\declaration.py:793:    indexes=(ProjectionIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
+propstore/families\claims\declaration.py:806:CONFLICT_WITNESS_PROJECTION = ProjectionTable(
+propstore/families\claims\declaration.py:820:    indexes=(ProjectionIndex("idx_conflict_witness_concept", ("concept_id",)),),
+propstore/families\claims\declaration.py:824:JUSTIFICATION_PROJECTION = ProjectionTable(
+propstore/families\claims\declaration.py:839:CLAIM_FTS_PROJECTION = FtsProjection(
+propstore/families\claims\declaration.py:849:                    SELECT group_concat(value, ' ')
+propstore/families\claims\declaration.py:850:                    FROM json_each(t.conditions_cel)
+propstore/families\claims\declaration.py:855:        FROM claim_core c
+propstore/families\claims\declaration.py:856:        JOIN claim_text_payload t ON t.claim_id = c.id
+propstore/families\claims\declaration.py:862:CLAIM_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
+propstore/families\claims\declaration.py:869:CLAIM_VEC_PROJECTION = rowid_vec_projection("claim_vec_{model_identity_hash}")
+propstore/families\claims\declaration.py:1292:        for row in conn.execute(
+propstore/families\claims\declaration.py:1294:            SELECT name
+propstore/families\claims\declaration.py:1295:            FROM sqlite_master
+propstore/families\claims\declaration.py:1309:        for row in conn.execute(
+propstore/families\claims\declaration.py:1310:            "SELECT name FROM sqlite_master WHERE type = 'table'"
+propstore/families\claims\declaration.py:1327:            conn.execute(
+propstore/families\claims\declaration.py:1328:                f"DELETE FROM {table_name} WHERE claim_id = ?",
+propstore/families\relations\projection_model.py:165:RELATION_EDGE_TABLE = ProjectionTable(
+propstore/families\relations\projection_model.py:203:        ProjectionIndex("idx_relation_edge_source", ("source_kind", "source_id")),
+propstore/families\relations\projection_model.py:204:        ProjectionIndex("idx_relation_edge_target", ("target_kind", "target_id")),
+propstore/families\relations\projection_model.py:205:        ProjectionIndex("idx_relation_edge_type", ("relation_type",)),
+propstore/families\contexts\declaration.py:43:class ContextSidecarRows:
+propstore/families\contexts\declaration.py:50:CONTEXT_PROJECTION = ProjectionTable(
+propstore/families\contexts\declaration.py:63:CONTEXT_ASSUMPTION_PROJECTION = ProjectionTable(
+propstore/families\contexts\declaration.py:70:    foreign_keys=(ProjectionForeignKey(("context_id",), "context", ("id",)),),
+propstore/families\contexts\declaration.py:71:    indexes=(ProjectionIndex("idx_ctx_assumption", ("context_id",)),),
+propstore/families\contexts\declaration.py:76:CONTEXT_LIFTING_RULE_PROJECTION = ProjectionTable(
+propstore/families\contexts\declaration.py:87:        ProjectionForeignKey(("source_context_id",), "context", ("id",)),
+propstore/families\contexts\declaration.py:88:        ProjectionForeignKey(("target_context_id",), "context", ("id",)),
+propstore/families\contexts\declaration.py:91:        ProjectionIndex("idx_ctx_lift_source", ("source_context_id",)),
+propstore/families\contexts\declaration.py:92:        ProjectionIndex("idx_ctx_lift_target", ("target_context_id",)),
+propstore/families\contexts\declaration.py:98:CONTEXT_LIFTING_MATERIALIZATION_PROJECTION = ProjectionTable(
+propstore/families\contexts\declaration.py:111:        ProjectionForeignKey(("rule_id",), "context_lifting_rule", ("id",)),
+propstore/families\contexts\declaration.py:112:        ProjectionForeignKey(("source_context_id",), "context", ("id",)),
+propstore/families\contexts\declaration.py:113:        ProjectionForeignKey(("target_context_id",), "context", ("id",)),
+propstore/families\contexts\declaration.py:116:        ProjectionIndex(
+propstore/families\contexts\declaration.py:135:            conn.execute(statement)
+propstore/families\contexts\declaration.py:278:    rows = conn.execute("SELECT id FROM context ORDER BY id").fetchall()
+propstore/families\contexts\declaration.py:288:    assumption_rows = conn.execute(
+propstore/families\contexts\declaration.py:289:        "SELECT context_id, assumption_cel FROM context_assumption "
+propstore/families\contexts\declaration.py:301:    lifting_rows = conn.execute(
+propstore/families\contexts\declaration.py:303:        SELECT id, source_context_id, target_context_id,
+propstore/families\contexts\declaration.py:305:        FROM context_lifting_rule
+propstore/families\diagnostics\declaration.py:35:BUILD_DIAGNOSTICS_PROJECTION = ProjectionTable(
+propstore/families\diagnostics\declaration.py:50:        ProjectionIndex("idx_build_diagnostics_claim", ("claim_id",)),
+propstore/families\diagnostics\declaration.py:51:        ProjectionIndex("idx_build_diagnostics_kind", ("diagnostic_kind",)),
+propstore/families\diagnostics\declaration.py:52:        ProjectionIndex(
+propstore/families\diagnostics\declaration.py:76:class SourceStatusDiagnosticRow:
+propstore/families\diagnostics\declaration.py:87:            conn.execute(statement)
+propstore/families\diagnostics\declaration.py:160:        cursor = self._conn.execute(
+propstore/families\diagnostics\declaration.py:176:        conn.execute(statement)
+propstore/families\diagnostics\declaration.py:199:        conn.execute(statement)
+propstore/families\diagnostics\declaration.py:312:        conn.execute(
+propstore/families\diagnostics\declaration.py:313:            "SELECT 1 FROM sqlite_master WHERE type='table' AND name='build_diagnostics'"
+propstore/families\diagnostics\declaration.py:320:    rows = conn.execute(
+propstore/families\diagnostics\declaration.py:326:        FROM build_diagnostics
+propstore/families\diagnostics\declaration.py:342:    rows = conn.execute(
+propstore/families\diagnostics\declaration.py:344:        SELECT claim_id, source_ref, diagnostic_kind, message
+propstore/families\diagnostics\declaration.py:345:        FROM build_diagnostics
+propstore/families\diagnostics\declaration.py:367:    conn.execute(
+propstore/families\diagnostics\declaration.py:368:        "DELETE FROM build_diagnostics "
+propstore/families\claims\stages.py:53:class ClaimSidecarRows:
+propstore/families\claims\stages.py:64:class RawIdQuarantineSidecarRows:
+propstore/families\claims\stages.py:89:class PromotionBlockedSidecarRows:
+propstore/families\rules\declaration.py:87:GROUNDED_FACT_PROJECTION = ProjectionTable(
+propstore/families\rules\declaration.py:99:GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION = ProjectionTable(
+propstore/families\rules\declaration.py:110:GROUNDED_BUNDLE_INPUT_PROJECTION = ProjectionTable(
+propstore/families\rules\declaration.py:123:class GroundedFactProjectionRow:
+propstore/families\rules\declaration.py:130:class GroundedFactEmptyPredicateProjectionRow:
+propstore/families\rules\declaration.py:136:class GroundedBundleInputProjectionRow:
+propstore/families\rules\declaration.py:159:    ``COUNT(*) FROM grounded_fact`` equals the sum of inner-set
+propstore/families\rules\declaration.py:182:            conn.execute(statement)
+propstore/families\rules\declaration.py:287:    cursor = conn.execute(
+propstore/families\rules\declaration.py:288:        "SELECT payload FROM grounded_bundle_input WHERE kind = ? ORDER BY position",
+propstore/families\rules\declaration.py:456:    cursor = conn.execute(
+propstore/families\rules\declaration.py:457:        "SELECT predicate, arguments, section FROM grounded_fact"
+propstore/families\rules\declaration.py:475:    empty_cursor = conn.execute(
+propstore/families\rules\declaration.py:476:        "SELECT section, predicate FROM grounded_fact_empty_predicate"
