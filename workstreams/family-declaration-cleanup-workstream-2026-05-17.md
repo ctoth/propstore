@@ -46,6 +46,17 @@ For every durable family surface:
 
 - Deletion-first: delete the old production surface for the active family slice
   before introducing a replacement spelling.
+- "Delete first" is literal edit order. The first production edit in a slice
+  must remove the old owner symbols/imports/call sites from the old owner. Do
+  not first add a new module, query plan, wrapper, owner file, API, or moved
+  copy of the same behavior.
+- A diff that adds the replacement owner while the old owner surface still
+  exists is invalid, even if the final intended architecture would be correct.
+- Replacement code may be added only after deletion has made concrete compiler,
+  type-checker, test, or `rg` failures. Those failures are the work queue.
+- If a new owner file or API is needed, the same kept slice must also delete the
+  old production names and update every caller. A standalone "new owner first"
+  commit is forbidden.
 - No compatibility paths, aliases, fallback readers, or old/new bridges.
 - No Propstore-local generic ORM/mapper DSL parallel to Quire.
 - No claim-special API. Every abstraction used for claims must be usable by at
@@ -60,6 +71,9 @@ For every durable family surface:
   run, reread this workstream and identify the next unchecked item.
 - Run scanner diffs for every family slice and keep only slices that reduce the
   targeted handwritten surface.
+- Before committing a slice, run the old-path `rg` commands for that slice. A
+  kept commit must show the deleted old production names absent from the old
+  owner, not merely unused or copied somewhere else.
 
 ## Current Evidence
 
@@ -219,7 +233,32 @@ Required sub-slices:
      declaration machinery;
    - preserve the physical table split until a separate proof deletes it.
 4. Justification and conflict witness helpers:
-   - delete claim-owned justification projection/query helpers;
+   - first edit must delete the claim-owned production names from
+     `propstore/families/claims/declaration.py` before adding any replacement:
+     `select_authored_justifications`, `count_authored_justifications`,
+     `_canonical_justification_from_row`, `_decode_justification_premises`,
+     `_decode_justification_provenance`,
+     `compile_authored_justification_sidecar_rows`,
+     `compile_authored_justification_sidecar_rows_with_diagnostics`,
+     `populate_authored_justifications`, `compile_conflict_sidecar_rows`, and
+     `populate_conflicts`;
+   - first edit must also remove claim declaration imports that exist only for
+     those helpers, including `JustificationDocument`,
+     `CONFLICT_WITNESS_TABLE`, and `JUSTIFICATION_TABLE`;
+   - delete claim-owned justification projection constants from
+     `propstore/families/claims/projection_model.py` in the same slice:
+     `JUSTIFICATION_STORAGE_MODEL`, `JUSTIFICATION_TABLE`, and any claim
+     storage tuple membership whose only purpose is to expose the
+     justification table;
+   - only after those deletions, use the resulting `pyright`, tests, and `rg`
+     failures to add the real owner code: authored justification table/query
+     ownership belongs to the justification family; conflict witness
+     table/query/compile/populate ownership belongs to relations;
+   - do not create `families.justifications` or add relation conflict compile
+     helpers as a first step while the old claim-owned helpers still exist;
+   - finish only when `rg -n -F -e "select_authored_justifications" -e "count_authored_justifications" -e "compile_authored_justification_sidecar_rows" -e "compile_conflict_sidecar_rows" -e "populate_authored_justifications" -e "populate_conflicts" propstore/families/claims propstore/derived_build.py propstore/derived_build_plan.py propstore/world/model.py`
+     shows no claim-owned production call path and all remaining hits import
+     from the new owner modules;
    - keep conflict witness owned by relations, not claims;
    - remove claim-side helper code that only restates relation/conflict or
      justification storage shape.
@@ -241,6 +280,8 @@ Required sub-slices:
 Gate per sub-slice:
 
 ```powershell
+git diff --check -- propstore workstreams
+rg -n -F -e "select_authored_justifications" -e "count_authored_justifications" -e "compile_authored_justification_sidecar_rows" -e "compile_conflict_sidecar_rows" -e "populate_authored_justifications" -e "populate_conflicts" propstore/families/claims propstore/derived_build.py propstore/derived_build_plan.py propstore/world/model.py
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-claims tests/test_claim_roundtrip_fixtures.py tests/test_claim_views.py tests/test_build_sidecar.py tests/test_world_query.py tests/test_source_claims.py tests/test_relate_opinions.py
 uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-mapping-baseline-2026-05-16.json --metric row_class_from_mapping_loc --metric row_class_to_dict_loc --metric child_row_assembly_loops --metric projection_table_column_count --metric raw_sql_score
@@ -261,6 +302,8 @@ Required result:
 - handwritten claim mapping/query/projection boilerplate decreases after each
   kept sub-slice;
 - claims are not deferred behind later families.
+- no Phase 2 implementation commit is valid if it only introduces replacement
+  owner code while the old claim-owned production surface remains.
 
 ## Phase 3: Relations And Opinions Vertical
 
