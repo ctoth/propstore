@@ -67,6 +67,31 @@ class RawIdQuarantineSidecarRows:
 
 
 @dataclass(frozen=True)
+class PromotionBlockedReason:
+    kind: str
+    detail: str
+
+
+@dataclass(frozen=True)
+class PromotionBlockedClaimFact:
+    artifact_id: str
+    source_branch: str
+    source_paper: str
+    raw_id: str
+    reasons: tuple[PromotionBlockedReason, ...]
+
+    @property
+    def source_ref(self) -> str:
+        return f"{self.source_branch}:{self.artifact_id}"
+
+
+@dataclass(frozen=True)
+class PromotionBlockedSidecarRows:
+    claim_rows: tuple["ProjectionRow", ...]
+    diagnostic_rows: tuple["ProjectionRow", ...]
+
+
+@dataclass(frozen=True)
 class RawIdQuarantineRecord:
     filename: str
     source_paper: str
