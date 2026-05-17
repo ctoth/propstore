@@ -356,46 +356,6 @@ CONCEPT_RELATIONSHIP_STORAGE_MODEL: ProjectionModel[RelationshipRow] = Projectio
 )
 
 
-def claim_stance_relation_edge_row(values: tuple[object, ...]) -> ProjectionRow:
-    stance = StanceRow(
-        claim_id=_required_claim_id(values[0]),
-        target_claim_id=_required_claim_id(values[1]),
-        stance_type=_required_stance_type(values[2]),
-        target_justification_id=_optional_justification_id(values[3]),
-        strength=_nullable_text(values[4]),
-        conditions_differ=(
-            None
-            if values[5] is None
-            else str(_normalize_conditions_differ(values[5]))
-        ),
-        note=_nullable_text(values[6]),
-        resolution_method=_nullable_text(values[7]),
-        resolution_model=_nullable_text(values[8]),
-        embedding_model=_nullable_text(values[9]),
-        embedding_distance=_optional_float(values[10]),
-        pass_number=_optional_int(values[11]),
-        confidence=_optional_float(values[12]),
-        opinion_belief=_optional_float(values[13]),
-        opinion_disbelief=_optional_float(values[14]),
-        opinion_uncertainty=_optional_float(values[15]),
-        opinion_base_rate=_optional_float(values[16]),
-        perspective_source_claim_id=_optional_claim_id(values[17]),
-    )
-    row_values: dict[str, object] = {}
-    for discriminator in CLAIM_STANCE_DISCRIMINATORS:
-        row_values.update(discriminator.row_values())
-    row_values.update(CLAIM_STANCE_STORAGE_MODEL.to_row(stance))
-    return RELATION_EDGE_TABLE.row(**row_values)
-
-
-def concept_relationship_relation_edge_row(relationship: RelationshipRow) -> ProjectionRow:
-    row_values: dict[str, object] = {}
-    for discriminator in CONCEPT_RELATIONSHIP_DISCRIMINATORS:
-        row_values.update(discriminator.row_values())
-    row_values.update(CONCEPT_RELATIONSHIP_STORAGE_MODEL.to_row(relationship))
-    return RELATION_EDGE_TABLE.row(**row_values)
-
-
 def _edge_column(name: str, *, read_name: str | None = None) -> ProjectionSelectedColumn:
     return ProjectionSelectedColumn(
         "edge",
