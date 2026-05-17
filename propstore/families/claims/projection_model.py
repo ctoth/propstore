@@ -7,10 +7,10 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from quire.projection_mapping import (
-    CompositePath,
     DerivedPath,
     ProjectionBinding,
     ProjectionCodec,
+    ProjectionComponent,
     ProjectionModel,
     ReferencePath,
     RepeatedPath,
@@ -241,9 +241,9 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
         ),
         CLAIM_CONCEPT_LINKS_PATH,
         ReferencePath(("target_concept",), "target_concept", family="concept", codec=CONCEPT_ID_CODEC),
-        CompositePath(
+        ProjectionComponent(
             path=("logical_ids",),
-            fields=(
+            bindings=(
                 ProjectionBinding(
                     ("primary",),
                     projection_column_owner=ProjectionColumn(
@@ -296,12 +296,36 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
         ScalarPath(("canonical_ast",), "canonical_ast", codec=TEXT_CODEC),
         ScalarPath(("variables_json",), "variables_json", codec=TEXT_CODEC),
         ScalarPath(("algorithm_stage",), "algorithm_stage", codec=ALGORITHM_STAGE_CODEC),
-        CompositePath(
+        ProjectionComponent(
             path=("provenance",),
-            fields=(
-                ScalarPath(("paper",), "source_paper", codec=TEXT_CODEC),
-                ScalarPath(("page",), "provenance_page", codec=INTEGER_CODEC),
-                ScalarPath(("payload",), "provenance_json", codec=TEXT_CODEC),
+            bindings=(
+                ProjectionBinding(
+                    ("paper",),
+                    projection_column_owner=ProjectionColumn(
+                        "source_paper",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("page",),
+                    projection_column_owner=ProjectionColumn(
+                        "provenance_page",
+                        INTEGER_CODEC.sql_type,
+                        encoder=INTEGER_CODEC.encode,
+                        decoder=INTEGER_CODEC.decode,
+                    ),
+                ),
+                ProjectionBinding(
+                    ("payload",),
+                    projection_column_owner=ProjectionColumn(
+                        "provenance_json",
+                        TEXT_CODEC.sql_type,
+                        encoder=TEXT_CODEC.encode,
+                        decoder=TEXT_CODEC.decode,
+                    ),
+                ),
             ),
             encoder=_provenance_to_columns,
             decoder=_provenance_from_columns,
