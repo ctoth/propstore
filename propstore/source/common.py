@@ -4,9 +4,9 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TypeVar, cast
+from typing import TypeVar
 
-from propstore.families.registry import SOURCE_BRANCH, SourceRef
+from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus
@@ -69,10 +69,6 @@ def source_paper_slug(name: str) -> str:
         digest = hashlib.sha256(stripped.encode("utf-8")).hexdigest()
         return f"{cleaned}--{digest}"
     return cleaned
-
-
-def source_branch_name(name: str) -> str:
-    return SOURCE_BRANCH.branch_name(cast(Repository, object()), SourceRef(name))
 
 
 def utc_now() -> str:
