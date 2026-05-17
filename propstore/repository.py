@@ -5,7 +5,7 @@ import json
 from collections.abc import Callable
 from contextlib import contextmanager
 from functools import cached_property
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TypeVar
 
 from quire.derived_store import DerivedStoreManager
@@ -199,6 +199,43 @@ def retry_live_branch_update(
             if attempt == attempts - 1:
                 raise
     raise AssertionError("unreachable")
+
+
+def export_branch_tree(
+    repo: Repository,
+    branch: str,
+    destination: Path,
+) -> Path:
+    git = repo.require_git()
+    tip = git.branch_sha(branch)
+    if tip is None:
+        raise ValueError(f"Branch {branch!r} does not exist")
+
+    destination.mkdir(parents=True, exist_ok=True)
+    destination_root = destination.resolve()
+    for tree_file in git.iter_tree_files(commit=tip):
+        target = _safe_tree_export_target(destination_root, tree_file.relpath)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(tree_file.content)
+    return destination
+
+
+def _safe_tree_export_target(destination_root: Path, relpath: str) -> Path:
+    normalized_relpath = relpath.replace("\\", "/")
+    posix_relpath = PurePosixPath(normalized_relpath)
+    windows_relpath = PureWindowsPath(relpath)
+    if (
+        posix_relpath.is_absolute()
+        or windows_relpath.is_absolute()
+        or ".." in posix_relpath.parts
+    ):
+        raise ValueError(f"path escapes output_dir: {relpath}")
+    target = (destination_root / Path(*posix_relpath.parts)).resolve()
+    try:
+        target.relative_to(destination_root)
+    except ValueError as exc:
+        raise ValueError(f"path escapes output_dir: {relpath}") from exc
+    return target
 
 
 def _bootstrap_manifest(seed_commit: str | None) -> dict[str, object]:
