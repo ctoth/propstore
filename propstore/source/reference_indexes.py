@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from quire.references import FamilyReferenceIndex, ReferenceKey
 
@@ -19,12 +17,6 @@ SOURCE_CLAIM_REFERENCE_KEYS = (
     ReferenceKey.field("logical_ids[].formatted"),
     ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
 )
-
-
-@dataclass(frozen=True)
-class ImportedClaimHandle:
-    handle: str
-    artifact_id: str
 
 
 def source_claim_index_from_document(
@@ -46,31 +38,3 @@ def source_claim_index(repo: Repository, source_name: str) -> FamilyReferenceInd
 
 def primary_claim_index(repo: Repository) -> FamilyReferenceIndex[ClaimDocument]:
     return repo.families.claims.reference_index()
-
-
-def imported_claim_handle_index(
-    handles: Iterable[ImportedClaimHandle],
-) -> FamilyReferenceIndex[ImportedClaimHandle]:
-    def handle_reference_keys(record: ImportedClaimHandle) -> tuple[str]:
-        return (record.handle,)
-
-    return FamilyReferenceIndex.from_records(
-        handles,
-        family="imported_claims",
-        artifact_id=lambda handle: handle.artifact_id,
-        keys=(handle_reference_keys,),
-    )
-
-
-def resolve_source_or_primary_claim_id(
-    reference: object,
-    *,
-    source: FamilyReferenceIndex[Any],
-    primary: FamilyReferenceIndex[Any] | None = None,
-) -> str | None:
-    resolved = source.resolve_id(reference)
-    if resolved is not None:
-        return resolved
-    if primary is None:
-        return None
-    return primary.resolve_id(reference)
