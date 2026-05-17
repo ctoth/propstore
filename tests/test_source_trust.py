@@ -97,20 +97,16 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
 
 
 def test_p_arg_from_claim_accepts_typed_claim_rows() -> None:
-    claim = CLAIM_ROW_MODEL.coerce(
+    claim = CLAIM_ROW_MODEL.from_row(
         {
             "id": "claim-1",
             "artifact_id": "claim-1",
-            "source": {
-                "trust": {
-                    "prior_base_rate": _prior_payload(0.62),
-                    "quality": {
-                        "b": 0.7,
-                        "d": 0.1,
-                        "u": 0.2,
-                        "a": 0.5,
-                    },
-                }
+            "source_prior_base_rate": _prior_payload(0.62),
+            "source_quality_opinion": {
+                "b": 0.7,
+                "d": 0.1,
+                "u": 0.2,
+                "a": 0.5,
             },
             "claim_probability": 0.8,
             "effective_sample_size": 10,
