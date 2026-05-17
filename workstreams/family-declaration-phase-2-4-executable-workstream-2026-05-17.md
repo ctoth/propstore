@@ -71,17 +71,32 @@ Do not edit replacement owner modules in the same first deletion edit.
 ## Required Repair After Deletion
 
 Use the resulting `pyright`, tests, and literal `rg` failures as the work queue.
-The allowed owner repairs are:
+The allowed owner repairs are semantic ownership repairs only:
 
-- authored justification projection/table/query/compile/populate code belongs
-  under `propstore.families.justifications`;
-- conflict witness table/query/read/compile/populate code belongs under
-  `propstore.families.relations`;
+- authored justification semantic lowering belongs under
+  `propstore.families.justifications`;
+- conflict witness semantic lowering belongs under `propstore.families.relations`;
 - `derived_build_plan.py`, `derived_build.py`, `world/model.py`, and
   `families/projection_catalog.py` may import only from those owner modules for
   this slice;
 - no claim-owned forwarding functions, aliases, re-exports, fallback readers,
   or compatibility shims.
+
+Do not recreate the deleted claim-owned SQL/projection/read/populate boilerplate
+under a new propstore family. Generic projection operations are owned by Quire:
+
+- creating the projection table from a model;
+- converting a model instance or mapping into a projection row;
+- inserting projection rows into the model table;
+- selecting rows through a `ProjectionQueryPlan`;
+- counting rows for the model table;
+- decoding selected rows through the model.
+
+If the repair requires any of those operations and Quire does not expose the
+needed primitive, implement the primitive in Quire first, then use it from
+propstore. Propstore family modules may declare semantic projection models and
+semantic lowering functions; they must not own generic SQLite execution helpers
+whose only variable input is the model/table/query plan.
 
 ## Expected Reduction
 
@@ -94,11 +109,13 @@ The kept slice must satisfy all of these:
   helper names;
 - `propstore/families/claims/projection_model.py` has no
   `JUSTIFICATION_STORAGE_MODEL` or `JUSTIFICATION_TABLE`;
+- no new propstore family module contains a per-family copy of generic
+  select-all, count-table, insert-rows, or query-plan execution helpers;
 - `cloc .\propstore` Python code is not higher than `77548`;
 - scanner `raw_sql_score` is below `270` or scanner `cross_table_select_sql`
   is below `5`;
 - the final commit removes more claim-owned boilerplate than it adds as
-  replacement owner code.
+  replacement owner code, and any generic replacement machinery lives in Quire.
 
 If these cannot be met, the slice is not complete and must not be committed as
 an implementation slice.
