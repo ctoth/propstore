@@ -19,7 +19,6 @@ behavioral change.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
 
 from propstore.artifact_codes import stamp_canonical_artifact_codes
@@ -973,51 +972,3 @@ def promote_source_branch(
         sidecar_mirror_error=sidecar_mirror_error,
     )
 
-
-def sync_source_branch(
-    repo: Repository,
-    source_name: str,
-    *,
-    output_dir: Path | None = None,
-) -> Path:
-    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
-    tip = repo.require_git().branch_sha(branch)
-    if tip is None:
-        raise ValueError(f"Source branch {branch!r} does not exist")
-
-    destination = output_dir
-    if destination is None:
-        papers_root = repo.root.parent / "papers"
-        destination = papers_root / source_paper_slug(source_name)
-    destination.mkdir(parents=True, exist_ok=True)
-    destination_root = destination.resolve()
-
-    for tree_file in repo.require_git().iter_tree_files(commit=tip):
-        target = _source_sync_target_path(destination_root, tree_file.relpath)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(tree_file.content)
-    return destination
-
-
-def _source_sync_target_path(destination_root: Path, relpath: str) -> Path:
-    """Resolve a source-sync relpath under ``destination_root``.
-
-    Zip Slip (Snyk Security, 2018) is the relevant path-traversal pattern:
-    never trust archive or snapshot entry paths until they have been proven
-    relative to the intended extraction root.
-    """
-    normalized_relpath = relpath.replace("\\", "/")
-    posix_relpath = PurePosixPath(normalized_relpath)
-    windows_relpath = PureWindowsPath(relpath)
-    if (
-        posix_relpath.is_absolute()
-        or windows_relpath.is_absolute()
-        or ".." in posix_relpath.parts
-    ):
-        raise ValueError(f"path escapes output_dir: {relpath}")
-    target = (destination_root / Path(*posix_relpath.parts)).resolve()
-    try:
-        target.relative_to(destination_root)
-    except ValueError as exc:
-        raise ValueError(f"path escapes output_dir: {relpath}") from exc
-    return target
