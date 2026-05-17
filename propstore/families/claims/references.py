@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from quire.references import FamilyReferenceIndex
 
@@ -100,9 +101,11 @@ def imported_claim_reference_index(
 
 def resolve_first_claim_reference_id(
     reference: object,
-    *indexes: FamilyReferenceIndex[object],
+    *indexes: FamilyReferenceIndex[Any] | None,
 ) -> str | None:
     for index in indexes:
+        if index is None:
+            continue
         resolved = index.resolve_id(reference)
         if resolved is not None:
             return resolved
