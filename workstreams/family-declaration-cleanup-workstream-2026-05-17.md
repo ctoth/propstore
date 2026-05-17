@@ -196,20 +196,47 @@ rg -n "SourcePromotionClaimRow|ClaimsPass|ClaimReference\b|ClaimIdentity\b|claim
 
 Required sub-slices:
 
-1. Delete claim projection row classes and replace them with Quire-backed
-   generated decoders.
-2. Delete claim concept-link child-row assembly and replace it with the same
-   child-row declaration/query path used by another family.
-3. Delete claim-only payload-table mapping helpers for numeric, text, and
-   algorithm payloads after the generic declaration can express them.
-4. Delete claim-only justification and conflict witness projection helpers.
-5. Delete `SourcePromotionClaimRow` or move the semantics to a generic
-   family-promotion declaration used by a non-claim family in the same slice.
-6. Delete claim-local FTS SQL source plan in favor of the Quire FTS source plan.
-7. Delete claim-local embedding status/vector helper declarations in favor of
-   the family semantic embedding declaration.
-8. Delete hand-written claim `SELECT`/`JOIN` helpers after typed query APIs
-   replace each caller.
+1. Claim row/read-model deletion:
+   - verify the existing Quire projection/read-model machinery that can build a
+     typed read model from projection declarations, or implement that machinery
+     in Quire first;
+   - delete Propstore-owned `ClaimRow` and `ClaimConceptLinkRow` projection row
+     classes before fixing callers;
+   - update every app/core/world/praf/test caller to the Quire-backed read
+     model without adding a Propstore-local replacement row class;
+   - finish only when `rg -n "ClaimRow\b|ClaimConceptLinkRow\b" propstore`
+     has no production hits and `cloc ./propstore` drops from the pre-slice
+     baseline.
+2. Claim concept-link child rows:
+   - delete claim-local child-row fetch/attachment/assembly code;
+   - use the same Quire child-row declaration/query machinery used by a
+     non-claim family;
+   - finish only when remaining concept-link logic is semantic behavior, not
+     storage assembly.
+3. Claim payload tables:
+   - delete claim-only numeric/text/algorithm payload mapping helpers;
+   - express the payload split through the shared Quire projection/read-model
+     declaration machinery;
+   - preserve the physical table split until a separate proof deletes it.
+4. Justification and conflict witness helpers:
+   - delete claim-owned justification projection/query helpers;
+   - keep conflict witness owned by relations, not claims;
+   - remove claim-side helper code that only restates relation/conflict or
+     justification storage shape.
+5. Promotion status:
+   - delete `SourcePromotionClaimRow`;
+   - move promotion status semantics to a generic family-promotion declaration
+     with a non-claim consumer in the same slice.
+6. FTS:
+   - implement or use Quire FTS source-plan machinery;
+   - delete claim-local FTS SQL source text from Propstore.
+7. Embedding/vector declarations:
+   - implement or use the family semantic embedding declaration;
+   - delete claim-local embedding status/vector helper declarations.
+8. Hand-written claim SQL:
+   - delete remaining claim `SELECT`/`JOIN` helpers;
+   - update every caller to typed query APIs owned by Quire/family semantic
+     declarations.
 
 Gate per sub-slice:
 
@@ -222,9 +249,9 @@ uv run scripts/typed_metadata_inventory.py --diff workstreams/quire-projection-m
 Each new declaration/query API introduced for a claim sub-slice must be
 consumed by at least one non-claim family in the same commit or the slice does
 not land. The commit message must name the non-claim caller and the `rg` command
-used to verify it. If no non-claim caller can exist yet, append a `BLOCKED:`
-entry to this file naming the missing Quire owner module, the missing API
-signature, and the file/line of the read-only verification before stopping.
+used to verify it. When the needed generic machinery is absent from Quire,
+implement it in Quire first, consume it from Propstore, then delete the
+Propstore surface.
 
 Required result:
 
