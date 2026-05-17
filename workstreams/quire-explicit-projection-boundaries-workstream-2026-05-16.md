@@ -141,58 +141,60 @@ Read-only verification performed before this workstream was written:
 
 ## Target Quire Abstractions
 
-Names are provisional until Phase 0 is complete. Do not implement a weaker local
-approximation in Propstore.
+Names are no longer provisional after the Phase 1 reread pass. Quire already
+owns the physical projection layer. Do not add duplicate definition objects for
+things Quire already has.
 
-### `ProjectionColumnDef`
+Existing Quire owners that must be reused:
 
-Owns a physical column identity:
+- `ProjectionField`: reusable typed storage-role descriptor.
+- `ProjectionColumn`: concrete physical column identity, DDL policy, codec
+  hooks, and schema-hash material.
+- `ProjectionTable`: durable table identity, columns, FKs, indexes, row
+  factories, DDL, inserts, selects, and row decoding.
+- `ProjectionForeignKey` and `ProjectionIndex`: physical table constraints.
+- `FtsProjection`: FTS table identity, source population SQL, search-column
+  validation, DDL, and schema-hash material.
+- `VecProjection`: vector table identity, dynamic table naming, rowid
+  insert/delete/search SQL, DDL, and schema-hash material.
+- `ProjectionSchema` and `ProjectionRuntimeCatalog`: projection collection,
+  validation, DDL emission, runtime catalog, and schema-hash material.
+- `ProjectionBuildStep` and `order_projection_steps`: derived-store build-step
+  dependency ordering.
 
-- stable id/name;
-- SQLite column name;
-- SQL type;
-- nullability;
-- primary-key/insertability;
-- default SQL;
-- check SQL;
-- physical storage codec;
-- schema-hash material.
+Do not introduce:
 
-Every `ProjectionTable` column is built from `ProjectionColumnDef`.
-
-### `ProjectionFieldDef`
-
-Owns a semantic field identity:
-
-- stable id/name;
-- semantic path;
-- type/codec;
-- optional policy;
-- render name, if any;
-- schema-hash material.
-
-Views reference `ProjectionFieldDef`; they do not repeat field strings.
+- `ProjectionColumnDef`;
+- `ProjectionFieldDef`;
+- a second column/field descriptor layer inside `projection_mapping.py`;
+- Propstore-local equivalents of any of the existing Quire projection
+  primitives.
 
 ### `ProjectionBinding`
 
-Declares a mapping between a semantic field and a physical column or component:
+Declares a mapping between a semantic path and an existing physical projection
+primitive:
 
-- field reference;
-- column reference;
-- field-level codec;
+- semantic path;
+- `ProjectionField` reference when the binding is to a reusable field role;
+- `ProjectionColumn` reference when the binding is to a concrete column;
+- field-level codec only when it is not already represented by the existing
+  field or column codec;
 - read alias, if the query result uses an alias;
 - missing policy.
 
-This replaces free `decode_columns`.
+This replaces free `decode_columns`. It must not duplicate SQL type,
+nullability, insertability, default SQL, check SQL, or physical codec facts that
+already live on `ProjectionField` or `ProjectionColumn`.
 
 ### `ProjectionComponent`
 
 Declares a typed multi-column component:
 
-- component field reference;
+- component semantic path;
 - ordered child bindings;
 - encoder/decoder;
-- all source column references.
+- all source columns referenced through `ProjectionBinding`.
 
 This replaces `CompositePath` only after all production uses can be expressed by
 components. Initial required components:
@@ -204,8 +206,8 @@ components. Initial required components:
 
 Declares output-only fields:
 
-- source field references;
-- output field references;
+- source bindings or component references;
+- output semantic keys;
 - renderer/codec;
 - omission policy.
 
@@ -373,9 +375,32 @@ Baseline summary metrics:
 | Relation-edge polymorphic physical/view split | `propstore/families/relations/declaration.py`: relation edge physical table supports concept relationships and claim stances with different semantic row types. | `ProjectionDiscriminator` and view-level codecs over one physical `ProjectionTable`. | Phase 8 must declare source/target kind discriminators and preserve relation-edge DDL byte equality. |
 | Remaining Propstore handwritten declaration sites | Baseline scanner reports `projection_declarations_count = 79` and `row_factory_targets = 3`. | Quire declaration graph and query plan outputs sourced from the same definitions as row mapping. | Parent Phase 7 reentry remains blocked until this workstream deletes the explicit old surfaces above. |
 
+### Quire Reread Findings
+
+Phase 1 reread covered the Quire package surface before implementation:
+
+- `quire/projections.py` already owns physical projection primitives:
+  `ProjectionField`, `ProjectionColumn`, `ProjectionTable`,
+  `ProjectionForeignKey`, `ProjectionIndex`, `FtsProjection`, `VecProjection`,
+  `ProjectionSchema`, and `ProjectionRuntimeCatalog`.
+- `quire/projection_mapping.py` owns the newer row mapping path layer:
+  `ProjectionCodec`, `ScalarPath`, `JsonPath`, `EnumPath`, `ReferencePath`,
+  `CompositePath`, `RepeatedPath`, `DerivedPath`, and `ProjectionModel`.
+- `quire/derived_store.py` owns materialization, cache keys, build-step
+  topological ordering, and derived-store file lifecycle.
+- `quire/derived_runtime.py` owns SQLite connection policy and schema
+  validation for derived stores.
+- `quire/sqlite_vec_store.py` owns generic vector-status and vector-table
+  primitives over `ProjectionTable` and `VecProjection`.
+
+Therefore Phase 1 must not add a new column/field definition layer. The missing
+abstraction is not physical identity; it is the binding/query/view layer that
+connects semantic paths and typed row views to existing physical projection
+owners.
+
 ## Phase 1: Quire Declaration Graph
 
-Status: blocked until Phase 0 is complete.
+Status: ready after Phase 0 and Quire reread.
 
 Owned repo:
 
@@ -383,32 +408,39 @@ Owned repo:
 
 Delete first:
 
-- raw column/field identity embedded only in `ScalarPath` where it prevents
-  shared references;
-- any test that asserts aliases are represented as ad hoc alternate strings
-  rather than field/column references.
+- any Phase 1 wording, tests, or implementation that introduces
+  `ProjectionColumnDef`, `ProjectionFieldDef`, or another duplicate field/column
+  descriptor;
+- any test that treats a query alias as an ad hoc alternate string rather than
+  as a read-name on a binding to an existing `ProjectionField`/`ProjectionColumn`
+  owner.
 
 Implement:
 
-- `ProjectionColumnDef`;
-- `ProjectionFieldDef`;
-- `ProjectionBinding`;
-- backwards-free construction path for `ProjectionTable` from column defs;
-- schema-hash material for definitions and references;
-- validation that duplicate owner declarations are rejected.
+- `ProjectionBinding` as the missing semantic-path to physical-projection
+  boundary;
+- binding support for existing `ProjectionField` and `ProjectionColumn`;
+- schema-hash material for binding references without duplicating physical
+  column facts;
+- validation that a binding references exactly one existing physical owner;
+- tests proving `ProjectionField` and `ProjectionColumn` remain the only
+  physical field/column definition owners.
 
 Hard gates:
 
 ```powershell
 uv run pytest tests/test_projection_mapping.py
+uv run pytest tests/test_derived_store.py
 uv run pyright quire
 rg -n -F "cast(" quire/projection_mapping.py
+rg -n "ProjectionColumnDef|ProjectionFieldDef" quire tests
 ```
 
 Required result:
 
 - no casts in `quire/projection_mapping.py`;
-- no duplicate raw identity strings in new tests outside owner declarations;
+- zero `ProjectionColumnDef` or `ProjectionFieldDef` references;
+- no duplicate physical column/field definition layer;
 - existing `ProjectionModel` tests still pass.
 
 Commit and push Quire. Pin Propstore to the pushed SHA. Reread this workstream
