@@ -18,7 +18,6 @@ behavioral change.
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any
@@ -29,7 +28,11 @@ from propstore.claims import ClaimFileEntry, loaded_claim_file_from_payload
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
-from propstore.families.claims.stages import ClaimAuthoredFiles
+from propstore.families.claims.stages import (
+    ClaimAuthoredFiles,
+    PromotionBlockedClaimFact,
+    PromotionBlockedReason,
+)
 from propstore.families.registry import (
     CanonicalSourceRef,
     ClaimRef,
@@ -57,11 +60,6 @@ from propstore.provenance import (
     write_provenance_note,
 )
 from propstore.repository import Repository
-from propstore.families.claims.declaration import CLAIM_CORE_PROJECTION
-from propstore.families.diagnostics.declaration import (
-    BUILD_DIAGNOSTICS_PROJECTION,
-)
-from quire.projections import ProjectionRow
 from propstore.source.claim_concepts import (
     normalize_promoted_source_claim_artifact,
     source_concept_ref_requires_mapping,
@@ -115,12 +113,6 @@ class PromotionResult:
     blocked_diagnostics: dict[str, tuple[tuple[str, str], ...]]
     sidecar_mirror_ok: bool
     sidecar_mirror_error: str | None = None
-
-
-@dataclass(frozen=True)
-class PromotionBlockedProjectionRows:
-    claim_rows: tuple[ProjectionRow, ...]
-    diagnostic_rows: tuple[ProjectionRow, ...]
 
 
 def _validate_promoted_claims_before_commit(
@@ -749,84 +741,15 @@ def _compute_blocked_claim_artifact_ids(
     return blocked, reasons
 
 
-def compile_promotion_blocked_projection_rows(
-    source_branch: str,
-    source_paper: str,
-    blocked_claims,
-    reasons: dict[str, list[tuple[str, str]]],
-) -> PromotionBlockedProjectionRows:
-    """Compile blocked source-claim promotion rows for the derived store.
-
-    Each blocked claim becomes a row in ``claim_core`` with
-    ``promotion_status='blocked'``, ``branch=<source_branch>``; each
-    reason becomes a ``build_diagnostics`` row with
-    ``diagnostic_kind='promotion_blocked'``, ``blocking=1``.
-    """
-
-    claim_rows: list[ProjectionRow] = []
-    diagnostic_rows: list[ProjectionRow] = []
-    for claim in blocked_claims:
-        artifact_id = claim.artifact_id
-        if not isinstance(artifact_id, str) or not artifact_id:
-            artifact_id = str(claim.id or "?")
-        source_ref = f"{source_branch}:{artifact_id}"
-        claim_rows.append(
-            CLAIM_CORE_PROJECTION.row(
-                id=artifact_id,
-                primary_logical_id="",
-                logical_ids_json="[]",
-                version_id="",
-                content_hash="",
-                seq=0,
-                type="promotion_blocked",
-                target_concept=None,
-                source_slug=source_paper,
-                source_paper=source_paper,
-                provenance_page=0,
-                provenance_json=None,
-                context_id=None,
-                premise_kind="ordinary",
-                branch=source_branch,
-                build_status="ingested",
-                stage=None,
-                promotion_status="blocked",
-            )
-        )
-        for kind, detail in reasons.get(artifact_id, []):
-            diagnostic_rows.append(
-                BUILD_DIAGNOSTICS_PROJECTION.row(
-                    claim_id=artifact_id,
-                    source_kind="claim",
-                    source_ref=source_ref,
-                    diagnostic_kind="promotion_blocked",
-                    severity="error",
-                    blocking=1,
-                    message=detail,
-                    file=None,
-                    detail_json=json.dumps(
-                        {
-                            "reason_kind": kind,
-                            "source_branch": source_branch,
-                        },
-                        sort_keys=True,
-                    ),
-                )
-            )
-    return PromotionBlockedProjectionRows(
-        claim_rows=tuple(claim_rows),
-        diagnostic_rows=tuple(diagnostic_rows),
-    )
-
-
-def compile_source_promotion_blocked_projection_rows(
+def collect_source_promotion_blocked_facts(
     repo: Repository,
     source_name: str,
-) -> PromotionBlockedProjectionRows:
+) -> tuple[PromotionBlockedClaimFact, ...]:
     claims_doc = load_source_claims_document(repo, source_name)
     if claims_doc is None:
-        return PromotionBlockedProjectionRows((), ())
+        return ()
     if load_finalize_report(repo, source_name) is None:
-        return PromotionBlockedProjectionRows((), ())
+        return ()
 
     concept_resolution = resolve_source_concept_promotions(repo, source_name)
     source_claim_index = build_source_claim_index(repo, source_name)
@@ -838,39 +761,42 @@ def compile_source_promotion_blocked_projection_rows(
         concept_map=concept_resolution.concept_map,
         blocked_concept_refs=concept_resolution.blocked_concept_refs,
     )
-    blocked_claims = [
-        claim
-        for claim in claims_doc.claims
-        if isinstance(claim.artifact_id, str)
-        and claim.artifact_id in blocked_artifact_ids
-    ]
-    if not blocked_claims:
-        return PromotionBlockedProjectionRows((), ())
     slug = source_paper_slug(source_name)
-    return compile_promotion_blocked_projection_rows(
-        repo.families.source_claims.address(SourceRef(source_name)).branch,
-        _promoted_claim_source_paper(claims_doc, fallback_slug=slug),
-        blocked_claims,
-        blocked_reasons,
-    )
+    source_branch = repo.families.source_claims.address(SourceRef(source_name)).branch
+    source_paper = _promoted_claim_source_paper(claims_doc, fallback_slug=slug)
+    facts: list[PromotionBlockedClaimFact] = []
+    for claim in claims_doc.claims:
+        raw_id = str(claim.id or "?")
+        artifact_id = claim.artifact_id
+        if not isinstance(artifact_id, str) or not artifact_id:
+            artifact_id = raw_id
+        if artifact_id not in blocked_artifact_ids:
+            continue
+        facts.append(
+            PromotionBlockedClaimFact(
+                artifact_id=artifact_id,
+                source_branch=source_branch,
+                source_paper=source_paper,
+                raw_id=raw_id,
+                reasons=tuple(
+                    PromotionBlockedReason(kind=kind, detail=detail)
+                    for kind, detail in blocked_reasons.get(artifact_id, ())
+                ),
+            )
+        )
+    return tuple(facts)
 
 
-def compile_all_source_promotion_blocked_projection_rows(
+def collect_all_source_promotion_blocked_facts(
     repo: Repository,
-) -> PromotionBlockedProjectionRows:
-    claim_rows: list[ProjectionRow] = []
-    diagnostic_rows: list[ProjectionRow] = []
+) -> tuple[PromotionBlockedClaimFact, ...]:
+    facts: list[PromotionBlockedClaimFact] = []
     for branch in repo.snapshot.iter_branches():
         if branch.kind != "source":
             continue
         source_name = branch.name.removeprefix("source/")
-        rows = compile_source_promotion_blocked_projection_rows(repo, source_name)
-        claim_rows.extend(rows.claim_rows)
-        diagnostic_rows.extend(rows.diagnostic_rows)
-    return PromotionBlockedProjectionRows(
-        claim_rows=tuple(claim_rows),
-        diagnostic_rows=tuple(diagnostic_rows),
-    )
+        facts.extend(collect_source_promotion_blocked_facts(repo, source_name))
+    return tuple(facts)
 
 
 def promote_source_branch(
