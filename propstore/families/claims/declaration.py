@@ -828,7 +828,6 @@ CLAIM_CONCEPT_LINK_PROJECTION = ProjectionTable(
         ProjectionIndex("idx_claim_concept_link_concept", ("concept_id",)),
         ProjectionIndex("idx_claim_concept_link_role", ("role",)),
     ),
-    row_factory=CLAIM_CONCEPT_LINK_ROW_MODEL.from_row,
 )
 
 
