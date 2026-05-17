@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository, retry_live_branch_update
 from quire.documents import convert_document_value, decode_document_path
@@ -26,7 +27,6 @@ from propstore.families.documents.sources import (
 )
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
-    resolve_source_or_primary_claim_id,
     source_claim_index as build_source_claim_index,
 )
 
@@ -154,10 +154,10 @@ def normalize_source_stances_payload(
             raise ValueError("stance source_claim must be a non-empty string")
         normalized = stance.to_payload()
         normalized["source_claim"] = claim_index.require_id(stance.source_claim)
-        target = resolve_source_or_primary_claim_id(
+        target = resolve_first_claim_reference_id(
             stance.target,
-            source=claim_index,
-            primary=primary_claim_index,
+            claim_index,
+            primary_claim_index,
         )
         if target is None:
             raise ValueError(f"unresolved stance target: {stance.target}")
@@ -182,10 +182,10 @@ def _require_source_or_primary_claim_id(
     source: FamilyReferenceIndex[SourceClaimDocument],
     primary: FamilyReferenceIndex[Any] | None,
 ) -> str:
-    resolved = resolve_source_or_primary_claim_id(
+    resolved = resolve_first_claim_reference_id(
         reference,
-        source=source,
-        primary=primary,
+        source,
+        primary,
     )
     if resolved is None:
         if not isinstance(reference, str) or not reference:
