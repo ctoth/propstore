@@ -410,6 +410,9 @@ def _summary_metrics(items: list[FileInventory], root: Path) -> dict[str, int]:
     propstore_items = [
         item for item in items if _relative(item.path, root).startswith("propstore/")
     ]
+    family_items = [
+        item for item in propstore_items if _relative(item.path, root).startswith("propstore/families/")
+    ]
     non_sidecar_items = [
         item
         for item in propstore_items
@@ -449,6 +452,8 @@ def _summary_metrics(items: list[FileInventory], root: Path) -> dict[str, int]:
     return {
         "propstore_python_files": len(propstore_items),
         "propstore_python_lines": sum(item.lines for item in propstore_items),
+        "raw_sql_score": sum(item.raw_sql_score for item in family_items),
+        "propstore_raw_sql_score": sum(item.raw_sql_score for item in propstore_items),
         "generated_propstore_python_lines": sum(
             item.lines
             for item in propstore_items
@@ -1060,6 +1065,23 @@ def _load_summary(path: Path) -> dict[str, int]:
     for key, value in summary.items():
         if isinstance(value, int):
             result[key] = value
+    files = data.get("files")
+    if isinstance(files, list):
+        raw_sql_score = 0
+        propstore_raw_sql_score = 0
+        for record in files:
+            if not isinstance(record, dict):
+                continue
+            rel_path = record.get("path")
+            value = record.get("raw_sql_score")
+            if not isinstance(rel_path, str) or not isinstance(value, int):
+                continue
+            if rel_path.startswith("propstore/"):
+                propstore_raw_sql_score += value
+            if rel_path.startswith("propstore/families/"):
+                raw_sql_score += value
+        result.setdefault("raw_sql_score", raw_sql_score)
+        result.setdefault("propstore_raw_sql_score", propstore_raw_sql_score)
     return result
 
 
