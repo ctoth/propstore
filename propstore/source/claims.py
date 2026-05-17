@@ -10,7 +10,7 @@ from propstore.families.claims.documents import ClaimLogicalIdDocument, ClaimSou
 from propstore.families.registry import SourceRef
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.families.documents.sources import SourceProvenanceDocument
-from propstore.repository import Repository
+from propstore.repository import Repository, retry_live_branch_update
 from quire.documents import convert_document_value, decode_document_path
 from propstore.families.identity.claims import (
     compute_claim_version_id,
@@ -19,8 +19,6 @@ from propstore.families.identity.claims import (
 from propstore.families.identity.logical_ids import normalize_logical_value
 
 from .common import (
-    current_source_branch_head,
-    is_stale_branch_error,
     load_source_claims_document,
     load_source_concepts_document,
     load_source_document,
@@ -481,10 +479,8 @@ def commit_source_claim_proposal(
     source_doc = load_source_document(repo, source_name)
     normalized_claim_type = coerce_claim_type(claim_type)
     assert normalized_claim_type is not None
-    last_normalized: SourceClaimsDocument | None = None
 
-    for attempt in range(8):
-        expected_head = current_source_branch_head(repo, source_name)
+    def update(expected_head: str | None) -> SourceClaimsDocument:
         existing = load_source_claims_document(repo, source_name) or SourceClaimsDocument(
             source=ClaimSourceDocument(paper=normalize_source_slug(source_name)),
             claims=(),
@@ -567,23 +563,16 @@ def commit_source_claim_proposal(
             source_namespace=normalize_source_slug(source_name),
         )
 
-        try:
-            repo.families.source_claims.save(
-                SourceRef(source_name),
-                normalized,
-                message=f"Propose claim for {normalize_source_slug(source_name)}",
-                expected_head=expected_head,
-            )
-        except ValueError as exc:
-            if attempt == 7 or not is_stale_branch_error(exc):
-                raise
-            continue
-        last_normalized = normalized
-        break
+        repo.families.source_claims.save(
+            SourceRef(source_name),
+            normalized,
+            message=f"Propose claim for {normalize_source_slug(source_name)}",
+            expected_head=expected_head,
+        )
+        return normalized
 
-    if last_normalized is not None:
-        for entry in last_normalized.claims:
-            if entry.source_local_id == claim_id:
-                return entry
-        return last_normalized.claims[-1]
-    raise ValueError(f"could not write claim proposal {claim_id!r}")
+    normalized = retry_live_branch_update(repo, branch, update)
+    for entry in normalized.claims:
+        if entry.source_local_id == claim_id:
+            return entry
+    return normalized.claims[-1]
