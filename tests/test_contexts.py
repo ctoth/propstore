@@ -355,13 +355,7 @@ class TestContextSidecar:
         )
 
         rows = compile_context_sidecar_rows(contexts)
-        populate_contexts(
-            conn,
-            context_rows=rows.context_rows,
-            assumption_rows=rows.assumption_rows,
-            lifting_rule_rows=rows.lifting_rule_rows,
-            lifting_materialization_rows=rows.lifting_materialization_rows,
-        )
+        populate_contexts(conn, rows)
 
         row = conn.execute("SELECT * FROM context WHERE id='ctx_target'").fetchone()
         assert json.loads(row["parameters_json"]) == {"domain": "speech"}
