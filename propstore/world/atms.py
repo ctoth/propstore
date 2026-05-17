@@ -68,7 +68,7 @@ from propstore.core.labels import (
     merge_labels,
     SupportQuality,
 )
-from propstore.families.claims.declaration import ClaimRow
+from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -391,7 +391,7 @@ def _claim_node_to_active_claim(claim_node: ClaimNode) -> ActiveClaim:
             "ordinal": 0,
         }]
     row_data.update(dict(claim_node.attributes))
-    return ActiveClaim.from_claim_row(ClaimRow.from_mapping(row_data))
+    return ActiveClaim.from_claim_row(CLAIM_ROW_GENERIC_MODEL.from_row(row_data))
 
 
 def _parameterization_edge_to_row(edge: ParameterizationEdge) -> ParameterizationRow:
