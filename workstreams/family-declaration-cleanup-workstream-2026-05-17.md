@@ -1,8 +1,15 @@
 # Family Declaration Cleanup Workstream - 2026-05-17
 
-Status: executable for Phase 0 and Phase 1; Phase 2 claims inventory is required
-before any post-context family implementation. This workstream is the active
-control surface after `workstreams/family-declaration-cleanup-inventory-2026-05-17.md`.
+Status: broad cleanup context, not the current executable control surface.
+
+Active executable workstream:
+
+- `workstreams/family-declaration-phase-2-4-executable-workstream-2026-05-17.md`
+
+This file records the broader direction and historical family inventory shape.
+Do not execute implementation directly from the broad future phases in this
+file. Compile each future family slice into a small executable workstream before
+editing production code.
 
 Inventory:
 
