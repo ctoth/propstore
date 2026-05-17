@@ -21,7 +21,7 @@ from quire.projection_mapping import (
     ReferencePath,
     ScalarPath,
 )
-from quire.projections import ProjectionColumn, ProjectionTable
+from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
 
 from propstore.core.algorithm_stage import coerce_algorithm_stage
 from propstore.core.claim_types import coerce_claim_type
@@ -259,6 +259,7 @@ CLAIM_CONCEPT_LINK_ROLE_CODEC = ProjectionCodec(
 ORDINAL_CODEC = ProjectionCodec("integer", "INTEGER", encoder=_ordinal, decoder=_ordinal)
 INTEGER_CODEC = ProjectionCodec("integer", "INTEGER", encoder=_nullable_int, decoder=_nullable_int)
 REAL_CODEC = ProjectionCodec("real", "REAL", encoder=_nullable_float, decoder=_nullable_float)
+AUTOINCREMENT_CODEC = ProjectionCodec("autoincrement", "INTEGER PRIMARY KEY AUTOINCREMENT")
 LOGICAL_IDS_PAYLOAD_CODEC = ProjectionCodec(
     "logical_ids_payload",
     "TEXT",
@@ -313,6 +314,176 @@ CLAIM_CONCEPT_LINKS_PATH = ProjectionAttachedRows(
     item_type=ClaimConceptLinkRow,
     order_by=(CLAIM_CONCEPT_LINK_ORDINAL_PATH, CLAIM_CONCEPT_LINK_CONCEPT_ID_PATH),
     fields=CLAIM_CONCEPT_LINK_ITEM_FIELDS,
+)
+
+
+CLAIM_CORE_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
+    name="claim_core_storage",
+    table="claim_core",
+    result_type=dict,
+    fields=(
+        ScalarPath(("id",), "id", codec=TEXT_CODEC, nullable=False, primary_key=True, missing="raise"),
+        ScalarPath(("primary_logical_id",), "primary_logical_id", codec=TEXT_CODEC, nullable=False, default_sql="''"),
+        ScalarPath(("logical_ids_json",), "logical_ids_json", codec=TEXT_CODEC, nullable=False, default_sql="'[]'"),
+        ScalarPath(("version_id",), "version_id", codec=TEXT_CODEC, nullable=False, default_sql="''"),
+        ScalarPath(("content_hash",), "content_hash", codec=TEXT_CODEC, nullable=False, default_sql="''"),
+        ScalarPath(("seq",), "seq", codec=INTEGER_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("type",), "type", codec=TEXT_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("target_concept",), "target_concept", codec=CONCEPT_ID_CODEC),
+        ScalarPath(("source_slug",), "source_slug", codec=TEXT_CODEC),
+        ScalarPath(("source_paper",), "source_paper", codec=TEXT_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("provenance_page",), "provenance_page", codec=INTEGER_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("provenance_json",), "provenance_json", codec=TEXT_CODEC),
+        ReferencePath(("context_id",), "context_id", family="context", codec=CONTEXT_ID_CODEC),
+        ScalarPath(("premise_kind",), "premise_kind", codec=TEXT_CODEC, nullable=False, default_sql="'ordinary'"),
+        ScalarPath(("branch",), "branch", codec=TEXT_CODEC),
+        ScalarPath(("build_status",), "build_status", codec=TEXT_CODEC, nullable=False, default_sql="'ingested'"),
+        ScalarPath(("stage",), "stage", codec=TEXT_CODEC),
+        ScalarPath(("promotion_status",), "promotion_status", codec=TEXT_CODEC),
+    ),
+    indexes=(
+        ProjectionIndex("idx_claim_core_target", ("target_concept",)),
+        ProjectionIndex("idx_claim_core_type", ("type",)),
+        ProjectionIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)),
+        ProjectionIndex("idx_claim_core_build_status", ("build_status",)),
+        ProjectionIndex("idx_claim_core_stage", ("stage",)),
+        ProjectionIndex("idx_claim_core_promotion_status", ("promotion_status",)),
+    ),
+)
+
+
+CLAIM_CONCEPT_LINK_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
+    name="claim_concept_link_storage",
+    table="claim_concept_link",
+    result_type=dict,
+    fields=(
+        ReferencePath(("claim_id",), "claim_id", family="claim_core", codec=CLAIM_ID_CODEC, nullable=False, missing="raise"),
+        ReferencePath(("concept_id",), "concept_id", family="concept", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("role",), "role", codec=CLAIM_CONCEPT_LINK_ROLE_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("ordinal",), "ordinal", codec=ORDINAL_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("binding_name",), "binding_name", codec=TEXT_CODEC),
+    ),
+    primary_key=("claim_id", "role", "ordinal", "concept_id"),
+    indexes=(
+        ProjectionIndex("idx_claim_concept_link_claim", ("claim_id",)),
+        ProjectionIndex("idx_claim_concept_link_concept", ("concept_id",)),
+        ProjectionIndex("idx_claim_concept_link_role", ("role",)),
+    ),
+)
+
+
+CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
+    name="claim_numeric_payload_storage",
+    table="claim_numeric_payload",
+    result_type=dict,
+    fields=(
+        ReferencePath(("claim_id",), "claim_id", family="claim_core", codec=CLAIM_ID_CODEC, nullable=False, primary_key=True, missing="raise"),
+        ScalarPath(("value",), "value", codec=REAL_CODEC),
+        ScalarPath(("lower_bound",), "lower_bound", codec=REAL_CODEC),
+        ScalarPath(("upper_bound",), "upper_bound", codec=REAL_CODEC),
+        ScalarPath(("uncertainty",), "uncertainty", codec=REAL_CODEC),
+        ScalarPath(("uncertainty_type",), "uncertainty_type", codec=TEXT_CODEC),
+        ScalarPath(("sample_size",), "sample_size", codec=INTEGER_CODEC),
+        ScalarPath(("unit",), "unit", codec=TEXT_CODEC),
+        ScalarPath(("value_si",), "value_si", codec=REAL_CODEC),
+        ScalarPath(("lower_bound_si",), "lower_bound_si", codec=REAL_CODEC),
+        ScalarPath(("upper_bound_si",), "upper_bound_si", codec=REAL_CODEC),
+    ),
+)
+
+
+CLAIM_TEXT_PAYLOAD_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
+    name="claim_text_payload_storage",
+    table="claim_text_payload",
+    result_type=dict,
+    fields=(
+        ReferencePath(("claim_id",), "claim_id", family="claim_core", codec=CLAIM_ID_CODEC, nullable=False, primary_key=True, missing="raise"),
+        ScalarPath(("conditions_cel",), "conditions_cel", codec=TEXT_CODEC),
+        ScalarPath(("conditions_ir",), "conditions_ir", codec=TEXT_CODEC),
+        ScalarPath(("statement",), "statement", codec=TEXT_CODEC),
+        ScalarPath(("expression",), "expression", codec=TEXT_CODEC),
+        ScalarPath(("sympy_generated",), "sympy_generated", codec=TEXT_CODEC),
+        ScalarPath(("sympy_error",), "sympy_error", codec=TEXT_CODEC),
+        ScalarPath(("name",), "name", codec=TEXT_CODEC),
+        ScalarPath(("measure",), "measure", codec=TEXT_CODEC),
+        ScalarPath(("listener_population",), "listener_population", codec=TEXT_CODEC),
+        ScalarPath(("methodology",), "methodology", codec=TEXT_CODEC),
+        ScalarPath(("notes",), "notes", codec=TEXT_CODEC),
+        ScalarPath(("description",), "description", codec=TEXT_CODEC),
+        ScalarPath(("auto_summary",), "auto_summary", codec=TEXT_CODEC),
+    ),
+)
+
+
+CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
+    name="claim_algorithm_payload_storage",
+    table="claim_algorithm_payload",
+    result_type=dict,
+    fields=(
+        ReferencePath(("claim_id",), "claim_id", family="claim_core", codec=CLAIM_ID_CODEC, nullable=False, primary_key=True, missing="raise"),
+        ScalarPath(("body",), "body", codec=TEXT_CODEC),
+        ScalarPath(("canonical_ast",), "canonical_ast", codec=TEXT_CODEC),
+        ScalarPath(("variables_json",), "variables_json", codec=TEXT_CODEC),
+        ScalarPath(("algorithm_stage",), "algorithm_stage", codec=ALGORITHM_STAGE_CODEC),
+    ),
+    indexes=(ProjectionIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
+)
+
+
+CONFLICT_WITNESS_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
+    name="conflict_witness_storage",
+    table="conflict_witness",
+    result_type=dict,
+    fields=(
+        ScalarPath(("id",), "id", codec=AUTOINCREMENT_CODEC, insertable=False),
+        ReferencePath(("concept_id",), "concept_id", family="concept", codec=CONCEPT_ID_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("claim_a_id",), "claim_a_id", codec=TEXT_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("claim_b_id",), "claim_b_id", codec=TEXT_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("warning_class",), "warning_class", codec=TEXT_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("conditions_a",), "conditions_a", codec=TEXT_CODEC),
+        ScalarPath(("conditions_b",), "conditions_b", codec=TEXT_CODEC),
+        ScalarPath(("value_a",), "value_a", codec=TEXT_CODEC),
+        ScalarPath(("value_b",), "value_b", codec=TEXT_CODEC),
+        ScalarPath(("derivation_chain",), "derivation_chain", codec=TEXT_CODEC),
+    ),
+    indexes=(ProjectionIndex("idx_conflict_witness_concept", ("concept_id",)),),
+)
+
+
+JUSTIFICATION_STORAGE_MODEL: ProjectionModel[dict[str, object]] = ProjectionModel(
+    name="justification_storage",
+    table="justification",
+    result_type=dict,
+    fields=(
+        ScalarPath(("id",), "id", codec=TEXT_CODEC, nullable=False, primary_key=True, missing="raise"),
+        ScalarPath(("justification_kind",), "justification_kind", codec=TEXT_CODEC, nullable=False, missing="raise"),
+        ReferencePath(("conclusion_claim_id",), "conclusion_claim_id", family="claim_core", codec=CLAIM_ID_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("premise_claim_ids",), "premise_claim_ids", codec=TEXT_CODEC, nullable=False, missing="raise"),
+        ScalarPath(("source_relation_type",), "source_relation_type", codec=TEXT_CODEC),
+        ReferencePath(("source_claim_id",), "source_claim_id", family="claim_core", codec=CLAIM_ID_CODEC),
+        ScalarPath(("provenance_json",), "provenance_json", codec=TEXT_CODEC),
+        ScalarPath(("rule_strength",), "rule_strength", codec=TEXT_CODEC, nullable=False, default_sql="'defeasible'"),
+    ),
+)
+
+
+CLAIM_CORE_TABLE = CLAIM_CORE_STORAGE_MODEL.projection_tables()[0]
+CLAIM_CONCEPT_LINK_TABLE = CLAIM_CONCEPT_LINK_STORAGE_MODEL.projection_tables()[0]
+CLAIM_NUMERIC_PAYLOAD_TABLE = CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL.projection_tables()[0]
+CLAIM_TEXT_PAYLOAD_TABLE = CLAIM_TEXT_PAYLOAD_STORAGE_MODEL.projection_tables()[0]
+CLAIM_ALGORITHM_PAYLOAD_TABLE = CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL.projection_tables()[0]
+CONFLICT_WITNESS_TABLE = CONFLICT_WITNESS_STORAGE_MODEL.projection_tables()[0]
+JUSTIFICATION_TABLE = JUSTIFICATION_STORAGE_MODEL.projection_tables()[0]
+
+
+CLAIM_STORAGE_TABLES = (
+    CLAIM_CORE_TABLE,
+    CLAIM_CONCEPT_LINK_TABLE,
+    CLAIM_NUMERIC_PAYLOAD_TABLE,
+    CLAIM_TEXT_PAYLOAD_TABLE,
+    CLAIM_ALGORITHM_PAYLOAD_TABLE,
+    CONFLICT_WITNESS_TABLE,
+    JUSTIFICATION_TABLE,
 )
 
 

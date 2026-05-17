@@ -4,11 +4,11 @@ import inspect
 from pathlib import Path
 
 from propstore.families.claims.declaration import (
-    CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
-    CLAIM_CONCEPT_LINK_PROJECTION,
-    CLAIM_CORE_PROJECTION,
-    CLAIM_NUMERIC_PAYLOAD_PROJECTION,
-    CLAIM_TEXT_PAYLOAD_PROJECTION,
+    CLAIM_ALGORITHM_PAYLOAD_TABLE,
+    CLAIM_CONCEPT_LINK_TABLE,
+    CLAIM_CORE_TABLE,
+    CLAIM_NUMERIC_PAYLOAD_TABLE,
+    CLAIM_TEXT_PAYLOAD_TABLE,
     populate_claims,
 )
 from quire.derived_runtime import connect_sqlite_store
@@ -76,7 +76,7 @@ def _claim_sidecar_rows(
     return ClaimSidecarRows(
         claim_core_rows=tuple(_claim_core_row(row) for row in claim_rows),
         numeric_payload_rows=tuple(
-            CLAIM_NUMERIC_PAYLOAD_PROJECTION.row(
+            CLAIM_NUMERIC_PAYLOAD_TABLE.row(
                 claim_id=row["id"],
                 value=row["value"],
                 lower_bound=row["lower_bound"],
@@ -92,7 +92,7 @@ def _claim_sidecar_rows(
             for row in claim_rows
         ),
         text_payload_rows=tuple(
-            CLAIM_TEXT_PAYLOAD_PROJECTION.row(
+            CLAIM_TEXT_PAYLOAD_TABLE.row(
                 claim_id=row["id"],
                 conditions_cel=row["conditions_cel"],
                 conditions_ir=row["conditions_ir"],
@@ -111,7 +111,7 @@ def _claim_sidecar_rows(
             for row in claim_rows
         ),
         algorithm_payload_rows=tuple(
-            CLAIM_ALGORITHM_PAYLOAD_PROJECTION.row(
+            CLAIM_ALGORITHM_PAYLOAD_TABLE.row(
                 claim_id=row["id"],
                 body=row["body"],
                 canonical_ast=row["canonical_ast"],
@@ -127,7 +127,7 @@ def _claim_sidecar_rows(
 
 
 def _claim_core_row(row: dict):
-    return CLAIM_CORE_PROJECTION.row(
+    return CLAIM_CORE_TABLE.row(
         id=row["id"],
         primary_logical_id=row["primary_logical_id"],
         logical_ids_json=row["logical_ids_json"],
@@ -232,14 +232,14 @@ def test_populate_claims_dedupes_duplicate_claim_concept_links(
                 _claim_row("ps:claim:linked", version_id="sha256:same"),
                 _claim_row("ps:claim:linked", version_id="sha256:same"),
                 claim_link_rows=(
-                    CLAIM_CONCEPT_LINK_PROJECTION.row(
+                    CLAIM_CONCEPT_LINK_TABLE.row(
                         claim_id="ps:claim:linked",
                         concept_id="ps:concept:velocity",
                         role="target",
                         ordinal=0,
                         binding_name=None,
                     ),
-                    CLAIM_CONCEPT_LINK_PROJECTION.row(
+                    CLAIM_CONCEPT_LINK_TABLE.row(
                         claim_id="ps:claim:linked",
                         concept_id="ps:concept:velocity",
                         role="target",

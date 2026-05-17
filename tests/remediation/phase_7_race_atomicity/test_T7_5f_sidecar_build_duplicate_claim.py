@@ -12,10 +12,10 @@ the build pass must dedupe instead of crashing with
 from __future__ import annotations
 
 from propstore.families.claims.declaration import (
-    CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
-    CLAIM_CORE_PROJECTION,
-    CLAIM_NUMERIC_PAYLOAD_PROJECTION,
-    CLAIM_TEXT_PAYLOAD_PROJECTION,
+    CLAIM_ALGORITHM_PAYLOAD_TABLE,
+    CLAIM_CORE_TABLE,
+    CLAIM_NUMERIC_PAYLOAD_TABLE,
+    CLAIM_TEXT_PAYLOAD_TABLE,
     populate_claims,
 )
 from quire.derived_runtime import connect_sqlite_store
@@ -75,7 +75,7 @@ def _claim_sidecar_rows(*claim_rows: dict) -> ClaimSidecarRows:
     return ClaimSidecarRows(
         claim_core_rows=tuple(_claim_core_row(row) for row in claim_rows),
         numeric_payload_rows=tuple(
-            CLAIM_NUMERIC_PAYLOAD_PROJECTION.row(
+            CLAIM_NUMERIC_PAYLOAD_TABLE.row(
                 claim_id=row["id"],
                 value=row["value"],
                 lower_bound=row["lower_bound"],
@@ -91,7 +91,7 @@ def _claim_sidecar_rows(*claim_rows: dict) -> ClaimSidecarRows:
             for row in claim_rows
         ),
         text_payload_rows=tuple(
-            CLAIM_TEXT_PAYLOAD_PROJECTION.row(
+            CLAIM_TEXT_PAYLOAD_TABLE.row(
                 claim_id=row["id"],
                 conditions_cel=row["conditions_cel"],
                 conditions_ir=row["conditions_ir"],
@@ -110,7 +110,7 @@ def _claim_sidecar_rows(*claim_rows: dict) -> ClaimSidecarRows:
             for row in claim_rows
         ),
         algorithm_payload_rows=tuple(
-            CLAIM_ALGORITHM_PAYLOAD_PROJECTION.row(
+            CLAIM_ALGORITHM_PAYLOAD_TABLE.row(
                 claim_id=row["id"],
                 body=row["body"],
                 canonical_ast=row["canonical_ast"],
@@ -126,7 +126,7 @@ def _claim_sidecar_rows(*claim_rows: dict) -> ClaimSidecarRows:
 
 
 def _claim_core_row(row: dict):
-    return CLAIM_CORE_PROJECTION.row(
+    return CLAIM_CORE_TABLE.row(
         id=row["id"],
         primary_logical_id=row["primary_logical_id"],
         logical_ids_json=row["logical_ids_json"],

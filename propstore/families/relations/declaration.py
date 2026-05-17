@@ -436,9 +436,9 @@ def select_claim_stances_with_policy(
         *source_params,
         *target_params,
     ]
-    from propstore.families.claims.declaration import CLAIM_CORE_PROJECTION
+    from propstore.families.claims.declaration import CLAIM_CORE_TABLE
 
-    plan = claim_stance_policy_query_plan(CLAIM_CORE_PROJECTION)
+    plan = claim_stance_policy_query_plan(CLAIM_CORE_TABLE)
     rows = conn.execute(
         plan.select_sql(f"WHERE {' AND '.join(predicates)}"),  # noqa: S608
         tuple(params),

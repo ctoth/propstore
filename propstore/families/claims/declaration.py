@@ -18,25 +18,8 @@ from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
 from quire.projections import (
-    ARTIFACT_ID_FIELD,
-    AUTOINCREMENT_ID_FIELD,
-    CONDITIONS_CEL_FIELD,
-    CONDITIONS_IR_FIELD,
-    CONTENT_HASH_FIELD,
     FtsProjection,
-    ProjectionForeignKey,
-    ProjectionIndex,
     ProjectionRow,
-    ProjectionTable,
-    LOGICAL_IDS_JSON_FIELD,
-    PRIMARY_LOGICAL_ID_FIELD,
-    PROVENANCE_JSON_FIELD,
-    SEQUENCE_FIELD,
-    VERSION_ID_FIELD,
-    family_reference_field,
-    integer_field,
-    real_field,
-    text_field,
 )
 from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
 from propstore.claims import (
@@ -286,9 +269,16 @@ ClaimRowInput = ClaimRow | Mapping[str, Any]
 
 
 from propstore.families.claims.projection_model import (  # noqa: E402
+    CLAIM_ALGORITHM_PAYLOAD_TABLE,
+    CLAIM_CONCEPT_LINK_TABLE,
     CLAIM_CONCEPT_LINK_ROW_MODEL,
     CLAIM_CONCEPT_LINKS_PATH,
+    CLAIM_CORE_TABLE,
+    CLAIM_NUMERIC_PAYLOAD_TABLE,
     CLAIM_ROW_MODEL,
+    CLAIM_TEXT_PAYLOAD_TABLE,
+    CONFLICT_WITNESS_TABLE,
+    JUSTIFICATION_TABLE,
     claim_row_query_plan,
 )
 
@@ -683,156 +673,12 @@ CLAIM_EMBEDDING_JOIN_COLUMNS = (
 )
 
 
-CLAIM_CORE_PROJECTION = ProjectionTable(
-    name="claim_core",
-    columns=(
-        ARTIFACT_ID_FIELD.column(primary_key=True),
-        PRIMARY_LOGICAL_ID_FIELD.column(),
-        LOGICAL_IDS_JSON_FIELD.column(),
-        VERSION_ID_FIELD.column(),
-        CONTENT_HASH_FIELD.column(default_sql="''"),
-        SEQUENCE_FIELD.column(),
-        text_field("type", nullable=False).column(),
-        text_field("target_concept").column(),
-        text_field("source_slug").column(),
-        text_field("source_paper", nullable=False).column(),
-        integer_field("provenance_page", nullable=False).column(),
-        PROVENANCE_JSON_FIELD.column(),
-        family_reference_field("context").column(),
-        text_field("premise_kind", nullable=False).column(default_sql="'ordinary'"),
-        text_field("branch").column(),
-        text_field("build_status", nullable=False).column(default_sql="'ingested'"),
-        text_field("stage").column(),
-        text_field("promotion_status").column(),
-    ),
-    foreign_keys=(ProjectionForeignKey(("context_id",), "context", ("id",)),),
-    indexes=(
-        ProjectionIndex("idx_claim_core_target", ("target_concept",)),
-        ProjectionIndex("idx_claim_core_type", ("type",)),
-        ProjectionIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)),
-        ProjectionIndex("idx_claim_core_build_status", ("build_status",)),
-        ProjectionIndex("idx_claim_core_stage", ("stage",)),
-        ProjectionIndex("idx_claim_core_promotion_status", ("promotion_status",)),
-    ),
-)
-
-
-CLAIM_CONCEPT_LINK_PROJECTION = ProjectionTable(
-    name="claim_concept_link",
-    columns=(
-        family_reference_field("claim", nullable=False).column(),
-        family_reference_field("concept", nullable=False).column(),
-        text_field("role", nullable=False).column(),
-        integer_field("ordinal", nullable=False).column(),
-        text_field("binding_name").column(),
-    ),
-    primary_key=("claim_id", "role", "ordinal", "concept_id"),
-    foreign_keys=(
-        ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),
-        ProjectionForeignKey(("concept_id",), "concept", ("id",)),
-    ),
-    indexes=(
-        ProjectionIndex("idx_claim_concept_link_claim", ("claim_id",)),
-        ProjectionIndex("idx_claim_concept_link_concept", ("concept_id",)),
-        ProjectionIndex("idx_claim_concept_link_role", ("role",)),
-    ),
-)
-
-
-CLAIM_NUMERIC_PAYLOAD_PROJECTION = ProjectionTable(
-    name="claim_numeric_payload",
-    columns=(
-        family_reference_field("claim").column(primary_key=True),
-        real_field("value").column(),
-        real_field("lower_bound").column(),
-        real_field("upper_bound").column(),
-        real_field("uncertainty").column(),
-        text_field("uncertainty_type").column(),
-        integer_field("sample_size").column(),
-        text_field("unit").column(),
-        real_field("value_si").column(),
-        real_field("lower_bound_si").column(),
-        real_field("upper_bound_si").column(),
-    ),
-    foreign_keys=(ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),),
-)
-
-
-CLAIM_TEXT_PAYLOAD_PROJECTION = ProjectionTable(
-    name="claim_text_payload",
-    columns=(
-        family_reference_field("claim").column(primary_key=True),
-        CONDITIONS_CEL_FIELD.column(),
-        CONDITIONS_IR_FIELD.column(),
-        text_field("statement").column(),
-        text_field("expression").column(),
-        text_field("sympy_generated").column(),
-        text_field("sympy_error").column(),
-        text_field("name").column(),
-        text_field("measure").column(),
-        text_field("listener_population").column(),
-        text_field("methodology").column(),
-        text_field("notes").column(),
-        text_field("description").column(),
-        text_field("auto_summary").column(),
-    ),
-    foreign_keys=(ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),),
-)
-
-
-CLAIM_ALGORITHM_PAYLOAD_PROJECTION = ProjectionTable(
-    name="claim_algorithm_payload",
-    columns=(
-        family_reference_field("claim").column(primary_key=True),
-        text_field("body").column(),
-        text_field("canonical_ast").column(),
-        text_field("variables_json").column(),
-        text_field("algorithm_stage").column(),
-    ),
-    foreign_keys=(ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),),
-    indexes=(ProjectionIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
-)
-
-
 CLAIM_ROW_QUERY_PLAN = claim_row_query_plan(
-    claim_core=CLAIM_CORE_PROJECTION,
-    numeric_payload=CLAIM_NUMERIC_PAYLOAD_PROJECTION,
-    text_payload=CLAIM_TEXT_PAYLOAD_PROJECTION,
-    algorithm_payload=CLAIM_ALGORITHM_PAYLOAD_PROJECTION,
+    claim_core=CLAIM_CORE_TABLE,
+    numeric_payload=CLAIM_NUMERIC_PAYLOAD_TABLE,
+    text_payload=CLAIM_TEXT_PAYLOAD_TABLE,
+    algorithm_payload=CLAIM_ALGORITHM_PAYLOAD_TABLE,
     source=SOURCE_PROJECTION,
-)
-
-
-CONFLICT_WITNESS_PROJECTION = ProjectionTable(
-    name="conflict_witness",
-    columns=(
-        AUTOINCREMENT_ID_FIELD.column(),
-        family_reference_field("concept", nullable=False).column(),
-        text_field("claim_a_id", nullable=False).column(),
-        text_field("claim_b_id", nullable=False).column(),
-        text_field("warning_class", nullable=False).column(),
-        text_field("conditions_a").column(),
-        text_field("conditions_b").column(),
-        text_field("value_a").column(),
-        text_field("value_b").column(),
-        text_field("derivation_chain").column(),
-    ),
-    indexes=(ProjectionIndex("idx_conflict_witness_concept", ("concept_id",)),),
-)
-
-
-JUSTIFICATION_PROJECTION = ProjectionTable(
-    name="justification",
-    columns=(
-        ARTIFACT_ID_FIELD.column(primary_key=True),
-        text_field("justification_kind", nullable=False).column(),
-        family_reference_field("claim", role="conclusion", nullable=False).column(),
-        text_field("premise_claim_ids", nullable=False).column(),
-        text_field("source_relation_type").column(),
-        family_reference_field("claim", role="source").column(),
-        PROVENANCE_JSON_FIELD.column(),
-        text_field("rule_strength", nullable=False).column(default_sql="'defeasible'"),
-    ),
 )
 
 
@@ -907,7 +753,7 @@ def compile_claim_sidecar_rows(
             if file_stage is not None:
                 row["stage"] = file_stage
             claim_core_rows.append(
-                CLAIM_CORE_PROJECTION.row(
+                CLAIM_CORE_TABLE.row(
                     id=row["id"],
                     primary_logical_id=row["primary_logical_id"],
                     logical_ids_json=row["logical_ids_json"],
@@ -929,7 +775,7 @@ def compile_claim_sidecar_rows(
                 )
             )
             numeric_payload_rows.append(
-                CLAIM_NUMERIC_PAYLOAD_PROJECTION.row(
+                CLAIM_NUMERIC_PAYLOAD_TABLE.row(
                     claim_id=row["id"],
                     value=row["value"],
                     lower_bound=row["lower_bound"],
@@ -944,7 +790,7 @@ def compile_claim_sidecar_rows(
                 )
             )
             text_payload_rows.append(
-                CLAIM_TEXT_PAYLOAD_PROJECTION.row(
+                CLAIM_TEXT_PAYLOAD_TABLE.row(
                     claim_id=row["id"],
                     conditions_cel=row["conditions_cel"],
                     conditions_ir=row["conditions_ir"],
@@ -962,7 +808,7 @@ def compile_claim_sidecar_rows(
                 )
             )
             algorithm_payload_rows.append(
-                CLAIM_ALGORITHM_PAYLOAD_PROJECTION.row(
+                CLAIM_ALGORITHM_PAYLOAD_TABLE.row(
                     claim_id=row["id"],
                     body=row["body"],
                     canonical_ast=row["canonical_ast"],
@@ -972,7 +818,7 @@ def compile_claim_sidecar_rows(
             )
             for values in prepare_claim_concept_link_rows(semantic_claim):
                 claim_link_rows.append(
-                    CLAIM_CONCEPT_LINK_PROJECTION.row(
+                    CLAIM_CONCEPT_LINK_TABLE.row(
                         claim_id=values[0],
                         concept_id=values[1],
                         role=values[2],
@@ -1133,7 +979,7 @@ def compile_authored_justification_sidecar_rows_with_diagnostics(
             provenance_payload["attack_target"] = attack_target
 
         rows.append(
-            JUSTIFICATION_PROJECTION.row(
+            JUSTIFICATION_TABLE.row(
                 id=justification_id,
                 justification_kind=str(justification.rule_kind or "reported_claim"),
                 conclusion_claim_id=conclusion,
@@ -1157,7 +1003,7 @@ def compile_raw_id_quarantine_sidecar_rows(
 
     for record in records:
         claim_rows.append(
-            CLAIM_CORE_PROJECTION.row(
+            CLAIM_CORE_TABLE.row(
                 id=record.synthetic_id,
                 primary_logical_id="",
                 logical_ids_json="[]",
@@ -1202,7 +1048,7 @@ def compile_promotion_blocked_claim_core_rows(
     facts: Sequence[PromotionBlockedClaimFact],
 ) -> tuple[ProjectionRow, ...]:
     return tuple(
-        CLAIM_CORE_PROJECTION.row(
+        CLAIM_CORE_TABLE.row(
             id=fact.artifact_id,
             primary_logical_id="",
             logical_ids_json="[]",
@@ -1256,7 +1102,7 @@ def compile_conflict_sidecar_rows(
         )
     )
     return tuple(
-        CONFLICT_WITNESS_PROJECTION.row(
+        CONFLICT_WITNESS_TABLE.row(
             concept_id=record.concept_id,
             claim_a_id=record.claim_a_id,
             claim_b_id=record.claim_b_id,
@@ -1275,7 +1121,7 @@ def populate_raw_id_quarantine_records(
     conn: sqlite3.Connection,
     rows: RawIdQuarantineSidecarRows,
 ) -> None:
-    CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in rows.claim_rows))
+    CLAIM_CORE_TABLE.insert_rows(conn, (row.values for row in rows.claim_rows))
     for row in rows.diagnostic_rows:
         BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
 
@@ -1330,7 +1176,7 @@ def populate_promotion_blocked_claims(
             )
         delete_claim_core_row(conn, claim_id)
         delete_promotion_blocked_diagnostics(conn, claim_id)
-    CLAIM_CORE_PROJECTION.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
+    CLAIM_CORE_TABLE.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
     for row in diagnostic_rows:
         BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
 
@@ -1386,11 +1232,11 @@ def populate_claims(
                 )
                 emitted_conflicts.add(conflict_key)
             continue
-        CLAIM_CORE_PROJECTION.insert_row(conn, row.values)
+        CLAIM_CORE_TABLE.insert_row(conn, row.values)
         numeric_row, text_row, algorithm_row = payloads_by_claim_id[claim_id]
-        CLAIM_NUMERIC_PAYLOAD_PROJECTION.insert_row(conn, numeric_row.values)
-        CLAIM_TEXT_PAYLOAD_PROJECTION.insert_row(conn, text_row.values)
-        CLAIM_ALGORITHM_PAYLOAD_PROJECTION.insert_row(conn, algorithm_row.values)
+        CLAIM_NUMERIC_PAYLOAD_TABLE.insert_row(conn, numeric_row.values)
+        CLAIM_TEXT_PAYLOAD_TABLE.insert_row(conn, text_row.values)
+        CLAIM_ALGORITHM_PAYLOAD_TABLE.insert_row(conn, algorithm_row.values)
         if isinstance(claim_id, str):
             seen_claim_versions[claim_id] = str(version_id or "")
     seen_link_keys: set[tuple[object, object, object, object]] = set()
@@ -1404,7 +1250,7 @@ def populate_claims(
         if key in seen_link_keys:
             continue
         seen_link_keys.add(key)
-        CLAIM_CONCEPT_LINK_PROJECTION.insert_row(conn, row)
+        CLAIM_CONCEPT_LINK_TABLE.insert_row(conn, row)
     if rows.stance_rows:
         RELATION_EDGE_TABLE.insert_rows(conn, (stance_row.values for stance_row in rows.stance_rows))
 
@@ -1454,11 +1300,11 @@ def populate_authored_justifications(
     conn: sqlite3.Connection,
     rows: Sequence[ProjectionRow],
 ) -> None:
-    JUSTIFICATION_PROJECTION.insert_rows(conn, rows, or_ignore=True)
+    JUSTIFICATION_TABLE.insert_rows(conn, rows, or_ignore=True)
 
 
 def populate_conflicts(
     conn: sqlite3.Connection,
     rows: Sequence[ProjectionRow],
 ) -> None:
-    CONFLICT_WITNESS_PROJECTION.insert_rows(conn, rows)
+    CONFLICT_WITNESS_TABLE.insert_rows(conn, rows)
