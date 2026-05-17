@@ -32,7 +32,7 @@ from propstore.core.base_rates import BaseRateUnresolved
 from propstore.families.documents.stances import StanceDocument
 from propstore.opinion import Opinion, fuse
 from propstore.provenance import Provenance, ProvenanceStatus
-from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
+from propstore.families.relations.declaration import RELATION_EDGE_TABLE
 
 
 def _vacuous_provenance_payload() -> dict:
@@ -347,7 +347,7 @@ class TestSidecarPopulatesOpinionColumns:
                 branch TEXT
             );
         """)
-        for statement in RELATION_EDGE_PROJECTION.ddl_statements():
+        for statement in RELATION_EDGE_TABLE.ddl_statements():
             conn.execute(statement)
         conn.execute(
             """
@@ -441,7 +441,7 @@ class TestSidecarHandlesOldFormatYaml:
                 branch TEXT
             );
         """)
-        for statement in RELATION_EDGE_PROJECTION.ddl_statements():
+        for statement in RELATION_EDGE_TABLE.ddl_statements():
             conn.execute(statement)
         conn.execute(
             """

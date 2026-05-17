@@ -43,7 +43,11 @@ from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.forms.stages import FormDefinition, kind_value_from_form_name
-from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
+from propstore.families.relations.declaration import (
+    RelationshipRow,
+    RELATION_EDGE_TABLE,
+    concept_relationship_relation_edge_row,
+)
 from propstore.parameterization_groups import build_groups
 from propstore.propagation import rewrite_parameterization_symbols
 
@@ -184,14 +188,14 @@ def compile_concept_sidecar_rows(
                 )
             )
             relation_edge_rows.append(
-                RELATION_EDGE_PROJECTION.row(
-                    source_kind="concept",
-                    source_id=concept_id,
-                    relation_type=relationship.relationship_type,
-                    target_kind="concept",
-                    target_id=target_id,
-                    conditions_cel=conditions_json,
-                    note=relationship.note,
+                concept_relationship_relation_edge_row(
+                    RelationshipRow(
+                        source_id=concept_id,
+                        relation_type=relationship.relationship_type,
+                        target_id=target_id,
+                        conditions_cel=conditions_json,
+                        note=relationship.note,
+                    )
                 )
             )
 
@@ -626,7 +630,7 @@ def populate_concept_sidecar_rows(
     conn: sqlite3.Connection,
     rows: ConceptSidecarRows,
 ) -> None:
-    from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
+    from propstore.families.relations.declaration import RELATION_EDGE_TABLE
 
     if rows.form_rows:
         FORM_PROJECTION.insert_rows(conn, rows.form_rows)
@@ -649,7 +653,7 @@ def populate_concept_sidecar_rows(
         )
 
     if rows.relation_edge_rows:
-        RELATION_EDGE_PROJECTION.insert_rows(conn, rows.relation_edge_rows)
+        RELATION_EDGE_TABLE.insert_rows(conn, rows.relation_edge_rows)
     if rows.parameterization_rows:
         PARAMETERIZATION_PROJECTION.insert_rows(conn, rows.parameterization_rows)
     if rows.parameterization_group_rows:

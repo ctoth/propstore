@@ -39,7 +39,7 @@ from propstore.families.micropublications.declaration import (
     MICROPUBLICATION_CLAIM_PROJECTION,
     MICROPUBLICATION_PROJECTION,
 )
-from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
+from propstore.families.relations.declaration import RELATION_EDGE_TABLE
 from propstore.families.rules.declaration import (
     GROUNDED_BUNDLE_INPUT_PROJECTION,
     GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION,
@@ -57,7 +57,7 @@ PROPSTORE_WORLD_PROJECTION_SCHEMA: ProjectionSchema = create_projection_schema(
     PARAMETERIZATION_PROJECTION,
     PARAMETERIZATION_GROUP_PROJECTION,
     RELATIONSHIP_PROJECTION,
-    RELATION_EDGE_PROJECTION,
+    RELATION_EDGE_TABLE,
     FORM_PROJECTION,
     FORM_ALGEBRA_PROJECTION,
     CONCEPT_FTS_PROJECTION,

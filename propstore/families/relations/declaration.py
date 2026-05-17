@@ -7,17 +7,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
-from quire.projections import (
-    AUTOINCREMENT_ID_FIELD,
-    CONDITIONS_CEL_FIELD,
-    ProjectionIndex,
-    ProjectionRow,
-    ProjectionTable,
-    family_reference_field,
-    integer_field,
-    real_field,
-    text_field,
-)
+from quire.projections import ProjectionRow
 from quire.references import FamilyReferenceIndex
 
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
@@ -170,83 +160,17 @@ ConflictRowInput = ConflictRow | Mapping[str, Any]
 
 
 from propstore.families.relations.projection_model import (  # noqa: E402
+    CLAIM_STANCE_QUERY_PLAN,
+    CLAIM_STANCE_WITH_PERSPECTIVE_QUERY_PLAN,
     CONFLICT_ROW_MODEL,
+    CONCEPT_RELATIONSHIP_QUERY_PLAN,
+    RELATION_EDGE_TABLE,
     RELATIONSHIP_ROW_MODEL,
     STANCE_ROW_MODEL,
+    claim_stance_policy_query_plan,
+    claim_stance_relation_edge_row,
+    concept_relationship_relation_edge_row,
 )
-
-
-RELATION_EDGE_PROJECTION = ProjectionTable(
-    name="relation_edge",
-    columns=(
-        AUTOINCREMENT_ID_FIELD.column(),
-        text_field("source_kind", nullable=False).column(),
-        text_field("source_id", nullable=False).column(),
-        text_field("relation_type", nullable=False).column(),
-        text_field("target_kind", nullable=False).column(),
-        text_field("target_id", nullable=False).column(),
-        family_reference_field("claim", role="perspective_source").column(),
-        family_reference_field("justification", role="target").column(),
-        CONDITIONS_CEL_FIELD.column(),
-        text_field("strength").column(),
-        text_field("conditions_differ").column(),
-        text_field("note").column(),
-        text_field("resolution_method").column(),
-        text_field("resolution_model").column(),
-        text_field("embedding_model").column(),
-        real_field("embedding_distance").column(),
-        integer_field("pass_number").column(),
-        real_field("confidence").column(),
-        real_field("opinion_belief").column(
-            check_sql="opinion_belief >= 0 AND opinion_belief <= 1"
-        ),
-        real_field("opinion_disbelief").column(
-            check_sql="opinion_disbelief >= 0 AND opinion_disbelief <= 1"
-        ),
-        real_field("opinion_uncertainty").column(
-            check_sql="opinion_uncertainty >= 0 AND opinion_uncertainty <= 1"
-        ),
-        real_field("opinion_base_rate").column(
-            check_sql="opinion_base_rate > 0 AND opinion_base_rate < 1"
-        ),
-    ),
-    checks=(
-        "opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6",
-    ),
-    indexes=(
-        ProjectionIndex("idx_relation_edge_source", ("source_kind", "source_id")),
-        ProjectionIndex("idx_relation_edge_target", ("target_kind", "target_id")),
-        ProjectionIndex("idx_relation_edge_type", ("relation_type",)),
-    ),
-)
-
-
-def claim_stance_projection_row(values: tuple[object, ...]) -> ProjectionRow:
-    from propstore.families.claims.storage import normalize_conditions_differ
-
-    return RELATION_EDGE_PROJECTION.row(
-        source_kind="claim",
-        source_id=values[0],
-        relation_type=values[2],
-        target_kind="claim",
-        target_id=values[1],
-        perspective_source_claim_id=values[17],
-        target_justification_id=values[3],
-        conditions_cel=None,
-        strength=values[4],
-        conditions_differ=normalize_conditions_differ(values[5]),
-        note=values[6],
-        resolution_method=values[7],
-        resolution_model=values[8],
-        embedding_model=values[9],
-        embedding_distance=values[10],
-        pass_number=values[11],
-        confidence=values[12],
-        opinion_belief=values[13],
-        opinion_disbelief=values[14],
-        opinion_uncertainty=values[15],
-        opinion_base_rate=values[16],
-    )
 
 
 def compile_authored_stance_sidecar_rows(
@@ -331,7 +255,7 @@ def compile_authored_stance_sidecar_rows_with_diagnostics(
             or source_claim
         )
         rows.append(
-            claim_stance_projection_row(
+            claim_stance_relation_edge_row(
                 (
                     source_claim,
                     target,
@@ -357,48 +281,6 @@ def compile_authored_stance_sidecar_rows_with_diagnostics(
     return tuple(rows), tuple(diagnostics)
 
 
-STANCE_SELECT_COLUMNS = """
-    source_id AS claim_id,
-    target_id AS target_claim_id,
-    relation_type AS stance_type,
-    target_justification_id,
-    strength,
-    conditions_differ,
-    note,
-    resolution_method,
-    resolution_model,
-    embedding_model,
-    embedding_distance,
-    pass_number,
-    confidence,
-    opinion_belief,
-    opinion_disbelief,
-    opinion_uncertainty,
-    opinion_base_rate
-"""
-
-STANCE_SELECT_COLUMNS_WITH_PERSPECTIVE = """
-    source_id AS claim_id,
-    target_id AS target_claim_id,
-    relation_type AS stance_type,
-    perspective_source_claim_id,
-    target_justification_id,
-    strength,
-    conditions_differ,
-    note,
-    resolution_method,
-    resolution_model,
-    embedding_model,
-    embedding_distance,
-    pass_number,
-    confidence,
-    opinion_belief,
-    opinion_disbelief,
-    opinion_uncertainty,
-    opinion_base_rate
-"""
-
-
 def select_stances_between(
     conn: sqlite3.Connection,
     claim_ids: set[str],
@@ -407,14 +289,10 @@ def select_stances_between(
         return []
     placeholders = ",".join("?" for _ in claim_ids)
     rows = conn.execute(
-        f"""
-        SELECT {STANCE_SELECT_COLUMNS_WITH_PERSPECTIVE}
-        FROM relation_edge
-        WHERE source_kind = 'claim'
-          AND target_kind = 'claim'
-          AND source_id IN ({placeholders})
-          AND target_id IN ({placeholders})
-        """,  # noqa: S608
+        CLAIM_STANCE_WITH_PERSPECTIVE_QUERY_PLAN.select_sql(
+            f"WHERE edge.source_id IN ({placeholders}) "
+            f"AND edge.target_id IN ({placeholders})"
+        ),  # noqa: S608
         list(claim_ids) + list(claim_ids),
     ).fetchall()
     return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
@@ -446,22 +324,14 @@ def select_conflicts(
 
 def select_all_relationships(conn: sqlite3.Connection) -> list[RelationshipRow]:
     rows = conn.execute(
-        """
-        SELECT source_id, relation_type, target_id, conditions_cel, note
-        FROM relation_edge
-        WHERE source_kind = 'concept' AND target_kind = 'concept'
-        """
+        CONCEPT_RELATIONSHIP_QUERY_PLAN.select_sql()
     ).fetchall()
     return [RELATIONSHIP_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
 def select_all_claim_stances(conn: sqlite3.Connection) -> list[StanceRow]:
     rows = conn.execute(
-        f"""
-        SELECT {STANCE_SELECT_COLUMNS}
-        FROM relation_edge
-        WHERE source_kind = 'claim' AND target_kind = 'claim'
-        """
+        CLAIM_STANCE_QUERY_PLAN.select_sql()
     ).fetchall()
     return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
 
@@ -488,32 +358,11 @@ def select_claim_stances_with_policy(
         *source_params,
         *target_params,
     ]
+    from propstore.families.claims.declaration import CLAIM_CORE_PROJECTION
+
+    plan = claim_stance_policy_query_plan(CLAIM_CORE_PROJECTION)
     rows = conn.execute(
-        f"""
-        SELECT
-            edge.source_id AS claim_id,
-            edge.target_id AS target_claim_id,
-            edge.relation_type AS stance_type,
-            edge.perspective_source_claim_id,
-            edge.target_justification_id,
-            edge.strength,
-            edge.conditions_differ,
-            edge.note,
-            edge.resolution_method,
-            edge.resolution_model,
-            edge.embedding_model,
-            edge.embedding_distance,
-            edge.pass_number,
-            edge.confidence,
-            edge.opinion_belief,
-            edge.opinion_disbelief,
-            edge.opinion_uncertainty,
-            edge.opinion_base_rate
-        FROM relation_edge AS edge
-        JOIN claim_core AS source_core ON source_core.id = edge.source_id
-        JOIN claim_core AS target_core ON target_core.id = edge.target_id
-        WHERE {' AND '.join(predicates)}
-        """,  # noqa: S608
+        plan.select_sql(f"WHERE {' AND '.join(predicates)}"),  # noqa: S608
         tuple(params),
     ).fetchall()
     return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
@@ -530,11 +379,7 @@ def select_explanation_stances(
     while queue:
         current = queue.pop(0)
         rows = conn.execute(
-            f"""
-            SELECT {STANCE_SELECT_COLUMNS}
-            FROM relation_edge
-            WHERE source_kind = 'claim' AND target_kind = 'claim' AND source_id = ?
-            """,
+            CLAIM_STANCE_QUERY_PLAN.select_sql("WHERE edge.source_id = ?"),
             (current,),
         ).fetchall()
         for row in rows:

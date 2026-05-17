@@ -86,7 +86,7 @@ from propstore.families.diagnostics.declaration import (
     delete_promotion_blocked_diagnostics,
 )
 from propstore.families.documents.justifications import JustificationDocument
-from propstore.families.relations.declaration import claim_stance_projection_row
+from propstore.families.relations.declaration import claim_stance_relation_edge_row
 from propstore.families.sources.declaration import SOURCE_PROJECTION
 
 if TYPE_CHECKING:
@@ -1080,7 +1080,7 @@ def compile_claim_sidecar_rows(
                 )
             )
             stance_rows.extend(
-                claim_stance_projection_row(values)
+                claim_stance_relation_edge_row(values)
                 for values in deferred_stance_rows
             )
             quarantine_diagnostics.extend(deferred_stance_diagnostics)
@@ -1365,7 +1365,7 @@ def populate_claims(
     diagnostic instead of silently taking the first writer.
     """
 
-    from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
+    from propstore.families.relations.declaration import RELATION_EDGE_TABLE
 
     seen_claim_versions: dict[str, str] = {}
     emitted_conflicts: set[tuple[str, str, str]] = set()
@@ -1417,7 +1417,7 @@ def populate_claims(
         seen_link_keys.add(key)
         CLAIM_CONCEPT_LINK_PROJECTION.insert_row(conn, row)
     if rows.stance_rows:
-        RELATION_EDGE_PROJECTION.insert_rows(conn, (stance_row.values for stance_row in rows.stance_rows))
+        RELATION_EDGE_TABLE.insert_rows(conn, (stance_row.values for stance_row in rows.stance_rows))
 
 
 def _insert_claim_version_conflict(
@@ -1456,9 +1456,9 @@ def populate_stances(
     conn: sqlite3.Connection,
     rows: Sequence[ProjectionRow],
 ) -> None:
-    from propstore.families.relations.declaration import RELATION_EDGE_PROJECTION
+    from propstore.families.relations.declaration import RELATION_EDGE_TABLE
 
-    RELATION_EDGE_PROJECTION.insert_rows(conn, (row.values for row in rows))
+    RELATION_EDGE_TABLE.insert_rows(conn, (row.values for row in rows))
 
 
 def populate_authored_justifications(
