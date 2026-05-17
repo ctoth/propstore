@@ -7,8 +7,8 @@ import yaml
 from click.testing import CliRunner
 
 from propstore.cli import cli
+from propstore.families.registry import SourceRef
 from propstore.repository import Repository
-from propstore.source import source_branch_name
 from tests.conftest import make_test_context_commit_entry, normalize_concept_payloads
 from tests.family_helpers import materialized_world_store_path
 
@@ -196,7 +196,8 @@ def test_source_promote_ambiguous_concept_quarantines_claim_not_valid_claims(
     finally:
         conn.close()
 
-    assert blocked_rows == [(source_branch_name("demo"), "blocked")]
+    branch = repo.families.source_claims.address(SourceRef("demo")).branch
+    assert blocked_rows == [(branch, "blocked")]
     assert len(diagnostic_rows) == 1
     assert diagnostic_rows[0][0] == "claim"
     assert diagnostic_rows[0][2:5] == ("promotion_blocked", "error", 1)
