@@ -7,7 +7,7 @@ import yaml
 from propstore.families.claims.documents import ClaimDocument, ClaimsFileDocument
 from tests.family_helpers import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage, to_algorithm_stage
-from propstore.families.claims.declaration import ClaimRow
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL, ClaimRow
 from propstore.families.documents.sources import SourceClaimDocument
 
 
@@ -19,7 +19,7 @@ def test_algorithm_stage_annotations_cover_runtime_path() -> None:
 
 
 def test_claim_row_coerces_algorithm_stage() -> None:
-    row = ClaimRow.from_mapping(
+    row = CLAIM_ROW_MODEL.from_row(
         {
             "id": "ps:claim:test",
             "artifact_id": "ps:claim:test",
