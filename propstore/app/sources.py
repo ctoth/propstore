@@ -5,9 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from propstore.families.registry import SourceRef
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
-from propstore.source import SourceStatusState, source_branch_name
+from propstore.source import SourceStatusState
 
 
 class SourceAppError(Exception):
@@ -216,7 +217,8 @@ def finalize_source(repo: Repository, request: SourceNamedRequest) -> SourceBran
         request.name,
         source_doc=source_doc,
     )
-    return SourceBranchReport(branch=source_branch_name(request.name))
+    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    return SourceBranchReport(branch=branch)
 
 
 def promote_source(
@@ -249,8 +251,9 @@ def promote_source(
     total_claims = len(claims_doc.claims) if claims_doc is not None else 0
     blocked_count = len(promotion.blocked_claims)
     promoted_count = max(0, total_claims - blocked_count)
+    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
     return SourcePromoteReport(
-        branch=source_branch_name(request.name),
+        branch=branch,
         total_claims=total_claims,
         promoted_count=promoted_count,
         blocked_count=blocked_count,
@@ -273,10 +276,8 @@ def sync_source(repo: Repository, request: SourceSyncRequest) -> SourceSyncRepor
         request.name,
         output_dir=request.output_dir,
     )
-    return SourceSyncReport(
-        branch=source_branch_name(request.name),
-        destination=destination,
-    )
+    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    return SourceSyncReport(branch=branch, destination=destination)
 
 
 def stamp_source_provenance(request: SourceStampProvenanceRequest) -> Path:
@@ -299,7 +300,8 @@ def write_source_notes(
     from propstore.source import commit_source_notes
 
     commit_source_notes(repo, request.name, request.batch_file)
-    return SourceBranchReport(branch=source_branch_name(request.name))
+    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    return SourceBranchReport(branch=branch)
 
 
 def write_source_metadata(
@@ -309,7 +311,8 @@ def write_source_metadata(
     from propstore.source import commit_source_metadata
 
     commit_source_metadata(repo, request.name, request.batch_file)
-    return SourceBranchReport(branch=source_branch_name(request.name))
+    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    return SourceBranchReport(branch=branch)
 
 
 def add_source_concepts_batch(
@@ -341,8 +344,6 @@ def add_source_claims_batch(
 
 def list_sources(repo: Repository) -> SourceListReport:
     """Enumerate source branches (``source/<slug>``) from the snapshot."""
-    from propstore.source import source_branch_name
-
     items: list[SourceListItem] = []
     for branch_info in repo.snapshot.iter_branches():
         if branch_info.kind != "source":
@@ -365,9 +366,6 @@ def list_sources(repo: Repository) -> SourceListReport:
             )
         )
     items.sort(key=lambda entry: entry.name)
-    # Silence lint: source_branch_name import is unused but the CLI
-    # adapter imports this module and the symbol stays available.
-    _ = source_branch_name
     return SourceListReport(items=tuple(items))
 
 
@@ -555,5 +553,5 @@ def _auto_finalize_source(repo: Repository, name: str) -> SourceBatchReport:
         name,
         source_doc=source_doc,
     )
-    branch = source_branch_name(name)
+    branch = repo.families.source_documents.address(SourceRef(name)).branch
     return SourceBatchReport(branch=branch, auto_finalized_branch=branch)
