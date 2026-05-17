@@ -232,7 +232,7 @@ def validate_claim_files(
     repo: Repository,
     request: ClaimValidationRequest,
 ) -> ClaimValidationReport:
-    from quire.documents import DocumentSchemaError, load_document_dir
+    from quire.documents import DocumentSchemaError
     from quire.tree_path import coerce_tree_path as coerce_knowledge_path
 
     from propstore.compiler.context import (
@@ -241,8 +241,7 @@ def validate_claim_files(
     )
     from propstore.families.claims.passes import validate_claims
     from propstore.families.concepts.stages import load_concepts
-    from propstore.claims import expand_loaded_claim_batch
-    from propstore.families.claims.documents import ClaimsFileDocument
+    from propstore.claims import load_claim_batch_file
 
     claims_root = (
         coerce_knowledge_path(request.claims_path)
@@ -265,8 +264,15 @@ def validate_claim_files(
         else:
             files = [
                 claim_file
-                for batch in load_document_dir(claims_root, ClaimsFileDocument)
-                for claim_file in expand_loaded_claim_batch(batch)
+                for entry in sorted(
+                    (
+                        child
+                        for child in claims_root.iterdir()
+                        if child.is_file() and child.suffix == ".yaml"
+                    ),
+                    key=lambda child: child.as_posix(),
+                )
+                for claim_file in load_claim_batch_file(entry, knowledge_root=claims_root.parent)
             ]
         if concepts_root is None:
             context = build_compilation_context_from_repo(repo, claim_files=files)

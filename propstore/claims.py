@@ -6,20 +6,23 @@ from pathlib import Path
 from typing import Any, TypeAlias
 
 from quire.artifacts import ArtifactHandle
-from propstore.families.claims.documents import ClaimDocument, ClaimsFileDocument
+from propstore.families.batch_specs import CLAIM_BATCH_SPEC
+from propstore.families.claims.documents import ClaimDocument
 from propstore.families.registry import ClaimRef
 from quire.documents import (
     convert_document_value,
+    decode_document_batch_bytes,
+    decode_yaml_mapping,
+    encode_yaml_value,
     load_document,
 )
-from quire.tree_path import TreePath as KnowledgePath
+from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path
 from quire.documents import LoadedDocument
 
 LoadedClaimsFile: TypeAlias = LoadedDocument[ClaimDocument]
 ClaimFileEntry: TypeAlias = (
     LoadedClaimsFile | ArtifactHandle[Any, ClaimRef, ClaimDocument]
 )
-LoadedClaimBatch: TypeAlias = LoadedDocument[ClaimsFileDocument]
 
 
 def load_claim_file(
@@ -64,23 +67,52 @@ def loaded_claim_file_from_payload(
     )
 
 
-def expand_loaded_claim_batch(batch: LoadedClaimBatch) -> tuple[LoadedClaimsFile, ...]:
-    source_payload = batch.document.source.to_payload()
-    expanded: list[LoadedClaimsFile] = []
-    for index, claim in enumerate(batch.document.claims, start=1):
-        loaded = loaded_claim_file_from_payload(
-            filename=f"{batch.filename}#{index}",
-            source_path=batch.artifact_path,
-            data={
-                "source": source_payload,
-                "claims": [claim.to_payload()],
-            },
-            knowledge_root=batch.store_root,
+def load_claim_batch_file(
+    path: KnowledgePath | Path,
+    *,
+    knowledge_root: KnowledgePath | Path | None = None,
+) -> tuple[LoadedClaimsFile, ...]:
+    artifact_path = coerce_tree_path(path)
+    root_path = None if knowledge_root is None else coerce_tree_path(knowledge_root)
+    data = decode_yaml_mapping(artifact_path.read_bytes(), source=artifact_path.as_posix())
+    return claim_batch_files_from_payload(
+        filename=artifact_path.stem,
+        source_path=artifact_path,
+        data=data,
+        knowledge_root=root_path,
+    )
+
+
+def claim_batch_files_from_payload(
+    *,
+    filename: str,
+    source_path: KnowledgePath | Path | None,
+    data: dict[str, Any],
+    knowledge_root: KnowledgePath | Path | None = None,
+) -> tuple[LoadedClaimsFile, ...]:
+    label = filename if source_path is None else str(source_path)
+    stage = data.get("stage")
+    batch_payload = dict(data)
+    batch_payload.pop("stage", None)
+    documents = decode_document_batch_bytes(
+        encode_yaml_value(batch_payload),
+        CLAIM_BATCH_SPEC,
+        source=label,
+    )
+
+    loaded: list[LoadedClaimsFile] = []
+    for index, document in enumerate(documents, start=1):
+        claim_file = LoadedDocument(
+            filename=f"{filename}#{index}",
+            artifact_path=source_path,
+            store_root=knowledge_root,
+            document=document,
         )
-        setattr(loaded, "source_path", batch.artifact_path)
-        setattr(loaded, "stage", batch.document.stage)
-        expanded.append(loaded)
-    return tuple(expanded)
+        setattr(claim_file, "source_path", source_path)
+        if isinstance(stage, str):
+            setattr(claim_file, "stage", stage)
+        loaded.append(claim_file)
+    return tuple(loaded)
 
 
 def claim_file_filename(claim_file: ClaimFileEntry) -> str:

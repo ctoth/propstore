@@ -20,8 +20,7 @@ from bridgman import verify_expr, DimensionalError
 
 from quire.documents import load_document_dir
 from quire.references import FamilyReferenceIndex
-from propstore.claims import expand_loaded_claim_batch
-from propstore.families.claims.documents import ClaimsFileDocument
+from propstore.claims import load_claim_batch_file
 from propstore.core.conditions import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.cel_registry import build_canonical_cel_registry
@@ -249,8 +248,15 @@ def _load_claim_reference_index(
         return build_compiler_claim_index(())
     claim_files = [
         claim_file
-        for batch in load_document_dir(claims_dir, ClaimsFileDocument)
-        for claim_file in expand_loaded_claim_batch(batch)
+        for entry in sorted(
+            (
+                child
+                for child in claims_dir.iterdir()
+                if child.is_file() and child.suffix == ".yaml"
+            ),
+            key=lambda child: child.as_posix(),
+        )
+        for claim_file in load_claim_batch_file(entry, knowledge_root=claims_dir.parent)
     ]
     return build_compiler_claim_index(claim_files)
 

@@ -10,7 +10,6 @@ from quire.tree_path import (
     coerce_tree_path,
 )
 from quire.documents import (
-    LoadedDocument,
     convert_document_value,
     decode_yaml_mapping,
 )
@@ -18,11 +17,10 @@ from quire.git_store import GitStore
 
 from propstore.claims import (
     LoadedClaimsFile,
-    expand_loaded_claim_batch,
+    claim_batch_files_from_payload,
     load_claim_file,
 )
 from propstore.compiler.context import build_compilation_context_from_loaded
-from propstore.families.claims.documents import ClaimsFileDocument
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.claims import normalize_claim_file_payload
@@ -140,18 +138,13 @@ def claim_artifact_commit_payloads(
 ) -> dict[str, bytes]:
     normalized, _ = normalize_claim_file_payload(batch_payload)
     source_path = repo.root / source
-    batch = LoadedDocument(
-        filename=source_path.name,
-        artifact_path=source_path,
-        store_root=repo.root,
-        document=convert_document_value(
-            normalized,
-            ClaimsFileDocument,
-            source=source,
-        ),
-    )
     payloads: dict[str, bytes] = {}
-    for loaded in expand_loaded_claim_batch(batch):
+    for loaded in claim_batch_files_from_payload(
+        filename=source_path.stem,
+        source_path=source_path,
+        data=normalized,
+        knowledge_root=repo.root,
+    ):
         claim = loaded.document
         artifact_id = claim.artifact_id
         if artifact_id is None:
@@ -204,17 +197,12 @@ def _load_claim_fixture(
     data = decode_yaml_mapping(entry.read_bytes(), source=entry.as_posix())
     if isinstance(data.get("claims"), list):
         normalized, _ = normalize_claim_file_payload(data)
-        batch = LoadedDocument(
-            filename=entry.name,
-            artifact_path=entry,
-            store_root=knowledge_root,
-            document=convert_document_value(
-                normalized,
-                ClaimsFileDocument,
-                source=entry.as_posix(),
-            ),
+        return claim_batch_files_from_payload(
+            filename=entry.stem,
+            source_path=entry,
+            data=normalized,
+            knowledge_root=knowledge_root,
         )
-        return expand_loaded_claim_batch(batch)
     return (load_claim_file(entry, knowledge_root=knowledge_root),)
 
 
@@ -227,17 +215,12 @@ def _materialize_claim_fixture_batches(repo: Repository) -> None:
         if not isinstance(data.get("claims"), list):
             continue
         normalized, _ = normalize_claim_file_payload(data)
-        batch = LoadedDocument(
-            filename=path.name,
-            artifact_path=path,
-            store_root=repo.root,
-            document=convert_document_value(
-                normalized,
-                ClaimsFileDocument,
-                source=path.as_posix(),
-            ),
-        )
-        for loaded in expand_loaded_claim_batch(batch):
+        for loaded in claim_batch_files_from_payload(
+            filename=path.stem,
+            source_path=path,
+            data=normalized,
+            knowledge_root=repo.root,
+        ):
             claim = loaded.document
             artifact_id = claim.artifact_id
             if artifact_id is None:

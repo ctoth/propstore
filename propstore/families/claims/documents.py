@@ -685,17 +685,3 @@ class ClaimDocument(DocumentStruct):
             payload["variables"] = [variable.to_payload() for variable in self.variables]
         return payload
 
-
-class ClaimsFileDocument(DocumentStruct):
-    source: ClaimSourceDocument
-    claims: tuple[ClaimDocument, ...]
-    stage: str | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "source": self.source.to_payload(),
-            "claims": [claim.to_payload() for claim in self.claims],
-        }
-        if self.stage is not None:
-            payload["stage"] = self.stage
-        return payload

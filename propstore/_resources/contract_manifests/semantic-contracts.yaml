@@ -1126,21 +1126,6 @@ contracts:
       type: str | None
     module: propstore.families.claims.documents
 - kind: document_schema
-  name: ClaimsFileDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: source
-      required: true
-      type: ClaimSourceDocument
-    - name: claims
-      required: true
-      type: tuple[ClaimDocument, ...]
-    - name: stage
-      required: true
-      type: str | None
-    module: propstore.families.claims.documents
-- kind: document_schema
   name: ConceptAliasDocument
   contract_version: 2026.04.30
   body:

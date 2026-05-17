@@ -55,7 +55,6 @@ def test_contract_manifest_covers_documents_and_artifact_families() -> None:
     keys = {entry.key for entry in manifest.contracts}
 
     assert "document_schema:ConceptDocument" in keys
-    assert "document_schema:ClaimsFileDocument" in keys
     assert "document_schema:PredicateDocument" in keys
     assert "document_schema:RuleDocument" in keys
     assert "artifact_family:concept_file" in keys
