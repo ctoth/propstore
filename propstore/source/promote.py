@@ -90,7 +90,6 @@ from .common import (
     load_source_stances_document,
     utc_now,
     normalize_source_slug,
-    source_branch_name,
     source_paper_slug,
 )
 from .registry import load_primary_branch_concepts
@@ -228,6 +227,7 @@ def _commit_promote_time_trust_calibration(
     *,
     promotion_commit_sha: str,
 ) -> str | None:
+    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     calibration = calibrate_source_trust(
         repo,
         source_name,
@@ -241,7 +241,7 @@ def _commit_promote_time_trust_calibration(
     updated_source_doc = convert_document_value(
         updated_payload,
         SourceDocument,
-        source=f"{source_branch_name(source_name)}:source.yaml",
+        source=f"{branch}:source.yaml",
     )
     return repo.families.source_documents.save(
         SourceRef(source_name),
@@ -507,7 +507,9 @@ def _assemble_source_promotion_plan(
     return SourcePromotionPlan(
         source_name=source_name,
         slug=slug,
-        source_branch=source_branch_name(source_name),
+        source_branch=repo.families.source_documents.address(
+            SourceRef(source_name)
+        ).branch,
         source_ref=CanonicalSourceRef(slug),
         promoted_source_document=promoted_source_document,
         promoted_claim_documents=promoted_claim_documents,
@@ -846,7 +848,7 @@ def compile_source_promotion_blocked_projection_rows(
         return PromotionBlockedProjectionRows((), ())
     slug = source_paper_slug(source_name)
     return compile_promotion_blocked_projection_rows(
-        source_branch_name(source_name),
+        repo.families.source_claims.address(SourceRef(source_name)).branch,
         _promoted_claim_source_paper(claims_doc, fallback_slug=slug),
         blocked_claims,
         blocked_reasons,
@@ -1052,7 +1054,7 @@ def sync_source_branch(
     *,
     output_dir: Path | None = None,
 ) -> Path:
-    branch = source_branch_name(source_name)
+    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     tip = repo.require_git().branch_sha(branch)
     if tip is None:
         raise ValueError(f"Source branch {branch!r} does not exist")
