@@ -6,6 +6,7 @@ from pathlib import Path
 import yaml
 
 from propstore.compiler.workflows import build_repository
+from propstore.families.contexts.declaration import CONTEXT_TABLE
 from propstore.repository import Repository
 from tests.conftest import normalize_concept_payloads
 
@@ -53,9 +54,10 @@ def test_build_repository_context_schema_error_quarantines_not_raises(
 
     conn = sqlite3.connect(sidecar_path)
     try:
-        context_rows = conn.execute(
-            "SELECT id FROM context WHERE id = 'ctx_missing_name'"
-        ).fetchall()
+        context_ids = {
+            str(row["id"])
+            for row in CONTEXT_TABLE.select_all(conn)
+        }
         diagnostic_rows = conn.execute(
             """
             SELECT source_kind, source_ref, diagnostic_kind, severity, blocking, message
@@ -66,7 +68,7 @@ def test_build_repository_context_schema_error_quarantines_not_raises(
     finally:
         conn.close()
 
-    assert context_rows == []
+    assert "ctx_missing_name" not in context_ids
     assert diagnostic_rows
     assert diagnostic_rows[0][:5] == (
         "context",
