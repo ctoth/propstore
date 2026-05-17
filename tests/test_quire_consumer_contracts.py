@@ -13,7 +13,7 @@ from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.documents.sources import SourceDocument
 from propstore.families.registry import SourceRef, semantic_import_roots
 from propstore.repository import Repository
-from propstore.source.common import initial_source_document, source_branch_name
+from propstore.source.common import initial_source_document
 from propstore.importing.repository_import import commit_repository_import, plan_repository_import
 from tests.conftest import make_claim_identity
 
@@ -163,8 +163,8 @@ def test_source_documents_with_same_path_are_isolated_by_source_branch(
     assume(first != second)
     repo = Repository.init(tmp_path / f"project_{uuid4().hex}" / "knowledge")
 
-    first_branch = source_branch_name(first)
-    second_branch = source_branch_name(second)
+    first_branch = repo.families.source_documents.address(SourceRef(first)).branch
+    second_branch = repo.families.source_documents.address(SourceRef(second)).branch
     repo.git.create_branch(first_branch)
     repo.git.create_branch(second_branch)
     first_doc = initial_source_document(
