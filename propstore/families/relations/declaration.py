@@ -240,6 +240,12 @@ def compile_authored_stance_sidecar_rows_with_diagnostics(
                 f"stance artifact {filename} uses unrecognized stance type "
                 f"'{stance_type}'"
             )
+        validated_stance_type = coerce_stance_type(stance_type)
+        if validated_stance_type is None:
+            raise ValueError(
+                f"stance artifact {filename} uses unrecognized stance type "
+                f"'{stance_type}'"
+            )
 
         from propstore.families.claims.storage import (
             coerce_stance_resolution,
@@ -257,11 +263,53 @@ def compile_authored_stance_sidecar_rows_with_diagnostics(
             )
             or source_claim
         )
+        embedding_distance = resolution.get("embedding_distance")
+        pass_number = resolution.get("pass_number")
+        confidence = resolution.get("confidence")
+        if embedding_distance is not None and not isinstance(
+            embedding_distance,
+            str | int | float,
+        ):
+            raise TypeError("resolution embedding_distance must be numeric")
+        if pass_number is not None and not isinstance(pass_number, str | int):
+            raise TypeError("resolution pass_number must be an integer")
+        if confidence is not None and not isinstance(confidence, str | int | float):
+            raise TypeError("resolution confidence must be numeric")
+        (
+            raw_opinion_belief,
+            raw_opinion_disbelief,
+            raw_opinion_uncertainty,
+            raw_opinion_base_rate,
+        ) = opinion_columns
+        for value in (
+            raw_opinion_belief,
+            raw_opinion_disbelief,
+            raw_opinion_uncertainty,
+            raw_opinion_base_rate,
+        ):
+            if value is not None and not isinstance(value, str | int | float):
+                raise TypeError("resolution opinion values must be numeric")
+        opinion_belief = (
+            None if raw_opinion_belief is None else float(raw_opinion_belief)
+        )
+        opinion_disbelief = (
+            None if raw_opinion_disbelief is None else float(raw_opinion_disbelief)
+        )
+        opinion_uncertainty = (
+            None if raw_opinion_uncertainty is None else float(raw_opinion_uncertainty)
+        )
+        opinion_base_rate = (
+            None if raw_opinion_base_rate is None else float(raw_opinion_base_rate)
+        )
         stance_row = StanceRow(
-            claim_id=source_claim,
-            target_claim_id=target,
-            stance_type=stance_type,
-            target_justification_id=stance.target_justification_id,
+            claim_id=to_claim_id(source_claim),
+            target_claim_id=to_claim_id(target),
+            stance_type=validated_stance_type,
+            target_justification_id=(
+                None
+                if stance.target_justification_id is None
+                else to_justification_id(stance.target_justification_id)
+            ),
             strength=stance.strength,
             conditions_differ=(
                 None
@@ -285,21 +333,19 @@ def compile_authored_stance_sidecar_rows_with_diagnostics(
                 else str(resolution["embedding_model"])
             ),
             embedding_distance=(
-                None
-                if resolution.get("embedding_distance") is None
-                else float(resolution["embedding_distance"])
+                None if embedding_distance is None else float(embedding_distance)
             ),
             pass_number=(
-                None if resolution.get("pass_number") is None else int(resolution["pass_number"])
+                None if pass_number is None else int(pass_number)
             ),
             confidence=(
-                None if resolution.get("confidence") is None else float(resolution["confidence"])
+                None if confidence is None else float(confidence)
             ),
-            opinion_belief=opinion_columns[0],
-            opinion_disbelief=opinion_columns[1],
-            opinion_uncertainty=opinion_columns[2],
-            opinion_base_rate=opinion_columns[3],
-            perspective_source_claim_id=perspective_source_claim,
+            opinion_belief=opinion_belief,
+            opinion_disbelief=opinion_disbelief,
+            opinion_uncertainty=opinion_uncertainty,
+            opinion_base_rate=opinion_base_rate,
+            perspective_source_claim_id=to_claim_id(perspective_source_claim),
         )
         row_values: dict[str, object] = {}
         for discriminator in CLAIM_STANCE_DISCRIMINATORS:
