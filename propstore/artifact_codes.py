@@ -13,7 +13,6 @@ from propstore.families.claims.documents import ClaimDocument
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
-    SourceClaimsDocument,
     SourceDocument,
     SourceJustificationDocument,
     SourceJustificationsDocument,
@@ -199,12 +198,12 @@ def stamp_canonical_artifact_codes(
 
 def stamp_source_artifact_codes(
     source_doc: SourceDocument,
-    claims_doc: SourceClaimsDocument | None,
+    claims_doc: tuple[SourceClaimDocument, ...] | None,
     justifications_doc: SourceJustificationsDocument | None,
     stances_doc: SourceStancesDocument | None,
 ) -> tuple[
     SourceDocument,
-    SourceClaimsDocument | None,
+    tuple[SourceClaimDocument, ...] | None,
     SourceJustificationsDocument | None,
     SourceStancesDocument | None,
 ]:
@@ -256,7 +255,7 @@ def stamp_source_artifact_codes(
         )
 
     rewritten_claims: list[SourceClaimDocument] = []
-    for claim in (() if claims_doc is None else claims_doc.claims):
+    for claim in (() if claims_doc is None else claims_doc):
         claim_id = claim.artifact_id
         justification_codes = justification_codes_by_conclusion.get(str(claim_id), [])
         stance_codes = stance_codes_by_source.get(str(claim_id), [])
@@ -270,14 +269,5 @@ def stamp_source_artifact_codes(
         rewritten_claims.append(rewritten)
     updated_claims = None
     if claims_doc is not None:
-        claims_payload = _payload(claims_doc)
-        claims_payload["claims"] = [
-            claim.to_payload()
-            for claim in rewritten_claims
-        ]
-        updated_claims = convert_document_value(
-            claims_payload,
-            SourceClaimsDocument,
-            source="artifact-codes:claims",
-        )
+        updated_claims = tuple(rewritten_claims)
     return updated_source, updated_claims, updated_justifications, updated_stances

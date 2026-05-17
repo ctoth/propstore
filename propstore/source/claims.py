@@ -9,9 +9,10 @@ from propstore.core.conditions.registry import ConceptInfo
 from propstore.families.claims.documents import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.registry import SourceRef
 from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository, retry_live_branch_update
-from quire.documents import convert_document_value, decode_document_path
+from quire.documents import convert_document_value, decode_document_batch_bytes
 from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
@@ -25,7 +26,7 @@ from .common import (
     normalize_source_slug,
     source_tag_uri,
 )
-from propstore.families.documents.sources import ExtractionProvenanceDocument, SourceClaimDocument, SourceClaimsDocument
+from propstore.families.documents.sources import ExtractionProvenanceDocument, SourceClaimDocument
 
 
 def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:
@@ -72,10 +73,10 @@ def iter_claim_concept_refs(claim: SourceClaimDocument) -> list[str]:
     return refs
 
 
-def validate_source_claim_concepts(repo: Repository, source_name: str, data: SourceClaimsDocument) -> None:
+def validate_source_claim_concepts(repo: Repository, source_name: str, data: tuple[SourceClaimDocument, ...]) -> None:
     known_handles = source_concept_handles(repo, source_name)
     unknown: set[str] = set()
-    for claim in data.claims:
+    for claim in data:
         for concept_ref in iter_claim_concept_refs(claim):
             if concept_ref.startswith("ps:concept:") or concept_ref.startswith("tag:"):
                 continue
@@ -87,17 +88,17 @@ def validate_source_claim_concepts(repo: Repository, source_name: str, data: Sou
 
 
 def normalize_source_claims_payload(
-    data: SourceClaimsDocument,
+    data: tuple[SourceClaimDocument, ...],
     *,
     source_uri: str,
     source_namespace: str,
-) -> tuple[SourceClaimsDocument, dict[str, str]]:
+) -> tuple[tuple[SourceClaimDocument, ...], dict[str, str]]:
     normalized_claims: list[SourceClaimDocument] = []
     local_to_canonical: dict[str, str] = {}
     namespace = normalize_source_slug(source_namespace)
     assert_namespace_not_reserved(namespace, context="source claims namespace")
 
-    for index, claim in enumerate(data.claims, start=1):
+    for index, claim in enumerate(data, start=1):
         normalized = claim.to_payload()
         raw_local_id = claim.source_local_id or claim.id
         stable_value = stable_claim_logical_value(claim, source_uri=source_uri)
@@ -129,11 +130,7 @@ def normalize_source_claims_payload(
         )
 
     return (
-        SourceClaimsDocument(
-            source=data.source,
-            claims=tuple(normalized_claims),
-            produced_by=data.produced_by,
-        ),
+        tuple(normalized_claims),
         local_to_canonical,
     )
 
@@ -184,7 +181,7 @@ def _source_branch_cel_concepts(
 def validate_source_claim_cel_expressions(
     repo: Repository,
     source_name: str,
-    data: SourceClaimsDocument,
+    data: tuple[SourceClaimDocument, ...],
 ) -> None:
     """Reject a batch whose CEL conditions reference unknown concepts.
 
@@ -239,11 +236,11 @@ def validate_source_claim_cel_expressions(
         return
 
     paper = (
-        data.source.paper
-        if data.source is not None and data.source.paper
+        data[0].source.paper
+        if data and data[0].source is not None and data[0].source.paper
         else source_name
     )
-    for claim in data.claims:
+    for claim in data:
         if not claim.conditions:
             continue
         claim_label = claim.source_local_id or claim.id or "<unnamed>"
@@ -314,7 +311,7 @@ def _value_fields_for_claim(claim: SourceClaimDocument) -> list[tuple[str, float
 def validate_source_claim_value_bounds(
     repo: Repository,
     source_name: str,
-    data: SourceClaimsDocument,
+    data: tuple[SourceClaimDocument, ...],
 ) -> None:
     """Reject a batch whose numeric fields fall outside the form's declared bounds.
 
@@ -334,12 +331,12 @@ def validate_source_claim_value_bounds(
     source_form_map = _source_branch_concept_form_map(repo, source_name)
 
     paper = (
-        data.source.paper
-        if data.source is not None and data.source.paper
+        data[0].source.paper
+        if data and data[0].source is not None and data[0].source.paper
         else source_name
     )
 
-    for claim in data.claims:
+    for claim in data:
         concept_handle = _form_bearing_concept_for_claim(claim)
         if concept_handle is None:
             continue
@@ -402,12 +399,16 @@ def commit_source_claims_batch(
     from datetime import datetime, timezone
 
     source_doc = load_source_document(repo, source_name)
-    raw = decode_document_path(claims_file, SourceClaimsDocument)
+    raw = decode_document_batch_bytes(
+        claims_file.read_bytes(),
+        SOURCE_CLAIM_BATCH_SPEC,
+        source=str(claims_file),
+    )
     if default_context is not None:
         if not isinstance(default_context, str) or not default_context:
             raise ValueError("default_context must be a non-empty string")
         injected: list[SourceClaimDocument] = []
-        for index, claim in enumerate(raw.claims, start=1):
+        for index, claim in enumerate(raw, start=1):
             if claim.context is not None and claim.context != "":
                 injected.append(claim)
                 continue
@@ -420,21 +421,19 @@ def commit_source_claims_batch(
                     source=f"{source_name}:claims[{index}]",
                 )
             )
-        raw = SourceClaimsDocument(
-            source=raw.source,
-            claims=tuple(injected),
-            produced_by=raw.produced_by,
-        )
+        raw = tuple(injected)
     if reader is not None:
-        raw = SourceClaimsDocument(
-            source=raw.source,
-            claims=raw.claims,
-            produced_by=ExtractionProvenanceDocument(
-                reader=reader,
-                method=method,
-                timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            ),
+        produced_by = ExtractionProvenanceDocument(
+            reader=reader,
+            method=method,
+            timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         )
+        stamped: list[SourceClaimDocument] = []
+        for claim in raw:
+            payload = claim.to_payload()
+            payload["produced_by"] = produced_by.to_payload()
+            stamped.append(convert_document_value(payload, SourceClaimDocument, source=source_name))
+        raw = tuple(stamped)
     validate_source_claim_concepts(repo, source_name, raw)
     validate_source_claim_cel_expressions(repo, source_name, raw)
     validate_source_claim_value_bounds(repo, source_name, raw)
@@ -479,12 +478,9 @@ def commit_source_claim_proposal(
     normalized_claim_type = coerce_claim_type(claim_type)
     assert normalized_claim_type is not None
 
-    def update(expected_head: str | None) -> SourceClaimsDocument:
-        existing = load_source_claims_document(repo, source_name) or SourceClaimsDocument(
-            source=ClaimSourceDocument(paper=normalize_source_slug(source_name)),
-            claims=(),
-        )
-        claims = list(existing.claims)
+    def update(expected_head: str | None) -> tuple[SourceClaimDocument, ...]:
+        existing = load_source_claims_document(repo, source_name) or ()
+        claims = list(existing)
 
         norm_keys = {"source_local_id", "logical_ids", "artifact_id", "version_id"}
         restored: list[SourceClaimDocument] = []
@@ -505,6 +501,7 @@ def commit_source_claim_proposal(
         claims = restored
 
         claim_payload: dict[str, object] = {
+            "source": ClaimSourceDocument(paper=normalize_source_slug(source_name)).to_payload(),
             "id": claim_id,
             "type": normalized_claim_type.value,
             "context": context,
@@ -548,10 +545,7 @@ def commit_source_claim_proposal(
                 source=f"{branch}:claims proposal {claim_id}",
             )
         )
-        data = SourceClaimsDocument(
-            source=existing.source or ClaimSourceDocument(paper=normalize_source_slug(source_name)),
-            claims=tuple(claims),
-        )
+        data = tuple(claims)
         validate_source_claim_concepts(repo, source_name, data)
         validate_source_claim_cel_expressions(repo, source_name, data)
         validate_source_claim_value_bounds(repo, source_name, data)
@@ -571,7 +565,7 @@ def commit_source_claim_proposal(
         return normalized
 
     normalized = retry_live_branch_update(repo, branch, update)
-    for entry in normalized.claims:
+    for entry in normalized:
         if entry.source_local_id == claim_id:
             return entry
-    return normalized.claims[-1]
+    return normalized[-1]

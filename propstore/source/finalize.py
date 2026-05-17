@@ -23,7 +23,7 @@ from .common import (
     source_tag_uri,
 )
 from propstore.families.documents.sources import (
-    SourceClaimsDocument,
+    SourceClaimDocument,
     SourceDocument,
     SourceFinalizeReportDocument,
     SourceJustificationsDocument,
@@ -59,12 +59,12 @@ def _compose_source_micropubs(
     *,
     source_id: str,
     source_slug: str,
-    claims_doc: SourceClaimsDocument | None,
+    claims_doc: tuple[SourceClaimDocument, ...] | None,
 ) -> MicropublicationsFileDocument | None:
-    if claims_doc is None or not claims_doc.claims:
+    if claims_doc is None or not claims_doc:
         return None
     micropubs: list[MicropublicationDocument] = []
-    for claim in claims_doc.claims:
+    for claim in claims_doc:
         if not isinstance(claim.artifact_id, str) or not claim.artifact_id:
             continue
         if not isinstance(claim.context, str) or not claim.context:
@@ -126,7 +126,7 @@ def finalize_source_branch(
 
     claim_errors: list[str] = []
     micropub_coverage_errors: list[str] = []
-    for claim in (() if claims_doc is None else claims_doc.claims):
+    for claim in (() if claims_doc is None else claims_doc):
         if not isinstance(claim.artifact_id, str):
             claim_errors.append(str(claim.id or "?"))
         if not isinstance(claim.context, str) or not claim.context:
@@ -210,7 +210,7 @@ def finalize_source_branch(
                     ref,
                     updated_source,
                 )
-                if updated_claims is not None and updated_claims.claims:
+                if updated_claims is not None and updated_claims:
                     transaction.source_claims.save(
                         ref,
                         updated_claims,

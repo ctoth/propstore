@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from quire.references import FamilyReferenceIndex, ReferenceKey
 
-from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
+from propstore.families.documents.sources import SourceClaimDocument
 from propstore.families.registry import SourceRef
 
 if TYPE_CHECKING:
@@ -20,9 +20,9 @@ SOURCE_CLAIM_REFERENCE_KEYS = (
 
 
 def source_claim_index_from_document(
-    document: SourceClaimsDocument | None,
+    document: tuple[SourceClaimDocument, ...] | None,
 ) -> FamilyReferenceIndex[SourceClaimDocument]:
-    records = () if document is None else document.claims
+    records = () if document is None else document
     return FamilyReferenceIndex.from_records(
         records,
         family="source_claims",

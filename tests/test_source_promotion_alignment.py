@@ -17,7 +17,7 @@ from propstore.families.registry import (
 from propstore.cli import cli
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
-from propstore.families.batch_specs import SOURCE_CONCEPT_BATCH_SPEC
+from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC, SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,
@@ -35,7 +35,6 @@ from propstore.source import (
     promote_source_branch,
 )
 from propstore.families.documents.sources import (
-    SourceClaimsDocument,
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
     SourceStancesDocument,
@@ -84,9 +83,9 @@ def _save_source(repo: Repository, source_name: str, concepts_payload: dict, cla
     if claims_payload is None:
         return
 
-    raw_claims = convert_document_value(
-        claims_payload,
-        SourceClaimsDocument,
+    raw_claims = decode_document_batch_bytes(
+        encode_yaml_value(claims_payload),
+        SOURCE_CLAIM_BATCH_SPEC,
         source=f"{branch}:claims.yaml",
     )
     normalized_claims, _ = normalize_source_claims_payload(
@@ -824,7 +823,8 @@ def test_promote_source_branch_materializes_blocked_rows_from_source_state(
     repo = _setup_source_with_partial_validity(tmp_path, source_name=source_name)
     source_doc = repo.families.source_documents.require(SourceRef(source_name))
     branch = repo.families.source_claims.address(SourceRef(source_name)).branch
-    raw_claims = convert_document_value(
+    raw_claims = decode_document_batch_bytes(
+        encode_yaml_value(
         {
             "source": {"paper": source_name},
             "claims": [
@@ -846,7 +846,8 @@ def test_promote_source_branch_materializes_blocked_rows_from_source_state(
                 },
             ],
         },
-        SourceClaimsDocument,
+        ),
+        SOURCE_CLAIM_BATCH_SPEC,
         source=f"{branch}:claims.yaml",
     )
     normalized_claims, _ = normalize_source_claims_payload(

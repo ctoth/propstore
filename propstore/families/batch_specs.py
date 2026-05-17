@@ -28,7 +28,7 @@ SOURCE_CLAIM_BATCH_SPEC = DocumentBatchSpec(
     batch_name="source-claims",
     item_type=SourceClaimDocument,
     items_field="claims",
-    inherited_item_fields=("source",),
+    inherited_item_fields=("source", "produced_by"),
 )
 
 SOURCE_JUSTIFICATION_BATCH_SPEC = DocumentBatchSpec(

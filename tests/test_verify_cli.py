@@ -9,11 +9,11 @@ from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
 
 from propstore.artifact_codes import stamp_source_artifact_codes
+from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import (
-    SourceClaimsDocument,
     SourceDocument,
     SourceJustificationsDocument,
     SourceStancesDocument,
@@ -268,7 +268,8 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
         SourceDocument,
         source="test:source",
     )
-    claims_doc = convert_document_value(
+    claims_doc = decode_document_batch_bytes(
+        encode_yaml_value(
         {
             "claims": [
                 {
@@ -287,7 +288,8 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
                 },
             ]
         },
-        SourceClaimsDocument,
+        ),
+        SOURCE_CLAIM_BATCH_SPEC,
         source="test:claims",
     )
     justifications = [
@@ -330,6 +332,6 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
 
     assert left[1] is not None
     assert right[1] is not None
-    left_claim = next(claim for claim in left[1].claims if claim.artifact_id == "ps:claim:b")
-    right_claim = next(claim for claim in right[1].claims if claim.artifact_id == "ps:claim:b")
+    left_claim = next(claim for claim in left[1] if claim.artifact_id == "ps:claim:b")
+    right_claim = next(claim for claim in right[1] if claim.artifact_id == "ps:claim:b")
     assert left_claim.artifact_code == right_claim.artifact_code

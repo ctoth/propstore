@@ -7,15 +7,13 @@ from propstore.canonical_namespaces import (
     ReservedNamespaceViolation,
     assert_alias_does_not_target_reserved_namespace,
 )
-from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
+from propstore.families.documents.sources import SourceClaimDocument
 from propstore.source.claims import normalize_source_claims_payload
 
 
 @pytest.mark.parametrize("namespace", sorted(RESERVED_CANONICAL_NAMESPACES))
 def test_source_claim_writer_rejects_reserved_namespaces(namespace: str) -> None:
-    payload = SourceClaimsDocument(
-        claims=(SourceClaimDocument(id="c1", statement="example claim"),)
-    )
+    payload = (SourceClaimDocument(id="c1", statement="example claim"),)
 
     with pytest.raises(ReservedNamespaceViolation):
         normalize_source_claims_payload(
@@ -26,9 +24,7 @@ def test_source_claim_writer_rejects_reserved_namespaces(namespace: str) -> None
 
 
 def test_source_claim_writer_accepts_unreserved_namespace() -> None:
-    payload = SourceClaimsDocument(
-        claims=(SourceClaimDocument(id="c1", statement="example claim"),)
-    )
+    payload = (SourceClaimDocument(id="c1", statement="example claim"),)
 
     normalized, mapping = normalize_source_claims_payload(
         payload,
@@ -36,8 +32,8 @@ def test_source_claim_writer_accepts_unreserved_namespace() -> None:
         source_namespace="mypaper",
     )
 
-    assert mapping == {"c1": normalized.claims[0].id}
-    assert {logical_id.namespace for logical_id in normalized.claims[0].logical_ids} == {
+    assert mapping == {"c1": normalized[0].id}
+    assert {logical_id.namespace for logical_id in normalized[0].logical_ids} == {
         "mypaper"
     }
 

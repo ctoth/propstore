@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.micropubs import MicropublicationDocument
-from propstore.families.documents.sources import SourceClaimsDocument
 from propstore.families.identity.micropubs import micropub_artifact_id
 from propstore.source import finalize
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
 
 
 def _micropub(payload: dict[str, object]) -> MicropublicationDocument:
@@ -37,7 +37,8 @@ def test_same_source_and_claim_handle_different_payload_gets_different_id() -> N
 
 
 def test_source_finalize_assigns_micropub_id_from_authored_payload() -> None:
-    claims_doc = convert_document_value(
+    claims_doc = decode_document_batch_bytes(
+        encode_yaml_value(
         {
             "claims": [
                 {
@@ -48,7 +49,8 @@ def test_source_finalize_assigns_micropub_id_from_authored_payload() -> None:
                 }
             ],
         },
-        SourceClaimsDocument,
+        ),
+        SOURCE_CLAIM_BATCH_SPEC,
         source="tests:claims.yaml",
     )
 

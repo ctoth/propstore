@@ -621,7 +621,7 @@ def _context_references(
         document = repo.families.source_claims.load(ref)
         if document is None:
             continue
-        for index, claim in enumerate(document.claims, start=1):
+        for index, claim in enumerate(document, start=1):
             context_id = claim.context
             if context_id not in aliases:
                 continue

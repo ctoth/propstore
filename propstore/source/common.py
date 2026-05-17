@@ -13,7 +13,7 @@ from propstore.provenance import ProvenanceStatus
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
 from propstore.families.documents.sources import (
-    SourceClaimsDocument,
+    SourceClaimDocument,
     SourceConceptEntryDocument,
     SourceDocument,
     SourceFinalizeReportDocument,
@@ -178,7 +178,7 @@ def load_source_concepts_document(repo: Repository, name: str) -> tuple[SourceCo
     return repo.families.source_concepts.load(SourceRef(name))
 
 
-def load_source_claims_document(repo: Repository, name: str) -> SourceClaimsDocument | None:
+def load_source_claims_document(repo: Repository, name: str) -> tuple[SourceClaimDocument, ...] | None:
     return repo.families.source_claims.load(SourceRef(name))
 
 

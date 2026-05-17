@@ -66,7 +66,6 @@ from propstore.source.claim_concepts import (
 from quire.documents import convert_document_value
 from propstore.families.documents.sources import (
     SourceClaimDocument,
-    SourceClaimsDocument,
     SourceConceptEntryDocument,
     SourceDocument,
     SourceJustificationsDocument,
@@ -269,13 +268,13 @@ def _source_claim_concept_refs(claim) -> tuple[str, ...]:
 
 
 def _promoted_claim_source_paper(
-    claims_doc: SourceClaimsDocument | None,
+    claims_doc: tuple[SourceClaimDocument, ...] | None,
     *,
     fallback_slug: str,
 ) -> str:
-    if claims_doc is None or claims_doc.source is None:
+    if claims_doc is None or not claims_doc or claims_doc[0].source is None:
         return fallback_slug
-    return str(claims_doc.source.paper or fallback_slug)
+    return str(claims_doc[0].source.paper or fallback_slug)
 
 
 def _promoted_claim_document(
@@ -392,7 +391,7 @@ def _assemble_source_promotion_plan(
     source_name: str,
     slug: str,
     source_doc: SourceDocument,
-    claims_doc: SourceClaimsDocument | None,
+    claims_doc: tuple[SourceClaimDocument, ...] | None,
     micropubs_doc: MicropublicationsFileDocument | None,
     justifications_doc: SourceJustificationsDocument | None,
     stances_doc: SourceStancesDocument | None,
@@ -693,7 +692,7 @@ def _compute_blocked_claim_artifact_ids(
     blocked_concept_refs = blocked_concept_refs or {}
 
     # (a) claims without a canonical artifact_id.
-    for claim in () if claims_doc is None else claims_doc.claims:
+    for claim in () if claims_doc is None else claims_doc:
         artifact_id = claim.artifact_id
         if not isinstance(artifact_id, str) or not artifact_id:
             # Fall back to the raw id for reference; synthetic handling is
@@ -764,7 +763,7 @@ def collect_source_promotion_blocked_facts(
     source_branch = repo.families.source_claims.address(SourceRef(source_name)).branch
     source_paper = _promoted_claim_source_paper(claims_doc, fallback_slug=slug)
     facts: list[PromotionBlockedClaimFact] = []
-    for claim in claims_doc.claims:
+    for claim in claims_doc:
         raw_id = str(claim.id or "?")
         artifact_id = claim.artifact_id
         if not isinstance(artifact_id, str) or not artifact_id:
@@ -850,7 +849,7 @@ def promote_source_branch(
         blocked_concept_refs=concept_resolution.blocked_concept_refs,
     )
 
-    all_claims = tuple(() if claims_doc is None else claims_doc.claims)
+    all_claims = tuple(() if claims_doc is None else claims_doc)
     blocked_claims = [
         claim
         for claim in all_claims

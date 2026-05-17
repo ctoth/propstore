@@ -11,9 +11,9 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.repository import Repository
-from quire.documents import convert_document_value, decode_document_path
+from quire.documents import decode_document_batch_bytes, encode_yaml_value
 from propstore.source import normalize_source_claims_payload
-from propstore.families.documents.sources import SourceClaimsDocument
+from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 
 
 @pytest.mark.property
@@ -46,14 +46,14 @@ def test_normalized_source_claim_ids_are_content_stable(local_id_a: str, local_i
         "provenance": {"page": 1},
     }
 
-    payload_a = convert_document_value(
-        {"source": {"paper": "demo"}, "claims": [claim_a]},
-        SourceClaimsDocument,
+    payload_a = decode_document_batch_bytes(
+        encode_yaml_value({"source": {"paper": "demo"}, "claims": [claim_a]}),
+        SOURCE_CLAIM_BATCH_SPEC,
         source="test payload a",
     )
-    payload_b = convert_document_value(
-        {"source": {"paper": "demo"}, "claims": [claim_b]},
-        SourceClaimsDocument,
+    payload_b = decode_document_batch_bytes(
+        encode_yaml_value({"source": {"paper": "demo"}, "claims": [claim_b]}),
+        SOURCE_CLAIM_BATCH_SPEC,
         source="test payload b",
     )
 
@@ -68,8 +68,8 @@ def test_normalized_source_claim_ids_are_content_stable(local_id_a: str, local_i
         source_namespace="demo",
     )
 
-    first_a = normalized_a.claims[0]
-    first_b = normalized_b.claims[0]
+    first_a = normalized_a[0]
+    first_b = normalized_b[0]
     assert first_a.artifact_id == first_b.artifact_id
     assert first_a.logical_ids[0].to_payload() == first_b.logical_ids[0].to_payload()
     assert first_a.source_local_id == local_id_a
@@ -361,10 +361,14 @@ def test_claims_document_produced_by_roundtrip(tmp_path: Path) -> None:
               paper: test_paper
               page: 1
     """))
-    doc = decode_document_path(claims_yaml, SourceClaimsDocument)
-    assert doc.produced_by is not None
-    assert doc.produced_by.reader == "test-agent"
-    assert doc.produced_by.method == "manual"
-    payload = doc.to_payload()
+    doc = decode_document_batch_bytes(
+        claims_yaml.read_bytes(),
+        SOURCE_CLAIM_BATCH_SPEC,
+        source=str(claims_yaml),
+    )
+    assert doc[0].produced_by is not None
+    assert doc[0].produced_by.reader == "test-agent"
+    assert doc[0].produced_by.method == "manual"
+    payload = doc[0].to_payload()
     assert "produced_by" in payload
     assert payload["produced_by"]["reader"] == "test-agent"

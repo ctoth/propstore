@@ -232,7 +232,25 @@ class SourceConceptEntryDocument(DocumentStruct):
         return payload
 
 
+class ExtractionProvenanceDocument(DocumentStruct):
+    reader: str | None = None
+    method: str | None = None
+    timestamp: str | None = None
+
+    def to_payload(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        if self.reader is not None:
+            payload["reader"] = self.reader
+        if self.method is not None:
+            payload["method"] = self.method
+        if self.timestamp is not None:
+            payload["timestamp"] = self.timestamp
+        return payload
+
+
 class SourceClaimDocument(DocumentStruct):
+    source: ClaimSourceDocument | None = None
+    produced_by: ExtractionProvenanceDocument | None = None
     artifact_id: str | None = None
     logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
     version_id: str | None = None
@@ -271,6 +289,10 @@ class SourceClaimDocument(DocumentStruct):
 
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
+        if self.source is not None:
+            payload["source"] = self.source.to_payload()
+        if self.produced_by is not None:
+            payload["produced_by"] = self.produced_by.to_payload()
         if self.artifact_id is not None:
             payload["artifact_id"] = self.artifact_id
         if self.logical_ids:
@@ -341,36 +363,6 @@ class SourceClaimDocument(DocumentStruct):
             payload["source_local_id"] = self.source_local_id
         if self.artifact_code is not None:
             payload["artifact_code"] = self.artifact_code
-        return payload
-
-
-class ExtractionProvenanceDocument(DocumentStruct):
-    reader: str | None = None
-    method: str | None = None
-    timestamp: str | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {}
-        if self.reader is not None:
-            payload["reader"] = self.reader
-        if self.method is not None:
-            payload["method"] = self.method
-        if self.timestamp is not None:
-            payload["timestamp"] = self.timestamp
-        return payload
-
-
-class SourceClaimsDocument(DocumentStruct):
-    claims: tuple[SourceClaimDocument, ...]
-    source: ClaimSourceDocument | None = None
-    produced_by: ExtractionProvenanceDocument | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {"claims": [claim.to_payload() for claim in self.claims]}
-        if self.source is not None:
-            payload["source"] = self.source.to_payload()
-        if self.produced_by is not None:
-            payload["produced_by"] = self.produced_by.to_payload()
         return payload
 
 

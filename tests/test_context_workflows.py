@@ -24,7 +24,7 @@ from propstore.app.contexts import (
 )
 from propstore.app.forms import FormAddRequest, add_form
 from propstore.cli import cli
-from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
+from propstore.families.documents.sources import SourceClaimDocument
 from propstore.families.documents.worldlines import (
     WorldlineDefinitionDocument,
     WorldlineInputsDocument,
@@ -208,9 +208,7 @@ def test_remove_context_blocks_referenced_artifacts_and_supports_force(tmp_path)
     )
     repo.families.source_claims.save(
         SourceRef("paper"),
-        SourceClaimsDocument(
-            claims=(SourceClaimDocument(id="claim-a", context="ctx_real"),),
-        ),
+        (SourceClaimDocument(id="claim-a", context="ctx_real"),),
         message="Add source claims",
     )
     repo.families.worldlines.save(
@@ -257,9 +255,7 @@ def test_context_cli_remove_uses_owner_reference_checks(tmp_path) -> None:
     )
     repo.families.source_claims.save(
         SourceRef("paper"),
-        SourceClaimsDocument(
-            claims=(SourceClaimDocument(id="claim-a", context="ctx_real"),),
-        ),
+        (SourceClaimDocument(id="claim-a", context="ctx_real"),),
         message="Add source claims",
     )
     runner = CliRunner()

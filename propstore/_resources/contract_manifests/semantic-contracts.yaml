@@ -352,10 +352,10 @@ contracts:
   contract_version: 2026.05.02
   body:
     coerce_payload: null
-    decode_bytes: null
-    doc_type: propstore.families.documents.sources.SourceClaimsDocument
-    document_payload: null
-    encode_document: null
+    decode_bytes: propstore.families.registry.decode_source_claims_document
+    doc_type: builtins.tuple
+    document_payload: propstore.families.registry.source_claims_document_payload
+    encode_document: propstore.families.registry.encode_source_claims_document
     normalize_for_write: null
     placement:
       branch:
@@ -366,8 +366,8 @@ contracts:
         template: source/{stem}
       filename: claims.yaml
       kind: fixed-file
-    render_document: null
-    scan_type: null
+    render_document: propstore.families.registry.render_source_claims_document
+    scan_type: propstore.families.documents.sources.SourceClaimDocument
     validate_for_write: null
 - kind: artifact_family
   name: source_concepts
@@ -2120,6 +2120,12 @@ contracts:
   contract_version: 2026.04.30
   body:
     fields:
+    - name: source
+      required: true
+      type: ClaimSourceDocument | None
+    - name: produced_by
+      required: true
+      type: ExtractionProvenanceDocument | None
     - name: artifact_id
       required: true
       type: str | None
@@ -2225,21 +2231,6 @@ contracts:
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceClaimsDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: claims
-      required: true
-      type: tuple[SourceClaimDocument, ...]
-    - name: source
-      required: true
-      type: ClaimSourceDocument | None
-    - name: produced_by
-      required: true
-      type: ExtractionProvenanceDocument | None
     module: propstore.families.documents.sources
 - kind: document_schema
   name: SourceConceptAliasDocument
@@ -3743,7 +3734,7 @@ contracts:
     accessor: source_claims
     artifact_family: source_claims
     artifact_family_contract:
-      doc_type: propstore.families.documents.sources.SourceClaimsDocument
+      doc_type: builtins.tuple
       placement:
         branch:
           codec: safe_slug

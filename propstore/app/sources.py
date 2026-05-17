@@ -249,7 +249,7 @@ def promote_source(
             build_errors,
         )
     claims_doc = load_source_claims_document(repo, request.name)
-    total_claims = len(claims_doc.claims) if claims_doc is not None else 0
+    total_claims = len(claims_doc) if claims_doc is not None else 0
     blocked_count = len(promotion.blocked_claims)
     promoted_count = max(0, total_claims - blocked_count)
     branch = repo.families.source_documents.address(SourceRef(request.name)).branch

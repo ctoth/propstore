@@ -15,7 +15,7 @@ from propstore.families.claims.references import (
     imported_claim_reference_index,
     resolve_first_claim_reference_id,
 )
-from propstore.families.documents.sources import SourceClaimDocument, SourceClaimsDocument
+from propstore.families.documents.sources import SourceClaimDocument
 from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.source.reference_indexes import (
     primary_claim_index,
@@ -30,18 +30,16 @@ def test_source_claim_index_reads_source_claim_artifacts(tmp_path) -> None:
 
     repo.families.source_claims.save(
         SourceRef("paper"),
-        SourceClaimsDocument(
-            source=ClaimSourceDocument(paper="paper"),
-            claims=(
-                SourceClaimDocument(
-                    id="claim_a",
-                    source_local_id="claim_a",
-                    artifact_id="ps:claim:a",
-                    logical_ids=(ClaimLogicalIdDocument(namespace="paper", value="claim_a"),),
-                    type=ClaimType.OBSERVATION,
-                    statement="A",
-                    provenance=SourceProvenanceDocument(paper="paper", page=1),
-                ),
+        (
+            SourceClaimDocument(
+                source=ClaimSourceDocument(paper="paper"),
+                id="claim_a",
+                source_local_id="claim_a",
+                artifact_id="ps:claim:a",
+                logical_ids=(ClaimLogicalIdDocument(namespace="paper", value="claim_a"),),
+                type=ClaimType.OBSERVATION,
+                statement="A",
+                provenance=SourceProvenanceDocument(paper="paper", page=1),
             ),
         ),
         message="Write source claims",

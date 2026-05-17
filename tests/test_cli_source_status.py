@@ -17,10 +17,10 @@ from pathlib import Path
 import pytest
 import yaml
 from click.testing import CliRunner
-from quire.documents import convert_document_value
+from quire.documents import decode_document_batch_bytes, encode_yaml_value
 
 from propstore.cli import cli
-from propstore.families.documents.sources import SourceClaimsDocument
+from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.source import (
@@ -106,9 +106,9 @@ def _save_source_claims_directly(
     claims_payload: dict,
 ) -> None:
     source_doc = load_source_document(repo, source_name)
-    raw_claims = convert_document_value(
-        claims_payload,
-        SourceClaimsDocument,
+    raw_claims = decode_document_batch_bytes(
+        encode_yaml_value(claims_payload),
+        SOURCE_CLAIM_BATCH_SPEC,
         source=f"source/{source_name}:claims.yaml",
     )
     normalized_claims, _ = normalize_source_claims_payload(

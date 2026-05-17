@@ -35,7 +35,7 @@ from quire.refs import single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
 from propstore.families.addresses import SemanticFamilyAddress
-from propstore.families.batch_specs import SOURCE_CONCEPT_BATCH_SPEC
+from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC, SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
@@ -47,7 +47,7 @@ from propstore.families.documents.predicates import PredicateDocument, Predicate
 from propstore.families.documents.rules import RuleDocument, RuleProposalDocument, RuleSuperiorityDocument
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
 from propstore.families.documents.sources import (
-    SourceClaimsDocument,
+    SourceClaimDocument,
     SourceConceptEntryDocument,
     SourceDocument,
     SourceFinalizeReportDocument,
@@ -622,6 +622,72 @@ def source_concepts_document_payload(
     }
 
 
+def decode_source_claims_document(
+    payload: bytes,
+    source: str,
+) -> tuple[SourceClaimDocument, ...]:
+    return decode_document_batch_bytes(
+        payload,
+        SOURCE_CLAIM_BATCH_SPEC,
+        source=source,
+    )
+
+
+def encode_source_claims_document(
+    document: tuple[SourceClaimDocument, ...],
+) -> bytes:
+    return render_source_claims_document(document).encode("utf-8")
+
+
+def render_source_claims_document(
+    document: tuple[SourceClaimDocument, ...],
+) -> str:
+    source = _shared_batch_field(document, "source")
+    produced_by = _shared_batch_field(document, "produced_by")
+    inherited: dict[str, object] = {}
+    if source is not None:
+        inherited["source"] = _batch_field_payload(source)
+    if produced_by is not None:
+        inherited["produced_by"] = _batch_field_payload(produced_by)
+    return render_document_batch(
+        document,
+        SOURCE_CLAIM_BATCH_SPEC,
+        inherited_item_values=inherited,
+    )
+
+
+def source_claims_document_payload(
+    document: tuple[SourceClaimDocument, ...],
+) -> dict[str, object]:
+    return {
+        "claims": [entry.to_payload() for entry in document],
+    }
+
+
+def _shared_batch_field(
+    document: tuple[object, ...],
+    field: str,
+) -> object | None:
+    values = [
+        getattr(item, field)
+        for item in document
+        if getattr(item, field, None) is not None
+    ]
+    if not values:
+        return None
+    first = values[0]
+    if all(value == first for value in values):
+        return first
+    return None
+
+
+def _batch_field_payload(value: object) -> object:
+    to_payload = getattr(value, "to_payload", None)
+    if callable(to_payload):
+        return to_payload()
+    return value
+
+
 PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
     name="propstore",
     contract_version=PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
@@ -870,8 +936,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             name=PropstoreFamily.SOURCE_CLAIMS.value,
             contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_claims",
-            doc_type=SourceClaimsDocument,
+            doc_type=tuple,
             placement=FixedFilePlacement("claims.yaml", branch=SOURCE_BRANCH),
+            decode_bytes=decode_source_claims_document,
+            encode_document=encode_source_claims_document,
+            render_document=render_source_claims_document,
+            document_payload=source_claims_document_payload,
+            scan_type=SourceClaimDocument,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_MICROPUBS,
