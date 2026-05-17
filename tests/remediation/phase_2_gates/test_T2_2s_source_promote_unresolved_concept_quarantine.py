@@ -11,7 +11,7 @@ from propstore.cli import cli
 from propstore.families.documents.sources import SourceClaimsDocument
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
-from propstore.source import normalize_source_claims_payload, source_branch_name
+from propstore.source import normalize_source_claims_payload
 from propstore.source.common import load_source_document
 from tests.conftest import make_test_context_commit_entry
 from tests.family_helpers import materialized_world_store_path
@@ -23,10 +23,11 @@ def _save_source_claims_directly(
     claims_payload: dict,
 ) -> None:
     source_doc = load_source_document(repo, source_name)
+    branch = repo.families.source_claims.address(SourceRef(source_name)).branch
     raw_claims = convert_document_value(
         claims_payload,
         SourceClaimsDocument,
-        source=f"{source_branch_name(source_name)}:claims.yaml",
+        source=f"{branch}:claims.yaml",
     )
     normalized_claims, _ = normalize_source_claims_payload(
         raw_claims,
@@ -174,7 +175,8 @@ def test_source_promote_unresolved_concept_mapping_quarantines_claim_not_valid_c
     finally:
         conn.close()
 
-    assert blocked_rows == [(source_branch_name("demo"), "blocked")]
+    branch = repo.families.source_claims.address(SourceRef("demo")).branch
+    assert blocked_rows == [(branch, "blocked")]
     assert len(diagnostic_rows) == 1
     assert diagnostic_rows[0][:4] == ("claim", "promotion_blocked", "error", 1)
     assert "unresolved concept mappings: missing_concept" in diagnostic_rows[0][4]
