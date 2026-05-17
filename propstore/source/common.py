@@ -123,7 +123,7 @@ def init_source_branch(
     origin_value: str,
     content_file: Path | None = None,
 ) -> str:
-    branch = source_branch_name(name)
+    branch = repo.families.source_documents.address(SourceRef(name)).branch
     git = repo.git
     if git is None:
         raise ValueError("source branches require a git-backed repository")
@@ -167,7 +167,7 @@ def load_source_metadata(repo: Repository, name: str) -> dict[str, object] | Non
 
 
 def load_source_document(repo: Repository, name: str) -> SourceDocument:
-    branch = source_branch_name(name)
+    branch = repo.families.source_documents.address(SourceRef(name)).branch
     document = repo.families.source_documents.load(SourceRef(name))
     if document is None:
         raise ValueError(f"Source branch {branch!r} does not exist")
