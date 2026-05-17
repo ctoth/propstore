@@ -18,7 +18,6 @@ from .common import (
     load_source_justifications_document,
     load_source_stances_document,
     normalize_source_slug,
-    source_branch_name,
     source_paper_slug,
     source_tag_uri,
 )
@@ -187,7 +186,7 @@ def finalize_source_branch(
         micropub_status = "blocked"
     else:
         micropub_status = "complete" if micropubs_doc is not None else "empty"
-    branch = source_branch_name(source_name)
+    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
     sha: str | None = None
     git = repo.git
     if git is None:
@@ -260,7 +259,7 @@ def finalize_source_branch(
                     },
                 },
                 SourceFinalizeReportDocument,
-                source=f"{source_branch_name(source_name)}:merge/finalize",
+                source=f"{branch}:merge/finalize",
             )
             transaction.source_finalize_reports.save(ref, report)
         sha = head_txn.commit_sha
