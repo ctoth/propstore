@@ -45,7 +45,7 @@ from propstore.core.environment import (
     ConflictStore,
     Environment,
 )
-from propstore.families.claims.declaration import ClaimRowInput, coerce_claim_row
+from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL, ClaimRowInput
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -193,10 +193,10 @@ def _conflict_row_from_witness(conflict: ConflictWitness) -> dict:
 
 
 def _claim_node_from_row(row_input: ClaimRowInput | dict) -> ClaimNode:
-    row = coerce_claim_row(row_input)
+    row = CLAIM_ROW_GENERIC_MODEL.coerce(row_input)
     attributes = tuple(
         (str(key), value)
-        for key, value in row.to_dict().items()
+        for key, value in CLAIM_ROW_GENERIC_MODEL.to_mapping(row).items()
         if key not in {"id", "target_concept", "type", "value"}
         and value is not None
     )
