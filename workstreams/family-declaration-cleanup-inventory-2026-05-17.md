@@ -76,6 +76,34 @@ once the declaration can express it.
 | calibration | `propstore/families/calibration/declaration.py`, trust calibration readers | `CALIBRATION_COUNTS_PROJECTION`, `CalibrationCountsProjectionRow`, raw select helper | Smallest vertical; useful as a low-risk proof for declaration compression after harder shared patterns are known. | `CALIBRATION_COUNTS_PROJECTION`, `FROM calibration_counts`, `CalibrationCountsProjectionRow` |
 | embeddings/vector | `propstore/families/embeddings/declaration.py`, claim/concept declarations, heuristic/app embedding callers | embedding model/status projections, dynamic vec table declarations, snapshot/restore plumbing | Vector storage is generic machinery plus semantic text identity. Quire owns vector mechanics; families own text/source meaning. | `embedding_status`, `concept_embedding_status`, `claim_vec`, `concept_vec`, `rowid_vec_projection`, `embedding_status_projection` |
 
+## Verified Family File Inventory
+
+Read-only file listing on 2026-05-17 showed the family surface is broader than
+the declaration modules. These files are in scope for deletion-first cleanup
+when their family or cross-family owner is active:
+
+| Owner | Files |
+| --- | --- |
+| claims | `propstore/families/claims/declaration.py`, `propstore/families/claims/documents.py`, `propstore/families/claims/projection_model.py`, `propstore/families/claims/references.py`, `propstore/families/claims/sidecar_runtime.py`, `propstore/families/claims/stages.py`, `propstore/families/claims/storage.py`, `propstore/families/claims/passes/checks.py`, `propstore/families/claims/passes/diagnostics.py` |
+| contexts | `propstore/families/contexts/declaration.py`, `propstore/families/contexts/documents.py`, `propstore/families/contexts/passes.py`, `propstore/families/contexts/stages.py`, `propstore/context_lifting.py`, `propstore/compiler/context.py` |
+| concepts | `propstore/families/concepts/declaration.py`, `propstore/families/concepts/documents.py`, `propstore/families/concepts/passes.py`, `propstore/families/concepts/projection_model.py`, `propstore/families/concepts/sidecar_runtime.py`, `propstore/families/concepts/stages.py` |
+| forms | `propstore/families/forms/documents.py`, `propstore/families/forms/passes.py`, `propstore/families/forms/stages.py` |
+| relations | `propstore/families/relations/declaration.py`, `propstore/families/relations/projection_model.py`, `propstore/relation_analysis.py` |
+| rules | `propstore/families/rules/declaration.py`, `propstore/families/documents/rules.py`, `propstore/families/documents/predicates.py` |
+| sources | `propstore/families/sources/declaration.py`, `propstore/families/documents/sources.py`, `propstore/families/documents/source_alignment.py` |
+| diagnostics | `propstore/families/diagnostics/declaration.py`, `propstore/families/diagnostics/authoring_lints.py` |
+| micropublications | `propstore/families/micropublications/declaration.py`, `propstore/families/documents/micropubs.py` |
+| calibration | `propstore/families/calibration/declaration.py` |
+| embeddings | `propstore/families/embeddings/declaration.py` |
+| same-as | `propstore/families/sameas/documents.py` |
+| identity | `propstore/families/identity/claims.py`, `propstore/families/identity/concepts.py`, `propstore/families/identity/justifications.py`, `propstore/families/identity/logical_ids.py`, `propstore/families/identity/micropubs.py`, `propstore/families/identity/stances.py` |
+| family registry | `propstore/families/registry.py`, `propstore/families/projection_catalog.py`, `propstore/families/addresses.py` |
+| shared documents | `propstore/families/documents/justifications.py`, `propstore/families/documents/merge.py`, `propstore/families/documents/stances.py`, `propstore/families/documents/worldlines.py` |
+
+Identity, shared document, registry, projection-catalog, address, forms, and
+same-as surfaces are not optional leftovers. They are either their own vertical
+or an explicitly named dependency of the active family slice.
+
 ## Cross-Family Repeated Surfaces
 
 These are not separate verticals. They are repeated patterns that each family
@@ -106,6 +134,81 @@ editing production code:
 - scanner metrics expected to decrease;
 - any load-bearing table split that is deliberately retained.
 
+### Contexts Required Inventory
+
+Owned files:
+
+- `propstore/families/contexts/declaration.py`
+- `propstore/families/contexts/documents.py`
+- `propstore/families/contexts/passes.py`
+- `propstore/families/contexts/stages.py`
+- `propstore/context_lifting.py`
+- `propstore/compiler/context.py`
+
+Old-path searches:
+
+```powershell
+rg -n "FROM context\b|FROM context_assumption\b|FROM context_lifting_rule\b|FROM context_lifting_materialization\b" propstore tests
+rg -n "CONTEXT_.*PROJECTION|ContextSidecarRows" propstore tests
+rg -n "ProjectionTable\(|ProjectionForeignKey\(|ProjectionIndex\(" propstore/families/contexts propstore/context_lifting.py propstore/compiler/context.py --glob "*.py"
+rg -n "ContextDocument|ContextStage|ContextPass|context_lifting" propstore/families/contexts propstore/context_lifting.py propstore/compiler/context.py tests
+```
+
+Rows/projection constants/query helpers to delete or replace must be listed
+from those searches before any context implementation edit. Context table split
+and context-lifting materialization are assumed load-bearing until the slice
+proves otherwise.
+
+Behavior tests verified present by file-name search:
+
+- `tests/test_contexts.py`
+- `tests/test_context_workflows.py`
+- `tests/test_context_lifting_ws5.py`
+- `tests/test_context_lifting_phase4.py`
+- `tests/test_sidecar_contexts.py`
+- `tests/test_source_list_and_context.py`
+
+### Claims Required Inventory
+
+Owned files:
+
+- `propstore/families/claims/declaration.py`
+- `propstore/families/claims/documents.py`
+- `propstore/families/claims/projection_model.py`
+- `propstore/families/claims/references.py`
+- `propstore/families/claims/sidecar_runtime.py`
+- `propstore/families/claims/stages.py`
+- `propstore/families/claims/storage.py`
+- `propstore/families/claims/passes/checks.py`
+- `propstore/families/claims/passes/diagnostics.py`
+- `propstore/families/identity/claims.py`
+
+Old-path searches:
+
+```powershell
+rg -n "ClaimRow\b|ClaimConceptLinkRow\b|SourcePromotionClaimRow\b" propstore tests
+rg -n "FROM claim_core\b|FROM claim_concept_link\b|FROM claim_numeric_payload\b|FROM claim_text_payload\b|FROM claim_algorithm_payload\b|FROM justification\b|FROM conflict_witness\b" propstore tests
+rg -n "CLAIM_.*PROJECTION|CONFLICT_WITNESS_PROJECTION|JUSTIFICATION_PROJECTION|CLAIM_FTS_PROJECTION|CLAIM_VEC_PROJECTION|CLAIM_EMBEDDING_STATUS_PROJECTION" propstore tests
+rg -n "ProjectionTable\(|ProjectionForeignKey\(|ProjectionIndex\(|FtsProjection\(|rowid_vec_projection|embedding_status_projection" propstore/families/claims --glob "*.py"
+rg -n "SourcePromotionClaimRow|ClaimsPass|ClaimReference\b|ClaimIdentity\b|claim_diagnostics|claim_check" propstore tests
+```
+
+Rows/projection constants/query helpers to delete or replace must be listed
+from those searches before any claim implementation edit. Claims are not
+special, but the current claim physical split is assumed load-bearing until
+separately proven unnecessary.
+
+Behavior tests verified present by file-name search:
+
+- `tests/test_claim_roundtrip_fixtures.py`
+- `tests/test_claim_views.py`
+- `tests/test_claim_workflows.py`
+- `tests/test_claim_type_contracts.py`
+- `tests/test_source_claims.py`
+- `tests/test_promote_claim_immutability.py`
+- `tests/test_validate_claims.py`
+- `tests/test_materialized_claim_provenance_preserved.py`
+
 ## Initial Execution Order
 
 The workstream must include claims. The order is:
@@ -113,13 +216,16 @@ The workstream must include claims. The order is:
 1. contexts and lifting;
 2. claims, first inventory then split into sub-slices if needed;
 3. relations and opinions;
-4. concepts/forms/parameterization;
-5. diagnostics/quarantine;
-6. micropublications;
-7. grounded rules;
-8. sources;
-9. calibration;
-10. embeddings/vector.
+4. concepts and parameterization;
+5. forms;
+6. identity and shared document surfaces that block completed family deletion;
+7. diagnostics/quarantine;
+8. micropublications;
+9. grounded rules;
+10. sources;
+11. family registry/projection catalog/address surfaces;
+12. calibration;
+13. embeddings/vector.
 
 Claims are second so they are neither privileged as the only architecture driver
 nor avoided because they are large.
