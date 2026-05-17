@@ -278,7 +278,7 @@ ClaimRowInput = ClaimRow | Mapping[str, Any]
 from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_CONCEPT_LINK_ROW_MODEL,
     CLAIM_CONCEPT_LINKS_PATH,
-    CLAIM_ROW_GENERIC_MODEL,
+    CLAIM_ROW_MODEL,
     claim_row_query_plan,
 )
 
@@ -307,11 +307,11 @@ def select_claim_rows(
         if isinstance(row_dict.get("id"), str)
     ]
     link_rows = select_claim_concept_link_rows(conn, claim_ids)
-    attached_rows = CLAIM_ROW_GENERIC_MODEL.attach_child_rows(
+    attached_rows = CLAIM_ROW_MODEL.attach_child_rows(
         row_dicts,
         {"claim_concept_link": link_rows},
     )
-    return [CLAIM_ROW_GENERIC_MODEL.from_row(row_dict) for row_dict in attached_rows]
+    return [CLAIM_ROW_MODEL.from_row(row_dict) for row_dict in attached_rows]
 
 
 def select_claim_rows_linked_to_concept(
@@ -572,7 +572,7 @@ def select_claim_embedding_rows(
         query += f" WHERE core.id IN ({placeholders})"
         params = tuple(entity_ids)
     return [
-        CLAIM_ROW_GENERIC_MODEL.from_row(dict(row))
+        CLAIM_ROW_MODEL.from_row(dict(row))
         for row in conn.execute(query, params).fetchall()
     ]
 
