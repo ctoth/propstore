@@ -79,6 +79,13 @@ def _identity(value: Any) -> Any:
     return value
 
 
+def _source_payload(value: Any) -> Mapping[str, Any] | None:
+    source = value if isinstance(value, ClaimSource) else ClaimSource.from_mapping(value)
+    if source is None or source.is_empty:
+        return None
+    return source.to_dict()
+
+
 def _logical_ids_to_payloads(value: Any) -> list[dict[str, str]]:
     return [logical_id.to_payload() for logical_id in _logical_ids_from_value(value)]
 
@@ -256,6 +263,12 @@ LOGICAL_IDS_PAYLOAD_CODEC = ProjectionCodec(
     "logical_ids_payload",
     "TEXT",
     encoder=_logical_ids_to_payloads,
+    decoder=_identity,
+)
+SOURCE_PAYLOAD_CODEC = ProjectionCodec(
+    "source_payload",
+    "TEXT",
+    encoder=_source_payload,
     decoder=_identity,
 )
 
@@ -624,7 +637,7 @@ CLAIM_ROW_GENERIC_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
             encoder=_source_to_columns,
             decoder=_source_from_columns,
         ),
-        ProjectionRenderView(source_path=("source",), output_key="source"),
+        ProjectionRenderView(source_path=("source",), output_key="source", codec=SOURCE_PAYLOAD_CODEC),
         ProjectionComponent(
             path=("provenance",),
             bindings=(
