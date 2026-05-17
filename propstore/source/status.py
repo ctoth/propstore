@@ -69,7 +69,7 @@ def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatus
         diagnostics_by_claim: dict[str, list[SourceStatusDiagnostic]] = {}
         if has_diagnostics and claim_rows:
             like_pattern = f"{_escape_sql_like(branch)}:%"
-            claim_ids = [row.claim_id for row in claim_rows]
+            claim_ids = [claim_id for claim_id, _promotion_status in claim_rows]
             diag_rows = select_source_status_diagnostic_rows(
                 conn,
                 claim_ids=claim_ids,
@@ -96,11 +96,11 @@ def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatus
 
     rows = tuple(
         SourceStatusRow(
-            claim_id=row.claim_id,
-            promotion_status=row.promotion_status,
-            diagnostics=tuple(diagnostics_by_claim.get(row.claim_id, ())),
+            claim_id=claim_id,
+            promotion_status=promotion_status,
+            diagnostics=tuple(diagnostics_by_claim.get(claim_id, ())),
         )
-        for row in claim_rows
+        for claim_id, promotion_status in claim_rows
     )
     return SourceStatusReport(
         branch=branch,

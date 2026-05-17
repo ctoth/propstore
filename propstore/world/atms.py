@@ -391,7 +391,7 @@ def _claim_node_to_active_claim(claim_node: ClaimNode) -> ActiveClaim:
             "ordinal": 0,
         }]
     row_data.update(dict(claim_node.attributes))
-    return ActiveClaim.from_claim_row(CLAIM_ROW_MODEL.from_row(row_data))
+    return CLAIM_ROW_MODEL.from_row(row_data)
 
 
 def _parameterization_edge_to_row(edge: ParameterizationEdge) -> ParameterizationRow:

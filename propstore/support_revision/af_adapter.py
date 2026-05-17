@@ -52,13 +52,13 @@ class RevisionArgumentationStore:
 
     def get_claim(self, claim_id: str):
         claim = self._claims_by_id.get(str(claim_id))
-        return None if claim is None else claim.row
+        return claim
 
     def claims_for(self, concept_id: str | None):
         if concept_id is None:
-            return [claim.row for claim in self._active_claims]
+            return list(self._active_claims)
         return [
-            claim.row
+            claim
             for claim in self._active_claims
             if claim.value_concept_id == concept_id
         ]
@@ -66,7 +66,7 @@ class RevisionArgumentationStore:
     def claims_by_ids(self, claim_ids: set[str]):
         requested = {str(claim_id) for claim_id in claim_ids}
         return {
-            claim_id: claim.row
+            claim_id: claim
             for claim_id, claim in self._claims_by_id.items()
             if claim_id in requested
         }

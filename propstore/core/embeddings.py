@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from propstore.families.claims.declaration import ClaimRow
+from propstore.core.active_claims import ActiveClaim
 from propstore.families.concepts.declaration import ConceptRow
 
 
@@ -19,7 +19,7 @@ class EmbeddingEntity:
     text: str
 
 
-def claim_embedding_text(claim: ClaimRow) -> str:
+def claim_embedding_text(claim: ActiveClaim) -> str:
     """Return the text representation used for claim embeddings."""
 
     for value in (

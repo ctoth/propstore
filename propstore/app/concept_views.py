@@ -18,7 +18,7 @@ from propstore.app.repository_views import (
     repository_view_label,
 )
 from propstore.app.world import open_app_world_model
-from propstore.families.claims.declaration import ClaimRow
+from propstore.core.active_claims import ActiveClaim
 from propstore.repository import Repository
 
 ConceptViewState: TypeAlias = Literal[
@@ -278,7 +278,7 @@ def _concept_status(concept_row, all_claims, visible_claims) -> ConceptViewStatu
 
 def _claim_groups(all_claims, visible_claims) -> tuple[ConceptClaimGroup, ...]:
     visible_by_id = {str(claim.claim_id): claim for claim in visible_claims}
-    all_groups: dict[str, list[ClaimRow]] = defaultdict(list)
+    all_groups: dict[str, list[ActiveClaim]] = defaultdict(list)
     blocked_counts: dict[str, int] = defaultdict(int)
     for claim in sorted(all_claims, key=_claim_sort_key):
         claim_type = _claim_type_text(claim)

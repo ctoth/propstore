@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
+from types import SimpleNamespace
 from typing import Any
 
 from quire.projection_mapping import (
@@ -26,10 +27,10 @@ from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable
 from propstore.core.algorithm_stage import coerce_algorithm_stage
 from propstore.core.claim_types import coerce_claim_type
 from propstore.core.claim_values import ClaimProvenance, ClaimSource, SourceOrigin, SourceTrust
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import LogicalId, to_claim_id, to_concept_id, to_context_id
 from propstore.core.relations import coerce_claim_concept_link_role
 from propstore.core.source_types import coerce_source_kind, coerce_source_origin_type
-from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow
 
 
 def _nullable_text(value: Any) -> str | None:
@@ -297,10 +298,10 @@ CLAIM_CONCEPT_LINK_ITEM_FIELDS = (
 )
 
 
-CLAIM_CONCEPT_LINK_ROW_MODEL: ProjectionModel[ClaimConceptLinkRow] = ProjectionModel(
+CLAIM_CONCEPT_LINK_ROW_MODEL: ProjectionModel[SimpleNamespace] = ProjectionModel(
     name="claim_concept_link_row",
     table="claim_concept_link",
-    result_type=ClaimConceptLinkRow,
+    result_type=SimpleNamespace,
     fields=(CLAIM_CONCEPT_LINK_CLAIM_ID_PATH,) + CLAIM_CONCEPT_LINK_ITEM_FIELDS,
 )
 
@@ -311,7 +312,7 @@ CLAIM_CONCEPT_LINKS_PATH = ProjectionAttachedRows(
     parent_fk="claim_id",
     parent_path=("claim_id",),
     item_parent_path=("claim_id",),
-    item_type=ClaimConceptLinkRow,
+    item_type=SimpleNamespace,
     order_by=(CLAIM_CONCEPT_LINK_ORDINAL_PATH, CLAIM_CONCEPT_LINK_CONCEPT_ID_PATH),
     fields=CLAIM_CONCEPT_LINK_ITEM_FIELDS,
 )
@@ -595,10 +596,10 @@ def claim_row_query_plan(
     )
 
 
-CLAIM_ROW_MODEL: ProjectionModel[ClaimRow] = ProjectionModel(
+CLAIM_ROW_MODEL: ProjectionModel[ActiveClaim] = ProjectionModel(
     name="claim_row",
     table="claim_core",
-    result_type=ClaimRow,
+    result_type=ActiveClaim,
     fields=(
         ScalarPath(("claim_id",), "id", codec=CLAIM_ID_CODEC, nullable=False, missing="raise"),
         ProjectionBinding(

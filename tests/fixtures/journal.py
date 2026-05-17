@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from propstore.core.active_claims import ActiveClaim
 from typing import Any
 
 from propstore.core.assertions.refs import (
@@ -29,7 +30,6 @@ from propstore.core.relations import (
     RoleBinding,
     RoleBindingSet,
 )
-from propstore.families.claims.declaration import ClaimRow
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     EpistemicSnapshot,
@@ -55,13 +55,13 @@ _DEFAULT_POLICY: Mapping[str, str] = {
 
 
 # ---------------------------------------------------------------------------
-# minimal real ClaimRow + AssertionAtom builders
+# minimal real ActiveClaim + AssertionAtom builders
 
 
-def make_claim_row(claim_local_id: str) -> ClaimRow:
-    """Return a real ``ClaimRow`` with deterministic identity for tests."""
+def make_claim(claim_local_id: str) -> ActiveClaim:
+    """Return a real ``ActiveClaim`` with deterministic identity for tests."""
     artifact_id = f"propstore:claim:test/{claim_local_id}"
-    return ClaimRow(claim_id=to_claim_id(artifact_id), artifact_id=artifact_id)
+    return ActiveClaim(claim_id=to_claim_id(artifact_id), artifact_id=artifact_id)
 
 
 def make_assertion_atom(
@@ -76,8 +76,6 @@ def make_assertion_atom(
     The atom_id is derived from the assertion (relation + role bindings +
     context + condition), as production demands.
     """
-    from propstore.core.active_claims import ActiveClaim
-
     assertion = SituatedAssertion(
         relation=RelationConceptRef(f"ps:relation:test:{relation_local}"),
         role_bindings=RoleBindingSet(
@@ -93,7 +91,7 @@ def make_assertion_atom(
         ),
     )
     source_claims = tuple(
-        ActiveClaim.from_claim_row(make_claim_row(local))
+        make_claim(local)
         for local in source_claim_local_ids
     )
     return AssertionAtom(
@@ -213,14 +211,14 @@ class SyntheticBeliefSpace:
     ``SyntheticBoundView`` with all binding state observable.
     """
 
-    rows: dict[str, ClaimRow] = field(default_factory=dict)
+    rows: dict[str, ActiveClaim] = field(default_factory=dict)
 
-    def add_claim(self, claim_local_id: str) -> ClaimRow:
-        row = make_claim_row(claim_local_id)
+    def add_claim(self, claim_local_id: str) -> ActiveClaim:
+        row = make_claim(claim_local_id)
         self.rows[str(row.claim_id)] = row
         return row
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaim]:
         return {cid: self.rows[cid] for cid in claim_ids if cid in self.rows}
 
     def bind_for_view(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -17,8 +18,8 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     RepositoryViewUnsupportedStateError,
 )
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.claim_values import ClaimProvenance
-from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow
 from propstore.families.concepts.declaration import ConceptRow
 from propstore.families.relations.declaration import StanceRow
 from propstore.repository import Repository
@@ -29,7 +30,7 @@ class _World:
     def __init__(
         self,
         *,
-        claims: tuple[ClaimRow, ...],
+        claims: tuple[ActiveClaim, ...],
         stances: tuple[StanceRow, ...] = (),
         visible_ids: tuple[str, ...] | None = None,
     ) -> None:
@@ -37,7 +38,7 @@ class _World:
         self.stances = stances
         self.visible_ids = set(self.claims) if visible_ids is None else set(visible_ids)
 
-    def get_claim(self, claim_id: str) -> ClaimRow | None:
+    def get_claim(self, claim_id: str) -> ActiveClaim | None:
         return self.claims.get(claim_id)
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
@@ -50,7 +51,7 @@ class _World:
         self,
         concept_id: str | None,
         policy: RenderPolicy,
-    ) -> list[ClaimRow]:
+    ) -> list[ActiveClaim]:
         rows = [
             claim
             for claim_id, claim in self.claims.items()
@@ -91,16 +92,18 @@ def _repo() -> Repository:
     return cast(Repository, object())
 
 
-def _claim(claim_id: str, *, concept_id: str = "concept1") -> ClaimRow:
-    return ClaimRow(
+def _claim(claim_id: str, *, concept_id: str = "concept1") -> ActiveClaim:
+    return ActiveClaim(
         claim_id=claim_id,
         artifact_id=claim_id,
         claim_type="parameter",
         concept_links=(
-            ClaimConceptLinkRow(
+            SimpleNamespace(
                 claim_id=claim_id,
                 concept_id=concept_id,
                 role="output",
+                ordinal=0,
+                binding_name=None,
             ),
         ),
         value=1.0,

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 import json
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -19,9 +20,9 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     RepositoryViewUnsupportedStateError,
 )
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
 from propstore.core.relations import ClaimConceptLinkRole
-from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow
 from propstore.families.concepts.declaration import ConceptRow
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
@@ -31,8 +32,8 @@ class _World:
     def __init__(
         self,
         *,
-        claim: ClaimRow | None = None,
-        claims: tuple[ClaimRow, ...] = (),
+        claim: ActiveClaim | None = None,
+        claims: tuple[ActiveClaim, ...] = (),
         concept: ConceptRow | None = None,
         concepts: tuple[ConceptRow, ...] = (),
         visible: bool = True,
@@ -47,7 +48,7 @@ class _World:
         self.concepts = {str(item.concept_id): item for item in concept_rows}
         self.visible = visible
 
-    def get_claim(self, claim_id: str) -> ClaimRow | None:
+    def get_claim(self, claim_id: str) -> ActiveClaim | None:
         return self.claims.get(claim_id)
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
@@ -57,7 +58,7 @@ class _World:
         self,
         concept_id: str | None,
         policy: RenderPolicy,
-    ) -> list[ClaimRow]:
+    ) -> list[ActiveClaim]:
         if not self.visible:
             return []
         claims = list(self.claims.values())
@@ -85,13 +86,29 @@ def _repo() -> Repository:
     return cast(Repository, object())
 
 
-def _claim(**overrides) -> ClaimRow:
+def _claim_link(
+    *,
+    claim_id: str,
+    concept_id: str,
+    role: ClaimConceptLinkRole | str,
+    ordinal: int = 0,
+):
+    return SimpleNamespace(
+        claim_id=claim_id,
+        concept_id=concept_id,
+        role=role,
+        ordinal=ordinal,
+        binding_name=None,
+    )
+
+
+def _claim(**overrides) -> ActiveClaim:
     values = {
         "claim_id": "claim1",
         "artifact_id": "claim1",
         "claim_type": "parameter",
         "concept_links": (
-            ClaimConceptLinkRow(
+            _claim_link(
                 claim_id="claim1",
                 concept_id="concept1",
                 role=ClaimConceptLinkRole.OUTPUT,
@@ -110,14 +127,14 @@ def _claim(**overrides) -> ClaimRow:
     if "concept_links" not in overrides:
         claim_id = str(values["claim_id"])
         values["concept_links"] = (
-            ClaimConceptLinkRow(
+            _claim_link(
                 claim_id=claim_id,
                 concept_id="concept1",
                 role=ClaimConceptLinkRole.OUTPUT,
                 ordinal=0,
             ),
         )
-    return ClaimRow(**values)
+    return ActiveClaim(**values)
 
 
 def _concept() -> ConceptRow:
@@ -163,7 +180,7 @@ def test_build_claim_view_speaks_absence_literals(
     claim = _claim(
         claim_type="mechanism",
         concept_links=(
-            ClaimConceptLinkRow(
+            _claim_link(
                 claim_id="claim1",
                 concept_id="concept1",
                 role=ClaimConceptLinkRole.ABOUT,
@@ -259,13 +276,13 @@ def test_list_claim_views_renders_statement_claim_summaries(
                 artifact_id="claim_obs",
                 claim_type="observation",
                 concept_links=(
-                    ClaimConceptLinkRow(
+                    _claim_link(
                         claim_id="claim_obs",
                         concept_id="concept1",
                         role=ClaimConceptLinkRole.ABOUT,
                         ordinal=0,
                     ),
-                    ClaimConceptLinkRow(
+                    _claim_link(
                         claim_id="claim_obs",
                         concept_id="concept2",
                         role=ClaimConceptLinkRole.ABOUT,
@@ -380,13 +397,13 @@ def test_search_claim_views_matches_linked_concept_labels(
                 artifact_id="claim_obs",
                 claim_type="observation",
                 concept_links=(
-                    ClaimConceptLinkRow(
+                    _claim_link(
                         claim_id="claim_obs",
                         concept_id="concept1",
                         role=ClaimConceptLinkRole.ABOUT,
                         ordinal=0,
                     ),
-                    ClaimConceptLinkRow(
+                    _claim_link(
                         claim_id="claim_obs",
                         concept_id="concept2",
                         role=ClaimConceptLinkRole.ABOUT,

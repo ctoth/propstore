@@ -25,6 +25,7 @@ from propstore.core.id_types import (
     to_concept_id,
     to_concept_ids,
 )
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.graph_relation_types import coerce_graph_relation_type
 from propstore.core.graph_types import (
     ClaimNode,
@@ -35,7 +36,7 @@ from propstore.core.graph_types import (
     ProvenanceRecord,
     RelationEdge,
 )
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL, ClaimRow
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.families.relations.declaration import (
     ConflictRow,
     RelationshipRow,
@@ -54,13 +55,13 @@ from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARA
 
 
 def _row_provenance(
-    row: Mapping[str, Any] | ClaimRow,
+    row: Mapping[str, Any] | ActiveClaim,
     *,
     source_table: str,
     source_id: str | None = None,
 ) -> ProvenanceRecord | None:
     if source_table == "claim":
-        if isinstance(row, ClaimRow):
+        if isinstance(row, ActiveClaim):
             extras = {}
             if row.provenance is not None:
                 extras.update(row.provenance.to_dict())
@@ -103,7 +104,7 @@ def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
     )
 
 
-def _claim_attributes(row: ClaimRow) -> tuple[tuple[str, Any], ...]:
+def _claim_attributes(row: ActiveClaim) -> tuple[tuple[str, Any], ...]:
     claim_data: dict[str, Any] = row.attribute_mapping()
     optional_fields = {
         "seq": row.seq,
@@ -196,7 +197,7 @@ def _checked_conditions_from_json_text(
     return checked_condition_set_from_json(loaded)
 
 
-def _claim_checked_conditions(row: ClaimRow) -> CheckedConditionSet | None:
+def _claim_checked_conditions(row: ActiveClaim) -> CheckedConditionSet | None:
     if row.conditions_ir:
         return _checked_conditions_from_json_text(
             row.conditions_ir,

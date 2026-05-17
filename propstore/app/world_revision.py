@@ -84,7 +84,7 @@ def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
             display_id=atom.atom_id,
             claim_type=None if claim is None or claim.claim_type is None else claim.claim_type.value,
             concept_id=None if claim is None or claim.value_concept_id is None else str(claim.value_concept_id),
-            value=None if claim is None else claim.row.value,
+            value=None if claim is None else claim.value,
             unit=None if claim is None else claim.unit,
         )
     if is_assumption_atom(atom):

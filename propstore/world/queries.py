@@ -514,7 +514,7 @@ def query_bound_world(
                     ),
                 )
                 for active_claim in result.claims
-                for claim_dict in (CLAIM_ROW_MODEL.to_mapping(active_claim.row),)
+                for claim_dict in (CLAIM_ROW_MODEL.to_mapping(active_claim),)
             ),
         )
 
@@ -532,7 +532,7 @@ def query_bound_world(
                 conditions=str(claim_dict.get("conditions_cel") or "[]"),
             )
             for active_claim in active_claims
-            for claim_dict in (CLAIM_ROW_MODEL.to_mapping(active_claim.row),)
+            for claim_dict in (CLAIM_ROW_MODEL.to_mapping(active_claim),)
         ),
     )
 

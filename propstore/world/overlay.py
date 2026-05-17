@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, replace
 from collections.abc import Sequence
+from types import SimpleNamespace
 from typing import Any, Callable, Mapping, cast
 
 from propstore.conflict_detector import ConflictClass
@@ -43,7 +44,7 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL, ClaimConceptLinkRow, ClaimRow, ClaimRowInput
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -231,14 +232,14 @@ def _conditions_ir_json(condition_set: CheckedConditionSet | None) -> str | None
     )
 
 
-def _synthetic_concept_links(synthetic: SyntheticClaim) -> tuple[ClaimConceptLinkRow, ...]:
+def _synthetic_concept_links(synthetic: SyntheticClaim) -> tuple[SimpleNamespace, ...]:
     role = (
         ClaimConceptLinkRole.TARGET
         if synthetic.type is ClaimType.MEASUREMENT
         else ClaimConceptLinkRole.OUTPUT
     )
     return (
-        ClaimConceptLinkRow(
+        SimpleNamespace(
             claim_id=to_claim_id(synthetic.id),
             concept_id=to_concept_id(synthetic.concept_id),
             role=role,
@@ -250,9 +251,9 @@ def _synthetic_concept_links(synthetic: SyntheticClaim) -> tuple[ClaimConceptLin
 def _synthetic_row(
     synthetic: SyntheticClaim,
     *,
-    existing_row: ClaimRowInput | None,
+    existing_row: ActiveClaimInput | None,
     cel_registry: Mapping[str, ConceptInfo],
-) -> ClaimRow:
+) -> ActiveClaim:
     conditions_cel = json.dumps(synthetic.conditions) if synthetic.conditions else None
     conditions_ir = _conditions_ir_json(
         _synthetic_checked_conditions(
@@ -261,7 +262,7 @@ def _synthetic_row(
         )
     )
     if existing_row is None:
-        return ClaimRow(
+        return ActiveClaim(
             claim_id=to_claim_id(synthetic.id),
             artifact_id=synthetic.id,
             claim_type=synthetic.type,
@@ -316,7 +317,7 @@ class _GraphOverlayStore:
         self,
         base_store: WorldStore,
         *,
-        claims: Sequence[ClaimRowInput],
+        claims: Sequence[ActiveClaimInput],
         stances: list[StanceRow],
         conflicts: list[ConflictRow],
         compiled: CompiledWorldGraph | None,
@@ -345,7 +346,7 @@ class _GraphOverlayStore:
                 return concept
         return None
 
-    def get_claim(self, claim_id: str) -> ClaimRowInput | None:
+    def get_claim(self, claim_id: str) -> ActiveClaimInput | None:
         resolved_claim_id = self.resolve_claim(claim_id) or claim_id
         return self._claims_by_id.get(resolved_claim_id)
 
@@ -370,7 +371,7 @@ class _GraphOverlayStore:
     def all_concepts(self) -> Sequence[ConceptRowInput]:
         return list(self._base.all_concepts())
 
-    def claims_for(self, concept_id: str | None) -> list[ClaimRowInput]:
+    def claims_for(self, concept_id: str | None) -> list[ActiveClaimInput]:
         if concept_id is None:
             return list(self._claims)
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
@@ -380,7 +381,7 @@ class _GraphOverlayStore:
             if str(claim.value_concept_id or "") == resolved_concept_id
         ]
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRowInput]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaimInput]:
         return {
             claim_id: claim
             for claim_id, claim in self._claims_by_id.items()
@@ -561,7 +562,7 @@ class OverlayWorld(BeliefSpace):
         }
         synthetics_by_id = {synthetic.id: synthetic for synthetic in self._synthetics}
 
-        overlay_claims: list[ClaimRow] = []
+        overlay_claims: list[ActiveClaim] = []
         for claim in base_claim_rows:
             claim_id = str(claim.claim_id)
             replacement = synthetics_by_id.get(claim_id)
@@ -618,7 +619,7 @@ class OverlayWorld(BeliefSpace):
         }
         for conflict in _recomputed_conflicts(
             base._store,
-            [ActiveClaim.from_claim_row(claim) for claim in overlay_claims],
+            overlay_claims,
         ):
             pair = _claim_pair(str(conflict.claim_a_id), str(conflict.claim_b_id))
             if pair in seen_conflict_pairs:
@@ -697,13 +698,13 @@ class OverlayWorld(BeliefSpace):
     def explain(self, claim_id: str) -> list[StanceRow]:
         return self._overlay.explain(claim_id)
 
-    def get_claim(self, claim_id: str) -> ClaimRowInput | None:
+    def get_claim(self, claim_id: str) -> ActiveClaimInput | None:
         return self._overlay_store.get_claim(claim_id)
 
     def resolve_claim(self, name: str) -> str | None:
         return self._overlay_store.resolve_claim(name)
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRowInput]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaimInput]:
         return self._overlay_store.claims_by_ids(claim_ids)
 
     def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]:

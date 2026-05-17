@@ -44,7 +44,7 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.families.claims.declaration import ClaimRow
+from propstore.core.active_claims import ActiveClaim
 from propstore.families.relations.declaration import ConflictRow, StanceRow
 
 if TYPE_CHECKING:
@@ -804,7 +804,7 @@ class ClaimView:
     See ``propstore.world.bridge.at_journal_step``.
     """
 
-    claims: Mapping[str, ClaimRow]
+    claims: Mapping[str, ActiveClaim]
     scope: RevisionScope
     bound: object | None = None
     stances: tuple[StanceRow, ...] = field(default_factory=tuple)

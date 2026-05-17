@@ -13,7 +13,6 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
@@ -30,26 +29,14 @@ from propstore.claims import (
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.compiler.ir import ClaimCompilationBundle
-from propstore.core.algorithm_stage import AlgorithmStage, coerce_algorithm_stage
 from propstore.core.claim_types import ClaimType, coerce_claim_type
-from propstore.core.claim_values import (
-    ClaimProvenance,
-    ClaimSource,
-)
 from propstore.core.id_types import (
     ClaimId,
-    ConceptId,
-    ContextId,
-    LogicalId,
     to_claim_id,
-    to_concept_id,
-    to_context_id,
     to_justification_id,
 )
-from propstore.core.relations import (
-    ClaimConceptLinkRole,
-    coerce_claim_concept_link_role,
-)
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
@@ -95,180 +82,6 @@ def _require_claim_type(value: object) -> ClaimType:
     return claim_type
 
 
-def _require_claim_concept_link_role(value: object) -> ClaimConceptLinkRole:
-    role = coerce_claim_concept_link_role(value)
-    if role is None:
-        raise KeyError('role')
-    return role
-
-
-@dataclass(frozen=True)
-class ClaimConceptLinkRow:
-    claim_id: ClaimId
-    concept_id: ConceptId
-    role: ClaimConceptLinkRole
-    ordinal: int = 0
-    binding_name: str | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "claim_id", to_claim_id(self.claim_id))
-        object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
-        object.__setattr__(self, "role", _require_claim_concept_link_role(self.role))
-
-
-@dataclass(frozen=True)
-class ClaimRow:
-    claim_id: ClaimId
-    artifact_id: str
-    claim_type: ClaimType | None = None
-    concept_links: tuple[ClaimConceptLinkRow, ...] = field(default_factory=tuple)
-    target_concept: ConceptId | None = None
-    logical_ids: tuple[LogicalId, ...] = field(default_factory=tuple)
-    version_id: str | None = None
-    seq: int | None = None
-    value: Any = None
-    lower_bound: float | None = None
-    upper_bound: float | None = None
-    uncertainty: float | None = None
-    uncertainty_type: str | None = None
-    sample_size: int | None = None
-    unit: str | None = None
-    conditions_cel: str | None = None
-    conditions_ir: str | None = None
-    statement: str | None = None
-    expression: str | None = None
-    sympy_generated: str | None = None
-    sympy_error: str | None = None
-    name: str | None = None
-    measure: str | None = None
-    listener_population: str | None = None
-    methodology: str | None = None
-    notes: str | None = None
-    description: str | None = None
-    auto_summary: str | None = None
-    body: str | None = None
-    canonical_ast: str | None = None
-    variables_json: str | None = None
-    algorithm_stage: AlgorithmStage | None = None
-    source: ClaimSource | None = None
-    provenance: ClaimProvenance | None = None
-    value_si: float | None = None
-    lower_bound_si: float | None = None
-    upper_bound_si: float | None = None
-    context_id: ContextId | None = None
-    premise_kind: str | None = None
-    content_hash: str | None = None
-    branch: str | None = None
-    build_status: str | None = None
-    stage: str | None = None
-    promotion_status: str | None = None
-    confidence: float | None = None
-    claim_probability: float | None = None
-    effective_sample_size: int | None = None
-    opinion_belief: float | None = None
-    opinion_disbelief: float | None = None
-    opinion_uncertainty: float | None = None
-    opinion_base_rate: float | None = None
-    source_assertion_ids: Any = None
-    concept_id: ConceptId | None = None
-    attributes: Mapping[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "attributes", dict(self.attributes))
-        object.__setattr__(self, "concept_links", tuple(self.concept_links))
-        if self.claim_type is not None:
-            object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
-        if self.algorithm_stage is not None:
-            object.__setattr__(
-                self, "algorithm_stage", coerce_algorithm_stage(self.algorithm_stage)
-            )
-
-    @property
-    def primary_logical_id(self) -> str | None:
-        if not self.logical_ids:
-            return None
-        return self.logical_ids[0].formatted
-
-    @property
-    def primary_logical_value(self) -> str | None:
-        if not self.logical_ids:
-            return None
-        return self.logical_ids[0].value
-
-    @property
-    def source_paper(self) -> str | None:
-        return None if self.provenance is None else self.provenance.paper
-
-    @property
-    def provenance_page(self) -> int | None:
-        return None if self.provenance is None else self.provenance.page
-
-    @property
-    def source_slug(self) -> str | None:
-        return None if self.source is None else self.source.slug
-
-    def concept_ids_for_role(self, role: ClaimConceptLinkRole) -> tuple[ConceptId, ...]:
-        return tuple(
-            link.concept_id
-            for link in self.concept_links
-            if link.role is role
-        )
-
-    @property
-    def output_concept_id(self) -> ConceptId | None:
-        concept_ids = self.concept_ids_for_role(ClaimConceptLinkRole.OUTPUT)
-        return concept_ids[0] if concept_ids else None
-
-    @property
-    def value_concept_id(self) -> ConceptId | None:
-        return self.output_concept_id or self.target_concept
-
-    @property
-    def about_concept_ids(self) -> tuple[ConceptId, ...]:
-        return self.concept_ids_for_role(ClaimConceptLinkRole.ABOUT)
-
-    @property
-    def input_concept_ids(self) -> tuple[ConceptId, ...]:
-        return self.concept_ids_for_role(ClaimConceptLinkRole.INPUT)
-
-    @property
-    def target_concept_ids(self) -> tuple[ConceptId, ...]:
-        return self.concept_ids_for_role(ClaimConceptLinkRole.TARGET)
-
-    def attribute_mapping(self) -> dict[str, Any]:
-        data = dict(self.attributes)
-        for key in (
-            "content_hash",
-            "branch",
-            "build_status",
-            "stage",
-            "promotion_status",
-            "confidence",
-            "claim_probability",
-            "effective_sample_size",
-            "opinion_belief",
-            "opinion_disbelief",
-            "opinion_uncertainty",
-            "opinion_base_rate",
-            "source_assertion_ids",
-            "concept_id",
-        ):
-            value = getattr(self, key)
-            if value is not None:
-                data[key] = value
-        return data
-
-    def attribute_value(self, key: str) -> Any:
-        if hasattr(self, key):
-            value = getattr(self, key)
-            if value is not None:
-                return value
-        return dict(self.attributes).get(key)
-
-
-ClaimRowInput = ClaimRow | Mapping[str, Any]
-
-
 from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_ALGORITHM_PAYLOAD_TABLE,
     CLAIM_CONCEPT_LINK_TABLE,
@@ -283,17 +96,11 @@ from propstore.families.claims.projection_model import (  # noqa: E402
 )
 
 
-@dataclass(frozen=True, slots=True)
-class SourcePromotionClaimRow:
-    claim_id: str
-    promotion_status: str
-
-
 def select_claim_rows(
     conn: sqlite3.Connection,
     where_sql: str = "",
     params: tuple[Any, ...] = (),
-) -> list[ClaimRow]:
+) -> list[ActiveClaim]:
     rows = conn.execute(
         CLAIM_ROW_QUERY_PLAN.select_sql(where_sql),
         params,
@@ -319,7 +126,7 @@ def select_claim_rows_linked_to_concept(
     concept_id: str | None,
     *,
     roles: tuple[str, ...] | None = None,
-) -> list[ClaimRow]:
+) -> list[ActiveClaim]:
     where_sql, params = _claim_concept_link_where_sql(concept_id, roles=roles)
     return select_claim_rows(conn, where_sql + "ORDER BY core.id", params)
 
@@ -330,7 +137,7 @@ def select_claim_rows_with_visibility(
     concept_id: str | None,
     include_drafts: bool,
     include_blocked: bool,
-) -> list[ClaimRow]:
+) -> list[ActiveClaim]:
     clauses: list[str] = []
     bound: list[Any] = []
     concept_clause, concept_params = _claim_concept_link_where_sql(concept_id)
@@ -552,7 +359,7 @@ def delete_claim_core_row(conn: sqlite3.Connection, claim_id: str) -> None:
 def select_claim_embedding_rows(
     conn: sqlite3.Connection,
     entity_ids: Sequence[str] | None = None,
-) -> list[ClaimRow]:
+) -> list[ActiveClaim]:
     query = """
         SELECT
             core.id,
@@ -629,7 +436,7 @@ def select_all_claim_ids(conn: sqlite3.Connection) -> list[str]:
 def select_source_promotion_claim_rows(
     conn: sqlite3.Connection,
     branch: str,
-) -> list[SourcePromotionClaimRow]:
+) -> tuple[tuple[str, str], ...]:
     rows = conn.execute(
         """
         SELECT id, promotion_status
@@ -639,13 +446,7 @@ def select_source_promotion_claim_rows(
         """,
         (branch,),
     ).fetchall()
-    return [
-        SourcePromotionClaimRow(
-            claim_id=str(row[0]),
-            promotion_status=str(row[1]),
-        )
-        for row in rows
-    ]
+    return tuple((str(row[0]), str(row[1])) for row in rows)
 
 
 CLAIM_EMBEDDING_JOIN_SOURCE = """

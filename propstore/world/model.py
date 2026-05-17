@@ -29,8 +29,8 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
+from propstore.core.active_claims import ActiveClaim
 from propstore.families.claims.declaration import (
-    ClaimRow,
     build_claim_logical_id_index,
     count_authored_justifications,
     count_claims,
@@ -275,7 +275,7 @@ class WorldQuery(WorldStore):
 
     # ── Unbound queries ──────────────────────────────────────────────
 
-    def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[ClaimRow]:
+    def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[ActiveClaim]:
         return select_claim_rows(self._conn, where_sql, params)
 
     def get_concept(self, concept_id: str) -> ConceptRow | None:
@@ -311,7 +311,7 @@ class WorldQuery(WorldStore):
             for concept in self.all_concepts()
         }
 
-    def get_claim(self, claim_id: str) -> ClaimRow | None:
+    def get_claim(self, claim_id: str) -> ActiveClaim | None:
         resolved_claim_id = self.resolve_claim(claim_id) or claim_id
         rows = self._claim_rows("WHERE core.id = ?", (resolved_claim_id,))
         return rows[0] if rows else None
@@ -367,7 +367,7 @@ class WorldQuery(WorldStore):
             logical_id_index=self._get_concept_logical_id_index(),
         )
 
-    def claims_for(self, concept_id: str | None) -> list[ClaimRow]:
+    def claims_for(self, concept_id: str | None) -> list[ActiveClaim]:
         resolved_concept_id = (
             None
             if concept_id is None
@@ -379,7 +379,7 @@ class WorldQuery(WorldStore):
             roles=("output", "target"),
         )
 
-    def claims_related_to_concept(self, concept_id: str | None) -> list[ClaimRow]:
+    def claims_related_to_concept(self, concept_id: str | None) -> list[ActiveClaim]:
         resolved_concept_id = (
             None
             if concept_id is None
@@ -432,7 +432,7 @@ class WorldQuery(WorldStore):
         self,
         concept_id: str | None,
         policy: RenderPolicy,
-    ) -> list[ClaimRow]:
+    ) -> list[ActiveClaim]:
         """Return claim rows filtered by the lifecycle visibility flags
         on ``policy``.
 
@@ -475,7 +475,7 @@ class WorldQuery(WorldStore):
             return []
         return select_build_diagnostics(self._conn)
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaim]:
         if not claim_ids:
             return {}
         resolved_ids = {

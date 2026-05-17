@@ -17,7 +17,8 @@ from argumentation.probabilistic import (
     summarize_defeat_relations as _summarize_defeat_probabilities,
 )
 
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL, ClaimRow, ClaimRowInput
+from propstore.core.active_claims import ActiveClaim, ActiveClaimInput
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.opinion import Opinion, W, discount, from_probability
 from propstore.probabilistic_relations import ProbabilisticRelation, relation_from_row
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -182,9 +183,9 @@ def _source_prior_opinion(raw: object) -> Opinion | None:
     )
 
 
-def p_arg_from_claim(claim: ClaimRowInput | dict) -> Opinion | NoCalibration:
+def p_arg_from_claim(claim: ActiveClaimInput | dict) -> Opinion | NoCalibration:
     """Derive argument-existence opinion from a calibrated claim row."""
-    if isinstance(claim, ClaimRow):
+    if isinstance(claim, ActiveClaim):
         claim_opinion = _opinion_from_payload(
             claim.attribute_mapping(),
             prefix="opinion_",

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
+from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -17,8 +18,8 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     RepositoryViewUnsupportedStateError,
 )
+from propstore.core.active_claims import ActiveClaim
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
-from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow
 from propstore.families.concepts.declaration import ConceptRow
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record
 from propstore.repository import Repository
@@ -30,7 +31,7 @@ class _World:
         self,
         *,
         concept: ConceptRow | None = None,
-        claims: tuple[ClaimRow, ...] = (),
+        claims: tuple[ActiveClaim, ...] = (),
         visible_ids: tuple[str, ...] | None = None,
     ) -> None:
         self.concept = concept
@@ -59,7 +60,7 @@ class _World:
             return self.concept
         return None
 
-    def claims_for(self, concept_id: str) -> list[ClaimRow]:
+    def claims_for(self, concept_id: str) -> list[ActiveClaim]:
         if self.concept is None:
             return []
         resolved = self.resolve_concept(concept_id) or concept_id
@@ -69,7 +70,7 @@ class _World:
             if str(claim.value_concept_id or "") == resolved
         ]
 
-    def claims_related_to_concept(self, concept_id: str) -> list[ClaimRow]:
+    def claims_related_to_concept(self, concept_id: str) -> list[ActiveClaim]:
         if self.concept is None:
             return []
         resolved = self.resolve_concept(concept_id) or concept_id
@@ -88,7 +89,7 @@ class _World:
         self,
         concept_id: str | None,
         policy: RenderPolicy,
-    ) -> list[ClaimRow]:
+    ) -> list[ActiveClaim]:
         if concept_id is None:
             return []
         resolved = self.resolve_concept(concept_id) or concept_id
@@ -127,13 +128,29 @@ def _concept() -> ConceptRow:
     )
 
 
-def _claim(claim_id: str, **overrides) -> ClaimRow:
+def _claim_link(
+    *,
+    claim_id: str,
+    concept_id: str,
+    role: str,
+    ordinal: int = 0,
+):
+    return SimpleNamespace(
+        claim_id=claim_id,
+        concept_id=concept_id,
+        role=role,
+        ordinal=ordinal,
+        binding_name=None,
+    )
+
+
+def _claim(claim_id: str, **overrides) -> ActiveClaim:
     values = {
         "claim_id": claim_id,
         "artifact_id": claim_id,
         "claim_type": "parameter",
         "concept_links": (
-            ClaimConceptLinkRow(
+            _claim_link(
                 claim_id=claim_id,
                 concept_id="concept1",
                 role="output",
@@ -148,7 +165,7 @@ def _claim(claim_id: str, **overrides) -> ClaimRow:
         "provenance": ClaimProvenance(paper="paper1", page=3),
     }
     values.update(overrides)
-    return ClaimRow(**values)
+    return ActiveClaim(**values)
 
 
 def _concept_entry() -> LoadedConcept:
@@ -248,7 +265,7 @@ def test_build_concept_view_counts_about_links_as_related_claims(
                 "claim-about-only",
                 claim_type="observation",
                 concept_links=(
-                    ClaimConceptLinkRow(
+                    _claim_link(
                         claim_id="claim-about-only",
                         concept_id="concept1",
                         role="about",

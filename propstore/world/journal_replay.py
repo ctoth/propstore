@@ -26,7 +26,7 @@ from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-from propstore.families.claims.declaration import ClaimRow
+from propstore.core.active_claims import ActiveClaim
 from propstore.families.relations.declaration import ConflictRow, StanceRow
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.projection import snapshot_to_claim_ids
@@ -58,7 +58,7 @@ class _FixtureCommit:
 
 
 class _ClaimLookupSpace(Protocol):
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ClaimRow]: ...
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaim]: ...
 
 
 @runtime_checkable

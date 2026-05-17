@@ -17,7 +17,6 @@ from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_a
 from propstore.core.claim_types import ClaimType
 from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore, WorldStore
 from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_context_id
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL, ClaimRowInput
 from propstore.families.relations.declaration import (
     ConflictRow,
     StanceRow,
@@ -383,7 +382,7 @@ class BoundWorld(BeliefSpace):
 
     def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         all_claims = [
-            ActiveClaim.from_claim_row(CLAIM_ROW_MODEL.coerce(claim))
+            coerce_active_claim(claim)
             for claim in self._store.claims_for(concept_id)
         ]
         if self._active_claim_id_set is not None:
@@ -395,7 +394,7 @@ class BoundWorld(BeliefSpace):
 
     def inactive_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
         all_claims = [
-            ActiveClaim.from_claim_row(CLAIM_ROW_MODEL.coerce(claim))
+            coerce_active_claim(claim)
             for claim in self._store.claims_for(concept_id)
         ]
         if self._inactive_claim_id_set is not None:
