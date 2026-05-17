@@ -6,7 +6,7 @@ from typing import Any
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import WorldStore
-from propstore.families.claims.declaration import coerce_claim_row
+from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL
 from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
@@ -57,7 +57,7 @@ def display_claim_id(world: WorldStore, claim_id: str | None) -> str | None:
         return None
     claim = world.get_claim(claim_id)
     if claim is not None:
-        row = coerce_claim_row(claim)
+        row = CLAIM_ROW_GENERIC_MODEL.coerce(claim)
         logical_value = row.primary_logical_value
         if isinstance(logical_value, str) and logical_value:
             return logical_value
