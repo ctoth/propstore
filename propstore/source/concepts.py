@@ -6,7 +6,7 @@ from propstore.repository import Repository, retry_live_branch_update
 from propstore.families.registry import SourceRef
 from quire.documents import decode_document_path
 
-from .common import load_source_concepts_document, source_branch_name
+from .common import load_source_concepts_document
 from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,
@@ -110,7 +110,8 @@ def commit_source_concept_proposal(
         )
         return doc
 
-    doc = retry_live_branch_update(repo, source_branch_name(source_name), update)
+    branch = repo.families.source_concepts.address(SourceRef(source_name)).branch
+    doc = retry_live_branch_update(repo, branch, update)
     for normalized_entry in doc.concepts:
         if normalized_entry.local_name == local_name:
             return normalized_entry
