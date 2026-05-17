@@ -685,7 +685,7 @@ class TestUnboundQueries:
         wm = WorldQuery(repo)
         claim = wm.get_claim(_claim_artifact("alpha_source", "claim_slug"))
         assert claim is not None
-        claim_data = claim.to_dict()
+        claim_data = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim)))
         assert claim.source_slug == "alpha_source"
         assert claim.source_paper == "Alpha Paper"
         assert claim.source is not None
