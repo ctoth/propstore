@@ -28,7 +28,7 @@ from propstore.core.conditions.registry import (
     with_standard_synthetic_bindings,
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.claims.declaration import coerce_claim_row
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.families.relations.declaration import (
     ConflictRow,
@@ -2990,7 +2990,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         bound = world.bind(task="speech")
         restored_claim = world.get_claim("claim2")
         assert restored_claim is not None
-        restored = coerce_claim_row(restored_claim)
+        restored = CLAIM_ROW_MODEL.coerce(restored_claim)
 
         hypo = OverlayWorld(
             bound,
