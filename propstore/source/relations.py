@@ -4,14 +4,12 @@ from pathlib import Path
 from typing import Any
 
 from propstore.families.registry import SourceRef
-from propstore.repository import Repository
+from propstore.repository import Repository, retry_live_branch_update
 from quire.documents import convert_document_value, decode_document_path
 from quire.references import FamilyReferenceIndex
 from propstore.stances import StanceType, coerce_stance_type
 
 from .common import (
-    current_source_branch_head,
-    is_stale_branch_error,
     load_source_justifications_document,
     load_source_stances_document,
     normalize_source_slug,
@@ -256,13 +254,16 @@ def commit_source_justification_proposal(
         rule_kind=rule_kind,
         rule_strength=rule_strength,
     )
-    last_normalized: SourceJustificationsDocument | None = None
-    for attempt in range(8):
-        expected_head = current_source_branch_head(repo, source_name)
+
+    def update(expected_head: str | None) -> SourceJustificationsDocument:
         claim_index = build_source_claim_index(repo, source_name)
         primary_claim_index = build_primary_claim_index(repo)
-        existing = load_source_justifications_document(repo, source_name) or SourceJustificationsDocument(justifications=())
-        justifications = [entry for entry in existing.justifications if entry.id != just_id]
+        existing = load_source_justifications_document(
+            repo, source_name
+        ) or SourceJustificationsDocument(justifications=())
+        justifications = [
+            entry for entry in existing.justifications if entry.id != just_id
+        ]
 
         justification = SourceJustificationDocument(
             id=just_id,
@@ -314,26 +315,19 @@ def commit_source_justification_proposal(
             primary_claim_index=primary_claim_index,
         )
 
-        try:
-            repo.families.source_justifications.save(
-                SourceRef(source_name),
-                normalized,
-                message=f"Propose justification for {normalize_source_slug(source_name)}",
-                expected_head=expected_head,
-            )
-        except ValueError as exc:
-            if attempt == 7 or not is_stale_branch_error(exc):
-                raise
-            continue
-        last_normalized = normalized
-        break
+        repo.families.source_justifications.save(
+            SourceRef(source_name),
+            normalized,
+            message=f"Propose justification for {normalize_source_slug(source_name)}",
+            expected_head=expected_head,
+        )
+        return normalized
 
-    if last_normalized is not None:
-        for entry in last_normalized.justifications:
-            if entry.id == just_id:
-                return entry
-        return last_normalized.justifications[-1]
-    raise ValueError(f"could not write justification proposal {just_id!r}")
+    normalized = retry_live_branch_update(repo, branch, update)
+    for entry in normalized.justifications:
+        if entry.id == just_id:
+            return entry
+    return normalized.justifications[-1]
 
 
 def commit_source_stance_proposal(
@@ -349,12 +343,13 @@ def commit_source_stance_proposal(
     branch = source_branch_name(source_name)
     normalized_stance_type = coerce_stance_type(stance_type)
     assert normalized_stance_type is not None
-    last_normalized: SourceStancesDocument | None = None
-    for attempt in range(8):
-        expected_head = current_source_branch_head(repo, source_name)
+
+    def update(expected_head: str | None) -> SourceStancesDocument:
         claim_index = build_source_claim_index(repo, source_name)
         primary_claim_index = build_primary_claim_index(repo)
-        existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(stances=())
+        existing = load_source_stances_document(repo, source_name) or SourceStancesDocument(
+            stances=()
+        )
         stances = list(existing.stances)
 
         stance = SourceStanceEntryDocument(
@@ -381,20 +376,13 @@ def commit_source_stance_proposal(
             primary_claim_index=primary_claim_index,
         )
 
-        try:
-            repo.families.source_stances.save(
-                SourceRef(source_name),
-                normalized,
-                message=f"Propose stance for {normalize_source_slug(source_name)}",
-                expected_head=expected_head,
-            )
-        except ValueError as exc:
-            if attempt == 7 or not is_stale_branch_error(exc):
-                raise
-            continue
-        last_normalized = normalized
-        break
+        repo.families.source_stances.save(
+            SourceRef(source_name),
+            normalized,
+            message=f"Propose stance for {normalize_source_slug(source_name)}",
+            expected_head=expected_head,
+        )
+        return normalized
 
-    if last_normalized is not None:
-        return last_normalized.stances[-1]
-    raise ValueError("could not write stance proposal")
+    normalized = retry_live_branch_update(repo, branch, update)
+    return normalized.stances[-1]
