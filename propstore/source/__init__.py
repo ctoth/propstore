@@ -20,7 +20,6 @@ from .common import (
     initial_source_document,
     load_source_document,
     normalize_source_slug,
-    source_branch_name,
     source_paper_slug,
     source_tag_uri,
 )
@@ -86,7 +85,6 @@ __all__ = [
     "promote_alignment",
     "promote_source_branch",
     "save_alignment_artifact",
-    "source_branch_name",
     "source_paper_slug",
     "SourceStatusState",
     "source_tag_uri",
