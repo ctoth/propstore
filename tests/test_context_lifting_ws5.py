@@ -12,7 +12,6 @@ from propstore.context_lifting import (
 )
 from propstore.core.assertions import ContextReference
 from propstore.families.contexts.declaration import (
-    ContextSidecarRows,
     compile_context_lifting_materialization_rows,
     compile_context_sidecar_rows,
     create_context_tables,
@@ -248,19 +247,7 @@ def test_sidecar_stores_lifting_materialization_provenance() -> None:
         materializations
     )
 
-    rows = ContextSidecarRows(
-        context_rows=(),
-        assumption_rows=(),
-        lifting_rule_rows=(),
-        lifting_materialization_rows=materialization_rows,
-    )
-    populate_contexts(
-        conn,
-        context_rows=rows.context_rows,
-        assumption_rows=rows.assumption_rows,
-        lifting_rule_rows=rows.lifting_rule_rows,
-        lifting_materialization_rows=rows.lifting_materialization_rows,
-    )
+    populate_contexts(conn, materialization_rows)
 
     row = conn.execute(
         "SELECT * FROM context_lifting_materialization"
@@ -305,8 +292,13 @@ def test_context_sidecar_compiler_materializes_authored_ist_assertions() -> None
         ),
     )
 
-    assert len(rows.lifting_materialization_rows) == 1
-    row = rows.lifting_materialization_rows[0]
+    materialization_rows = tuple(
+        row
+        for row in rows
+        if row.table == "context_lifting_materialization"
+    )
+    assert len(materialization_rows) == 1
+    row = materialization_rows[0]
     assert (
         row.values["rule_id"],
         row.values["source_context_id"],
