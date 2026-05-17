@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from propstore.artifact_codes import stamp_source_artifact_codes
+from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.identity.micropubs import (
     micropub_artifact_id,
     micropub_version_id,
@@ -35,7 +36,6 @@ from propstore.families.documents.micropubs import (
 )
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
-    resolve_source_or_primary_claim_id,
     source_claim_index as build_source_claim_index,
 )
 from .registry import preview_source_parameterization_group_merges
@@ -152,10 +152,10 @@ def finalize_source_branch(
         if not isinstance(target, str) or not target:
             stance_errors.append(str(target))
             continue
-        if resolve_source_or_primary_claim_id(
+        if resolve_first_claim_reference_id(
             target,
-            source=source_claim_index,
-            primary=primary_claim_index,
+            source_claim_index,
+            primary_claim_index,
         ) is None:
             stance_errors.append(target)
 
