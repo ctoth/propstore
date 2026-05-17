@@ -76,7 +76,7 @@ def load_claim_batch_file(
     root_path = None if knowledge_root is None else coerce_tree_path(knowledge_root)
     data = decode_yaml_mapping(artifact_path.read_bytes(), source=artifact_path.as_posix())
     return claim_batch_files_from_payload(
-        filename=artifact_path.stem,
+        filename=artifact_path.name,
         source_path=artifact_path,
         data=data,
         knowledge_root=root_path,

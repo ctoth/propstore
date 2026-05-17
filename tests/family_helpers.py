@@ -140,7 +140,7 @@ def claim_artifact_commit_payloads(
     source_path = repo.root / source
     payloads: dict[str, bytes] = {}
     for loaded in claim_batch_files_from_payload(
-        filename=source_path.stem,
+        filename=source_path.name,
         source_path=source_path,
         data=normalized,
         knowledge_root=repo.root,
@@ -198,7 +198,7 @@ def _load_claim_fixture(
     if isinstance(data.get("claims"), list):
         normalized, _ = normalize_claim_file_payload(data)
         return claim_batch_files_from_payload(
-            filename=entry.stem,
+            filename=entry.name,
             source_path=entry,
             data=normalized,
             knowledge_root=knowledge_root,
@@ -216,7 +216,7 @@ def _materialize_claim_fixture_batches(repo: Repository) -> None:
             continue
         normalized, _ = normalize_claim_file_payload(data)
         for loaded in claim_batch_files_from_payload(
-            filename=path.stem,
+            filename=path.name,
             source_path=path,
             data=normalized,
             knowledge_root=repo.root,
