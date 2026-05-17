@@ -311,7 +311,7 @@ Initial required metadata:
 
 ## Phase 0: Complete Inventory And Baselines
 
-Status: pending.
+Status: complete.
 
 Goal: prove the exact deletion set before implementation.
 
@@ -338,6 +338,40 @@ Required result:
 - all unresolved uses are marked blocked with the exact missing abstraction.
 
 Do not continue to Phase 1 until this phase is complete.
+
+### Phase 0 Inventory
+
+Baseline artifacts:
+
+- `workstreams/explicit-boundaries-ddl-baseline-2026-05-16.json`
+- `workstreams/explicit-boundaries-metrics-baseline-2026-05-16.json`
+
+Baseline summary metrics:
+
+- `row_class_from_mapping_loc`: 78
+- `row_class_to_dict_loc`: 78
+- `row_decoder_helper_count`: 1
+- `attributes_bucket_classes`: 6
+- `child_row_assembly_loops`: 3
+- `cross_table_select_sql`: 7
+- `multi_source_merge_methods`: 10
+- `nested_document_from_mapping_methods`: 4
+- `projection_declarations_count`: 79
+- `row_factory_targets`: 3
+
+| Old surface | Verified production use | Target Quire abstraction | Blocker before deletion |
+| --- | --- | --- | --- |
+| `ScalarPath.decode_columns` | `propstore/families/claims/projection_model.py`: `artifact_id` reads joined `id`; `claim_type` reads `claim_type`; logical ID component reads `logical_id` and `logical_ids`. | `ProjectionBinding` read alias that references a declared field and declared column. | Phase 1 must make field/column definitions referenceable; Phase 2 deletes `decode_columns`. |
+| `CompositePath` | `propstore/families/claims/projection_model.py`: claim logical IDs from `primary_logical_id` and `logical_ids_json`; claim provenance from `source_paper`, `provenance_page`, and `provenance_json`. | `ProjectionComponent` with ordered child bindings and typed encoder/decoder. | Phase 1 definitions and Phase 2 aliases must exist; Phase 3 deletes `CompositePath`. |
+| `DerivedPath` | `propstore/families/claims/projection_model.py`: render `logical_id` and `logical_ids`; `propstore/families/concepts/projection_model.py`: render `logical_id` and `logical_ids`. | `ProjectionRenderView` output-only fields referencing declared source fields. | Phase 3 components must exist for logical IDs; Phase 4 deletes `DerivedPath`. |
+| `RepeatedPath.decode_key` | `propstore/families/claims/projection_model.py`: `CLAIM_CONCEPT_LINKS_PATH` attaches selected `claim_concept_link` rows under `concept_links`; `propstore/families/claims/declaration.py` manually writes `row_dict["concept_links"]`. | `ProjectionAttachedRows` with parent key, child model, attachment field, and ordering. | Phase 4 render views must land; Phase 5 deletes `decode_key` and the manual attachment loop. |
+| `ProjectionModel.attribute_bucket` | `propstore/families/relations/projection_model.py`: `RelationshipRow`, `StanceRow`, `ConflictRow`; `propstore/families/concepts/projection_model.py`: `ConceptRow`, `ParameterizationRow`; `propstore/families/claims/projection_model.py`: `ClaimRow`. | Typed metadata component, or declared typed fields where metadata is semantically fixed. | Phase 5 attached rows must land; Phase 6 deletes untyped `attribute_bucket`. |
+| Relation stance metadata in `attributes` | `propstore/world/queries.py`, `propstore/relation_analysis.py`, `propstore/core/graph_build.py`, and `propstore/aspic_bridge/extract.py` read stance metadata now carried by `StanceRow.attributes`. | Typed metadata component or typed stance fields for `strength`, `conditions_differ`, `note`, `resolution_method`, `resolution_model`, `embedding_model`, `embedding_distance`, `pass_number`, `confidence`, `opinion_belief`, `opinion_disbelief`, `opinion_uncertainty`, and `opinion_base_rate`. | Phase 6 must define the allowed metadata shape and update readers to typed access. |
+| `ProjectionModel.ignored_columns` | `propstore/families/claims/projection_model.py`: ignores joined source columns `source`, `source_slug`, `source_id`, `source_kind`, `source_origin_type`, `source_origin_value`, `source_origin_retrieved`, `source_origin_content_ref`, `source_prior_base_rate`, `source_quality_json`, `source_quality_opinion`, and `source_derived_from_json`. | `ProjectionJoin` plus `ProjectionQueryPlan` with explicit claim/source joined component. | Phase 6 typed metadata must land; Phase 7 deletes `ignored_columns`. |
+| `claim_select_sql()` and claim `LEFT JOIN` SQL | `propstore/families/claims/declaration.py`: `claim_select_sql()`, payload/source joins, query call sites, and claim-link query SQL. Tests contain matching expected SQL. | `ProjectionQueryPlan` with declared payload joins, source join, selected bindings, attached rows, ordering, and predicates. | Phase 7 must make the claim joined-row boundary explicit and preserve DDL/query behavior. |
+| Relation select-column constants | `propstore/families/relations/declaration.py`: `STANCE_SELECT_COLUMNS`, `STANCE_SELECT_COLUMNS_WITH_PERSPECTIVE`, select SQL call sites. | `ProjectionQueryPlan` plus view-level field bindings for stance rows. | Phase 8 must delete handwritten select-column lists. |
+| Relation-edge polymorphic physical/view split | `propstore/families/relations/declaration.py`: relation edge physical table supports concept relationships and claim stances with different semantic row types. | `ProjectionDiscriminator` and view-level codecs over one physical `ProjectionTable`. | Phase 8 must declare source/target kind discriminators and preserve relation-edge DDL byte equality. |
+| Remaining Propstore handwritten declaration sites | Baseline scanner reports `projection_declarations_count = 79` and `row_factory_targets = 3`. | Quire declaration graph and query plan outputs sourced from the same definitions as row mapping. | Parent Phase 7 reentry remains blocked until this workstream deletes the explicit old surfaces above. |
 
 ## Phase 1: Quire Declaration Graph
 
