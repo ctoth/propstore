@@ -78,12 +78,15 @@ from propstore.families.claims.storage import (
 )
 from propstore.families.claims.stages import (
     ClaimSidecarRows,
+    PromotionBlockedClaimFact,
+    PromotionBlockedSidecarRows,
     RawIdQuarantineRecord,
     RawIdQuarantineSidecarRows,
 )
 from propstore.families.diagnostics.declaration import (
     BUILD_DIAGNOSTICS_PROJECTION,
     QuarantineDiagnostic,
+    compile_promotion_blocked_diagnostic_rows,
     delete_promotion_blocked_diagnostics,
 )
 from propstore.families.documents.justifications import JustificationDocument
@@ -1192,6 +1195,43 @@ def compile_raw_id_quarantine_sidecar_rows(
     return RawIdQuarantineSidecarRows(
         claim_rows=tuple(claim_rows),
         diagnostic_rows=tuple(diagnostic_rows),
+    )
+
+
+def compile_promotion_blocked_claim_core_rows(
+    facts: Sequence[PromotionBlockedClaimFact],
+) -> tuple[ProjectionRow, ...]:
+    return tuple(
+        CLAIM_CORE_PROJECTION.row(
+            id=fact.artifact_id,
+            primary_logical_id="",
+            logical_ids_json="[]",
+            version_id="",
+            content_hash="",
+            seq=0,
+            type="promotion_blocked",
+            target_concept=None,
+            source_slug=fact.source_paper,
+            source_paper=fact.source_paper,
+            provenance_page=0,
+            provenance_json=None,
+            context_id=None,
+            premise_kind="ordinary",
+            branch=fact.source_branch,
+            build_status="ingested",
+            stage=None,
+            promotion_status="blocked",
+        )
+        for fact in facts
+    )
+
+
+def compile_promotion_blocked_sidecar_rows(
+    facts: Sequence[PromotionBlockedClaimFact],
+) -> PromotionBlockedSidecarRows:
+    return PromotionBlockedSidecarRows(
+        claim_rows=compile_promotion_blocked_claim_core_rows(facts),
+        diagnostic_rows=compile_promotion_blocked_diagnostic_rows(facts),
     )
 
 
