@@ -12,7 +12,7 @@ from propstore.core.claim_types import ClaimType
 from propstore.core.conditions import CheckedConditionSet, checked_condition_set_from_json
 from propstore.core.id_types import ClaimId, ConceptId, ContextId, LogicalId, to_concept_id
 from propstore.families.claims.declaration import ClaimConceptLinkRow, ClaimRow, ClaimRowInput
-from propstore.families.claims.declaration import CLAIM_ROW_GENERIC_MODEL
+from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 
 
 @dataclass(frozen=True)
@@ -141,7 +141,7 @@ class ActiveClaim:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, Any]) -> ActiveClaim:
-        return cls.from_claim_row(CLAIM_ROW_GENERIC_MODEL.coerce(data))
+        return cls.from_claim_row(CLAIM_ROW_MODEL.coerce(data))
 
     def __getattr__(self, name: str) -> Any:
         return getattr(self.row, name)
@@ -243,7 +243,7 @@ class ActiveClaim:
         return [variable.to_payload() for variable in self.variables]
 
     def to_dict(self) -> dict[str, Any]:
-        data = dict(CLAIM_ROW_GENERIC_MODEL.to_mapping(self.row))
+        data = dict(CLAIM_ROW_MODEL.to_mapping(self.row))
         data["conditions"] = list(self.conditions)
         if self.branch is not None:
             data["branch"] = self.branch
