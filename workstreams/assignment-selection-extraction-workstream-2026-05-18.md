@@ -187,15 +187,15 @@ Propstore owns the Propstore adapter:
 
 Execute in this order:
 
-1. New repo existence check and creation.
-2. New package skeleton copied from the `../argumentation` package shape.
-3. Package red tests copied and split from Propstore algorithm tests.
-4. Package deletion-first implementation extracted from Propstore.
-5. Package gates and pushed dependency commit.
-6. Propstore red tests for dependency consumption and old-path deletion.
-7. Propstore deletion-first adapter replacement.
-8. Propstore dependency pin to the pushed package SHA.
-9. Search gates, type gates, logged test gates, and docs closure.
+1. New Repo Existence Check And Creation
+2. Package Skeleton From Argumentation Pattern
+3. Package Red Tests
+4. Package Deletion-First Implementation
+5. Propstore Red Tests
+6. Propstore Adapter Replacement
+7. Propstore Dependency Pin
+8. Search Gates
+9. Verification Gates
 
 Before implementation, make this dependency order mechanically executable:
 write or run an order check proving each dependent phase appears after its
