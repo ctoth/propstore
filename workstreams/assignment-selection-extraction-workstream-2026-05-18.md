@@ -250,15 +250,15 @@ target architecture. It should not export Propstore-specific aliases.
 
 ## Phase 3: Package Red Tests
 
-Move the pure algorithm tests out of Propstore and into
+Extract the pure algorithm tests out of Propstore and into
 `C:\Users\Q\code\assignment-selection\tests`.
 
-Use `git mv` only for test files whose ownership fully transfers to the new
-package. If only part of a Propstore test file moves, copy the whole file into
-the new package test suite, then edit both files: delete Propstore-only cases
-from the package copy, and delete package-owned pure algorithm cases from the
-original Propstore file so it remains the smaller Propstore adapter test file.
-Do not move a mixed-ownership file and recreate the original from memory.
+This is a cross-repository extraction. Do not use `git mv` or `mv` for Phase 3.
+Copy the Propstore test file into the new package test suite, then edit the
+copy. If the source file is mixed-ownership, edit the original Propstore file
+separately so it keeps only Propstore-owned adapter, CEL, policy, and API
+coverage. If the source file fully transfers, commit the package copy first,
+then delete the original Propstore file and commit that deletion separately.
 
 The package test suite owns:
 
