@@ -253,11 +253,12 @@ target architecture. It should not export Propstore-specific aliases.
 Move the pure algorithm tests out of Propstore and into
 `C:\Users\Q\code\assignment-selection\tests`.
 
-Use file moves for test files or split-test files where the old file's main
-ownership changes. If only part of a Propstore test file moves, first move the
-whole file to the new package test suite, then delete Propstore-only cases from
-the moved file and recreate the smaller Propstore adapter test file from the
-remaining Propstore-owned cases.
+Use `git mv` only for test files whose ownership fully transfers to the new
+package. If only part of a Propstore test file moves, copy the whole file into
+the new package test suite, then edit both files: delete Propstore-only cases
+from the package copy, and delete package-owned pure algorithm cases from the
+original Propstore file so it remains the smaller Propstore adapter test file.
+Do not move a mixed-ownership file and recreate the original from memory.
 
 The package test suite owns:
 
