@@ -36,6 +36,7 @@ The wanted outcome is a complete, evidence-backed inventory of Propstore and Qui
 - `propstore/families/documents/stances.py`: canonical stance schema file; defines `StanceDocument` with source/target claim references, stance type/strength/note, condition-difference marker, optional resolution, target justification, artifact code, classification metadata, and promotion SHA.
 - `propstore/families/documents/predicates.py`: DeLP/Datalog predicate schema file; defines predicate arg type validation, canonical `PredicateDocument`, proposal-side `PredicateDeclaration`, extraction provenance, and `PredicateProposalDocument`.
 - `propstore/families/documents/rules.py`: DeLP-style rule schema file; defines terms, atoms, body literals, canonical rules, rule superiority, extraction provenance, and proposal-side rule documents.
+- `propstore/families/documents/justifications.py`: canonical justification schema file; defines `JustificationDocument` for conclusion/premises/rule metadata/provenance/attack target/artifact code.
 
 ## Top-Level Shape
 
@@ -140,6 +141,12 @@ Rule schema details from `propstore/families/documents/rules.py`:
 - `RuleDocument` owns strict, defeasible, proper-defeater, and blocking-defeater rules, including head/body, source, authoring group, and promotion SHA.
 - `RuleSuperiorityDocument` is a first-class priority assertion between superior and inferior rule IDs.
 - `RuleExtractionProvenance` and `RuleProposalDocument` are proposal-branch extraction schemas for authored rules.
+
+Justification schema details from `propstore/families/documents/justifications.py`:
+
+- `JustificationDocument` is canonical justification YAML.
+- It owns optional `id`, conclusion, premise claim IDs, rule kind/strength, source provenance, attack target, and artifact code.
+- The provenance and attack-target fields reuse source document schema types, so canonical justification payloads still depend on source provenance document structures.
 
 ## Projection And Derived-World Surfaces
 
