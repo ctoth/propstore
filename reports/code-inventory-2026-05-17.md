@@ -32,6 +32,7 @@ The wanted outcome is a complete, evidence-backed inventory of Propstore and Qui
 - `propstore/families/concepts/documents.py`: canonical concept schema file; defines logical IDs, aliases, relationships, form parameters, parameterization relationships, ontology references, lexical forms/senses/entries, `ConceptDocument`, and `ConceptIdScanDocument`.
 - `propstore/families/claims/projection_model.py`: Propstore claim family owns claim-specific projection mapping from SQLite rows to active claim/domain views, using Quire projection mapping primitives.
 - `propstore/families/contexts/documents.py`: authored context schema file; defines context references, context structure with CEL assumptions/parameters/perspective, context lifting rules with source/target/conditions/mode/justification, and `ContextDocument`.
+- `propstore/families/forms/documents.py`: authored form schema file; defines form alternatives, extra unit declarations, and `FormDocument` fields for dimensions, base/unit/QUDT metadata, parameters, alternatives, kind/note, extra units, and min/max bounds.
 
 ## Top-Level Shape
 
@@ -108,6 +109,12 @@ Context schema details from `propstore/families/contexts/documents.py`:
 - `ContextStructureDocument` owns context assumptions as CEL expressions, string parameters, and optional perspective.
 - `LiftingRuleDocument` owns author-authored context lifting edges: `id`, `source`, `target`, CEL `conditions`, `LiftingMode`, and optional justification.
 - `ContextDocument` owns the authored context artifact: `id`, `name`, optional description, structure, and lifting rules.
+
+Form schema details from `propstore/families/forms/documents.py`:
+
+- `FormAlternativeDocument` represents alternate units/conversions with unit, type, multiplier, offset, base, divisor, and reference.
+- `FormExtraUnitDocument` declares additional unit symbols with dimension exponents.
+- `FormDocument` owns a form's identity and dimensional metadata: `name`, `dimensionless`, optional base/unit symbol/QUDT, arbitrary parameters, common and delta alternatives, kind/note, dimensions, extra units, and numeric bounds.
 
 ## Projection And Derived-World Surfaces
 
