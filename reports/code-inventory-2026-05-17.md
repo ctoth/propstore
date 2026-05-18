@@ -37,6 +37,7 @@ The wanted outcome is a complete, evidence-backed inventory of Propstore and Qui
 - `propstore/families/documents/predicates.py`: DeLP/Datalog predicate schema file; defines predicate arg type validation, canonical `PredicateDocument`, proposal-side `PredicateDeclaration`, extraction provenance, and `PredicateProposalDocument`.
 - `propstore/families/documents/rules.py`: DeLP-style rule schema file; defines terms, atoms, body literals, canonical rules, rule superiority, extraction provenance, and proposal-side rule documents.
 - `propstore/families/documents/justifications.py`: canonical justification schema file; defines `JustificationDocument` for conclusion/premises/rule metadata/provenance/attack target/artifact code.
+- `propstore/families/documents/micropubs.py`: Clark-style micropublication schema file; defines evidence entries and `MicropublicationDocument` for context-scoped claim bundles with evidence, assumptions, stance, provenance, and source.
 
 ## Top-Level Shape
 
@@ -147,6 +148,12 @@ Justification schema details from `propstore/families/documents/justifications.p
 - `JustificationDocument` is canonical justification YAML.
 - It owns optional `id`, conclusion, premise claim IDs, rule kind/strength, source provenance, attack target, and artifact code.
 - The provenance and attack-target fields reuse source document schema types, so canonical justification payloads still depend on source provenance document structures.
+
+Micropublication schema details from `propstore/families/documents/micropubs.py`:
+
+- `MicropublicationEvidenceDocument` owns typed evidence references.
+- `MicropublicationDocument` requires an `artifact_id`, a context reference, and at least one claim reference.
+- It optionally carries `version_id`, evidence, assumptions, stance, claim provenance, and source.
 
 ## Projection And Derived-World Surfaces
 
