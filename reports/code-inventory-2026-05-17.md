@@ -31,6 +31,7 @@ The wanted outcome is a complete, evidence-backed inventory of Propstore and Qui
 - `propstore/families/claims/documents.py`: canonical claim schema file; defines typed claim documents, claim type contracts, concept link declarations, value/unit policies, semantic check declarations, claim logical/source/provenance/fit/binding/opinion/resolution/stance/proposition documents, and `ClaimDocument`.
 - `propstore/families/concepts/documents.py`: canonical concept schema file; defines logical IDs, aliases, relationships, form parameters, parameterization relationships, ontology references, lexical forms/senses/entries, `ConceptDocument`, and `ConceptIdScanDocument`.
 - `propstore/families/claims/projection_model.py`: Propstore claim family owns claim-specific projection mapping from SQLite rows to active claim/domain views, using Quire projection mapping primitives.
+- `propstore/families/contexts/documents.py`: authored context schema file; defines context references, context structure with CEL assumptions/parameters/perspective, context lifting rules with source/target/conditions/mode/justification, and `ContextDocument`.
 
 ## Top-Level Shape
 
@@ -100,6 +101,13 @@ Canonical concept schema includes:
 - `ConceptIdScanDocument` for scan-oriented concept-id reads.
 
 Other authored schema families identified from file listings/search output include contexts, worldlines, stances, predicates, sources, source-local claims/concepts/stances/justifications, source alignments, micropublications, forms, same-as assertions, rules, justifications, and merge manifests.
+
+Context schema details from `propstore/families/contexts/documents.py`:
+
+- `ContextReferenceDocument` is a single-id reference payload.
+- `ContextStructureDocument` owns context assumptions as CEL expressions, string parameters, and optional perspective.
+- `LiftingRuleDocument` owns author-authored context lifting edges: `id`, `source`, `target`, CEL `conditions`, `LiftingMode`, and optional justification.
+- `ContextDocument` owns the authored context artifact: `id`, `name`, optional description, structure, and lifting rules.
 
 ## Projection And Derived-World Surfaces
 
