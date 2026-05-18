@@ -35,6 +35,7 @@ The wanted outcome is a complete, evidence-backed inventory of Propstore and Qui
 - `propstore/families/forms/documents.py`: authored form schema file; defines form alternatives, extra unit declarations, and `FormDocument` fields for dimensions, base/unit/QUDT metadata, parameters, alternatives, kind/note, extra units, and min/max bounds.
 - `propstore/families/documents/stances.py`: canonical stance schema file; defines `StanceDocument` with source/target claim references, stance type/strength/note, condition-difference marker, optional resolution, target justification, artifact code, classification metadata, and promotion SHA.
 - `propstore/families/documents/predicates.py`: DeLP/Datalog predicate schema file; defines predicate arg type validation, canonical `PredicateDocument`, proposal-side `PredicateDeclaration`, extraction provenance, and `PredicateProposalDocument`.
+- `propstore/families/documents/rules.py`: DeLP-style rule schema file; defines terms, atoms, body literals, canonical rules, rule superiority, extraction provenance, and proposal-side rule documents.
 
 ## Top-Level Shape
 
@@ -130,6 +131,15 @@ Predicate schema details from `propstore/families/documents/predicates.py`:
 - `PredicateArgType` permits base types `paper_id`, `int`, `float`, `str`, `bool`, plus `enum:...` alternatives validated by `validate_predicate_arg_type`.
 - `PredicateDocument` is canonical and owns `id`, `arity`, `arg_types`, optional `derived_from`, description, authoring group, and promotion SHA.
 - `PredicateDeclaration`, `PredicateExtractionProvenance`, and `PredicateProposalDocument` are proposal-branch extraction/authoring schemas for predicate vocabularies.
+
+Rule schema details from `propstore/families/documents/rules.py`:
+
+- `TermDocument` distinguishes variable and constant terms.
+- `AtomDocument` owns predicate name, term tuple, and strong negation.
+- `BodyLiteralDocument` distinguishes positive body literals from default-negated literals.
+- `RuleDocument` owns strict, defeasible, proper-defeater, and blocking-defeater rules, including head/body, source, authoring group, and promotion SHA.
+- `RuleSuperiorityDocument` is a first-class priority assertion between superior and inferior rule IDs.
+- `RuleExtractionProvenance` and `RuleProposalDocument` are proposal-branch extraction schemas for authored rules.
 
 ## Projection And Derived-World Surfaces
 
