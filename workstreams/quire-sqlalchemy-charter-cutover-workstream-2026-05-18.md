@@ -260,7 +260,7 @@ Create proof tests in Quire before implementation:
 - prove mapped entities are not frozen/slots while nested value objects may be
   frozen when not mapped.
 
-Suggested proof models:
+Required proof models:
 
 - `Source` with `metadata`;
 - `Claim`;
@@ -1072,8 +1072,9 @@ The workstream is complete only when:
 - Micropublication claim links, aliases, parameterizations, context lifting
   records, stances, and conflicts are typed models or association objects.
 - Source-local and canonical states are explicit charter/lifecycle states.
-- Manual helper/coercer families listed in the search gates are deleted or
-  confined to reviewed IO boundaries.
+- Manual helper/coercer families listed in the search gates are deleted.
+  Remaining IO boundary constructors use boundary-specific names and do not use
+  the generic `from_mapping` name.
 - `WorldQuery` uses Quire sessions and typed model queries.
 - App/CLI/web surfaces continue to call owner-layer APIs.
 - Quire and Propstore gates pass.
