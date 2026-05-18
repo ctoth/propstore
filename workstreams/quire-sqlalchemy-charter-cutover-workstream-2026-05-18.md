@@ -319,6 +319,278 @@ The inventory maps the cleanup to exact owner surfaces:
 
 The final report must account for every row in this matrix.
 
+## Helper Classification Ledger
+
+This ledger is part of the workstream, not commentary. During execution, only
+delete, rename, or replace helpers classified here or in a phase-specific
+ledger update committed before implementation.
+
+Actions:
+
+- `delete`: remove the helper because Quire charter/SQLAlchemy machinery owns
+  the behavior.
+- `replace`: remove the helper after replacing callers with SQLAlchemy
+  relationships/session queries/model construction.
+- `move`: preserve semantic behavior in the named owner, then delete the old
+  helper-shaped path.
+- `keep-boundary`: keep the behavior as explicit document/result IO, with a
+  boundary-specific name.
+
+### Claim Storage Helpers
+
+File: `propstore/families/claims/storage.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `TypedClaimFields` | replace | Replace with `ClaimNumericPayload`, `ClaimTextPayload`, and `ClaimAlgorithmPayload`; delete the storage DTO. |
+| `_optional_string` | delete | Generic nullable string conversion belongs to Quire charter conversion. |
+| `_optional_float_input` | delete | Generic nullable numeric conversion belongs to Quire charter conversion. |
+| `_optional_int` | delete | Generic nullable integer conversion belongs to Quire charter conversion. |
+| `claim_version_id` | delete | Claim version identity comes from claim identity/domain model, not row preparation. |
+| `_iter_claim_concept_link_values` | replace | Construct `ClaimConceptLink` association objects from claim contracts; delete tuple-row generation. |
+| `_claim_concept_link_values_for_declaration` | replace | Construct `ClaimConceptLink` association objects from claim contracts; delete tuple-row generation. |
+| `normalize_conditions_differ` | delete | Condition-difference serialization belongs to the relation/stance model JSON adapter. |
+| `coerce_stance_resolution` | move | Move stance resolution validation to the relation/stance semantic owner. |
+| `resolution_opinion_columns` | move | Move opinion extraction to a typed stance-resolution value object. |
+| `canonicalize_claim_for_storage` | move | Split raw-id/logical/artifact identity into claim identity/source promotion owners; split concept-reference lowering into claim semantic normalization; delete the storage function. |
+| `extract_numeric_claim_fields` | replace | Replace with typed claim payload construction from claim contracts. |
+| `extract_typed_claim_fields` | replace | Replace with typed claim payload construction from claim contracts. |
+| `resolve_equation_sympy` | move | Move equation Sympy generation to claim semantic compilation. |
+| `resolve_algorithm_storage` | move | Move algorithm body/canonical AST/stage handling to claim semantic compilation. |
+| `extract_deferred_stance_rows_with_diagnostics` | move | Move embedded-stance validation/quarantine semantics to relation/stance owner; replace tuple rows with `Stance` models. |
+| `prepare_claim_insert_row` | delete | Replace with `Claim` model construction and SQLAlchemy session add. |
+| `prepare_claim_concept_link_rows` | delete | Replace with `ClaimConceptLink` association objects and SQLAlchemy relationship persistence. |
+
+### Active Claim Runtime Helpers
+
+File: `propstore/core/active_claims.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `ActiveClaimVariable` | move | Keep as algorithm variable value object only if the `Claim`/algorithm payload model uses it directly; otherwise move to claim algorithm payload model. |
+| `_parse_conditions` | delete | Replaced by typed checked-condition fields on `Claim`; no row JSON repair. |
+| `_parse_variables` | move | Move to algorithm payload document/model boundary; delete runtime row parser. |
+| `_parse_checked_conditions` | delete | Quire JSON adapter plus claim model owns checked-condition loading. |
+| `_require_claim_concept_link_role` | delete | SQLAlchemy `ClaimConceptLink.role` uses typed enum validation. |
+| `_coerce_claim_concept_link` | delete | `SimpleNamespace` link repair is deleted; `ClaimConceptLink` is the object. |
+| `ActiveClaim.from_mapping` | delete | Projection-row construction path is deleted. |
+| `ActiveClaim.to_dict` | replace | Replace with explicit view/document payload rendering that does not import `CLAIM_ROW_MODEL`. |
+| `ActiveClaim.to_source_claim_payload` | keep-boundary | Keep only as source document rendering, renamed to a boundary-specific source payload renderer if still needed. |
+| `coerce_active_claim` | delete | Runtime receives typed `Claim` or named active view models, not mappings. |
+| `coerce_active_claims` | delete | Runtime receives typed `Claim` or named active view models, not mappings. |
+
+### Concept Declaration Helpers
+
+File: `propstore/families/concepts/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `ConceptRelationshipProjectionRow` | delete | Replace with typed `ConceptRelationship`/relation model. |
+| `ConceptSidecarRows` | delete | Replace with typed write plan/session adds. |
+| `_concept_symbol_candidates` | keep-boundary | Keep as concept semantic compilation helper if still needed by parameterization/form algebra. |
+| `compile_concept_sidecar_rows` | replace | Replace with typed concept/form/alias/relationship/parameterization model construction. |
+| `_compile_form_algebra_rows` | move | Move form algebra semantics to form/concept semantic owner; delete row helper. |
+| `ConceptRow` | delete | Replace with `Concept` model. |
+| `ConceptEmbeddingSource` | replace | Replace with typed embedding source projection over `Concept` model. |
+| `ParameterizationRow` | delete | Replace with `Parameterization` model. |
+| `populate_concept_sidecar_rows` | delete | Replace with SQLAlchemy session add/flush through Quire build session. |
+| `ConceptSearchQuerySyntaxError` | keep-boundary | Keep as app/search error type or move to concept search owner. |
+| `_is_concept_search_syntax_error` | move | Move to Quire FTS/search adapter or concept search owner. |
+| `fetch_concept_search_hits` | replace | Replace raw FTS SQL with Quire/SQLAlchemy FTS query API; keep presentation mapping in app layer. |
+| `fetch_concept_search_hits_from_sidecar` | delete | Direct sidecar path opening is deleted; callers use Quire sessions. |
+| `select_concept_by_id` | replace | Replace with SQLAlchemy session query. |
+| `select_all_concepts` | replace | Replace with SQLAlchemy session query. |
+| `select_concept_embedding_sources` | replace | Replace with typed embedding source query over `Concept` model. |
+| `resolve_concept_embedding_entity` | move | Move concept-handle resolution policy to concept owner; implement through session query. |
+| `select_aliases_by_concept_id` | replace | Replace with `Concept.aliases` relationship query. |
+| `select_concept_registry_rows` | replace | Replace with typed registry projection from `Concept` models. |
+| `build_concept_logical_id_index` | move | Move logical-id precedence/index semantics to concept owner; implement over typed models. |
+| `resolve_concept_alias` | move | Move alias resolution policy to concept owner; implement over `Concept.aliases`. |
+| `resolve_concept_id` | move | Move id/alias/logical/canonical precedence policy to concept owner; implement over typed models. |
+| `select_concept_ids_for_group` | replace | Replace with `ParameterizationGroup.members` relationship. |
+| `select_parameterizations_for_output_concept` | replace | Replace with `Concept.parameterizations_as_output` relationship. |
+| `select_all_parameterizations` | replace | Replace with SQLAlchemy session query. |
+| `select_parameterization_group_members` | replace | Replace with `ParameterizationGroup.members` relationship. |
+| `select_all_form_rows` | replace | Replace with typed `Form` model query. |
+| `select_form_algebra_rows_for_output` | replace | Replace with typed `FormAlgebra` model query. |
+| `select_all_form_algebra_rows` | replace | Replace with typed `FormAlgebra` model query. |
+| `search_concept_ids` | replace | Replace raw FTS SQL with Quire/SQLAlchemy FTS query API. |
+| `count_concepts` | replace | Replace with SQLAlchemy count query through concept owner. |
+| `resolve_sidecar_concept_id` | move | Move handle-resolution policy to concept owner; delete raw sidecar helper. |
+
+### Relation Declaration Helpers
+
+File: `propstore/families/relations/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `RelationshipRow` | delete | Replace with typed `ConceptRelation` model. |
+| `StanceRow` | delete | Replace with typed `Stance` model. |
+| `ConflictRow` | delete | Replace with typed `ConflictWitness` model. |
+| `_optional_numeric` | delete | Generic nullable numeric conversion belongs to Quire charter conversion or typed value object validation. |
+| `compile_authored_stance_sidecar_rows` | replace | Replace with `Stance` model construction. |
+| `compile_authored_stance_sidecar_rows_with_diagnostics` | move | Move stance reference validation/quarantine diagnostics to relation semantic owner; delete row output. |
+| `select_stances_between` | replace | Replace with SQLAlchemy relationship/session query. |
+| `select_conflicts` | replace | Replace with SQLAlchemy session query over `ConflictWitness`. |
+| `select_all_relationships` | replace | Replace with SQLAlchemy session query over `ConceptRelation`. |
+| `select_all_claim_stances` | replace | Replace with SQLAlchemy session query over `Stance`. |
+| `select_claim_stances_with_policy` | move | Move visibility/render policy semantics to relation/world owner; implement through typed query predicates. |
+| `select_explanation_stances` | move | Move explanation traversal semantics to relation/world owner; implement over `Stance` relationships. |
+| `count_conflicts` | replace | Replace with SQLAlchemy count query over `ConflictWitness`. |
+
+### Micropublication Helpers
+
+Files: `propstore/core/micropublications.py` and
+`propstore/families/micropublications/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `_parse_string_tuple` | delete | Generic row string parsing is deleted. |
+| `ActiveMicropublication.from_mapping` | delete | Projection-row construction path is deleted. |
+| `coerce_active_micropublication` | delete | Runtime receives typed `Micropublication`/active view models, not mappings. |
+| `MicropublicationProjectionRow` | delete | Replace with `Micropublication` model. |
+| `MicropublicationClaimProjectionRow` | delete | Replace with `MicropublicationClaimLink` association object. |
+| `MicropublicationSidecarRows` | delete | Replace with typed write plan/session adds. |
+| `compile_micropublication_sidecar_rows` | replace | Replace with typed `Micropublication`/link model construction. |
+| `compile_micropublication_sidecar_rows_with_diagnostics` | move | Keep missing-claim quarantine semantics in micropublication owner; delete row output. |
+| `create_micropublication_tables` | delete | Quire charter creates tables. |
+| `populate_micropublications` | delete | Replace with SQLAlchemy session add/flush. |
+| `select_all_micropublications` | replace | Replace with SQLAlchemy session query. |
+
+### Grounding/Rule Helpers
+
+File: `propstore/families/rules/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `GroundedFactProjectionRow` | delete | Replace with `GroundedFact` model. |
+| `GroundedFactEmptyPredicateProjectionRow` | delete | Replace with typed empty-predicate model or `GroundedFact` state. |
+| `GroundedBundleInputProjectionRow` | delete | Replace with `GroundedBundleInput` model. |
+| `create_grounded_fact_table` | delete | Quire charter creates tables. |
+| `populate_grounded_facts` | replace | Replace with model construction/session writes while preserving four-valued bundle semantics. |
+| `_persist_bundle_inputs` | replace | Replace raw row persistence with `GroundedBundleInput` model writes. |
+| `_read_bundle_inputs` | replace | Replace raw row reads with `GroundedBundleInput` model queries. |
+| `_encode_bundle_input` | keep-boundary | Keep as explicit grounding document/value serialization boundary, renamed if needed. |
+| `_decode_bundle_input` | keep-boundary | Keep as explicit grounding document/value serialization boundary, renamed if needed. |
+| `_bundle_input_payload` | keep-boundary | Keep as grounding payload conversion, not DB row helper. |
+| `_is_json_value` | keep-boundary | Keep only inside grounding payload serialization. |
+| `_encode_gunray_atom` | keep-boundary | Keep as Gunray payload serialization boundary. |
+| `_decode_gunray_atom` | keep-boundary | Keep as Gunray payload serialization boundary. |
+| `_encode_gunray_rule` | keep-boundary | Keep as Gunray payload serialization boundary. |
+| `_decode_gunray_rule` | keep-boundary | Keep as Gunray payload serialization boundary. |
+| `_rule_key` | keep-boundary | Keep as deterministic grounding ordering helper. |
+| `read_grounded_facts` | replace | Replace raw SQL read with typed model query and bundle assembly. |
+| `read_grounded_bundle` | replace | Replace raw SQL read with typed model query and bundle assembly. |
+| `build_runtime_grounded_bundle` | keep-boundary | Keep semantic bundle assembly API; internally use typed model queries. |
+| `_read_source_rules` | replace | Replace raw row read with `GroundedBundleInput` query plus payload decoder. |
+| `_read_source_superiority` | replace | Replace raw row read with `GroundedBundleInput` query plus payload decoder. |
+| `_read_source_facts` | replace | Replace raw row read with `GroundedBundleInput` query plus payload decoder. |
+
+### Source Helpers
+
+File: `propstore/families/sources/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `SourceProjectionRow` | delete | Replace with `Source` model. |
+| `_opinion_json` | delete | Generic typed JSON storage belongs to Quire JSON adapter. |
+| `compile_source_sidecar_rows` | replace | Replace with `Source` model construction. |
+| `populate_sources` | delete | Replace with SQLAlchemy session add/flush. |
+
+### Context Helpers
+
+File: `propstore/families/contexts/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `_nullable_text` | delete | Generic nullable text conversion belongs to Quire charter conversion. |
+| `_json_or_none` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `_json_mapping` | delete | Generic JSON conversion belongs to Quire JSON adapter or typed context model field. |
+| `_json_string_tuple` | delete | Generic JSON conversion belongs to Quire JSON adapter or typed context model field. |
+| `create_context_tables` | delete | Quire charter creates tables. |
+| `populate_contexts` | delete | Replace with SQLAlchemy session add/flush. |
+| `filter_invalid_context_lifting_rows` | move | Move invalid lifting-rule filtering semantics to context/lifting semantic owner. |
+| `compile_context_sidecar_rows` | replace | Replace with typed `Context`, `ContextAssumption`, and `ContextLiftingRule` model construction. |
+| `compile_context_lifting_materialization_rows` | replace | Replace with typed `ContextLiftingMaterialization` model construction. |
+| `load_lifting_system` | move | Keep lifting-system assembly as context owner API; implement over typed model queries. |
+| `_projection_row` | delete | Projection row wrapper is deleted. |
+| `_lifting_materialization_row` | delete | Projection row wrapper is deleted. |
+
+### Diagnostics Helpers
+
+File: `propstore/families/diagnostics/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `QuarantineDiagnostic` | keep-boundary | Keep as semantic diagnostic input value object or replace with `BuildDiagnostic`; no row coupling. |
+| `Written` | replace | Replace with typed write/quarantine report not tied to projection insertion. |
+| `Quarantined` | replace | Replace with typed write/quarantine report not tied to projection insertion. |
+| `SourceStatusDiagnosticRow` | replace | Replace with typed source-status diagnostic view over `BuildDiagnostic`. |
+| `QuarantinableWriter` | replace | Replace raw insert writer with diagnostic service using SQLAlchemy session. |
+| `record_build_exception` | replace | Replace raw insert with diagnostic service/session add. |
+| `record_embedding_restore_diagnostic` | replace | Replace raw insert with diagnostic service/session add. |
+| `record_pass_diagnostics` | move | Keep diagnostic mapping semantics; write through diagnostic service/session. |
+| `record_authoring_diagnostics` | move | Keep authoring diagnostic semantics; write through diagnostic service/session. |
+| `record_quarantine_diagnostics` | move | Keep quarantine diagnostic semantics; write through diagnostic service/session. |
+| `compile_promotion_blocked_diagnostic_rows` | replace | Replace projection rows with `BuildDiagnostic` model construction. |
+| `has_build_diagnostics_table` | delete | Schema presence validation belongs to Quire catalog validation. |
+| `select_build_diagnostics` | replace | Replace with SQLAlchemy query over `BuildDiagnostic`. |
+| `select_source_status_diagnostic_rows` | replace | Replace with typed source-status diagnostic query. |
+| `delete_promotion_blocked_diagnostics` | replace | Replace with SQLAlchemy delete/query scoped to `BuildDiagnostic`. |
+
+### Embedding Helpers
+
+File: `propstore/families/embeddings/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `_require_sqlite_vec` | move | Move extension loading policy to Quire vector backend. |
+| `load_vec_extension` | move | Move extension loading policy to Quire vector backend. |
+| `EmbeddingSnapshot` | keep-boundary | Keep as Propstore embedding snapshot value object. |
+| `EmbeddingSnapshotReport` | keep-boundary | Keep as Propstore embedding snapshot report value object. |
+| `ensure_embedding_tables` | delete | Quire vector/charter machinery creates tables. |
+| `SidecarEmbeddingRegistry` | replace | Replace with Quire vector registry/session API. |
+| `_SidecarEntityEmbeddingStore` | replace | Replace with Quire vector entity store over SQLAlchemy session. |
+| `SidecarClaimEmbeddingStore` | replace | Replace with claim-specific adapter over Quire vector entity store. |
+| `SidecarConceptEmbeddingStore` | replace | Replace with concept-specific adapter over Quire vector entity store. |
+| `SidecarEmbeddingSnapshotStore` | replace | Replace with Quire vector snapshot store plus Propstore snapshot report mapping. |
+| `get_registered_models` | replace | Replace with Quire vector registry query. |
+| `embed_claims` | replace | Keep workflow API, but route through Quire vector/session APIs. |
+| `embed_concepts` | replace | Keep workflow API, but route through Quire vector/session APIs. |
+| `find_similar` | replace | Replace raw vector SQL with Quire vector query API. |
+| `find_similar_concepts` | replace | Replace raw vector SQL with Quire vector query API. |
+| `find_similar_agree` | replace | Replace raw vector SQL with Quire vector query API. |
+| `find_similar_disagree` | replace | Replace raw vector SQL with Quire vector query API. |
+| `find_similar_concepts_agree` | replace | Replace raw vector SQL with Quire vector query API. |
+| `find_similar_concepts_disagree` | replace | Replace raw vector SQL with Quire vector query API. |
+| `extract_embeddings` | replace | Replace raw snapshot extraction with Quire vector snapshot API. |
+| `extract_embedding_snapshot_from_store` | replace | Replace raw sidecar opening with Quire vector snapshot API. |
+| `restore_embeddings` | replace | Replace raw restore with Quire vector snapshot API. |
+| `restore_embedding_snapshot` | replace | Replace raw sidecar opening with Quire vector snapshot API. |
+
+### Calibration Helpers
+
+File: `propstore/families/calibration/declaration.py`.
+
+| Helper | Classification | Required final owner/action |
+| --- | --- | --- |
+| `CalibrationCountsProjectionRow` | delete | Replace with `CalibrationCount` model. |
+| `load_calibration_counts` | replace | Replace raw SQL/table-missing behavior with typed optional query over `CalibrationCount`. |
+
+### Projection Model Helper Families
+
+Files: `propstore/families/claims/projection_model.py`,
+`propstore/families/concepts/projection_model.py`, and
+`propstore/families/relations/projection_model.py`.
+
+| Helper family | Classification | Required final owner/action |
+| --- | --- | --- |
+| nullable scalar codecs such as `_nullable_text`, `_nullable_int`, `_nullable_float`, `_optional_float`, `_optional_int` | delete | Quire charter conversion owns generic scalar/null handling. |
+| id coercion codecs such as `_claim_id`, `_concept_id`, `_context_id`, `_justification_id` | delete | SQLAlchemy mapped model fields use typed id constructors at model/document boundaries. |
+| enum value codecs such as `_role_value`, `_claim_type_value`, `_algorithm_stage_value`, `_concept_status_value`, `_exactness_value`, `_stance_type_value`, `_conflict_class_value` | delete | Enum storage adapters are generic Quire SQLAlchemy adapters. |
+| JSON/render helpers such as `_logical_ids_payload`, `_logical_ids_from_value`, `_logical_ids_to_columns`, `_logical_ids_from_columns`, `_provenance_to_columns`, `_provenance_from_columns`, `_source_to_columns`, `_source_from_columns`, `_normalize_conditions_differ` | replace | Replace with typed value objects and Quire JSON adapter; semantic payload rendering moves to document/view boundaries. |
+| query-plan builders such as `claim_row_query_plan`, `_edge_column`, `claim_stance_policy_query_plan` | delete | SQLAlchemy relationships/session query construction replaces projection query-plan helpers. |
+
 ## Phase 1: Quire SQLAlchemy Capability Proof
 
 Repository: `C:\Users\Q\code\quire`.
