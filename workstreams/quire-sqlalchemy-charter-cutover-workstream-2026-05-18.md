@@ -91,7 +91,10 @@ engine or the SQLAlchemy extension before touching Propstore production paths.
   failure is interesting. Finish, block, or explicitly update the phase order.
 - Do not use passing tests, a clean commit, a useful proof, or a partial family
   cutover as completion while old-path search gates still fail.
-- Do not leave old/new dual production paths.
+- Do not leave old/new dual production paths. The new Quire charter engine
+  must subsume the old projection schema before any Propstore family cutover;
+  family phases delete old writes and callers instead of running old and new
+  read paths side by side.
 - Move files when the change is actually a move. Use `git mv` for same-repo
   moves.
 - For cross-repo Quire/Propstore changes, preserve move intent in commit
@@ -100,6 +103,9 @@ engine or the SQLAlchemy extension before touching Propstore production paths.
   commands in the repository being edited.
 - Push Quire changes before pinning Propstore to a Quire commit.
 - Never pin Propstore to a local Quire checkout.
+- Between the first Quire edit and final Propstore dependency closure,
+  Propstore pins Quire to a pushed branch commit or immutable pushed commit
+  SHA refreshed at the start of each Propstore phase.
 - Use `uv run ...` for Python tooling.
 - Run Propstore tests through `scripts/run_logged_pytest.ps1`.
 - After each passing substantial test run, reread this workstream before
@@ -136,27 +142,29 @@ Execute in this order:
 2. Quire charter/schema IR.
 3. Quire SQLAlchemy table/mapping/session/catalog engine.
 4. Quire FTS and vector implementation.
-5. Source vertical slice.
-6. Forms and sources cleanup closure.
-7. Concept/form/parameterization slice.
-8. Context/lifting slice.
-9. Claim model and association-object slice.
-10. Relations/stances/conflicts slice.
-11. Justifications and micropublications slice.
-12. Rules/grounding/diagnostics/calibration/embeddings slice.
-13. WorldQuery/session/graph/reasoning cutover.
-14. Delete Quire projection modules.
-15. Delete Propstore projection/helper leftovers.
-16. Full gates, docs, and final dependency pin.
+5. Build orchestration cutover.
+6. Source vertical slice.
+7. Forms and sources cleanup closure.
+8. Concept/form/parameterization slice.
+9. Context/lifting slice.
+10. Claim model and association-object slice.
+11. Relations/stances/conflicts slice.
+12. Justifications and micropublications slice.
+13. Rules/grounding/diagnostics/calibration/embeddings slice.
+14. WorldQuery/session/graph/reasoning cutover.
+15. Delete Quire projection modules.
+16. Delete Propstore projection/helper leftovers.
+17. Full gates, docs, and final dependency pin.
 
 Write or run an order checker before production implementation. The checker
 must prove each dependent phase appears after its prerequisites. If it fails,
 repair this file before editing code.
 
-No Propstore production cutover starts until Phases 1-4 pass in Quire. Source
-is not a place to discover whether SQLAlchemy can handle metadata fields,
-association objects, FTS, sessions, schema catalogs, JSON adapters, or enum
-conversion. All of that is Quire's first job.
+No Propstore family production cutover starts until Phases 1-5 pass. Source is
+not a place to discover whether SQLAlchemy can handle metadata fields,
+association objects, FTS, sessions, schema catalogs, JSON adapters, enum
+conversion, data parity, or build orchestration. All of that is Quire and
+build-orchestration work first.
 
 ## Phase 0: Mechanical Order Check And Current-State Inventory Confirmation
 
@@ -183,33 +191,75 @@ rg -n -F -- "ProjectionModel" propstore tests
 rg -n -F -- "ProjectionCodec" propstore tests
 rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
 rg -n -F -- "quire" pyproject.toml uv.lock
+rg -n -F -- "[tool.uv.sources]" pyproject.toml
+rg -n -F -- "path =" pyproject.toml
+rg -n -F -- "workspace = true" pyproject.toml
+rg -n -F -- "quire @ file" pyproject.toml uv.lock
+rg -n -F -- "quire @ .." pyproject.toml uv.lock
+rg -n -F -- "quire @ C:" pyproject.toml uv.lock
 ```
 
 This phase does not implement anything. It proves the starting state and the
 work queue. If the inventory or notes are missing, stop and restore the
 authoring context before implementation.
 
+The dependency check must inspect the parsed `pyproject.toml` dependency and
+`[tool.uv.sources]` entries. A local path, workspace, or file URL dependency on
+Quire is a hard blocker until Quire has been pushed and Propstore is pinned to
+a pushed branch commit or immutable pushed commit SHA.
+
 ## Mechanical Family Cutover Loop
 
 Every Propstore family phase must use the same loop:
 
 1. Read the family inventory entry and current family files.
-2. Name the target charter/model classes in the phase notes or commit message.
-3. Delete the old production projection/read-model surface first.
-4. Run the smallest import/type/test command that exposes the next failures.
-5. Fix only failures caused by the deletion in the current family slice.
-6. Replace raw SQLite access with Quire SQLAlchemy session/model access.
-7. Replace loose dict/list/row payloads with typed model objects.
-8. Delete field-specific coercers once generic charter conversion covers the
+2. List every current production caller that imports or consumes the family's
+   projection rows, projection models, raw SQLite selectors, or generic helper
+   layer.
+3. Name the target charter/model classes in the phase notes or commit message.
+4. Delete the old production projection/read-model surface first.
+5. Run the smallest import/type/test command that exposes the next failures.
+6. Fix only failures caused by the deletion in the current family slice and
+   named caller list.
+7. Replace raw SQLite access with Quire SQLAlchemy session/model access.
+8. Replace loose dict/list/row payloads with typed model objects.
+9. Delete field-specific coercers once generic charter conversion covers the
    field.
-9. Run the family gates.
-10. Run the old-path search gates for that family.
-11. Commit only that family slice.
-12. Reread this workstream before selecting the next phase.
+10. Run the family gates.
+11. Run the old-path search gates for that family.
+12. Run the data-parity gate for that family.
+13. Commit only that family slice.
+14. If files moved, run `git log --diff-filter=R -1 --stat` after commit and
+    verify the expected renames are visible.
+15. Reread this workstream before selecting the next phase.
 
 The loop is not optional. If a family cannot follow it because Quire lacks a
 needed generic feature, stop and return to the Quire phase that owns that
 feature. Do not create a Propstore workaround.
+
+Generic SQL/helper deletion predicate:
+
+- delete a helper when its body is a table-shaped `SELECT`, `COUNT`, `INSERT`,
+  `DELETE`, row attachment, row coercion, or projection-model wrapper with no
+  Propstore semantic policy;
+- keep and move semantic code when it owns concept-id precedence, alias
+  resolution, source-local lowering, quarantine/blocked policy, form/unit
+  validation, visibility/render policy, context/lifting semantics,
+  argumentation semantics, revision semantics, or authored-document identity;
+- after moving kept semantics, the original helper-shaped production path is
+  deleted.
+
+Every Propstore family phase has the same data-parity obligation:
+
+- build the sidecar from the same repository snapshot before and after the
+  current phase;
+- compare row counts and primary-key/key-set coverage for every table the
+  phase owns;
+- compare representative semantic query results for the phase owner APIs;
+- explicitly list accepted column/table renames in the commit message;
+- fail the phase when a row, key, diagnostic, FTS hit, vector hit, or semantic
+  query result disappears. The only accepted disappearance is a table or
+  helper already named as a deletion target in this workstream.
 
 ## Inventory Deletion Matrix
 
@@ -220,20 +270,52 @@ The inventory maps the cleanup to exact owner surfaces:
 | `../quire/quire/projections.py` | Quire handwritten SQLite projection primitives | Quire SQLAlchemy charter engine | Delete after all consumers move |
 | `../quire/quire/projection_mapping.py` | Quire object-to-row mapper | Quire SQLAlchemy mapper/session engine | Delete after all consumers move |
 | `../quire/quire/derived_store.py` | Quire derived SQLite lifecycle | Quire | Keep and adapt to SQLAlchemy sessions/catalog |
-| `../quire/quire/derived_runtime.py` | Quire SQLite runtime/validation | Quire | Keep and adapt to SQLAlchemy engine/session validation |
+| `../quire/quire/derived_runtime.py` | Quire SQLite runtime/validation/meta projection | Quire SQLAlchemy runtime/catalog validation | Keep runtime policy; replace projection-schema validation with SQLAlchemy catalog validation |
+| `../quire/quire/families.py` | Quire artifact family registry | Quire family registry plus charter registration | Keep; compose charters with `ArtifactFamily` instead of creating a parallel family registry |
+| `../quire/quire/family_store.py` | Quire document family IO | Quire document family IO | Keep; charter work must not duplicate document IO |
+| `../quire/quire/artifacts.py` | Quire artifact placement/addressing | Quire artifact placement/addressing | Keep; charters reference existing artifact family identities |
+| `../quire/quire/references.py` | Quire reference/FK validation | Quire reference/FK validation plus SQLAlchemy FKs | Keep; SQLAlchemy FKs are derived from the same reference specs |
+| `../quire/quire/sqlite_vec_store.py` | Quire sqlite-vec persistence | Quire SQLAlchemy-backed vector cache machinery | Keep API shape where useful; replace raw connection/table plumbing with SQLAlchemy/vector extension integration |
+| `propstore/derived_build.py` | Propstore sidecar build orchestration over projection tables | Propstore orchestration over Quire writable sessions and charters | Replace projection schema creation/population with charter-driven session writes |
+| `propstore/derived_build_plan.py` | Propstore row-oriented build plan | Propstore typed domain-object build plan | Replace row sets with typed model/session write plans |
 | `propstore/families/projection_catalog.py` | Propstore manual world schema assembly | Quire schema catalog over Propstore charters | Delete; replace with Propstore world charter registration through the Quire catalog |
 | `propstore/families/sources/declaration.py` projection pieces | Source sidecar projection | Source charter plus Quire SQLAlchemy | Delete projection rows/tables/helpers |
+| `propstore/source/status.py` | Source status SQL queries | Source owner query over Quire session | Replace raw SQL with model/session query |
+| `propstore/source/finalize.py` and `propstore/source/promote.py` | Source promotion/finalize diagnostics into sidecar surfaces | Source subsystem plus diagnostic charter | Keep semantics; route diagnostics through typed diagnostic models |
+| `propstore/form_utils.py` | Duplicate form loading/parsing facade | `propstore/families/forms/stages.py` | Delete duplicate facade after callers use the family owner |
+| `propstore/families/forms/stages.py` | Form semantic stage/loading owner | Form semantic owner plus form charter | Keep; expose form model data to Quire charter without duplicating parsing |
 | `propstore/families/concepts/projection_model.py` | Concept row mapper | Concept charter plus Quire SQLAlchemy | Delete |
 | `propstore/families/concepts/declaration.py` projection/query pieces | Concept sidecar compiler/query API | Concept semantics plus model queries | Delete generic projection/query plumbing |
 | `propstore/families/claims/projection_model.py` | Claim split storage/read mapper | Claim charter plus association objects | Delete |
-| `propstore/families/claims/storage.py` | Loose claim row preparation/helpers | Claim semantic lowering into typed models | Delete storage-shaped helpers |
-| `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model or explicit runtime view | Delete duplicate coercion; keep only true view behavior |
+| `propstore/families/claims/storage.py` storage shaping | Loose claim row preparation/helpers | Claim charter generic conversion | Delete storage-shaped helpers |
+| `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | Claim semantic owner modules | Move semantics to claim stages/passes/identity/relation owner modules before deleting storage-shaped remainder |
+| `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model and explicit active-claim view model | Delete projection-row coercion; keep only named active runtime view behavior |
+| `propstore/core/graph_build.py` | Graph construction through projection models | Graph construction from typed model/session APIs | Replace row-model coercion with typed model reads |
+| `propstore/core/analyzers.py` | Analyzer inputs through projection models | Analyzer inputs from typed graph/relation/claim models | Replace row coercion with typed model inputs |
+| `propstore/core/justifications.py` | Active graph justification view | Propstore semantic justification view | Keep semantic view; delete duplicate schema/conversion role |
+| `propstore/graph_export.py` | Graph export from projection model rows | Graph export from typed world/session models | Replace projection-model imports |
+| `propstore/relation_analysis.py` | Stance summary through projection model rows | Stance summary from typed relation models | Replace projection-model imports |
+| `propstore/parameterization_walk.py` | Parameterization traversal through row coercion | Parameterization traversal over typed models | Replace projection-model imports |
+| `propstore/structured_projection.py` | Analyzer projection back to assertions | Typed assertion projection owner | Replace row-derived data assumptions |
 | `propstore/families/relations/projection_model.py` | Relation/stance/conflict row mapper | Typed relation/stance/conflict models | Delete |
+| `propstore/families/relations/declaration.py` projection/query pieces | Relation sidecar compiler/query API | Relation semantics plus model queries | Delete generic projection/query plumbing |
 | `propstore/families/micropublications/declaration.py` projection pieces | Micropub projection/query API | Micropub charter plus association object | Delete generic projection/query plumbing |
 | `propstore/families/contexts/declaration.py` projection pieces | Context/lifting projection/query API | Context charter plus lifting semantics | Delete generic projection/query plumbing |
 | `propstore/families/rules/declaration.py` projection pieces | Grounding sidecar persistence | Grounding charter plus semantic persistence | Delete generic projection table plumbing |
+| `propstore/families/calibration/declaration.py` | Calibration count projection/query | Calibration charter plus typed query | Delete projection table plumbing |
 | `propstore/families/diagnostics/declaration.py` projection pieces | Build diagnostics projection | Diagnostic charter plus typed diagnostics | Delete projection table plumbing |
 | `propstore/families/embeddings/declaration.py` projection/vector pieces | Embedding sidecar/vector cache | Quire vector cache + Propstore entity policy | Delete projection/vector duplication |
+| `propstore/families/claims/sidecar_runtime.py` | Claim embedding/relation runtime over raw sidecar connection | Claim runtime over Quire session/vector APIs | Replace raw derived-store connection usage |
+| `propstore/families/concepts/sidecar_runtime.py` | Concept embedding runtime over raw sidecar connection | Concept runtime over Quire session/vector APIs | Replace raw derived-store connection usage |
+| `propstore/world/model.py` | Primary sidecar query facade over raw SQLite | Propstore `WorldQuery` over Quire read-only sessions | Replace raw connection/selectors with model/session queries |
+| `propstore/world/queries.py` | World query helpers through projection rows | Typed world query helpers | Replace projection-model imports |
+| `propstore/world/bound.py` and `propstore/world/overlay.py` | Bound/overlay worlds over projection rows | Bound/overlay worlds over typed model graph/store APIs | Replace row-model imports |
+| `propstore/world/atms.py` | ATMS construction through projection rows | ATMS construction through typed graph/relation models | Replace row-model imports |
+| `propstore/world/scm.py`, `propstore/world/intervention.py`, `propstore/world/resolution.py` | World reasoning consumers of row-derived graph/value data | World reasoning consumers of typed graph/value data | Replace row assumptions at world boundary |
+| `propstore/worldline/resolution.py` and `propstore/worldline/argumentation.py` | Worldline materialization/capture through row models | Worldline over typed world/session models | Replace projection imports and row coercion |
+| `propstore/worldline/result_types.py` | Persisted result payload constructors named `from_mapping` | Explicit document/JSON payload constructors | Rename to boundary-specific constructors; keep typed result payload validation |
+| `propstore/support_revision/projection.py` and `propstore/support_revision/af_adapter.py` | Support-revision projection from row models | Support-revision over typed graph/relation models | Replace projection-model imports |
+| `propstore/aspic_bridge/extract.py` and `propstore/aspic_bridge/translate.py` | ASPIC bridge through stance projection model | ASPIC bridge over typed stance/justification models | Replace projection-model imports |
 
 The final report must account for every row in this matrix.
 
@@ -279,6 +361,10 @@ The proof is complete only when tests demonstrate the exact needed behavior.
 If the proof requires handwritten row dictionaries or field-specific coercers,
 the proof failed.
 
+After this phase passes, push the Quire branch and pin Propstore to the pushed
+Quire commit before editing Propstore. Refresh that pushed pin after every
+later Quire phase that changes the APIs consumed by Propstore.
+
 ## Phase 2: Quire Charter/Schema IR
 
 Repository: `C:\Users\Q\code\quire`.
@@ -295,7 +381,7 @@ Introduce the generic schema declaration layer. Target files:
 The charter API must let a consumer define one family/object declaration with:
 
 - Python model class;
-- artifact family identity;
+- existing Quire `ArtifactFamily` identity;
 - document codec/renderer hooks;
 - lifecycle/state metadata;
 - field definitions and Python types;
@@ -313,22 +399,30 @@ The charter API must let a consumer define one family/object declaration with:
 - canonical-only fields;
 - semantic metadata supplied by the consumer.
 
-Type-level markers should carry storage roles without restating SQL types:
+The charter API composes with existing Quire APIs:
 
-- `PrimaryKey[T]`
-- `ForeignKey[T]`
-- `Json[T]`
-- `Indexed[T]`
-- `Unique[T]`
-- `SearchText[T]`
-- `Vector[T]`
-- `Relation[T]`
-- `Association[T]`
-- `SourceLocal[T]`
-- `CanonicalOnly[T]`
+- `quire.families.ArtifactFamily` remains the document family identity and
+  placement/FK owner;
+- `quire.family_store.DocumentFamilyStore` remains the document IO owner;
+- `quire.artifacts` remains the placement/addressing owner;
+- `quire.references.ForeignKeySpec` remains the source of cross-family
+  reference semantics;
+- charters add derived-store model/schema/query metadata for those existing
+  families and do not create a second registry.
+
+Use SQLAlchemy-native mapping primitives for relational roles:
+
+- primary keys are derived into SQLAlchemy `Column(..., primary_key=True)`;
+- FKs are derived from Quire reference specs into SQLAlchemy `ForeignKey`;
+- JSON value objects use one Quire SQLAlchemy JSON type decorator;
+- relationships and association objects use SQLAlchemy `relationship`;
+- search/vector/index metadata is carried through charter field metadata and
+  SQLAlchemy `Column.info`.
 
 Do not make callers type SQL column names, SQL types, JSON suffixes, or
-per-field codecs when the Python type and marker determine them.
+per-field codecs when the Python type, Quire reference spec, and SQLAlchemy
+mapping metadata determine them. Do not introduce a parallel `PrimaryKey[T]`,
+`ForeignKey[T]`, `Json[T]`, `Relation[T]`, or similar marker type family.
 
 The IR must be serializable into a stable schema catalog payload and hash.
 That hash participates in derived-store cache identity.
@@ -351,11 +445,13 @@ Build the generic SQLAlchemy engine over the charter IR:
 - create all tables in a derived SQLite store;
 - write schema catalog tables;
 - validate opened stores against schema catalog and schema hash;
-- open read-only sessions from derived-store handles;
+- expose `DerivedStoreHandle.readonly_session()` and writable build-session
+  APIs;
 - expose a typed `DerivedSession`/query context API.
 
-Quire should own session lifecycle. Propstore should receive sessions or
-semantic facades over sessions, not raw `sqlite3.Connection` objects.
+Quire owns session lifecycle. Propstore requests sessions from Quire
+derived-store handles. Propstore does not create SQLAlchemy sessions directly
+and does not receive raw `sqlite3.Connection` objects.
 
 Required Quire tests:
 
@@ -376,6 +472,7 @@ FTS belongs in SQLAlchemy extension machinery, not in Quire projection classes.
 Required path:
 
 - inspect `C:\Users\Q\code\sqlalchemy-fts5`;
+- confirm `C:\Users\Q\code\sqlalchemy-fts5` exists and its tests pass;
 - use or fix `sqlalchemy-fts5` for FTS5 virtual tables;
 - if the extension cannot express the existing concept/claim FTS needs, stop
   Quire work and fix `sqlalchemy-fts5` first;
@@ -384,13 +481,24 @@ Required path:
 
 Vector behavior:
 
-- keep sqlite-vec support generic in Quire;
+- keep the generic entity/snapshot API of `quire/sqlite_vec_store.py`;
+- replace its raw connection/table setup with SQLAlchemy-backed vector cache
+  machinery where it overlaps the charter engine;
 - express vector stores as charter/index/cache declarations;
 - build Quire-owned SQLAlchemy vector support before Propstore embedding
   cutover;
 - do not leave vector behavior as a blocker for Propstore to work around.
 
 Required gates:
+
+```powershell
+Set-Location C:\Users\Q\code\sqlalchemy-fts5
+uv run pyright
+uv run pytest -vv
+Set-Location C:\Users\Q\code\quire
+uv run pyright
+uv run pytest -vv
+```
 
 - concept-like FTS proof query;
 - claim-like FTS proof query;
@@ -430,14 +538,66 @@ rg -n -F -- "FtsProjection" quire tests
 rg -n -F -- "VecProjection" quire tests
 ```
 
-Before Phase 14, the search output is an inventory of remaining old paths, not
+Before Phase 15, the search output is an inventory of remaining old paths, not
 a passing gate. It must be copied into the phase report and no Propstore
-cutover may import those old paths. Phase 14 turns these same searches into
+cutover may import those old paths. Phase 15 turns these same searches into
 zero-hit gates.
 
-If this gate fails, do not start Source. Fix Quire.
+If this gate fails, do not start Propstore build orchestration. Fix Quire.
 
-## Phase 5: Source Vertical Slice
+## Phase 5: Build Orchestration Cutover
+
+Repository: Propstore.
+
+This phase converts the sidecar build path before any semantic family cutover.
+It ensures family phases do not run old and new production paths together.
+
+Target files:
+
+- `propstore/derived_build.py`
+- `propstore/derived_build_plan.py`
+- `propstore/families/projection_catalog.py`
+
+Deletion-first targets:
+
+- direct `ProjectionSchema`/`PROPSTORE_WORLD_PROJECTION_SCHEMA` creation;
+- build-plan row-set abstractions whose only purpose is projection insertion;
+- raw `sqlite3.Connection` sidecar population orchestration;
+- build orchestration imports of Quire projection primitives.
+
+Replacement requirements:
+
+- `derived_build.py` obtains a Quire writable build session from a derived-store
+  handle;
+- build orchestration creates tables through Quire charter/catalog APIs;
+- `derived_build_plan.py` carries typed domain/model write plans instead of
+  projection rows;
+- schema hash/cache identity is derived from Quire schema catalog payloads;
+- old projection schema creation is deleted before family phases begin.
+
+Data-parity gate:
+
+- build the current mainline sidecar and the charter-generated sidecar from the
+  same repository snapshot;
+- compare table names, primary keys, row counts, and key sets;
+- record explicit column rename allowances in the phase commit message;
+- fail on any dropped table/key. The only accepted drop is a table already
+  named as a deletion target in the current phase.
+
+Required gates:
+
+```powershell
+uv run pyright propstore
+powershell -File scripts/run_logged_pytest.ps1 -Label build-orchestration-charter tests/test_build_sidecar.py tests/test_sidecar_projection_contract.py tests/test_fixture_schema_parity.py
+rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
+rg -n -F -- "ProjectionSchema" propstore tests
+rg -n -F -- "ProjectionTable" propstore/derived_build.py propstore/derived_build_plan.py propstore/families/projection_catalog.py tests
+rg -n -F -- "sqlite3.Connection" propstore/derived_build.py propstore/derived_build_plan.py tests
+```
+
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
+
+## Phase 6: Source Vertical Slice
 
 Repositories: Quire first, then Propstore.
 
@@ -459,6 +619,14 @@ Deletion-first targets:
 - source-specific opinion JSON helper code that generic JSON storage replaces;
 - source `sqlite3.Connection` insertion helpers.
 
+Named caller/update surfaces:
+
+- `propstore/derived_build.py`;
+- `propstore/source/status.py`;
+- `propstore/source/finalize.py`;
+- `propstore/source/promote.py`;
+- app and CLI source/status callers that read source sidecar status.
+
 Implementation requirements:
 
 - define the source charter in the source family declaration;
@@ -476,7 +644,7 @@ uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label source-charter tests/test_fixture_schema_parity.py tests/test_sidecar_projection_contract.py
 ```
 
-These exact commands must pass before Phase 6:
+These exact commands must pass before Phase 7:
 
 ```powershell
 uv run pyright propstore
@@ -487,11 +655,12 @@ rg -n -F -- "quality_json" propstore tests
 rg -n -F -- "derived_from_json" propstore tests
 ```
 
-The first three searches are zero-hit gates outside notes/workstreams. The
+The first three searches are zero-hit gates outside notes, workstreams, docs,
+and reports. The
 `quality_json` and `derived_from_json` searches are zero-hit gates for
 production Propstore code.
 
-## Phase 6: Forms And Source Closure
+## Phase 7: Forms And Source Closure
 
 Repository: Propstore.
 
@@ -515,6 +684,14 @@ Delete:
 - raw form-row dictionaries;
 - selectors that only wrap generic SQL selects.
 
+Named caller/update surfaces:
+
+- `propstore/app/forms.py`;
+- `propstore/form_utils.py`;
+- `propstore/families/forms/stages.py`;
+- `propstore/families/concepts/declaration.py`;
+- `propstore/world/model.py`.
+
 Required gates:
 
 ```powershell
@@ -525,9 +702,9 @@ rg -n -F -- "FORM_ALGEBRA_PROJECTION" propstore tests
 rg -n -F -- "ProjectionTable(" propstore/families/concepts propstore/families/forms tests
 ```
 
-All searches are zero-hit gates outside notes/workstreams.
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
-## Phase 7: Concept/Form/Parameterization Slice
+## Phase 8: Concept/Form/Parameterization Slice
 
 Repository: Propstore.
 
@@ -556,6 +733,24 @@ Deletion-first targets:
   SQL selection;
 - `_nullable_text`, concept id/status/exactness projection codecs, and logical
   id JSON render-view helpers that generic schema conversion replaces.
+
+Named caller/update surfaces:
+
+- `propstore/app/concept_views.py`;
+- `propstore/app/concepts/display.py`;
+- `propstore/app/concepts/embedding.py`;
+- `propstore/families/concepts/sidecar_runtime.py`;
+- `propstore/core/graph_build.py`;
+- `propstore/fragility_contributors.py`;
+- `propstore/graph_export.py`;
+- `propstore/parameterization_walk.py`;
+- `propstore/sensitivity.py`;
+- `propstore/world/model.py`;
+- `propstore/world/queries.py`;
+- `propstore/world/bound.py`;
+- `propstore/world/overlay.py`;
+- `propstore/world/atms.py`;
+- `propstore/worldline/resolution.py`.
 
 Keep as semantic owner code:
 
@@ -601,9 +796,9 @@ rg -n -F -- "PARAMETERIZATION_PROJECTION" propstore tests
 rg -n -F -- "_nullable_text" propstore/families/concepts tests
 ```
 
-All searches are zero-hit gates outside notes/workstreams.
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
-## Phase 8: Context And Lifting Slice
+## Phase 9: Context And Lifting Slice
 
 Repository: Propstore.
 
@@ -620,6 +815,15 @@ Deletion-first targets:
 - context table creation helpers;
 - context row dictionaries;
 - selectors/loaders that merely reconstruct lifting systems from raw rows.
+
+Named caller/update surfaces:
+
+- `propstore/app/contexts.py`;
+- `propstore/context_lifting.py`;
+- `propstore/world/model.py`;
+- `propstore/worldline/runner.py`;
+- `propstore/worldline/argumentation.py`;
+- `propstore/aspic_bridge/lifting_projection.py`.
 
 Keep:
 
@@ -640,9 +844,9 @@ rg -n -F -- "CONTEXT_LIFTING_MATERIALIZATION_TABLE" propstore tests
 rg -n -F -- "ProjectionModel(" propstore/families/contexts tests
 ```
 
-All searches are zero-hit gates outside notes/workstreams.
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
-## Phase 9: Claim Model And Association Objects
+## Phase 10: Claim Model And Association Objects
 
 Repository: Propstore.
 
@@ -669,7 +873,8 @@ Primary relationship:
 
 Permitted convenience view:
 
-- `claim.concepts` as a read-only property or SQLAlchemy association proxy.
+- `claim.concepts` as a SQLAlchemy association proxy over
+  `claim.concept_links`.
 
 It must not be the persistence owner. Link payload data must remain visible.
 
@@ -688,6 +893,32 @@ Deletion-first targets:
 - claim projection codecs for claim id, concept id, claim type, algorithm
   stage, logical ids, provenance, source, and concept-link role;
 - `ActiveClaim` row-repair coercion that duplicates the claim charter.
+
+Named caller/update surfaces:
+
+- `propstore/app/claim_views.py`;
+- `propstore/app/claims.py`;
+- `propstore/families/claims/sidecar_runtime.py`;
+- `propstore/core/activation.py`;
+- `propstore/core/active_claims.py`;
+- `propstore/core/graph_build.py`;
+- `propstore/core/analyzers.py`;
+- `propstore/claim_graph.py`;
+- `propstore/defeasibility.py`;
+- `propstore/fragility.py`;
+- `propstore/fragility_contributors.py`;
+- `propstore/graph_export.py`;
+- `propstore/relation_analysis.py`;
+- `propstore/structured_projection.py`;
+- `propstore/support_revision/projection.py`;
+- `propstore/aspic_bridge/extract.py`;
+- `propstore/aspic_bridge/translate.py`;
+- `propstore/world/model.py`;
+- `propstore/world/bound.py`;
+- `propstore/world/overlay.py`;
+- `propstore/world/atms.py`;
+- `propstore/world/resolution.py`;
+- `propstore/worldline/resolution.py`.
 
 Keep as semantic owner code:
 
@@ -738,9 +969,9 @@ rg -n -F -- "_optional_int" propstore tests
 rg -n -F -- "SimpleNamespace" propstore/families/claims propstore/core tests
 ```
 
-All searches are zero-hit gates outside notes/workstreams.
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
-## Phase 10: Relations, Stances, And Conflicts
+## Phase 11: Relations, Stances, And Conflicts
 
 Repository: Propstore.
 
@@ -768,6 +999,21 @@ Delete:
 - `CONFLICT_ROW_MODEL`;
 - discriminator/query-plan objects that duplicate SQLAlchemy polymorphism or
   relationship filtering.
+
+Named caller/update surfaces:
+
+- `propstore/aspic_bridge/extract.py`;
+- `propstore/aspic_bridge/translate.py`;
+- `propstore/core/analyzers.py`;
+- `propstore/core/graph_build.py`;
+- `propstore/graph_export.py`;
+- `propstore/relation_analysis.py`;
+- `propstore/support_revision/af_adapter.py`;
+- `propstore/support_revision/projection.py`;
+- `propstore/world/atms.py`;
+- `propstore/world/bound.py`;
+- `propstore/world/overlay.py`;
+- `propstore/worldline/argumentation.py`.
 
 Keep as semantic owner code:
 
@@ -799,9 +1045,9 @@ rg -n -F -- "STANCE_ROW_MODEL" propstore tests
 rg -n -F -- "CONFLICT_ROW_MODEL" propstore tests
 ```
 
-All searches are zero-hit gates outside notes/workstreams.
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
-## Phase 11: Justifications And Micropublications
+## Phase 12: Justifications And Micropublications
 
 Repository: Propstore.
 
@@ -820,6 +1066,15 @@ Deletion-first targets:
 - `_parse_string_tuple`;
 - justification row dictionaries;
 - duplicated `CanonicalJustification` schema/conversion role.
+
+Named caller/update surfaces:
+
+- `propstore/core/justifications.py`;
+- `propstore/core/analyzers.py`;
+- `propstore/aspic_bridge/extract.py`;
+- `propstore/aspic_bridge/translate.py`;
+- `propstore/world/model.py`;
+- `propstore/worldline/argumentation.py`.
 
 Keep:
 
@@ -840,11 +1095,13 @@ rg -n -F -- "MICROPUBLICATION_ROW_MODEL" propstore tests
 rg -n -F -- "ActiveMicropublication.from_mapping" propstore tests
 rg -n -F -- "coerce_active_micropublication" propstore tests
 rg -n -F -- "_parse_string_tuple" propstore tests
+rg -n -F -- "CanonicalJustification(" propstore tests
+rg -n -F -- "from_mapping" propstore/core/justifications.py tests
 ```
 
-All searches are zero-hit gates outside notes/workstreams.
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
-## Phase 12: Rules, Grounding, Diagnostics, Calibration, Embeddings
+## Phase 13: Rules, Grounding, Diagnostics, Calibration, Embeddings
 
 Repository: Propstore.
 
@@ -865,6 +1122,18 @@ Delete:
 - calibration projection table declarations;
 - embedding projection declarations using `ProjectionTable`/`VecProjection`;
 - raw SQLite table setup for generic schema concerns.
+
+Named caller/update surfaces:
+
+- `propstore/grounding/inspection.py`;
+- `propstore/grounding/loading.py`;
+- `propstore/families/claims/sidecar_runtime.py`;
+- `propstore/families/concepts/sidecar_runtime.py`;
+- `propstore/app/claims.py`;
+- `propstore/app/concepts/embedding.py`;
+- `propstore/app/grounding.py`;
+- `propstore/world/model.py`;
+- `propstore/fragility_contributors.py`.
 
 Keep:
 
@@ -892,9 +1161,9 @@ rg -n -F -- "VecProjection" propstore/families/embeddings tests
 rg -n -F -- "ProjectionTable(" propstore/families/rules propstore/families/diagnostics propstore/families/calibration propstore/families/embeddings tests
 ```
 
-All searches are zero-hit gates outside notes/workstreams.
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
-## Phase 13: WorldQuery, Graph, And Reasoning Cutover
+## Phase 14: WorldQuery, Graph, And Reasoning Cutover
 
 Repository: Propstore.
 
@@ -920,11 +1189,32 @@ Keep:
 
 Target:
 
-- `WorldQuery` opens a Quire derived-store read-only SQLAlchemy session;
+- `WorldQuery` requests a Quire derived-store read-only SQLAlchemy session
+  from a Quire derived-store handle;
 - family query APIs accept a session or typed repository/world context;
 - graph construction consumes typed model objects;
 - resolution consumes typed claims/concepts/stances/conflicts;
 - app/CLI/web surfaces see no schema-layer change except better behavior.
+
+Named caller/update surfaces:
+
+- `propstore/world/model.py`;
+- `propstore/world/queries.py`;
+- `propstore/world/bound.py`;
+- `propstore/world/overlay.py`;
+- `propstore/world/atms.py`;
+- `propstore/world/scm.py`;
+- `propstore/world/intervention.py`;
+- `propstore/world/resolution.py`;
+- `propstore/core/graph_build.py`;
+- `propstore/core/analyzers.py`;
+- `propstore/graph_export.py`;
+- `propstore/worldline/resolution.py`;
+- `propstore/worldline/argumentation.py`;
+- `propstore/support_revision/projection.py`;
+- `propstore/support_revision/af_adapter.py`;
+- `propstore/aspic_bridge/extract.py`;
+- `propstore/aspic_bridge/translate.py`.
 
 Required gates:
 
@@ -937,9 +1227,9 @@ rg -n -F -- "connect_sqlite_store" propstore/world propstore/families tests
 rg -n -F -- "ProjectionRow" propstore/world propstore/families tests
 ```
 
-All searches are zero-hit gates outside notes/workstreams.
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
-## Phase 14: Delete Quire Projection Modules
+## Phase 15: Delete Quire Projection Modules
 
 Repository: Quire.
 
@@ -972,10 +1262,10 @@ rg -n -F -- "FtsProjection" quire tests
 rg -n -F -- "VecProjection" quire tests
 ```
 
-Zero production hits are permitted. Documentation hits are limited to this
-workstream and historical notes.
+Zero production hits are permitted. Documentation hits are limited to notes,
+workstreams, docs, and reports.
 
-## Phase 15: Delete Propstore Projection And Helper Leftovers
+## Phase 16: Delete Propstore Projection And Helper Leftovers
 
 Repository: Propstore.
 
@@ -1014,16 +1304,16 @@ rg -n -F -- "_optional_int" propstore tests
 rg -n -F -- "_claim_optional_float" propstore tests
 rg -n -F -- "_parse_string_tuple" propstore tests
 rg -n -F -- "coerce_active_micropublication" propstore tests
-rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world tests
+rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
 ```
 
-Zero production hits are permitted. Documentation hits are limited to notes and
-workstreams. External IO boundary constructors must use boundary-specific names
-such as `from_yaml_payload`, `from_json_payload`, or `from_row_mapping`; the
-generic `from_mapping` constructor name is deleted from core, families, world,
-and tests.
+Zero production hits are permitted. Documentation hits are limited to notes,
+workstreams, docs, and reports. External IO boundary constructors must use
+boundary-specific names such as `from_yaml_payload`, `from_json_payload`, or
+`from_row_mapping`; the generic `from_mapping` constructor name is deleted from
+core, families, world, worldline, support-revision, and tests.
 
-## Phase 16: Final Gates
+## Phase 17: Final Gates
 
 Quire:
 
@@ -1052,7 +1342,14 @@ Final dependency search:
 rg -n -F -- "quire @ file" pyproject.toml uv.lock
 rg -n -F -- "quire @ .." pyproject.toml uv.lock
 rg -n -F -- "quire @ C:" pyproject.toml uv.lock
+rg -n -F -- "[tool.uv.sources]" pyproject.toml
+rg -n -F -- "path =" pyproject.toml
+rg -n -F -- "workspace = true" pyproject.toml
 ```
+
+The final dependency gate must inspect parsed `pyproject.toml` source tables.
+A Quire dependency entry that resolves only from the local filesystem fails the
+gate even when the string searches above miss it.
 
 ## Completion Criteria
 
@@ -1062,8 +1359,14 @@ The workstream is complete only when:
 - Quire derived-store handles open read-only SQLAlchemy sessions.
 - Quire schema catalogs describe the derived store from the same charters that
   generated the mappings.
+- Quire charters compose with existing `ArtifactFamily`, document-store,
+  placement, and reference/FK APIs instead of replacing them with a parallel
+  registry.
 - Quire projection modules and projection public exports are deleted.
 - Propstore supplies domain charters for every sidecar family.
+- `propstore/derived_build.py` and `propstore/derived_build_plan.py` use Quire
+  writable sessions and charter catalogs, not projection schemas or raw
+  sidecar row plans.
 - Propstore no longer imports Quire projection primitives.
 - Propstore has no family `projection_model.py` files.
 - Propstore has no duplicate `*Row` model layer for domain objects.
@@ -1076,6 +1379,11 @@ The workstream is complete only when:
   Remaining IO boundary constructors use boundary-specific names and do not use
   the generic `from_mapping` name.
 - `WorldQuery` uses Quire sessions and typed model queries.
+- Every matrix row has been accounted for in a commit message or final closure
+  report with delete/move/keep-as-semantic-owner outcome.
+- Every family cutover has a passing data-parity gate for row counts, key
+  sets, representative owner-layer queries, FTS, vector, and diagnostics where
+  applicable.
 - App/CLI/web surfaces continue to call owner-layer APIs.
 - Quire and Propstore gates pass.
 - Propstore is pinned to a pushed Quire commit, never a local checkout.
