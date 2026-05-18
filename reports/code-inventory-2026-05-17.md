@@ -33,6 +33,7 @@ The wanted outcome is a complete, evidence-backed inventory of Propstore and Qui
 - `propstore/families/claims/projection_model.py`: Propstore claim family owns claim-specific projection mapping from SQLite rows to active claim/domain views, using Quire projection mapping primitives.
 - `propstore/families/contexts/documents.py`: authored context schema file; defines context references, context structure with CEL assumptions/parameters/perspective, context lifting rules with source/target/conditions/mode/justification, and `ContextDocument`.
 - `propstore/families/forms/documents.py`: authored form schema file; defines form alternatives, extra unit declarations, and `FormDocument` fields for dimensions, base/unit/QUDT metadata, parameters, alternatives, kind/note, extra units, and min/max bounds.
+- `propstore/families/documents/stances.py`: canonical stance schema file; defines `StanceDocument` with source/target claim references, stance type/strength/note, condition-difference marker, optional resolution, target justification, artifact code, classification metadata, and promotion SHA.
 
 ## Top-Level Shape
 
@@ -115,6 +116,12 @@ Form schema details from `propstore/families/forms/documents.py`:
 - `FormAlternativeDocument` represents alternate units/conversions with unit, type, multiplier, offset, base, divisor, and reference.
 - `FormExtraUnitDocument` declares additional unit symbols with dimension exponents.
 - `FormDocument` owns a form's identity and dimensional metadata: `name`, `dimensionless`, optional base/unit symbol/QUDT, arbitrary parameters, common and delta alternatives, kind/note, dimensions, extra units, and numeric bounds.
+
+Stance schema details from `propstore/families/documents/stances.py`:
+
+- `StanceDocument` is canonical stance YAML.
+- It can refer from `source_claim` or `perspective_source_claim_id` to a `target`.
+- It carries semantic stance type via `StanceType`, strength, note, `conditions_differ`, optional `ResolutionDocument`, optional `target_justification_id`, `artifact_code`, classifier metadata, and `promoted_from_sha`.
 
 ## Projection And Derived-World Surfaces
 
