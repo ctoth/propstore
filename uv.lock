@@ -593,7 +593,7 @@ wheels = [
 [[package]]
 name = "eq-equiv"
 version = "0.1.0"
-source = { git = "https://github.com/ctoth/eq-equiv?rev=6f3b85f5a28fb8dcd30c2de4bfdc0c2c7d8f3a64#6f3b85f5a28fb8dcd30c2de4bfdc0c2c7d8f3a64" }
+source = { git = "https://github.com/ctoth/eq-equiv?rev=9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6#9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6" }
 dependencies = [
     { name = "lark" },
     { name = "sympy" },
@@ -1111,6 +1111,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/56/52/1b54cb569509c725a32c1315261ac9fd0e6b91bbbf74d86fca10d3376164/huggingface_hub-1.12.0.tar.gz", hash = "sha256:7c3fe85e24b652334e5d456d7a812cd9a071e75630fac4365d9165ab5e4a34b6", size = 763091, upload-time = "2026-04-24T13:32:08.674Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/2b/ef03ddb96bd1123503c2bd6932001020292deea649e9bf4caa2cb65a85bf/huggingface_hub-1.12.0-py3-none-any.whl", hash = "sha256:d74939969585ee35748bd66de09baf84099d461bda7287cd9043bfb99b0e424d", size = 646806, upload-time = "2026-04-24T13:32:06.717Z" },
+]
+
+[[package]]
+name = "human-to-sympy"
+version = "0.1.0"
+source = { git = "https://github.com/ctoth/human-to-sympy?rev=b245b86c2a30afd4c558a7e07796b4bc37d99e94#b245b86c2a30afd4c558a7e07796b4bc37d99e94" }
+dependencies = [
+    { name = "sympy" },
 ]
 
 [[package]]
@@ -2030,6 +2038,7 @@ dependencies = [
     { name = "formal-belief-set" },
     { name = "graphviz" },
     { name = "gunray" },
+    { name = "human-to-sympy" },
     { name = "jinja2" },
     { name = "lark" },
     { name = "linkml" },
@@ -2071,12 +2080,13 @@ requires-dist = [
     { name = "cel-parser", git = "https://github.com/ctoth/cel-parser.git?rev=96fc4808ef78257ea03549e6298629a9583865c8" },
     { name = "click", specifier = ">=8.3.3" },
     { name = "dulwich", specifier = ">=1.1.0" },
-    { name = "eq-equiv", git = "https://github.com/ctoth/eq-equiv?rev=6f3b85f5a28fb8dcd30c2de4bfdc0c2c7d8f3a64" },
+    { name = "eq-equiv", git = "https://github.com/ctoth/eq-equiv?rev=9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6" },
     { name = "fastapi", specifier = ">=0.136.0" },
     { name = "formal-argumentation", git = "https://github.com/ctoth/argumentation.git?rev=90dcbe29895337d593dfc681f2a60bfe8cb71718" },
     { name = "formal-belief-set", git = "https://github.com/ctoth/belief-set?rev=2ebe82cab23a3f379d7c8d1b62eac7ccd12977bd" },
     { name = "graphviz", specifier = ">=0.20" },
     { name = "gunray", git = "https://github.com/ctoth/gunray.git?rev=a06da9c06a8c20262edec56f8a1f55dc1901781d" },
+    { name = "human-to-sympy", git = "https://github.com/ctoth/human-to-sympy?rev=b245b86c2a30afd4c558a7e07796b4bc37d99e94" },
     { name = "jinja2", specifier = ">=3.1" },
     { name = "lark", specifier = ">=1.2.2" },
     { name = "linkml", specifier = ">=1.9.3,<1.10" },

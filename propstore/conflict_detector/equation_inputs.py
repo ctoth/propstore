@@ -8,7 +8,6 @@ from .models import ConflictClaim
 def bound_equation_from_conflict_claim(claim: ConflictClaim) -> BoundEquation:
     return BoundEquation(
         expression=claim.expression,
-        sympy=claim.sympy,
         variables=tuple(
             EquationSymbolBinding(
                 symbol=variable.symbol,
