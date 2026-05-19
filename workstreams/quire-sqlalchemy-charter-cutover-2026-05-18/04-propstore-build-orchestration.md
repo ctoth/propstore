@@ -112,6 +112,12 @@ Delete these production paths before porting callers:
 - build orchestration imports of Quire projection primitives;
 - manual world schema assembly in `propstore/families/projection_catalog.py`.
 
+Deleting `propstore/families/projection_catalog.py` in this phase may leave
+per-family `ProjectionTable` and `ProjectionModel` constants defined inside
+family modules until their family slices delete them. That temporary state is
+permitted only when no production code imports those constants after the
+catalog deletion.
+
 ## Replacement Requirements
 
 Implement the target path:
@@ -137,6 +143,10 @@ Implement the target path:
 ## Data-Parity Gate
 
 Build both sidecars from the same repository snapshot:
+
+```powershell
+uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner build-orchestration --out reports/sqlalchemy-charter-parity/build-orchestration.json
+```
 
 1. Build the current mainline sidecar.
 2. Build the charter-generated sidecar.
