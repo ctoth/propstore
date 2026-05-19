@@ -88,6 +88,11 @@ as the work queue:
   the real abstraction;
 - graph construction coercion through projection row models;
 - world, bound, overlay, and ATMS imports of projection row/model classes;
+- `_claim_rows` in `propstore/world/model.py`;
+- `ActiveClaimInput` and `ActiveMicropublicationInput` protocol surfaces in
+  world/environment/overlay/ATMS APIs;
+- `ActiveClaimResolver` in `propstore/world/value_resolver.py`;
+- `ActiveWorldGraph` spelling in public world/graph APIs;
 - raw SQL snippets that duplicate SQLAlchemy query construction;
 - `ProjectionRow` usage in world, family, graph, and worldline runtime paths;
 - generic `from_mapping` persisted-result constructors in
@@ -188,11 +193,19 @@ Execute in this order:
 8. Replace loose dict/list/row payloads with typed world, graph, relation,
    claim, stance, justification, grounding, context, and micropublication model
    objects.
-9. Replace generic persisted-result `from_mapping` constructors with
+9. Rename `ActiveWorldGraph` to `WorldActivationGraph`; it remains a semantic
+   activation result because it carries environment plus active/inactive claim
+   id sets, but it stops using the misleading active-object-family spelling.
+10. Rename `ActiveClaimResolver` to `ClaimValueResolver` and make it consume
+   typed `Claim` query results.
+11. Delete `ActiveClaimInput` and `ActiveMicropublicationInput` from world,
+   environment, overlay, ATMS, ASPIC, support-revision, and value-resolution
+   APIs.
+12. Replace generic persisted-result `from_mapping` constructors with
    boundary-specific constructors.
-10. Run the world/query/graph/reasoning gates.
-11. Run the old-path search gates.
-12. Run the data-parity and behavior-parity gates.
+13. Run the world/query/graph/reasoning gates.
+14. Run the old-path search gates.
+15. Run the data-parity and behavior-parity gates.
 
 Implementation starts only after session, relationship, query, catalog, FTS,
 vector, JSON, and association-object capabilities are complete in their owning
@@ -243,6 +256,11 @@ rg -n -F -- "connect_sqlite_store" propstore/world propstore/families tests
 rg -n -F -- "ProjectionRow" propstore/world propstore/families tests
 rg -n -F -- "ProjectionModel" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision propstore/aspic_bridge tests
 rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
+rg -n -F -- "_claim_rows" propstore/world tests
+rg -n -F -- "ActiveClaimInput" propstore tests
+rg -n -F -- "ActiveMicropublicationInput" propstore tests
+rg -n -F -- "ActiveClaimResolver" propstore tests
+rg -n -F -- "ActiveWorldGraph" propstore tests
 rg -n -F -- "claim_row_query_plan" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision tests
 rg -n -F -- "claim_stance_policy_query_plan" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision tests
 ```
@@ -262,6 +280,12 @@ This slice is complete only when:
 - ATMS construction consumes typed graph/relation models;
 - SCM, intervention, and resolution consumers use typed graph/value data;
 - graph construction and analyzers consume typed model objects;
+- `WorldActivationGraph` is the activation result type; `ActiveWorldGraph`
+  is absent from production code and tests;
+- `ClaimValueResolver` consumes typed `Claim` query results; `ActiveClaimResolver`
+  is absent from production code and tests;
+- world/environment/overlay/ATMS protocols do not accept `ActiveClaimInput`,
+  `ActiveMicropublicationInput`, dict rows, or mapping coercion inputs;
 - graph export uses typed world/session results;
 - worldline resolution and argumentation consume typed world/session models;
 - persisted result payload constructors use boundary-specific constructor
