@@ -108,6 +108,10 @@ as the work queue:
 - `CLAIM_TEXT_PAYLOAD_STORAGE_MODEL`;
 - `CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL`;
 - `CLAIM_ROW_MODEL`;
+- `CLAIM_ROW_QUERY_PLAN`;
+- `CLAIM_FTS_PROJECTION`;
+- `CLAIM_EMBEDDING_STATUS_PROJECTION`;
+- `CLAIM_VEC_PROJECTION`;
 - `CLAIM_*_TABLE` projection constants;
 - `ClaimSidecarRows` row-carrier fields that only aggregate projection rows;
 - `_optional_float_input`;
@@ -331,6 +335,10 @@ rg -n -F -- "CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL" propstore tests
 rg -n -F -- "CLAIM_TEXT_PAYLOAD_STORAGE_MODEL" propstore tests
 rg -n -F -- "CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL" propstore tests
 rg -n -F -- "CLAIM_ROW_MODEL" propstore tests
+rg -n -F -- "CLAIM_ROW_QUERY_PLAN" propstore tests
+rg -n -F -- "CLAIM_FTS_PROJECTION" propstore tests
+rg -n -F -- "CLAIM_EMBEDDING_STATUS_PROJECTION" propstore tests
+rg -n -F -- "CLAIM_VEC_PROJECTION" propstore tests
 rg -n -F -- "CLAIM_CORE_TABLE" propstore tests
 rg -n -F -- "CLAIM_CONCEPT_LINK_TABLE" propstore tests
 rg -n -F -- "CLAIM_NUMERIC_PAYLOAD_TABLE" propstore tests
