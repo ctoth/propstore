@@ -128,6 +128,8 @@ rg -n -F -- "_optional_numeric" propstore tests
 rg -n -F -- "_optional_float" propstore tests
 rg -n -F -- "_parse_string_tuple" propstore tests
 rg -n -F -- "coerce_active_micropublication" propstore tests
+rg -n -F -- "propstore.core.active_claims" propstore tests
+rg -n -F -- "ActiveClaim" propstore tests
 rg -n -F -- "ActiveClaimInput" propstore tests
 rg -n -F -- "ActiveMicropublicationInput" propstore tests
 rg -n -F -- "ActiveClaimVariable" propstore tests
