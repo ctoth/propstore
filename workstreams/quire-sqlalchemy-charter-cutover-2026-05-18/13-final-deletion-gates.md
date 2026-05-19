@@ -128,6 +128,13 @@ rg -n -F -- "_optional_numeric" propstore tests
 rg -n -F -- "_optional_float" propstore tests
 rg -n -F -- "_parse_string_tuple" propstore tests
 rg -n -F -- "coerce_active_micropublication" propstore tests
+rg -n -F -- "ActiveClaimInput" propstore tests
+rg -n -F -- "ActiveMicropublicationInput" propstore tests
+rg -n -F -- "ActiveClaimVariable" propstore tests
+rg -n -F -- "ActiveClaimResolver" propstore tests
+rg -n -F -- "ActiveWorldGraph" propstore tests
+rg -n -F -- "ActiveClaim(" propstore tests
+rg -n -F -- "ActiveMicropublication" propstore tests
 rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
 ```
 
