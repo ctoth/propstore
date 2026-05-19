@@ -171,6 +171,9 @@ Deletion-first targets:
 - `PARAMETERIZATION_ROW_MODEL`;
 - `CONCEPT_PROJECTION`;
 - `PARAMETERIZATION_PROJECTION`;
+- `ALIAS_PROJECTION`;
+- `PARAMETERIZATION_GROUP_PROJECTION`;
+- `RELATIONSHIP_PROJECTION`;
 - concept projection codecs;
 - concept search/select/count/id-resolution helpers whose only job is generic
   SQL selection;
@@ -335,6 +338,9 @@ rg -n -F -- "CONCEPT_ROW_MODEL" propstore tests
 rg -n -F -- "PARAMETERIZATION_ROW_MODEL" propstore tests
 rg -n -F -- "CONCEPT_PROJECTION" propstore tests
 rg -n -F -- "PARAMETERIZATION_PROJECTION" propstore tests
+rg -n -F -- "ALIAS_PROJECTION" propstore tests
+rg -n -F -- "PARAMETERIZATION_GROUP_PROJECTION" propstore tests
+rg -n -F -- "RELATIONSHIP_PROJECTION" propstore tests
 rg -n -F -- "_nullable_text" propstore/families/concepts tests
 rg -n -F -- "fetch_concept_search_hits_from_sidecar" propstore tests
 rg -n -F -- "select_concept_by_id" propstore tests
