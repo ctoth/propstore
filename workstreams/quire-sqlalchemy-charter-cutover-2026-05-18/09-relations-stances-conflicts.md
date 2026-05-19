@@ -99,6 +99,7 @@ as the work queue:
 - `StanceRow`;
 - `ConflictRow`;
 - relation projection codecs;
+- `RELATION_EDGE_TABLE`;
 - `CLAIM_STANCE_STORAGE_MODEL`;
 - `CONCEPT_RELATIONSHIP_STORAGE_MODEL`;
 - `RELATIONSHIP_ROW_MODEL`;
@@ -268,6 +269,7 @@ rg -n -F -- "propstore.families.relations.projection_model" propstore tests
 rg -n -F -- "RelationshipRow" propstore tests
 rg -n -F -- "StanceRow" propstore tests
 rg -n -F -- "ConflictRow" propstore tests
+rg -n -F -- "RELATION_EDGE_TABLE" propstore tests
 rg -n -F -- "CLAIM_STANCE_STORAGE_MODEL" propstore tests
 rg -n -F -- "CONCEPT_RELATIONSHIP_STORAGE_MODEL" propstore tests
 rg -n -F -- "RELATIONSHIP_ROW_MODEL" propstore tests
