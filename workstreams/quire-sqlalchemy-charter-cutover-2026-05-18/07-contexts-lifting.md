@@ -68,10 +68,15 @@ as the work queue:
 
 - context `ProjectionModel` declarations;
 - context `ProjectionTable` declarations;
+- `CONTEXT_MODEL`;
+- `CONTEXT_ASSUMPTION_MODEL`;
+- `CONTEXT_LIFTING_RULE_MODEL`;
+- `CONTEXT_LIFTING_MATERIALIZATION_MODEL`;
 - `CONTEXT_TABLE`;
 - `CONTEXT_ASSUMPTION_TABLE`;
 - `CONTEXT_LIFTING_RULE_TABLE`;
 - `CONTEXT_LIFTING_MATERIALIZATION_TABLE`;
+- `CONTEXT_TABLES`;
 - context table creation helpers;
 - context row dictionaries;
 - selectors/loaders that merely reconstruct lifting systems from raw rows;
@@ -206,6 +211,11 @@ rg -n -F -- "CONTEXT_TABLE" propstore tests
 rg -n -F -- "CONTEXT_ASSUMPTION_TABLE" propstore tests
 rg -n -F -- "CONTEXT_LIFTING_RULE_TABLE" propstore tests
 rg -n -F -- "CONTEXT_LIFTING_MATERIALIZATION_TABLE" propstore tests
+rg -n -F -- "CONTEXT_MODEL" propstore tests
+rg -n -F -- "CONTEXT_ASSUMPTION_MODEL" propstore tests
+rg -n -F -- "CONTEXT_LIFTING_RULE_MODEL" propstore tests
+rg -n -F -- "CONTEXT_LIFTING_MATERIALIZATION_MODEL" propstore tests
+rg -n -F -- "CONTEXT_TABLES" propstore tests
 rg -n -F -- "ProjectionModel(" propstore/families/contexts tests
 rg -n -F -- "create_context_tables" propstore tests
 rg -n -F -- "populate_contexts" propstore tests
