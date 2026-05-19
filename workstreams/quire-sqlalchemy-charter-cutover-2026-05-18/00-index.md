@@ -114,7 +114,7 @@ Execute in this exact order:
 
 | Phase | Child workstream file | Gate to proceed |
 | --- | --- | --- |
-| 0. Mechanical order check and current-state inventory confirmation | `00-index.md` and `inventory-matrix.md` | Order checker passes; inventory, architecture note, worktree state, Quire pin, and old-path imports are listed. |
+| 0. Mechanical order check and current-state inventory confirmation | `00-index.md` and `inventory-matrix.md` | Phase 0 checklist below is complete; order checker passes; inventory, architecture note, worktree state, Quire pin, and old-path imports are listed. |
 | 1-2. Quire SQLAlchemy capability proof and charter/schema IR | `01-quire-capability-and-charter.md` | Quire proof tests pass; charter/schema IR composes with existing family/document/placement/reference APIs. |
 | 3. Quire SQLAlchemy table/mapping/session/catalog engine | `02-quire-sqlalchemy-engine.md` | Generated DDL, mapping, sessions, relationships, schema catalog, and hash tests pass. |
 | 4. Quire FTS and vector implementation | `03-quire-fts-vector.md` | `sqlalchemy-fts5` and Quire FTS/vector gates pass with no local dependency pins. |
@@ -130,7 +130,44 @@ Execute in this exact order:
 | 14. WorldQuery/session/graph/reasoning cutover | `12-world-query-graph-reasoning.md` | WorldQuery uses Quire sessions and typed model queries. |
 | 15-17. Final deletion gates and dependency pin | `13-final-deletion-gates.md` | Quire projection modules and Propstore projection/helper leftovers are deleted; full gates pass; Propstore is pinned to a pushed Quire commit/tag. |
 
-Write or run an order checker before production implementation. The checker must prove each dependent phase appears after its prerequisites. If it fails, repair the workstream files before editing code.
+## Phase 0: Mechanical Order Check And Current-State Inventory Confirmation
+
+Repository: Propstore for the workstream check, Quire for dependency checks.
+
+Before any implementation edit:
+
+1. Create or update `scripts/check_workstream_order.py`.
+2. The checker reads `workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md`, extracts the Phase Order table, extracts prerequisite file references from every child workstream, and fails when a child depends on a later phase.
+3. Run the checker:
+
+```powershell
+uv run scripts/check_workstream_order.py workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md
+```
+
+4. Confirm `reports/code-inventory-2026-05-17.md` still exists and is the controlling inventory.
+5. Confirm `notes/architecture-wanted-outcome-2026-05-17.md` still says Quire owns generic charter/schema/SQLAlchemy derived-store machinery.
+6. Capture the current Propstore worktree state.
+7. Capture the current Quire worktree state before editing Quire.
+8. List the current Quire dependency pin in Propstore.
+9. List every current production import of Quire projection primitives in Propstore.
+
+Required Phase 0 searches:
+
+```powershell
+rg -n -F -- "ProjectionTable" propstore tests
+rg -n -F -- "ProjectionModel" propstore tests
+rg -n -F -- "ProjectionCodec" propstore tests
+rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
+rg -n -F -- "quire" pyproject.toml uv.lock
+rg -n -F -- "[tool.uv.sources]" pyproject.toml
+rg -n -F -- "path =" pyproject.toml
+rg -n -F -- "workspace = true" pyproject.toml
+rg -n -F -- "quire @ file" pyproject.toml uv.lock
+rg -n -F -- "quire @ .." pyproject.toml uv.lock
+rg -n -F -- "quire @ C:" pyproject.toml uv.lock
+```
+
+This phase proves the starting state and the work queue. Missing inventory, missing architecture note, a dirty task-owned worktree, a local Quire dependency pin, or a failing order checker blocks implementation.
 
 No Propstore family production cutover starts until Phases 1-5 pass. Source is not a place to discover whether SQLAlchemy can handle metadata fields, association objects, FTS, sessions, schema catalogs, JSON adapters, enum conversion, data parity, or build orchestration. All of that is Quire and build-orchestration work first.
 
@@ -187,6 +224,15 @@ If a family cannot follow this loop because Quire lacks a needed generic feature
 ## Global Parity Rules
 
 Every Propstore family phase has this data-parity obligation:
+
+- The parity harness is `scripts/compare_sqlalchemy_charter_parity.py`.
+- Phase 4 creates the harness before Propstore family cutovers begin.
+- Every Propstore phase writes its parity report under `reports/sqlalchemy-charter-parity/<phase-slug>.json`.
+- Standard command shape:
+
+```powershell
+uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner <phase-slug> --out reports/sqlalchemy-charter-parity/<phase-slug>.json
+```
 
 - build the sidecar from the same repository snapshot before and after the current phase;
 - compare row counts and primary-key/key-set coverage for every table the phase owns;
