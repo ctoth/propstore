@@ -111,6 +111,8 @@ as the work queue:
 - `CLAIM_ROW_QUERY_PLAN`;
 - `CLAIM_FTS_PROJECTION`;
 - `CLAIM_EMBEDDING_STATUS_PROJECTION`;
+- `CLAIM_EMBEDDING_JOIN_SOURCE`;
+- `CLAIM_EMBEDDING_JOIN_COLUMNS`;
 - `CLAIM_VEC_PROJECTION`;
 - `CLAIM_*_TABLE` projection constants;
 - `ClaimSidecarRows` row-carrier fields that only aggregate projection rows;
@@ -342,6 +344,8 @@ rg -n -F -- "CLAIM_ROW_MODEL" propstore tests
 rg -n -F -- "CLAIM_ROW_QUERY_PLAN" propstore tests
 rg -n -F -- "CLAIM_FTS_PROJECTION" propstore tests
 rg -n -F -- "CLAIM_EMBEDDING_STATUS_PROJECTION" propstore tests
+rg -n -F -- "CLAIM_EMBEDDING_JOIN_SOURCE" propstore tests
+rg -n -F -- "CLAIM_EMBEDDING_JOIN_COLUMNS" propstore tests
 rg -n -F -- "CLAIM_VEC_PROJECTION" propstore tests
 rg -n -F -- "CLAIM_CORE_TABLE" propstore tests
 rg -n -F -- "CLAIM_CONCEPT_LINK_TABLE" propstore tests
