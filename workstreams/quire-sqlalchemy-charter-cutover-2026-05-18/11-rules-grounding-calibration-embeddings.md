@@ -259,6 +259,10 @@ session, FTS, and vector capabilities are complete.
 
 ## Data-Parity And Metric Gates
 
+```powershell
+uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner rules-grounding-calibration-embeddings --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings.json
+```
+
 Build the sidecar from the same repository snapshot before and after this
 slice and compare:
 

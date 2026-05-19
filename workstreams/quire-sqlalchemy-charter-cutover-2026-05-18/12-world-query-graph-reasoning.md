@@ -200,6 +200,10 @@ Quire or family workstreams.
 
 ## Data-Parity And Metric Gates
 
+```powershell
+uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner world-query-graph-reasoning --out reports/sqlalchemy-charter-parity/world-query-graph-reasoning.json
+```
+
 Build the sidecar from the same repository snapshot before and after this
 slice and compare:
 

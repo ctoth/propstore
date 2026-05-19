@@ -175,6 +175,10 @@ returns the work to the Quire owner workstream.
 
 ## Data Parity Gate
 
+```powershell
+uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner contexts-lifting --out reports/sqlalchemy-charter-parity/contexts-lifting.json
+```
+
 Build the sidecar from the same repository snapshot before and after this
 slice and compare:
 

@@ -252,6 +252,10 @@ owner workstream.
 
 ## Data Parity Gate
 
+```powershell
+uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner micropublications-justifications --out reports/sqlalchemy-charter-parity/micropublications-justifications.json
+```
+
 Build the sidecar from the same repository snapshot before and after this
 slice and compare:
 
