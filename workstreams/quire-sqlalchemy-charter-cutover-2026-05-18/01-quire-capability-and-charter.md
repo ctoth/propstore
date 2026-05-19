@@ -72,6 +72,10 @@ Quire:
 - `quire/schema_catalog.py`
 - focused Quire tests for SQLAlchemy capability and charter/schema IR behavior
 
+`quire/sqlalchemy_schema.py` and `quire/sqlalchemy_store.py` are created and
+owned by `02-quire-sqlalchemy-engine.md`; this workstream defines the charter
+IR those implementation files consume.
+
 Propstore:
 
 - `pyproject.toml`
