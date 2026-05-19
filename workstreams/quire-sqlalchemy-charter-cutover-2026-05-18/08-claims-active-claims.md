@@ -1,4 +1,4 @@
-# Quire SQLAlchemy Charter Cutover: Claims And Active Claims
+# Quire SQLAlchemy Charter Cutover: Claims And Activation Cleanup
 
 Date: 2026-05-18
 
@@ -18,9 +18,12 @@ End state:
   `claim.concept_links`; it is not the persistence owner.
 - numeric, text, and algorithm payloads are typed payload components declared
   once in the claim charter.
-- `ActiveClaim` no longer repairs projection rows or duplicates the claim
-  charter. Active runtime behavior remains only as an explicitly named view
-  over typed `Claim` data or as owner-layer rendering/adaptation.
+- `ActiveClaim` is deleted. Activation is a query state over typed `Claim`
+  objects, not a second claim object family.
+- `ActiveClaimInput`, `coerce_active_claim`, and `coerce_active_claims` are
+  deleted with the dict/mapping boundary they supported.
+- `ActiveClaimVariable` is renamed/moved to the claim algorithm payload owner
+  as `ClaimAlgorithmVariable`.
 
 ## Prerequisites
 
@@ -121,8 +124,13 @@ as the work queue:
 - `_optional_int`;
 - claim projection codecs for claim id, concept id, claim type, algorithm
   stage, logical ids, provenance, source, and concept-link role;
+- `propstore/core/active_claims.py` after `ClaimAlgorithmVariable` is moved to
+  the claim algorithm payload owner;
 - `ActiveClaim` row-repair coercion that duplicates the claim charter;
+- `ActiveClaimInput`;
+- `ActiveClaim.from_claim`;
 - `ActiveClaim.from_mapping`;
+- `ActiveClaimVariable`;
 - generic claim `from_mapping` projection constructors;
 - `coerce_active_claim`;
 - `coerce_active_claims`;
@@ -159,12 +167,15 @@ File: `propstore/core/active_claims.py`.
 
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
-| `ActiveClaimVariable` | move | Keep as algorithm variable value object only when the `Claim`/algorithm payload model uses it directly; otherwise move to claim algorithm payload model. |
+| `ActiveClaimVariable` | move | Rename/move to `ClaimAlgorithmVariable` in the claim algorithm payload owner; delete the `Active*` spelling. |
 | `_parse_conditions` | delete | Replaced by typed checked-condition fields on `Claim`; no row JSON repair. |
 | `_parse_variables` | move | Move to algorithm payload document/model boundary; delete runtime row parser. |
 | `_parse_checked_conditions` | delete | Quire JSON adapter plus claim model owns checked-condition loading. |
 | `_require_claim_concept_link_role` | delete | SQLAlchemy `ClaimConceptLink.role` uses typed enum validation. |
 | `_coerce_claim_concept_link` | delete | `SimpleNamespace` link repair is deleted; `ClaimConceptLink` is the object. |
+| `ActiveClaim` | delete | Replace with typed `Claim` plus activation query results; delete the parallel active claim object family. |
+| `ActiveClaimInput` | delete | Runtime receives typed `Claim`; dict/mapping input unions are deleted. |
+| `ActiveClaim.from_claim` | delete | Projection/dict coercion constructor is deleted. |
 | `ActiveClaim.from_mapping` | delete | Projection-row construction path is deleted. |
 | `ActiveClaim.to_dict` | replace | Replace with explicit view/document payload rendering that does not import `CLAIM_ROW_MODEL`. |
 | `ActiveClaim.to_source_claim_payload` | move | Move conflict-detector payload rendering to a conflict-detector input adapter; delete the `ActiveClaim` method. |
@@ -367,7 +378,12 @@ rg -n -F -- "extract_typed_claim_fields" propstore tests
 rg -n -F -- "resolve_equation_sympy" propstore tests
 rg -n -F -- "resolve_algorithm_storage" propstore tests
 rg -n -F -- "extract_deferred_stance_rows_with_diagnostics" propstore tests
+rg -n -F -- "propstore.core.active_claims" propstore tests
+rg -n -F -- "ActiveClaimInput" propstore tests
+rg -n -F -- "ActiveClaimVariable" propstore tests
+rg -n -F -- "ActiveClaim.from_claim" propstore tests
 rg -n -F -- "ActiveClaim.from_mapping" propstore tests
+rg -n -F -- "ActiveClaim(" propstore tests
 rg -n -F -- "coerce_active_claim" propstore tests
 rg -n -F -- "coerce_active_claims" propstore tests
 rg -n -F -- "_coerce_claim_concept_link" propstore tests
@@ -394,8 +410,11 @@ This slice is complete only when:
   render policy, FTS, embedding source rows, and worldline materialization use
   typed model/session APIs;
 - every semantic move listed above has a final Propstore owner;
-- `ActiveClaim` no longer owns mapping repair, row JSON parsing, source-claim
-  payload rendering, or projection-row coercion;
+- `ActiveClaim`, `ActiveClaimInput`, `ActiveClaimVariable`,
+  `coerce_active_claim`, and `coerce_active_claims` are absent from production
+  code and tests;
+- activation-specific claim behavior is expressed as typed `Claim` queries or
+  owner-layer result objects, not a second claim class;
 - every named caller/update surface no longer imports claim projection rows,
   storage models, table constants, raw SQLite selectors, or row dictionaries;
 - the data parity gate passes;
