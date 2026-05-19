@@ -1,0 +1,227 @@
+# Quire FTS And Vector Workstream
+
+Date: 2026-05-18
+
+## Goal
+
+Implement Quire-owned SQLAlchemy FTS and vector support before any Propstore
+build-orchestration or family cutover starts.
+
+Final state:
+
+- FTS is implemented through SQLAlchemy extension machinery, not Quire
+  projection classes and not Propstore raw SQL.
+- `sqlalchemy-fts5` can express the concept-like and claim-like FTS tables and
+  queries Propstore needs.
+- Quire vector support covers create, insert, search, snapshot, and restore
+  behavior for derived stores.
+- `quire/sqlite_vec_store.py` keeps the useful generic entity/snapshot API
+  while replacing raw connection/table plumbing that belongs to the
+  SQLAlchemy charter engine.
+- Quire exposes charter/index/cache declarations for FTS and vector storage.
+- Propstore family work does not need FTS or vector workarounds.
+
+## Scope And Repositories
+
+Repositories:
+
+- `C:\Users\Q\code\quire`
+- `C:\Users\Q\code\sqlalchemy-fts5`
+
+Owned surfaces:
+
+- `C:\Users\Q\code\sqlalchemy-fts5`
+- `C:\Users\Q\code\quire\quire\sqlite_vec_store.py`
+- Quire SQLAlchemy charter/schema/index/cache machinery
+- Quire derived-store session/catalog integration touched by FTS/vector support
+
+Do not edit Propstore production code in this workstream.
+
+## Prerequisites
+
+Before implementation:
+
+1. Confirm the Quire SQLAlchemy dependency and capability workstream is
+   complete.
+2. Confirm the Quire charter/schema IR workstream is complete.
+3. Confirm the Quire SQLAlchemy table, mapping, session, and catalog
+   workstream is complete.
+4. Confirm current worktree state in both repositories.
+5. Confirm dependency references are not local filesystem pins.
+
+Required dependency-pin searches:
+
+```powershell
+Set-Location C:\Users\Q\code\quire
+rg -n -F -- "file://" pyproject.toml uv.lock
+rg -n -F -- "path =" pyproject.toml
+rg -n -F -- "workspace = true" pyproject.toml
+rg -n -F -- "C:" pyproject.toml uv.lock
+
+Set-Location C:\Users\Q\code\sqlalchemy-fts5
+rg -n -F -- "file://" pyproject.toml uv.lock
+rg -n -F -- "path =" pyproject.toml
+rg -n -F -- "workspace = true" pyproject.toml
+rg -n -F -- "C:" pyproject.toml uv.lock
+```
+
+Any dependency entry that resolves only from the local filesystem fails the
+prerequisite gate.
+
+## Execution Rules
+
+- Execute this workstream before Propstore build orchestration.
+- Prove extension capability in `sqlalchemy-fts5` before adding Quire
+  production usage.
+- Fix `sqlalchemy-fts5` when it cannot express the required FTS5 behavior.
+- Keep FTS out of Quire projection classes.
+- Keep FTS out of Propstore raw string SQL.
+- Keep vector behavior in Quire instead of pushing it into Propstore family
+  cutovers.
+- Delete or replace Quire `FtsProjection` and `VecProjection` production
+  usage for this slice; before the final Quire projection-module deletion
+  phase, remaining hits are an inventory that must not be imported by new
+  Propstore cutover code.
+
+## FTS Implementation
+
+Required path:
+
+1. Inspect `C:\Users\Q\code\sqlalchemy-fts5`.
+2. Confirm `C:\Users\Q\code\sqlalchemy-fts5` exists.
+3. Run the existing `sqlalchemy-fts5` gates.
+4. Use or fix `sqlalchemy-fts5` for FTS5 virtual tables.
+5. Add proof coverage for concept-like FTS:
+   - table creation through SQLAlchemy extension APIs;
+   - indexed concept id, label/name/symbol text, alias text, and searchable
+     normalized text fields required by Propstore concept search;
+   - query behavior that returns stable entity identifiers and ranks.
+6. Add proof coverage for claim-like FTS:
+   - table creation through SQLAlchemy extension APIs;
+   - indexed claim id, text payload, algorithm or equation text, provenance
+     text, and searchable rendered text fields required by Propstore claim
+     search;
+   - query behavior that returns stable entity identifiers and ranks.
+7. Expose the Quire charter/index declaration needed to bind FTS virtual tables
+   to generated SQLAlchemy tables and mapped domain classes.
+8. Ensure Quire derived-store create/rebuild opens the extension and creates
+   FTS artifacts through the same catalog lifecycle as generated tables.
+9. Ensure Quire read-only runtime sessions can execute FTS queries without raw
+   Propstore SQL.
+
+Completion state for FTS:
+
+- `sqlalchemy-fts5` owns FTS5 virtual-table expression for SQLAlchemy.
+- Quire owns generic FTS declaration, creation, and query adapters.
+- Propstore can declare concept and claim search intent through charters.
+- No new Propstore search path depends on `FtsProjection` or hand-written FTS
+  SQL.
+
+## Vector Implementation
+
+Vector behavior:
+
+1. Inspect current `quire/sqlite_vec_store.py`.
+2. Preserve the useful generic entity/snapshot API.
+3. Replace raw connection/table setup with SQLAlchemy-backed vector cache
+   machinery where it overlaps the charter engine.
+4. Express vector stores as charter/index/cache declarations.
+5. Support vector table create, insert, search, snapshot, and restore.
+6. Integrate vector caches with Quire derived-store writable build sessions.
+7. Integrate vector search with Quire read-only runtime sessions.
+8. Preserve embedding model identity and snapshot/restore policy hooks needed
+   by Propstore.
+
+Completion state for vector support:
+
+- Quire owns vector cache schema creation and validation.
+- Quire owns vector insert/search APIs over SQLAlchemy-derived stores.
+- Quire owns vector snapshot/restore APIs.
+- Propstore embedding families supply entity policy and text-source policy
+  through charters and domain code, not raw vector table plumbing.
+
+## Required Gates
+
+Run in `sqlalchemy-fts5`:
+
+```powershell
+Set-Location C:\Users\Q\code\sqlalchemy-fts5
+uv run pyright
+uv run pytest -vv
+```
+
+Run in Quire:
+
+```powershell
+Set-Location C:\Users\Q\code\quire
+uv run pyright
+uv run pytest -vv
+```
+
+Required proof results:
+
+- concept-like FTS proof query passes;
+- claim-like FTS proof query passes;
+- vector table create proof passes;
+- vector insert proof passes;
+- vector search proof passes;
+- vector snapshot proof passes;
+- vector restore proof passes;
+- no local path dependency pins.
+
+## Quire-First Completion Gate
+
+This gate must pass before
+`04-propstore-build-orchestration.md` starts.
+
+Quire must have:
+
+- SQLAlchemy dependency declared from a published package source;
+- charter/schema IR;
+- generated SQLAlchemy tables;
+- imperative mappings;
+- generated relationships;
+- association object mapping;
+- enum conversion;
+- JSON value object conversion;
+- schema catalog/hash/version validation;
+- writable build sessions;
+- read-only runtime sessions;
+- derived-store handle integration;
+- FTS through `sqlalchemy-fts5` or a fixed owned SQLAlchemy extension;
+- vector create/insert/search/snapshot support;
+- passing Quire type and test gates.
+
+Required commands in Quire:
+
+```powershell
+Set-Location C:\Users\Q\code\quire
+uv run pyright
+uv run pytest -vv
+rg -n -F -- "ProjectionTable" quire tests
+rg -n -F -- "ProjectionModel" quire tests
+rg -n -F -- "FtsProjection" quire tests
+rg -n -F -- "VecProjection" quire tests
+```
+
+Before the final Quire projection-module deletion workstream, the search
+output is an inventory of remaining old paths, not a passing gate. Copy that
+inventory into the workstream report. New Propstore cutover work must not
+import those old paths.
+
+## Completion Criteria
+
+This workstream is complete only when:
+
+- `sqlalchemy-fts5` passes its type and test gates.
+- Quire passes its type and test gates.
+- Quire has FTS declarations, creation, and query support through SQLAlchemy
+  extension machinery.
+- Quire has vector declarations, create/insert/search, and snapshot/restore
+  support.
+- Quire derived-store handles integrate FTS/vector support with writable build
+  sessions and read-only runtime sessions.
+- Quire schema catalog/hash/version validation accounts for FTS and vector
+  artifacts.
+- The required old-path inventory searches have been run and recorded.
+- No local dependency pin is present.
