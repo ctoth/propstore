@@ -158,17 +158,20 @@ File: `propstore/core/active_claims.py`.
 
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
-| `ActiveClaimVariable` | move | Keep as algorithm variable value object only when the `Claim`/algorithm payload model uses it directly; otherwise move to claim algorithm payload model. |
+| `ActiveClaimVariable` | move | Rename/move to `ClaimAlgorithmVariable` in the claim algorithm payload owner; delete the `Active*` spelling. |
 | `_parse_conditions` | delete | Replaced by typed checked-condition fields on `Claim`. |
 | `_parse_variables` | move | Move to algorithm payload document/model boundary. |
 | `_parse_checked_conditions` | delete | Quire JSON adapter plus claim model owns checked-condition loading. |
 | `_require_claim_concept_link_role` | delete | SQLAlchemy `ClaimConceptLink.role` uses typed enum validation. |
 | `_coerce_claim_concept_link` | delete | `ClaimConceptLink` is the object. |
+| `ActiveClaim` | delete | Replace with typed `Claim` plus activation query results; delete the parallel active claim object family. |
+| `ActiveClaimInput` | delete | Runtime receives typed `Claim`; dict/mapping input unions are deleted. |
+| `ActiveClaim.from_claim` | delete | Projection/dict coercion constructor is deleted. |
 | `ActiveClaim.from_mapping` | delete | Projection-row construction path is deleted. |
 | `ActiveClaim.to_dict` | replace | Replace with explicit view/document payload rendering that does not import `CLAIM_ROW_MODEL`. |
 | `ActiveClaim.to_source_claim_payload` | move | Move conflict-detector payload rendering to a conflict-detector input adapter. |
-| `coerce_active_claim` | delete | Runtime receives typed `Claim` or named active view models. |
-| `coerce_active_claims` | delete | Runtime receives typed `Claim` or named active view models. |
+| `coerce_active_claim` | delete | Runtime receives typed `Claim`; mapping coercion is deleted. |
+| `coerce_active_claims` | delete | Runtime receives typed `Claim`; mapping coercion is deleted. |
 
 ## Relation Helpers
 
@@ -198,8 +201,10 @@ Files: `propstore/core/micropublications.py` and
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
 | `_parse_string_tuple` | delete | Generic row string parsing is deleted. |
+| `ActiveMicropublication` | delete | Replace with typed `Micropublication` plus `MicropublicationClaimLink`; active is a query state, not a second object family. |
+| `ActiveMicropublicationInput` | delete | Runtime receives typed `Micropublication`; dict/mapping input unions are deleted. |
 | `ActiveMicropublication.from_mapping` | delete | Projection-row construction path is deleted. |
-| `coerce_active_micropublication` | delete | Runtime receives typed `Micropublication` or active view models. |
+| `coerce_active_micropublication` | delete | Runtime receives typed `Micropublication`; mapping coercion is deleted. |
 | `MicropublicationProjectionRow` | delete | Replace with `Micropublication` model. |
 | `MicropublicationClaimProjectionRow` | delete | Replace with `MicropublicationClaimLink` association object. |
 | `MicropublicationSidecarRows` | delete | Replace with typed write plan/session adds. |
@@ -208,6 +213,20 @@ Files: `propstore/core/micropublications.py` and
 | `create_micropublication_tables` | delete | Quire charter creates tables. |
 | `populate_micropublications` | delete | Replace with SQLAlchemy session add/flush. |
 | `select_all_micropublications` | replace | Replace with SQLAlchemy session query. |
+
+## World And Activation Helpers
+
+Files: `propstore/core/graph_types.py`, `propstore/world/model.py`,
+`propstore/world/value_resolver.py`, `propstore/world/atms.py`,
+`propstore/world/overlay.py`, and `propstore/core/environment.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| `_claim_rows` | delete | Replace raw `select_claim_rows` wrapper with typed Quire session/model query. |
+| `ActiveClaimInput` protocol usage | delete | World/environment APIs receive typed `Claim` objects, not dict/mapping unions. |
+| `ActiveMicropublicationInput` protocol usage | delete | World/environment APIs receive typed `Micropublication` objects, not dict/mapping unions. |
+| `ActiveClaimResolver` | replace | Rename to `ClaimValueResolver` and make it consume typed `Claim` query results. |
+| `ActiveWorldGraph` | replace | Rename to `WorldActivationGraph`; keep activation graph semantics, delete misleading active-object-family spelling. |
 
 ## Grounding And Rule Helpers
 
