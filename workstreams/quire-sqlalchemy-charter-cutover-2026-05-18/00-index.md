@@ -94,23 +94,19 @@ Sibling files:
 
 - `00-index.md`: global target architecture, rules, phase order, dependency rules, parity/search rules, and completion criteria.
 - `inventory-matrix.md`: full inventory deletion matrix with current owner, final owner, required action, and child workstream owner file.
-- `01-quire-sqlalchemy-capability-proof.md`: Quire dependency and SQLAlchemy capability proof.
-- `02-quire-charter-schema-ir.md`: Quire charter/schema IR.
-- `03-quire-sqlalchemy-engine.md`: Quire SQLAlchemy table/mapping/session/catalog engine.
-- `04-fts-vector.md`: FTS and vector implementation in Quire and `sqlalchemy-fts5`.
-- `05-build-orchestration-cutover.md`: Propstore build orchestration cutover.
-- `06-source-vertical-slice.md`: source model/charter vertical slice.
-- `07-forms-source-closure.md`: forms and source cleanup closure.
-- `08-concept-form-parameterization.md`: concept, form, alias, relationship, and parameterization slice.
-- `09-context-lifting.md`: context and lifting slice.
-- `10-claim-model-association-objects.md`: claim model and association object slice.
-- `11-relations-stances-conflicts.md`: relations, stances, and conflicts slice.
-- `12-justifications-micropublications.md`: justifications and micropublications slice.
-- `13-rules-grounding-diagnostics-calibration-embeddings.md`: rules, grounding, diagnostics, calibration, and embeddings slice.
-- `14-worldquery-graph-reasoning-cutover.md`: WorldQuery, session, graph, and reasoning cutover.
-- `15-delete-quire-projection-modules.md`: delete Quire projection modules and public exports.
-- `16-delete-propstore-projection-helper-leftovers.md`: delete Propstore projection/helper leftovers.
-- `17-final-gates.md`: final gates, docs, and dependency pin.
+- `01-quire-capability-and-charter.md`: Quire dependency, SQLAlchemy capability proof, and charter/schema IR.
+- `02-quire-sqlalchemy-engine.md`: Quire SQLAlchemy table/mapping/session/catalog engine.
+- `03-quire-fts-vector.md`: FTS and vector implementation in Quire and `sqlalchemy-fts5`.
+- `04-propstore-build-orchestration.md`: Propstore build orchestration cutover.
+- `05-source-and-diagnostics.md`: source model/charter vertical slice and diagnostic model cutover.
+- `06-forms-concepts-parameterizations.md`: forms, concepts, aliases, relationships, and parameterizations.
+- `07-contexts-lifting.md`: context and lifting slice.
+- `08-claims-active-claims.md`: claim model, association objects, and active-claim runtime.
+- `09-relations-stances-conflicts.md`: relations, stances, and conflicts slice.
+- `10-micropublications-justifications.md`: justifications and micropublications slice.
+- `11-rules-grounding-calibration-embeddings.md`: rules, grounding, calibration, embeddings, and vector runtimes.
+- `12-world-query-graph-reasoning.md`: WorldQuery, session, graph, and reasoning cutover.
+- `13-final-deletion-gates.md`: delete Quire projection modules, delete Propstore projection/helper leftovers, final gates, docs, and dependency pin.
 
 ## Phase Order
 
@@ -119,24 +115,20 @@ Execute in this exact order:
 | Phase | Child workstream file | Gate to proceed |
 | --- | --- | --- |
 | 0. Mechanical order check and current-state inventory confirmation | `00-index.md` and `inventory-matrix.md` | Order checker passes; inventory, architecture note, worktree state, Quire pin, and old-path imports are listed. |
-| 1. Quire SQLAlchemy dependency and capability proof | `01-quire-sqlalchemy-capability-proof.md` | Quire proof tests and Quire type/test gates pass. |
-| 2. Quire charter/schema IR | `02-quire-charter-schema-ir.md` | Quire charter/schema IR exists and composes with existing family/document/placement/reference APIs. |
-| 3. Quire SQLAlchemy table/mapping/session/catalog engine | `03-quire-sqlalchemy-engine.md` | Generated DDL, mapping, sessions, relationships, schema catalog, and hash tests pass. |
-| 4. Quire FTS and vector implementation | `04-fts-vector.md` | `sqlalchemy-fts5` and Quire FTS/vector gates pass with no local dependency pins. |
-| Quire-first completion gate | `04-fts-vector.md` | Quire has the full SQLAlchemy charter engine before Propstore build orchestration starts. |
-| 5. Build orchestration cutover | `05-build-orchestration-cutover.md` | Propstore build path uses Quire writable sessions and charter catalogs, with data parity. |
-| 6. Source vertical slice | `06-source-vertical-slice.md` | Source projection rows/tables/helpers are deleted and source parity passes. |
-| 7. Forms and sources cleanup closure | `07-forms-source-closure.md` | Duplicate form facade and source closure leftovers are deleted. |
-| 8. Concept/form/parameterization slice | `08-concept-form-parameterization.md` | Concept/form/parameterization projection surfaces are deleted and parity passes. |
-| 9. Context/lifting slice | `09-context-lifting.md` | Context/lifting projection surfaces are deleted and parity passes. |
-| 10. Claim model and association-object slice | `10-claim-model-association-objects.md` | Claim split row models/helpers are deleted and claim parity passes. |
-| 11. Relations/stances/conflicts slice | `11-relations-stances-conflicts.md` | Relation/stance/conflict row models are deleted and parity passes. |
-| 12. Justifications and micropublications slice | `12-justifications-micropublications.md` | Micropublication/justification projection surfaces are deleted and parity passes. |
-| 13. Rules/grounding/diagnostics/calibration/embeddings slice | `13-rules-grounding-diagnostics-calibration-embeddings.md` | Support families use typed models, Quire vector APIs, and typed diagnostics. |
-| 14. WorldQuery/session/graph/reasoning cutover | `14-worldquery-graph-reasoning-cutover.md` | WorldQuery uses Quire sessions and typed model queries. |
-| 15. Delete Quire projection modules | `15-delete-quire-projection-modules.md` | Quire projection modules, exports, and old primitive tests are deleted; Quire search gates are zero-hit outside docs. |
-| 16. Delete Propstore projection/helper leftovers | `16-delete-propstore-projection-helper-leftovers.md` | Propstore projection/helper search gates are zero-hit outside docs. |
-| 17. Full gates, docs, and final dependency pin | `17-final-gates.md` | Quire and Propstore full gates pass; Propstore is pinned to a pushed Quire commit/tag. |
+| 1-2. Quire SQLAlchemy capability proof and charter/schema IR | `01-quire-capability-and-charter.md` | Quire proof tests pass; charter/schema IR composes with existing family/document/placement/reference APIs. |
+| 3. Quire SQLAlchemy table/mapping/session/catalog engine | `02-quire-sqlalchemy-engine.md` | Generated DDL, mapping, sessions, relationships, schema catalog, and hash tests pass. |
+| 4. Quire FTS and vector implementation | `03-quire-fts-vector.md` | `sqlalchemy-fts5` and Quire FTS/vector gates pass with no local dependency pins. |
+| Quire-first completion gate | `03-quire-fts-vector.md` | Quire has the full SQLAlchemy charter engine before Propstore build orchestration starts. |
+| 5. Build orchestration cutover | `04-propstore-build-orchestration.md` | Propstore build path uses Quire writable sessions and charter catalogs, with data parity. |
+| 6. Source and diagnostics slice | `05-source-and-diagnostics.md` | Source projection rows/tables/helpers and diagnostic projection tables are deleted; parity passes. |
+| 7-8. Forms, concepts, and parameterizations slice | `06-forms-concepts-parameterizations.md` | Duplicate form facade and concept/form/parameterization projection surfaces are deleted; parity passes. |
+| 9. Context/lifting slice | `07-contexts-lifting.md` | Context/lifting projection surfaces are deleted and parity passes. |
+| 10. Claim model and association-object slice | `08-claims-active-claims.md` | Claim split row models/helpers and active-claim row coercion are deleted; claim parity passes. |
+| 11. Relations/stances/conflicts slice | `09-relations-stances-conflicts.md` | Relation/stance/conflict row models are deleted and parity passes. |
+| 12. Justifications and micropublications slice | `10-micropublications-justifications.md` | Micropublication/justification projection surfaces are deleted and parity passes. |
+| 13. Rules/grounding/calibration/embeddings slice | `11-rules-grounding-calibration-embeddings.md` | Support families use typed models and Quire vector APIs. |
+| 14. WorldQuery/session/graph/reasoning cutover | `12-world-query-graph-reasoning.md` | WorldQuery uses Quire sessions and typed model queries. |
+| 15-17. Final deletion gates and dependency pin | `13-final-deletion-gates.md` | Quire projection modules and Propstore projection/helper leftovers are deleted; full gates pass; Propstore is pinned to a pushed Quire commit/tag. |
 
 Write or run an order checker before production implementation. The checker must prove each dependent phase appears after its prerequisites. If it fails, repair the workstream files before editing code.
 
