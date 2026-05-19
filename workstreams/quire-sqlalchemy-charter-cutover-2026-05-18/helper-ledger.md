@@ -158,7 +158,7 @@ File: `propstore/core/active_claims.py`.
 
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
-| `ActiveClaimVariable` | move | Move to claim algorithm payload model when the mapped model owns it; otherwise delete with the row view. |
+| `ActiveClaimVariable` | move | Keep as algorithm variable value object only when the `Claim`/algorithm payload model uses it directly; otherwise move to claim algorithm payload model. |
 | `_parse_conditions` | delete | Replaced by typed checked-condition fields on `Claim`. |
 | `_parse_variables` | move | Move to algorithm payload document/model boundary. |
 | `_parse_checked_conditions` | delete | Quire JSON adapter plus claim model owns checked-condition loading. |
