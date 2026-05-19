@@ -108,7 +108,10 @@ as the work queue:
 - `MicropublicationProjectionRow`;
 - `MicropublicationClaimProjectionRow`;
 - `MicropublicationSidecarRows`;
+- `MICROPUBLICATION_PROJECTION`;
+- `MICROPUBLICATION_CLAIM_PROJECTION`;
 - `MICROPUBLICATION_ROW_MODEL`;
+- `JUSTIFICATION_STORAGE_MODEL`;
 - `ActiveMicropublication.from_mapping`;
 - `coerce_active_micropublication`;
 - `_parse_string_tuple`;
@@ -282,7 +285,10 @@ powershell -File scripts/run_logged_pytest.ps1 -Label micropub-justification-cha
 rg -n -F -- "MicropublicationProjectionRow" propstore tests
 rg -n -F -- "MicropublicationClaimProjectionRow" propstore tests
 rg -n -F -- "MicropublicationSidecarRows" propstore tests
+rg -n -F -- "MICROPUBLICATION_PROJECTION" propstore tests
+rg -n -F -- "MICROPUBLICATION_CLAIM_PROJECTION" propstore tests
 rg -n -F -- "MICROPUBLICATION_ROW_MODEL" propstore tests
+rg -n -F -- "JUSTIFICATION_STORAGE_MODEL" propstore tests
 rg -n -F -- "ActiveMicropublication.from_mapping" propstore tests
 rg -n -F -- "coerce_active_micropublication" propstore tests
 rg -n -F -- "_parse_string_tuple" propstore tests
