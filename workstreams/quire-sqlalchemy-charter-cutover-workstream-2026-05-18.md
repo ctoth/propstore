@@ -375,7 +375,7 @@ File: `propstore/core/active_claims.py`.
 | `_coerce_claim_concept_link` | delete | `SimpleNamespace` link repair is deleted; `ClaimConceptLink` is the object. |
 | `ActiveClaim.from_mapping` | delete | Projection-row construction path is deleted. |
 | `ActiveClaim.to_dict` | replace | Replace with explicit view/document payload rendering that does not import `CLAIM_ROW_MODEL`. |
-| `ActiveClaim.to_source_claim_payload` | keep-boundary | Keep only as source document rendering, renamed to a boundary-specific source payload renderer if still needed. |
+| `ActiveClaim.to_source_claim_payload` | move | Move conflict-detector payload rendering to a conflict-detector input adapter; delete the `ActiveClaim` method. |
 | `coerce_active_claim` | delete | Runtime receives typed `Claim` or named active view models, not mappings. |
 | `coerce_active_claims` | delete | Runtime receives typed `Claim` or named active view models, not mappings. |
 
@@ -387,15 +387,15 @@ File: `propstore/families/concepts/declaration.py`.
 | --- | --- | --- |
 | `ConceptRelationshipProjectionRow` | delete | Replace with typed `ConceptRelationship`/relation model. |
 | `ConceptSidecarRows` | delete | Replace with typed write plan/session adds. |
-| `_concept_symbol_candidates` | keep-boundary | Keep as concept semantic compilation helper if still needed by parameterization/form algebra. |
+| `_concept_symbol_candidates` | move | Move symbol-candidate semantics to concept/form-algebra owner; reuse the same owner from conflict detection and world value resolution. |
 | `compile_concept_sidecar_rows` | replace | Replace with typed concept/form/alias/relationship/parameterization model construction. |
 | `_compile_form_algebra_rows` | move | Move form algebra semantics to form/concept semantic owner; delete row helper. |
 | `ConceptRow` | delete | Replace with `Concept` model. |
 | `ConceptEmbeddingSource` | replace | Replace with typed embedding source projection over `Concept` model. |
 | `ParameterizationRow` | delete | Replace with `Parameterization` model. |
 | `populate_concept_sidecar_rows` | delete | Replace with SQLAlchemy session add/flush through Quire build session. |
-| `ConceptSearchQuerySyntaxError` | keep-boundary | Keep as app/search error type or move to concept search owner. |
-| `_is_concept_search_syntax_error` | move | Move to Quire FTS/search adapter or concept search owner. |
+| `ConceptSearchQuerySyntaxError` | move | Move to concept search owner as the domain error raised by Quire/SQLAlchemy FTS query adapters. |
+| `_is_concept_search_syntax_error` | move | Move SQLite/FTS syntax classification to Quire FTS adapter; concept search owner maps it to `ConceptSearchQuerySyntaxError`. |
 | `fetch_concept_search_hits` | replace | Replace raw FTS SQL with Quire/SQLAlchemy FTS query API; keep presentation mapping in app layer. |
 | `fetch_concept_search_hits_from_sidecar` | delete | Direct sidecar path opening is deleted; callers use Quire sessions. |
 | `select_concept_by_id` | replace | Replace with SQLAlchemy session query. |
@@ -427,7 +427,7 @@ File: `propstore/families/relations/declaration.py`.
 | `RelationshipRow` | delete | Replace with typed `ConceptRelation` model. |
 | `StanceRow` | delete | Replace with typed `Stance` model. |
 | `ConflictRow` | delete | Replace with typed `ConflictWitness` model. |
-| `_optional_numeric` | delete | Generic nullable numeric conversion belongs to Quire charter conversion or typed value object validation. |
+| `_optional_numeric` | delete | Generic nullable numeric conversion belongs to Quire charter conversion. |
 | `compile_authored_stance_sidecar_rows` | replace | Replace with `Stance` model construction. |
 | `compile_authored_stance_sidecar_rows_with_diagnostics` | move | Move stance reference validation/quarantine diagnostics to relation semantic owner; delete row output. |
 | `select_stances_between` | replace | Replace with SQLAlchemy relationship/session query. |
@@ -464,14 +464,14 @@ File: `propstore/families/rules/declaration.py`.
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
 | `GroundedFactProjectionRow` | delete | Replace with `GroundedFact` model. |
-| `GroundedFactEmptyPredicateProjectionRow` | delete | Replace with typed empty-predicate model or `GroundedFact` state. |
+| `GroundedFactEmptyPredicateProjectionRow` | delete | Replace with typed `GroundedEmptyPredicate` model. |
 | `GroundedBundleInputProjectionRow` | delete | Replace with `GroundedBundleInput` model. |
 | `create_grounded_fact_table` | delete | Quire charter creates tables. |
 | `populate_grounded_facts` | replace | Replace with model construction/session writes while preserving four-valued bundle semantics. |
 | `_persist_bundle_inputs` | replace | Replace raw row persistence with `GroundedBundleInput` model writes. |
 | `_read_bundle_inputs` | replace | Replace raw row reads with `GroundedBundleInput` model queries. |
-| `_encode_bundle_input` | keep-boundary | Keep as explicit grounding document/value serialization boundary, renamed if needed. |
-| `_decode_bundle_input` | keep-boundary | Keep as explicit grounding document/value serialization boundary, renamed if needed. |
+| `_encode_bundle_input` | keep-boundary | Keep as explicit grounding document/value serialization boundary. |
+| `_decode_bundle_input` | keep-boundary | Keep as explicit grounding document/value serialization boundary. |
 | `_bundle_input_payload` | keep-boundary | Keep as grounding payload conversion, not DB row helper. |
 | `_is_json_value` | keep-boundary | Keep only inside grounding payload serialization. |
 | `_encode_gunray_atom` | keep-boundary | Keep as Gunray payload serialization boundary. |
@@ -505,8 +505,8 @@ File: `propstore/families/contexts/declaration.py`.
 | --- | --- | --- |
 | `_nullable_text` | delete | Generic nullable text conversion belongs to Quire charter conversion. |
 | `_json_or_none` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
-| `_json_mapping` | delete | Generic JSON conversion belongs to Quire JSON adapter or typed context model field. |
-| `_json_string_tuple` | delete | Generic JSON conversion belongs to Quire JSON adapter or typed context model field. |
+| `_json_mapping` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `_json_string_tuple` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
 | `create_context_tables` | delete | Quire charter creates tables. |
 | `populate_contexts` | delete | Replace with SQLAlchemy session add/flush. |
 | `filter_invalid_context_lifting_rows` | move | Move invalid lifting-rule filtering semantics to context/lifting semantic owner. |
@@ -522,7 +522,7 @@ File: `propstore/families/diagnostics/declaration.py`.
 
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
-| `QuarantineDiagnostic` | keep-boundary | Keep as semantic diagnostic input value object or replace with `BuildDiagnostic`; no row coupling. |
+| `QuarantineDiagnostic` | keep-boundary | Keep as semantic diagnostic input value object with no row coupling. |
 | `Written` | replace | Replace with typed write/quarantine report not tied to projection insertion. |
 | `Quarantined` | replace | Replace with typed write/quarantine report not tied to projection insertion. |
 | `SourceStatusDiagnosticRow` | replace | Replace with typed source-status diagnostic view over `BuildDiagnostic`. |
