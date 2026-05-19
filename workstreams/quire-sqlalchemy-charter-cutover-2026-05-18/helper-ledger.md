@@ -79,7 +79,7 @@ File: `propstore/families/concepts/declaration.py`.
 | --- | --- | --- |
 | `ConceptRelationshipProjectionRow` | delete | Replace with typed `ConceptRelationship` or relation model. |
 | `ConceptSidecarRows` | delete | Replace with typed write plan/session adds. |
-| concept-symbol selection helper in `propstore/families/concepts/declaration.py` | move | Move symbol selection semantics to concept/form-algebra owner. |
+| `_concept_symbol_candidates` | move | Move symbol selection semantics to concept/form-algebra owner. |
 | `compile_concept_sidecar_rows` | replace | Replace with typed concept/form/alias/relationship/parameterization model construction. |
 | `_compile_form_algebra_rows` | move | Move form algebra semantics to form/concept semantic owner. |
 | `ConceptRow` | delete | Replace with `Concept` model. |
