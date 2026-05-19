@@ -287,11 +287,15 @@ behavior moves to Quire charter/session/catalog machinery or disappears.
 7. Replace raw SQLite access with Quire SQLAlchemy session/model access.
 8. Replace loose dict/list/row payloads with typed claim, payload, and
    association objects.
-9. Delete field-specific optional, enum, id, JSON, and row coercers once
+9. Use Rope for the `ActiveClaimVariable` to `ClaimAlgorithmVariable` move or
+   rename before hand-fixing imports and call sites. Verify with the named `rg`
+   gates because tests, docs, and dynamic references may remain outside Rope's
+   model.
+10. Delete field-specific optional, enum, id, JSON, and row coercers once
    generic charter conversion covers the field.
-10. Run the family gates.
-11. Run the old-path search gates.
-12. Run the data-parity gate.
+11. Run the family gates.
+12. Run the old-path search gates.
+13. Run the data-parity gate.
 
 No Propstore workaround is allowed for a missing Quire generic feature. A
 missing SQLAlchemy charter, association object, JSON, enum, relationship,

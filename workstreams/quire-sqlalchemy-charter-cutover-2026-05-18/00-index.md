@@ -64,6 +64,10 @@ If any capability gate fails, fix Quire or the SQLAlchemy extension first. Do no
 - Do not use passing tests, a clean commit, a useful proof, or a partial family cutover as completion while old-path search gates still fail.
 - Do not leave old/new dual production paths. The Quire charter engine must subsume the old projection schema before any Propstore family cutover. Family phases delete old writes and callers instead of running old and new read paths side by side.
 - Move files when the change is actually a move. Use `git mv` for same-repo moves.
+- Use Rope for Python symbol renames, symbol moves, and import-updating refactors
+  when the target is a project-wide Python API such as a model, resolver,
+  protocol, or graph type. Run the relevant `rg` gates after Rope to catch
+  string references, tests, docs, and any dynamic imports Rope cannot see.
 - For cross-repo Quire/Propstore changes, preserve move intent in commit messages and keep source/deletion slices paired.
 - Commit every intentional edit slice atomically with path-limited git commands in the repository being edited.
 - Push Quire changes before pinning Propstore to a Quire commit.

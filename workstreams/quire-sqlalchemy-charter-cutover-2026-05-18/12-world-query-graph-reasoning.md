@@ -198,14 +198,17 @@ Execute in this order:
    id sets, but it stops using the misleading active-object-family spelling.
 10. Rename `ActiveClaimResolver` to `ClaimValueResolver` and make it consume
    typed `Claim` query results.
-11. Delete `ActiveClaimInput` and `ActiveMicropublicationInput` from world,
+11. Use Rope for both project-wide Python renames above before hand-fixing
+   dynamic references, tests, docs, and string mentions exposed by the named
+   `rg` gates.
+12. Delete `ActiveClaimInput` and `ActiveMicropublicationInput` from world,
    environment, overlay, ATMS, ASPIC, support-revision, and value-resolution
    APIs.
-12. Replace generic persisted-result `from_mapping` constructors with
+13. Replace generic persisted-result `from_mapping` constructors with
    boundary-specific constructors.
-13. Run the world/query/graph/reasoning gates.
-14. Run the old-path search gates.
-15. Run the data-parity and behavior-parity gates.
+14. Run the world/query/graph/reasoning gates.
+15. Run the old-path search gates.
+16. Run the data-parity and behavior-parity gates.
 
 Implementation starts only after session, relationship, query, catalog, FTS,
 vector, JSON, and association-object capabilities are complete in their owning
