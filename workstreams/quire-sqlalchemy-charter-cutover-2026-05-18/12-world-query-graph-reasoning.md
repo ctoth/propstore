@@ -238,7 +238,7 @@ rg -n -F -- "row_factory" propstore/world propstore/families tests
 rg -n -F -- "connect_sqlite_store" propstore/world propstore/families tests
 rg -n -F -- "ProjectionRow" propstore/world propstore/families tests
 rg -n -F -- "ProjectionModel" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision propstore/aspic_bridge tests
-rg -n -F -- "from_mapping" propstore/worldline/result_types.py tests
+rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
 rg -n -F -- "claim_row_query_plan" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision tests
 rg -n -F -- "claim_stance_policy_query_plan" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision tests
 ```
