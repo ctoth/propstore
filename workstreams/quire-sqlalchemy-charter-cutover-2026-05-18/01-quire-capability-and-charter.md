@@ -96,7 +96,7 @@ The expected architecture is:
   `ClaimConceptLink`.
 - SQLAlchemy dataclass integration does not support frozen/slots mapped
   entities. Mapped domain objects must be instrumentable. Nested value objects
-  may remain frozen when they are not mapped entities.
+  stay frozen only when they are explicit non-mapped value objects.
 - SQLAlchemy attrs support is imperative-only and is not the foundation for
   this architecture.
 
