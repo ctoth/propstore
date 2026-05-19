@@ -108,6 +108,8 @@ as the work queue:
 - `MicropublicationProjectionRow`;
 - `MicropublicationClaimProjectionRow`;
 - `MicropublicationSidecarRows`;
+- `ActiveMicropublication`;
+- `ActiveMicropublicationInput`;
 - `MICROPUBLICATION_PROJECTION`;
 - `MICROPUBLICATION_CLAIM_PROJECTION`;
 - `MICROPUBLICATION_ROW_MODEL`;
@@ -133,8 +135,10 @@ Files: `propstore/core/micropublications.py` and
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
 | `_parse_string_tuple` | delete | Generic row string parsing is deleted. |
+| `ActiveMicropublication` | delete | Replace with typed `Micropublication` plus `MicropublicationClaimLink`; active is a query state, not a second object family. |
+| `ActiveMicropublicationInput` | delete | Runtime receives typed `Micropublication`; dict/mapping input unions are deleted. |
 | `ActiveMicropublication.from_mapping` | delete | Projection-row construction path is deleted. |
-| `coerce_active_micropublication` | delete | Runtime receives typed `Micropublication` or active view models, not mappings. |
+| `coerce_active_micropublication` | delete | Runtime receives typed `Micropublication`; mapping coercion is deleted. |
 | `MicropublicationProjectionRow` | delete | Replace with `Micropublication` model. |
 | `MicropublicationClaimProjectionRow` | delete | Replace with `MicropublicationClaimLink` association object. |
 | `MicropublicationSidecarRows` | delete | Replace with typed write plan/session adds. |
@@ -289,6 +293,8 @@ powershell -File scripts/run_logged_pytest.ps1 -Label micropub-justification-cha
 rg -n -F -- "MicropublicationProjectionRow" propstore tests
 rg -n -F -- "MicropublicationClaimProjectionRow" propstore tests
 rg -n -F -- "MicropublicationSidecarRows" propstore tests
+rg -n -F -- "ActiveMicropublication" propstore tests
+rg -n -F -- "ActiveMicropublicationInput" propstore tests
 rg -n -F -- "MICROPUBLICATION_PROJECTION" propstore tests
 rg -n -F -- "MICROPUBLICATION_CLAIM_PROJECTION" propstore tests
 rg -n -F -- "MICROPUBLICATION_ROW_MODEL" propstore tests
@@ -315,6 +321,10 @@ This slice is complete only when:
   `Micropublication`, and `MicropublicationClaimLink`;
 - `MicropublicationClaimLink` is the persistence owner for
   micropublication-to-claim link metadata;
+- `ActiveMicropublication`, `ActiveMicropublicationInput`, and
+  `coerce_active_micropublication` are absent from production code and tests;
+- ATMS and world code consume typed `Micropublication` and
+  `MicropublicationClaimLink` objects;
 - micropublication and justification population writes typed model objects
   through a Quire SQLAlchemy session;
 - micropublication lookup, justification views, analyzer inputs, ASPIC
