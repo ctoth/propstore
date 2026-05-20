@@ -398,6 +398,18 @@ Push blocker recorded 2026-05-20:
 - I did not create those five commits in this execution, and pushing `master` would publish them along with the SQLAlchemy charter commits. Shared worktree etiquette blocks that push without explicit user direction for the preexisting ahead commits.
 - Because the Quire push is blocked, Propstore dependency pinning and the Propstore Phase 2 gates have not run.
 
+Push blocker resolved 2026-05-20:
+
+- User explicitly authorized pushing the Quire ahead commits.
+- Quire push: `git push origin master` succeeded, updating `origin/master` from `1343248` to `c3e53c5`.
+- Pushed Quire commit pinned by Propstore: `c3e53c5c2be0492cc953d44dfa36d03765a447f4`.
+- Propstore pin commit: `0e666050 Pin Propstore to pushed Quire charter commit`; `pyproject.toml` and `uv.lock` both resolve Quire from `https://github.com/ctoth/quire` at `c3e53c5c2be0492cc953d44dfa36d03765a447f4`, never from a local checkout.
+- Propstore type gate: `uv run pyright propstore` passed with 0 errors, 0 warnings, 0 informations.
+- Dependency string gates: `quire @ file`, `quire @ ..`, `quire @ C:`, `path =`, and `workspace = true` returned no hits; `[tool.uv.sources]` is present.
+- Parsed dependency verification: `uv lock --check` resolved 159 packages; `uv tree --package quire` resolved Quire `v0.2.0` with `sqlalchemy v2.0.49` from the pushed Git package.
+
+Phase 1-2 is complete. Phase 3 may start.
+
 ## Completion Gates
 
 Run from `C:\Users\Q\code\quire`:
