@@ -619,6 +619,21 @@ Build-orchestration parity repair:
   after schema hash
   `sha256:f2e289081addae33724c4e468295796f0e49d2eff46c5b6ca6d3cb20175e02f5`,
   and matching table/key/row/FTS/vector/diagnostic comparisons.
+- Help gate after the final harness repair passed:
+  `uv run scripts/compare_sqlalchemy_charter_parity.py --help`.
+- Commit: `bb0f5789 Record build orchestration parity pass`.
+
+Phase 5 completion:
+
+- `propstore/derived_build.py` uses Quire writable build sessions and
+  charter/catalog APIs.
+- `propstore/derived_build_plan.py` carries typed model write batches.
+- `propstore/families/projection_catalog.py` is deleted.
+- Propstore world charter registration feeds the Quire schema catalog, and
+  schema hash/cache identity come from Quire schema catalog payloads.
+- Required type, logged pytest, help, old-path search, and data-parity gates
+  passed.
+- Phase 5 is complete. Next workstream: `05-source-and-diagnostics.md`.
 
 Old validation-wrapper audit:
 
