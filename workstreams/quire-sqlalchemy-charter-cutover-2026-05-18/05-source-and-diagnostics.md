@@ -394,3 +394,11 @@ Prerequisites:
   `powershell -File scripts/run_logged_pytest.ps1 -Label source-charter-focused tests/test_sidecar_source_projection.py tests/test_sidecar_projection_contract.py`
   returned `9 passed`; log:
   `logs/test-runs/source-charter-focused-20260520-115803.log`.
+- Commit `c1864f55` removed the remaining `SOURCE_PROJECTION` production
+  import by changing the claim read-plan's temporary source join metadata to
+  the new charter source columns. This is a Phase 6 source-column follow-up,
+  not the Phase 8 claim projection cutover.
+- Focused source old-path checks after `c1864f55`: `SOURCE_PROJECTION`,
+  `quality_json`, and `derived_from_json` returned zero production/test hits;
+  focused pyright over `propstore/families/claims/declaration.py` and
+  `propstore/families/claims/projection_model.py` returned 0 errors.
