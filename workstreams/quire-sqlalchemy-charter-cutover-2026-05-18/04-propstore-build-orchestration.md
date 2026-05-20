@@ -561,6 +561,16 @@ Old-path search repair:
 Next required item: rerun the Phase 5 required logged pytest gate after the
 old-path search repair, then run the build-orchestration parity gate.
 
+Post-repair required logged pytest gate:
+
+- Required logged pytest gate after the old-path search repair passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label build-orchestration-charter tests/test_build_sidecar.py tests/test_sidecar_projection_contract.py tests/test_fixture_schema_parity.py`
+  passed with 111 passed; log
+  `logs\test-runs\build-orchestration-charter-20260520-113215.log`.
+
+Next required item: rerun the Phase 5 type gate and old-path searches, then
+run the build-orchestration parity gate.
+
 Old validation-wrapper audit:
 
 - Exact-string audit found one production old-schema message rewrite:
