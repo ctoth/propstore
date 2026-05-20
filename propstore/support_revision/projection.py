@@ -5,12 +5,12 @@ import json
 from typing import TYPE_CHECKING
 
 import rfc8785
-from propstore.core.active_claims import ActiveClaim
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import AssumptionId, to_claim_id
 from propstore.core.labels import SupportQuality
-from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
+from propstore.core.relations import ClaimConceptLinkRole, RelationConceptRef, RoleBinding, RoleBindingSet
+from propstore.families.claims.declaration import Claim
 from propstore.json_types import JsonValue
 
 from propstore.support_revision.state import AssertionAtom, BeliefBase, RevisionScope
@@ -24,7 +24,7 @@ def snapshot_to_claim_ids(snapshot: "EpistemicSnapshot") -> set[str]:
 
     For each ``AssertionAtom`` in the snapshot's belief base whose
     ``atom_id`` is in ``snapshot.state.accepted_atom_ids``, collect the
-    string-form ``claim_id`` of every ``ActiveClaim`` in
+        string-form claim id of every typed ``Claim`` in
     ``atom.source_claims``. Many-to-one is honored: an accepted atom with
     N source claims contributes all N ids.
 
@@ -36,19 +36,19 @@ def snapshot_to_claim_ids(snapshot: "EpistemicSnapshot") -> set[str]:
     state = snapshot.state
     accepted = set(state.accepted_atom_ids)
     return {
-        str(claim.claim_id)
+        str(claim.id)
         for atom in state.base.atoms
         if isinstance(atom, AssertionAtom) and atom.atom_id in accepted
         for claim in atom.source_claims
     }
 
 
-def _claim_support_lookup_id(claim: ActiveClaim) -> str:
-    return to_claim_id(claim.claim_id)
+def _claim_support_lookup_id(claim: Claim) -> str:
+    return to_claim_id(claim.id)
 
 
 def situated_assertion_from_active_claim(
-    claim: ActiveClaim,
+    claim: Claim,
     *,
     context_id: object | None,
 ) -> SituatedAssertion:
@@ -70,7 +70,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
     supporting_assumption_ids: set[AssumptionId] = set()
     support_sets: dict[str, set[tuple[AssumptionId, ...]]] = {}
     essential_support: dict[str, set[AssumptionId]] = {}
-    for claim in sorted(bound.active_claims(None), key=lambda row: str(row.claim_id)):
+    for claim in sorted(bound.active_claims(None), key=lambda row: str(row.id)):
         label, quality = bound.claim_support(claim)
         if quality is not SupportQuality.EXACT:
             continue
@@ -149,36 +149,30 @@ def _revision_scope_from_bound(bound) -> RevisionScope:
     )
 
 
-def _relation_ref(claim: ActiveClaim) -> RelationConceptRef:
-    claim_type = "unknown" if claim.claim_type is None else claim.claim_type.value
+def _relation_ref(claim: Claim) -> RelationConceptRef:
+    claim_type = "unknown" if claim.type is None else claim.type.value
     return RelationConceptRef(f"ps:relation:claim:{claim_type}")
 
 
-def _role_bindings(claim: ActiveClaim) -> RoleBindingSet:
+def _role_bindings(claim: Claim) -> RoleBindingSet:
     bindings = [
         RoleBinding("subject", _claim_subject(claim)),
-        RoleBinding("value", _stable_value(claim.value)),
     ]
-    if claim.unit is not None:
-        bindings.append(RoleBinding("unit", claim.unit))
-    if claim.measure is not None:
-        bindings.append(RoleBinding("measure", claim.measure))
     return RoleBindingSet(tuple(bindings))
 
 
-def _claim_subject(claim: ActiveClaim) -> str:
-    for value in (
-        claim.value_concept_id,
-        claim.target_concept,
-        claim.attribute_value("concept_id"),
-    ):
-        if value is not None:
-            return str(value)
+def _claim_subject(claim: Claim) -> str:
+    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
+        for link in claim.concept_links:
+            if link.role is role:
+                return str(link.concept_id)
+    if claim.target_concept is not None:
+        return str(claim.target_concept)
     return "ps:concept:unscoped"
 
 
 def _context_ref(
-    claim: ActiveClaim,
+    claim: Claim,
     *,
     context_id: object | None,
 ) -> ContextReference:
@@ -189,28 +183,15 @@ def _context_ref(
     return ContextReference("ps:context:global")
 
 
-def _condition_ref(claim: ActiveClaim) -> ConditionRef:
-    if not claim.conditions:
-        return ConditionRef.unconditional()
-    payload: JsonValue = [str(condition) for condition in claim.conditions]
-    digest = _digest(payload)
-    return ConditionRef(
-        id=f"ps:condition:{digest}",
-        registry_fingerprint=f"claim-condition-source:{digest}",
-    )
+def _condition_ref(claim: Claim) -> ConditionRef:
+    return ConditionRef.unconditional()
 
 
-def _provenance_ref(claim: ActiveClaim) -> ProvenanceGraphRef:
-    source_payload: JsonValue = None if claim.source is None else claim.source.to_dict()
-    provenance_payload: JsonValue = (
-        None
-        if claim.provenance is None
-        else claim.provenance.to_dict()
-    )
+def _provenance_ref(claim: Claim) -> ProvenanceGraphRef:
     payload: JsonValue = [
-        str(claim.artifact_id),
-        source_payload,
-        provenance_payload,
+        str(claim.id),
+        claim.source_slug,
+        claim.provenance_json,
     ]
     return ProvenanceGraphRef(f"urn:propstore:claim-provenance:{_digest(payload)}")
 
