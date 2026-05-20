@@ -391,3 +391,46 @@ Quire family metadata access path for source family main models and
 reference/FK metadata. Proof coverage must exercise concept and claim FTS plus
 one vector cache through that same generic path, with no dedicated
 claim/concept lookup helper.
+
+### Post-Completion FTS/Vector Audit
+
+Recorded 2026-05-20.
+
+Current repository audit:
+
+- Current Propstore dependency state pins Quire to pushed commit
+  `2917fd08bd03cb2d317f4dceb5221b1e6b88a6e6`, superseding the earlier Phase 4
+  pins to `1d670267eba752a615122c26fdc551c466b06601`,
+  `852ab784c1c70484b2b6749393c8c0f8d043ac3d`, and
+  `65df665b85053c1741dcd22d3a12deb15f35a4be`.
+- Quire commit `5231267` repaired a later concept-search failure by adding
+  generic SQLAlchemy FTS query syntax-error classification in
+  `quire/sqlalchemy_store.py`; Propstore commit `2f143d43` pinned that pushed
+  Quire commit before app concept search moved to Quire `search_fts_index`.
+- The audited Quire code still exposes `search_fts_index(session, index_name,
+  query)` and FTS `source_query` declarations. The source-query capability is
+  recorded above and remains a Quire-owned FTS capability, not permission for
+  Propstore raw SQL or concept/claim-specific FTS helper wrappers.
+- The audited Quire code exposes generic family reference lookup through
+  `SqlAlchemySchema.reference_index_from_records`, `resolve_reference_id`, and
+  `require_reference_id`; that capability is recorded in
+  `02-quire-sqlalchemy-engine.md` and is included in the current Quire pin.
+
+Remaining fix audit:
+
+- Phase 4 is still complete for the original FTS/vector gate, but the
+  completed record required later repairs: FTS source-query population,
+  no-primary-key table mapping, FTS syntax-error classification, and generic
+  family metadata lookup. Those repairs are now all represented in the current
+  audited Quire pin.
+- The follow-up gate immediately above remains binding for future FTS/vector
+  slices: FTS source-query population, FTS query adapters, and vector cache
+  binding must prove they use Quire generic family metadata for source-family
+  models and reference/FK lookup. The current audit found generic lookup
+  capability in Quire, but did not find a completed FTS/vector proof that
+  exercises concept FTS, claim FTS, and one vector cache through that exact
+  generic path.
+- No Propstore FTS or vector cutover may replace that missing proof with raw
+  SQL, a sidecar-opening declaration helper, claim/concept lookup wrappers,
+  duplicate model maps, local model aliases, compatibility adapters, fallback
+  readers, or old/new dual paths.
