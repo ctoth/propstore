@@ -333,8 +333,8 @@ Run old-path searches:
 
 ```powershell
 rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
-rg -n -F -- "ProjectionSchema" propstore/derived_build.py propstore/derived_build_plan.py propstore/families/projection_catalog.py tests
-rg -n -F -- "ProjectionTable" propstore/derived_build.py propstore/derived_build_plan.py propstore/families/projection_catalog.py tests
+rg -n -F -- "ProjectionSchema" propstore/derived_build.py propstore/derived_build_plan.py tests
+rg -n -F -- "ProjectionTable" propstore/derived_build.py propstore/derived_build_plan.py tests
 rg -n -F -- "sqlite3.Connection" propstore/derived_build.py propstore/derived_build_plan.py tests
 ```
 
@@ -530,6 +530,36 @@ Parity harness required gate rerun:
 
 Next required item: run the Phase 5 help gate, old-path searches, and
 build-orchestration parity gate.
+
+Old-path search repair:
+
+- Help gate passed again: `uv run scripts/compare_sqlalchemy_charter_parity.py --help`.
+- Script existence gate passed:
+  `if (-not (Test-Path -LiteralPath scripts/compare_sqlalchemy_charter_parity.py -PathType Leaf)) { throw "missing scripts/compare_sqlalchemy_charter_parity.py" }`.
+- Old-path search gate first found remaining test-only Quire projection
+  primitive coverage in `tests/test_sidecar_projection_contract.py` and
+  `sqlite3.Connection` annotation/docstring spellings in tests.
+- Replaced `tests/test_sidecar_projection_contract.py` with SQLAlchemy
+  world-charter contract coverage and mechanically changed test annotations to
+  imported `Connection` so `sqlite3.Connection` no longer names the deleted
+  raw sidecar build path.
+- Updated the `ProjectionSchema` and `ProjectionTable` search gate command to
+  omit deleted file path `propstore/families/projection_catalog.py`; the file
+  is already deleted, so including it turns a zero-hit content search into a
+  missing-path error instead of strengthening the gate.
+- Focused rewritten-contract gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label sidecar-sqlalchemy-contract tests/test_sidecar_projection_contract.py`
+  passed with 8 passed; log
+  `logs\test-runs\sidecar-sqlalchemy-contract-20260520-113028.log`.
+- Old-path searches over the live target files returned no hits:
+  `PROPSTORE_WORLD_PROJECTION_SCHEMA`,
+  `ProjectionSchema`,
+  `ProjectionTable`, and
+  `sqlite3.Connection`.
+- Commit: `db0fec2a Replace projection contract test with charter contract`.
+
+Next required item: rerun the Phase 5 required logged pytest gate after the
+old-path search repair, then run the build-orchestration parity gate.
 
 Old validation-wrapper audit:
 
