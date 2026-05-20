@@ -1083,3 +1083,17 @@ Recorded 2026-05-20.
   zero hits for `propstore.core.active_claims`, `ActiveClaim`, and
   `select_claim_rows`. Refreshed world active-claim imports remain only in
   `world/overlay.py`, `world/atms.py`, and `world/resolution.py`.
+- World resolution active-claim deletion: commit `7e7de490` removed
+  `ActiveClaim`, `ActiveClaimInput`, `coerce_active_claim`, and
+  `coerce_active_claims` from `propstore/world/resolution.py`. Resolution,
+  ASPIC, claim-graph, PrAF, and ATMS projection builders now consume typed
+  `Claim` objects directly and read ids, numeric payload values, sample sizes,
+  and provenance fields from typed claim relationships/fields. Focused
+  verification `uv run pyright propstore/world/resolution.py` passed with
+  0 errors, and `rg -n -F -- "propstore.core.active_claims"
+  propstore/world/resolution.py`, `rg -n -F -- "ActiveClaim"
+  propstore/world/resolution.py`, and `rg -n -F -- "coerce_active_claim"
+  propstore/world/resolution.py` returned zero hits. Refreshed world
+  active-claim imports remain only in `world/overlay.py` and `world/atms.py`;
+  refreshed `CLAIM_ROW_MODEL` hits remain in `world/overlay.py`,
+  `world/atms.py`, and `world/queries.py`.
