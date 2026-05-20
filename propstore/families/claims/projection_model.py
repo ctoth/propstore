@@ -165,6 +165,26 @@ def _provenance_from_columns(values: Mapping[str, Any]) -> ClaimProvenance | Non
     )
 
 
+def _json_mapping(value: object) -> Mapping[str, Any] | None:
+    if isinstance(value, Mapping):
+        return dict(value)
+    if not isinstance(value, str) or not value:
+        return None
+    loaded = json.loads(value)
+    return dict(loaded) if isinstance(loaded, Mapping) else None
+
+
+def _json_sequence(value: object) -> tuple[str, ...]:
+    if isinstance(value, Sequence) and not isinstance(value, str):
+        return tuple(str(item) for item in value)
+    if not isinstance(value, str) or not value:
+        return ()
+    loaded = json.loads(value)
+    if isinstance(loaded, Sequence) and not isinstance(loaded, str):
+        return tuple(str(item) for item in loaded)
+    return ()
+
+
 def _source_to_columns(value: Any) -> Mapping[str, Any]:
     source = value if isinstance(value, ClaimSource) else ClaimSource.from_mapping(value)
     if source is None:
@@ -172,13 +192,10 @@ def _source_to_columns(value: Any) -> Mapping[str, Any]:
             "source_slug": None,
             "source_id": None,
             "source_kind": None,
-            "source_origin_type": None,
-            "source_origin_value": None,
-            "source_origin_retrieved": None,
-            "source_origin_content_ref": None,
-            "source_prior_base_rate": None,
-            "source_quality_json": None,
-            "source_derived_from_json": None,
+            "source_origin": None,
+            "source_trust": None,
+            "source_quality": None,
+            "source_derived_from": None,
         }
     trust = source.trust
     origin = source.origin
@@ -186,47 +203,29 @@ def _source_to_columns(value: Any) -> Mapping[str, Any]:
         "source_slug": source.slug,
         "source_id": source.source_id,
         "source_kind": None if source.kind is None else source.kind.value,
-        "source_origin_type": None if origin is None or origin.origin_type is None else origin.origin_type.value,
-        "source_origin_value": None if origin is None else origin.value,
-        "source_origin_retrieved": None if origin is None else origin.retrieved,
-        "source_origin_content_ref": None if origin is None else origin.content_ref,
-            "source_prior_base_rate": None if trust is None else trust.prior_base_rate_dict(),
-            "source_quality_json": None if trust is None else trust.quality_dict(),
-            "source_quality_opinion": None if trust is None else trust.quality_dict(),
-            "source_derived_from_json": None if trust is None or not trust.derived_from else json.dumps(list(trust.derived_from)),
-        }
+        "source_origin": None if origin is None else origin.to_dict(),
+        "source_trust": None
+        if trust is None
+        else {"prior_base_rate": trust.prior_base_rate_dict()},
+        "source_quality": None if trust is None else trust.quality_dict(),
+        "source_derived_from": None if trust is None or not trust.derived_from else list(trust.derived_from),
+    }
 
 
 def _source_from_columns(values: Mapping[str, Any]) -> ClaimSource | None:
+    source_trust = dict(_json_mapping(values.get("source_trust")) or {})
+    source_quality = _json_mapping(values.get("source_quality"))
+    source_derived_from = _json_sequence(values.get("source_derived_from"))
+    if source_quality is not None:
+        source_trust["quality"] = source_quality
+    if source_derived_from:
+        source_trust["derived_from"] = source_derived_from
     source = ClaimSource(
         source_id=None if values.get("source_id") is None else str(values["source_id"]),
         kind=None if values.get("source_kind") is None else coerce_source_kind(values["source_kind"]),
         slug=None if values.get("source_slug") is None else str(values["source_slug"]),
-        origin=SourceOrigin(
-            origin_type=(
-                None
-                if values.get("source_origin_type") is None
-                else coerce_source_origin_type(values["source_origin_type"])
-            ),
-            value=None if values.get("source_origin_value") is None else str(values["source_origin_value"]),
-            retrieved=(
-                None
-                if values.get("source_origin_retrieved") is None
-                else str(values["source_origin_retrieved"])
-            ),
-            content_ref=(
-                None
-                if values.get("source_origin_content_ref") is None
-                else str(values["source_origin_content_ref"])
-            ),
-        ),
-        trust=SourceTrust.from_mapping(
-            {
-                "prior_base_rate": values.get("source_prior_base_rate"),
-                "quality": values.get("source_quality_json") or values.get("source_quality_opinion"),
-                "derived_from": values.get("source_derived_from_json"),
-            }
-        ),
+        origin=SourceOrigin.from_mapping(_json_mapping(values.get("source_origin"))),
+        trust=SourceTrust.from_mapping(source_trust),
     )
     if source.is_empty:
         return None
@@ -458,6 +457,22 @@ CLAIM_STORAGE_TABLES = (
 )
 
 
+SOURCE_CHARTER_QUERY_TABLE = ProjectionTable(
+    name="source",
+    columns=(
+        ProjectionColumn("slug", "TEXT", primary_key=True),
+        ProjectionColumn("source_id", "TEXT", nullable=False),
+        ProjectionColumn("kind", "TEXT", nullable=False),
+        ProjectionColumn("origin", "TEXT"),
+        ProjectionColumn("trust", "TEXT"),
+        ProjectionColumn("quality", "TEXT"),
+        ProjectionColumn("derived_from", "TEXT"),
+        ProjectionColumn("artifact_code", "TEXT"),
+    ),
+    indexes=(ProjectionIndex("idx_source_source_id", ("source_id",)),),
+)
+
+
 def claim_row_query_plan(
     *,
     claim_core: ProjectionTable,
@@ -538,13 +553,10 @@ def claim_row_query_plan(
                 source,
                 (
                     ("kind", "source_kind"),
-                    ("origin_type", "source_origin_type"),
-                    ("origin_value", "source_origin_value"),
-                    ("origin_retrieved", "source_origin_retrieved"),
-                    ("origin_content_ref", "source_origin_content_ref"),
-                    ("prior_base_rate", "source_prior_base_rate"),
-                    ("quality_json", "source_quality_json"),
-                    ("derived_from_json", "source_derived_from_json"),
+                    ("origin", "source_origin"),
+                    ("trust", "source_trust"),
+                    ("quality", "source_quality"),
+                    ("derived_from", "source_derived_from"),
                 ),
             )
             + selected("core", claim_core, ("provenance_page", "provenance_json"))
@@ -704,45 +716,18 @@ CLAIM_ROW_MODEL: ProjectionModel[ActiveClaim] = ProjectionModel(
                     ),
                 ),
                 ProjectionBinding(
-                    ("origin_type",),
+                    ("origin",),
                     projection_column_owner=ProjectionColumn(
-                        "source_origin_type",
-                        TEXT_CODEC.sql_type,
-                        encoder=TEXT_CODEC.encode,
-                        decoder=TEXT_CODEC.decode,
+                        "source_origin",
+                        RAW_CODEC.sql_type,
+                        encoder=RAW_CODEC.encode,
+                        decoder=RAW_CODEC.decode,
                     ),
                 ),
                 ProjectionBinding(
-                    ("origin_value",),
+                    ("trust",),
                     projection_column_owner=ProjectionColumn(
-                        "source_origin_value",
-                        TEXT_CODEC.sql_type,
-                        encoder=TEXT_CODEC.encode,
-                        decoder=TEXT_CODEC.decode,
-                    ),
-                ),
-                ProjectionBinding(
-                    ("origin_retrieved",),
-                    projection_column_owner=ProjectionColumn(
-                        "source_origin_retrieved",
-                        TEXT_CODEC.sql_type,
-                        encoder=TEXT_CODEC.encode,
-                        decoder=TEXT_CODEC.decode,
-                    ),
-                ),
-                ProjectionBinding(
-                    ("origin_content_ref",),
-                    projection_column_owner=ProjectionColumn(
-                        "source_origin_content_ref",
-                        TEXT_CODEC.sql_type,
-                        encoder=TEXT_CODEC.encode,
-                        decoder=TEXT_CODEC.decode,
-                    ),
-                ),
-                ProjectionBinding(
-                    ("prior_base_rate",),
-                    projection_column_owner=ProjectionColumn(
-                        "source_prior_base_rate",
+                        "source_trust",
                         RAW_CODEC.sql_type,
                         encoder=RAW_CODEC.encode,
                         decoder=RAW_CODEC.decode,
@@ -751,16 +736,7 @@ CLAIM_ROW_MODEL: ProjectionModel[ActiveClaim] = ProjectionModel(
                 ProjectionBinding(
                     ("quality",),
                     projection_column_owner=ProjectionColumn(
-                        "source_quality_json",
-                        RAW_CODEC.sql_type,
-                        encoder=RAW_CODEC.encode,
-                        decoder=RAW_CODEC.decode,
-                    ),
-                ),
-                ProjectionBinding(
-                    ("quality_opinion",),
-                    projection_column_owner=ProjectionColumn(
-                        "source_quality_opinion",
+                        "source_quality",
                         RAW_CODEC.sql_type,
                         encoder=RAW_CODEC.encode,
                         decoder=RAW_CODEC.decode,
@@ -769,7 +745,7 @@ CLAIM_ROW_MODEL: ProjectionModel[ActiveClaim] = ProjectionModel(
                 ProjectionBinding(
                     ("derived_from",),
                     projection_column_owner=ProjectionColumn(
-                        "source_derived_from_json",
+                        "source_derived_from",
                         RAW_CODEC.sql_type,
                         encoder=RAW_CODEC.encode,
                         decoder=RAW_CODEC.decode,

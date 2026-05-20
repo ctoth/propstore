@@ -68,7 +68,6 @@ from propstore.families.relations.declaration import (
     StanceRow,
 )
 from propstore.stances import coerce_stance_type
-from propstore.families.sources.declaration import SOURCE_PROJECTION
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ProvenanceRecord
@@ -94,6 +93,7 @@ from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_TEXT_PAYLOAD_STORAGE_MODEL,
     CLAIM_TEXT_PAYLOAD_TABLE,
     JUSTIFICATION_TABLE,
+    SOURCE_CHARTER_QUERY_TABLE,
     claim_row_query_plan,
 )
 
@@ -452,7 +452,7 @@ CLAIM_ROW_QUERY_PLAN = claim_row_query_plan(
     numeric_payload=CLAIM_NUMERIC_PAYLOAD_TABLE,
     text_payload=CLAIM_TEXT_PAYLOAD_TABLE,
     algorithm_payload=CLAIM_ALGORITHM_PAYLOAD_TABLE,
-    source=SOURCE_PROJECTION,
+    source=SOURCE_CHARTER_QUERY_TABLE,
 )
 
 
