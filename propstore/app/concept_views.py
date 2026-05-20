@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Literal, TypeAlias, cast
+from typing import Literal, TypeAlias
 
 from propstore.app.concepts.display import _find_concept_entry
 from propstore.app.rendering import (
@@ -18,7 +18,8 @@ from propstore.app.repository_views import (
     repository_view_label,
 )
 from propstore.app.world import open_app_world_model
-from propstore.core.active_claims import ActiveClaim
+from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim
 from propstore.repository import Repository
 
 ConceptViewState: TypeAlias = Literal[
@@ -214,8 +215,7 @@ def _resolve_concept_entry(
 
 
 def _concept_form(concept_row, concept_entry, visible_claims) -> ConceptViewForm:
-    units = sorted({claim.unit for claim in visible_claims if claim.unit})
-    unit = units[0] if len(units) == 1 else None
+    unit = None
     range_text = None
     if concept_entry is not None and concept_entry.record.range is not None:
         lower, upper = concept_entry.record.range
@@ -228,12 +228,7 @@ def _concept_form(concept_row, concept_entry, visible_claims) -> ConceptViewForm
             range_text=range_text,
             sentence="Concept form is missing.",
         )
-    if unit is not None:
-        sentence = f"Concept form is {concept_row.form} with visible unit {unit}."
-    elif units:
-        sentence = f"Concept form is {concept_row.form} with multiple visible units."
-    else:
-        sentence = f"Concept form is {concept_row.form}."
+    sentence = f"Concept form is {concept_row.form}."
     return ConceptViewForm(
         state="known",
         form_name=concept_row.form,
@@ -277,13 +272,13 @@ def _concept_status(concept_row, all_claims, visible_claims) -> ConceptViewStatu
 
 
 def _claim_groups(all_claims, visible_claims) -> tuple[ConceptClaimGroup, ...]:
-    visible_by_id = {str(claim.claim_id): claim for claim in visible_claims}
-    all_groups: dict[str, list[ActiveClaim]] = defaultdict(list)
+    visible_by_id = {str(claim.id): claim for claim in visible_claims}
+    all_groups: dict[str, list[Claim]] = defaultdict(list)
     blocked_counts: dict[str, int] = defaultdict(int)
     for claim in sorted(all_claims, key=_claim_sort_key):
         claim_type = _claim_type_text(claim)
         all_groups[claim_type].append(claim)
-        if str(claim.claim_id) not in visible_by_id:
+        if str(claim.id) not in visible_by_id:
             blocked_counts[claim_type] += 1
 
     groups: list[ConceptClaimGroup] = []
@@ -291,7 +286,7 @@ def _claim_groups(all_claims, visible_claims) -> tuple[ConceptClaimGroup, ...]:
         visible_entries = tuple(
             _concept_claim_entry(claim)
             for claim in sorted(
-                (claim for claim in all_groups[claim_type] if str(claim.claim_id) in visible_by_id),
+                (claim for claim in all_groups[claim_type] if str(claim.id) in visible_by_id),
                 key=_claim_sort_key,
             )
         )
@@ -317,61 +312,39 @@ def _claim_groups(all_claims, visible_claims) -> tuple[ConceptClaimGroup, ...]:
 
 
 def _concept_claim_entry(claim) -> ConceptClaimEntry:
-    condition_display = "(vacuous)" if not claim.conditions_cel else cast(str, claim.conditions_cel)
     return ConceptClaimEntry(
-        claim_id=str(claim.claim_id),
+        claim_id=str(claim.id),
         logical_id=claim.primary_logical_id,
         claim_type=_claim_type_text(claim),
         value_display=_value_display(claim),
-        condition_display=condition_display,
+        condition_display="(vacuous)",
         status_state="known",
         status_reason="Claim is visible under the current render policy.",
     )
 
 
 def _value_summary(visible_claims) -> ConceptValueSummary:
-    value_claims = tuple(claim for claim in visible_claims if claim.value is not None)
-    if not value_claims:
-        return ConceptValueSummary(
-            state="missing",
-            claim_count=0,
-            unit=None,
-            sentence="Visible claims do not provide a value summary.",
-        )
-    units = sorted({claim.unit for claim in value_claims if claim.unit})
-    unit = units[0] if len(units) == 1 else None
-    if unit is not None:
-        sentence = f"{len(value_claims)} visible claims provide values in {unit}."
-    elif units:
-        sentence = f"{len(value_claims)} visible claims provide values in multiple units."
-    else:
-        sentence = f"{len(value_claims)} visible claims provide values."
     return ConceptValueSummary(
-        state="known",
-        claim_count=len(value_claims),
-        unit=unit,
-        sentence=sentence,
+        state="missing",
+        claim_count=0,
+        unit=None,
+        sentence="Visible claims do not provide a value summary.",
     )
 
 
 def _uncertainty_summary(visible_claims) -> ConceptUncertaintySummary:
-    uncertain_claims = tuple(claim for claim in visible_claims if _claim_has_uncertainty(claim))
-    if not uncertain_claims:
-        return ConceptUncertaintySummary(
-            state="missing",
-            claim_count=0,
-            sentence="Visible claims do not provide uncertainty information.",
-        )
     return ConceptUncertaintySummary(
-        state="known",
-        claim_count=len(uncertain_claims),
-        sentence=f"{len(uncertain_claims)} visible claims provide uncertainty information.",
+        state="missing",
+        claim_count=0,
+        sentence="Visible claims do not provide uncertainty information.",
     )
 
 
 def _provenance_summary(visible_claims) -> ConceptProvenanceSummary:
     claims_with_provenance = tuple(
-        claim for claim in visible_claims if claim.provenance is not None or claim.source is not None
+        claim
+        for claim in visible_claims
+        if claim.source_slug is not None or claim.source_paper is not None
     )
     if not claims_with_provenance:
         return ConceptProvenanceSummary(
@@ -382,16 +355,16 @@ def _provenance_summary(visible_claims) -> ConceptProvenanceSummary:
             sentence="Visible claims do not provide provenance.",
         )
     sources = {
-        claim.source.slug or claim.source.source_id
+        claim.source_slug
         for claim in claims_with_provenance
-        if claim.source is not None and (claim.source.slug or claim.source.source_id)
+        if claim.source_slug is not None
     }
     papers = tuple(
         sorted(
             {
-                claim.provenance.paper
+                claim.source_paper
                 for claim in claims_with_provenance
-                if claim.provenance is not None and claim.provenance.paper is not None
+                if claim.source_paper is not None
             }
         )
     )
@@ -410,18 +383,19 @@ def _provenance_summary(visible_claims) -> ConceptProvenanceSummary:
 def _related_claim_links(concept_id: str, visible_claims) -> tuple[ConceptRelatedClaimLink, ...]:
     links: list[ConceptRelatedClaimLink] = []
     for claim in sorted(visible_claims, key=_claim_sort_key):
-        if str(claim.output_concept_id or "") == concept_id:
+        display_id = claim.primary_logical_id or claim.id
+        if _claim_has_role_concept(claim, ClaimConceptLinkRole.OUTPUT, concept_id):
             relation = "instantiates"
-            sentence = f"Claim {claim.primary_logical_value or claim.claim_id} instantiates this concept."
+            sentence = f"Claim {display_id} instantiates this concept."
         elif str(claim.target_concept) == concept_id:
             relation = "targets"
-            sentence = f"Claim {claim.primary_logical_value or claim.claim_id} targets this concept."
+            sentence = f"Claim {display_id} targets this concept."
         else:
             relation = "related"
-            sentence = f"Claim {claim.primary_logical_value or claim.claim_id} refers to this concept."
+            sentence = f"Claim {display_id} refers to this concept."
         links.append(
             ConceptRelatedClaimLink(
-                claim_id=str(claim.claim_id),
+                claim_id=str(claim.id),
                 logical_id=claim.primary_logical_id,
                 relation=relation,
                 sentence=sentence,
@@ -431,26 +405,23 @@ def _related_claim_links(concept_id: str, visible_claims) -> tuple[ConceptRelate
 
 
 def _claim_type_text(claim) -> str:
-    if claim.claim_type is None:
+    if claim.type is None:
         return "unknown"
-    return claim.claim_type.value
+    return claim.type.value
 
 
 def _value_display(claim) -> str:
-    if claim.value is None:
-        return "(missing)"
-    return f"{claim.value} {claim.unit or ''}".rstrip()
-
-
-def _claim_has_uncertainty(claim) -> bool:
-    return (
-        claim.uncertainty is not None
-        or claim.lower_bound is not None
-        or claim.upper_bound is not None
-        or claim.sample_size is not None
-    )
+    return "(missing)"
 
 
 def _claim_sort_key(claim) -> tuple[str, str]:
     logical_id = claim.primary_logical_id or ""
-    return (logical_id, str(claim.claim_id))
+    return (logical_id, str(claim.id))
+
+
+def _claim_has_role_concept(
+    claim: Claim,
+    role: ClaimConceptLinkRole,
+    concept_id: str,
+) -> bool:
+    return any(link.role == role and str(link.concept_id) == concept_id for link in claim.concept_links)
