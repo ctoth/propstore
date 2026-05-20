@@ -17,6 +17,36 @@ to the owning boundary or add the missing Quire generic capability.
 
 This matrix is executable inventory for the Quire SQLAlchemy charter cutover. Every implementation child workstream must read the rows it owns before editing code, execute the listed action, and account for the row in a commit message or final closure report.
 
+Current audit status from 2026-05-20:
+
+- `uv run scripts/check_workstream_order.py workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md`
+  currently passes.
+- This inventory is not a transition plan. A row is not closed by a renamed
+  helper, duplicate DTO, compatibility shim, fallback reader, model-layer
+  normalizer, kwargs builder, cast family, or generic mapping constructor.
+  The only valid closures are delete, replace with typed Quire/model APIs,
+  move semantic behavior to the named owner, or keep an actual IO/document
+  boundary with a boundary-specific constructor name.
+- Phase 10 remains in the current queue: the claim projection residual file
+  still contains only the permitted top-level justification residuals
+  `_nullable_text`, `_claim_id`, `TEXT_CODEC`, `CLAIM_ID_CODEC`,
+  `JUSTIFICATION_STORAGE_MODEL`, and `JUSTIFICATION_TABLE`, and the residual
+  is still imported by `propstore/families/claims/declaration.py`.
+- Micropublication projection rows, sidecar rows, active-object inputs, row
+  compilers, table creation, population, and selection helpers remain in
+  `propstore/families/micropublications/declaration.py` and
+  `propstore/core/micropublications.py`.
+- Relation/stance projection rows and models remain in
+  `propstore/families/relations/projection_model.py` and still feed graph,
+  ASPIC, support-revision, world, and worldline consumers.
+- Raw SQLite/runtime helper queues remain in claims/concepts sidecar runtime,
+  embeddings, grounding/rules, relations, micropublications, and world query
+  paths. These are inventory rows, not blockers discovered during execution.
+- Current searches show no generic `from_mapping` hits in the searched core,
+  family, world, worldline, support-revision, and test surfaces; this does not
+  authorize `from_row_mapping` or any other duplicate DB-row constructor in
+  core semantic paths.
+
 ## Matrix Rules
 
 - `Current owner` names the production surface that owns the behavior now.

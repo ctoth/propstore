@@ -39,6 +39,24 @@ Binding notes from the 2026-05-20 update:
 - The final gate must distinguish semantic resolution behavior that remains on
   typed domain/world objects from old per-family lookup wrappers and call
   sites. Keeping a wrapper because it is convenient is not a valid closure.
+- The 2026-05-20 audit confirmed `main_model` is still zero-hit, but
+  `resolve_claim`, `resolve_concept`, and `resolve_alias` are live production
+  and test queues. Final deletion must not replace them with differently named
+  wrapper-shaped APIs; it must land generic Quire family reference/FK lookup
+  and generic model access, then update every caller.
+- The 2026-05-20 audit confirmed old schema-validation wording is currently
+  zero-hit in production/tests. Keep every related search as a required
+  zero-hit reintroduction gate.
+- The current remaining queues include Phase 10 micropublication and
+  justification residuals, relation/stance projection models, raw
+  `sqlite3.Connection` family runtimes, `row_factory` setup, direct
+  `connect_sqlite_store` usage, `ActiveWorldGraph`, `WorldBindActiveReport`,
+  `ActiveClaim`/`ActiveMicropublication` active-object families, sidecar
+  embedding/relation runtimes, and relation query-plan helpers.
+- No duplicate field shape may survive as a row DTO, projection model, kwargs
+  builder, cast family, model normalizer, `from_row_mapping` convenience path,
+  or renamed helper. Boundary-specific constructors are allowed only at actual
+  IO/document boundaries and must not carry DB row/projection coupling.
 
 ## Prerequisite Gate Dependencies
 
@@ -213,6 +231,41 @@ classify every hit. Per-family identity lookup wrappers, convenience methods,
 and call sites that bypass generic Quire family reference/FK lookup or generic
 main-model access must be zero-hit. Typed domain/world semantic resolution may
 remain only when it is not a generic lookup wrapper under another name.
+
+Current discovered Propstore queues from the 2026-05-20 audit, all still
+subject to the zero-hit gates above:
+
+- Phase 10 residual: `propstore/families/claims/projection_model.py` still
+  contains `JUSTIFICATION_STORAGE_MODEL` and `JUSTIFICATION_TABLE`; the only
+  current importer is `propstore/families/claims/declaration.py`.
+- Micropublication queue: `propstore/families/micropublications/declaration.py`
+  still defines projection rows, sidecar rows, projection models, row
+  compilers, table creation, population, and selection helpers; production
+  callers remain in `propstore/derived_build_plan.py`, `propstore/world/atms.py`,
+  `propstore/world/model.py`, and `propstore/world/overlay.py`.
+- Relation/stance queue: `propstore/families/relations/projection_model.py`
+  still defines `RELATIONSHIP_ROW_MODEL`, `STANCE_ROW_MODEL`, and query-plan
+  helpers; current consumers include `propstore/core/graph_build.py`,
+  `propstore/core/analyzers.py`, `propstore/graph_export.py`,
+  `propstore/aspic_bridge`, `propstore/support_revision`,
+  `propstore/world/bound.py`, `propstore/world/overlay.py`, and
+  `propstore/worldline/argumentation.py`.
+- Raw runtime queue: `sqlite3.Connection`, `row_factory`, and
+  `connect_sqlite_store` remain in family/world/runtime paths, especially
+  claims/concepts sidecar runtime, embeddings, grounding/rules, relations,
+  micropublications, and `propstore/world/model.py`.
+- Active-object queue: `ActiveWorldGraph`, `WorldBindActiveReport`,
+  `ActiveClaim`, `ActiveClaimInput`, `ActiveMicropublication`, and
+  `ActiveMicropublicationInput` remain in production/test surfaces.
+- Sidecar helper queue: `SidecarClaimRelationStore`,
+  `find_similar_claim_rows`, and `find_similar_concept_rows` remain and must
+  be replaced with generic Quire vector/session APIs plus typed Propstore
+  owner reports.
+- Current zero-hit queues that must stay zero-hit: `ActiveClaimResolver`,
+  `main_model`, `Unsupported sidecar schema`, `ProjectionSchemaError`,
+  `validate_derived_store_schema`, `schema.validate_connection`,
+  `Rebuild with 'pks build'`, and generic `from_mapping` in the searched
+  core/family/world/worldline/support-revision/test surfaces.
 
 ## Phase 17: Full Gates And Dependency Pin
 

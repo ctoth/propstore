@@ -42,6 +42,45 @@ End state:
   wording, `ProjectionSchemaError`, or rebuild advice as a compatibility
   wrapper.
 
+Binding current-status notes from the 2026-05-20 audit:
+
+- The phase-order checker currently passes for `00-index.md`; this does not
+  make this workstream executable until its prerequisite child gates have
+  actually closed.
+- Phase 10 is still in the current queue: `propstore/families/claims/projection_model.py`
+  still contains the permitted justification residual definitions
+  `_nullable_text`, `_claim_id`, `TEXT_CODEC`, `CLAIM_ID_CODEC`,
+  `JUSTIFICATION_STORAGE_MODEL`, and `JUSTIFICATION_TABLE`, and
+  `propstore/families/claims/declaration.py` still imports the residual module.
+- Micropublication old paths are still present in production and tests:
+  `MicropublicationProjectionRow`, `MicropublicationClaimProjectionRow`,
+  `MicropublicationSidecarRows`, `ActiveMicropublication`,
+  `ActiveMicropublicationInput`, `compile_micropublication_sidecar_rows*`,
+  `create_micropublication_tables`, `populate_micropublications`, and
+  `select_all_micropublications` are not closed.
+- Relation/stance projection models remain in `propstore/families/relations`
+  and are still consumed by graph export, graph build, analyzers, ASPIC,
+  support-revision, bound/overlay world code, and worldline argumentation.
+- `ActiveWorldGraph` and `WorldBindActiveReport` remain real production/test
+  surfaces. `ActiveClaimResolver` already has no current hit, but the final
+  search gate remains binding so it cannot be reintroduced.
+- `resolve_claim`, `resolve_concept`, and `resolve_alias` remain real
+  production/test surfaces. Current `main_model` search is zero-hit, but final
+  closure must still prove generic Quire family metadata/model access exists
+  and that no wrapper-shaped substitute was introduced.
+- The old projection-schema wording searches currently have no production/test
+  hits for `Unsupported sidecar schema`, `ProjectionSchemaError`,
+  `validate_derived_store_schema`, `schema.validate_connection`, or
+  `Rebuild with 'pks build'`; keep these as zero-hit reintroduction gates.
+- `from_mapping` currently has no hits in the searched core/family/world/
+  worldline/support-revision/test surfaces, but `from_row_mapping` remains on
+  active-object payloads and is not a substitute for typed model inputs.
+- Do not weaken this phase by renaming duplicate field shapes or helpers.
+  `from_row_mapping`, `resolve_*`, `lookup_*`, `get_*_id`, row DTOs,
+  projection models, model-layer normalizers, and per-family runtime adapters
+  are acceptable only as named deletion targets or boundary-specific
+  constructors explicitly owned by the final architecture.
+
 ## Prerequisites
 
 Complete these cutover workstreams before this slice starts:
@@ -285,6 +324,15 @@ Execute in this order:
     session queries where they need model rows. Do not add `resolve_*`,
     `lookup_*`, `get_*_id`, raw SQL selector, cached logical-id-map, or
     forwarding wrapper substitutes.
+    Current audit adds these live consumers to classify and delete or move:
+    `propstore/claim_graph.py`, `propstore/artifact_verification.py`,
+    `propstore/app/world.py`, `propstore/sensitivity.py`,
+    `propstore/families/concepts/sidecar_runtime.py`,
+    `propstore/families/claims/declaration.py::resolve_claim_id`,
+    `propstore/families/claims/declaration.py::resolve_claim_embedding_entity`,
+    and `propstore/families/embeddings/declaration.py` callers. Test doubles
+    may keep semantically named methods only when the production interface they
+    model remains after the generic Quire lookup cutover.
 8b. Replace `_validate_schema` with Quire SQLAlchemy schema/catalog validation
     through the derived-store handle/session path and delete message rewriting
     around old `Unsupported sidecar schema` wording.

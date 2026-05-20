@@ -18,6 +18,30 @@ to the owning boundary or add the missing Quire generic capability.
 This ledger is executable inventory for helper deletion and exact target
 movement during the Quire SQLAlchemy charter cutover.
 
+Current audit status from 2026-05-20:
+
+- The phase-order checker currently passes for the split workstream index.
+- Helpers are not closed by spelling changes. A row-shaped helper renamed to
+  `resolve_*`, `lookup_*`, `get_*_id`, `from_row_mapping`, `to_row`,
+  `to_mapping`, a model normalizer, a kwargs builder, a cast family, or a
+  per-family runtime adapter is still the old helper unless the final owner is
+  an actual IO/document boundary or a typed semantic owner named in this
+  ledger.
+- Missing generic lookup, FK, table, session, vector, JSON, enum, relationship,
+  catalog, or main-model machinery is Quire work. Do not add Propstore
+  family-specific shims or adapters to bridge the missing generic capability.
+- Current Phase 10 queue remains live: micropublication row helpers and active
+  micropublication inputs remain in production, and the claims projection
+  residual still owns only `JUSTIFICATION_STORAGE_MODEL` and
+  `JUSTIFICATION_TABLE`.
+- Current final-deletion queues remain live for relation/stance projection
+  models, `ActiveClaim`/`ActiveMicropublication`/`ActiveWorldGraph` surfaces,
+  `WorldBindActiveReport`, raw SQLite family runtimes, sidecar embedding and
+  relation helpers, and wrapper-shaped claim/concept/alias resolution.
+- Current zero-hit searches for `ActiveClaimResolver`, `main_model`, old
+  sidecar-schema validation wording, and generic `from_mapping` must remain
+  zero-hit; do not reintroduce them while closing other helper rows.
+
 ## Action Vocabulary
 
 - `delete`: remove the helper because Quire charter/SQLAlchemy machinery owns
@@ -34,6 +58,10 @@ movement during the Quire SQLAlchemy charter cutover.
 - Delete a helper when its body is table-shaped `SELECT`, `COUNT`, `INSERT`,
   `DELETE`, row attachment, row coercion, or projection-model wrapping with no
   Propstore semantic policy.
+- Delete duplicate field-shape helpers even when they appear useful for test
+  setup, caching, or view rendering. Reintroducing a row DTO, projection model,
+  helper-shaped alias, compatibility bridge, fallback reader, or old/new dual
+  path fails this ledger.
 - Move semantic behavior that owns concept-id precedence, alias resolution,
   source-local lowering, quarantine/blocked policy, form/unit validation,
   visibility/render policy, context/lifting semantics, argumentation
