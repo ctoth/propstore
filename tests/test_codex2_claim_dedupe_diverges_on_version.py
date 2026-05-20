@@ -1,267 +1,97 @@
 from __future__ import annotations
 
-import inspect
-from pathlib import Path
+from quire.documents import LoadedDocument
 
-from propstore.families.claims.declaration import (
-    CLAIM_ALGORITHM_PAYLOAD_TABLE,
-    CLAIM_CONCEPT_LINK_TABLE,
-    CLAIM_CORE_TABLE,
-    CLAIM_NUMERIC_PAYLOAD_TABLE,
-    CLAIM_TEXT_PAYLOAD_TABLE,
-    populate_claims,
+from propstore.compiler.ir import (
+    ClaimCompilationBundle,
+    SemanticClaim,
+    SemanticClaimFile,
 )
-from quire.derived_runtime import connect_sqlite_store
-from propstore.families.claims.stages import ClaimSidecarRows
-from tests.sidecar_schema_helpers import build_world_projection_schema
+from propstore.families.claims.declaration import compile_claim_models
+from propstore.families.claims.documents import ClaimDocument
+from propstore.claims import loaded_claim_file_from_payload
 
 
-def _claim_row(
+def _claim_entry(
     artifact_id: str,
     *,
     version_id: str,
-    seq: int = 1,
-) -> dict:
-    return {
-        "id": artifact_id,
-        "primary_logical_id": "demo:claim",
-        "logical_ids_json": '[{"namespace":"demo","value":"claim"}]',
-        "version_id": version_id,
-        "seq": seq,
-        "type": "observation",
-        "target_concept": None,
-        "source_slug": "demo",
-        "source_paper": "demo",
-        "provenance_page": 0,
-        "provenance_json": None,
-        "context_id": None,
-        "branch": None,
-        "build_status": "ingested",
-        "stage": None,
-        "promotion_status": None,
-        "value": None,
-        "lower_bound": None,
-        "upper_bound": None,
-        "uncertainty": None,
-        "uncertainty_type": None,
-        "sample_size": None,
-        "unit": None,
-        "value_si": None,
-        "lower_bound_si": None,
-        "upper_bound_si": None,
-        "conditions_cel": None,
-        "conditions_ir": None,
-        "statement": "observation",
-        "expression": None,
-        "sympy_generated": None,
-        "sympy_error": None,
-        "name": None,
-        "measure": None,
-        "listener_population": None,
-        "methodology": None,
-        "notes": None,
-        "description": None,
-        "auto_summary": None,
-        "body": None,
-        "canonical_ast": None,
-        "variables_json": None,
-        "algorithm_stage": None,
-    }
-
-
-def _claim_sidecar_rows(
-    *claim_rows: dict,
-    claim_link_rows: tuple = (),
-) -> ClaimSidecarRows:
-    return ClaimSidecarRows(
-        claim_core_rows=tuple(_claim_core_row(row) for row in claim_rows),
-        numeric_payload_rows=tuple(
-            CLAIM_NUMERIC_PAYLOAD_TABLE.row(
-                claim_id=row["id"],
-                value=row["value"],
-                lower_bound=row["lower_bound"],
-                upper_bound=row["upper_bound"],
-                uncertainty=row["uncertainty"],
-                uncertainty_type=row["uncertainty_type"],
-                sample_size=row["sample_size"],
-                unit=row["unit"],
-                value_si=row["value_si"],
-                lower_bound_si=row["lower_bound_si"],
-                upper_bound_si=row["upper_bound_si"],
-            )
-            for row in claim_rows
-        ),
-        text_payload_rows=tuple(
-            CLAIM_TEXT_PAYLOAD_TABLE.row(
-                claim_id=row["id"],
-                conditions_cel=row["conditions_cel"],
-                conditions_ir=row["conditions_ir"],
-                statement=row["statement"],
-                expression=row["expression"],
-                sympy_generated=row["sympy_generated"],
-                sympy_error=row["sympy_error"],
-                name=row["name"],
-                measure=row["measure"],
-                listener_population=row["listener_population"],
-                methodology=row["methodology"],
-                notes=row["notes"],
-                description=row["description"],
-                auto_summary=row["auto_summary"],
-            )
-            for row in claim_rows
-        ),
-        algorithm_payload_rows=tuple(
-            CLAIM_ALGORITHM_PAYLOAD_TABLE.row(
-                claim_id=row["id"],
-                body=row["body"],
-                canonical_ast=row["canonical_ast"],
-                variables_json=row["variables_json"],
-                algorithm_stage=row["algorithm_stage"],
-            )
-            for row in claim_rows
-        ),
-        claim_link_rows=claim_link_rows,
-        stance_rows=(),
-        quarantine_diagnostics=(),
+    concepts: tuple[str, ...] = ("ps:concept:velocity",),
+    statement: str = "observation",
+) -> LoadedDocument[ClaimDocument]:
+    return loaded_claim_file_from_payload(
+        filename=f"{artifact_id.removeprefix('ps:claim:')}.yaml",
+        source_path=None,
+        data={
+            "artifact_id": artifact_id,
+            "version_id": version_id,
+            "type": "observation",
+            "context": {"id": "ctx:test"},
+            "source": {"paper": "demo"},
+            "provenance": {"page": 0, "paper": "demo"},
+            "concepts": list(concepts),
+            "statement": statement,
+        },
     )
 
 
-def _claim_core_row(row: dict):
-    return CLAIM_CORE_TABLE.row(
-        id=row["id"],
-        primary_logical_id=row["primary_logical_id"],
-        logical_ids_json=row["logical_ids_json"],
-        version_id=row["version_id"],
-        content_hash=row.get("content_hash") or "",
-        seq=row["seq"],
-        type=row["type"],
-        target_concept=row["target_concept"],
-        source_slug=row["source_slug"],
-        source_paper=row["source_paper"],
-        provenance_page=row["provenance_page"],
-        provenance_json=row["provenance_json"],
-        context_id=row["context_id"],
-        premise_kind=row.get("premise_kind") or "ordinary",
-        branch=row.get("branch"),
-        build_status=row.get("build_status") or "ingested",
-        stage=row.get("stage"),
-        promotion_status=row.get("promotion_status"),
+def _semantic_claim(entry: LoadedDocument[ClaimDocument]) -> SemanticClaim:
+    payload = entry.document.to_payload()
+    artifact_id = payload["artifact_id"]
+    claim_type = payload["type"]
+    if not isinstance(artifact_id, str) or not isinstance(claim_type, str):
+        raise TypeError("test claim payload must carry typed identity fields")
+    return SemanticClaim(
+        filename=entry.filename,
+        source_paper="demo",
+        artifact_id=artifact_id,
+        claim_type=claim_type,
+        authored_claim=payload,
+        resolved_claim=entry.document,
     )
 
 
-def _open_claim_sidecar(path: Path):
-    conn = connect_sqlite_store(path)
-    build_world_projection_schema(conn)
-    conn.execute(
-        """
-        INSERT INTO concept (
-            id, primary_logical_id, logical_ids_json, version_id,
-            content_hash, seq, canonical_name, status, domain, definition,
-            kind_type, form, form_parameters, range_min, range_max,
-            is_dimensionless, unit_symbol, created_date, last_modified
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            "ps:concept:velocity",
-            "demo:velocity",
-            "[]",
-            "sha256:concept",
-            "concept",
-            0,
-            "velocity",
-            "active",
-            "demo",
-            "Speed with direction.",
-            "quantity",
-            "quantity",
-            None,
-            None,
-            None,
-            0,
-            "m/s",
-            None,
-            None,
+def _bundle(*entries: LoadedDocument[ClaimDocument]) -> ClaimCompilationBundle:
+    return ClaimCompilationBundle(
+        context=None,
+        normalized_claim_files=tuple(entries),
+        semantic_files=tuple(
+            SemanticClaimFile(
+                loaded_entry=entry,
+                normalized_entry=entry,
+                claims=(_semantic_claim(entry),),
+            )
+            for entry in entries
         ),
     )
-    return conn
 
 
-def test_populate_claims_detects_same_logical_id_different_version(
-    tmp_path: Path,
-) -> None:
-    sidecar_path = tmp_path / "propstore.sqlite"
-    conn = _open_claim_sidecar(sidecar_path)
-    try:
-        populate_claims(
-            conn,
-            _claim_sidecar_rows(
-                _claim_row("ps:claim:shared", version_id="sha256:first"),
-                _claim_row(
-                    "ps:claim:shared",
-                    version_id="sha256:second",
-                    seq=2,
-                ),
-            ),
-        )
-        conn.commit()
+def test_compile_claim_models_reports_same_logical_id_different_version() -> None:
+    models = compile_claim_models(
+        _bundle(
+            _claim_entry("ps:claim:shared", version_id="sha256:first"),
+            _claim_entry("ps:claim:shared", version_id="sha256:second"),
+        ),
+        concept_registry={},
+    )
 
-        versions = conn.execute(
-            "SELECT version_id FROM claim_core WHERE id = ?",
-            ("ps:claim:shared",),
-        ).fetchall()
-        diagnostics = conn.execute(
-            "SELECT diagnostic_kind, blocking FROM build_diagnostics WHERE claim_id = ?",
-            ("ps:claim:shared",),
-        ).fetchall()
-    finally:
-        conn.close()
-
-    assert versions == [("sha256:first",)]
-    assert diagnostics == [("claim_version_conflict", 1)]
+    assert [claim.version_id for claim in models.claims] == ["sha256:first"]
+    assert [
+        (diagnostic.artifact_id, diagnostic.diagnostic_kind)
+        for diagnostic in models.quarantine_diagnostics
+    ] == [("ps:claim:shared", "claim_version_conflict")]
 
 
-def test_populate_claims_dedupes_duplicate_claim_concept_links(
-    tmp_path: Path,
-) -> None:
-    sidecar_path = tmp_path / "propstore.sqlite"
-    conn = _open_claim_sidecar(sidecar_path)
-    try:
-        populate_claims(
-            conn,
-            _claim_sidecar_rows(
-                _claim_row("ps:claim:linked", version_id="sha256:same"),
-                _claim_row("ps:claim:linked", version_id="sha256:same"),
-                claim_link_rows=(
-                    CLAIM_CONCEPT_LINK_TABLE.row(
-                        claim_id="ps:claim:linked",
-                        concept_id="ps:concept:velocity",
-                        role="target",
-                        ordinal=0,
-                        binding_name=None,
-                    ),
-                    CLAIM_CONCEPT_LINK_TABLE.row(
-                        claim_id="ps:claim:linked",
-                        concept_id="ps:concept:velocity",
-                        role="target",
-                        ordinal=0,
-                        binding_name=None,
-                    ),
-                ),
-            ),
-        )
-        conn.commit()
-        link_count = conn.execute(
-            "SELECT COUNT(*) FROM claim_concept_link WHERE claim_id = ?",
-            ("ps:claim:linked",),
-        ).fetchone()[0]
-    finally:
-        conn.close()
+def test_compile_claim_models_dedupes_duplicate_claim_concept_links() -> None:
+    models = compile_claim_models(
+        _bundle(
+            _claim_entry("ps:claim:linked", version_id="sha256:same"),
+            _claim_entry("ps:claim:linked", version_id="sha256:same"),
+        ),
+        concept_registry={},
+    )
 
-    assert link_count == 1
-
-
-def test_populate_claims_docstring_names_logical_id_version_contract() -> None:
-    docstring = inspect.getdoc(populate_claims) or ""
-
-    assert "artifact_id is the logical id" in docstring
-    assert "artifact_id`` is content-hash-derived" not in docstring
+    assert [
+        (link.claim_id, link.concept_id, link.role.value, link.ordinal)
+        for link in models.concept_links
+    ] == [("ps:claim:linked", "ps:concept:velocity", "about", 0)]

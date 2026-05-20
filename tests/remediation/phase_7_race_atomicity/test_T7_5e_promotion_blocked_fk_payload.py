@@ -36,8 +36,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
         build_world_projection_schema(conn)
         # Seed a claim_core row as a sibling branch would have produced
         # it, with all three payload child tables populated. This is
-        # exactly the shape that ``insert_claim_row`` produces in
-        # ``populate_claims``.
+        # exactly the shape that typed claim write batches produce.
         conn.execute(
             """
             INSERT INTO claim_core (

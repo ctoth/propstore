@@ -196,16 +196,10 @@ class ClaimWriteModels:
 
 
 from propstore.families.claims.projection_model import (  # noqa: E402
-    CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL,
     CLAIM_ALGORITHM_PAYLOAD_TABLE,
-    CLAIM_CONCEPT_LINK_STORAGE_MODEL,
-    CLAIM_CONCEPT_LINK_TABLE,
-    CLAIM_CORE_STORAGE_MODEL,
     CLAIM_CORE_TABLE,
-    CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL,
     CLAIM_NUMERIC_PAYLOAD_TABLE,
     CLAIM_ROW_MODEL,
-    CLAIM_TEXT_PAYLOAD_STORAGE_MODEL,
     CLAIM_TEXT_PAYLOAD_TABLE,
     JUSTIFICATION_TABLE,
     SOURCE_CHARTER_QUERY_TABLE,
@@ -1099,120 +1093,6 @@ def _insert_build_diagnostic_values(
             message,
             file,
             detail_json,
-        ),
-    )
-
-
-def populate_claims(
-    conn: sqlite3.Connection,
-    rows: ClaimWriteModels,
-) -> None:
-    """Populate normalized claim storage from compiled sidecar rows.
-
-    Schema-v3 behavior (``reviews/2026-04-16-code-review/workstreams/
-    ws-z-render-gates.md`` finding 3.2): the file-level ``stage`` marker
-    (e.g. ``'draft'``) is threaded from the claim-file document onto each
-    ``claim_core`` row. Drafts populate normally; render-policy filtering
-    (phase 4) decides visibility.
-
-    ``artifact_id is the logical id`` for a claim. ``version_id`` is the
-    content identity. Duplicate rows with the same ``artifact_id`` and
-    same ``version_id`` are idempotent; duplicate logical ids with
-    different versions emit a blocking ``claim_version_conflict``
-    diagnostic instead of silently taking the first writer.
-    """
-
-    from propstore.families.relations.declaration import RELATION_EDGE_TABLE
-
-    seen_claim_versions: dict[str, str] = {}
-    emitted_conflicts: set[tuple[str, str, str]] = set()
-    payloads_by_claim_id = {
-        numeric_row.claim_id: (numeric_row, text_row, algorithm_row)
-        for numeric_row, text_row, algorithm_row in zip(
-            rows.numeric_payloads,
-            rows.text_payloads,
-            rows.algorithm_payloads,
-            strict=True,
-        )
-    }
-    for row in rows.claims:
-        claim_id = row.id
-        version_id = row.version_id
-        if isinstance(claim_id, str) and claim_id in seen_claim_versions:
-            existing_version = seen_claim_versions[claim_id]
-            new_version = str(version_id or "")
-            if existing_version == new_version:
-                continue
-            conflict_key = (claim_id, existing_version, new_version)
-            if conflict_key not in emitted_conflicts:
-                _insert_claim_version_conflict(
-                    conn,
-                    claim_id=claim_id,
-                    existing_version=existing_version,
-                    new_version=new_version,
-                    source_ref=str(row.primary_logical_id or claim_id),
-                )
-                emitted_conflicts.add(conflict_key)
-            continue
-        CLAIM_CORE_TABLE.insert_row(conn, CLAIM_CORE_STORAGE_MODEL.to_row(vars(row)))
-        numeric_row, text_row, algorithm_row = payloads_by_claim_id[claim_id]
-        CLAIM_NUMERIC_PAYLOAD_TABLE.insert_row(
-            conn,
-            CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL.to_row(vars(numeric_row)),
-        )
-        CLAIM_TEXT_PAYLOAD_TABLE.insert_row(
-            conn,
-            CLAIM_TEXT_PAYLOAD_STORAGE_MODEL.to_row(vars(text_row)),
-        )
-        CLAIM_ALGORITHM_PAYLOAD_TABLE.insert_row(
-            conn,
-            CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL.to_row(vars(algorithm_row)),
-        )
-        if isinstance(claim_id, str):
-            seen_claim_versions[claim_id] = str(version_id or "")
-    seen_link_keys: set[tuple[object, object, object, object]] = set()
-    for row in rows.concept_links:
-        key = (
-            row.claim_id,
-            row.role,
-            row.ordinal,
-            row.concept_id,
-        )
-        if key in seen_link_keys:
-            continue
-        seen_link_keys.add(key)
-        CLAIM_CONCEPT_LINK_TABLE.insert_row(
-            conn,
-            CLAIM_CONCEPT_LINK_STORAGE_MODEL.to_row(vars(row)),
-        )
-    if rows.stance_rows:
-        RELATION_EDGE_TABLE.insert_rows(conn, (stance_row.values for stance_row in rows.stance_rows))
-
-
-def _insert_claim_version_conflict(
-    conn: sqlite3.Connection,
-    *,
-    claim_id: str,
-    existing_version: str,
-    new_version: str,
-    source_ref: str,
-) -> None:
-    _insert_build_diagnostic_values(
-        conn,
-        claim_id=claim_id,
-        source_kind="claim",
-        source_ref=source_ref,
-        diagnostic_kind="claim_version_conflict",
-        severity="error",
-        blocking=1,
-        message=f"Claim logical id {claim_id!r} appears with multiple version_id values",
-        file=None,
-        detail_json=json.dumps(
-            {
-                "existing_version_id": existing_version,
-                "new_version_id": new_version,
-            },
-            sort_keys=True,
         ),
     )
 

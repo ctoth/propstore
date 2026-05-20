@@ -67,10 +67,10 @@ def test_sidecar_not_deleted_on_build_exception(tmp_path, monkeypatch) -> None:
     repo = _seed_claim_repo(tmp_path / "knowledge")
     sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
 
-    def fail_populate_claims(*args, **kwargs) -> None:
+    def fail_write_batches(*args, **kwargs) -> None:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr("propstore.derived_build.populate_claims", fail_populate_claims)
+    monkeypatch.setattr("propstore.derived_build._add_write_batches", fail_write_batches)
 
     with pytest.raises(RuntimeError, match="boom"):
         build_sidecar(repo, sidecar_path, force=True)

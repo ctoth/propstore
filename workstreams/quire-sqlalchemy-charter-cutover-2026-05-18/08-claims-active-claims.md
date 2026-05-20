@@ -629,6 +629,24 @@ Recorded 2026-05-20.
   propstore tests` has no production hits and still hits only the two
   old-`populate_claims` tests that must be removed or rewritten when
   `populate_claims` is deleted in this phase.
+- Raw populator deletion slice: deleted `populate_claims`, rewrote the
+  duplicate-claim regression tests to target `compile_claim_models` typed
+  output, updated the sidecar exception test to fail the current
+  SQLAlchemy write-batch path, and added the missing
+  `ClaimConceptLink.claim` relationship in the claim concept-link charter.
+- Raw populator deletion verification: `uv run pyright
+  propstore/families/claims/declaration.py
+  propstore/families/world_charters.py propstore/derived_build.py` passed with
+  0 errors, and `powershell -File scripts/run_logged_pytest.ps1 -Label
+  claim-populate-delete tests/test_codex2_claim_dedupe_diverges_on_version.py
+  tests/remediation/phase_7_race_atomicity/test_T7_5f_sidecar_build_duplicate_claim.py
+  tests/remediation/phase_1_crits/test_T1_2_sidecar_survives_exception.py
+  tests/remediation/phase_7_race_atomicity/test_T7_5e_promotion_blocked_fk_payload.py`
+  passed with 5 tests in
+  `logs/test-runs/claim-populate-delete-20260520-150252.log`.
+- Raw populator deletion searches: `rg -n -F -- "populate_claims" propstore
+  tests`, `rg -n -F -- "ClaimSidecarRows" propstore tests`, and `rg -n -F --
+  "compile_claim_sidecar_rows" propstore tests` all returned zero hits.
 - Remaining Phase 10 work: delete the remaining claim projection/read-model,
   storage-helper, row-carrier, and active-claim compatibility surfaces; run
   the family gates, old-path searches, and data-parity gate.
