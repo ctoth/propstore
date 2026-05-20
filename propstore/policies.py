@@ -370,7 +370,7 @@ def policy_assertions(
             provenance=provenance,
             roles={
                 "profile": profile.profile_id,
-                "operator": profile.merge.operator.value,
+                "operator": profile.merge.operator,
                 "conflict_strategy": profile.merge.conflict_strategy,
             },
         ),
