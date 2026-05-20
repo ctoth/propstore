@@ -17,8 +17,6 @@ from argumentation.probabilistic import (
     summarize_defeat_relations as _summarize_defeat_probabilities,
 )
 
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.opinion import Opinion, W, discount, from_probability
 from propstore.probabilistic_relations import ProbabilisticRelation, relation_from_row
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -183,63 +181,10 @@ def _source_prior_opinion(raw: object) -> Opinion | None:
     )
 
 
-def p_arg_from_claim(claim: ActiveClaimInput | dict) -> Opinion | NoCalibration:
+def p_arg_from_claim(claim: Mapping[str, Any]) -> Opinion | NoCalibration:
     """Derive argument-existence opinion from a calibrated claim row."""
-    if isinstance(claim, ActiveClaim):
-        claim_opinion = _opinion_from_payload(
-            claim.attribute_mapping(),
-            prefix="opinion_",
-            operation="claim_opinion_columns",
-        )
-        if claim_opinion is not None:
-            if isinstance(claim_opinion, NoCalibration):
-                return claim_opinion
-            return claim_opinion
-
-        source_trust = None if claim.source is None else claim.source.trust
-        prior_base_rate = (
-            None if source_trust is None else source_trust.prior_base_rate
-        )
-        claim_probability = claim.attribute_value("claim_probability")
-        effective_sample_size = claim.attribute_value("effective_sample_size") or claim.sample_size
-        if claim_probability is None and claim.attribute_value("confidence") is not None:
-            claim_probability = claim.attribute_value("confidence")
-        quality_opinion = None if source_trust is None else source_trust.quality
-
-        has_structured_fields = (
-            prior_base_rate is not None
-            or claim_probability is not None
-            or quality_opinion is not None
-        )
-        if not has_structured_fields:
-            return _missing_calibration(
-                "missing_claim_calibration",
-                "source_prior_base_rate",
-                "claim_probability",
-                "source_quality_opinion",
-            )
-        if prior_base_rate is None:
-            return _missing_calibration("missing_base_rate", "source_prior_base_rate")
-
-        omega_prior = _source_prior_opinion(prior_base_rate)
-        if omega_prior is None:
-            return _missing_calibration("missing_base_rate", "source_prior_base_rate")
-        if claim_probability is not None and effective_sample_size is not None:
-            omega_claim = from_probability(
-                float(claim_probability),
-                float(effective_sample_size),
-                omega_prior.a,
-                provenance=_praf_provenance(ProvenanceStatus.CALIBRATED, "claim_evidence"),
-            )
-        else:
-            omega_claim = omega_prior
-        if quality_opinion is None:
-            return omega_claim
-        return discount(quality_opinion, omega_claim)
-
-    if not isinstance(claim, dict):
-        claim = CLAIM_ROW_MODEL.coerce(claim)
-        return p_arg_from_claim(claim)
+    if not isinstance(claim, Mapping):
+        raise TypeError("p_arg_from_claim requires claim graph metadata")
 
     source = claim.get("source")
     claim_opinion = _opinion_from_payload(
