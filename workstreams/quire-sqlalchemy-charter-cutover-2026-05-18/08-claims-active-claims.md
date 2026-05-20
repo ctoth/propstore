@@ -1072,3 +1072,14 @@ Recorded 2026-05-20.
   remaining only in `world/overlay.py`, `world/atms.py`, `world/model.py`, and
   `world/resolution.py`; `CLAIM_ROW_MODEL` remains in `world/overlay.py`,
   `world/atms.py`, and `world/queries.py`.
+- WorldQuery typed claim reads: commit `8611a610` removed the `ActiveClaim`
+  import and deleted the dead `_claim_rows`/`select_claim_rows*` read path
+  from `propstore/world/model.py`. `WorldQuery.get_claim`, `claims_for`,
+  `claims_related_to_concept`, `claims_with_policy`, and `claims_by_ids` now
+  query the typed `Claim` and `ClaimConceptLink` SQLAlchemy models directly
+  through `world_sqlalchemy_schema()` sessions, and `chain_query` reads scalar
+  claim values from `Claim.numeric_payload`. Focused verification `uv run
+  pyright propstore/world/model.py` passed with 0 errors, and the file has
+  zero hits for `propstore.core.active_claims`, `ActiveClaim`, and
+  `select_claim_rows`. Refreshed world active-claim imports remain only in
+  `world/overlay.py`, `world/atms.py`, and `world/resolution.py`.
