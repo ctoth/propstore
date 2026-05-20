@@ -600,19 +600,11 @@ class ResolutionStrategy(StrEnum):
     ASSIGNMENT_SELECTION_MERGE = "assignment_selection_merge"
 
 
-class MergeOperator(StrEnum):
-    SIGMA = "sigma"
-    MAX = "max"
-    GMAX = "gmax"
-
-
-def normalize_merge_operator(value: MergeOperator | str) -> MergeOperator:
-    if isinstance(value, MergeOperator):
-        return value
-    try:
-        return MergeOperator(str(value))
-    except ValueError as exc:
-        raise ValueError(f"Unknown merge_operator '{value}'") from exc
+def _normalize_merge_operator_value(value: object) -> str:
+    normalized = str(getattr(value, "value", value))
+    if normalized not in {"sigma", "max", "gmax"}:
+        raise ValueError(f"Unknown merge_operator '{value}'")
+    return normalized
 
 
 @dataclass
@@ -692,82 +684,6 @@ def integrity_constraint_to_dict(constraint: IntegrityConstraint) -> dict[str, A
         "cel": constraint.cel,
         "description": constraint.description,
     }
-
-
-@dataclass(frozen=True)
-class MergeAssignment:
-    values: Mapping[str, Any]
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "values", dict(self.values))
-
-    def value_for(self, concept_id: str) -> Any:
-        return self.values.get(concept_id)
-
-
-@dataclass(frozen=True)
-class MergeSource:
-    source_id: str
-    assignment: MergeAssignment
-    weight: float = 1.0
-
-
-@dataclass(frozen=True)
-class MergeAssignmentScore:
-    assignment: MergeAssignment
-    score: float | tuple[float, ...]
-
-
-@dataclass(frozen=True)
-class AssignmentSelectionProblem:
-    concept_ids: tuple[str, ...]
-    sources: tuple[MergeSource, ...]
-    constraints: tuple[IntegrityConstraint, ...] = field(default_factory=tuple)
-    operator: MergeOperator = MergeOperator.SIGMA
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "concept_ids", tuple(self.concept_ids))
-        object.__setattr__(self, "sources", tuple(self.sources))
-        object.__setattr__(self, "constraints", tuple(self.constraints))
-        object.__setattr__(self, "operator", normalize_merge_operator(self.operator))
-        if not self.concept_ids:
-            raise ValueError("AssignmentSelectionProblem requires at least one concept id")
-        if len(set(self.concept_ids)) != len(self.concept_ids):
-            raise ValueError("AssignmentSelectionProblem has duplicate concept ids")
-
-        declared_concepts = set(self.concept_ids)
-        for source in self.sources:
-            unknown_concepts = tuple(
-                concept_id
-                for concept_id in source.assignment.values
-                if concept_id not in declared_concepts
-            )
-            if unknown_concepts:
-                joined = ", ".join(sorted(unknown_concepts))
-                raise ValueError(
-                    f"AssignmentSelectionProblem source {source.source_id!r} references unknown concept ids: {joined}"
-                )
-
-        for constraint in self.constraints:
-            unknown_concepts = tuple(
-                concept_id
-                for concept_id in constraint.concept_ids
-                if concept_id not in declared_concepts
-            )
-            if unknown_concepts:
-                joined = ", ".join(sorted(unknown_concepts))
-                raise ValueError(
-                    f"AssignmentSelectionProblem constraint references unknown concept ids: {joined}"
-                )
-
-
-@dataclass(frozen=True)
-class AssignmentSelectionResult:
-    winners: tuple[MergeAssignment, ...]
-    scored_candidates: tuple[MergeAssignmentScore, ...]
-    admissible_count: int
-    total_candidate_count: int
-    reason: str | None = None
 
 
 @dataclass
@@ -878,7 +794,7 @@ class RenderPolicy:
     praf_mc_seed: int | None = None  # RNG seed (None = random)
     # assignment-selection merge fields for the assignment-level Konieczny-style adaptation.
     # merge_operator selects the aggregation family used by the global solver.
-    merge_operator: MergeOperator = MergeOperator.SIGMA
+    merge_operator: str = "sigma"
     # branch_filter restricts which branches are included as sources.
     branch_filter: tuple[str, ...] | None = None
     # branch_weights assigns per-branch importance weights.
@@ -918,7 +834,7 @@ class RenderPolicy:
         object.__setattr__(
             self,
             "merge_operator",
-            normalize_merge_operator(self.merge_operator),
+            _normalize_merge_operator_value(self.merge_operator),
         )
         if self.branch_filter is not None:
             object.__setattr__(
@@ -1008,8 +924,8 @@ class RenderPolicy:
                 if data.get("praf_mc_seed") is None
                 else int(data["praf_mc_seed"])
             ),
-            merge_operator=normalize_merge_operator(
-                data.get("merge_operator", MergeOperator.SIGMA)
+            merge_operator=_normalize_merge_operator_value(
+                data.get("merge_operator", "sigma")
             ),
             branch_filter=(
                 None
@@ -1062,7 +978,7 @@ class RenderPolicy:
             data["praf_treewidth_cutoff"] = self.praf_treewidth_cutoff
         if self.praf_mc_seed is not None:
             data["praf_mc_seed"] = self.praf_mc_seed
-        if self.merge_operator != MergeOperator.SIGMA:
+        if self.merge_operator != "sigma":
             data["merge_operator"] = self.merge_operator
         if self.branch_filter is not None:
             data["branch_filter"] = list(self.branch_filter)
