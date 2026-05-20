@@ -388,7 +388,15 @@ quire\__init__.py:111:    ReferencePath,
 quire\__init__.py:234:    "ReferencePath",
 ```
 
-Phase 2 Quire gates are complete. Propstore dependency pin update is pending the required Quire push.
+Phase 2 Quire gates are complete. Propstore dependency pin update is blocked by the required Quire push.
+
+Push blocker recorded 2026-05-20:
+
+- Current Quire branch: `master`.
+- Required operation: push Quire changes before pinning Propstore to a Quire commit.
+- Blocking state: `master` is ahead of `origin/master` by 29 commits, and five commits in `origin/master..HEAD` predate this workstream execution: `440c0f5 Add Hypothesis property tests for iter_* laziness contract`, `6955e68 Dedup _source_label helper between documents/schema and documents/batch`, `b3c0ffd Rewrite test_transaction_head_check_is_named_as_advisory as behavior test`, `61b145e Use hypothesis.assume in test_family_reference_index_rejects_generated_duplicate_aliases`, and `b35f9fc Add VersionId NotImplemented contract tests`.
+- I did not create those five commits in this execution, and pushing `master` would publish them along with the SQLAlchemy charter commits. Shared worktree etiquette blocks that push without explicit user direction for the preexisting ahead commits.
+- Because the Quire push is blocked, Propstore dependency pinning and the Propstore Phase 2 gates have not run.
 
 ## Completion Gates
 
