@@ -123,8 +123,8 @@ def build_semantic_neighborhood(
         claim = world.get_claim(request.focus_id)
         if claim is None:
             raise ClaimViewUnknownClaimError(request.focus_id)
-        visible_ids = {str(row.claim_id) for row in world.claims_with_policy(None, policy)}
-        focus_id = str(claim.claim_id)
+        visible_ids = {str(row.id) for row in world.claims_with_policy(None, policy)}
+        focus_id = str(claim.id)
         if focus_id not in visible_ids:
             raise ClaimViewBlockedError(focus_id)
         focus = SemanticFocus(
@@ -190,10 +190,12 @@ def _moves(
     attackers: tuple[str, ...],
     shared_concept_ids: tuple[str, ...],
 ) -> tuple[SemanticMove, ...]:
-    condition_state: SemanticState = "known" if claim.conditions_cel else "vacuous"
-    provenance_state: SemanticState = "known" if claim.provenance is not None else "unknown"
-    provenance_count = 1 if claim.provenance is not None else 0
-    condition_count = 1 if claim.conditions_cel else 0
+    conditions_cel = _claim_conditions_cel(claim)
+    has_provenance = bool(claim.source_paper or claim.source_slug or claim.provenance_json)
+    condition_state: SemanticState = "known" if conditions_cel else "vacuous"
+    provenance_state: SemanticState = "known" if has_provenance else "unknown"
+    provenance_count = 1 if has_provenance else 0
+    condition_count = 1 if conditions_cel else 0
     return (
         SemanticMove(
             kind="supporters",
@@ -221,7 +223,7 @@ def _moves(
             state=condition_state,
             sentence=(
                 "The claim has an explicit condition expression."
-                if claim.conditions_cel
+                if conditions_cel
                 else "The claim has vacuous conditions."
             ),
         ),
@@ -258,7 +260,7 @@ def _nodes(
     shared_concept_ids: tuple[str, ...],
     limit: int,
 ) -> tuple[SemanticNode, ...]:
-    ids = [str(claim.claim_id)]
+    ids = [str(claim.id)]
     for stance in stances:
         ids.append(str(stance.claim_id))
         ids.append(str(stance.target_claim_id))
@@ -321,7 +323,8 @@ def _rows(
     edges: tuple[SemanticEdge, ...],
 ) -> tuple[SemanticNeighborhoodRow, ...]:
     rows: list[SemanticNeighborhoodRow] = []
-    focus_id = str(claim.claim_id)
+    focus_id = str(claim.id)
+    conditions_cel = _claim_conditions_cel(claim)
     for supporter in supporters:
         rows.append(
             SemanticNeighborhoodRow(
@@ -349,26 +352,27 @@ def _rows(
             section="conditions",
             subject_id=focus_id,
             relation="has_conditions",
-            object_id=claim.conditions_cel or "vacuous",
-            state="known" if claim.conditions_cel else "vacuous",
+            object_id=conditions_cel or "vacuous",
+            state="known" if conditions_cel else "vacuous",
             sentence=(
-                f"Claim {focus_id} has condition expression {claim.conditions_cel}."
-                if claim.conditions_cel
+                f"Claim {focus_id} has condition expression {conditions_cel}."
+                if conditions_cel
                 else f"Claim {focus_id} has vacuous conditions."
             ),
         )
     )
-    provenance_state: SemanticState = "known" if claim.provenance is not None else "unknown"
+    has_provenance = bool(claim.source_paper or claim.source_slug or claim.provenance_json)
+    provenance_state: SemanticState = "known" if has_provenance else "unknown"
     rows.append(
         SemanticNeighborhoodRow(
             section="provenance",
             subject_id=focus_id,
             relation="has_provenance",
-            object_id="known" if claim.provenance is not None else "unknown",
+            object_id="known" if has_provenance else "unknown",
             state=provenance_state,
             sentence=(
                 f"Claim {focus_id} has provenance."
-                if claim.provenance is not None
+                if has_provenance
                 else f"Claim {focus_id} provenance is unknown."
             ),
         )
@@ -403,8 +407,8 @@ def _shared_concept_ids(world, claim, policy, limit: int) -> tuple[str, ...]:
         return ()
     related: list[str] = []
     for row in world.claims_with_policy(str(claim.value_concept_id), policy):
-        claim_id = str(row.claim_id)
-        if claim_id != str(claim.claim_id):
+        claim_id = str(row.id)
+        if claim_id != str(claim.id):
             related.append(claim_id)
         if len(related) >= limit:
             break
@@ -435,4 +439,10 @@ def _display_for_id(world, claim_id: str) -> str:
 
 
 def _claim_display_id(claim) -> str:
-    return claim.primary_logical_value or str(claim.claim_id)
+    return claim.primary_logical_id or str(claim.id)
+
+
+def _claim_conditions_cel(claim) -> str | None:
+    if claim.text_payload is None:
+        return None
+    return claim.text_payload.conditions_cel

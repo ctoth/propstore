@@ -281,19 +281,19 @@ def world_atms_status(repo: Repository, request: AppAtmsViewRequest) -> AtmsStat
         resolved = None if concept_id is None else resolve_world_target(wm, concept_id)
         active_claims = sorted(
             bound.active_claims(resolved),
-            key=lambda claim: str(claim.claim_id),
+            key=lambda claim: str(claim.id),
         )
         return AtmsStatusReport(
             claims=tuple(
                 AtmsClaimStatusLine(
-                    claim_id=str(claim.claim_id),
+                    claim_id=str(claim.id),
                     status=_status_value(inspection.status),
                     support_quality=_status_value(inspection.support_quality),
                     essential_support=_support_ids(inspection.essential_support),
                     reason=str(inspection.reason),
                 )
                 for claim in active_claims
-                for inspection in (bound.claim_status(str(claim.claim_id)),)
+                for inspection in (bound.claim_status(str(claim.id)),)
             )
         )
     finally:
@@ -319,7 +319,7 @@ def world_atms_context(repo: Repository, request: AppAtmsViewRequest) -> AtmsCon
         if concept_id:
             resolved = resolve_world_target(wm, concept_id)
             allowed = {
-                bound.claim_status(str(claim.claim_id)).node_id
+                bound.claim_status(str(claim.id)).node_id
                 for claim in bound.active_claims(resolved)
             }
             claim_ids = [claim_id for claim_id in claim_ids if claim_id in allowed]

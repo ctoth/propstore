@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
 from typing import Literal, TypeAlias
 
@@ -179,20 +178,20 @@ def build_claim_view(repo: Repository, request: ClaimViewRequest) -> ClaimViewRe
         claim = world.get_claim(request.claim_id)
         if claim is None:
             raise ClaimViewUnknownClaimError(request.claim_id)
-        visible_ids = {str(row.claim_id) for row in world.claims_with_policy(None, policy)}
-        if str(claim.claim_id) not in visible_ids:
-            raise ClaimViewBlockedError(str(claim.claim_id))
+        visible_ids = {str(row.id) for row in world.claims_with_policy(None, policy)}
+        if str(claim.id) not in visible_ids:
+            raise ClaimViewBlockedError(str(claim.id))
         concept = _claim_focus_concept(claim, world)
-        status = _claim_status(claim, str(claim.claim_id) in visible_ids)
+        status = _claim_status(claim, str(claim.id) in visible_ids)
         concept_view = _claim_concept(claim, concept)
         return ClaimViewReport(
-            claim_id=str(claim.claim_id),
+            claim_id=str(claim.id),
             logical_id=claim.primary_logical_id,
-            artifact_id=claim.artifact_id,
+            artifact_id=claim.id,
             version_id=claim.version_id,
-            heading=f"Claim {claim.primary_logical_value or claim.claim_id}",
-            claim_type="unknown" if claim.claim_type is None else claim.claim_type.value,
-            statement=claim.statement,
+            heading=f"Claim {_claim_display_id(claim)}",
+            claim_type=claim.type.value,
+            statement=None if claim.text_payload is None else claim.text_payload.statement,
             concept=concept_view,
             value=_claim_value(claim, concept_view),
             uncertainty=_claim_uncertainty(claim),
@@ -268,9 +267,10 @@ def _claim_concept(claim, concept) -> ClaimViewConcept:
 
 
 def _claim_value(claim, concept: ClaimViewConcept) -> ClaimViewValue:
-    value = _scalar_value(claim.value)
+    numeric_payload = claim.numeric_payload
+    value = None if numeric_payload is None else _scalar_value(numeric_payload.value)
     if value is None:
-        if claim.claim_type is not None and claim.claim_type.value in {
+        if claim.type.value in {
             "mechanism",
             "limitation",
             "comparison",
@@ -283,7 +283,7 @@ def _claim_value(claim, concept: ClaimViewConcept) -> ClaimViewValue:
                 unit=None,
                 value_si=None,
                 canonical_unit=concept.form,
-                sentence=f"Value is not applicable for {claim.claim_type.value} claim.",
+                sentence=f"Value is not applicable for {claim.type.value} claim.",
             )
         return ClaimViewValue(
             state="missing",
@@ -293,7 +293,7 @@ def _claim_value(claim, concept: ClaimViewConcept) -> ClaimViewValue:
             canonical_unit=concept.form,
             sentence="Value is missing.",
         )
-    unit = claim.unit
+    unit = None if numeric_payload is None else numeric_payload.unit
     value_sentence = f"Value is {value}."
     if unit:
         value_sentence = f"Value is {value} {unit}."
@@ -301,41 +301,55 @@ def _claim_value(claim, concept: ClaimViewConcept) -> ClaimViewValue:
         state="known",
         value=value,
         unit=unit,
-        value_si=claim.value_si,
+        value_si=None if numeric_payload is None else numeric_payload.value_si,
         canonical_unit=concept.form,
         sentence=value_sentence,
     )
 
 
 def _claim_uncertainty(claim) -> ClaimViewUncertainty:
-    has_interval = claim.lower_bound is not None or claim.upper_bound is not None
-    if claim.uncertainty is None and not has_interval and claim.sample_size is None:
+    numeric_payload = claim.numeric_payload
+    if numeric_payload is None:
         return ClaimViewUncertainty(
             state="missing",
             uncertainty=None,
-            uncertainty_type=claim.uncertainty_type,
-            lower_bound=claim.lower_bound,
-            lower_bound_si=claim.lower_bound_si,
-            upper_bound=claim.upper_bound,
-            upper_bound_si=claim.upper_bound_si,
-            sample_size=claim.sample_size,
+            uncertainty_type=None,
+            lower_bound=None,
+            lower_bound_si=None,
+            upper_bound=None,
+            upper_bound_si=None,
+            sample_size=None,
+            sentence="Uncertainty is missing.",
+        )
+    has_interval = numeric_payload.lower_bound is not None or numeric_payload.upper_bound is not None
+    if numeric_payload.uncertainty is None and not has_interval and numeric_payload.sample_size is None:
+        return ClaimViewUncertainty(
+            state="missing",
+            uncertainty=None,
+            uncertainty_type=numeric_payload.uncertainty_type,
+            lower_bound=numeric_payload.lower_bound,
+            lower_bound_si=numeric_payload.lower_bound_si,
+            upper_bound=numeric_payload.upper_bound,
+            upper_bound_si=numeric_payload.upper_bound_si,
+            sample_size=numeric_payload.sample_size,
             sentence="Uncertainty is missing.",
         )
     return ClaimViewUncertainty(
         state="known",
-        uncertainty=claim.uncertainty,
-        uncertainty_type=claim.uncertainty_type,
-        lower_bound=claim.lower_bound,
-        lower_bound_si=claim.lower_bound_si,
-        upper_bound=claim.upper_bound,
-        upper_bound_si=claim.upper_bound_si,
-        sample_size=claim.sample_size,
+        uncertainty=numeric_payload.uncertainty,
+        uncertainty_type=numeric_payload.uncertainty_type,
+        lower_bound=numeric_payload.lower_bound,
+        lower_bound_si=numeric_payload.lower_bound_si,
+        upper_bound=numeric_payload.upper_bound,
+        upper_bound_si=numeric_payload.upper_bound_si,
+        sample_size=numeric_payload.sample_size,
         sentence="Uncertainty information is present.",
     )
 
 
 def _claim_condition(claim) -> ClaimViewCondition:
-    if not claim.conditions_cel:
+    conditions_cel = None if claim.text_payload is None else claim.text_payload.conditions_cel
+    if not conditions_cel:
         return ClaimViewCondition(
             state="vacuous",
             expression=None,
@@ -343,22 +357,19 @@ def _claim_condition(claim) -> ClaimViewCondition:
         )
     return ClaimViewCondition(
         state="known",
-        expression=claim.conditions_cel,
-        sentence=f"Condition expression: {claim.conditions_cel}",
+        expression=conditions_cel,
+        sentence=f"Condition expression: {conditions_cel}",
     )
 
 
 def _claim_provenance(claim) -> ClaimViewProvenance:
-    source = claim.source
-    provenance = claim.provenance
-    source_slug = None if source is None else source.slug
-    source_id = None if source is None else source.source_id
-    source_kind = None if source is None or source.kind is None else source.kind.value
-    origin = None if source is None else source.origin
-    origin_type = None if origin is None or origin.origin_type is None else origin.origin_type.value
-    origin_value = None if origin is None else origin.value
-    paper = None if provenance is None else provenance.paper
-    page = None if provenance is None else provenance.page
+    source_slug = claim.source_slug
+    source_id = claim.source_slug
+    source_kind = None
+    origin_type = None
+    origin_value = None
+    paper = claim.source_paper
+    page = claim.provenance_page
     if source_slug is None and source_id is None and paper is None and page is None:
         state: ClaimViewState = "missing"
         sentence = "Provenance is missing."
@@ -380,10 +391,10 @@ def _claim_provenance(claim) -> ClaimViewProvenance:
 
 
 def _claim_status(claim, visible: bool) -> ClaimViewStatus:
-    branch = _attribute_text(claim, "branch", "master")
-    build_status = _attribute_text(claim, "build_status", "ingested")
-    stage = _attribute_text(claim, "stage", "accepted")
-    promotion_status = _attribute_text(claim, "promotion_status", "accepted")
+    branch = _field_text(claim.branch, "master")
+    build_status = _field_text(claim.build_status, "ingested")
+    stage = _field_text(claim.stage, "accepted")
+    promotion_status = _field_text(claim.promotion_status, "accepted")
     if visible:
         return ClaimViewStatus(
             state="known",
@@ -413,12 +424,10 @@ def _claim_status(claim, visible: bool) -> ClaimViewStatus:
     )
 
 
-def _attribute_text(claim, key: str, default: str) -> str:
-    getter = getattr(claim, "attribute_value", None)
-    raw = getter(key) if callable(getter) else dict(getattr(claim, "attributes", {})).get(key)
-    if raw is None or raw == "":
+def _field_text(value: str | None, default: str) -> str:
+    if value is None or value == "":
         return default
-    return str(raw)
+    return str(value)
 
 
 def _claim_summary_entry(claim, concept, world) -> ClaimSummaryEntry:
@@ -427,12 +436,12 @@ def _claim_summary_entry(claim, concept, world) -> ClaimSummaryEntry:
     condition_view = _claim_condition(claim)
     status = _claim_status(claim, True)
     return ClaimSummaryEntry(
-        claim_id=str(claim.claim_id),
+        claim_id=str(claim.id),
         logical_id=_claim_logical_id(claim),
         concept_id=concept_view.concept_id,
         concept_name=concept_view.canonical_name,
         concept_display=_claim_summary_concept_display(claim, concept_view, world),
-        claim_type="unknown" if claim.claim_type is None else claim.claim_type.value,
+        claim_type=claim.type.value,
         value_display=_claim_value_display(claim, value_view),
         condition_display=(
             "(vacuous)"
@@ -452,7 +461,7 @@ def _claim_summary_concept_display(claim, concept: ClaimViewConcept, world) -> s
     linked_labels = _claim_linked_concept_labels(claim, world)
     if linked_labels:
         return ", ".join(linked_labels)
-    claim_type = None if claim.claim_type is None else claim.claim_type.value
+    claim_type = claim.type.value
     if claim_type == "equation":
         variable_names = _equation_variable_concept_names(claim, world)
         if variable_names:
@@ -478,49 +487,46 @@ def _claim_value_display(claim, value: ClaimViewValue) -> str:
 
 
 def _claim_interval_display(claim) -> str | None:
-    if claim.lower_bound is None and claim.upper_bound is None:
+    numeric_payload = claim.numeric_payload
+    if numeric_payload is None:
         return None
-    unit_suffix = f" {claim.unit}" if claim.unit else ""
-    if claim.lower_bound is not None and claim.upper_bound is not None:
-        return f"{claim.lower_bound} to {claim.upper_bound}{unit_suffix}"
-    if claim.lower_bound is not None:
-        return f">= {claim.lower_bound}{unit_suffix}"
-    return f"<= {claim.upper_bound}{unit_suffix}"
+    if numeric_payload.lower_bound is None and numeric_payload.upper_bound is None:
+        return None
+    unit_suffix = f" {numeric_payload.unit}" if numeric_payload.unit else ""
+    if numeric_payload.lower_bound is not None and numeric_payload.upper_bound is not None:
+        return f"{numeric_payload.lower_bound} to {numeric_payload.upper_bound}{unit_suffix}"
+    if numeric_payload.lower_bound is not None:
+        return f">= {numeric_payload.lower_bound}{unit_suffix}"
+    return f"<= {numeric_payload.upper_bound}{unit_suffix}"
 
 
 def _claim_text_display(claim) -> str | None:
-    claim_type = None if claim.claim_type is None else claim.claim_type.value
-    if claim.expression and claim_type == "equation":
-        return _truncate_claim_summary_text(claim.expression)
-    if claim.statement and claim_type in {
+    text_payload = claim.text_payload
+    if text_payload is None:
+        return None
+    claim_type = claim.type.value
+    if text_payload.expression and claim_type == "equation":
+        return _truncate_claim_summary_text(text_payload.expression)
+    if text_payload.statement and claim_type in {
         "observation",
         "comparison",
         "mechanism",
         "limitation",
     }:
-        return _truncate_claim_summary_text(claim.statement)
+        return _truncate_claim_summary_text(text_payload.statement)
     return None
 
 
 def _equation_variable_concept_names(claim, world) -> tuple[str, ...]:
-    if not claim.variables_json:
-        return ()
-    try:
-        variables = json.loads(str(claim.variables_json))
-    except json.JSONDecodeError:
-        return ()
-    if not isinstance(variables, list):
-        return ()
     names: list[str] = []
     seen: set[str] = set()
-    for entry in variables:
-        if not isinstance(entry, dict):
+    for variable in claim.variables:
+        concept_id = variable.concept_id
+        if concept_id is None:
             continue
-        concept_id = entry.get("concept")
-        if not isinstance(concept_id, str) or not concept_id:
-            continue
-        concept = world.get_concept(concept_id)
-        label = concept_id if concept is None or concept.canonical_name is None else concept.canonical_name
+        concept_id_text = str(concept_id)
+        concept = world.get_concept(concept_id_text)
+        label = concept_id_text if concept is None or concept.canonical_name is None else concept.canonical_name
         if label in seen:
             continue
         seen.add(label)
@@ -539,13 +545,17 @@ def _claim_sort_key(claim) -> tuple[str, str]:
     logical_id = _claim_logical_id(claim)
     return (
         "" if logical_id is None else logical_id,
-        str(claim.claim_id),
+        str(claim.id),
     )
 
 
 def _claim_logical_id(claim) -> str | None:
     logical_id = claim.primary_logical_id
     return None if logical_id is None else str(logical_id)
+
+
+def _claim_display_id(claim) -> str:
+    return _claim_logical_id(claim) or str(claim.id)
 
 
 def _claim_focus_concept_id(claim) -> str | None:
@@ -590,17 +600,20 @@ def _resolve_concept_filter(world, concept: str | None) -> str | None:
 def _claim_matches_query(claim, concept, query: str, world) -> bool:
     if query == "":
         return True
+    text_payload = claim.text_payload
+    algorithm_payload = claim.algorithm_payload
     fields = (
-        str(claim.claim_id),
+        str(claim.id),
         _claim_logical_id(claim) or "",
-        "" if claim.statement is None else claim.statement,
-        "" if claim.expression is None else claim.expression,
-        "" if claim.auto_summary is None else claim.auto_summary,
-        "" if claim.conditions_cel is None else claim.conditions_cel,
+        "" if text_payload is None or text_payload.statement is None else text_payload.statement,
+        "" if text_payload is None or text_payload.expression is None else text_payload.expression,
+        "" if text_payload is None or text_payload.auto_summary is None else text_payload.auto_summary,
+        "" if text_payload is None or text_payload.conditions_cel is None else text_payload.conditions_cel,
+        "" if algorithm_payload is None or algorithm_payload.body is None else algorithm_payload.body,
         "" if concept is None or concept.canonical_name is None else concept.canonical_name,
         *_claim_linked_concept_labels(claim, world),
-        "" if claim.source is None or claim.source.source_id is None else claim.source.source_id,
-        "" if claim.provenance is None or claim.provenance.paper is None else claim.provenance.paper,
+        "" if claim.source_slug is None else claim.source_slug,
+        "" if claim.source_paper is None else claim.source_paper,
     )
     return any(query in field.casefold() for field in fields)
 
