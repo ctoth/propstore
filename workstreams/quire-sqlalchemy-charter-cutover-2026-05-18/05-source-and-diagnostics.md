@@ -52,6 +52,7 @@ Before implementation:
 | `propstore/source/status.py` | Source status SQL queries | Source owner query over Quire session | Replace raw SQL with model/session query |
 | `propstore/source/finalize.py` and `propstore/source/promote.py` | Source promotion/finalize diagnostics into sidecar surfaces | Source subsystem plus diagnostic charter | Keep semantics; route diagnostics through typed diagnostic models |
 | `propstore/families/diagnostics/declaration.py` projection pieces | Build diagnostics projection | Diagnostic charter plus typed diagnostics | Delete projection table plumbing required by source status/finalize/promote |
+| `propstore/core/claim_values.py` source/trust payload constructors | Generic mapping constructors for source value objects | Explicit source document/JSON payload constructors | Rename to boundary-specific constructors; keep value validation |
 | `propstore/derived_build.py` | Propstore sidecar build orchestration over projection tables | Propstore orchestration over Quire writable sessions and charters | Use charter-driven session writes for source and source diagnostics |
 | `propstore/derived_build_plan.py` | Propstore row-oriented build plan | Propstore typed domain-object build plan | Carry typed source and diagnostic write plans |
 
@@ -114,6 +115,8 @@ Source deletion-first targets:
 - `SourceProjectionRow`;
 - `SOURCE_PROJECTION`;
 - source-specific opinion JSON helper code that generic JSON storage replaces;
+- generic source/trust `from_mapping` constructors in
+  `propstore/core/claim_values.py`;
 - source `sqlite3.Connection` insertion helpers;
 - source row-carrier objects whose only job is to aggregate projection rows.
 
@@ -160,6 +163,15 @@ File: `propstore/families/sources/declaration.py`.
 | `_opinion_json` | delete | Generic typed JSON storage belongs to Quire JSON adapter. |
 | `compile_source_sidecar_rows` | replace | Replace with `Source` model construction. |
 | `populate_sources` | delete | Replace with SQLAlchemy session add/flush. |
+
+File: `propstore/core/claim_values.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| `_opinion_from_mapping` | replace | Replace with boundary-specific source/trust payload conversion or direct typed construction. |
+| `SourceOrigin.from_mapping` | replace | Rename to an explicit boundary constructor such as `from_json_payload` or construct directly from typed source values. |
+| `SourceTrust.from_mapping` | replace | Rename to an explicit boundary constructor such as `from_json_payload` or construct directly from typed source values. |
+| `ClaimSource.from_mapping` | replace | Rename to an explicit boundary constructor such as `from_json_payload` or construct directly from typed source values. |
 
 File: `propstore/families/diagnostics/declaration.py`.
 
@@ -235,6 +247,8 @@ rg -n -F -- "SourceProjectionRow" propstore tests
 rg -n -F -- "SOURCE_PROJECTION" propstore tests
 rg -n -F -- "quality_json" propstore tests
 rg -n -F -- "derived_from_json" propstore tests
+rg -n -F -- "_opinion_from_mapping" propstore/core/claim_values.py tests
+rg -n -F -- "from_mapping" propstore/core/claim_values.py tests
 ```
 
 Run diagnostics old-path searches for this slice:
