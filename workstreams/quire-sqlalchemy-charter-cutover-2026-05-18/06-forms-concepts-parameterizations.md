@@ -304,12 +304,12 @@ File: `propstore/families/concepts/declaration.py`.
 | `select_concept_by_id` | replace | Replace with SQLAlchemy session query. |
 | `select_all_concepts` | replace | Replace with SQLAlchemy session query. |
 | `select_concept_embedding_sources` | replace | Replace with typed embedding source query over `Concept` model. |
-| `resolve_concept_embedding_entity` | move | Move concept-handle resolution policy to concept owner; implement through session query. |
+| `resolve_concept_embedding_entity` | replace | Replace concept-handle lookup with generic Quire family-reference lookup plus embedding owner sequencing. Do not move it to another concept-specific resolver. |
 | `select_aliases_by_concept_id` | replace | Replace with `Concept.aliases` relationship query. |
 | `select_concept_registry_rows` | replace | Replace with typed registry projection from `Concept` models. |
 | `build_concept_logical_id_index` | move | Move logical-id precedence/index semantics to concept owner; implement over typed models. |
-| `resolve_concept_alias` | move | Move alias resolution policy to concept owner; implement over `Concept.aliases`. |
-| `resolve_concept_id` | move | Move id/alias/logical/canonical precedence policy to concept owner; implement over typed models. |
+| `resolve_concept_alias` | delete | Alias lookup is an alternate reference surface declared for the family and resolved through generic Quire family-reference lookup. Do not keep a concept-specific wrapper. |
+| `resolve_concept_id` | delete | Id/alias/logical/canonical precedence is generic family-reference lookup over declared reference surfaces. Do not keep a concept-specific wrapper. |
 | `select_concept_ids_for_group` | replace | Replace with `ParameterizationGroup.members` relationship. |
 | `select_parameterizations_for_output_concept` | replace | Replace with `Concept.parameterizations_as_output` relationship. |
 | `select_all_parameterizations` | replace | Replace with SQLAlchemy session query. |
@@ -319,7 +319,7 @@ File: `propstore/families/concepts/declaration.py`.
 | `select_all_form_algebra_rows` | replace | Replace with typed `FormAlgebra` model query. |
 | `search_concept_ids` | replace | Replace raw FTS SQL with Quire/SQLAlchemy FTS query API. |
 | `count_concepts` | replace | Replace with SQLAlchemy count query through concept owner. |
-| `resolve_sidecar_concept_id` | move | Move handle-resolution policy to concept owner; delete raw sidecar helper. |
+| `resolve_sidecar_concept_id` | delete | Replace sidecar concept lookup with generic Quire family-reference lookup. Do not reintroduce it as `resolve_concept_id`. |
 
 Files: `propstore/families/concepts/projection_model.py` and concept-side
 projection helpers.
@@ -693,3 +693,81 @@ Final Phase 7-8 gates:
   comparisons for the captured forms/concepts/parameterizations baseline.
 - Phase 7-8 completion gate is satisfied. The remaining vector runtime
   migration named in this file stays owned by Phase 11, not this phase.
+
+## Completed-Phase Audit Correction
+
+Recorded 2026-05-20 by Worker C.
+
+The Phase 7-8 completion claim above is incomplete for the newer family
+metadata requirement. It correctly removed the old projection/read-model
+surfaces named in this file, but it preserved concept-specific lookup and
+model-access code where the final architecture now requires generic Quire
+family reference lookup and family metadata.
+
+Current audit findings:
+
+- `propstore/world/model.py::resolve_alias` still performs an alias-specific
+  lookup through `schema.model("alias")` and `alias_model.alias_name`.
+- `propstore/world/model.py::resolve_concept` still implements per-family
+  precedence by querying `schema.model("concept")` fields `id`,
+  `primary_logical_id`, and `canonical_name`, plus the local
+  `_get_concept_logical_id_index` cache.
+- `propstore/world/model.py::_build_logical_id_index` still has a special
+  `table == "concept"` branch that manually decodes `logical_ids_json` instead
+  of using a generic family reference index built from family metadata.
+- `propstore/world/model.py::get_concept`, `all_concepts`, `search`,
+  `concept_ids_for_group`, and the parameterization methods still fetch
+  concept/parameterization SQLAlchemy models directly by string family names.
+  Typed family owner/model semantics may stay, but generic family lookup and
+  metadata access must not live as `WorldQuery` per-family wrappers.
+- `propstore/app/concepts/display.py::search_concepts` still reaches directly
+  for `schema.model("concept")`; the app layer should call an owner-layer
+  search/query API whose generic family metadata lookup is below the
+  presentation adapter.
+- The repo already has the generic mechanism this correction should use:
+  `quire.references.FamilyReferenceIndex` and `ReferenceKey`, and the compiler
+  already builds a concept family reference index in
+  `propstore/compiler/context.py::_concept_reference_index`.
+- A same-pattern claim audit found `propstore/world/model.py::resolve_claim`
+  still delegates to `propstore/families/claims/declaration.py::resolve_claim_id`,
+  which queries `claim_core` directly. That claim work belongs to the claims
+  phase, but this phase must not preserve the concept version of the same
+  pattern as acceptable completed work.
+
+Required correction final state:
+
+- Delete concept-specific resolver implementations as production lookup
+  mechanisms: `resolve_alias`, `resolve_concept_id`-style helpers, local
+  concept logical-id index builders, and direct alias/concept lookup branches.
+- Replace them with a generic Quire family reference lookup built from family
+  metadata/reference keys. Concept-specific semantics are limited to typed
+  family owner/model declarations of which reference keys exist and how concept
+  records expose them.
+- Keep typed concept/form/parameterization semantic methods in their family
+  owners. Do not keep `WorldQuery` or app-layer methods whose only job is
+  per-family lookup, model fetching, or string-family schema access.
+- Update all production callers to use the generic family reference lookup
+  surface directly or a typed semantic owner API for actual concept semantics.
+  Do not add
+  compatibility wrappers around the old method names.
+
+Follow-up gates for this correction:
+
+```powershell
+uv run pyright propstore
+powershell -File scripts/run_logged_pytest.ps1 -Label concept-family-reference-lookup tests/test_world_query.py tests/test_concept_views.py tests/test_concept_workflows.py tests/test_world_model_resolve_cache.py
+rg -n -F -- "def resolve_alias" propstore tests
+rg -n -F -- "resolve_concept_id" propstore tests
+rg -n -F -- "resolve_sidecar_concept_id" propstore tests
+rg -n -F -- "_get_concept_logical_id_index" propstore tests
+rg -n -F -- "table == \"concept\"" propstore tests
+rg -n -F -- "schema.model(\"alias\")" propstore tests
+rg -n -F -- "schema.model(\"concept\")" propstore/world propstore/app tests
+rg -n -F -- "WorldQuery(derived_store=derived_store).resolve_concept" propstore tests
+rg -n -F -- "world.resolve_concept(" propstore tests
+rg -n -F -- "getattr(world, \"resolve_concept\"" propstore tests
+```
+
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
+If a public query method remains for presentation compatibility, it must be a
+generic `family + reference` API, not a concept-named lookup wrapper.

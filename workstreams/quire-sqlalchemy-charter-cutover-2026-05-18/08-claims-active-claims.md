@@ -190,6 +190,57 @@ Old paths that remain forbidden while restoring this behavior:
 - helper functions that join payload tables and attach values to claims outside
   Quire relationships/session mechanics.
 
+## Claim Reference And Semantics Binding
+
+This phase must not replace deleted row/model helpers with another
+claim-specific lookup or raw query convenience layer.
+
+Binding rule:
+
+- delete raw claim lookup helpers such as
+  `propstore/families/claims/declaration.py::resolve_claim_id` once callers
+  are moved;
+- do not add or keep a `resolve_claim`, `resolve_concept`, `resolve_alias`,
+  `*_lookup_id`, or equivalent convenience wrapper as the replacement path for
+  claim-family code;
+- claim and concept reference resolution uses Quire reference-index capability:
+  `quire.references.FamilyReferenceIndex.resolve_id` /
+  `FamilyReferenceIndex.require_id` and the family-owned indexes exposed by
+  `propstore/families/claims/references.py`,
+  `propstore/source/reference_indexes.py`, and the registry
+  `FamilyDefinition.reference_index_from_records` API;
+- typed read access uses Quire generic family metadata and SQLAlchemy
+  schema/session APIs to obtain the mapped model for the declared claim family
+  key. Do not hard-code a new Propstore model map or add a second helper that
+  hides generic model lookup or recreates raw SQL selector behavior;
+- claim-local semantics belong on typed `Claim`, `ClaimConceptLink`,
+  `ClaimNumericPayload`, `ClaimTextPayload`, `ClaimAlgorithmPayload`,
+  `ClaimSourceAssertion`, or the claim family owner modules. World
+  orchestration may coordinate cross-family behavior only; it must not own
+  claim identity, claim reference, payload, source-assertion, concept-link, or
+  scalar/condition semantics.
+
+Exact current code surfaces already found in this repo:
+
+- `propstore/families/claims/declaration.py::resolve_claim_id` is a raw
+  `sqlite3.Connection` helper over `claim_core` and is in the deletion queue;
+- `propstore/world/model.py::WorldQuery.resolve_claim` delegates to
+  `resolve_claim_id` and must not survive as the claim-family replacement
+  abstraction;
+- `propstore/world/model.py::WorldQuery.resolve_alias` and
+  `WorldQuery.resolve_concept` currently perform concept/alias lookup with
+  direct session queries and cached logical-id maps. They are world-facing
+  orchestration compatibility until Phase 12 removes them or narrows them to
+  cross-family behavior; they must not be copied into claim owner code;
+- `propstore/world/overlay.py::OverlayWorld.resolve_claim`,
+  `OverlayWorld.resolve_alias`, and `OverlayWorld.resolve_concept` are
+  forwarding wrappers over the base world and are part of the old world
+  wrapper queue, not claim-owner APIs;
+- `propstore/families/claims/references.py::resolve_first_claim_reference_id`
+  and `propstore/source/reference_indexes.py::primary_claim_index` /
+  `source_claim_index` already point at Quire `FamilyReferenceIndex`; use that
+  generic reference mechanism instead of authoring another resolver.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |

@@ -261,6 +261,22 @@ If a family cannot follow this loop because Quire lacks a needed generic feature
 - Keep and move semantic code when it owns concept-id precedence, alias resolution, source-local lowering, quarantine/blocked policy, form/unit validation, visibility/render policy, context/lifting semantics, argumentation semantics, revision semantics, or authored-document identity.
 - After moving kept semantics, delete the original helper-shaped production path.
 
+## Generic Family Reference Rule
+
+Finding a model instance is generic family infrastructure. Do not add or keep
+per-family lookup wrappers such as `resolve_claim`, `resolve_concept`,
+`resolve_alias`, `resolve_*_id`, or thin convenience methods over generic
+lookup. Quire must expose the main mapped model, identity field, alternate
+reference fields, and reference lookup from family charter/catalog metadata.
+Callers that need identity resolution use that generic family-reference API
+directly.
+
+Interpreting an already-loaded object is family/domain behavior. Typed ORM
+objects and exact family owners may expose semantic properties and methods that
+derive meaning from their own typed fields and relationships. Cross-family
+answers remain world/reasoning behavior when they depend on multiple families,
+runtime environment, stances, contexts, ATMS/ASPIC, revision, or render policy.
+
 ## Global Parity Rules
 
 Every Propstore family phase has this data-parity obligation:
@@ -374,6 +390,15 @@ rg -n -F -- "PromotionBlockedSidecarRows" propstore tests
 rg -n -F -- "SidecarClaimRelationStore" propstore tests
 rg -n -F -- "find_similar_claim_rows" propstore tests
 rg -n -F -- "find_similar_concept_rows" propstore tests
+rg -n -F -- "def resolve_claim" propstore tests
+rg -n -F -- "def resolve_concept" propstore tests
+rg -n -F -- "def resolve_alias" propstore tests
+rg -n -F -- ".resolve_claim(" propstore tests
+rg -n -F -- ".resolve_concept(" propstore tests
+rg -n -F -- ".resolve_alias(" propstore tests
+rg -n -F -- "resolve_claim_id" propstore tests
+rg -n -F -- "resolve_concept_id" propstore tests
+rg -n -F -- "resolve_concept_alias" propstore tests
 rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
 ```
 
@@ -411,6 +436,9 @@ The directory workstream is complete only when:
 - Quire has a SQLAlchemy-backed charter/schema engine.
 - Quire derived-store handles open read-only SQLAlchemy sessions.
 - Quire schema catalogs describe the derived store from the same charters that generated the mappings.
+- Quire schema/catalog/session APIs expose generic family main-model access
+  and family-reference lookup from charter metadata, with no Propstore
+  per-family lookup wrappers.
 - Quire charters compose with existing `ArtifactFamily`, document-store, placement, and reference/FK APIs instead of replacing them with a parallel registry.
 - Quire projection modules and projection public exports are deleted.
 - Propstore supplies domain charters for every sidecar family.

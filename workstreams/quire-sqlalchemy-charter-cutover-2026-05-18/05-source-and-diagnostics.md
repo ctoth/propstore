@@ -500,3 +500,39 @@ Prerequisites:
   model/session queries, finalize/promote diagnostics route through typed
   `BuildDiagnostic` objects, all named deletion targets are gone from
   production code, parity passes, and the required type/test/search gates pass.
+
+Correction binding recorded 2026-05-20:
+
+- No completed phase may preserve claim/concept-specific lookup wrappers as the
+  final architecture. Public or owner-layer lookup surfaces such as
+  `resolve_claim`, `resolve_concept`, and `resolve_alias` must be replaced by
+  generic Quire/family-registry family-reference lookup.
+- Main model access must be Quire/family-registry driven. A Propstore-owned
+  per-family model registry, claim/concept special case, or string-table model
+  lookup is follow-up unless it is only declaring typed family semantics for
+  Quire to register.
+- Family semantics may remain on typed ORM/domain objects; the correction is
+  about lookup and main-model access plumbing, not about deleting semantic
+  model classes.
+
+Completed-phase audit for this correction:
+
+- Phase 6 committed `propstore/source/status.py::inspect_source_status` reading
+  the claim family through `derived.schema.table("claim_core")` and hard-coded
+  `claim_core` columns. That is an actual completed-phase source-status
+  surface needing follow-up: source status should obtain the claim main
+  model/table through generic Quire/family-registry metadata or through a
+  claim-owner query API that does so.
+- Phase 6 committed `propstore/families/diagnostics/declaration.py`
+  diagnostic queries and deletes through `derived.schema.table("build_diagnostics")`
+  and `derived.schema.model("build_diagnostics")`. This is not a
+  claim/concept-specific wrapper, but it is still string-table main model
+  access and should be lowered through generic family metadata when that owner
+  path is cut over.
+- Phase 6 preserved the existing `propstore/world/model.py`
+  `resolve_claim`/`resolve_alias`/`resolve_concept` methods and the pass-through
+  wrappers in `propstore/world/overlay.py`. Those wrappers remain follow-up for
+  the WorldQuery/family-reference owner work; Phase 6 did not make them
+  generic.
+- No Phase 6 source or diagnostics code added a new `resolve_claim`,
+  `resolve_concept`, or `resolve_alias` wrapper.

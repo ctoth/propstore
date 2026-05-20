@@ -423,6 +423,32 @@ Push blocker resolved 2026-05-20:
 
 Phase 1-2 is complete. Phase 3 may start.
 
+### Generic Family Metadata Correction Audit
+
+Recorded 2026-05-20.
+
+Binding note: generic family main-model access and generic reference lookup are
+Quire capabilities. Propstore family cutovers must use Quire family metadata
+APIs for main model and reference/FK lookup; they must not add or preserve
+claim-specific or concept-specific lookup wrappers, model maps, aliases, or
+direct per-family model access.
+
+Completed-record audit:
+
+- Phase 1 proof work used `Claim`, `Concept`, and `ClaimConceptLink` as
+  capability proof models only. The record does not preserve a Propstore
+  claim/concept lookup wrapper.
+- Phase 2 charter/schema IR records Python model class, `ArtifactFamily`, and
+  `ForeignKeySpec` metadata, but the completed gate does not explicitly require
+  Quire to expose those facts through a generic family metadata access API.
+
+Follow-up gate for the next Quire-owned implementation slice: before Propstore
+family cutover code consumes charter-backed models, Quire must expose one
+generic family metadata API that resolves a family's main Python model and its
+reference/FK metadata from the registered `ArtifactFamily`/charter metadata.
+Proof coverage must use the same generic API for the claim and concept proof
+families.
+
 ## Completion Gates
 
 Run from `C:\Users\Q\code\quire`:

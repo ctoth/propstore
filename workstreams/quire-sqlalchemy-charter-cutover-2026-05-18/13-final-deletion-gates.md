@@ -25,6 +25,21 @@ This file owns final verification, old-path search gates, dependency-pin
 closure, inventory closure, and completion criteria. It does not authorize a
 production cutover before the prerequisite child gates pass.
 
+Binding notes from the 2026-05-20 update:
+
+- Final deletion must reject per-family identity lookup wrappers, convenience
+  methods, and renamed helper-shaped APIs. The final state uses generic Quire
+  family reference/FK lookup and generic Quire main-model access only.
+- Family semantics may live on typed ORM/domain objects when the behavior is
+  domain-specific. Generic identity, FK, table, session, vector, and
+  main-model lookup mechanics belong in Quire.
+- `rg` on 2026-05-20 found no `main_model` hits under `propstore` or `tests`,
+  but `resolve_claim`, `resolve_concept`, and `resolve_alias` are still real
+  production/test surfaces and must be covered by final old-path search gates.
+- The final gate must distinguish semantic resolution behavior that remains on
+  typed domain/world objects from old per-family lookup wrappers and call
+  sites. Keeping a wrapper because it is convenient is not a valid closure.
+
 ## Prerequisite Gate Dependencies
 
 Check these before starting final deletion work:
@@ -183,10 +198,21 @@ rg -n -F -- "ProjectionSchemaError" propstore tests
 rg -n -F -- "validate_derived_store_schema" propstore tests
 rg -n -F -- "schema.validate_connection" propstore tests
 rg -n -F -- "Rebuild with 'pks build'" propstore tests
+rg -n -F -- "resolve_claim" propstore tests
+rg -n -F -- "resolve_concept" propstore tests
+rg -n -F -- "resolve_alias" propstore tests
+rg -n -F -- "main_model" propstore tests
 ```
 
-Gate: zero production hits. Documentation hits are limited to notes,
+Gate: zero production hits for deleted projection, schema-validation, row,
+coercer, and helper paths. Documentation hits are limited to notes,
 workstreams, docs, and reports.
+
+For `resolve_claim`, `resolve_concept`, `resolve_alias`, and `main_model`,
+classify every hit. Per-family identity lookup wrappers, convenience methods,
+and call sites that bypass generic Quire family reference/FK lookup or generic
+main-model access must be zero-hit. Typed domain/world semantic resolution may
+remain only when it is not a generic lookup wrapper under another name.
 
 ## Phase 17: Full Gates And Dependency Pin
 

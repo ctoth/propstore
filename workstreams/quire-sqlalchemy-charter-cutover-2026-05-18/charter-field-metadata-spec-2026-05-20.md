@@ -83,6 +83,12 @@ per-family `_claim_batches` / `_concept_batches` routing.
 Required Quire capability before deleting the broad constructors and table
 routing everywhere:
 
+- Given a family key, return the family charter, main mapped model class, and
+  primary identity field from the catalog.
+- Given a family key and reference value, resolve the canonical identity using
+  declared reference surfaces such as primary identity, primary logical id,
+  logical ids, aliases, local ids, slugs, tags, or other charter-declared
+  alternate keys.
 - Given `(family_name, typed_values)`, construct a mapped object using the
   charter field list as the only accepted field list.
 - Reject unknown fields.
@@ -95,6 +101,12 @@ routing everywhere:
 If this capability is not present when a deletion slice reaches it, execution
 returns to the Quire workstream. Do not replace it with Propstore DTOs or
 kwargs helpers.
+
+Per-family identity lookup wrappers are not an acceptable substitute for this
+capability. `resolve_claim`, `resolve_concept`, `resolve_alias`,
+`resolve_*_id`, and equivalent thin methods must be deleted rather than moved
+or rebuilt. Family-local semantic methods are allowed on typed ORM/domain
+objects only when they interpret already-loaded typed fields and relationships.
 
 ## Claim Helper Responsibility Map
 

@@ -44,6 +44,48 @@ Final state:
 - `propstore/core/justifications.py` no longer owns duplicated canonical
   schema/conversion behavior.
 
+Binding notes from the 2026-05-20 update:
+
+- Do not replace micropublication or justification projection helpers with
+  per-family identity lookup wrappers, convenience methods, or renamed
+  helper-shaped APIs.
+- Justification and micropublication references must use generic Quire family
+  reference/FK lookup and generic Quire main-model access. Missing generic
+  lookup/main-model capability is Quire work, not a Propstore
+  micropublication-only workaround.
+- Family semantics may live on typed ORM/domain objects when the behavior is
+  micropublication- or justification-specific, including link role/ordinal
+  meaning, evidence/context binding, missing-claim quarantine semantics, and
+  active-graph-derived justification view behavior. Generic identity, FK,
+  table, session, and main-model lookup mechanics do not belong in this
+  family.
+
+Current old-surface findings from `rg` on 2026-05-20:
+
+- The old micropublication projection surface is still present in production:
+  `propstore/families/micropublications/declaration.py` defines
+  `MICROPUBLICATION_PROJECTION`, `MICROPUBLICATION_CLAIM_PROJECTION`,
+  `MICROPUBLICATION_ROW_MODEL`, `MicropublicationProjectionRow`,
+  `MicropublicationClaimProjectionRow`, `MicropublicationSidecarRows`,
+  `compile_micropublication_sidecar_rows*`,
+  `create_micropublication_tables`, `populate_micropublications`, and
+  `select_all_micropublications`.
+- `propstore/core/micropublications.py` still defines
+  `_parse_string_tuple`, `ActiveMicropublication`,
+  `ActiveMicropublicationInput`, and `coerce_active_micropublication`.
+- The Phase 10 residual claim projection surface is still present:
+  `propstore/families/claims/projection_model.py` defines
+  `JUSTIFICATION_STORAGE_MODEL` and `JUSTIFICATION_TABLE`, and
+  `propstore/families/claims/declaration.py` still imports that module.
+- Production callers still consume old micropublication/justification
+  surfaces in `propstore/derived_build_plan.py`, `propstore/world/atms.py`,
+  `propstore/world/model.py`, and `propstore/world/overlay.py`.
+- `CanonicalJustification(` construction remains in
+  `propstore/core/justifications.py`,
+  `propstore/aspic_bridge/extract.py`, and tests, so this phase must decide
+  which constructions are authored-document boundaries and delete only the
+  duplicated canonical schema/conversion role.
+
 ## Prerequisites
 
 Complete the earlier cutover workstreams before starting implementation:

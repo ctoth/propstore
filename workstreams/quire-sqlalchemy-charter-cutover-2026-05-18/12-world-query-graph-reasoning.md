@@ -119,6 +119,16 @@ as the work queue:
 - graph construction coercion through projection row models;
 - world, bound, overlay, and ATMS imports of projection row/model classes;
 - `_claim_rows` in `propstore/world/model.py`;
+- `WorldQuery.resolve_claim`, `WorldQuery.resolve_concept`, and
+  `WorldQuery.resolve_alias` as claim/concept/alias convenience wrappers when
+  they duplicate generic Quire family reference lookup or typed model access;
+- forwarding wrapper methods such as `OverlayWorld.resolve_claim`,
+  `OverlayWorld.resolve_concept`, and `OverlayWorld.resolve_alias` when they
+  only preserve the old convenience-resolver surface;
+- helper variants such as `_resolve_claim_lookup_id`,
+  `_resolve_claim_target`, `_resolve_claim_input`,
+  `_resolve_concept_filter`, and `_resolve_concept_entry` when their only job
+  is to hide reference lookup behind another claim/concept-specific helper;
 - `ActiveClaimInput` and `ActiveMicropublicationInput` protocol surfaces in
   world/environment/overlay/ATMS APIs;
 - `ActiveClaimResolver` in `propstore/world/value_resolver.py`;
@@ -176,6 +186,15 @@ Required caller final state:
 
 - `WorldQuery` owns semantic read facade behavior and receives typed sessions
   from Quire derived-store handles;
+- claim/concept/alias lookup is not owned by world-specific resolver wrappers:
+  family reference resolution uses Quire family-reference APIs and family
+  registry indexes, while typed row access obtains the mapped model through
+  generic Quire family metadata and then uses the derived-store session path;
+- world code may orchestrate cross-family behavior, but claim-local semantics
+  remain on typed `Claim` / claim-family owner surfaces. Do not put payload,
+  scalar, condition, concept-link, source-assertion, reference, or alias
+  semantics in `WorldQuery`, bound worlds, overlay worlds, ATMS, graph build,
+  support-revision, or ASPIC code merely to keep old API shape;
 - `world/queries.py` contains typed query helpers and no projection-model
   imports;
 - bound and overlay worlds read typed graph/store objects;
@@ -249,10 +268,27 @@ Execute in this order:
 8. Replace loose dict/list/row payloads with typed world, graph, relation,
    claim, stance, justification, grounding, context, and micropublication model
    objects.
-8a. Replace `_validate_schema` with Quire SQLAlchemy schema/catalog validation
+8a. Delete the old claim/concept/alias resolver wrapper family instead of
+    renaming it. The implementation work queue includes the current surfaces
+    `propstore/world/model.py::WorldQuery.resolve_claim`,
+    `WorldQuery.resolve_concept`, `WorldQuery.resolve_alias`,
+    `_get_claim_logical_id_index`, `_get_concept_logical_id_index`,
+    `propstore/world/overlay.py::OverlayWorld.resolve_claim`,
+    `OverlayWorld.resolve_concept`, `OverlayWorld.resolve_alias`,
+    `propstore/world/bound.py::_resolve_claim_lookup_id`,
+    `propstore/worldline/resolution.py::_resolve_claim_target`,
+    `propstore/worldline/resolution.py::_resolve_claim_input`,
+    `propstore/app/claim_views.py::_resolve_concept_filter`, and
+    `propstore/app/concept_views.py::_resolve_concept_entry`. Replace direct
+    users with generic Quire family-reference lookup where they resolve
+    external references, or with generic Quire family metadata plus typed
+    session queries where they need model rows. Do not add `resolve_*`,
+    `lookup_*`, `get_*_id`, raw SQL selector, cached logical-id-map, or
+    forwarding wrapper substitutes.
+8b. Replace `_validate_schema` with Quire SQLAlchemy schema/catalog validation
     through the derived-store handle/session path and delete message rewriting
     around old `Unsupported sidecar schema` wording.
-8b. Update `tests/test_world_query.py` and
+8c. Update `tests/test_world_query.py` and
     `tests/test_sidecar_projection_contract.py` so they no longer assert
     `Unsupported sidecar schema`, `ProjectionSchemaError`,
     `validate_derived_store_schema`, `schema.validate_connection`, or

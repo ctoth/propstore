@@ -33,6 +33,45 @@ End state:
 - grounding, calibration, and embedding runtime callers no longer open raw
   sidecar SQLite connections for owned reads and writes.
 
+Binding notes from the 2026-05-20 update:
+
+- Do not replace grounding, calibration, embedding, claim-similarity, or
+  concept-similarity old helpers with per-family identity lookup wrappers,
+  convenience methods, or renamed helper-shaped APIs.
+- Rule, calibration, embedding, claim, and concept references must use generic
+  Quire family reference/FK lookup and generic Quire main-model access. Missing
+  generic lookup/main-model or vector/session capability is Quire work, not a
+  Propstore family-specific workaround.
+- Family semantics may live on typed ORM/domain objects when the behavior is
+  domain-specific, including grounded-rule bundle semantics, calibration count
+  meaning, embedding model identity, text source policy, entity resolution
+  policy, and snapshot report semantics. Generic identity, FK, table, session,
+  vector, and main-model lookup mechanics do not belong in these families.
+
+Current old-surface findings from `rg` on 2026-05-20:
+
+- `propstore/families/rules/declaration.py` still defines
+  `GROUNDED_FACT_PROJECTION`,
+  `GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION`,
+  `GROUNDED_BUNDLE_INPUT_PROJECTION`, the grounded projection row classes,
+  `create_grounded_fact_table`, `populate_grounded_facts`,
+  `_persist_bundle_inputs`, `_read_bundle_inputs`, `read_grounded_facts`, and
+  `read_grounded_bundle`.
+- `propstore/families/calibration/declaration.py` still defines
+  `CALIBRATION_COUNTS_PROJECTION`, `CalibrationCountsProjectionRow`, and
+  `load_calibration_counts` over a raw `sqlite3.Connection`.
+- `propstore/families/embeddings/declaration.py` still imports embedding
+  projection/vector declarations, defines `ensure_embedding_tables`,
+  `SidecarEmbeddingRegistry`, `_SidecarEntityEmbeddingStore`,
+  `SidecarClaimEmbeddingStore`, `SidecarConceptEmbeddingStore`, and
+  `SidecarEmbeddingSnapshotStore`, and accepts raw `sqlite3.Connection` across
+  embedding workflows.
+- `propstore/families/claims/sidecar_runtime.py` and
+  `propstore/families/concepts/sidecar_runtime.py` still open raw sidecar
+  connections with `connect_sqlite_store`, set `row_factory`, and expose
+  `find_similar_claim_rows`, `find_similar_concept_rows`, and
+  `SidecarClaimRelationStore`.
+
 Diagnostics projection cleanup is owned by
 `05-source-and-diagnostics.md`. This workstream depends on the typed
 `BuildDiagnostic` service already existing for embedding restore diagnostics
@@ -188,8 +227,8 @@ File: `propstore/families/embeddings/declaration.py`.
 | `ensure_embedding_tables` | delete | Quire vector/charter machinery creates tables. |
 | `SidecarEmbeddingRegistry` | replace | Replace with Quire vector registry/session API. |
 | `_SidecarEntityEmbeddingStore` | replace | Replace with Quire vector entity store over SQLAlchemy session. |
-| `SidecarClaimEmbeddingStore` | replace | Replace with claim-specific adapter over Quire vector entity store. |
-| `SidecarConceptEmbeddingStore` | replace | Replace with concept-specific adapter over Quire vector entity store. |
+| `SidecarClaimEmbeddingStore` | delete | Replace with generic Quire vector cache/entity APIs parameterized by family metadata. Do not keep a claim-specific embedding adapter. |
+| `SidecarConceptEmbeddingStore` | delete | Replace with generic Quire vector cache/entity APIs parameterized by family metadata. Do not keep a concept-specific embedding adapter. |
 | `SidecarEmbeddingSnapshotStore` | replace | Replace with Quire vector snapshot store plus Propstore snapshot report mapping. |
 | `get_registered_models` | replace | Replace with Quire vector registry query. |
 | `embed_claims` | replace | Keep workflow API, but route through Quire vector/session APIs. |

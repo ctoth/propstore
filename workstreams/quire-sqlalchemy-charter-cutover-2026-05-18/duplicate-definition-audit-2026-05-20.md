@@ -211,6 +211,40 @@ the charter/catalog. This is a transitional duplicate routing layer.
 Required cleanup: replace per-family batch routing with Quire catalog/session
 mechanics once the current family cutover reaches that gate.
 
+### World/Family Lookup Wrappers: Per-Family Reference Resolution
+
+Status: newly identified during Phase 10 review.
+
+Files and evidence:
+
+- `propstore/world/model.py`: `WorldQuery.resolve_claim`,
+  `WorldQuery.resolve_concept`, and `WorldQuery.resolve_alias`.
+- `propstore/world/overlay.py`: overlay `resolve_claim`,
+  `resolve_concept`, and `resolve_alias` passthrough wrappers.
+- `propstore/core/environment.py`: `WorldStore` protocol requires
+  claim/concept/alias-specific resolver methods.
+- `propstore/world/bound.py`: `_store.resolve_claim`,
+  `_store.resolve_concept`, `_resolve_claim_lookup_id`, and
+  `hasattr(..., "resolve_claim")` branches.
+- `propstore/families/claims/declaration.py`: `resolve_claim_id` and
+  `resolve_claim_embedding_entity`.
+- `propstore/families/concepts/sidecar_runtime.py`: constructs
+  `WorldQuery(...).resolve_concept(...)`.
+
+Problem: these are not family semantics. They are generic family-reference
+lookup encoded as claim/concept-specific methods and helpers. Keeping them as
+thin wrappers over a future generic lookup would preserve the same duplicate
+surface under a different implementation.
+
+Required cleanup: Quire must expose generic family main-model access and
+reference lookup from charter/catalog metadata. Delete `resolve_claim`,
+`resolve_concept`, `resolve_alias`, `resolve_claim_id`,
+`resolve_concept_id`, `resolve_concept_alias`, and equivalent per-family
+wrappers/call sites. Callers that need identity resolution must use the
+generic family-reference API directly. Typed ORM/domain model methods may
+remain only for family-local semantics over already-loaded typed fields and
+relationships.
+
 ## Quire Audit Result
 
 The Quire SQLAlchemy/charter commits are not where this specific Propstore
@@ -243,6 +277,15 @@ rg -n -F -- '"coerce":' propstore tests
 rg -n -F -- "from_row_mapping" propstore/families/claims propstore/families/concepts propstore/core propstore/world tests
 rg -n -F -- "**values" propstore/families/claims propstore/families/concepts propstore/families/forms propstore/families/sources propstore/families/contexts propstore/families/world_charters.py
 rg -n -- "Input\\s*=.*Mapping" propstore/families propstore/core propstore/world tests
+rg -n -F -- "def resolve_claim" propstore tests
+rg -n -F -- "def resolve_concept" propstore tests
+rg -n -F -- "def resolve_alias" propstore tests
+rg -n -F -- ".resolve_claim(" propstore tests
+rg -n -F -- ".resolve_concept(" propstore tests
+rg -n -F -- ".resolve_alias(" propstore tests
+rg -n -F -- "resolve_claim_id" propstore tests
+rg -n -F -- "resolve_concept_id" propstore tests
+rg -n -F -- "resolve_concept_alias" propstore tests
 ```
 
 The exact allowed set must be zero for active cutover production code unless
@@ -257,10 +300,13 @@ the active workstream explicitly marks a true IO boundary and names the owner.
    any new claim construction code.
 4. Clean Phase 6 concept mapping repair (`ConceptInput`,
    `ParameterizationInput`, `from_row_mapping`, `coerce`, `to_row_mapping`).
-5. Replace loose `**values` mapped-model constructors in source, forms,
+5. Add or use Quire generic family main-model/reference lookup, then delete
+   per-family lookup wrappers and call sites instead of rebuilding them as
+   thin convenience methods.
+6. Replace loose `**values` mapped-model constructors in source, forms,
    contexts, world placeholder records, and claims with a single
    charter-derived construction path.
-6. Replace per-family build-plan table routing with Quire catalog/session
+7. Replace per-family build-plan table routing with Quire catalog/session
    routing when the current family gates reach that owner boundary.
 
 No future code slice should be considered executable if it adds a new DTO,

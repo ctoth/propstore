@@ -353,3 +353,72 @@ Recorded 2026-05-20.
   FTS, vector, or table failures.
 
 Phase 9 is complete.
+
+## Completed-Phase Audit Correction
+
+Recorded 2026-05-20 by Worker C.
+
+The Phase 9 completion claim above is complete for the projection/read-model
+deletion targets originally named in this file, but it is incomplete for the
+newer family metadata requirement. The completed implementation still contains
+direct string-family SQLAlchemy model lookup where the final architecture now
+requires generic Quire family metadata access.
+
+Current audit findings:
+
+- `propstore/families/contexts/declaration.py::load_lifting_system` still
+  fetches `schema.model("context")`, `schema.model("context_assumption")`,
+  and `schema.model("context_lifting_rule")` directly before assembling the
+  typed `LiftingSystem`.
+- No context-owned `resolve_concept` or `resolve_claim` implementation was
+  found in `propstore/context_lifting.py`, `propstore/families/contexts`,
+  or `propstore/aspic_bridge`.
+- The worldline caller surface still reaches concept resolution through
+  `propstore/worldline/resolution.py::resolve_concept_name`, which calls
+  `world.resolve_concept(name)`. That is a dependency on the Phase 6
+  concept-specific resolver correction and must not be treated as acceptable
+  context/lifting completion once the generic family reference lookup is in
+  place.
+- The same audit found claim-specific resolution still present in the shared
+  world model through `WorldQuery.resolve_claim` and
+  `propstore/families/claims/declaration.py::resolve_claim_id`. Claim lookup
+  correction belongs to the claims phase, but context/worldline code must not
+  add or preserve claim/concept-specific lookup wrappers while this phase is
+  being corrected.
+
+Required correction final state:
+
+- `load_lifting_system` may remain the context owner API that assembles
+  `LiftingSystem`, but it must obtain context family models through generic
+  Quire family metadata/model lookup instead of hard-coded `schema.model(...)`
+  calls.
+- Context/lifting code must not introduce resolver wrappers for claims,
+  concepts, contexts, assumptions, lifting rules, or lifting materializations.
+  Reference resolution must go through the generic family reference lookup
+  surface when a reference needs resolution.
+- Worldline context/lifting callers must stop depending on
+  `world.resolve_concept` or `world.resolve_claim`; they should use the same
+  generic `family + reference` lookup surface as the rest of the completed
+  cutover.
+- Typed context/lifting semantic assembly stays in the context owner. Generic
+  metadata lookup, model discovery, and reference resolution stay in Quire.
+
+Follow-up gates for this correction:
+
+```powershell
+uv run pyright propstore
+powershell -File scripts/run_logged_pytest.ps1 -Label contexts-family-metadata tests/test_contexts.py tests/test_context_lifting_phase4.py tests/test_context_lifting_ws5.py tests/test_worldline.py tests/test_worldline_revision.py
+rg -n -F -- "schema.model(\"context\")" propstore/families/contexts propstore/context_lifting.py propstore/aspic_bridge propstore/worldline tests
+rg -n -F -- "schema.model(\"context_assumption\")" propstore/families/contexts propstore/context_lifting.py propstore/aspic_bridge propstore/worldline tests
+rg -n -F -- "schema.model(\"context_lifting_rule\")" propstore/families/contexts propstore/context_lifting.py propstore/aspic_bridge propstore/worldline tests
+rg -n -F -- "schema.model(\"context_lifting_materialization\")" propstore/families/contexts propstore/context_lifting.py propstore/aspic_bridge propstore/worldline tests
+rg -n -F -- "resolve_concept(" propstore/context_lifting.py propstore/families/contexts propstore/aspic_bridge propstore/worldline tests
+rg -n -F -- "resolve_claim(" propstore/context_lifting.py propstore/families/contexts propstore/aspic_bridge propstore/worldline tests
+rg -n -F -- "def resolve_context" propstore tests
+rg -n -F -- "def resolve_lifting" propstore tests
+```
+
+All searches are zero-hit gates outside notes, workstreams, docs, and reports.
+If a semantic owner needs typed context rows, the owner must request them
+through the generic family metadata/model surface and keep the semantic
+assembly separate from lookup mechanics.

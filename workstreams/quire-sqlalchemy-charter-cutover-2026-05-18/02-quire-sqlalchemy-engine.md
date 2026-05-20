@@ -442,3 +442,27 @@ Propstore pin and dependency gates:
 - SHA search confirms the pushed Quire commit in `pyproject.toml` and `uv.lock`.
 
 Phase 3 is complete. Phase 4 may start.
+
+### Generic Family Metadata Correction Audit
+
+Recorded 2026-05-20.
+
+Binding note: Quire's SQLAlchemy engine/session layer owns generic access to a
+family's main mapped model and reference/FK metadata. Propstore must not reach
+around Quire with claim-specific or concept-specific model lookups, lookup
+wrappers, model maps, aliases, or per-family reference helpers.
+
+Completed-record audit:
+
+- Phase 3 mapped `Claim`, `Concept`, and `ClaimConceptLink` as proof models and
+  exposed read-only and writable sessions through `DerivedStoreHandle`. The
+  record does not preserve a Propstore claim/concept lookup wrapper.
+- The completed gate requires a typed `DerivedSession`/query context API, but
+  does not explicitly require that API to resolve a family main model and
+  reference/FK metadata generically from Quire family metadata.
+
+Follow-up gate for the next Quire-owned engine slice: `DerivedSession` or its
+owner-layer query context must expose a generic family metadata lookup that
+returns the mapped main model and reference/FK metadata for any registered
+charter family. Proof coverage must query the claim and concept proof families
+through that same generic path.

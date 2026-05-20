@@ -648,6 +648,43 @@ Phase 5 completion:
   passed.
 - Phase 5 is complete. Next workstream: `05-source-and-diagnostics.md`.
 
+Correction binding recorded 2026-05-20:
+
+- No completed phase may preserve claim/concept-specific lookup wrappers as the
+  final architecture. Public or owner-layer lookup surfaces such as
+  `resolve_claim`, `resolve_concept`, and `resolve_alias` must be replaced by
+  generic Quire/family-registry family-reference lookup.
+- Main model access must be Quire/family-registry driven. A Propstore-owned
+  per-family model registry, claim/concept special case, or string-table model
+  lookup is follow-up unless it is only declaring typed family semantics for
+  Quire to register.
+- Family semantics may remain on typed ORM/domain objects; the correction is
+  about lookup and main-model access plumbing, not about deleting semantic
+  model classes.
+
+Completed-phase audit for this correction:
+
+- Phase 5 introduced `propstore/families/world_charters.py` with a Propstore
+  table-to-model registry (`_MODELS`), a claim-specific branch
+  (`_CLAIM_MODEL_TABLES`), and `_claim_models()` late imports. That is not the
+  final generic family metadata access shape. Follow-up must move main model
+  lookup to Quire/family-registry metadata and remove the claim-specific
+  special case from model access.
+- `propstore/families/world_charters.py::world_record` already constructs
+  through `world_sqlalchemy_schema().model(table_name)`, but callers still pass
+  string table names. Follow-up should lower family references through the
+  registry/catalog before asking Quire for the mapped model.
+- Phase 5 touched `propstore/world/model.py` for schema validation and left
+  `WorldQuery.resolve_claim`, `WorldQuery.resolve_alias`, and
+  `WorldQuery.resolve_concept` in production. `resolve_claim` still delegates
+  to the claim-specific `propstore/families/claims/declaration.py::resolve_claim_id`.
+  These wrappers are actual preserved old surfaces and now require follow-up
+  under the WorldQuery/family-reference owner work.
+- `propstore/world/overlay.py` also preserves pass-through
+  `resolve_claim`/`resolve_alias`/`resolve_concept` wrappers. They must not be
+  treated as the final compatibility surface after the generic family-reference
+  lookup exists.
+
 Old validation-wrapper audit:
 
 - Exact-string audit found one production old-schema message rewrite:

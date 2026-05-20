@@ -115,12 +115,12 @@ File: `propstore/families/concepts/declaration.py`.
 | `select_concept_by_id` | replace | Replace with SQLAlchemy session query. |
 | `select_all_concepts` | replace | Replace with SQLAlchemy session query. |
 | `select_concept_embedding_sources` | replace | Replace with typed embedding source query over `Concept` model. |
-| `resolve_concept_embedding_entity` | move | Move concept-handle resolution policy to `propstore/families/concepts/declaration.py::resolve_concept_embedding_entity`. |
+| `resolve_concept_embedding_entity` | replace | Replace concept-handle lookup with generic Quire family-reference lookup plus embedding owner sequencing. Do not move it to another concept-specific resolver. |
 | `select_aliases_by_concept_id` | replace | Replace with `Concept.aliases` relationship query. |
 | `select_concept_registry_rows` | replace | Replace with typed registry projection from `Concept` models. |
 | `build_concept_logical_id_index` | move | Move logical-id precedence/index semantics to `propstore/families/identity/concepts.py::build_concept_logical_id_index`. |
-| `resolve_concept_alias` | move | Move alias resolution policy to `propstore/families/concepts/declaration.py::resolve_concept_alias`. |
-| `resolve_concept_id` | move | Move id/alias/logical/canonical precedence policy to `propstore/families/concepts/declaration.py::resolve_concept_id`. |
+| `resolve_concept_alias` | delete | Alias lookup is an alternate reference surface declared for the family and resolved through generic Quire family-reference lookup. Do not keep a concept-specific wrapper. |
+| `resolve_concept_id` | delete | Id/alias/logical/canonical precedence is generic family-reference lookup over declared reference surfaces. Do not keep a concept-specific wrapper. |
 | `select_concept_ids_for_group` | replace | Replace with `ParameterizationGroup.members` relationship. |
 | `select_parameterizations_for_output_concept` | replace | Replace with `Concept.parameterizations_as_output` relationship. |
 | `select_all_parameterizations` | replace | Replace with SQLAlchemy session query. |
@@ -130,7 +130,7 @@ File: `propstore/families/concepts/declaration.py`.
 | `select_all_form_algebra_rows` | replace | Replace with typed `FormAlgebra` model query. |
 | `search_concept_ids` | replace | Replace raw FTS SQL with Quire/SQLAlchemy FTS query API. |
 | `count_concepts` | replace | Replace with `propstore/families/concepts/declaration.py::count_concepts` implemented as a SQLAlchemy count query. |
-| `resolve_sidecar_concept_id` | move | Move handle-resolution policy to `propstore/families/concepts/declaration.py::resolve_concept_id`; delete the sidecar-specific spelling. |
+| `resolve_sidecar_concept_id` | delete | Replace sidecar concept lookup with generic Quire family-reference lookup. Do not reintroduce it as `resolve_concept_id`. |
 
 ## Context Helpers
 
@@ -325,8 +325,8 @@ File: `propstore/families/embeddings/declaration.py`.
 | `ensure_embedding_tables` | delete | Quire vector/charter machinery creates tables. |
 | `SidecarEmbeddingRegistry` | replace | Replace with Quire vector registry/session API. |
 | `_SidecarEntityEmbeddingStore` | replace | Replace with Quire vector entity store over SQLAlchemy session. |
-| `SidecarClaimEmbeddingStore` | replace | Replace with claim-specific adapter over Quire vector entity store. |
-| `SidecarConceptEmbeddingStore` | replace | Replace with concept-specific adapter over Quire vector entity store. |
+| `SidecarClaimEmbeddingStore` | delete | Replace with generic Quire vector cache/entity APIs parameterized by family metadata. Do not keep a claim-specific embedding adapter. |
+| `SidecarConceptEmbeddingStore` | delete | Replace with generic Quire vector cache/entity APIs parameterized by family metadata. Do not keep a concept-specific embedding adapter. |
 | `SidecarEmbeddingSnapshotStore` | replace | Replace with Quire vector snapshot store plus Propstore snapshot report mapping. |
 | `get_registered_models` | replace | Replace with Quire vector registry query. |
 | `embed_claims`, `embed_concepts` | replace | Keep workflow API; route through Quire vector/session APIs. |

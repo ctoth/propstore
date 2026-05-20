@@ -360,3 +360,34 @@ Quire FTS/vector implementation:
 - Propstore package type gate: `uv run pyright propstore` passed with 0 errors.
 
 Phase 4 and the Quire-first completion gate are complete. Phase 5 may start.
+
+### Generic Family Metadata Correction Audit
+
+Recorded 2026-05-20.
+
+Binding note: Quire-owned FTS/vector support must obtain family main-model
+access and reference/FK lookup through generic Quire family metadata. Propstore
+must declare search/vector intent and domain policy only; it must not add or
+preserve claim-specific or concept-specific lookup wrappers, model maps,
+aliases, direct mapped-model access, or per-family reference helpers.
+
+Completed-record audit:
+
+- The Phase 4 record includes concept-like and claim-like FTS proofs and later
+  Quire fixes for source-query FTS population with `concept_id` and `claim_id`.
+  Those are required family shapes, not permission for Propstore-owned
+  claim/concept lookup wrappers.
+- The record includes `1d67026 Retain sqlite vector projection APIs`. Audit
+  finding: that retained vector entity/snapshot API is not a claim/concept
+  main-model lookup path, but it increases the need for a Quire generic
+  metadata gate before Propstore search/vector cutovers consume mapped models.
+- The completed Quire FTS/vector gate does not explicitly require FTS source
+  queries or vector cache bindings to resolve source family models and
+  reference/FK metadata through the generic Quire family metadata API.
+
+Follow-up gate for the next Quire-owned FTS/vector slice: FTS source-query
+population, FTS query adapters, and vector cache binding must use the generic
+Quire family metadata access path for source family main models and
+reference/FK metadata. Proof coverage must exercise concept and claim FTS plus
+one vector cache through that same generic path, with no dedicated
+claim/concept lookup helper.

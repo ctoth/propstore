@@ -38,6 +38,47 @@ Final state:
   projection, table creation, row carrier, select/count, or query-plan
   plumbing.
 
+Binding notes from the 2026-05-20 update:
+
+- Do not replace relation row lookup helpers with per-family identity lookup
+  wrappers, convenience methods, or renamed helper-shaped APIs.
+- Relation, stance, and conflict references must use generic Quire family
+  reference/FK lookup and generic Quire main-model access. If a needed lookup
+  capability is missing, add it in Quire; do not add a Propstore relation-only
+  workaround.
+- Family semantics may live on typed ORM/domain objects when the behavior is
+  relation-specific, including stance visibility policy, conflict witness
+  meaning, and graph edge classification. Generic identity, FK, table,
+  session, and main-model lookup mechanics do not belong in this family.
+
+Current old-surface findings from `rg` on 2026-05-20:
+
+- The old relation projection surface is still present in production:
+  `propstore/families/relations/projection_model.py` defines
+  `RELATION_EDGE_TABLE`, `RELATIONSHIP_ROW_MODEL`, `STANCE_ROW_MODEL`,
+  `CLAIM_STANCE_STORAGE_MODEL`, `CONCEPT_RELATIONSHIP_STORAGE_MODEL`, and
+  `CONFLICT_ROW_MODEL`.
+- `propstore/families/relations/declaration.py` still defines
+  `RelationshipRow`, `StanceRow`, `ConflictRow`, `_optional_numeric`,
+  `compile_authored_stance_sidecar_rows*`, `select_stances_between`,
+  `select_conflicts`, `select_all_relationships`,
+  `select_all_claim_stances`, `select_claim_stances_with_policy`,
+  `select_explanation_stances`, and `count_conflicts`.
+- Production callers still import or coerce relation rows/projection models in
+  `propstore/aspic_bridge/extract.py`,
+  `propstore/aspic_bridge/translate.py`, `propstore/core/analyzers.py`,
+  `propstore/core/graph_build.py`, `propstore/graph_export.py`,
+  `propstore/relation_analysis.py`,
+  `propstore/support_revision/af_adapter.py`, `propstore/world/atms.py`,
+  `propstore/world/bound.py`, `propstore/world/model.py`,
+  `propstore/world/overlay.py`, and
+  `propstore/worldline/argumentation.py`.
+- `propstore/families/concepts/declaration.py` and
+  `propstore/families/claims/declaration.py` still write relation projection
+  rows through relation table/model constants, so this phase must coordinate
+  those direct old-path call sites while preserving the owning phase
+  boundaries.
+
 ## Prerequisites
 
 Complete the earlier cutover workstreams before starting implementation:
