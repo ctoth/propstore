@@ -521,6 +521,16 @@ Phase 5 required logged pytest gate:
 Next required item: run the parity harness logged pytest gate, help gate,
 old-path searches, and build-orchestration parity gate.
 
+Parity harness required gate rerun:
+
+- Required parity harness logged pytest gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label parity-harness tests/test_sqlalchemy_charter_parity_harness.py`
+  passed with 6 passed; log
+  `logs\test-runs\parity-harness-20260520-112518.log`.
+
+Next required item: run the Phase 5 help gate, old-path searches, and
+build-orchestration parity gate.
+
 Old validation-wrapper audit:
 
 - Exact-string audit found one production old-schema message rewrite:
