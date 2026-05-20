@@ -249,6 +249,13 @@ Accepted parity difference allowlist:
 - deleted source projection constants, row classes, row carriers, table
   helpers, diagnostic table helpers, and raw sidecar selectors named in this
   file's deletion targets;
+- source storage columns `origin_type`, `origin_value`, `origin_retrieved`,
+  and `origin_content_ref` are collapsed into the typed JSON value-object
+  column `origin`; the stored semantic payload must still match the captured
+  baseline;
+- source storage column `prior_base_rate` is collapsed into the typed JSON
+  value-object column `trust` together with the source trust status; the stored
+  semantic payload must still match the captured baseline;
 - source storage columns `quality_json` and `derived_from_json` are renamed to
   `quality` and `derived_from` because this workstream's target model forbids
   `_json` suffixes in source storage columns; the stored semantic payloads must
@@ -358,3 +365,16 @@ Prerequisites:
   only `quality_json` -> `quality` and `derived_from_json` -> `derived_from`
   while requiring payload parity and forbidding every other column/table/row/key
   disappearance.
+- Verified Quire generic charter conversion before source edits:
+  `quire/charters.py` exposes `CharterField(json_value_object=True)`,
+  `quire/sql_types.py` lowers it to `JsonValueObject`, and
+  `quire/sqlalchemy_schema.py` serializes dataclass/mapping payloads through
+  `JsonValueObject` without Propstore field-specific JSON helper names.
+- Target source model classes for the deletion-first source slice:
+  `Source`, `SourceOrigin`, and `SourceTrust`. The source charter stores
+  nested source payloads in `origin`, `trust`, `quality`, and `derived_from`.
+- Workstream parity allowlist refined after verifying the target source shape:
+  old flat origin columns collapse into `origin`, `prior_base_rate` collapses
+  into `trust`, and `quality_json`/`derived_from_json` become
+  `quality`/`derived_from`; source keys, row counts, and semantic payloads
+  remain non-negotiable.
