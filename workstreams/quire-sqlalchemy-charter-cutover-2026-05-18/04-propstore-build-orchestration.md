@@ -571,6 +571,17 @@ Post-repair required logged pytest gate:
 Next required item: rerun the Phase 5 type gate and old-path searches, then
 run the build-orchestration parity gate.
 
+Post-repair type and search gates:
+
+- Type gate passed again: `uv run pyright propstore` returned 0 errors.
+- Old-path searches over live target files returned no hits:
+  `PROPSTORE_WORLD_PROJECTION_SCHEMA`,
+  `ProjectionSchema`,
+  `ProjectionTable`, and
+  `sqlite3.Connection`.
+
+Next required item: run the build-orchestration data-parity gate.
+
 Old validation-wrapper audit:
 
 - Exact-string audit found one production old-schema message rewrite:
