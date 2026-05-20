@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Mapping
 
@@ -179,28 +178,25 @@ def compare_algorithm_claims(
     request: ClaimCompareRequest,
 ) -> ClaimCompareReport:
     from ast_equiv import compare as ast_compare
-    from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 
-    claim_a_input = world.get_claim(request.claim_a_id)
-    if claim_a_input is None:
+    claim_a = world.get_claim(request.claim_a_id)
+    if claim_a is None:
         raise UnknownClaimError(request.claim_a_id)
-    claim_b_input = world.get_claim(request.claim_b_id)
-    if claim_b_input is None:
+    claim_b = world.get_claim(request.claim_b_id)
+    if claim_b is None:
         raise UnknownClaimError(request.claim_b_id)
 
-    claim_a = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim_a_input)))
-    claim_b = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim_b_input)))
-    body_a = claim_a.get("body")
-    body_b = claim_b.get("body")
+    body_a = None if claim_a.algorithm_payload is None else claim_a.algorithm_payload.body
+    body_b = None if claim_b.algorithm_payload is None else claim_b.algorithm_payload.body
     if not isinstance(body_a, str) or not isinstance(body_b, str) or not body_a or not body_b:
         raise ClaimComparisonError("Both claims must be algorithm claims with a body.")
 
     try:
         result = ast_compare(
             body_a,
-            _algorithm_variables(claim_a),
+            claim_a.variable_bindings(),
             body_b,
-            _algorithm_variables(claim_b),
+            claim_b.variable_bindings(),
             known_values=dict(request.known_values) if request.known_values else None,
         )
     except RecursionError as exc:
@@ -449,23 +445,6 @@ def _required_stances_by_claim(value: object) -> dict[str, list[dict[str, object
             raise ClaimWorkflowError("expected stance entries to be mappings")
         stances_by_claim[claim_id] = stances
     return stances_by_claim
-
-
-def _algorithm_variables(claim: Mapping[str, object]) -> dict[str, str]:
-    variables_json = claim.get("variables_json")
-    if not variables_json:
-        return {}
-    variables = json.loads(str(variables_json))
-    if not isinstance(variables, list):
-        raise ValueError("algorithm variables must be stored as a list of bindings")
-    result: dict[str, str] = {}
-    for variable in variables:
-        if isinstance(variable, dict):
-            name = variable.get("name") or variable.get("symbol")
-            concept = variable.get("concept", "")
-            if name:
-                result[str(name)] = str(concept)
-    return result
 
 
 def _claim_embed_model_report(
