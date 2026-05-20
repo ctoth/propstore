@@ -49,9 +49,7 @@ from propstore.families.claims.storage import (
 )
 from propstore.families.claims.stages import (
     PromotionBlockedClaimFact,
-    PromotionBlockedSidecarRows,
     RawIdQuarantineRecord,
-    RawIdQuarantineSidecarRows,
 )
 from propstore.families.diagnostics.declaration import (
     QuarantineDiagnostic,
@@ -193,6 +191,18 @@ class ClaimWriteModels:
     concept_links: tuple[ClaimConceptLink, ...]
     stance_rows: tuple[ProjectionRow, ...]
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]
+
+
+@dataclass(frozen=True)
+class RawIdQuarantineModels:
+    claims: tuple[Claim, ...]
+    diagnostics: tuple[BuildDiagnostic, ...]
+
+
+@dataclass(frozen=True)
+class PromotionBlockedModels:
+    claims: tuple[Claim, ...]
+    diagnostics: tuple[BuildDiagnostic, ...]
 
 
 from propstore.families.claims.projection_model import (  # noqa: E402
@@ -858,15 +868,15 @@ def compile_authored_justification_sidecar_rows_with_diagnostics(
     return tuple(rows), tuple(diagnostics)
 
 
-def compile_raw_id_quarantine_sidecar_rows(
+def compile_raw_id_quarantine_models(
     records: Sequence[RawIdQuarantineRecord],
-) -> RawIdQuarantineSidecarRows:
-    claim_rows: list[ProjectionRow] = []
-    diagnostic_rows: list[object] = []
+) -> RawIdQuarantineModels:
+    claims: list[Claim] = []
+    diagnostics: list[BuildDiagnostic] = []
 
     for record in records:
-        claim_rows.append(
-            CLAIM_CORE_TABLE.row(
+        claims.append(
+            Claim(
                 id=record.synthetic_id,
                 primary_logical_id="",
                 logical_ids_json="[]",
@@ -887,7 +897,7 @@ def compile_raw_id_quarantine_sidecar_rows(
                 promotion_status=None,
             )
         )
-        diagnostic_rows.append(
+        diagnostics.append(
             BuildDiagnostic(
                 claim_id=record.synthetic_id,
                 source_kind="claim",
@@ -901,17 +911,17 @@ def compile_raw_id_quarantine_sidecar_rows(
             )
         )
 
-    return RawIdQuarantineSidecarRows(
-        claim_rows=tuple(claim_rows),
-        diagnostic_rows=tuple(diagnostic_rows),
+    return RawIdQuarantineModels(
+        claims=tuple(claims),
+        diagnostics=tuple(diagnostics),
     )
 
 
-def compile_promotion_blocked_claim_core_rows(
+def compile_promotion_blocked_claim_models(
     facts: Sequence[PromotionBlockedClaimFact],
-) -> tuple[ProjectionRow, ...]:
+) -> tuple[Claim, ...]:
     return tuple(
-        CLAIM_CORE_TABLE.row(
+        Claim(
             id=fact.artifact_id,
             primary_logical_id="",
             logical_ids_json="[]",
@@ -935,12 +945,12 @@ def compile_promotion_blocked_claim_core_rows(
     )
 
 
-def compile_promotion_blocked_sidecar_rows(
+def compile_promotion_blocked_models(
     facts: Sequence[PromotionBlockedClaimFact],
-) -> PromotionBlockedSidecarRows:
-    return PromotionBlockedSidecarRows(
-        claim_rows=compile_promotion_blocked_claim_core_rows(facts),
-        diagnostic_rows=compile_promotion_blocked_diagnostics(facts),
+) -> PromotionBlockedModels:
+    return PromotionBlockedModels(
+        claims=compile_promotion_blocked_claim_models(facts),
+        diagnostics=compile_promotion_blocked_diagnostics(facts),
     )
 
 
@@ -977,123 +987,6 @@ def compile_conflict_sidecar_rows(
             derivation_chain=record.derivation_chain,
         )
         for record in records
-    )
-
-
-def populate_raw_id_quarantine_records(
-    conn: sqlite3.Connection,
-    rows: RawIdQuarantineSidecarRows,
-) -> None:
-    CLAIM_CORE_TABLE.insert_rows(conn, (row.values for row in rows.claim_rows))
-    for row in rows.diagnostic_rows:
-        _insert_build_diagnostic(conn, row)
-
-
-def populate_promotion_blocked_claims(
-    conn: sqlite3.Connection,
-    claim_rows: Sequence[ProjectionRow],
-    diagnostic_rows: Sequence[object],
-) -> None:
-    if not claim_rows and not diagnostic_rows:
-        return
-    child_claim_tables = {
-        row[0]
-        for row in conn.execute(
-            """
-            SELECT name
-            FROM sqlite_master
-            WHERE type = 'table'
-              AND name IN (
-                  'claim_concept_link',
-                  'claim_numeric_payload',
-                  'claim_text_payload',
-                  'claim_algorithm_payload',
-                  'micropublication_claim'
-              )
-            """
-        ).fetchall()
-    }
-    schema_tables = {
-        row[0]
-        for row in conn.execute(
-            "SELECT name FROM sqlite_master WHERE type = 'table'"
-        ).fetchall()
-    }
-    if "concept" not in schema_tables:
-        child_claim_tables.discard("claim_concept_link")
-    claim_rows_by_id = {str(row.values["id"]): row for row in claim_rows}
-    claim_ids = tuple(claim_rows_by_id)
-    for claim_id in claim_ids:
-        for table_name in (
-            "claim_concept_link",
-            "claim_numeric_payload",
-            "claim_text_payload",
-            "claim_algorithm_payload",
-            "micropublication_claim",
-        ):
-            if table_name not in child_claim_tables:
-                continue
-            conn.execute(
-                f"DELETE FROM {table_name} WHERE claim_id = ?",
-                (claim_id,),
-            )
-        delete_claim_core_row(conn, claim_id)
-        conn.execute(
-            "DELETE FROM build_diagnostics "
-            "WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'",
-            (claim_id,),
-        )
-    CLAIM_CORE_TABLE.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
-    for row in diagnostic_rows:
-        _insert_build_diagnostic(conn, row)
-
-
-def _insert_build_diagnostic(conn: sqlite3.Connection, row: object) -> None:
-    _insert_build_diagnostic_values(
-        conn,
-        claim_id=getattr(row, "claim_id", None),
-        source_kind=str(getattr(row, "source_kind")),
-        source_ref=getattr(row, "source_ref", None),
-        diagnostic_kind=str(getattr(row, "diagnostic_kind")),
-        severity=str(getattr(row, "severity")),
-        blocking=int(getattr(row, "blocking")),
-        message=str(getattr(row, "message")),
-        file=getattr(row, "file", None),
-        detail_json=getattr(row, "detail_json", None),
-    )
-
-
-def _insert_build_diagnostic_values(
-    conn: sqlite3.Connection,
-    *,
-    claim_id: str | None,
-    source_kind: str,
-    source_ref: str | None,
-    diagnostic_kind: str,
-    severity: str,
-    blocking: int,
-    message: str,
-    file: str | None,
-    detail_json: str | None,
-) -> None:
-    conn.execute(
-        """
-        INSERT INTO build_diagnostics (
-            claim_id, source_kind, source_ref, diagnostic_kind,
-            severity, blocking, message, file, detail_json
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        (
-            claim_id,
-            source_kind,
-            source_ref,
-            diagnostic_kind,
-            severity,
-            blocking,
-            message,
-            file,
-            detail_json,
-        ),
     )
 
 

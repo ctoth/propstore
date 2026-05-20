@@ -6,17 +6,12 @@ import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, fields
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.id_types import ConceptId
-
-if TYPE_CHECKING:
-    from quire.projections import ProjectionRow
-    from propstore.families.diagnostics.declaration import QuarantineDiagnostic
-
 
 class ClaimStage(StrEnum):
     AUTHORED = "claim.authored"
@@ -145,12 +140,6 @@ class ClaimCheckedBundle:
 
 
 @dataclass(frozen=True)
-class RawIdQuarantineSidecarRows:
-    claim_rows: tuple["ProjectionRow", ...]
-    diagnostic_rows: tuple[object, ...]
-
-
-@dataclass(frozen=True)
 class PromotionBlockedReason:
     kind: str
     detail: str
@@ -167,12 +156,6 @@ class PromotionBlockedClaimFact:
     @property
     def source_ref(self) -> str:
         return f"{self.source_branch}:{self.artifact_id}"
-
-
-@dataclass(frozen=True)
-class PromotionBlockedSidecarRows:
-    claim_rows: tuple["ProjectionRow", ...]
-    diagnostic_rows: tuple[object, ...]
 
 
 @dataclass(frozen=True)

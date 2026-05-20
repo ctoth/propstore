@@ -16,24 +16,26 @@ blocked.
 from __future__ import annotations
 
 from propstore.families.claims.declaration import (
-    compile_promotion_blocked_sidecar_rows,
-    populate_promotion_blocked_claims,
+    compile_promotion_blocked_models,
 )
 from propstore.families.claims.stages import (
     PromotionBlockedClaimFact,
     PromotionBlockedReason,
 )
 from quire.derived_runtime import connect_sqlite_store
-from tests.sidecar_schema_helpers import build_world_projection_schema
+from tests.remediation.phase_7_race_atomicity.promotion_blocked_helpers import (
+    create_world_store,
+    flush_promotion_blocked,
+)
 
 
 def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
     tmp_path,
 ):
     sidecar_path = tmp_path / "propstore.sqlite"
+    create_world_store(sidecar_path)
     conn = connect_sqlite_store(sidecar_path)
     try:
-        build_world_projection_schema(conn)
         # Seed a claim_core row as a sibling branch would have produced
         # it, with all three payload child tables populated. This is
         # exactly the shape that typed claim write batches produce.
@@ -107,7 +109,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
 
     # Belch_2008 (here ``source/beta``) needs to mirror this claim as
     # blocked. Prior behavior crashes with a FOREIGN KEY violation.
-    rows = compile_promotion_blocked_sidecar_rows(
+    rows = compile_promotion_blocked_models(
         (
             PromotionBlockedClaimFact(
                 artifact_id="claim-shared",
@@ -123,16 +125,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
             ),
         )
     )
-    conn = connect_sqlite_store(sidecar_path)
-    try:
-        populate_promotion_blocked_claims(
-            conn,
-            rows.claim_rows,
-            rows.diagnostic_rows,
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    flush_promotion_blocked(sidecar_path, rows)
 
     conn = connect_sqlite_store(sidecar_path)
     try:

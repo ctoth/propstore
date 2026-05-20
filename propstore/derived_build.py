@@ -50,7 +50,8 @@ from propstore.families.forms.passes import register_form_pipeline, run_form_pip
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.families.claims.declaration import (
-    compile_promotion_blocked_sidecar_rows,
+    PromotionBlockedModels,
+    compile_promotion_blocked_models,
 )
 from propstore.families.diagnostics.declaration import delete_promotion_blocked_diagnostics
 from propstore.derived_build_plan import (
@@ -433,7 +434,7 @@ def _build_sidecar_file(
         ),
         drop_invalid_context_lifting_rows=bool(context_diagnostics),
     )
-    promotion_blocked_rows = compile_promotion_blocked_sidecar_rows(
+    promotion_blocked_rows = compile_promotion_blocked_models(
         collect_all_source_promotion_blocked_facts(repo)
     )
 
@@ -621,9 +622,16 @@ def _quarantine_record(
     )
 
 
-def _flush_promotion_blocked_claims(derived: DerivedSession, rows: object) -> None:
-    claim_objects = world_records("claim_core", getattr(rows, "claim_rows"))
-    diagnostic_objects = world_records("build_diagnostics", getattr(rows, "diagnostic_rows"))
+def _flush_promotion_blocked_claims(
+    derived: DerivedSession,
+    rows: PromotionBlockedModels,
+) -> None:
+    claim_objects_by_id = {
+        str(getattr(row, "id")): row
+        for row in world_records("claim_core", rows.claims)
+    }
+    claim_objects = tuple(claim_objects_by_id.values())
+    diagnostic_objects = world_records("build_diagnostics", rows.diagnostics)
     if not claim_objects and not diagnostic_objects:
         return
     claim_ids = tuple(str(getattr(row, "id")) for row in claim_objects)

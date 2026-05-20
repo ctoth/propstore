@@ -14,28 +14,27 @@ sidecar write, so every failed mirror left master polluted.
 from __future__ import annotations
 
 from propstore.families.claims.declaration import (
-    compile_promotion_blocked_sidecar_rows,
-    populate_promotion_blocked_claims,
+    PromotionBlockedModels,
+    compile_promotion_blocked_models,
 )
 from propstore.families.claims.stages import (
     PromotionBlockedClaimFact,
     PromotionBlockedReason,
 )
 from quire.derived_runtime import connect_sqlite_store
-from tests.sidecar_schema_helpers import build_world_projection_schema
+from tests.remediation.phase_7_race_atomicity.promotion_blocked_helpers import (
+    create_world_store,
+    flush_promotion_blocked,
+)
 
 
 def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
     tmp_path,
 ):
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sqlite_store(sidecar_path)
-    try:
-        build_world_projection_schema(conn)
-    finally:
-        conn.close()
+    create_world_store(sidecar_path)
 
-    alpha_rows = compile_promotion_blocked_sidecar_rows(
+    alpha_rows = compile_promotion_blocked_models(
         (
             PromotionBlockedClaimFact(
                 artifact_id="claim-dup",
@@ -51,7 +50,7 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
             ),
         )
     )
-    beta_rows = compile_promotion_blocked_sidecar_rows(
+    beta_rows = compile_promotion_blocked_models(
         (
             PromotionBlockedClaimFact(
                 artifact_id="claim-dup",
@@ -67,16 +66,13 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
             ),
         )
     )
-    conn = connect_sqlite_store(sidecar_path)
-    try:
-        populate_promotion_blocked_claims(
-            conn,
-            alpha_rows.claim_rows + beta_rows.claim_rows,
-            alpha_rows.diagnostic_rows + beta_rows.diagnostic_rows,
-        )
-        conn.commit()
-    finally:
-        conn.close()
+    flush_promotion_blocked(
+        sidecar_path,
+        PromotionBlockedModels(
+            claims=alpha_rows.claims + beta_rows.claims,
+            diagnostics=alpha_rows.diagnostics + beta_rows.diagnostics,
+        ),
+    )
 
     conn = connect_sqlite_store(sidecar_path)
     try:

@@ -21,7 +21,6 @@ from propstore.families.contexts.declaration import (
 )
 from propstore.families.claims.stages import (
     ClaimCheckedBundle,
-    RawIdQuarantineSidecarRows,
 )
 from propstore.families.claims.references import (
     build_claim_file_reference_index,
@@ -31,10 +30,11 @@ from propstore.families.forms.stages import (
 )
 from propstore.families.claims.declaration import (
     ClaimWriteModels,
+    RawIdQuarantineModels,
     compile_authored_justification_sidecar_rows_with_diagnostics,
     compile_claim_models,
     compile_conflict_sidecar_rows,
-    compile_raw_id_quarantine_sidecar_rows,
+    compile_raw_id_quarantine_models,
 )
 from propstore.families.diagnostics.declaration import (
     QuarantineDiagnostic,
@@ -95,7 +95,7 @@ def compile_sidecar_build_plan(
     drop_invalid_context_lifting_rows: bool = False,
 ) -> SidecarBuildPlan:
     claim_rows: ClaimWriteModels | None = None
-    raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(())
+    raw_id_quarantine_rows = compile_raw_id_quarantine_models(())
     conflict_rows: tuple[object, ...] = ()
     stance_rows: tuple[object, ...] = ()
     justification_rows: tuple[object, ...] = ()
@@ -114,7 +114,7 @@ def compile_sidecar_build_plan(
             form_registry=repository_checked_bundle.form_registry,
         )
         quarantine_diagnostics = claim_rows.quarantine_diagnostics
-        raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(
+        raw_id_quarantine_rows = compile_raw_id_quarantine_models(
             checked_claims.raw_id_quarantine_records
         )
         lifting_system = (
@@ -183,7 +183,7 @@ def compile_sidecar_build_plan(
     return SidecarBuildPlan(
         write_batches=tuple(batch for batch in batches if batch.objects),
         has_claim_rows=claim_rows is not None,
-        has_raw_id_quarantine_claims=bool(raw_id_quarantine_rows.claim_rows),
+        has_raw_id_quarantine_claims=bool(raw_id_quarantine_rows.claims),
         quarantine_diagnostics=quarantine_diagnostics,
     )
 
@@ -231,11 +231,11 @@ def _claim_batches(rows: ClaimWriteModels | None) -> tuple[WorldWriteBatch, ...]
 
 
 def _raw_id_quarantine_batches(
-    rows: RawIdQuarantineSidecarRows,
+    rows: RawIdQuarantineModels,
 ) -> tuple[WorldWriteBatch, ...]:
     return (
-        _batch("claim_core", rows.claim_rows),
-        _batch("build_diagnostics", rows.diagnostic_rows),
+        _batch("claim_core", rows.claims),
+        _batch("build_diagnostics", rows.diagnostics),
     )
 
 

@@ -647,6 +647,28 @@ Recorded 2026-05-20.
 - Raw populator deletion searches: `rg -n -F -- "populate_claims" propstore
   tests`, `rg -n -F -- "ClaimSidecarRows" propstore tests`, and `rg -n -F --
   "compile_claim_sidecar_rows" propstore tests` all returned zero hits.
+- Blocked/quarantine model slice: replaced `RawIdQuarantineSidecarRows` with
+  `RawIdQuarantineModels`, replaced `PromotionBlockedSidecarRows` with
+  `PromotionBlockedModels`, renamed the raw-id and promotion-blocked compilers
+  to model-returning APIs, deleted their raw SQLite populators, and moved the
+  promotion-blocked tests onto the SQLAlchemy typed flush path.
+- Blocked/quarantine model verification: `uv run pyright
+  propstore/families/claims/declaration.py
+  propstore/families/claims/stages.py propstore/derived_build.py
+  propstore/derived_build_plan.py` passed with 0 errors, and `powershell -File
+  scripts/run_logged_pytest.ps1 -Label claim-blocked-models
+  tests/remediation/phase_7_race_atomicity/test_T7_5b_promotion_diagnostic_scope.py
+  tests/remediation/phase_7_race_atomicity/test_T7_5d_promotion_blocked_id_collision.py
+  tests/remediation/phase_7_race_atomicity/test_T7_5e_promotion_blocked_fk_payload.py
+  tests/remediation/phase_7_race_atomicity/test_T7_5f_sidecar_build_duplicate_claim.py
+  tests/test_codex2_claim_dedupe_diverges_on_version.py` passed with 6 tests
+  in `logs/test-runs/claim-blocked-models-20260520-150830.log`.
+- Blocked/quarantine model searches: `rg -n -F --
+  "RawIdQuarantineSidecarRows" propstore tests`, `rg -n -F --
+  "PromotionBlockedSidecarRows" propstore tests`, `rg -n -F --
+  "compile_raw_id_quarantine_sidecar_rows" propstore tests`, `rg -n -F --
+  "compile_promotion_blocked_sidecar_rows" propstore tests`, and `rg -n -F --
+  "populate_promotion_blocked_claims" propstore tests` all returned zero hits.
 - Remaining Phase 10 work: delete the remaining claim projection/read-model,
   storage-helper, row-carrier, and active-claim compatibility surfaces; run
   the family gates, old-path searches, and data-parity gate.
