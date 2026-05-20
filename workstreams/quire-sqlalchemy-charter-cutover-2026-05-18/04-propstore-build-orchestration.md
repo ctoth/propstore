@@ -704,3 +704,54 @@ Old validation-wrapper audit:
   same `WorldQuery` validation path while wiring derived-store handles. In that
   case the wrapper is deleted immediately in the Phase 5 slice; no temporary
   compatibility wrapper is allowed.
+
+## Current Audit Refresh
+
+Recorded 2026-05-20 against HEAD `1c8fdf38`.
+
+Binding status:
+
+- The Refactor Zen in this file is binding, not advisory. A completed
+  build-orchestration phase is not complete while it preserves duplicate
+  field-shape declarations, model registries that restate Quire/family
+  metadata, shim lookup surfaces, old/new dual paths, or per-family special
+  cases that generic Quire family metadata can own.
+- No completed-phase audit may treat a passing build, passing tests, populated
+  sidecar, or clean parity report as sufficient when a preserved production
+  path still carries the old abstraction under a renamed helper or wrapper.
+
+Current repository audit:
+
+- The old validation-wrapper audit above is superseded by later work. Current
+  exact-string searches for `Unsupported sidecar schema`,
+  `Rebuild with 'pks build'`, and `validate_derived_store_schema` under
+  `propstore` and `tests` return zero hits.
+- The Phase 5 build-orchestration implementation remains present: current
+  history includes `6bff4edf Record build orchestration phase complete`, and
+  current code still has `propstore/families/projection_catalog.py` deleted.
+- The generic family-metadata correction remains open in current code.
+  `propstore/families/world_charters.py` still owns `_MODELS`,
+  `_CLAIM_MODEL_TABLES`, `world_model(table_name)`, and
+  `world_record(table_name, values)`. That is the remaining Phase 5 fix:
+  model access must be lowered through Quire/family-registry metadata instead
+  of a Propstore-owned table-name registry or claim special case.
+- Current `propstore/world/model.py` still exposes
+  `WorldQuery.resolve_claim`, `WorldQuery.resolve_alias`, and
+  `WorldQuery.resolve_concept`, and `propstore/world/overlay.py` still exposes
+  pass-through resolver wrappers. These are not acceptable final compatibility
+  surfaces for Phase 5; they remain follow-up for the generic
+  family-reference owner work.
+
+Audit commands run for this refresh:
+
+```powershell
+rg -n -F -- "Unsupported sidecar schema" propstore tests
+rg -n -F -- "Rebuild with 'pks build'" propstore tests
+rg -n -F -- "validate_derived_store_schema" propstore tests
+rg -n -F -- "_MODELS" propstore/families/world_charters.py
+rg -n -F -- "_CLAIM_MODEL_TABLES" propstore/families/world_charters.py
+rg -n -F -- "def world_record" propstore/families/world_charters.py
+rg -n -F -- "def resolve_claim" propstore tests
+rg -n -F -- "def resolve_alias" propstore tests
+rg -n -F -- "def resolve_concept" propstore tests
+```
