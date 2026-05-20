@@ -12,13 +12,17 @@ from quire.charters import (
     CharterField,
     CharterFtsIndex,
     CharterIndex,
+    CharterRelationship,
     FamilyCharter,
     charter_catalog,
 )
 from quire.families import FamilyDefinition
+from quire.references import ForeignKeySpec
 from quire.schema_catalog import SchemaCatalog
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.versions import VersionId
+from propstore.core.claim_types import ClaimType
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.concepts.declaration import (
     Concept,
     ConceptAlias,
@@ -48,11 +52,6 @@ class WorldModel:
 
 class MetaRecord(WorldModel): ...
 class RelationEdgeRecord(WorldModel): ...
-class ClaimCoreRecord(WorldModel): ...
-class ClaimConceptLinkRecord(WorldModel): ...
-class ClaimNumericPayloadRecord(WorldModel): ...
-class ClaimTextPayloadRecord(WorldModel): ...
-class ClaimAlgorithmPayloadRecord(WorldModel): ...
 class ConflictWitnessRecord(WorldModel): ...
 class GroundedFactRecord(WorldModel): ...
 class GroundedFactEmptyPredicateRecord(WorldModel): ...
@@ -82,11 +81,6 @@ _MODELS: dict[str, type[Any]] = {
     "context_assumption": ContextAssumption,
     "context_lifting_rule": ContextLiftingRule,
     "context_lifting_materialization": ContextLiftingMaterialization,
-    "claim_core": ClaimCoreRecord,
-    "claim_concept_link": ClaimConceptLinkRecord,
-    "claim_numeric_payload": ClaimNumericPayloadRecord,
-    "claim_text_payload": ClaimTextPayloadRecord,
-    "claim_algorithm_payload": ClaimAlgorithmPayloadRecord,
     "conflict_witness": ConflictWitnessRecord,
     "grounded_fact": GroundedFactRecord,
     "grounded_fact_empty_predicate": GroundedFactEmptyPredicateRecord,
@@ -101,8 +95,18 @@ _MODELS: dict[str, type[Any]] = {
     "build_diagnostics": BuildDiagnostic,
 }
 
+_CLAIM_MODEL_TABLES = {
+    "claim_core",
+    "claim_concept_link",
+    "claim_numeric_payload",
+    "claim_text_payload",
+    "claim_algorithm_payload",
+}
+
 
 def world_model(table_name: str) -> type[Any]:
+    if table_name in _CLAIM_MODEL_TABLES:
+        return _claim_models()[table_name]
     return _MODELS[table_name]
 
 
@@ -178,9 +182,10 @@ def world_charter_catalog() -> SchemaCatalog:
             indexes=(CharterIndex("idx_context_lifting_materialization_source_context_id", ("source_context_id",)),
                      CharterIndex("idx_context_lifting_materialization_target_context_id", ("target_context_id",)))),
         _claim_core_charter(),
-        _charter("claim_concept_link", ClaimConceptLinkRecord, "claim_id",
-            _f("claim_id", primary_key=True, nullable=False), _f("concept_id", primary_key=True, nullable=False),
-            _f("role", primary_key=True, nullable=False), _i("ordinal", primary_key=True, nullable=False), _f("binding_name"),
+        _charter("claim_concept_link", _claim_models()["claim_concept_link"], "claim_id",
+            CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_concept_link_claim", "claim_concept_link", "claim_id", "claim_core")),
+            CharterField("concept_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_concept_link_concept", "claim_concept_link", "concept_id", "concept")),
+            CharterField("role", ClaimConceptLinkRole, primary_key=True, nullable=False), _i("ordinal", primary_key=True, nullable=False), _f("binding_name"),
             indexes=(CharterIndex("idx_claim_concept_link_claim", ("claim_id",)), CharterIndex("idx_claim_concept_link_concept", ("concept_id",)), CharterIndex("idx_claim_concept_link_role", ("role",)))),
         _claim_payload_charters()[0], _claim_payload_charters()[1], _claim_payload_charters()[2],
         _charter("conflict_witness", ConflictWitnessRecord, "id",
@@ -218,6 +223,7 @@ def _charter(
     *fields: CharterField,
     indexes: tuple[CharterIndex, ...] = (),
     fts_indexes: tuple[CharterFtsIndex, ...] = (),
+    relationships: tuple[CharterRelationship, ...] = (),
 ) -> FamilyCharter:
     return FamilyCharter(
         family=_world_family(name, model, identity_field),
@@ -225,6 +231,7 @@ def _charter(
         fields=fields,
         indexes=indexes,
         fts_indexes=fts_indexes,
+        relationships=relationships,
         semantic_metadata={"semantic": "propstore.world"},
     )
 
@@ -260,6 +267,26 @@ def _b(name: str, *, nullable: bool = True) -> CharterField:
     return CharterField(name, bytes, nullable=nullable)
 
 
+def _fk(
+    name: str,
+    source_family: str,
+    source_field: str,
+    target_family: str,
+    *,
+    required: bool = True,
+    many: bool = False,
+) -> ForeignKeySpec:
+    return ForeignKeySpec(
+        name=name,
+        contract_version=_WORLD_CONTRACT_VERSION,
+        source_family=source_family,
+        source_field=source_field,
+        target_family=target_family,
+        required=required,
+        many=many,
+    )
+
+
 def _payload(values: object) -> dict[str, object]:
     if hasattr(values, "values"):
         row_values = getattr(values, "values")
@@ -272,31 +299,58 @@ def _payload(values: object) -> dict[str, object]:
     return dict(vars(values))
 
 
+def _claim_models() -> dict[str, type[Any]]:
+    from propstore.families.claims.declaration import (
+        Claim,
+        ClaimAlgorithmPayload,
+        ClaimConceptLink,
+        ClaimNumericPayload,
+        ClaimTextPayload,
+    )
+
+    return {
+        "claim_core": Claim,
+        "claim_concept_link": ClaimConceptLink,
+        "claim_numeric_payload": ClaimNumericPayload,
+        "claim_text_payload": ClaimTextPayload,
+        "claim_algorithm_payload": ClaimAlgorithmPayload,
+    }
+
+
 def _claim_core_charter() -> FamilyCharter:
-    return _charter("claim_core", ClaimCoreRecord, "id",
+    claim = _claim_models()["claim_core"]
+    return _charter("claim_core", claim, "id",
         _f("id", primary_key=True, nullable=False), _f("primary_logical_id", nullable=False, default_sql="''"),
         _f("logical_ids_json", nullable=False, default_sql="'[]'"), _f("version_id", nullable=False, default_sql="''"),
-        _f("content_hash", nullable=False, default_sql="''"), _i("seq", nullable=False), _f("type", nullable=False),
+        _f("content_hash", nullable=False, default_sql="''"), _i("seq", nullable=False), CharterField("type", ClaimType, nullable=False),
         _f("target_concept"), _f("source_slug"), _f("source_paper", nullable=False), _i("provenance_page", nullable=False),
         _f("provenance_json"), _f("context_id"), _f("premise_kind", nullable=False, default_sql="'ordinary'"),
         _f("branch"), _f("build_status", nullable=False, default_sql="'ingested'"), _f("stage"), _f("promotion_status"),
         indexes=(CharterIndex("idx_claim_core_target", ("target_concept",)), CharterIndex("idx_claim_core_type", ("type",)),
                  CharterIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)), CharterIndex("idx_claim_core_build_status", ("build_status",)),
                  CharterIndex("idx_claim_core_stage", ("stage",)), CharterIndex("idx_claim_core_promotion_status", ("promotion_status",))),
-        fts_indexes=(CharterFtsIndex("claim_fts", "claim_id", ("statement", "conditions", "expression"), source_query=_CLAIM_FTS_SOURCE_QUERY),))
+        fts_indexes=(CharterFtsIndex("claim_fts", "claim_id", ("statement", "conditions", "expression"), source_query=_CLAIM_FTS_SOURCE_QUERY),),
+        relationships=(CharterRelationship(
+            "concept_links",
+            target_family="claim_concept_link",
+            foreign_key="claim_id",
+            back_populates="claim",
+            association_object=True,
+        ),))
 
 
 def _claim_payload_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter]:
+    models = _claim_models()
     return (
-        _charter("claim_numeric_payload", ClaimNumericPayloadRecord, "claim_id",
-            _f("claim_id", primary_key=True, nullable=False), _r("value"), _r("lower_bound"), _r("upper_bound"), _r("uncertainty"),
+        _charter("claim_numeric_payload", models["claim_numeric_payload"], "claim_id",
+            CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_numeric_payload_claim", "claim_numeric_payload", "claim_id", "claim_core")), _r("value"), _r("lower_bound"), _r("upper_bound"), _r("uncertainty"),
             _f("uncertainty_type"), _i("sample_size"), _f("unit"), _r("value_si"), _r("lower_bound_si"), _r("upper_bound_si")),
-        _charter("claim_text_payload", ClaimTextPayloadRecord, "claim_id",
-            _f("claim_id", primary_key=True, nullable=False), _f("conditions_cel"), _f("conditions_ir"), _f("statement"),
+        _charter("claim_text_payload", models["claim_text_payload"], "claim_id",
+            CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_text_payload_claim", "claim_text_payload", "claim_id", "claim_core")), _f("conditions_cel"), _f("conditions_ir"), _f("statement"),
             _f("expression"), _f("sympy_generated"), _f("sympy_error"), _f("name"), _f("measure"), _f("listener_population"),
             _f("methodology"), _f("notes"), _f("description"), _f("auto_summary")),
-        _charter("claim_algorithm_payload", ClaimAlgorithmPayloadRecord, "claim_id",
-            _f("claim_id", primary_key=True, nullable=False), _f("body"), _f("canonical_ast"), _f("variables_json"), _f("algorithm_stage"),
+        _charter("claim_algorithm_payload", models["claim_algorithm_payload"], "claim_id",
+            CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_algorithm_payload_claim", "claim_algorithm_payload", "claim_id", "claim_core")), _f("body"), _f("canonical_ast"), _f("variables_json"), _f("algorithm_stage"),
             indexes=(CharterIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),)),
     )
 

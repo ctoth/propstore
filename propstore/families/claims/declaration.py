@@ -79,6 +79,111 @@ def _require_claim_type(value: object) -> ClaimType:
     return claim_type
 
 
+class Claim:
+    id: str
+    primary_logical_id: str
+    logical_ids_json: str
+    version_id: str
+    content_hash: str
+    seq: int
+    type: ClaimType
+    target_concept: str | None
+    source_slug: str | None
+    source_paper: str
+    provenance_page: int
+    provenance_json: str | None
+    context_id: str | None
+    premise_kind: str
+    branch: str | None
+    build_status: str
+    stage: str | None
+    promotion_status: str | None
+    concept_links: list["ClaimConceptLink"]
+
+    def __init__(self, **values: object) -> None:
+        concept_links = values.pop("concept_links", ())
+        if not isinstance(concept_links, list | tuple):
+            raise TypeError("claim concept_links must be a list or tuple")
+        self.concept_links = list(concept_links)
+        for key, value in values.items():
+            setattr(self, key, value)
+
+
+class ClaimConceptLink:
+    claim_id: str
+    concept_id: str
+    role: ClaimConceptLinkRole
+    ordinal: int
+    binding_name: str | None
+    claim: Claim | None
+
+    def __init__(
+        self,
+        claim_id: str,
+        concept_id: str,
+        role: ClaimConceptLinkRole,
+        ordinal: int,
+        binding_name: str | None = None,
+    ) -> None:
+        self.claim_id = claim_id
+        self.concept_id = concept_id
+        self.role = role
+        self.ordinal = ordinal
+        self.binding_name = binding_name
+        self.claim = None
+
+
+class ClaimNumericPayload:
+    claim_id: str
+    value: float | None
+    lower_bound: float | None
+    upper_bound: float | None
+    uncertainty: float | None
+    uncertainty_type: str | None
+    sample_size: int | None
+    unit: str | None
+    value_si: float | None
+    lower_bound_si: float | None
+    upper_bound_si: float | None
+
+    def __init__(self, **values: object) -> None:
+        for key, value in values.items():
+            setattr(self, key, value)
+
+
+class ClaimTextPayload:
+    claim_id: str
+    conditions_cel: str | None
+    conditions_ir: str | None
+    statement: str | None
+    expression: str | None
+    sympy_generated: str | None
+    sympy_error: str | None
+    name: str | None
+    measure: str | None
+    listener_population: str | None
+    methodology: str | None
+    notes: str | None
+    description: str | None
+    auto_summary: str | None
+
+    def __init__(self, **values: object) -> None:
+        for key, value in values.items():
+            setattr(self, key, value)
+
+
+class ClaimAlgorithmPayload:
+    claim_id: str
+    body: str | None
+    canonical_ast: str | None
+    variables_json: str | None
+    algorithm_stage: str | None
+
+    def __init__(self, **values: object) -> None:
+        for key, value in values.items():
+            setattr(self, key, value)
+
+
 from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL,
     CLAIM_ALGORITHM_PAYLOAD_TABLE,

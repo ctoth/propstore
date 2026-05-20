@@ -597,6 +597,19 @@ Recorded 2026-05-20.
   `metadata={"coerce"`, `"coerce":`, `_coerce_claim_model_value`, and
   `claim_model_from_payload` across `propstore/families/claims`,
   `propstore/core`, and `tests` returned no hits.
+- Claim model charter slice: added the Phase 10 target classes `Claim`,
+  `ClaimConceptLink`, `ClaimNumericPayload`, `ClaimTextPayload`, and
+  `ClaimAlgorithmPayload` in `propstore/families/claims/declaration.py`;
+  replaced the claim placeholder world records with those owner classes in
+  `propstore/families/world_charters.py`; and declared
+  `claim.concept_links` as the Quire SQLAlchemy association-object
+  relationship over `ClaimConceptLink`.
+- Claim model charter verification: `uv run pyright
+  propstore/families/world_charters.py
+  propstore/families/claims/declaration.py` passed with 0 errors, and
+  `powershell -File scripts/run_logged_pytest.ps1 -Label claim-model-schema
+  tests/test_required_schema_completeness.py` passed with 2 tests in
+  `logs/test-runs/claim-model-schema-20260520-145308.log`.
 - Remaining Phase 10 work: delete the remaining claim projection/read-model,
   storage-helper, row-carrier, and active-claim compatibility surfaces; run
   the family gates, old-path searches, and data-parity gate.
