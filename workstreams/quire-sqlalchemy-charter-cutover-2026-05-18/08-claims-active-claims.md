@@ -1018,3 +1018,10 @@ Recorded 2026-05-20.
   caller slices must delete `ActiveClaim`, `ActiveClaimInput`,
   `coerce_active_claim*`, and `CLAIM_ROW_MODEL` imports by consuming these
   typed `Claim` fields/relationships directly.
+- App comparison row-model deletion: commit `cdbfb1c1` removed
+  `CLAIM_ROW_MODEL` from `propstore/app/claims.py`; algorithm comparison now
+  reads `Claim.algorithm_payload.body` and `Claim.variable_bindings()` from
+  typed claims. Focused verification `uv run pyright propstore/app/claims.py`
+  passed with 0 errors, and `rg -n -F -- "CLAIM_ROW_MODEL"
+  propstore/app/claims.py` returned zero hits. The refreshed row-model queue
+  is now `world/queries.py`, `world/overlay.py`, and `world/atms.py`.
