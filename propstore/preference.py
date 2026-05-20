@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from propstore.core.active_claims import ActiveClaim
 from propstore.opinion import Opinion, from_probability
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
@@ -58,7 +57,7 @@ def _metadata_provenance(status: ProvenanceStatus, source_artifact_code: str) ->
 
 
 def metadata_strength_vector(
-    claim: ActiveClaim | Mapping[str, Any],
+    claim: Mapping[str, Any],
 ) -> MetadataStrengthVector:
     """Compute a heuristic fixed-length strength vector from claim metadata.
 
@@ -76,16 +75,10 @@ def metadata_strength_vector(
       [1] inverse_uncertainty: 1/uncertainty
       [2] confidence: direct value
     """
-    if isinstance(claim, ActiveClaim):
-        sample_size = claim.sample_size
-        uncertainty = claim.uncertainty
-        confidence = claim.attribute_value("confidence")
-        source_artifact_code = claim.artifact_id
-    else:
-        sample_size = claim.get("sample_size")
-        uncertainty = claim.get("uncertainty")
-        confidence = claim.get("confidence")
-        source_artifact_code = str(claim.get("artifact_id") or "claim_metadata")
+    sample_size = claim.get("sample_size")
+    uncertainty = claim.get("uncertainty")
+    confidence = claim.get("confidence")
+    source_artifact_code = str(claim.get("artifact_id") or "claim_metadata")
 
     sample_size_value = (
         float(sample_size)
@@ -142,6 +135,6 @@ def metadata_strength_vector(
     return MetadataStrengthVector(dimensions=dimensions, opinion=opinion)
 
 
-def claim_strength(claim: ActiveClaim | Mapping[str, Any]) -> MetadataStrengthVector:
+def claim_strength(claim: Mapping[str, Any]) -> MetadataStrengthVector:
     """Return the propstore claim-graph metadata strength heuristic."""
     return metadata_strength_vector(claim)
