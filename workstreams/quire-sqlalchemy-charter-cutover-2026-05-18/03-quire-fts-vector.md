@@ -326,7 +326,23 @@ Quire FTS/vector implementation:
   0 errors.
 - Full Quire test gate after the source-query extension:
   `uv run pytest -vv` passed with 360 passed in 331.85s.
-- Propstore pin refreshed to pushed Quire commit `852ab784c1c70484b2b6749393c8c0f8d043ac3d`; `uv.lock` resolves Quire, `sqlalchemy-fts5`, and `sqlite-vec` from non-local sources.
+- Phase 5 build-orchestration deletion exposed a missing Quire mapper
+  capability for existing sidecar tables such as `alias`, `parameterization`,
+  `relationship`, and `context_assumption`, which have no database primary key
+  but still need SQLAlchemy mapped model writes during the charter build.
+- Returned to this Quire-owned phase and added pushed Quire commit
+  `65df665b85053c1741dcd22d3a12deb15f35a4be`
+  (`Map charter tables without database primary keys`). The commit maps
+  no-primary-key SQLAlchemy tables with a mapper-level composite primary key
+  over the generated columns without changing the database table primary-key
+  declaration.
+- Focused Quire proof gate for the no-primary-key mapper extension:
+  `uv run pytest -vv tests/test_sqlalchemy_engine.py` passed with 7 passed.
+- Quire type gate for the no-primary-key mapper extension: `uv run pyright`
+  passed with 0 errors.
+- Full Quire test gate after the no-primary-key mapper extension:
+  `uv run pytest -vv` passed with 361 passed in 300.68s.
+- Propstore pin refreshed to pushed Quire commit `65df665b85053c1741dcd22d3a12deb15f35a4be`; `uv.lock` resolves Quire, `sqlalchemy-fts5`, and `sqlite-vec` from non-local sources.
 - Propstore dependency-pin searches for `quire @ file`, `quire @ ..`, `quire @ C:`, `path =`, and `workspace = true` returned no hits; `uv lock --check` passed.
 - Propstore package type gate: `uv run pyright propstore` passed with 0 errors.
 

@@ -371,7 +371,7 @@ Prerequisites:
 
 - `03-quire-fts-vector.md` records Phase 4 and the Quire-first completion gate complete.
 - Propstore current branch: `master`; tracked task-owned files clean before Phase 5 harness edits; unrelated untracked files present.
-- Quire pin: `pyproject.toml` and `uv.lock` resolve `quire` from pushed commit `852ab784c1c70484b2b6749393c8c0f8d043ac3d`.
+- Quire pin: `pyproject.toml` and `uv.lock` resolve `quire` from pushed commit `65df665b85053c1741dcd22d3a12deb15f35a4be`.
 - Local dependency-pin searches for `path =`, `workspace = true`, `quire @ file`, `quire @ ..`, and `quire @ C:` returned no hits.
 
 Parity harness slice:
@@ -428,9 +428,25 @@ Returned-to-Quire capability fix:
   that pushed commit.
 - Full Quire test gate after the source-query extension:
   `uv run pytest -vv` passed with 360 passed in 331.85s.
+- Deletion/replacement planning then found that existing sidecar tables without
+  database primary keys must still be mapped for SQLAlchemy model writes.
+- Returned to `03-quire-fts-vector.md` again and added pushed Quire commit
+  `65df665b85053c1741dcd22d3a12deb15f35a4be`
+  (`Map charter tables without database primary keys`).
+- Focused Quire proof gate for the no-primary-key mapper extension:
+  `uv run pytest -vv tests/test_sqlalchemy_engine.py` passed with 7 passed.
+- Quire type gate for the no-primary-key mapper extension: `uv run pyright`
+  passed with 0 errors.
+- Full Quire test gate after the no-primary-key mapper extension:
+  `uv run pytest -vv` passed with 361 passed in 300.68s.
+- Propstore pin refreshed to pushed Quire commit
+  `65df665b85053c1741dcd22d3a12deb15f35a4be`; local dependency-pin searches
+  for `path =`, `workspace = true`, `quire @ file`, `quire @ ..`, and
+  `quire @ C:` returned no hits; `uv lock --check` passed.
 
 Next required item: resume deletion/replacement of the old projection builder
-using the Quire SQLAlchemy charter FTS source-query path.
+using the Quire SQLAlchemy charter FTS source-query and no-primary-key mapper
+paths.
 
 Old validation-wrapper audit:
 
