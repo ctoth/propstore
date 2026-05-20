@@ -132,6 +132,13 @@ The target architecture is one declaration of field shape, plus typed values
 flowing through the compiler/runtime. Do not replace projection codecs with a
 new generic coercion layer in Propstore.
 
+Before the next Phase 10 code slice, read and satisfy
+`duplicate-definition-audit-2026-05-20.md`. The audit is binding for this
+phase: no `*CompiledPayload`, `*_from_payload` replacement factory, scalar
+field DTO, broad `**values` mapped-model constructor, mapping-repair input
+union, or table-routing helper may be added as a substitute for deleted
+projection surfaces.
+
 Allowed:
 
 - Quire charter field metadata that describes storage field names, nullability,
@@ -672,3 +679,10 @@ Recorded 2026-05-20.
 - Remaining Phase 10 work: delete the remaining claim projection/read-model,
   storage-helper, row-carrier, and active-claim compatibility surfaces; run
   the family gates, old-path searches, and data-parity gate.
+- Duplicate-definition audit: `c92e57b9` added
+  `duplicate-definition-audit-2026-05-20.md` after the uncommitted
+  `ClaimCompiledPayload` draft was reverted. The audit records committed
+  places where this execution introduced or left duplicate field/state
+  definitions, mapping repair paths, broad kwargs constructors, and
+  table-routing helpers. It must be read and satisfied before the next Phase 10
+  code slice.
