@@ -134,6 +134,16 @@ Current audit update on 2026-05-20:
   `Claim.concept_links`, and `Claim.source_assertions`. Do not reintroduce
   row-only claim fields such as `claim_id`, `claim_type`, `statement`, or
   `artifact_id` as a bridge.
+- Additional normalization audit finding: `propstore/core/justifications.py`
+  still defines `_normalize_attrs` and calls it from
+  `CanonicalJustification.__post_init__`. That is not a harmless domain
+  method: it lets the runtime model accept either mappings or tuple-pair
+  shapes, coerces keys with `str(...)`, sorts them, and preserves duplicate
+  conversion/schema behavior in the model layer. This phase must delete that
+  model-layer normalizer by moving any true authored JSON/dict parsing to a
+  boundary-specific constructor or by replacing the duplicate canonical
+  surface with the typed `Justification` model/view. Do not rename it, make it
+  a method, or keep it as a convenience wrapper.
 
 ## Prerequisites
 
@@ -274,6 +284,7 @@ File: `propstore/core/justifications.py`.
 | Helper/surface | Classification | Required final owner/action |
 | --- | --- | --- |
 | active-graph-derived justification view | move | Keep as explicitly named semantic view over typed graph/justification models. |
+| `_normalize_attrs` | delete | Delete model-layer mapping/tuple-pair normalization; any real JSON/dict parsing belongs at a boundary-specific constructor, not in `CanonicalJustification.__post_init__`. |
 | justification row dictionaries | delete | Replace with typed `Justification` model or explicit view payloads. |
 | duplicated `CanonicalJustification` schema/conversion role | delete | Authored documents and typed `Justification` model own justification shape. |
 | generic `from_mapping` constructors | delete | Use boundary-specific constructors for document/JSON boundaries. |
@@ -442,6 +453,7 @@ rg -n -F -- "compile_micropublication_sidecar_rows_with_diagnostics" propstore t
 rg -n -F -- "create_micropublication_tables" propstore tests
 rg -n -F -- "populate_micropublications" propstore tests
 rg -n -F -- "select_all_micropublications" propstore tests
+rg -n -F -- "_normalize_attrs" propstore tests
 rg -n -F -- "CanonicalJustification(" propstore tests
 rg -n -F -- "from_mapping" propstore/core/justifications.py tests
 ```
