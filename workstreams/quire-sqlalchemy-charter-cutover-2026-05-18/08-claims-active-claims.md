@@ -1097,3 +1097,15 @@ Recorded 2026-05-20.
   active-claim imports remain only in `world/overlay.py` and `world/atms.py`;
   refreshed `CLAIM_ROW_MODEL` hits remain in `world/overlay.py`,
   `world/atms.py`, and `world/queries.py`.
+- ATMS active-claim row deletion: commit `a75b52b8` removed the remaining
+  `ActiveClaim` and `CLAIM_ROW_MODEL` dependencies from
+  `propstore/world/atms.py`. ATMS now receives typed `Claim` objects from the
+  bound world, deletes the graph-node-to-row reconstruction helper, and reads
+  claim identity, value concept, conditions, and scalar numeric value through
+  typed `Claim` fields and relationships. Focused verification `uv run
+  pyright propstore/world/atms.py` passed with 0 errors, and
+  `rg -n -F -- "propstore.core.active_claims" propstore/world/atms.py` plus
+  `rg -n -F -- "CLAIM_ROW_MODEL" propstore/world/atms.py` returned zero
+  hits. Refreshed world active-claim imports remain only in `world/overlay.py`;
+  refreshed `CLAIM_ROW_MODEL` hits remain in `world/overlay.py` and
+  `world/queries.py`.
