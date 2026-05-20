@@ -479,3 +479,39 @@ This slice is complete only when:
 - all required tests pass through the logged pytest wrapper;
 - all old-path search gates above are zero-hit outside notes, workstreams,
   docs, and reports.
+
+## Phase 10 Execution Record
+
+Recorded 2026-05-20.
+
+- Prerequisite state: `git status --short` showed only unrelated untracked
+  paths outside this slice; `uv run pyright propstore` passed with 0 errors;
+  `powershell -File scripts/run_logged_pytest.ps1 -Label claim-prereq
+  tests/test_world_query.py tests/test_required_schema_completeness.py
+  tests/test_fixture_schema_parity.py tests/test_resolution_helpers.py`
+  passed with 166 tests in
+  `logs/test-runs/claim-prereq-20260520-141305.log`.
+- Prerequisite searches: `ProjectionTable`, `ProjectionModel`, and
+  `sqlite3.Connection` still hit the claim projection/read-model deletion
+  targets in `propstore/families/claims/projection_model.py`,
+  `propstore/families/claims/declaration.py`, and
+  `propstore/families/claims/sidecar_runtime.py`.
+- Rope runner repair: `50294987` updated `scripts/rope_rename.py` to ignore
+  generated and diagnostic roots such as `.tmp`, `.venv`, `logs`, `reports`,
+  and `out`; the first Rope attempt failed by scanning generated `.tmp`
+  Python files, and the repaired runner applied the required rename.
+- Variable move commit: `75ae67a8` used Rope for
+  `ActiveClaimVariable -> ClaimAlgorithmVariable`, moved the variable object
+  and variable JSON parsing to `propstore/families/claims/stages.py`, and left
+  `propstore/core/active_claims.py` importing the claim-stage owner API while
+  the broader `ActiveClaim` deletion remains in progress.
+- Metadata correction: the moved claim algorithm variable payload keys and
+  coercion policy now live on `ClaimAlgorithmVariable` field metadata, and
+  parsing/rendering reads that metadata instead of spelling the payload keys
+  twice.
+- Focused verification: `uv run pyright propstore/core/active_claims.py
+  propstore/families/claims/stages.py` passed with 0 errors; `rg -n -F --
+  "ActiveClaimVariable" propstore tests` returned zero hits.
+- Remaining Phase 10 work: delete the remaining claim projection/read-model,
+  storage-helper, row-carrier, and active-claim compatibility surfaces; run
+  the family gates, old-path searches, and data-parity gate.
