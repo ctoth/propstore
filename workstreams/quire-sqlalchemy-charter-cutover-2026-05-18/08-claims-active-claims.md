@@ -1050,3 +1050,11 @@ Recorded 2026-05-20.
   `uv run pyright propstore/world/assignment_selection_policy.py` passed with
   0 errors. The refreshed world active-claim import queue is now `bound.py`,
   `atms.py`, `model.py`, `overlay.py`, and `resolution.py`.
+- Claim activation owner cleanup: commit `0121bf22` replaced the
+  graph-node-specific `is_claim_node_active` API with `is_claim_active`,
+  which receives typed claim semantic fields directly. The compiled graph
+  activation caller now passes `ClaimNode` fields into that owner function
+  without a wrapper, and `rg -n -F -- "is_claim_node_active" propstore/core/activation.py
+  propstore tests` returned zero hits. This enables `world/bound.py` to delete
+  `ActiveClaim`, `ActiveClaimInput`, `coerce_active_claim`, and
+  `_resolve_claim_lookup_id` rather than copying activation logic locally.
