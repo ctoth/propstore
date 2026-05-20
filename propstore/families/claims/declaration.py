@@ -17,11 +17,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
-from quire.projections import (
-    FtsProjection,
-    ProjectionRow,
-)
-from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
+from quire.projections import ProjectionRow
 from propstore.claims import (
     ClaimFileEntry,
     claim_file_filename,
@@ -36,7 +32,6 @@ from propstore.core.id_types import (
     to_claim_id,
     to_justification_id,
 )
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
@@ -45,7 +40,6 @@ from propstore.families.claims.references import (
 from propstore.families.claims.storage import (
     extract_deferred_stance_rows_with_diagnostics,
     prepare_claim_concept_link_rows,
-    prepare_claim_insert_row,
 )
 from propstore.families.claims.stages import (
     PromotionBlockedClaimFact,
@@ -206,92 +200,9 @@ class PromotionBlockedModels:
 
 
 from propstore.families.claims.projection_model import (  # noqa: E402
-    CLAIM_ALGORITHM_PAYLOAD_TABLE,
-    CLAIM_CORE_TABLE,
-    CLAIM_NUMERIC_PAYLOAD_TABLE,
-    CLAIM_ROW_MODEL,
-    CLAIM_TEXT_PAYLOAD_TABLE,
     JUSTIFICATION_TABLE,
-    SOURCE_CHARTER_QUERY_TABLE,
-    claim_row_query_plan,
 )
 from propstore.families.world_charters import BuildDiagnostic
-
-
-def select_claim_rows(
-    conn: sqlite3.Connection,
-    where_sql: str = "",
-    params: tuple[Any, ...] = (),
-) -> list[ActiveClaim]:
-    return list(
-        CLAIM_ROW_MODEL.select_with_attached_rows(
-            conn,
-            CLAIM_ROW_QUERY_PLAN,
-            where_sql,
-            params,
-        )
-    )
-
-
-def select_claim_rows_linked_to_concept(
-    conn: sqlite3.Connection,
-    concept_id: str | None,
-    *,
-    roles: tuple[str, ...] | None = None,
-) -> list[ActiveClaim]:
-    where_sql, params = _claim_concept_link_where_sql(concept_id, roles=roles)
-    return select_claim_rows(conn, where_sql + "ORDER BY core.id", params)
-
-
-def select_claim_rows_with_visibility(
-    conn: sqlite3.Connection,
-    *,
-    concept_id: str | None,
-    include_drafts: bool,
-    include_blocked: bool,
-) -> list[ActiveClaim]:
-    clauses: list[str] = []
-    bound: list[Any] = []
-    concept_clause, concept_params = _claim_concept_link_where_sql(concept_id)
-    if concept_clause:
-        clauses.append(concept_clause.removeprefix("WHERE ").strip())
-        bound.extend(concept_params)
-    if not include_drafts:
-        clauses.append("(core.stage IS NULL OR core.stage != 'draft')")
-    if not include_blocked:
-        clauses.append("(core.build_status IS NULL OR core.build_status != 'blocked')")
-        clauses.append(
-            "(core.promotion_status IS NULL OR core.promotion_status != 'blocked')"
-        )
-    where_sql = ""
-    if clauses:
-        where_sql = "WHERE " + " AND ".join(clauses) + " "
-    return select_claim_rows(conn, where_sql + "ORDER BY core.id", tuple(bound))
-
-
-def _claim_concept_link_where_sql(
-    concept_id: str | None,
-    *,
-    roles: tuple[str, ...] | None = None,
-) -> tuple[str, tuple[Any, ...]]:
-    if concept_id is None:
-        return "", ()
-    predicates = [
-        "link.claim_id = core.id",
-        "link.concept_id = ?",
-    ]
-    params: list[Any] = [concept_id]
-    if roles:
-        placeholders = ",".join("?" for _ in roles)
-        predicates.append(f"link.role IN ({placeholders})")
-        params.extend(roles)
-    where_sql = (
-        "WHERE EXISTS ("
-        "SELECT 1 FROM claim_concept_link AS link "
-        f"WHERE {' AND '.join(predicates)}"
-        ") "
-    )
-    return where_sql, tuple(params)
 
 
 def build_claim_logical_id_index(conn: sqlite3.Connection) -> dict[str, str]:
@@ -449,34 +360,6 @@ def delete_claim_core_row(conn: sqlite3.Connection, claim_id: str) -> None:
     conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
 
 
-def select_claim_embedding_rows(
-    conn: sqlite3.Connection,
-    entity_ids: Sequence[str] | None = None,
-) -> list[ActiveClaim]:
-    query = """
-        SELECT
-            core.id,
-            core.id AS artifact_id,
-            core.seq,
-            core.content_hash,
-            txt.auto_summary,
-            txt.statement,
-            txt.expression,
-            txt.name
-        FROM claim_core AS core
-        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-    """
-    params: tuple[str, ...] = ()
-    if entity_ids:
-        placeholders = ",".join("?" for _ in entity_ids)
-        query += f" WHERE core.id IN ({placeholders})"
-        params = tuple(entity_ids)
-    return [
-        CLAIM_ROW_MODEL.from_row(dict(row))
-        for row in conn.execute(query, params).fetchall()
-    ]
-
-
 def resolve_claim_embedding_entity(conn: sqlite3.Connection, entity_id: str) -> tuple[str, int]:
     row = conn.execute(
         "SELECT id, seq FROM claim_core WHERE id = ?",
@@ -540,73 +423,6 @@ def select_source_promotion_claim_rows(
         (branch,),
     ).fetchall()
     return tuple((str(row[0]), str(row[1])) for row in rows)
-
-
-CLAIM_EMBEDDING_JOIN_SOURCE = """
-    (
-        SELECT
-            core.id,
-            core.seq,
-            core.type,
-            core.source_paper,
-            COALESCE(output_link.concept_id, target_link.concept_id, core.target_concept) AS concept_id,
-            txt.auto_summary,
-            txt.statement
-        FROM claim_core AS core
-        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-        LEFT JOIN claim_concept_link AS output_link
-            ON output_link.claim_id = core.id AND output_link.role = 'output'
-        LEFT JOIN claim_concept_link AS target_link
-            ON target_link.claim_id = core.id AND target_link.role = 'target'
-    )
-"""
-
-
-CLAIM_EMBEDDING_JOIN_COLUMNS = (
-    "c.id, c.type, c.auto_summary, c.statement, c.source_paper, c.concept_id"
-)
-
-
-CLAIM_ROW_QUERY_PLAN = claim_row_query_plan(
-    claim_core=CLAIM_CORE_TABLE,
-    numeric_payload=CLAIM_NUMERIC_PAYLOAD_TABLE,
-    text_payload=CLAIM_TEXT_PAYLOAD_TABLE,
-    algorithm_payload=CLAIM_ALGORITHM_PAYLOAD_TABLE,
-    source=SOURCE_CHARTER_QUERY_TABLE,
-)
-
-
-CLAIM_FTS_PROJECTION = FtsProjection(
-    table="claim_fts",
-    key_column="claim_id",
-    columns=("statement", "conditions", "expression"),
-    source_query="""
-        SELECT
-            c.id AS claim_id,
-            COALESCE(t.statement, '') AS statement,
-            COALESCE(
-                (
-                    SELECT group_concat(value, ' ')
-                    FROM json_each(t.conditions_cel)
-                ),
-                ''
-            ) AS conditions,
-            COALESCE(t.expression, '') AS expression
-        FROM claim_core c
-        JOIN claim_text_payload t ON t.claim_id = c.id
-        ORDER BY c.seq
-    """,
-)
-
-
-CLAIM_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
-    name="embedding_status",
-    entity_id_column="claim_id",
-    index_name="idx_embedding_status_model_identity",
-)
-
-
-CLAIM_VEC_PROJECTION = rowid_vec_projection("claim_vec_{model_identity_hash}")
 
 
 def compile_claim_models(
