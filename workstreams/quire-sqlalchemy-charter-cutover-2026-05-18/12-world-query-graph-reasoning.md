@@ -73,6 +73,8 @@ workstream. Production hits outside those targets block implementation.
 | `propstore/structured_projection.py` | Analyzer projection back to assertions | Typed assertion projection owner | Replace row-derived data assumptions |
 | `propstore/worldline/resolution.py` and `propstore/worldline/argumentation.py` | Worldline materialization/capture through row models | Worldline over typed world/session models | Replace projection imports and row coercion |
 | `propstore/worldline/result_types.py` | Persisted result payload constructors named `from_mapping` | Explicit document/JSON payload constructors | Rename to boundary-specific constructors; keep typed result payload validation |
+| `propstore/core/graph_types.py` | Graph provenance payload constructors named `from_mapping` | Explicit graph/provenance payload constructors | Rename to boundary-specific constructors; keep graph provenance validation |
+| `propstore/world/queries.py` | `WorldBindActiveReport` active-object spelling | World binding report naming over activation state | Rename to `WorldBindActivationReport` or another non-`Active*` report name |
 | `propstore/support_revision/projection.py` and `propstore/support_revision/af_adapter.py` | Support-revision projection from row models | Support-revision over typed graph/relation models | Replace projection-model imports |
 | `propstore/aspic_bridge/extract.py` and `propstore/aspic_bridge/translate.py` | ASPIC bridge through stance projection model | ASPIC bridge over typed stance/justification models | Replace projection-model imports |
 
@@ -93,10 +95,13 @@ as the work queue:
   world/environment/overlay/ATMS APIs;
 - `ActiveClaimResolver` in `propstore/world/value_resolver.py`;
 - `ActiveWorldGraph` spelling in public world/graph APIs;
+- `WorldBindActiveReport` spelling in world query report APIs;
 - raw SQL snippets that duplicate SQLAlchemy query construction;
 - `ProjectionRow` usage in world, family, graph, and worldline runtime paths;
 - generic `from_mapping` persisted-result constructors in
   `propstore/worldline/result_types.py`;
+- generic `ProvenanceRecord.from_mapping` and graph provenance payload
+  constructors in `propstore/core/graph_types.py`;
 - support-revision row projection paths;
 - ASPIC bridge imports of stance projection models.
 
@@ -140,6 +145,10 @@ Required caller final state:
 - worldline resolution and argumentation consume typed world/session models;
 - persisted result payload constructors use boundary-specific names such as
   `from_json_payload`, `from_document_payload`, or `from_row_mapping`;
+- graph provenance payload constructors use boundary-specific names and do not
+  expose generic `from_mapping`;
+- world bind report names describe activation state without introducing a
+  second `Active*` object family;
 - support-revision consumes typed graph/relation models;
 - ASPIC bridge consumes typed stance and justification models.
 
@@ -198,17 +207,19 @@ Execute in this order:
    id sets, but it stops using the misleading active-object-family spelling.
 10. Rename `ActiveClaimResolver` to `ClaimValueResolver` and make it consume
    typed `Claim` query results.
-11. Use Rope for both project-wide Python renames above before hand-fixing
+11. Rename `WorldBindActiveReport` to `WorldBindActivationReport` or another
+    explicit activation-state report name.
+12. Use Rope for the project-wide Python renames above before hand-fixing
    dynamic references, tests, docs, and string mentions exposed by the named
    `rg` gates.
-12. Delete `ActiveClaimInput` and `ActiveMicropublicationInput` from world,
+13. Delete `ActiveClaimInput` and `ActiveMicropublicationInput` from world,
    environment, overlay, ATMS, ASPIC, support-revision, and value-resolution
    APIs.
-13. Replace generic persisted-result `from_mapping` constructors with
-   boundary-specific constructors.
-14. Run the world/query/graph/reasoning gates.
-15. Run the old-path search gates.
-16. Run the data-parity and behavior-parity gates.
+14. Replace generic persisted-result and graph-provenance `from_mapping`
+    constructors with boundary-specific constructors.
+15. Run the world/query/graph/reasoning gates.
+16. Run the old-path search gates.
+17. Run the data-parity and behavior-parity gates.
 
 Implementation starts only after session, relationship, query, catalog, FTS,
 vector, JSON, and association-object capabilities are complete in their owning
@@ -264,6 +275,7 @@ rg -n -F -- "ActiveClaimInput" propstore tests
 rg -n -F -- "ActiveMicropublicationInput" propstore tests
 rg -n -F -- "ActiveClaimResolver" propstore tests
 rg -n -F -- "ActiveWorldGraph" propstore tests
+rg -n -F -- "WorldBindActiveReport" propstore tests
 rg -n -F -- "claim_row_query_plan" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision tests
 rg -n -F -- "claim_stance_policy_query_plan" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision tests
 ```
@@ -287,6 +299,9 @@ This slice is complete only when:
   is absent from production code and tests;
 - `ClaimValueResolver` consumes typed `Claim` query results; `ActiveClaimResolver`
   is absent from production code and tests;
+- `WorldBindActivationReport` or the chosen non-`Active*` name is the world
+  binding report type; `WorldBindActiveReport` is absent from production code
+  and tests;
 - world/environment/overlay/ATMS protocols do not accept `ActiveClaimInput`,
   `ActiveMicropublicationInput`, dict rows, or mapping coercion inputs;
 - graph export uses typed world/session results;
