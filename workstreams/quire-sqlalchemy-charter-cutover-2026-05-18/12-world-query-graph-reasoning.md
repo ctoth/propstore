@@ -239,9 +239,18 @@ uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite
 Build the sidecar from the same repository snapshot before and after this
 slice and compare:
 
-- representative `WorldQuery` results for claims, concepts, stances,
-  conflicts, contexts, lifting, micropublications, grounding, calibration, and
-  embeddings;
+- `WorldQuery` method outputs for `get_claim`, `resolve_claim`,
+  `claims_for`, `claims_related_to_concept`, `claims_with_policy`,
+  `claims_by_ids`, `get_concept`, `resolve_concept`, `all_concepts`,
+  `all_parameterizations`, `all_relationships`, `all_claim_stances`,
+  `stances_between`, `conflicts`, `all_authored_justifications`,
+  `justifications_for_claim_scope`, `claim_stances_with_policy`,
+  `all_micropublications`, `search`, `similar_claims`, `similar_concepts`,
+  `forms_by_dimensions`, `form_algebra_for`, `form_algebra_using`, `stats`,
+  `authored_justification_count`, `parameterizations_for`, `group_members`,
+  `explain`, `bind`, `intervene`, `observe`, and `chain_query` over the
+  fixtures exercised by `tests/test_world_query.py`,
+  `tests/test_world_query_at_journal_step.py`, and `tests/test_worldline.py`;
 - graph node and edge counts plus edge key sets;
 - graph edge classification results;
 - analyzer inputs and outputs;

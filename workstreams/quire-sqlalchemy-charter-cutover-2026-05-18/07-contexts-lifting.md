@@ -201,8 +201,14 @@ slice and compare:
   materialization tables;
 - primary-key/key-set coverage for every context/lifting table this slice
   owns;
-- representative context owner API results;
-- representative `LiftingSystem` assembly results;
+- context owner API outputs for `compile_context_sidecar_rows`,
+  `compile_context_lifting_materialization_rows`, and `load_lifting_system`
+  over the fixtures exercised by `tests/test_sidecar_contexts.py`,
+  `tests/test_contexts.py`, and `tests/test_context_workflows.py`;
+- `LiftingSystem.effective_assumptions`, `materialize_lifted_assertions`,
+  `lift_decisions_for`, and `lift_decisions_between` outputs over the fixtures
+  exercised by `tests/test_context_lifting_phase4.py` and
+  `tests/test_context_lifting_ws5.py`;
 - world/worldline context query results that depend on lifting rules;
 - build diagnostics associated with invalid context/lifting rows.
 

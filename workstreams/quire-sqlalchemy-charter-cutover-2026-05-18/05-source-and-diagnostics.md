@@ -222,8 +222,15 @@ Compare:
 
 - source table names, primary keys, row counts, and key sets;
 - source-status diagnostic table names, primary keys, row counts, and key sets;
-- representative source status results;
-- representative finalize/promote diagnostic results;
+- `inspect_source_status` output for the source-status fixtures exercised by
+  `tests/test_cli_source_status.py` and
+  `tests/remediation/phase_7_race_atomicity/test_T7_5c_source_status_like_escape.py`;
+- `finalize_source_branch` diagnostic output for the micropublication finalize
+  fixture exercised by `tests/test_finalize_micropub_required.py`;
+- `promote_source_branch`, `collect_source_promotion_blocked_facts`, and
+  `collect_all_source_promotion_blocked_facts` outputs for the source
+  promotion fixtures exercised by `tests/test_source_promotion_alignment.py`
+  and `tests/test_source_promote_dangling_refs.py`;
 - promotion-blocked diagnostic delete behavior;
 - accepted column/table renames, explicitly listed in the commit message.
 

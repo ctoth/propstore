@@ -145,8 +145,8 @@ Implement the target path:
     forms, concepts, claims, relations, contexts, micropublications, rules,
     embeddings, or world-query cutovers start.
 12. The parity harness compares table names, primary-key/key sets, row counts,
-    FTS hit sets, vector hit sets, diagnostics, and representative semantic
-    query results.
+    FTS hit sets, vector hit sets, diagnostics, and the exact semantic query
+    result keys supplied by each child workstream.
 13. The parity harness exits nonzero and writes an actionable report when any
     required comparison fails.
 14. The parity harness has a targeted test or fixture-run proving at least one

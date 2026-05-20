@@ -244,8 +244,9 @@ The cutover is complete only when every item is checked:
 - [ ] Every row in `inventory-matrix.md` has a final delete, move, replace, or
   keep-as-semantic-owner outcome in a commit message or final closure report.
 - [ ] Every family cutover has a passing data-parity gate for row counts, key
-  sets, representative owner-layer queries, FTS, vector, and diagnostics where
-  applicable.
+  sets, the exact owner-layer query/API results named in the child workstream,
+  and every FTS, vector, and diagnostic comparison explicitly listed in the
+  child workstream.
 - [ ] App/CLI/web surfaces call owner-layer APIs.
 - [ ] Quire and Propstore full gates pass.
 - [ ] Propstore is pinned to a pushed Quire commit or tag, never a local

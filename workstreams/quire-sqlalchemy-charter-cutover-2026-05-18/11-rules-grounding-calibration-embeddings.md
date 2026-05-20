@@ -287,7 +287,9 @@ slice and compare:
 
 - grounded fact, grounded empty predicate, and grounded bundle input table
   names, primary keys, row counts, and key sets;
-- representative grounded bundle assembly results;
+- grounded bundle outputs for `read_grounded_facts`, `read_grounded_bundle`,
+  and `build_runtime_grounded_bundle` over the fixtures exercised by
+  `tests/test_sidecar_grounded_facts.py` and `tests/test_world_query.py`;
 - four-valued grounded fact section contents;
 - deterministic bundle input ordering;
 - calibration count table names, primary keys, row counts, key sets, and

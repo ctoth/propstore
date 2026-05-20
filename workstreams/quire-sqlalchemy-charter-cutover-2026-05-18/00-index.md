@@ -244,7 +244,8 @@ uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite
 
 - build the sidecar from the same repository snapshot before and after the current phase;
 - compare row counts and primary-key/key-set coverage for every table the phase owns;
-- compare representative semantic query results for the phase owner APIs;
+- compare the exact owner API results named in the active child workstream's
+  data-parity section;
 - explicitly list accepted column/table renames in the commit message;
 - fail the phase when a row, key, diagnostic, FTS hit, vector hit, or semantic query result disappears. The only accepted disappearance is a table or helper already named as a deletion target in the active workstream.
 
@@ -378,7 +379,10 @@ The directory workstream is complete only when:
 - No PascalCase `Active*` production/report/model type remains.
 - `WorldQuery` uses Quire sessions and typed model queries.
 - Every row in `inventory-matrix.md` has been accounted for in a commit message or final closure report with delete/move/keep-as-semantic-owner outcome.
-- Every family cutover has a passing data-parity gate for row counts, key sets, representative owner-layer queries, FTS, vector, and diagnostics where applicable.
+- Every family cutover has a passing data-parity gate for row counts, key
+  sets, the exact owner-layer query/API results named in that child
+  workstream, and every FTS, vector, and diagnostic comparison explicitly
+  listed in that child workstream.
 - App/CLI/web surfaces continue to call owner-layer APIs.
 - Quire and Propstore gates pass.
 - Propstore is pinned to a pushed Quire commit, never a local checkout.

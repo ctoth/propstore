@@ -306,9 +306,16 @@ Compare:
 - form and form-algebra table names, primary keys, row counts, and key sets;
 - concept, alias, relationship, parameterization, and parameterization-group
   table names, primary keys, row counts, and key sets;
-- representative owner-layer form queries;
-- representative concept lookup, alias resolution, logical-id precedence, and
-  registry results;
+- form owner query outputs for `select_all_form_rows`,
+  `select_form_algebra_rows_for_output`, and `select_all_form_algebra_rows`
+  over the fixtures exercised by `tests/test_sidecar_form_projection.py` and
+  `tests/test_sidecar_form_algebra_projection.py`;
+- concept owner query outputs for `select_concept_by_id`,
+  `select_all_concepts`, `select_aliases_by_concept_id`,
+  `select_concept_registry_rows`, `build_concept_logical_id_index`,
+  `resolve_concept_alias`, and `resolve_concept_id` over the fixtures
+  exercised by `tests/test_sidecar_concept_projection.py`,
+  `tests/test_sidecar_alias_projection.py`, and `tests/test_concept_views.py`;
 - parameterization traversal results;
 - concept FTS hit sets;
 - concept embedding source rows and entity resolution results;
