@@ -1233,3 +1233,22 @@ Current binding queue:
   `families/relations/declaration.py`. Those remaining callers must move to
   charter/session/vector APIs or owner-layer typed access, not restore the
   deleted constants.
+- Stance policy typed-query cleanup: commit `6a3c9561` deleted the
+  relation-family `select_claim_stances_with_policy` helper and moved
+  `WorldQuery.claim_stances_with_policy` onto the typed SQLAlchemy session
+  models from `world_sqlalchemy_schema()`. The replacement uses typed relation
+  and claim models, SQLAlchemy aliases for source/target policy joins, and
+  returns existing `StanceRow` report objects without restoring
+  `CLAIM_CORE_TABLE`, projection constants, raw selector helpers, or a
+  relation-family wrapper over the generic session surface. Focused
+  verification `uv run pyright propstore/world/model.py
+  propstore/families/relations/declaration.py` passed with 0 errors. Searches
+  for `CLAIM_CORE_TABLE` in the touched production files,
+  `select_claim_stances_with_policy` in `propstore tests`, and
+  `claim_stance_policy_query_plan` in the touched production files returned
+  zero hits. The refreshed package gate `uv run pyright propstore` now fails
+  with 5 errors, all in `propstore/families/embeddings/declaration.py` for
+  deleted claim embedding projection imports. The next queue is embedding
+  vector/status access through charter/session/vector APIs or a Quire generic
+  capability, not restoring `CLAIM_EMBEDDING_*`, `CLAIM_VEC_PROJECTION`, or
+  `select_claim_embedding_rows`.
