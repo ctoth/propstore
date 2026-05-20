@@ -25,7 +25,6 @@ from propstore.core.id_types import (
     to_concept_id,
     to_concept_ids,
 )
-from propstore.core.active_claims import ActiveClaim
 from propstore.core.graph_relation_types import coerce_graph_relation_type
 from propstore.core.graph_types import (
     ClaimNode,
@@ -36,7 +35,8 @@ from propstore.core.graph_types import (
     ProvenanceRecord,
     RelationEdge,
 )
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
+from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import (
     ConflictRow,
     RelationshipRow,
@@ -54,21 +54,15 @@ from propstore.families.concepts.declaration import (
 
 
 def _row_provenance(
-    row: Mapping[str, Any] | ActiveClaim,
+    row: Mapping[str, Any] | Claim,
     *,
     source_table: str,
     source_id: str | None = None,
 ) -> ProvenanceRecord | None:
     if source_table == "claim":
-        if isinstance(row, ActiveClaim):
-            extras = {}
-            if row.provenance is not None:
-                extras.update(row.provenance.to_dict())
-            extras["source_table"] = source_table
-            extras["source_id"] = source_id or str(row.claim_id)
-            return ProvenanceRecord.from_json_payload(extras)
-
-        provenance_json = row.get("provenance_json")
+        if not isinstance(row, Claim):
+            raise TypeError("claim provenance rows must be typed Claim objects")
+        provenance_json = row.provenance_json
         extras: dict[str, Any] = {}
         if provenance_json:
             try:
@@ -77,12 +71,12 @@ def _row_provenance(
                     extras.update(loaded)
             except json.JSONDecodeError:
                 extras["provenance_json"] = provenance_json
-        if row.get("source_paper") is not None:
-            extras.setdefault("paper", row.get("source_paper"))
-        if row.get("provenance_page") is not None:
-            extras.setdefault("page", row.get("provenance_page"))
+        if row.source_paper is not None:
+            extras.setdefault("paper", row.source_paper)
+        if row.provenance_page is not None:
+            extras.setdefault("page", row.provenance_page)
         extras["source_table"] = source_table
-        extras["source_id"] = source_id or row.get("id")
+        extras["source_id"] = source_id or row.id
         return ProvenanceRecord.from_json_payload(extras)
 
     if not isinstance(row, Mapping):
@@ -103,52 +97,34 @@ def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
     )
 
 
-def _claim_attributes(row: ActiveClaim) -> tuple[tuple[str, Any], ...]:
-    claim_data: dict[str, Any] = row.attribute_mapping()
-    optional_fields = {
-        "seq": row.seq,
-        "lower_bound": row.lower_bound,
-        "upper_bound": row.upper_bound,
-        "uncertainty": row.uncertainty,
-        "uncertainty_type": row.uncertainty_type,
-        "sample_size": row.sample_size,
-        "unit": row.unit,
-        "conditions_cel": row.conditions_cel,
-        "statement": row.statement,
-        "expression": row.expression,
-        "sympy_generated": row.sympy_generated,
-        "sympy_error": row.sympy_error,
-        "name": row.name,
-        "measure": row.measure,
-        "listener_population": row.listener_population,
-        "methodology": row.methodology,
-        "notes": row.notes,
-        "description": row.description,
-        "auto_summary": row.auto_summary,
-        "body": row.body,
-        "canonical_ast": row.canonical_ast,
-        "variables_json": row.variables_json,
-        "stage": row.algorithm_stage,
-        "value_si": row.value_si,
-        "lower_bound_si": row.lower_bound_si,
-        "upper_bound_si": row.upper_bound_si,
-        "context_id": row.context_id,
-    }
-    claim_data.pop("content_hash", None)
-    for key, value in optional_fields.items():
-        if value is not None:
-            claim_data[key] = value
-    if row.source is not None and not row.source.is_empty:
-        claim_data["source"] = row.source.to_dict()
-    return tuple((str(key), value) for key, value in claim_data.items() if value is not None)
+def _claim_attributes(row: Claim) -> tuple[tuple[str, Any], ...]:
+    return tuple(
+        (key, value)
+        for key, value in (
+            ("primary_logical_id", row.primary_logical_id),
+            ("logical_ids_json", row.logical_ids_json),
+            ("version_id", row.version_id),
+            ("seq", row.seq),
+            ("target_concept", row.target_concept),
+            ("source_slug", row.source_slug),
+            ("source_paper", row.source_paper),
+            ("provenance_page", row.provenance_page),
+            ("provenance_json", row.provenance_json),
+            ("context_id", row.context_id),
+            ("premise_kind", row.premise_kind),
+            ("branch", row.branch),
+            ("build_status", row.build_status),
+            ("stage", row.stage),
+            ("promotion_status", row.promotion_status),
+        )
+        if value is not None
+    )
 
 
-def _display_claim_id_from_row(row_input) -> str:
-    row = CLAIM_ROW_MODEL.coerce(row_input)
-    logical_value = row.primary_logical_value
-    if isinstance(logical_value, str) and logical_value:
-        return logical_value
-    return str(row.claim_id)
+def _display_claim_id_from_row(row: Claim) -> str:
+    if row.primary_logical_id:
+        return row.primary_logical_id
+    return str(row.id)
 
 
 def _display_claim_id(store, claim_id: str) -> str:
@@ -156,6 +132,8 @@ def _display_claim_id(store, claim_id: str) -> str:
     if callable(getter):
         row = getter(claim_id)
         if row is not None:
+            if not isinstance(row, Claim):
+                raise TypeError("get_claim() must return typed Claim objects")
             return _display_claim_id_from_row(row)
     return str(claim_id)
 
@@ -196,19 +174,6 @@ def _checked_conditions_from_json_text(
     return checked_condition_set_from_json(loaded)
 
 
-def _claim_checked_conditions(row: ActiveClaim) -> CheckedConditionSet | None:
-    if row.conditions_ir:
-        return _checked_conditions_from_json_text(
-            row.conditions_ir,
-            owner=f"claim {row.claim_id}",
-        )
-    if row.conditions_cel:
-        raise ValueError(
-            f"claim {row.claim_id} has conditions_cel without conditions_ir; rebuild the sidecar"
-        )
-    return None
-
-
 def _parameterization_condition_sources(
     parameterization: Parameterization,
 ) -> tuple[str, ...]:
@@ -231,6 +196,16 @@ def _parse_json_concept_ids(value: Any) -> tuple[ConceptId, ...]:
     return to_concept_ids(_parse_json_list(value))
 
 
+def _claim_value_concept_id(claim: Claim) -> ConceptId | None:
+    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
+        for link in claim.concept_links:
+            if link.role == role:
+                return to_concept_id(link.concept_id)
+    if claim.target_concept is not None:
+        return to_concept_id(claim.target_concept)
+    return None
+
+
 def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) -> CompiledWorldGraph:
     if not isinstance(store, ConceptCatalogStore):
         raise TypeError("build_compiled_world_graph requires all_concepts()")
@@ -245,10 +220,10 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         Concept.coerce(row)
         for row in store.all_concepts()
     ]
-    claim_rows = [
-        CLAIM_ROW_MODEL.coerce(row)
-        for row in store.claims_for(None)
-    ]
+    claim_rows = list(store.claims_for(None))
+    for row in claim_rows:
+        if not isinstance(row, Claim):
+            raise TypeError("claims_for() must return typed Claim objects")
     relationship_rows = (
         [
             RELATIONSHIP_ROW_MODEL.coerce(row)
@@ -297,10 +272,10 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         for row in concept_rows
     )
     claim_display_ids = {
-            str(row.claim_id): (
+            str(row.id): (
                 _display_claim_id_from_row(row)
             if prefer_logical_claim_ids
-            else str(row.claim_id)
+            else str(row.id)
         )
         for row in claim_rows
     }
@@ -309,17 +284,15 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         sorted(
             (
                 ClaimNode(
-                    claim_id=to_claim_id(claim_display_ids[str(row.claim_id)]),
-                    claim_type=(row.claim_type or ClaimType.UNKNOWN),
-                    value_concept_id=row.value_concept_id,
-                    scalar_value=row.value,
-                    checked_conditions=(
-                        _claim_checked_conditions(row)
-                    ),
+                    claim_id=to_claim_id(claim_display_ids[str(row.id)]),
+                    claim_type=(row.type or ClaimType.UNKNOWN),
+                    value_concept_id=_claim_value_concept_id(row),
+                    scalar_value=None,
+                    checked_conditions=None,
                     provenance=_row_provenance(
                         row,
                         source_table="claim",
-                        source_id=claim_display_ids[str(row.claim_id)],
+                        source_id=claim_display_ids[str(row.id)],
                     ),
                     attributes=_claim_attributes(row),
                 )
