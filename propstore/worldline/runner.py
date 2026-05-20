@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from propstore.core.id_types import ConceptId, ContextId, to_concept_id
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
+from propstore.families.claims.declaration import Claim
 from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
@@ -249,14 +249,15 @@ def _lifting_dependencies(
 
     rule_ids: set[str] = set()
     blocked_exception_ids: set[str] = set()
-    for claim_input in world.claims_for(None):
-        claim = CLAIM_ROW_MODEL.coerce(claim_input)
+    for claim in world.claims_for(None):
+        if not isinstance(claim, Claim):
+            raise TypeError("claims_for() must return typed Claim objects")
         if claim.context_id is None or claim.context_id == environment.context_id:
             continue
         decisions = lifting_system.lift_decisions_for(
             IstProposition(
                 context=ContextReference(str(claim.context_id)),
-                proposition_id=str(claim.claim_id),
+                proposition_id=str(claim.id),
             )
         )
         for decision in decisions:
