@@ -22,7 +22,6 @@ from itertools import combinations, product
 from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, cast, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
-from propstore.core.active_claims import ActiveClaim
 from propstore.core.conditions import (
     CheckedCondition,
     CheckedConditionSet,
@@ -68,7 +67,7 @@ from propstore.core.labels import (
     merge_labels,
     SupportQuality,
 )
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -135,7 +134,7 @@ class _ATMSRuntimeLike(Protocol):
     def all_micropublications(self) -> Callable[[], list[ActiveMicropublicationInput]]: ...
 
     @property
-    def active_claims(self) -> Callable[[], list[ActiveClaim]]: ...
+    def active_claims(self) -> Callable[[], list[Claim]]: ...
 
     @property
     def conflicts(self) -> Callable[[], list[ConflictRowInput]]: ...
@@ -147,7 +146,7 @@ class _ATMSRuntimeLike(Protocol):
     def condition_registry(self) -> Mapping[str, ConceptInfo]: ...
 
     @property
-    def claim_support(self) -> Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]: ...
+    def claim_support(self) -> Callable[[Claim], tuple[Label | None, SupportQuality]]: ...
 
     @property
     def concept_status(self) -> Callable[[str], ValueStatus]: ...
@@ -165,7 +164,8 @@ class _ATMSBoundLike(Protocol):
     _policy: Any
 
     def is_param_compatible(self, parameterization: Parameterization) -> bool: ...
-    def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]: ...
+    def active_claims(self, concept_id: str | None = None) -> list[Claim]: ...
+    def claim_support(self, claim: Claim) -> tuple[Label | None, SupportQuality]: ...
     def value_of(self, concept_id: str) -> ValueResult: ...
     def rebind(
         self,
@@ -206,7 +206,7 @@ class ATMSContextNode:
 @dataclass(frozen=True)
 class ATMSClaimNode:
     node_id: str
-    claim: ActiveClaim
+    claim: Claim
     label: Label = field(default_factory=Label)
     justification_ids: tuple[str, ...] = field(default_factory=tuple)
 
@@ -216,7 +216,7 @@ class ATMSClaimNode:
 
     @property
     def claim_id(self) -> str:
-        return str(self.claim.claim_id)
+        return str(self.claim.id)
 
     @property
     def concept_id(self) -> str | None:
@@ -228,7 +228,8 @@ class ATMSClaimNode:
 
     @property
     def value(self) -> float | str | None:
-        return self.claim.value
+        numeric_payload = self.claim.numeric_payload
+        return None if numeric_payload is None else numeric_payload.value
 
 
 @dataclass(frozen=True)
@@ -310,11 +311,11 @@ class _ATMSRuntime:
     active_graph: ActiveWorldGraph
     all_parameterizations: Callable[[], list[ParameterizationInput]]
     all_micropublications: Callable[[], list[ActiveMicropublicationInput]]
-    active_claims: Callable[[], list[ActiveClaim]]
+    active_claims: Callable[[], list[Claim]]
     conflicts: Callable[[], list[ConflictRowInput]]
     is_param_compatible: Callable[[Parameterization], bool]
     condition_registry: Mapping[str, ConceptInfo]
-    claim_support: Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]
+    claim_support: Callable[[Claim], tuple[Label | None, SupportQuality]]
     concept_status: Callable[[str], ValueStatus]
     replay: Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntime"]
 
@@ -370,29 +371,6 @@ def _is_runtime_like(candidate: object) -> TypeGuard[_ATMSRuntimeLike]:
     return isinstance(candidate, _ATMSRuntimeLike)
 
 
-def _claim_node_to_active_claim(claim_node: ClaimNode) -> ActiveClaim:
-    row_data: dict[str, object] = {
-        "id": claim_node.claim_id,
-        "artifact_id": claim_node.claim_id,
-        "type": claim_node.claim_type,
-        "value": claim_node.scalar_value,
-    }
-    if claim_node.checked_conditions is not None:
-        row_data["conditions_ir"] = json.dumps(
-            checked_condition_set_to_json(claim_node.checked_conditions),
-            sort_keys=True,
-        )
-    if claim_node.value_concept_id is not None:
-        row_data["concept_links"] = [{
-            "claim_id": claim_node.claim_id,
-            "concept_id": claim_node.value_concept_id,
-            "role": "output",
-            "ordinal": 0,
-        }]
-    row_data.update(dict(claim_node.attributes))
-    return CLAIM_ROW_MODEL.from_row(row_data)
-
-
 def _parameterization_edge_to_row(edge: ParameterizationEdge) -> Parameterization:
     return Parameterization(
         output_concept_id=edge.output_concept_id,
@@ -421,7 +399,7 @@ def _conflict_witness_to_row(conflict: ConflictWitness) -> ConflictRow:
     )
 
 
-def _node_claim(node: ATMSNode) -> ActiveClaim | None:
+def _node_claim(node: ATMSNode) -> Claim | None:
     return node.claim if _is_claim_node(node) else None
 
 
@@ -506,16 +484,12 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
             lifting_system=bound._lifting_system,
         )
 
-    compiled_claims = {
-        claim.claim_id: claim
-        for claim in active_graph.compiled.claims
-    }
-
-    def _active_claims() -> list[ActiveClaim]:
+    def _active_claims() -> list[Claim]:
+        active_ids = {str(claim_id) for claim_id in active_graph.active_claim_ids}
         return [
-            _claim_node_to_active_claim(compiled_claims[claim_id])
-            for claim_id in active_graph.active_claim_ids
-            if claim_id in compiled_claims
+            claim
+            for claim in bound.active_claims(None)
+            if str(claim.id) in active_ids
         ]
 
     def _conflicts() -> list[ConflictRowInput]:
@@ -1271,17 +1245,17 @@ class ATMSEngine:
         future_limit: int = 8,
     ) -> dict[str, Any]:
         claim_inspections = {
-            str(claim.claim_id): self.claim_status(str(claim.claim_id))
+            str(claim.id): self.claim_status(str(claim.id))
             for claim in self._runtime.active_claims()
-            if str(claim.claim_id) in self._claim_node_ids
+            if str(claim.id) in self._claim_node_ids
         }
         result = {
             "backend": "atms",
             "supported": sorted(self.supported_claim_ids()),
             "defeated": sorted(
-                str(claim.claim_id)
+                str(claim.id)
                 for claim in self._runtime.active_claims()
-                if str(claim.claim_id) not in self.supported_claim_ids()
+                if str(claim.id) not in self.supported_claim_ids()
             ),
             "nogoods": [
                 list(environment.assumption_ids)
@@ -1414,8 +1388,8 @@ class ATMSEngine:
             self._context_node_ids[context_id] = node_id
 
     def _build_claim_nodes_and_justifications(self) -> None:
-        for claim in sorted(self._runtime.active_claims(), key=lambda row: str(row.claim_id)):
-            claim_id = str(claim.claim_id)
+        for claim in sorted(self._runtime.active_claims(), key=lambda row: str(row.id)):
+            claim_id = str(claim.id)
             node_id = str(
                 situated_assertion_from_active_claim(
                     claim,
@@ -1427,7 +1401,7 @@ class ATMSEngine:
                 claim=claim,
             )
             self._claim_node_ids[claim_id] = node_id
-            self._claim_artifact_node_ids[str(claim.artifact_id)] = node_id
+            self._claim_artifact_node_ids[str(claim.id)] = node_id
 
             for antecedents in self._exact_antecedent_sets(
                 claim.checked_conditions,
