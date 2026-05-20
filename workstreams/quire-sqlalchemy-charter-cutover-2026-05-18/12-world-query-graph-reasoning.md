@@ -130,6 +130,7 @@ projection rows, projection models, row factories, or raw SQL query helpers:
 - `propstore/worldline/result_types.py`;
 - `propstore/support_revision/projection.py`;
 - `propstore/support_revision/af_adapter.py`;
+- `propstore/support_revision/dispatch.py`;
 - `propstore/aspic_bridge/extract.py`;
 - `propstore/aspic_bridge/translate.py`.
 
