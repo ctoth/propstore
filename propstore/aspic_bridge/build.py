@@ -24,10 +24,10 @@ from argumentation.aspic import (
     transposition_closure,
 )
 from argumentation.datalog_grounding import GroundRuleOrigin
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.context_lifting import LiftingDecision
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import StanceRowInput
 from argumentation.dung import ArgumentationFramework
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -52,7 +52,7 @@ from .translate import (
 class BridgeCompilation:
     """Shared pre-engine bridge state used by CSAF building and queries."""
 
-    normalized_claims: tuple[ActiveClaim, ...]
+    normalized_claims: tuple[Claim, ...]
     literals: dict[LiteralKey, Literal]
     contrariness: ContrarinessFn
     kb: KnowledgeBase
@@ -98,7 +98,7 @@ def _build_language(
 
 
 def compile_bridge_context(
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[Claim],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
     *,
@@ -109,7 +109,10 @@ def compile_bridge_context(
 ) -> BridgeCompilation:
     """Compile claim-graph inputs into the shared ASPIC+ engine inputs."""
 
-    normalized_claims = tuple(coerce_active_claims(active_claims))
+    normalized_claims = tuple(active_claims)
+    for claim in normalized_claims:
+        if not isinstance(claim, Claim):
+            raise TypeError("compile_bridge_context requires typed Claim objects")
     literals = claims_to_literals(normalized_claims)
     lifting_projection = project_lifting_decisions(literals, lifting_decisions)
     literals = lifting_projection.literals
@@ -259,7 +262,7 @@ def _filter_preference_sensitive_stance_defeats(
 
 
 def build_bridge_csaf(
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[Claim],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
     *,
