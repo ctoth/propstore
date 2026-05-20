@@ -23,6 +23,7 @@ DEPENDENCY_SECTION_RE = re.compile(
 ORDER_ITEM_RE = re.compile(r"^\s*\d+\.\s+(?P<title>.+?)\s*$", re.MULTILINE)
 TABLE_ROW_RE = re.compile(r"^\|(?P<cells>.+)\|\s*$")
 FILE_REF_RE = re.compile(r"`(?P<path>[^`]+\.md)`")
+CHILD_PHASE_FILE_RE = re.compile(r"^\d\d-.+\.md$")
 PREREQ_SECTION_RE = re.compile(
     r"^## (?:Prerequisites|Prerequisite Gate Dependencies)\s*$"
     r"(?P<body>.*?)"
@@ -105,6 +106,14 @@ def prerequisite_files(text: str) -> set[str]:
     return files
 
 
+def has_prerequisite_section(text: str) -> bool:
+    return PREREQ_SECTION_RE.search(f"{text}\n## ") is not None
+
+
+def requires_declared_prerequisites(filename: str) -> bool:
+    return filename != "00-index.md" and CHILD_PHASE_FILE_RE.match(filename) is not None
+
+
 def check_split_workstream(workstream: Path, text: str) -> int:
     try:
         ordered_files = phase_order_files(text)
@@ -123,7 +132,20 @@ def check_split_workstream(workstream: Path, text: str) -> int:
             failures.append(f"missing child workstream file: {filename}")
             continue
         child_text = child_path.read_text(encoding="utf-8")
-        for prerequisite in sorted(prerequisite_files(child_text)):
+        prerequisites = prerequisite_files(child_text)
+        if requires_declared_prerequisites(filename) and not has_prerequisite_section(child_text):
+            failures.append(f"{filename} is missing a prerequisite section")
+
+        required_prior = {
+            earlier
+            for earlier in ordered_files[:index]
+            if requires_declared_prerequisites(earlier)
+        }
+        missing_prior = sorted(required_prior - prerequisites)
+        for prerequisite in missing_prior:
+            failures.append(f"{filename} omits required earlier phase prerequisite: {prerequisite}")
+
+        for prerequisite in sorted(prerequisites):
             prerequisite_index = order.get(prerequisite)
             if prerequisite_index is None:
                 if prerequisite in ALLOWED_EXTERNAL_REFS:
