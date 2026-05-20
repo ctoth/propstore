@@ -812,3 +812,8 @@ Recorded 2026-05-20.
   sequences. The refreshed active-claim import search reports remaining ASPIC
   callers in `build.py`, `projection.py`, and `translate.py`, plus the `world`
   package.
+- ASPIC build deletion: commit `da0e8255` removed `ActiveClaim`,
+  `ActiveClaimInput`, and `coerce_active_claims` from `aspic_bridge/build.py`;
+  bridge compilation now requires typed `Claim` objects at the boundary. The
+  refreshed active-claim import search reports remaining ASPIC callers only in
+  `projection.py` and `translate.py`, plus the `world` package.
