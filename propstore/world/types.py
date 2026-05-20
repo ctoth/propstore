@@ -10,7 +10,6 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypeVar, ov
 
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
-from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.environment import WorldStore, Environment  # noqa: F401
 from propstore.core.exactness_types import Exactness, coerce_exactness
@@ -44,7 +43,7 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.core.active_claims import ActiveClaim
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import ConflictRow, StanceRow
 
 if TYPE_CHECKING:
@@ -123,14 +122,13 @@ SerializedEnvironment: TypeAlias = Mapping[str, Sequence[str]]
 class ValueResult:
     concept_id: ConceptId
     status: ValueStatus
-    claims: list[ActiveClaim] = field(default_factory=list)
+    claims: list[Claim] = field(default_factory=list)
     label: Label | None = None
     reason: ValueResultReason | None = None
 
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
         self.status = coerce_value_status(self.status)
-        self.claims = coerce_active_claims(self.claims)
 
 
 @dataclass
@@ -612,7 +610,7 @@ class ResolvedResult:
     concept_id: ConceptId
     status: ValueStatus
     value: float | str | None = None
-    claims: list[ActiveClaim] = field(default_factory=list)
+    claims: list[Claim] = field(default_factory=list)
     winning_claim_id: ClaimId | None = None
     strategy: str | None = None
     reason: str | None = None
@@ -622,7 +620,6 @@ class ResolvedResult:
     def __post_init__(self) -> None:
         self.concept_id = to_concept_id(self.concept_id)
         self.status = coerce_value_status(self.status)
-        self.claims = coerce_active_claims(self.claims)
 
 
 class IntegrityConstraintKind(StrEnum):
@@ -720,7 +717,7 @@ class ClaimView:
     See ``propstore.world.bridge.at_journal_step``.
     """
 
-    claims: Mapping[str, ActiveClaim]
+    claims: Mapping[str, Claim]
     scope: RevisionScope
     bound: object | None = None
     stances: tuple[StanceRow, ...] = field(default_factory=tuple)
@@ -1104,7 +1101,7 @@ def apply_decision_criterion(
 
 @runtime_checkable
 class ClaimSupportView(Protocol):
-    def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]: ...
+    def claim_support(self, claim: Claim) -> tuple[Label | None, SupportQuality]: ...
 
 
 @runtime_checkable
@@ -1135,8 +1132,8 @@ class GroundingBundleStore(Protocol):
 
 @runtime_checkable
 class BeliefSpace(Protocol):
-    def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]: ...
-    def inactive_claims(self, concept_id: str | None = None) -> list[ActiveClaim]: ...
+    def active_claims(self, concept_id: str | None = None) -> list[Claim]: ...
+    def inactive_claims(self, concept_id: str | None = None) -> list[Claim]: ...
     def value_of(self, concept_id: str) -> ValueResult: ...
     def derived_value(
         self,
