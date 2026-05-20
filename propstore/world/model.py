@@ -41,8 +41,7 @@ from propstore.families.claims.declaration import (
     select_claim_rows_with_visibility,
 )
 from propstore.families.diagnostics.declaration import (
-    has_build_diagnostics_table,
-    select_build_diagnostics,
+    build_diagnostics,
 )
 from propstore.families.relations.declaration import (
     ConflictRow,
@@ -167,6 +166,7 @@ class WorldQuery(WorldStore):
             knowledge_root = repo.tree(commit=commit)
         self._repo = repo
         self._source_commit = commit
+        self._derived_store = derived_store
         self._derived_store_path = derived_store.path
         self._knowledge_root = knowledge_root
         self._grounding_bundle_cache = None
@@ -457,9 +457,8 @@ class WorldQuery(WorldStore):
         """
         if not policy.show_quarantined:
             return []
-        if not has_build_diagnostics_table(self._conn):
-            return []
-        return select_build_diagnostics(self._conn)
+        with self._derived_store.readonly_session(world_sqlalchemy_schema()) as derived:
+            return build_diagnostics(derived)
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaim]:
         if not claim_ids:

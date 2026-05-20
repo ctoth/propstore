@@ -52,6 +52,7 @@ from propstore.grounding.loading import build_grounded_bundle
 from propstore.families.claims.declaration import (
     compile_promotion_blocked_sidecar_rows,
 )
+from propstore.families.diagnostics.declaration import delete_promotion_blocked_diagnostics
 from propstore.derived_build_plan import (
     RepositoryCheckedBundle,
     WorldWriteBatch,
@@ -63,7 +64,7 @@ from propstore.families.embeddings.declaration import (
     extract_embedding_snapshot_from_store,
 )
 from propstore.families.world_charters import (
-    BuildDiagnosticsRecord,
+    BuildDiagnostic,
     GroundedBundleInputRecord,
     GroundedFactEmptyPredicateRecord,
     GroundedFactRecord,
@@ -538,8 +539,8 @@ def _pass_diagnostic_records(
     kind: str,
     diagnostic_kind: str,
     prefer_filename: bool = False,
-) -> tuple[BuildDiagnosticsRecord, ...]:
-    records: list[BuildDiagnosticsRecord] = []
+) -> tuple[BuildDiagnostic, ...]:
+    records: list[BuildDiagnostic] = []
     for diagnostic in diagnostics:
         if not diagnostic.is_error:
             continue
@@ -560,9 +561,9 @@ def _pass_diagnostic_records(
 
 def _authoring_diagnostic_records(
     diagnostics: tuple[PassDiagnostic, ...],
-) -> tuple[BuildDiagnosticsRecord, ...]:
+) -> tuple[BuildDiagnostic, ...]:
     return tuple(
-        BuildDiagnosticsRecord(
+        BuildDiagnostic(
             claim_id=diagnostic.artifact_id,
             source_kind="authoring",
             source_ref=diagnostic.artifact_id or diagnostic.filename,
@@ -579,7 +580,7 @@ def _authoring_diagnostic_records(
 
 def _quarantine_diagnostic_records(
     diagnostics: tuple[object, ...],
-) -> tuple[BuildDiagnosticsRecord, ...]:
+) -> tuple[BuildDiagnostic, ...]:
     return tuple(
         _quarantine_record(
             artifact_id=str(getattr(diagnostic, "artifact_id")),
@@ -599,8 +600,8 @@ def _quarantine_record(
     diagnostic_kind: str,
     message: str,
     file: str | None,
-) -> BuildDiagnosticsRecord:
-    return BuildDiagnosticsRecord(
+) -> BuildDiagnostic:
+    return BuildDiagnostic(
         claim_id=artifact_id if kind == "claim" else None,
         source_kind=kind,
         source_ref=artifact_id,
@@ -629,6 +630,8 @@ def _flush_promotion_blocked_claims(derived: DerivedSession, rows: object) -> No
     if claim_ids:
         derived.flush()
         _delete_claim_children(derived, claim_ids)
+        for claim_id in claim_ids:
+            delete_promotion_blocked_diagnostics(derived, claim_id)
     derived.add_all(claim_objects)
     derived.add_all(diagnostic_objects)
 
@@ -717,8 +720,8 @@ def _restore_embedding_snapshot(
     ).restore(snapshot.to_vec_snapshot())
 
 
-def _embedding_restore_diagnostic_record(exc: Exception) -> BuildDiagnosticsRecord:
-    return BuildDiagnosticsRecord(
+def _embedding_restore_diagnostic_record(exc: Exception) -> BuildDiagnostic:
+    return BuildDiagnostic(
         claim_id=None,
         source_kind="embedding",
         source_ref="restore",
@@ -731,8 +734,8 @@ def _embedding_restore_diagnostic_record(exc: Exception) -> BuildDiagnosticsReco
     )
 
 
-def _build_exception_record(exc: Exception) -> BuildDiagnosticsRecord:
-    return BuildDiagnosticsRecord(
+def _build_exception_record(exc: Exception) -> BuildDiagnostic:
+    return BuildDiagnostic(
         claim_id=None,
         source_kind="sidecar_build",
         source_ref=None,

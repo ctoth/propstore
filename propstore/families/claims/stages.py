@@ -63,7 +63,7 @@ class ClaimSidecarRows:
 @dataclass(frozen=True)
 class RawIdQuarantineSidecarRows:
     claim_rows: tuple["ProjectionRow", ...]
-    diagnostic_rows: tuple["ProjectionRow", ...]
+    diagnostic_rows: tuple[object, ...]
 
 
 @dataclass(frozen=True)
@@ -88,7 +88,7 @@ class PromotionBlockedClaimFact:
 @dataclass(frozen=True)
 class PromotionBlockedSidecarRows:
     claim_rows: tuple["ProjectionRow", ...]
-    diagnostic_rows: tuple["ProjectionRow", ...]
+    diagnostic_rows: tuple[object, ...]
 
 
 @dataclass(frozen=True)

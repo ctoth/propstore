@@ -54,10 +54,8 @@ from propstore.families.claims.stages import (
     RawIdQuarantineSidecarRows,
 )
 from propstore.families.diagnostics.declaration import (
-    BUILD_DIAGNOSTICS_PROJECTION,
     QuarantineDiagnostic,
-    compile_promotion_blocked_diagnostic_rows,
-    delete_promotion_blocked_diagnostics,
+    compile_promotion_blocked_diagnostics,
 )
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.relations.declaration import (
@@ -96,6 +94,7 @@ from propstore.families.claims.projection_model import (  # noqa: E402
     SOURCE_CHARTER_QUERY_TABLE,
     claim_row_query_plan,
 )
+from propstore.families.world_charters import BuildDiagnostic
 
 
 def select_claim_rows(
@@ -719,7 +718,7 @@ def compile_raw_id_quarantine_sidecar_rows(
     records: Sequence[RawIdQuarantineRecord],
 ) -> RawIdQuarantineSidecarRows:
     claim_rows: list[ProjectionRow] = []
-    diagnostic_rows: list[ProjectionRow] = []
+    diagnostic_rows: list[object] = []
 
     for record in records:
         claim_rows.append(
@@ -745,7 +744,7 @@ def compile_raw_id_quarantine_sidecar_rows(
             )
         )
         diagnostic_rows.append(
-            BUILD_DIAGNOSTICS_PROJECTION.row(
+            BuildDiagnostic(
                 claim_id=record.synthetic_id,
                 source_kind="claim",
                 source_ref=record.raw_id,
@@ -797,7 +796,7 @@ def compile_promotion_blocked_sidecar_rows(
 ) -> PromotionBlockedSidecarRows:
     return PromotionBlockedSidecarRows(
         claim_rows=compile_promotion_blocked_claim_core_rows(facts),
-        diagnostic_rows=compile_promotion_blocked_diagnostic_rows(facts),
+        diagnostic_rows=compile_promotion_blocked_diagnostics(facts),
     )
 
 
@@ -843,13 +842,13 @@ def populate_raw_id_quarantine_records(
 ) -> None:
     CLAIM_CORE_TABLE.insert_rows(conn, (row.values for row in rows.claim_rows))
     for row in rows.diagnostic_rows:
-        BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
+        _insert_build_diagnostic(conn, row)
 
 
 def populate_promotion_blocked_claims(
     conn: sqlite3.Connection,
     claim_rows: Sequence[ProjectionRow],
-    diagnostic_rows: Sequence[ProjectionRow],
+    diagnostic_rows: Sequence[object],
 ) -> None:
     if not claim_rows and not diagnostic_rows:
         return
@@ -895,10 +894,63 @@ def populate_promotion_blocked_claims(
                 (claim_id,),
             )
         delete_claim_core_row(conn, claim_id)
-        delete_promotion_blocked_diagnostics(conn, claim_id)
+        conn.execute(
+            "DELETE FROM build_diagnostics "
+            "WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'",
+            (claim_id,),
+        )
     CLAIM_CORE_TABLE.insert_rows(conn, (row.values for row in claim_rows_by_id.values()))
     for row in diagnostic_rows:
-        BUILD_DIAGNOSTICS_PROJECTION.insert_row(conn, row)
+        _insert_build_diagnostic(conn, row)
+
+
+def _insert_build_diagnostic(conn: sqlite3.Connection, row: object) -> None:
+    _insert_build_diagnostic_values(
+        conn,
+        claim_id=getattr(row, "claim_id", None),
+        source_kind=str(getattr(row, "source_kind")),
+        source_ref=getattr(row, "source_ref", None),
+        diagnostic_kind=str(getattr(row, "diagnostic_kind")),
+        severity=str(getattr(row, "severity")),
+        blocking=int(getattr(row, "blocking")),
+        message=str(getattr(row, "message")),
+        file=getattr(row, "file", None),
+        detail_json=getattr(row, "detail_json", None),
+    )
+
+
+def _insert_build_diagnostic_values(
+    conn: sqlite3.Connection,
+    *,
+    claim_id: str | None,
+    source_kind: str,
+    source_ref: str | None,
+    diagnostic_kind: str,
+    severity: str,
+    blocking: int,
+    message: str,
+    file: str | None,
+    detail_json: str | None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO build_diagnostics (
+            claim_id, source_kind, source_ref, diagnostic_kind,
+            severity, blocking, message, file, detail_json
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            claim_id,
+            source_kind,
+            source_ref,
+            diagnostic_kind,
+            severity,
+            blocking,
+            message,
+            file,
+            detail_json,
+        ),
+    )
 
 
 def populate_claims(
@@ -983,26 +1035,22 @@ def _insert_claim_version_conflict(
     new_version: str,
     source_ref: str,
 ) -> None:
-    from propstore.families.diagnostics.declaration import BUILD_DIAGNOSTICS_PROJECTION
-
-    BUILD_DIAGNOSTICS_PROJECTION.insert_row(
+    _insert_build_diagnostic_values(
         conn,
-        BUILD_DIAGNOSTICS_PROJECTION.row(
-            claim_id=claim_id,
-            source_kind="claim",
-            source_ref=source_ref,
-            diagnostic_kind="claim_version_conflict",
-            severity="error",
-            blocking=1,
-            message=f"Claim logical id {claim_id!r} appears with multiple version_id values",
-            file=None,
-            detail_json=json.dumps(
-                {
-                    "existing_version_id": existing_version,
-                    "new_version_id": new_version,
-                },
-                sort_keys=True,
-            ),
+        claim_id=claim_id,
+        source_kind="claim",
+        source_ref=source_ref,
+        diagnostic_kind="claim_version_conflict",
+        severity="error",
+        blocking=1,
+        message=f"Claim logical id {claim_id!r} appears with multiple version_id values",
+        file=None,
+        detail_json=json.dumps(
+            {
+                "existing_version_id": existing_version,
+                "new_version_id": new_version,
+            },
+            sort_keys=True,
         ),
     )
 

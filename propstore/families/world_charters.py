@@ -61,7 +61,7 @@ class CalibrationCountsRecord(WorldModel): ...
 class EmbeddingModelRecord(WorldModel): ...
 class EmbeddingStatusRecord(WorldModel): ...
 class ConceptEmbeddingStatusRecord(WorldModel): ...
-class BuildDiagnosticsRecord(WorldModel): ...
+class BuildDiagnostic(WorldModel): ...
 
 
 _MODELS: dict[str, type[Any]] = {
@@ -95,7 +95,7 @@ _MODELS: dict[str, type[Any]] = {
     "embedding_model": EmbeddingModelRecord,
     "embedding_status": EmbeddingStatusRecord,
     "concept_embedding_status": ConceptEmbeddingStatusRecord,
-    "build_diagnostics": BuildDiagnosticsRecord,
+    "build_diagnostics": BuildDiagnostic,
 }
 
 
@@ -104,10 +104,13 @@ def world_model(table_name: str) -> type[Any]:
 
 
 def world_record(table_name: str, values: object) -> Any:
+    model = world_model(table_name)
+    if isinstance(values, model):
+        return values
     payload = _payload(values)
     if table_name == "relationship" and "relationship_type" in payload:
         payload["type"] = payload.pop("relationship_type")
-    return world_model(table_name)(**payload)
+    return model(**payload)
 
 
 def world_records(table_name: str, rows: Iterable[object] | None) -> tuple[Any, ...]:
@@ -308,7 +311,7 @@ def _support_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter, Fa
         _charter("concept_embedding_status", ConceptEmbeddingStatusRecord, "model_identity_hash",
             _f("model_identity_hash", primary_key=True, nullable=False), _f("concept_id", primary_key=True, nullable=False), _f("content_hash", nullable=False), _f("embedded_at", nullable=False),
             indexes=(CharterIndex("idx_concept_embedding_status_model_identity", ("model_identity_hash",)),)),
-        _charter("build_diagnostics", BuildDiagnosticsRecord, "id",
+        _charter("build_diagnostics", BuildDiagnostic, "id",
             _i("id", primary_key=True, nullable=False), _f("claim_id"), _f("source_kind", nullable=False), _f("source_ref"), _f("diagnostic_kind", nullable=False),
             _f("severity", nullable=False), _i("blocking", nullable=False), _f("message", nullable=False), _f("file"), _f("detail_json"),
             indexes=(CharterIndex("idx_build_diagnostics_claim", ("claim_id",)), CharterIndex("idx_build_diagnostics_kind", ("diagnostic_kind",)),

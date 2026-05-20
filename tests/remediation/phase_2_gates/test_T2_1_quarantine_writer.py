@@ -1,32 +1,33 @@
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 
-from propstore.families.diagnostics.declaration import (
-    QuarantinableWriter,
-    Quarantined,
-    Written,
-)
+from quire.sqlalchemy_store import create_sqlalchemy_store, writable_session
+from propstore.families.diagnostics.declaration import quarantine_diagnostic
+from propstore.families.world_charters import BuildDiagnostic, world_sqlalchemy_schema
 
 
-def test_writer_quarantines_on_any_failure(tmp_path: Path) -> None:
-    conn = sqlite3.connect(tmp_path / "sidecar.sqlite")
-    writer = QuarantinableWriter(conn)
+def test_quarantine_diagnostic_round_trips_through_charter(tmp_path: Path) -> None:
+    schema = world_sqlalchemy_schema()
+    db_path = tmp_path / "sidecar.sqlite"
+    create_sqlalchemy_store(db_path, schema)
 
-    written = writer.try_write(artifact_id="c-1", kind="claim", payload={"ok": True})
-    assert isinstance(written, Written)
+    diagnostic = quarantine_diagnostic(
+        artifact_id="c-2",
+        kind="claim",
+        diagnostic_kind="claim_quarantine",
+        message="payload is None",
+    )
 
-    quarantined = writer.try_write(artifact_id="c-2", kind="claim", payload=None)
-    assert isinstance(quarantined, Quarantined)
+    with writable_session(db_path, schema) as derived:
+        derived.add(diagnostic)
+        derived.commit()
+        row = derived.session.get(BuildDiagnostic, 1)
 
-    rows = conn.execute(
-        """
-        SELECT source_kind, source_ref, diagnostic_kind, severity, blocking, message
-        FROM build_diagnostics
-        WHERE source_kind = 'claim' AND source_ref = 'c-2'
-        """
-    ).fetchall()
-    assert rows == [
-        ("claim", "c-2", "claim_quarantine", "error", 1, "payload is None")
-    ]
+    assert row is not None
+    assert row.source_kind == "claim"
+    assert row.source_ref == "c-2"
+    assert row.diagnostic_kind == "claim_quarantine"
+    assert row.severity == "error"
+    assert row.blocking == 1
+    assert row.message == "payload is None"
