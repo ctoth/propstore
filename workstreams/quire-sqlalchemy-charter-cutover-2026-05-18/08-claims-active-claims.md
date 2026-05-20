@@ -781,3 +781,9 @@ Recorded 2026-05-20.
   through a row helper. The refreshed active-claim import search now reports
   only `aspic_bridge`, `app/world_reasoning.py`, `praf/engine.py`, `world`,
   and `worldline/resolution.py`.
+- App world-reasoning deletion: commit `1bc0369b` removed
+  `coerce_active_claims` from `app/world_reasoning.py`; the app extension
+  report now requires `bound.active_claims()` to return typed `Claim` objects
+  and drops payload-row fields from the report lines. The refreshed
+  active-claim import search now reports only `aspic_bridge`, `praf/engine.py`,
+  `world`, and `worldline/resolution.py`.
