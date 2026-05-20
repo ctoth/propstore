@@ -2,6 +2,19 @@
 
 Date: 2026-05-18
 
+## Refactor Zen
+
+This workstream succeeds only if the refactor removes duplicate structure and
+makes the project smaller, clearer, and more beautiful. Field and schema shape
+is written once in Quire charters or in the exact Propstore semantic owner; do
+not restate it in helper families, casts, kwargs builders, row DTOs, projection
+models, or model-layer normalizers. After an IO boundary has parsed input, the
+type system carries meaning: no generic coercion, loose mapping repair, shim,
+adapter, alias, compatibility bridge, or old/new dual path is allowed. Delete
+the old production surface first; compiler, type, test, and search failures are
+the work queue. If a bridge feels necessary, stop and move parsing/validation
+to the owning boundary or add the missing Quire generic capability.
+
 This matrix is executable inventory for the Quire SQLAlchemy charter cutover. Every implementation child workstream must read the rows it owns before editing code, execute the listed action, and account for the row in a commit message or final closure report.
 
 ## Matrix Rules
