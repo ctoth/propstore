@@ -1,4 +1,4 @@
-"""Check that a workstream's phase headings satisfy its dependency order."""
+"""Check that split workstream child prerequisites follow phase order."""
 
 from __future__ import annotations
 
@@ -7,7 +7,13 @@ import sys
 from pathlib import Path
 
 
-PHASE_RE = re.compile(r"^## Phase \d+: (?P<title>.+)$", re.MULTILINE)
+PHASE_ORDER_SECTION_RE = re.compile(
+    r"^## Phase Order\s*$"
+    r"(?P<body>.*?)"
+    r"^## ",
+    re.MULTILINE | re.DOTALL,
+)
+LEGACY_PHASE_RE = re.compile(r"^## Phase \d+: (?P<title>.+)$", re.MULTILINE)
 DEPENDENCY_SECTION_RE = re.compile(
     r"^## Dependency Order\s*$"
     r"(?P<body>.*?)"
@@ -15,28 +21,92 @@ DEPENDENCY_SECTION_RE = re.compile(
     re.MULTILINE | re.DOTALL,
 )
 ORDER_ITEM_RE = re.compile(r"^\s*\d+\.\s+(?P<title>.+?)\s*$", re.MULTILINE)
+TABLE_ROW_RE = re.compile(r"^\|(?P<cells>.+)\|\s*$")
+FILE_REF_RE = re.compile(r"`(?P<path>[^`]+\.md)`")
+PREREQ_SECTION_RE = re.compile(
+    r"^## Prerequisites\s*$"
+    r"(?P<body>.*?)"
+    r"^## ",
+    re.MULTILINE | re.DOTALL,
+)
 
 
 def normalize(title: str) -> str:
     return title.strip().lower().replace("and", "and").replace("`", "")
 
 
-def dependency_order(text: str) -> list[str]:
+def legacy_dependency_order(text: str) -> list[str]:
     match = DEPENDENCY_SECTION_RE.search(f"{text}\n## ")
     if match is None:
         raise ValueError("missing Dependency Order section")
     return [match.group("title").strip() for match in ORDER_ITEM_RE.finditer(match.group("body"))]
 
 
-def main() -> int:
-    if len(sys.argv) != 2:
-        print("usage: check_workstream_order.py <workstream.md>", file=sys.stderr)
-        return 2
+def phase_order_files(text: str) -> list[str]:
+    match = PHASE_ORDER_SECTION_RE.search(f"{text}\n## ")
+    if match is None:
+        raise ValueError("missing Phase Order section")
 
-    workstream = Path(sys.argv[1])
-    text = workstream.read_text(encoding="utf-8")
+    ordered: list[str] = []
+    for line in match.group("body").splitlines():
+        row = TABLE_ROW_RE.match(line.strip())
+        if row is None:
+            continue
+        cells = [cell.strip() for cell in row.group("cells").split("|")]
+        if len(cells) < 2 or cells[0] == "---" or cells[0].lower() == "phase":
+            continue
+        for file_match in FILE_REF_RE.finditer(cells[1]):
+            filename = Path(file_match.group("path")).name
+            if filename not in ordered:
+                ordered.append(filename)
+
+    return ordered
+
+
+def prerequisite_files(text: str) -> set[str]:
+    match = PREREQ_SECTION_RE.search(f"{text}\n## ")
+    if match is None:
+        return set()
+    return {Path(file_match.group("path")).name for file_match in FILE_REF_RE.finditer(match.group("body"))}
+
+
+def check_split_workstream(workstream: Path, text: str) -> int:
     try:
-        dependencies = dependency_order(text)
+        ordered_files = phase_order_files(text)
+    except ValueError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    if not ordered_files:
+        print("Phase Order section has no child workstream file refs", file=sys.stderr)
+        return 1
+
+    order = {filename: index for index, filename in enumerate(ordered_files)}
+    failures: list[str] = []
+    for filename, index in order.items():
+        child_path = workstream.parent / filename
+        if not child_path.exists():
+            failures.append(f"missing child workstream file: {filename}")
+            continue
+        child_text = child_path.read_text(encoding="utf-8")
+        for prerequisite in sorted(prerequisite_files(child_text)):
+            prerequisite_index = order.get(prerequisite)
+            if prerequisite_index is None:
+                continue
+            if prerequisite_index > index:
+                failures.append(f"{filename} depends on later phase {prerequisite}")
+
+    if failures:
+        for failure in failures:
+            print(failure, file=sys.stderr)
+        return 1
+
+    print(f"workstream order ok: {workstream}")
+    return 0
+
+
+def check_legacy_workstream(workstream: Path, text: str) -> int:
+    try:
+        dependencies = legacy_dependency_order(text)
     except ValueError as exc:
         print(str(exc), file=sys.stderr)
         return 1
@@ -44,7 +114,7 @@ def main() -> int:
         print("Dependency Order section has no numbered items", file=sys.stderr)
         return 1
 
-    phase_titles = [match.group("title").strip() for match in PHASE_RE.finditer(text)]
+    phase_titles = [match.group("title").strip() for match in LEGACY_PHASE_RE.finditer(text)]
     phase_by_normalized = {normalize(title): index for index, title in enumerate(phase_titles)}
 
     missing = [
@@ -72,6 +142,18 @@ def main() -> int:
 
     print(f"workstream order ok: {workstream}")
     return 0
+
+
+def main() -> int:
+    if len(sys.argv) != 2:
+        print("usage: check_workstream_order.py <workstream.md>", file=sys.stderr)
+        return 2
+
+    workstream = Path(sys.argv[1])
+    text = workstream.read_text(encoding="utf-8")
+    if PHASE_ORDER_SECTION_RE.search(f"{text}\n## ") is not None:
+        return check_split_workstream(workstream, text)
+    return check_legacy_workstream(workstream, text)
 
 
 if __name__ == "__main__":
