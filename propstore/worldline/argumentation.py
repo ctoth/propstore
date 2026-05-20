@@ -3,9 +3,9 @@ from __future__ import annotations
 from typing import Any
 
 import rfc8785
-from propstore.core.active_claims import ActiveClaim, coerce_active_claims
 from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
+from propstore.families.claims.declaration import Claim
 from propstore.reporting import json_ready
 from propstore.families.relations.declaration import StanceRow
 from propstore.families.relations.projection_model import STANCE_ROW_MODEL
@@ -30,8 +30,8 @@ def capture_argumentation_state(
 ) -> tuple[WorldlineArgumentationState | None, list[str], set[ClaimId]]:
     from propstore.world.types import ReasoningBackend
 
-    active = coerce_active_claims(bound.active_claims())
-    active_ids = {claim.claim_id for claim in active}
+    active = list(bound.active_claims())
+    active_ids = {to_claim_id(claim.id) for claim in active}
     active_graph = bound._active_graph if isinstance(bound, HasActiveGraph) else None
     reasoning_backend = definition.policy.reasoning_backend
     _, normalized_semantics = validate_backend_semantics(
@@ -159,7 +159,7 @@ def _claims_for_inference_mode(
 def _capture_aspic(
     bound: WorldlineBoundView,
     world: WorldlineStore,
-    active: list[ActiveClaim],
+    active: list[Claim],
     active_ids: set[ClaimId],
     active_graph: Any,
     policy: RenderPolicy,
@@ -172,7 +172,7 @@ def _capture_aspic(
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     if isinstance(bound, ClaimSupportView):
         for claim in active:
-            support_metadata[str(claim.claim_id)] = bound.claim_support(claim)
+            support_metadata[str(claim.id)] = bound.claim_support(claim)
 
     if not isinstance(world, GroundingBundleStore):
         return None
