@@ -23,7 +23,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
-from propstore.core.active_claims import ActiveClaim
+from propstore.families.claims.declaration import Claim
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.projection import snapshot_to_claim_ids
 from propstore.support_revision.scope_policy import scope_policy
@@ -38,7 +38,7 @@ class BeliefSpaceQuery(Protocol):
     fixture implements both ``claims_by_ids`` and ``bind_for_view``.
     """
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaim]: ...
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]: ...
 
     def bind_for_view(
         self,
