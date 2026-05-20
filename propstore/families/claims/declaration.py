@@ -552,9 +552,7 @@ def compile_claim_models(
                     if claim_doc.variables
                     else None
                 ),
-                "algorithm_stage": (
-                    None if claim_doc.stage is None else claim_doc.stage.value
-                ),
+                "algorithm_stage": claim_doc.stage,
             }
             claim_models.append(world_record("claim_core", claim_values))
             numeric_payloads.append(world_record("claim_numeric_payload", numeric_values))
