@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.cel_types import to_cel_expr
-from propstore.core.active_claims import coerce_active_claim
 from propstore.core.assertions.codec import AssertionCanonicalRecord
 from propstore.core.id_types import to_assumption_id, to_assumption_ids, to_context_id
 from propstore.core.labels import AssumptionRef, EnvironmentKey, Label
@@ -129,14 +128,13 @@ def _belief_atom_from_json_payload(data: Mapping[str, Any]) -> BeliefAtom:
         if not isinstance(assertion_payload, Mapping):
             raise ValueError("Assertion atom snapshot requires mapping assertion payload")
         source_payload = payload_data.get("source_claims") or ()
+        if source_payload:
+            raise ValueError(
+                "Assertion atom snapshot source_claims must not embed claim mappings"
+            )
         return AssertionAtom(
             atom_id=atom_id,
             assertion=AssertionCanonicalRecord.from_payload(assertion_payload).to_assertion(),
-            source_claims=tuple(
-                coerce_active_claim(item)
-                for item in source_payload
-                if isinstance(item, Mapping)
-            ),
             label=label,
         )
     if kind == "assumption":
@@ -150,7 +148,7 @@ def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
     if isinstance(atom, AssertionAtom):
         payload = {
             "assertion": AssertionCanonicalRecord.from_assertion(atom.assertion).to_payload(),
-            "source_claims": [claim.to_dict() for claim in atom.source_claims],
+            "source_claim_ids": [claim.id for claim in atom.source_claims],
         }
         kind = "assertion"
     else:
