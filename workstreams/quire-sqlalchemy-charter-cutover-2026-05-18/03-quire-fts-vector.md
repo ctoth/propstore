@@ -324,6 +324,8 @@ Quire FTS/vector implementation:
   `uv run pytest -vv tests/test_sqlalchemy_engine.py` passed with 6 passed.
 - Quire type gate for the source-query extension: `uv run pyright` passed with
   0 errors.
+- Full Quire test gate after the source-query extension:
+  `uv run pytest -vv` passed with 360 passed in 331.85s.
 - Propstore pin refreshed to pushed Quire commit `852ab784c1c70484b2b6749393c8c0f8d043ac3d`; `uv.lock` resolves Quire, `sqlalchemy-fts5`, and `sqlite-vec` from non-local sources.
 - Propstore dependency-pin searches for `quire @ file`, `quire @ ..`, `quire @ C:`, `path =`, and `workspace = true` returned no hits; `uv lock --check` passed.
 - Propstore package type gate: `uv run pyright propstore` passed with 0 errors.
