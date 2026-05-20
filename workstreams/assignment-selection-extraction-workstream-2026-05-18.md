@@ -122,9 +122,12 @@ class Result:
     reason: str | None = None
 ```
 
-Names can be refined inside the new repo before Propstore pins it, but the
-semantic boundary is fixed: the package owns assignments, source assignments,
-runtime constraints, candidate enumeration, distance, scoring, and the solver.
+Before Propstore pins the package, the public package API must be fixed to
+these names: `Assignment`, `SourceAssignment`, `Constraint`, `Problem`,
+`CandidateScore`, `Result`, `MergeOperator`, and `solve`. Propstore must import
+only these package-owned names. The semantic boundary is fixed: the package owns
+assignments, source assignments, runtime constraints, candidate enumeration,
+distance, scoring, and the solver.
 
 The package does not import Propstore. The package does not import CEL,
 `ConditionSolver`, `WorldStore`, `ActiveClaim`, `RenderPolicy`, or
@@ -166,11 +169,12 @@ Propstore owns the Propstore adapter:
 - Work test-first and deletion-first.
 - Move files when the change is actually a move. Use `git mv` for same-repo
   moves so Git sees the rename instead of a delete plus unrelated add.
-- For cross-repository extraction, preserve the move intent explicitly: create
-  the destination package file from the source file content, delete the
-  Propstore-owned source path in the same extraction slice, and document the
+- For cross-repository extraction, preserve the move intent explicitly while
+  keeping repository commits separate: copy the source file content into the
+  destination repository, commit the destination copy there, then reduce or
+  delete the Propstore source path in a separate Propstore commit. Document the
   source path in the package commit message. Do not hand-retype moved code as
-  an untraceable rewrite when a mechanical move is available.
+  an untraceable rewrite when a mechanical copy is available.
 - If replacing an interface, delete the old production surface first, then use
   type, search, and test failures as the work queue.
 - Commit every intentional edit slice atomically with path-limited git
@@ -191,9 +195,9 @@ Execute in this order:
 2. Package Skeleton From Argumentation Pattern
 3. Package Red Tests
 4. Package Deletion-First Implementation
-5. Propstore Red Tests
-6. Propstore Adapter Replacement
-7. Propstore Dependency Pin
+5. Propstore Dependency Pin
+6. Propstore Red Tests
+7. Propstore Adapter Replacement
 8. Search Gates
 9. Verification Gates
 
@@ -254,11 +258,18 @@ Extract the pure algorithm tests out of Propstore and into
 `C:\Users\Q\code\assignment-selection\tests`.
 
 This is a cross-repository extraction. Do not use `git mv` or `mv` for Phase 3.
-Copy the Propstore test file into the new package test suite, then edit the
-copy. If the source file is mixed-ownership, edit the original Propstore file
-separately so it keeps only Propstore-owned adapter, CEL, policy, and API
-coverage. If the source file fully transfers, commit the package copy first,
-then delete the original Propstore file and commit that deletion separately.
+Copy `tests/test_assignment_selection_merge.py` to
+`C:\Users\Q\code\assignment-selection\tests\test_assignment_selection_merge.py`
+and copy
+`tests\remediation\phase_8_dos_anytime\test_T8_1_assignment_candidates_ceiling.py`
+to
+`C:\Users\Q\code\assignment-selection\tests\test_assignment_candidates_ceiling.py`.
+Then edit the package copies so they import only `assignment_selection` and
+contain only package-owned algorithm tests. Edit the original Propstore files
+separately so they keep only Propstore-owned adapter, CEL, policy, and API
+coverage. If an original source file has no remaining Propstore-owned tests,
+commit the package copy first, then delete the original Propstore file and
+commit that deletion separately.
 
 The package test suite owns:
 
@@ -284,25 +295,20 @@ Run package red tests with:
 uv run pytest -vv
 ```
 
-The expected red state is import failure or missing implementation inside the
-new package. Red due to Propstore imports inside package tests is not accepted;
-the package tests must target only `assignment_selection`.
+The expected red state is missing package implementation inside the new
+package, such as missing exported solver helpers, `NotImplementedError`, or
+model validation failures. Red due to Propstore imports inside package tests is
+not accepted; the package tests must target only `assignment_selection`.
 
 ## Phase 4: Package Deletion-First Implementation
 
-Delete the algorithm ownership from Propstore before copying it into the new
-package:
-
-- delete `propstore/world/assignment_selection_merge.py`;
-- remove package-owned model definitions from `propstore/world/types.py`:
-  `MergeOperator`, `normalize_merge_operator`, `MergeAssignment`,
-  `MergeSource`, `MergeAssignmentScore`, `AssignmentSelectionProblem`, and
-  `AssignmentSelectionResult`;
-- keep Propstore `IntegrityConstraintKind` and `IntegrityConstraint` in
-  `propstore/world/types.py`.
-
-Then implement the package from the failures. Preserve move intent where the
-old file body becomes the new package body:
+Implement the package from the package red-test failures. Preserve move intent
+where the old file body becomes the new package body by copying from
+`propstore/world/assignment_selection_merge.py` and `propstore/world/types.py`
+into the package repository, then committing the package implementation in
+`C:\Users\Q\code\assignment-selection`. Do not delete or reduce Propstore
+production paths until after the package implementation is committed and
+pushed.
 
 - move `claim_distance` to `assignment_selection.solver`;
 - move candidate enumeration to `assignment_selection.solver`;
@@ -331,7 +337,27 @@ git rev-parse HEAD
 The SHA printed by `git rev-parse HEAD` is the only SHA allowed in the
 Propstore dependency pin.
 
-## Phase 5: Propstore Red Tests
+## Phase 5: Propstore Dependency Pin
+
+After the package commit is pushed, pin Propstore to the pushed immutable SHA.
+
+Add a direct dependency in `pyproject.toml` following the current
+`formal-argumentation` pattern:
+
+```toml
+"assignment-selection @ git+https://github.com/ctoth/assignment-selection.git@<pushed-sha>",
+```
+
+Then update the lockfile:
+
+```powershell
+uv lock
+```
+
+Do not use a local path, editable install, local Git URL, Windows path, WSL
+path, or `file://` URL.
+
+## Phase 6: Propstore Red Tests
 
 Back in `C:\Users\Q\code\propstore`, add or update Propstore tests before
 rewiring production code.
@@ -357,7 +383,23 @@ Run targeted red Propstore tests through the logged wrapper:
 powershell -File scripts/run_logged_pytest.ps1 -Label assignment-selection-red tests/test_resolution_helpers.py tests/test_render_contracts.py tests/test_mapping_boundary_failures.py
 ```
 
-## Phase 6: Propstore Adapter Replacement
+The expected red state is adapter behavior failure caused by the old Propstore
+production path still owning assignment selection, the new adapter module not
+existing yet, or old-path deletion protection not being satisfied. Red due to a
+missing `assignment_selection` dependency is not accepted because Phase 5 must
+already have pinned the pushed package SHA.
+
+## Phase 7: Propstore Adapter Replacement
+
+Delete the algorithm ownership from Propstore before adapting callers:
+
+- delete `propstore/world/assignment_selection_merge.py`;
+- remove package-owned model definitions from `propstore/world/types.py`:
+  `MergeOperator`, `normalize_merge_operator`, `MergeAssignment`,
+  `MergeSource`, `MergeAssignmentScore`, `AssignmentSelectionProblem`, and
+  `AssignmentSelectionResult`;
+- keep Propstore `IntegrityConstraintKind` and `IntegrityConstraint` in
+  `propstore/world/types.py`.
 
 Create the Propstore adapter module:
 
@@ -386,29 +428,12 @@ longer imports `propstore.world.assignment_selection_merge`.
 Update tests to import package-owned algorithm types from
 `assignment_selection`, not from `propstore.world.types`.
 
-## Phase 7: Propstore Dependency Pin
-
-After the package commit is pushed, pin Propstore to the pushed immutable SHA.
-
-Add a direct dependency in `pyproject.toml` following the current
-`formal-argumentation` pattern:
-
-```toml
-"assignment-selection @ git+https://github.com/ctoth/assignment-selection.git@<pushed-sha>",
-```
-
-Then update the lockfile:
-
-```powershell
-uv lock
-```
-
-Do not use a local path, editable install, local Git URL, Windows path, WSL
-path, or `file://` URL.
-
 ## Phase 8: Search Gates
 
-These searches must pass before the workstream is complete:
+These searches must pass before the workstream is complete. For searches where
+no hits are allowed, `rg` exit code 1 means the semantic gate passed. For
+searches with allowed hits, inspect the matched paths and verify every hit is
+in the allowed set below.
 
 ```powershell
 rg -n -F -- "propstore.world.assignment_selection_merge" propstore tests
@@ -468,7 +493,10 @@ powershell -File scripts/run_logged_pytest.ps1 -Label assignment-selection-adapt
 
 If `tests/test_assignment_selection_merge.py` is fully deleted from Propstore,
 replace that command with the exact adapter test file that now owns CEL and
-resolution integration.
+resolution integration. If
+`tests/remediation/phase_8_dos_anytime/test_T8_1_assignment_candidates_ceiling.py`
+is fully deleted from Propstore, omit that path from the adapter command and
+run the package candidate-ceiling test through the package gate instead.
 
 Run the full Propstore suite through the logged wrapper:
 
