@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ClaimId, to_claim_id
+from propstore.families.claims.declaration import Claim
 from propstore.worldline._constants import OVERRIDE_CLAIM_PREFIX
 from propstore.worldline.result_types import WorldlineStep
 
@@ -48,9 +48,9 @@ class ResolutionTrace:
         if claim_id and not claim_id.startswith(OVERRIDE_CLAIM_PREFIX):
             self.dependency_claims.add(to_claim_id(claim_id))
 
-    def record_claim_dependencies(self, claims: list[ActiveClaim]) -> None:
+    def record_claim_dependencies(self, claims: list[Claim]) -> None:
         for claim in claims:
-            self.record_claim_dependency(str(claim.claim_id))
+            self.record_claim_dependency(str(claim.id))
 
     def seen_concepts(self) -> set[str]:
         return {
