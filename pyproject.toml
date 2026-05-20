@@ -18,6 +18,7 @@ dependencies = [
     "eq-equiv @ git+https://github.com/ctoth/eq-equiv@9ea5dae4eac7f21cc288c841dcaafc5a1ad199d6",
     "human-to-sympy @ git+https://github.com/ctoth/human-to-sympy@b245b86c2a30afd4c558a7e07796b4bc37d99e94",
     "formal-argumentation @ git+https://github.com/ctoth/argumentation.git@90dcbe29895337d593dfc681f2a60bfe8cb71718",
+    "assignment-selection @ git+https://github.com/ctoth/assignment-selection.git@ac1040cc7087239bf96906b799c4a839281c6199",
     "bridgman @ git+https://github.com/ctoth/bridgman@5eb6118bb2e346122aae6f7e3e9cd8581ec6c781",
     "pint>=0.25.3",
     "dulwich>=1.1.0",
