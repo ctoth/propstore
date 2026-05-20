@@ -50,6 +50,16 @@ Binding notes from the 2026-05-20 update:
   relation-specific, including stance visibility policy, conflict witness
   meaning, and graph edge classification. Generic identity, FK, table,
   session, and main-model lookup mechanics do not belong in this family.
+- The current Phase 10 claim work has already deleted the production
+  `ActiveClaim` import path and `CLAIM_ROW_MODEL` production callers. This
+  phase must consume typed `Claim` fields and relationships already provided
+  by Phase 10; it must not recreate `ActiveClaim`, claim row models, claim id
+  aliases, claim lookup wrappers, row payload adapters, or graph-attribute
+  stand-ins to make relation callers compile.
+- No subsection of this phase is complete while any relation projection model,
+  row carrier, storage-model constant, raw selector, or `sqlite3.Connection`
+  relation query path remains in production. A passing type check before the
+  old-path searches are zero-hit is only an intermediate repair signal.
 
 Current old-surface findings from `rg` on 2026-05-20:
 
@@ -78,6 +88,31 @@ Current old-surface findings from `rg` on 2026-05-20:
   rows through relation table/model constants, so this phase must coordinate
   those direct old-path call sites while preserving the owning phase
   boundaries.
+
+Current audit update on 2026-05-20:
+
+- Status: not started. This phase remains a future workstream and is blocked
+  until the current Phase 10 claim queue is clean.
+- Current Phase 10 queue from `uv run pyright propstore`: 25 package errors
+  remain. The relation-owned dependency is
+  `propstore/families/relations/declaration.py` importing deleted
+  `CLAIM_CORE_TABLE` in `select_claim_stances_with_policy`; that must be
+  repaired by deleting the raw claim-table query path and moving to typed
+  `Claim`/`Stance` model queries, not by restoring `CLAIM_CORE_TABLE`.
+- Current old-path searches: production `propstore.core.active_claims` and
+  production `CLAIM_ROW_MODEL` hits are gone, but tests still reference those
+  deleted Phase 10 surfaces. This phase must not depend on those test fixtures
+  as compatibility evidence.
+- Relation old paths remain current: `RELATION_EDGE_TABLE` still has
+  production hits in claim, concept, and relation family declarations;
+  `STANCE_ROW_MODEL` still has production hits in ASPIC, analyzer, graph,
+  export, relation-analysis, support-revision, world, and worldline callers.
+  These hits are the deletion work queue for this phase.
+- Known dependency from completed Phase 10 work: relation callers that formerly
+  accepted active-claim rows must now read claim identity, type, context,
+  conditions, concept links, payloads, and source assertions from typed
+  `Claim` objects and relationships. Do not reintroduce row-shaped claim
+  fields such as `claim_id`, `claim_type`, `statement`, or `artifact_id`.
 
 ## Prerequisites
 
