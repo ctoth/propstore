@@ -231,6 +231,10 @@ Every Propstore family phase has this data-parity obligation:
 
 - The parity harness is `scripts/compare_sqlalchemy_charter_parity.py`.
 - Phase 4 creates the harness before Propstore family cutovers begin.
+- Phase 4 is not complete until the harness exists, has a targeted test or
+  fixture-run proving row-count, key-set, FTS/vector, diagnostic, and semantic
+  query comparison failures are reported, and the harness command shape below
+  works for at least one owner slug.
 - Every Propstore phase writes its parity report under `reports/sqlalchemy-charter-parity/<phase-slug>.json`.
 - Standard command shape:
 
@@ -291,13 +295,29 @@ rg -n -F -- "CONCEPT_ROW_MODEL" propstore tests
 rg -n -F -- "STANCE_ROW_MODEL" propstore tests
 rg -n -F -- "RELATIONSHIP_ROW_MODEL" propstore tests
 rg -n -F -- "SOURCE_PROJECTION" propstore tests
+rg -n -F -- "CONCEPT_FTS_PROJECTION" propstore tests
+rg -n -F -- "CONCEPT_VEC_PROJECTION" propstore tests
+rg -n -F -- "CONTEXT_SCHEMA" propstore tests
 rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
+rg -n -F -- "TEXT_CODEC" propstore/families/contexts tests
+rg -n -F -- "PARAMETERS_CODEC" propstore/families/contexts tests
+rg -n -F -- "CONDITIONS_CODEC" propstore/families/contexts tests
+rg -n -F -- "PROVENANCE_CODEC" propstore/families/contexts tests
+rg -n -F -- "AUTOINCREMENT_CODEC" propstore/families/contexts tests
 rg -n -F -- "_optional_float_input" propstore tests
 rg -n -F -- "_optional_string" propstore tests
 rg -n -F -- "_optional_int" propstore tests
 rg -n -F -- "_claim_optional_float" propstore tests
 rg -n -F -- "_parse_string_tuple" propstore tests
 rg -n -F -- "coerce_active_micropublication" propstore tests
+rg -n -- "class Active[A-Z]|\\bActive[A-Z][A-Za-z0-9_]*\\b" propstore tests
+rg -n -F -- "WorldBindActiveReport" propstore tests
+rg -n -F -- "ClaimSidecarRows" propstore tests
+rg -n -F -- "RawIdQuarantineSidecarRows" propstore tests
+rg -n -F -- "PromotionBlockedSidecarRows" propstore tests
+rg -n -F -- "SidecarClaimRelationStore" propstore tests
+rg -n -F -- "find_similar_claim_rows" propstore tests
+rg -n -F -- "find_similar_concept_rows" propstore tests
 rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
 ```
 
@@ -347,6 +367,7 @@ The directory workstream is complete only when:
 - Source-local and canonical states are explicit charter/lifecycle states.
 - Manual helper/coercer families listed in search gates are deleted.
 - Remaining IO boundary constructors use boundary-specific names and do not use the generic `from_mapping` name.
+- No PascalCase `Active*` production/report/model type remains.
 - `WorldQuery` uses Quire sessions and typed model queries.
 - Every row in `inventory-matrix.md` has been accounted for in a commit message or final closure report with delete/move/keep-as-semantic-owner outcome.
 - Every family cutover has a passing data-parity gate for row counts, key sets, representative owner-layer queries, FTS, vector, and diagnostics where applicable.
