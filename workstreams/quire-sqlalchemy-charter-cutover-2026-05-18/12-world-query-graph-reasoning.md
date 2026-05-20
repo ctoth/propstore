@@ -76,6 +76,7 @@ workstream. Production hits outside those targets block implementation.
 | `propstore/core/graph_types.py` | Graph provenance payload constructors named `from_mapping` | Explicit graph/provenance payload constructors | Rename to boundary-specific constructors; keep graph provenance validation |
 | `propstore/world/queries.py` | `WorldBindActiveReport` active-object spelling | World binding report naming over activation state | Rename to `WorldBindActivationReport` or another non-`Active*` report name |
 | `propstore/support_revision/projection.py` and `propstore/support_revision/af_adapter.py` | Support-revision projection from row models | Support-revision over typed graph/relation models | Replace projection-model imports |
+| `propstore/support_revision/state.py`, `history.py`, `snapshot_types.py`, and `explanation_types.py` | Support-revision persisted payload constructors named `from_mapping` | Explicit document/JSON payload constructors | Rename to boundary-specific constructors; keep typed revision payload validation |
 | `propstore/aspic_bridge/extract.py` and `propstore/aspic_bridge/translate.py` | ASPIC bridge through stance projection model | ASPIC bridge over typed stance/justification models | Replace projection-model imports |
 
 ## Deletion Targets
@@ -102,6 +103,8 @@ as the work queue:
   `propstore/worldline/result_types.py`;
 - generic `ProvenanceRecord.from_mapping` and graph provenance payload
   constructors in `propstore/core/graph_types.py`;
+- generic support-revision `from_mapping` constructors and helper functions
+  in `state.py`, `history.py`, `snapshot_types.py`, and `explanation_types.py`;
 - support-revision row projection paths;
 - ASPIC bridge imports of stance projection models.
 
@@ -150,6 +153,8 @@ Required caller final state:
 - world bind report names describe activation state without introducing a
   second `Active*` object family;
 - support-revision consumes typed graph/relation models;
+- support-revision persisted payload constructors use boundary-specific names
+  such as `from_json_payload` or `from_document_payload`;
 - ASPIC bridge consumes typed stance and justification models.
 
 ## Semantic Boundaries
@@ -215,8 +220,8 @@ Execute in this order:
 13. Delete `ActiveClaimInput` and `ActiveMicropublicationInput` from world,
    environment, overlay, ATMS, ASPIC, support-revision, and value-resolution
    APIs.
-14. Replace generic persisted-result and graph-provenance `from_mapping`
-    constructors with boundary-specific constructors.
+14. Replace generic persisted-result, graph-provenance, and support-revision
+    `from_mapping` constructors with boundary-specific constructors.
 15. Run the world/query/graph/reasoning gates.
 16. Run the old-path search gates.
 17. Run the data-parity and behavior-parity gates.
@@ -309,6 +314,9 @@ This slice is complete only when:
 - persisted result payload constructors use boundary-specific constructor
   names and no generic `from_mapping` path remains in the owned surface;
 - support-revision uses typed graph/relation models;
+- support-revision state, history, snapshot, and explanation payload
+  constructors use boundary-specific names and no generic `from_mapping` path
+  remains in `propstore/support_revision`;
 - ASPIC bridge code uses typed stance and justification models;
 - every named caller/update surface no longer imports raw sidecar connection
   helpers, projection rows, projection models, row factories, or row

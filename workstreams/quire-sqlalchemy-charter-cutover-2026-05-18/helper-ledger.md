@@ -260,6 +260,15 @@ File: `propstore/worldline/result_types.py`.
 | --- | --- | --- |
 | worldline result `from_mapping` constructors | replace | Rename persisted-result constructors to boundary-specific document/JSON payload constructors. |
 
+Files: `propstore/support_revision/state.py`,
+`propstore/support_revision/history.py`,
+`propstore/support_revision/snapshot_types.py`, and
+`propstore/support_revision/explanation_types.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| support-revision `from_mapping` constructors and helper functions | replace | Rename persisted revision payload constructors to boundary-specific document/JSON payload constructors. |
+
 ## Grounding And Rule Helpers
 
 File: `propstore/families/rules/declaration.py`.

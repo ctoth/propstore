@@ -69,6 +69,7 @@ This matrix is executable inventory for the Quire SQLAlchemy charter cutover. Ev
 | `propstore/worldline/resolution.py` and `propstore/worldline/argumentation.py` | Worldline materialization/capture through row models | Worldline over typed world/session models | Replace projection imports and row coercion. | `12-world-query-graph-reasoning.md` |
 | `propstore/worldline/result_types.py` | Persisted result payload constructors named `from_mapping` | Explicit document/JSON payload constructors | Rename to boundary-specific constructors; keep typed result payload validation. | `12-world-query-graph-reasoning.md` |
 | `propstore/support_revision/projection.py` and `propstore/support_revision/af_adapter.py` | Support-revision projection from row models | Support-revision over typed graph/relation models | Replace projection-model imports. | `12-world-query-graph-reasoning.md` |
+| `propstore/support_revision/state.py`, `history.py`, `snapshot_types.py`, and `explanation_types.py` | Support-revision persisted payload constructors named `from_mapping` | Explicit document/JSON payload constructors | Rename to boundary-specific constructors; keep typed revision payload validation. | `12-world-query-graph-reasoning.md` |
 | `propstore/aspic_bridge/extract.py` and `propstore/aspic_bridge/translate.py` | ASPIC bridge through stance projection model | ASPIC bridge over typed stance/justification models | Replace projection-model imports. | `12-world-query-graph-reasoning.md` |
 
 ## Closure Checklist
