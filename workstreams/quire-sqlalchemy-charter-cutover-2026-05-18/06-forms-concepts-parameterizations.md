@@ -546,3 +546,29 @@ Concept typed write-model cutover:
   `powershell -File scripts/run_logged_pytest.ps1 -Label concept-write-models tests/test_sidecar_concept_projection.py tests/test_sidecar_alias_projection.py tests/test_sidecar_parameterization_projection.py tests/test_sidecar_parameterization_group_projection.py tests/test_sidecar_relation_edge_projection.py tests/test_sidecar_form_projection.py tests/test_sidecar_form_algebra_projection.py`
   returned `7 passed`; log:
   `logs/test-runs/concept-write-models-20260520-125547.log`.
+
+Remaining concept read/session/search cutover queue:
+
+- Replace `WorldQuery` concept and parameterization reads with Quire
+  SQLAlchemy read-only sessions over `Concept`, `ConceptAlias`,
+  `Parameterization`, and `ParameterizationGroup`.
+- Delete declaration-owned raw selector helpers once their `WorldQuery`
+  callers use typed model queries directly:
+  `select_concept_by_id`, `select_all_concepts`,
+  `select_aliases_by_concept_id`, `select_concept_registry_rows`,
+  `build_concept_logical_id_index`, `resolve_concept_alias`,
+  `resolve_concept_id`, `select_concept_ids_for_group`,
+  `select_parameterizations_for_output_concept`,
+  `select_all_parameterizations`, `select_parameterization_group_members`,
+  `search_concept_ids`, and `count_concepts`.
+- Replace app concept search with Quire `search_fts_index` through a
+  Quire `DerivedStoreHandle` read-only session; do not recreate direct
+  sidecar-opening helpers.
+- Quire currently exposes `search_fts_index`; if FTS syntax-error
+  classification is not exposed by Quire when the search slice is edited,
+  return to the Quire FTS workstream and add that generic adapter there before
+  deleting Propstore's SQLite-specific `_is_concept_search_syntax_error`.
+- Phase 11 still owns `propstore/families/concepts/sidecar_runtime.py`,
+  `find_similar_concept_rows`, and the vector runtime, but this workstream
+  still owns deletion or relocation of declaration-level concept embedding
+  source selectors named in the helper table.
