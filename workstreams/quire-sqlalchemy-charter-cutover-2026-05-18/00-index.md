@@ -70,6 +70,11 @@ If any capability gate fails, fix Quire or the SQLAlchemy extension first. Do no
   string references, tests, docs, and any dynamic imports Rope cannot see.
 - For cross-repo Quire/Propstore changes, preserve move intent in commit messages and keep source/deletion slices paired.
 - Commit every intentional edit slice atomically with path-limited git commands in the repository being edited.
+- After every commit, reread this index and the active child workstream before
+  choosing or executing the next action.
+- After every commit, update the active child workstream before continuing when
+  the commit changes the phase's remaining work, deletion targets, caller list,
+  gate results, blockers, or execution order.
 - Push Quire changes before pinning Propstore to a Quire commit.
 - Use `uv run ...` for Python tooling.
 - Run Propstore tests through `scripts/run_logged_pytest.ps1`.
