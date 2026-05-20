@@ -77,6 +77,10 @@ as the work queue:
 - `CONTEXT_LIFTING_RULE_TABLE`;
 - `CONTEXT_LIFTING_MATERIALIZATION_TABLE`;
 - `CONTEXT_TABLES`;
+- `CONTEXT_SCHEMA`;
+- context `ProjectionCodec` constants, including `TEXT_CODEC`,
+  `PARAMETERS_CODEC`, `CONDITIONS_CODEC`, `PROVENANCE_CODEC`, and
+  `AUTOINCREMENT_CODEC`;
 - context table creation helpers;
 - context row dictionaries;
 - selectors/loaders that merely reconstruct lifting systems from raw rows;
@@ -99,6 +103,12 @@ File: `propstore/families/contexts/declaration.py`.
 | `_json_or_none` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
 | `_json_mapping` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
 | `_json_string_tuple` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `TEXT_CODEC` | delete | Generic text conversion belongs to Quire charter conversion. |
+| `PARAMETERS_CODEC` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `CONDITIONS_CODEC` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `PROVENANCE_CODEC` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `AUTOINCREMENT_CODEC` | delete | Generic integer/autoincrement conversion belongs to Quire charter conversion. |
+| `CONTEXT_SCHEMA` | delete | Quire charter/schema catalog replaces the local projection schema bundle. |
 | `create_context_tables` | delete | Quire charter creates tables. |
 | `populate_contexts` | delete | Replace with SQLAlchemy session add/flush. |
 | `filter_invalid_context_lifting_rows` | move | Move invalid lifting-rule filtering semantics to context/lifting semantic owner. |
@@ -211,6 +221,7 @@ rg -n -F -- "CONTEXT_TABLE" propstore tests
 rg -n -F -- "CONTEXT_ASSUMPTION_TABLE" propstore tests
 rg -n -F -- "CONTEXT_LIFTING_RULE_TABLE" propstore tests
 rg -n -F -- "CONTEXT_LIFTING_MATERIALIZATION_TABLE" propstore tests
+rg -n -F -- "CONTEXT_SCHEMA" propstore tests
 rg -n -F -- "CONTEXT_MODEL" propstore tests
 rg -n -F -- "CONTEXT_ASSUMPTION_MODEL" propstore tests
 rg -n -F -- "CONTEXT_LIFTING_RULE_MODEL" propstore tests
@@ -225,6 +236,11 @@ rg -n -F -- "_nullable_text" propstore/families/contexts tests
 rg -n -F -- "_json_or_none" propstore/families/contexts tests
 rg -n -F -- "_json_mapping" propstore/families/contexts tests
 rg -n -F -- "_json_string_tuple" propstore/families/contexts tests
+rg -n -F -- "TEXT_CODEC" propstore/families/contexts tests
+rg -n -F -- "PARAMETERS_CODEC" propstore/families/contexts tests
+rg -n -F -- "CONDITIONS_CODEC" propstore/families/contexts tests
+rg -n -F -- "PROVENANCE_CODEC" propstore/families/contexts tests
+rg -n -F -- "AUTOINCREMENT_CODEC" propstore/families/contexts tests
 ```
 
 All searches are zero-hit gates outside notes, workstreams, docs, and reports.
