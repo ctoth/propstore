@@ -92,14 +92,6 @@ class Claim:
     promotion_status: str | None
     concept_links: list["ClaimConceptLink"]
 
-    def __init__(self, **values: object) -> None:
-        concept_links = values.pop("concept_links", ())
-        if not isinstance(concept_links, list | tuple):
-            raise TypeError("claim concept_links must be a list or tuple")
-        self.concept_links = list(concept_links)
-        for key, value in values.items():
-            setattr(self, key, value)
-
 
 class ClaimConceptLink:
     claim_id: str
@@ -138,10 +130,6 @@ class ClaimNumericPayload:
     lower_bound_si: float | None
     upper_bound_si: float | None
 
-    def __init__(self, **values: object) -> None:
-        for key, value in values.items():
-            setattr(self, key, value)
-
 
 class ClaimTextPayload:
     claim_id: str
@@ -159,10 +147,6 @@ class ClaimTextPayload:
     description: str | None
     auto_summary: str | None
 
-    def __init__(self, **values: object) -> None:
-        for key, value in values.items():
-            setattr(self, key, value)
-
 
 class ClaimAlgorithmPayload:
     claim_id: str
@@ -170,10 +154,6 @@ class ClaimAlgorithmPayload:
     canonical_ast: str | None
     variables_json: str | None
     algorithm_stage: str | None
-
-    def __init__(self, **values: object) -> None:
-        for key, value in values.items():
-            setattr(self, key, value)
 
 
 @dataclass(frozen=True)
