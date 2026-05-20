@@ -12,11 +12,11 @@ from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import CelExpr
-from propstore.core.activation import is_active_claim_active
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
+from propstore.core.activation import is_claim_active
 from propstore.core.claim_types import ClaimType
 from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore, WorldStore
 from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_context_id
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import (
     ConflictRow,
     StanceRow,
@@ -35,7 +35,7 @@ from propstore.core.labels import (
     combine_labels,
     merge_labels,
 )
-from propstore.world.value_resolver import ActiveClaimResolver, collect_known_values
+from propstore.world.value_resolver import ClaimValueResolver, collect_known_values
 from propstore.world.types import (
     ATMSConceptInterventionPlan,
     ATMSConceptRelevanceReport,
@@ -150,7 +150,7 @@ def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, Concep
 
 def _recomputed_conflicts(
     world,
-    claims: list[ActiveClaim],
+    claims: list[Claim],
     *,
     precomputed_inputs: _ConflictInputs | None = None,
 ) -> list[ConflictRow]:
@@ -270,7 +270,7 @@ class BoundWorld(BeliefSpace):
         # OverlayWorld overlays construct their own BoundWorld over a
         # _GraphOverlayStore and rely on getting a fresh cache.
         self._conflict_inputs_cache: _ConflictInputs | None = None
-        self._resolver = ActiveClaimResolver(
+        self._resolver = ClaimValueResolver(
             parameterizations_for=lambda concept_id: [
                 (
                     row
@@ -296,17 +296,7 @@ class BoundWorld(BeliefSpace):
         )
 
     def _normalize_claim_id_set(self, claim_ids: Sequence[str]) -> set[str]:
-        normalized: set[str] = set()
-        for claim_id in claim_ids:
-            resolved = self._store.resolve_claim(str(claim_id))
-            normalized.add(resolved or str(claim_id))
-        return normalized
-
-    def _resolve_claim_lookup_id(self, claim_id: str) -> str:
-        resolved = self._store.resolve_claim(claim_id)
-        if resolved:
-            return resolved
-        return claim_id
+        return {str(claim_id) for claim_id in claim_ids}
 
     @staticmethod
     def _bindings_to_cel(bindings: dict[str, Any]) -> list[CelExpr]:
@@ -327,11 +317,10 @@ class BoundWorld(BeliefSpace):
             policy=policy,
         )
 
-    def is_active(self, claim: ActiveClaimInput) -> bool:
+    def is_active(self, claim: Claim) -> bool:
         """Check if a claim is active under the current bindings and context."""
-        active_claim = coerce_active_claim(claim)
-        claim_id = str(active_claim.claim_id)
-        if claim_id is not None and self._active_claim_id_set is not None:
+        claim_id = str(claim.id)
+        if self._active_claim_id_set is not None:
             if claim_id in self._active_claim_id_set:
                 return True
             inactive_claim_ids = self._inactive_claim_id_set or set()
@@ -343,8 +332,11 @@ class BoundWorld(BeliefSpace):
         except AttributeError:
             solver = None
 
-        return is_active_claim_active(
-            active_claim,
+        return is_claim_active(
+            claim_id=claim_id,
+            claim_context_id=claim.context_id,
+            claim_conditions=claim.checked_conditions,
+            source_artifact=claim.source_slug or claim.id,
             environment=self._environment,
             solver=solver,
             lifting_system=self._lifting_system,
@@ -379,34 +371,28 @@ class BoundWorld(BeliefSpace):
             condition_set,
         )
 
-    def active_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
-        all_claims = [
-            coerce_active_claim(claim)
-            for claim in self._store.claims_for(concept_id)
-        ]
+    def active_claims(self, concept_id: str | None = None) -> list[Claim]:
+        all_claims = list(self._store.claims_for(concept_id))
         if self._active_claim_id_set is not None:
             return [
                 claim for claim in all_claims
-                if str(claim.claim_id) in self._active_claim_id_set
+                if str(claim.id) in self._active_claim_id_set
             ]
         return [c for c in all_claims if self.is_active(c)]
 
-    def inactive_claims(self, concept_id: str | None = None) -> list[ActiveClaim]:
-        all_claims = [
-            coerce_active_claim(claim)
-            for claim in self._store.claims_for(concept_id)
-        ]
+    def inactive_claims(self, concept_id: str | None = None) -> list[Claim]:
+        all_claims = list(self._store.claims_for(concept_id))
         if self._inactive_claim_id_set is not None:
             return [
                 claim for claim in all_claims
-                if str(claim.claim_id) in self._inactive_claim_id_set
+                if str(claim.id) in self._inactive_claim_id_set
             ]
         return [c for c in all_claims if not self.is_active(c)]
 
-    def algorithm_for(self, concept_id: str) -> list[ActiveClaim]:
+    def algorithm_for(self, concept_id: str) -> list[Claim]:
         """Return all active algorithm claims relevant to the given concept."""
         active = self.active_claims(concept_id)
-        return [c for c in active if c.claim_type is ClaimType.ALGORITHM]
+        return [c for c in active if c.type is ClaimType.ALGORITHM]
 
     def _concept_symbol_candidates(self, concept_id: ConceptId | str) -> list[str]:
         candidates: list[str] = []
@@ -458,11 +444,11 @@ class BoundWorld(BeliefSpace):
         """Resolve numeric values for a list of concept IDs."""
         return collect_known_values(variable_concepts, self.value_of)
 
-    def extract_variable_concepts(self, claim: ActiveClaim) -> list[str]:
+    def extract_variable_concepts(self, claim: Claim) -> list[str]:
         """Extract concept IDs referenced by an algorithm claim's variables."""
         return list(claim.variable_concept_ids())
 
-    def extract_bindings(self, claim: ActiveClaim) -> dict[str, str]:
+    def extract_bindings(self, claim: Claim) -> dict[str, str]:
         """Extract variable name -> concept mapping from an algorithm claim."""
         return claim.variable_bindings()
 
@@ -472,7 +458,7 @@ class BoundWorld(BeliefSpace):
             supported_ids = self.atms_engine().supported_claim_ids(concept_id)
             active = [
                 claim for claim in active
-                if str(claim.claim_id) in supported_ids
+                if str(claim.id) in supported_ids
             ]
         result = self._resolver.value_of_from_active(active, concept_id)
         if self._reasoning_backend() == "atms":
@@ -511,9 +497,6 @@ class BoundWorld(BeliefSpace):
             policy=effective_policy,
             world=self._store,
         )
-        if result.status is ValueStatus.RESOLVED and result.winning_claim_id and hasattr(self._store, "resolve_claim"):
-            resolved_winner_id = self._store.resolve_claim(result.winning_claim_id) or result.winning_claim_id
-            result = replace(result, winning_claim_id=resolved_winner_id)
         if self._reasoning_backend() == "atms":
             return self._attach_atms_resolved_label(concept_id, result)
         return self._attach_resolved_label(concept_id, result)
@@ -660,7 +643,7 @@ class BoundWorld(BeliefSpace):
 
     def claim_status(self, claim_id: str) -> ATMSInspection:
         """Return the ATMS-native status and support-quality metadata for a claim."""
-        return self.atms_engine().claim_status(self._resolve_claim_lookup_id(claim_id))
+        return self.atms_engine().claim_status(claim_id)
 
     def claim_essential_support(self, claim_id: str) -> EnvironmentKey | None:
         """Return Dixon-style essential support for a claim under this bound world."""
@@ -676,7 +659,7 @@ class BoundWorld(BeliefSpace):
         """Return bounded future-environment status changes for one claim."""
         self._require_atms_backend()
         return self.atms_engine().claim_future_statuses(
-            self._resolve_claim_lookup_id(claim_id),
+            claim_id,
             coerce_queryable_assumptions(queryables),
             limit=limit,
         )
@@ -692,12 +675,12 @@ class BoundWorld(BeliefSpace):
         self._require_atms_backend()
         normalized_queryables = coerce_queryable_assumptions(queryables)
         return {
-            str(claim.claim_id): self.atms_engine().claim_future_statuses(
-                str(claim.claim_id),
+            str(claim.id): self.atms_engine().claim_future_statuses(
+                str(claim.id),
                 normalized_queryables,
                 limit=limit,
             )
-            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.claim_id))
+            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.id))
         }
 
     def claim_stability(
@@ -912,12 +895,12 @@ class BoundWorld(BeliefSpace):
         )
         supported_ids = self.atms_engine().supported_claim_ids(concept_id)
         claim_reasons = {
-            str(claim.claim_id): self.atms_engine().why_out(
-                self.claim_status(str(claim.claim_id)).node_id,
+            str(claim.id): self.atms_engine().why_out(
+                self.claim_status(str(claim.id)).node_id,
                 queryables=normalized_queryables,
                 limit=limit,
             )
-            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.claim_id))
+            for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.id))
         }
         return {
             "concept_id": concept_id,
@@ -951,7 +934,7 @@ class BoundWorld(BeliefSpace):
         """Return the ATMS justification trace and support metadata for a claim."""
         return self.atms_engine().explain_node(self.claim_status(claim_id).node_id)
 
-    def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]:
+    def claim_support(self, claim: Claim) -> tuple[Label | None, SupportQuality]:
         """Return exact label support when reconstructible, plus honesty metadata."""
         label = self._claim_support_label(claim)
         if label is not None:
@@ -992,7 +975,7 @@ class BoundWorld(BeliefSpace):
         if len(active_claims) < 2:
             self._conflicts_cache[resolved_concept_id] = []
             return []
-        active_ids = {str(claim.claim_id) for claim in active_claims}
+        active_ids = {str(claim.id) for claim in active_claims}
 
         result: list[ConflictRow] = []
         all_conflicts = [
@@ -1027,16 +1010,11 @@ class BoundWorld(BeliefSpace):
 
     def explain(self, claim_id: str) -> list[StanceRow]:
         """Stance walk filtered to active claims."""
-        resolved_claim_id = (
-            self._store.resolve_claim(claim_id) or claim_id
-            if hasattr(self._store, "resolve_claim")
-            else claim_id
-        )
-        claim = self._store.get_claim(resolved_claim_id)
+        claim = self._store.get_claim(claim_id)
         if claim is None or not self.is_active(claim):
             return []
 
-        full_chain = self._store.explain(resolved_claim_id)
+        full_chain = self._store.explain(claim_id)
         result: list[StanceRow] = []
         for stance_input in full_chain:
             stance = STANCE_ROW_MODEL.coerce(stance_input)
@@ -1079,7 +1057,7 @@ class BoundWorld(BeliefSpace):
         engine = self.atms_engine()
         claim_labels: list[Label] = []
         for claim in result.claims:
-            claim_id = str(claim.claim_id)
+            claim_id = str(claim.id)
             claim_label = engine.claim_label(claim_id)
             if claim_label is None:
                 return result
@@ -1127,13 +1105,8 @@ class BoundWorld(BeliefSpace):
         if result.status is not ValueStatus.RESOLVED or not result.winning_claim_id:
             return result
 
-        resolved_winner_id = (
-            self._store.resolve_claim(result.winning_claim_id) or result.winning_claim_id
-            if hasattr(self._store, "resolve_claim")
-            else result.winning_claim_id
-        )
         winning_claim = next(
-            (claim for claim in result.claims if str(claim.claim_id) == resolved_winner_id),
+            (claim for claim in result.claims if str(claim.id) == result.winning_claim_id),
             None,
         )
         if winning_claim is None:
@@ -1155,12 +1128,7 @@ class BoundWorld(BeliefSpace):
         if result.status is not ValueStatus.RESOLVED or not result.winning_claim_id:
             return result
 
-        resolved_winner_id = (
-            self._store.resolve_claim(result.winning_claim_id) or result.winning_claim_id
-            if hasattr(self._store, "resolve_claim")
-            else result.winning_claim_id
-        )
-        label = self.atms_engine().claim_label(resolved_winner_id)
+        label = self.atms_engine().claim_label(result.winning_claim_id)
         if label is None:
             return result
         return replace(result, label=label)
@@ -1191,7 +1159,7 @@ class BoundWorld(BeliefSpace):
             return derived.label
         return None
 
-    def _claim_support_label(self, claim: ActiveClaim) -> Label | None:
+    def _claim_support_label(self, claim: Claim) -> Label | None:
         # Labels are only attached when the active support can be reconstructed
         # exactly from compiled assumptions and context labels.
         labels: list[Label] = []
@@ -1215,7 +1183,7 @@ class BoundWorld(BeliefSpace):
             )
         return combine_labels(*labels)
 
-    def _support_quality(self, claim: ActiveClaim) -> SupportQuality:
+    def _support_quality(self, claim: Claim) -> SupportQuality:
         has_conditions = bool(claim.conditions)
         has_context = claim.context_id is not None
         if has_context and has_conditions:

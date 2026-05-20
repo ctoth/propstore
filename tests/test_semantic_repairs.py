@@ -6,7 +6,7 @@ import yaml
 from propstore.claim_graph import compute_claim_graph_justified_claims
 from tests.family_helpers import materialized_world_store_path
 from propstore.world import ResolutionStrategy, WorldQuery, resolve
-from propstore.world.value_resolver import ActiveClaimResolver
+from propstore.world.value_resolver import ClaimValueResolver
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
 
@@ -266,7 +266,7 @@ def test_derived_value_checks_all_compatible_parameterizations(derivation_world)
 
 
 def test_mixed_direct_and_multistatement_algorithm_uses_ast_equivalence():
-    resolver = ActiveClaimResolver(
+    resolver = ClaimValueResolver(
         parameterizations_for=lambda cid: [],
         is_param_compatible=lambda conds: True,
         value_of=lambda cid: None,

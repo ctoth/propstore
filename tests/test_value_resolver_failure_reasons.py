@@ -1,4 +1,4 @@
-"""Tests for typed failure-reason propagation in ActiveClaimResolver.
+"""Tests for typed failure-reason propagation in ClaimValueResolver.
 
 Covers the propagation of `ast_compare` parse failures via
 `ValueResult.reason = ValueResultReason.ALGORITHM_UNPARSEABLE`, while ensuring
@@ -15,12 +15,12 @@ import pytest
 
 from propstore.core.claim_types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
-from propstore.world.value_resolver import ActiveClaimResolver, _active_claim_view
+from propstore.world.value_resolver import ClaimValueResolver, _claim_value_view
 
 
 def _is_algorithm_claim(claim) -> bool:
     """True if this claim is an ALGORITHM claim — handles both dict inputs
-    (pre-coercion) and ActiveClaim instances (post-coercion)."""
+    (pre-boundary) and typed Claim instances."""
     claim_type = getattr(claim, "claim_type", None)
     if claim_type is not None:
         return claim_type is ClaimType.ALGORITHM
@@ -34,8 +34,8 @@ def _make_resolver(
     extract_variable_concepts=None,
     collect_known_values=None,
     extract_bindings=None,
-) -> ActiveClaimResolver:
-    return ActiveClaimResolver(
+) -> ClaimValueResolver:
+    return ClaimValueResolver(
         parameterizations_for=lambda cid: [],
         is_param_compatible=lambda conds: True,
         value_of=lambda cid: None,
@@ -246,7 +246,7 @@ def test_ast_compare_none_equivalence_is_benign_inconclusive():
         return_value=_Comparison(),
     ):
         comparison = resolver._algorithm_matches_direct_value(
-            _active_claim_view(claim),
+            _claim_value_view(claim),
             10.0,
         )
 

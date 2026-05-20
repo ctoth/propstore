@@ -54,7 +54,7 @@ def _comparison_from_equivalence(equivalent: object) -> _AlgorithmComparison:
 
 
 @dataclass(frozen=True)
-class _ActiveClaimView:
+class _ClaimValueView:
     claim: Claim
     claim_id: str | None
     claim_type: ClaimType | None
@@ -62,7 +62,7 @@ class _ActiveClaimView:
     body: str | None
 
 
-def _active_claim_value(claim: Claim) -> float | str | None:
+def _claim_value(claim: Claim) -> float | str | None:
     numeric_payload = claim.numeric_payload
     value = None if numeric_payload is None else numeric_payload.value
     if isinstance(value, bool):
@@ -74,13 +74,13 @@ def _active_claim_value(claim: Claim) -> float | str | None:
     return None
 
 
-def _active_claim_view(claim: Claim) -> _ActiveClaimView:
+def _claim_value_view(claim: Claim) -> _ClaimValueView:
     algorithm_payload = claim.algorithm_payload
-    return _ActiveClaimView(
+    return _ClaimValueView(
         claim=claim,
         claim_id=str(claim.id),
         claim_type=claim.type,
-        value=_active_claim_value(claim),
+        value=_claim_value(claim),
         body=None if algorithm_payload is None else algorithm_payload.body,
     )
 
@@ -111,7 +111,7 @@ def collect_known_values(
         normalized_cid = to_concept_id(cid)
         vr = value_of(normalized_cid)
         if vr.status is ValueStatus.DETERMINED and vr.claims:
-            val = _active_claim_value(vr.claims[0])
+            val = _claim_value(vr.claims[0])
             if val is not None:
                 try:
                     known[normalized_cid] = float(val)
@@ -120,7 +120,7 @@ def collect_known_values(
     return known
 
 
-class ActiveClaimResolver:
+class ClaimValueResolver:
     """Resolve values and derived values for a belief-space view."""
 
     def __init__(
@@ -211,7 +211,7 @@ class ActiveClaimResolver:
         if not active_claims:
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
-        active_views = tuple(_active_claim_view(claim) for claim in active_claims)
+        active_views = tuple(_claim_value_view(claim) for claim in active_claims)
         algo_claims = [claim for claim in active_views if claim.claim_type is ClaimType.ALGORITHM]
         value_claims = [claim for claim in active_views if claim.claim_type is not ClaimType.ALGORITHM]
 
@@ -341,7 +341,7 @@ class ActiveClaimResolver:
 
             value_result = self._value_of(input_id)
             if value_result.status is ValueStatus.DETERMINED:
-                value = _active_claim_value(value_result.claims[0]) if value_result.claims else None
+                value = _claim_value(value_result.claims[0]) if value_result.claims else None
                 if value is None:
                     return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
                 input_values[input_id] = float(value)
@@ -504,7 +504,7 @@ class ActiveClaimResolver:
 
     def _algorithm_matches_direct_value(
         self,
-        claim: _ActiveClaimView,
+        claim: _ClaimValueView,
         direct_value: float | str | None,
     ) -> _AlgorithmComparison:
         body = claim.body
@@ -544,11 +544,11 @@ class ActiveClaimResolver:
 
     def _all_algorithms_equivalent(
         self,
-        algo_claims: Sequence[_ActiveClaimView | Claim],
+        algo_claims: Sequence[_ClaimValueView | Claim],
         known_values: Mapping[ConceptId, Any],
     ) -> _AlgorithmComparison:
         normalized_claims = [
-            claim if isinstance(claim, _ActiveClaimView) else _active_claim_view(claim)
+            claim if isinstance(claim, _ClaimValueView) else _claim_value_view(claim)
             for claim in algo_claims
         ]
         for i in range(len(normalized_claims)):
