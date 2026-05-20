@@ -449,6 +449,35 @@ reference/FK metadata from the registered `ArtifactFamily`/charter metadata.
 Proof coverage must use the same generic API for the claim and concept proof
 families.
 
+### Completion Audit
+
+Recorded 2026-05-20.
+
+Current repository audit:
+
+- Current Propstore dependency state pins Quire from
+  `https://github.com/ctoth/quire` at pushed commit
+  `2917fd08bd03cb2d317f4dceb5221b1e6b88a6e6`; `pyproject.toml` and `uv.lock`
+  do not pin Quire through a local path in the audited state.
+- Quire commit history still contains the Phase 1-2 implementation and gate
+  commits recorded above. Later Quire commits `8a84f20`, `bc71de8`, and
+  `2917fd0` repair generic capabilities needed by later Propstore cutovers;
+  they extend the engine/metadata surface and do not reopen this capability
+  and charter workstream.
+- No remaining source fix from this completed workstream is currently recorded
+  against Phase 1-2. Any later need for construction, relationship ordering, or
+  family metadata lookup belongs to the Quire engine follow-up record in
+  `02-quire-sqlalchemy-engine.md`.
+
+Binding audit outcome:
+
+- The no-shim/no-duplicate-field-shape rule at the top of this file is binding
+  for all later consumers of the Phase 1-2 API. Completed Phase 1-2 work does
+  not authorize Propstore claim/concept lookup wrappers, row DTOs, kwargs
+  builders, compatibility readers, old/new dual paths, or duplicate schema
+  field spelling outside the Quire charter/schema IR or the exact Propstore
+  semantic owner.
+
 ## Completion Gates
 
 Run from `C:\Users\Q\code\quire`:
