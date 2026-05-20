@@ -607,6 +607,18 @@ Build-orchestration parity repair:
   passed with 7 passed; log
   `logs\test-runs\parity-harness-20260520-114010.log`.
 - Commit: `4b6df783 Repair SQLAlchemy charter parity harness`.
+- Updated the tracked baseline JSON reports for all captured owner baselines
+  from the old derived-store cache hash to the verified semantic artifact
+  input hash `8a19bc32935e5d1cd86168a10264d2de1f10d11e57d6b1f844acbf0b43a3e8a0`;
+  `git diff --name-only 414ee682e9cb6fb1a812e5864d7102871e2b4b26 HEAD -- claims concepts contexts forms predicates rules rule_superiority stances sameas worldlines sources micropubs justifications`
+  returned no semantic-root file changes.
+- Build-orchestration data-parity gate passed:
+  `uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json`
+  exited 0 with `failures: []`, matching semantic input hash
+  `8a19bc32935e5d1cd86168a10264d2de1f10d11e57d6b1f844acbf0b43a3e8a0`,
+  after schema hash
+  `sha256:f2e289081addae33724c4e468295796f0e49d2eff46c5b6ca6d3cb20175e02f5`,
+  and matching table/key/row/FTS/vector/diagnostic comparisons.
 
 Old validation-wrapper audit:
 
