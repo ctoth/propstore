@@ -180,6 +180,21 @@ This phase proves the starting state and the work queue. Missing inventory, miss
 
 No Propstore family production cutover starts until Phases 1-5 pass. Source is not a place to discover whether SQLAlchemy can handle metadata fields, association objects, FTS, sessions, schema catalogs, JSON adapters, enum conversion, data parity, or build orchestration. All of that is Quire and build-orchestration work first.
 
+### Phase 0 Execution Record
+
+Recorded 2026-05-20.
+
+- Order checker: `uv run scripts/check_workstream_order.py workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md` passed with `workstream order ok`.
+- Controlling inventory: `reports/code-inventory-2026-05-17.md` exists.
+- Architecture note: `notes/architecture-wanted-outcome-2026-05-17.md` exists and says Quire owns the generic charter/schema engine and typed Git artifact family/charter machinery.
+- Propstore worktree before implementation: current branch `master`; tracked task-owned files clean; untracked files present outside this Phase 0 edit.
+- Quire worktree before implementation: `C:\Users\Q\code\quire` current branch `master`; tracked files clean; untracked notes/reports/prompts/out/reviews paths present.
+- Current Propstore Quire pin: `pyproject.toml` uses `quire = { git = "https://github.com/ctoth/quire", rev = "1343248a218577cb2f63f338c06a02145dd8bf40" }`; `uv.lock` resolves the same pushed Git SHA.
+- Local dependency pin search: `[tool.uv.sources]` exists for the Git source; `path =`, `workspace = true`, `quire @ file`, `quire @ ..`, and `quire @ C:` searches returned no hits.
+- Initial old-path import inventory: `ProjectionTable`, `ProjectionModel`, `ProjectionCodec`, and `PROPSTORE_WORLD_PROJECTION_SCHEMA` still have production/test hits and remain the deletion work queue for later phases.
+
+Phase 0 is complete. Phase 1 may start.
+
 ## Global Dependency Pin Rule
 
 - Add SQLAlchemy as a normal published Quire dependency.
