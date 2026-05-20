@@ -482,3 +482,37 @@ Generic family metadata correction implemented 2026-05-20:
   `2917fd08bd03cb2d317f4dceb5221b1e6b88a6e6`; local dependency searches for
   `quire @ file`, `quire @ ..`, `quire @ C:`, `path =`, and
   `workspace = true` returned no hits.
+
+### Post-Completion Engine Audit
+
+Recorded 2026-05-20.
+
+Current repository audit:
+
+- Current Propstore dependency state pins Quire to pushed commit
+  `2917fd08bd03cb2d317f4dceb5221b1e6b88a6e6`. This supersedes the earlier
+  Phase 3 pin to `7637b8a33fa3d8d76ea2f996a8d1bdce5f0ada7f` and includes all
+  completed engine follow-up capability repairs listed here.
+- Quire commit `8a84f20` repaired a missing engine capability by adding
+  charter-driven SQLAlchemy model construction and family write routing on
+  `SqlAlchemySchema` and `DerivedSession`. Propstore commit `8b1daac7` pinned
+  that pushed Quire commit before later claim cutover work consumed it.
+- Quire commit `bc71de8` repaired a missing relationship capability by adding
+  `order_by` to `CharterRelationship`/`SchemaRelationship` and passing it to
+  SQLAlchemy `relationship()` generically. Propstore commit `baf75265` pinned
+  that pushed Quire commit before ordered claim source-assertion relationships
+  consumed it.
+- Quire commit `2917fd0` is the current audited pin and includes the generic
+  family reference lookup record above. The current audit found no newer Quire
+  engine commit after `2917fd0` that is missing from this file.
+
+Remaining fix audit:
+
+- The completed Phase 3 record was incomplete until the construction,
+  relationship-ordering, and generic family metadata repairs above were added.
+  Those repairs are now recorded as owned engine follow-up fixes.
+- No compatibility shim, duplicate model map, claim/concept lookup wrapper,
+  fallback reader, row DTO, kwargs builder, or parallel old/new construction
+  path is allowed as a replacement for these Quire generic capabilities. If a
+  later Propstore family cutover needs another model construction or metadata
+  fact, the fix belongs in Quire's generic engine/session API first.
