@@ -79,7 +79,14 @@ Payload requirements:
 - numeric/text/algorithm payloads are separate SQL tables declared once in the
   claim charter;
 - generic schema code derives insert/query mapping from that declaration;
-- no field-specific optional conversion helper survives.
+- no field-specific optional conversion helper survives;
+- field metadata may name the storage/payload field once, but must not encode
+  a second dynamic type system;
+- no `coerce` policy metadata, broad model-layer normalizer, or
+  `claim_model_from_payload`-style factory is allowed in the replacement path;
+- authored YAML/JSON parsing and raw row decoding are IO-boundary work only;
+  typed compiler stages and mapped claim models must receive already-typed
+  values and fail hard when the boundary did not produce them.
 
 ## Claim Concept Links
 
@@ -105,6 +112,42 @@ Decision:
 | `propstore/families/claims/storage.py` storage shaping | Loose claim row preparation/helpers | Claim charter generic conversion | Delete storage-shaped helpers |
 | `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | `propstore/families/identity/claims.py`, `propstore/source/claims.py`, `propstore/families/claims/references.py`, `propstore/families/claims/stages.py`, `propstore/families/relations/declaration.py`, and `propstore/families/diagnostics/declaration.py` | Move each named semantic to its exact owner before deleting the storage-shaped remainder |
 | `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model plus query-state filters | Delete projection-row coercion and the parallel active claim object family |
+
+## Field Metadata Rule
+
+The target architecture is one declaration of field shape, plus typed values
+flowing through the compiler/runtime. Do not replace projection codecs with a
+new generic coercion layer in Propstore.
+
+Allowed:
+
+- Quire charter field metadata that describes storage field names, nullability,
+  primary keys, indexes, relationships, JSON/enum adapter identity, and FKs;
+- Propstore field metadata that only names a source/storage field once when a
+  typed boundary object genuinely needs a stable external spelling;
+- IO-boundary constructors with boundary-specific names such as
+  `from_yaml_payload`, `from_json_payload`, or `from_row_mapping`, when they
+  are the actual boundary and return typed domain objects.
+
+Forbidden in this phase:
+
+- `metadata={"coerce": ...}` on claim model or claim compiler-stage fields;
+- generic `_coerce_*` or `*_from_payload` factories that accept loose mappings
+  and repair strings, ints, floats, ids, enums, JSON, or rows inside the model
+  layer;
+- direct `str(...)`, `int(...)`, or `float(...)` cleanup while constructing
+  mapped `Claim`, `ClaimConceptLink`, `ClaimNumericPayload`,
+  `ClaimTextPayload`, or `ClaimAlgorithmPayload` objects from compiler-stage
+  values;
+- moving old projection codec behavior into a new Propstore helper, adapter,
+  wrapper, alias, or compatibility surface;
+- keeping a helper because it is "generic" when Quire already owns generic
+  schema/session mechanics or when the type system should carry the value.
+
+If a field cannot be constructed without broad coercion at this point in the
+pipeline, the next action is to move the parsing/validation to the proper
+IO/semantic owner or add the missing Quire generic capability. Do not add a
+Propstore workaround.
 
 ## Deletion Targets
 
@@ -138,6 +181,9 @@ as the work queue:
 - `_optional_int`;
 - claim projection codecs for concept id, claim type, algorithm stage, logical
   ids, provenance, source, and concept-link role;
+- claim model `coerce` metadata;
+- generic claim model payload factories;
+- generic `_coerce_claim_model_value`-style normalizers;
 - `propstore/core/active_claims.py` after `ClaimAlgorithmVariable` is moved to
   `propstore/families/claims/stages.py`;
 - `ActiveClaim` row-repair coercion that duplicates the claim charter;
@@ -202,6 +248,7 @@ File: `propstore/core/active_claims.py`.
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
 | `ActiveClaimVariable` | move | Rename/move to `propstore/families/claims/stages.py::ClaimAlgorithmVariable`; delete the `Active*` spelling. |
+| `ClaimAlgorithmVariable` payload metadata | clean | Keep only stable payload field names if needed; delete `coerce` metadata and any model-layer broad coercion introduced by the move. Construction must receive typed `ConceptId`/strings from the boundary or fail at the boundary. |
 | `_parse_conditions` | delete | Replaced by typed checked-condition fields on `Claim`; no row JSON repair. |
 | `_parse_variables` | move | Move to `propstore/families/claims/stages.py::parse_claim_algorithm_variables`; delete runtime row parser. |
 | `_parse_checked_conditions` | delete | Quire JSON adapter plus claim model owns checked-condition loading. |
@@ -333,7 +380,9 @@ behavior moves to Quire charter/session/catalog machinery or disappears.
    rename before hand-fixing imports and call sites. Verify with the named `rg`
    gates; Rope's model is not accepted as the final reference inventory.
 10. Delete field-specific optional, enum, id, JSON, and row coercers once
-   generic charter conversion covers the field.
+   Quire charter conversion covers storage mechanics or the typed IO boundary
+   owns parsing. Do not add Propstore `coerce` metadata, broad normalizer
+   helpers, or model-layer loose-mapping factories while deleting them.
 11. Run the family gates.
 12. Run the old-path search gates.
 13. Run the data-parity gate.
@@ -447,6 +496,10 @@ rg -n -F -- "coerce_active_claims" propstore tests
 rg -n -F -- "_coerce_claim_concept_link" propstore tests
 rg -n -F -- "_require_claim_concept_link_role" propstore tests
 rg -n -F -- "SimpleNamespace" propstore/families/claims propstore/core tests
+rg -n -F -- "metadata={\"coerce\"" propstore/families/claims propstore/core tests
+rg -n -F -- "\"coerce\":" propstore/families/claims propstore/core tests
+rg -n -F -- "_coerce_claim_model_value" propstore tests
+rg -n -F -- "claim_model_from_payload" propstore tests
 ```
 
 All searches are zero-hit gates outside notes, workstreams, docs, and reports.
@@ -506,12 +559,20 @@ Recorded 2026-05-20.
   `propstore/core/active_claims.py` importing the claim-stage owner API while
   the broader `ActiveClaim` deletion remains in progress.
 - Metadata correction: the moved claim algorithm variable payload keys and
-  coercion policy now live on `ClaimAlgorithmVariable` field metadata, and
-  parsing/rendering reads that metadata instead of spelling the payload keys
-  twice.
+  coercion policy were moved onto `ClaimAlgorithmVariable` field metadata in
+  `75ae67a8`; this is now classified as an incorrect replacement shape. The
+  payload field names may remain only if they avoid duplicate external
+  spelling. The `coerce` metadata and parser-side broad value repair must be
+  deleted before the next claim replacement slice proceeds.
 - Focused verification: `uv run pyright propstore/core/active_claims.py
   propstore/families/claims/stages.py` passed with 0 errors; `rg -n -F --
   "ActiveClaimVariable" propstore tests` returned zero hits.
+- Aborted replacement review: an uncommitted draft attempted to replace claim
+  projection write rows with `Claim`/payload dataclasses plus generic
+  `metadata={"coerce": ...}` and a `claim_model_from_payload` factory. That
+  draft was rejected as carrying the old projection codec behavior forward
+  under a new name. The draft was removed from the worktree on 2026-05-20 and
+  must not be revived.
 - Remaining Phase 10 work: delete the remaining claim projection/read-model,
   storage-helper, row-carrier, and active-claim compatibility surfaces; run
   the family gates, old-path searches, and data-parity gate.
