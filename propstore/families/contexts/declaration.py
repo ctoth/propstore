@@ -145,7 +145,11 @@ def compile_context_models(
                 id=context_id,
                 name=record.name or "",
                 description=record.description,
-                parameters_json=_json_or_none(dict(record.parameters)),
+                parameters_json=(
+                    json.dumps(dict(record.parameters), sort_keys=True)
+                    if record.parameters
+                    else None
+                ),
                 perspective=record.perspective,
             )
         )
@@ -165,7 +169,11 @@ def compile_context_models(
                     id=rule.id,
                     source_context_id=str(rule.source.id),
                     target_context_id=str(rule.target.id),
-                    conditions_cel=_json_or_none(tuple(rule.conditions)),
+                    conditions_cel=(
+                        json.dumps(tuple(rule.conditions), sort_keys=True)
+                        if rule.conditions
+                        else None
+                    ),
                     mode=rule.mode.value,
                     justification=rule.justification,
                 )
@@ -282,7 +290,13 @@ def load_lifting_system_from_models(
 
     rules: list[LiftingRule] = []
     for row in lifting_rules:
-        conditions = _json_string_tuple(row.conditions_cel)
+        if row.conditions_cel is None:
+            conditions = ()
+        else:
+            decoded = json.loads(row.conditions_cel)
+            if not isinstance(decoded, Sequence) or isinstance(decoded, str):
+                raise TypeError("expected context lifting condition JSON array")
+            conditions = tuple(str(item) for item in decoded)
         rules.append(
             LiftingRule(
                 id=row.id,
@@ -302,26 +316,3 @@ def load_lifting_system_from_models(
             for context_id, assumptions in assumptions_by_id.items()
         },
     )
-
-
-def _json_or_none(value: object) -> str | None:
-    if value is None:
-        return None
-    if isinstance(value, Mapping) and not value:
-        return None
-    if isinstance(value, Sequence) and not isinstance(value, str) and not value:
-        return None
-    return json.dumps(value, sort_keys=True)
-
-
-def _json_string_tuple(value: object) -> tuple[str, ...]:
-    if value is None:
-        return ()
-    if isinstance(value, Sequence) and not isinstance(value, str):
-        return tuple(str(item) for item in value)
-    if not isinstance(value, str):
-        raise TypeError(f"expected JSON text, got {type(value).__name__}")
-    decoded = json.loads(value)
-    if not isinstance(decoded, Sequence) or isinstance(decoded, str):
-        raise TypeError("expected JSON array")
-    return tuple(str(item) for item in decoded)
