@@ -114,11 +114,10 @@ Delete these production paths before porting callers:
 - build orchestration imports of Quire projection primitives;
 - manual world schema assembly in `propstore/families/projection_catalog.py`.
 
-Deleting `propstore/families/projection_catalog.py` in this phase may leave
-per-family `ProjectionTable` and `ProjectionModel` constants defined inside
-family modules until their family slices delete them. That temporary state is
-permitted only when no production code imports those constants after the
-catalog deletion.
+Deleting `propstore/families/projection_catalog.py` in this phase leaves
+per-family `ProjectionTable` and `ProjectionModel` constants as unreferenced
+inventory inside family modules until their family slices delete them. After
+the catalog deletion, production code has zero imports of those constants.
 
 ## Replacement Requirements
 
@@ -154,6 +153,74 @@ Implement the target path:
     passing comparison block for every required vector or behavior name.
 15. `tests/test_sqlalchemy_charter_parity_harness.py` proves one passing
     comparison and one failing comparison for owner slug `harness-self-test`.
+
+## Parity Harness Contract
+
+`scripts/compare_sqlalchemy_charter_parity.py` is a reusable gate, not a
+one-off report writer. Implement this command surface:
+
+```powershell
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --out reports/sqlalchemy-charter-parity/build-orchestration.json
+```
+
+Builder dispatch is exact:
+
+- `--build-before projection` creates `Repository(Path(knowledge_dir))`,
+  reads `head_sha = repo.require_git().head_sha()`, deletes the `--before`
+  SQLite file when it exists, then calls
+  `propstore.derived_build.export_sidecar(repo, Path(before), force=True, commit_hash=head_sha)`.
+- `--build-after sqlalchemy-charter` uses the same `Repository`, the same
+  `head_sha`, deletes the `--after` SQLite file when it exists, then calls the
+  Phase 4 target function
+  `propstore.derived_build.export_sqlalchemy_charter_sidecar(repo, Path(after), force=True, commit_hash=head_sha)`.
+- `export_sqlalchemy_charter_sidecar` is created in this phase as the
+  charter-backed sibling of `export_sidecar`; it uses Quire generated metadata,
+  Quire writable build sessions, Propstore charters, and typed model/session
+  writes.
+- Both builders operate on the same committed Git tree identified by
+  `head_sha`; the harness records that hash and does not compare different
+  repository snapshots.
+
+Report schema is exact JSON with these top-level keys:
+
+- `owner`: owner slug from `--owner`;
+- `knowledge_dir`: normalized path supplied by `--knowledge-dir`;
+- `head_sha`: committed Git hash used by both builders;
+- `before`: object with `path`, `build`, `schema_hash`, and `diagnostics`;
+- `after`: object with `path`, `build`, `schema_hash`, and `diagnostics`;
+- `tables`: per-table column names, primary-key columns, and schema notes;
+- `row_counts`: per-table before/after counts and status;
+- `key_sets`: per-table before/after primary-key set comparison;
+- `fts`: named FTS comparison blocks;
+- `vectors`: named vector comparison blocks;
+- `diagnostics`: diagnostic row comparison blocks;
+- `semantic_queries`: named semantic-query comparison blocks;
+- `behaviors`: named behavior-vector comparison blocks;
+- `allowed_differences`: the literal deletion-only allowlist supplied by the
+  child workstream section;
+- `failures`: nonempty list when the command exits nonzero.
+
+Comparison block schema is exact for `fts`, `vectors`, `diagnostics`,
+`semantic_queries`, and `behaviors`:
+
+- `name`;
+- `status`;
+- `before_count`;
+- `after_count`;
+- `missing_keys`;
+- `extra_keys`;
+- `changed_values`.
+
+The harness has no commit-message or report-time rename override. Allowed
+differences come only from the active child workstream's deletion allowlist.
+
+`tests/test_sqlalchemy_charter_parity_harness.py` contains these exact tests:
+
+- `test_parity_harness_passes_matching_sqlite_fixtures`;
+- `test_parity_harness_fails_missing_key`;
+- `test_parity_harness_requires_vector_blocks`;
+- `test_parity_harness_requires_behavior_blocks`;
+- `test_parity_harness_rebuilds_same_head_snapshot`.
 
 ## Data-Parity Gate
 
