@@ -97,6 +97,29 @@ precedence, alias resolution, form/unit validation, authored-document identity,
 or parameterization dimensional semantics. After moving kept semantics, delete
 the original helper-shaped production path.
 
+Explicitly disallowed replacement shapes:
+
+- Do not replace a deleted declaration-level selector with a private
+  `WorldQuery` method that has the same selector shape, such as
+  `_concept_by_id`, `_concept_count`, `_concept_registry_rows`,
+  `_build_concept_logical_id_index`, `_parameterizations_for_output_concept`,
+  or equivalent names.
+- Do not replace a deleted free function with a same-body class method,
+  static method, app helper, owner helper, or differently named wrapper whose
+  only job is a table-shaped `SELECT`, `COUNT`, row coercion, or generic
+  projection of SQLAlchemy model rows.
+- For one-off data access, put the Quire SQLAlchemy session query directly in
+  the public owner-layer method that owns the behavior.
+- If the behavior is reused because it is semantic policy, move only that
+  policy to the named semantic owner module from this workstream; do not carry
+  the old raw-selector body with it.
+- Existing public owner methods such as `WorldQuery.get_concept`,
+  `WorldQuery.resolve_concept`, `WorldQuery.resolve_alias`,
+  `WorldQuery.all_concepts`, `WorldQuery.parameterizations_for`,
+  `WorldQuery.group_members`, and `WorldQuery.stats` are the allowed surface;
+  they must query typed SQLAlchemy models directly or call a true semantic
+  owner, not a renamed selector helper.
+
 ## Slice Order
 
 Execute in this order:
@@ -551,7 +574,10 @@ Remaining concept read/session/search cutover queue:
 
 - Replace `WorldQuery` concept and parameterization reads with Quire
   SQLAlchemy read-only sessions over `Concept`, `ConceptAlias`,
-  `Parameterization`, and `ParameterizationGroup`.
+  `Parameterization`, and `ParameterizationGroup` directly inside the public
+  `WorldQuery` methods that own those reads. The interrupted private-method
+  shape using `_concept_by_id`, `_concept_count`, `_concept_registry_rows`,
+  or `_build_concept_logical_id_index` is explicitly rejected.
 - Delete declaration-owned raw selector helpers once their `WorldQuery`
   callers use typed model queries directly:
   `select_concept_by_id`, `select_all_concepts`,
