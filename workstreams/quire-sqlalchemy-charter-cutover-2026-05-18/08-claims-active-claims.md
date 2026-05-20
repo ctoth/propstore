@@ -751,3 +751,8 @@ Recorded 2026-05-20.
   `world/queries.py`, and `worldline/resolution.py`. These hits remain the
   deletion work queue; no alias module or replacement row-model helper is
   allowed.
+- Support revision state deletion: commit `c52eb16e` removed
+  `coerce_active_claim` from `support_revision/state.py` and made
+  `AssertionAtom.source_claims` accept typed `Claim` objects only. Snapshot
+  decoding still has an old mapping-to-active-claim repair path and remains in
+  the deletion queue; it must not be replaced with another mapping normalizer.
