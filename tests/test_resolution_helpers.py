@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 from types import SimpleNamespace
 
 import pytest
@@ -17,6 +18,18 @@ from propstore.world.resolution import (
 )
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy, ValueResult
 from propstore.world.types import IntegrityConstraint, IntegrityConstraintKind
+
+
+def test_assignment_selection_policy_adapter_surface_exists() -> None:
+    adapter = importlib.import_module("propstore.world.assignment_selection_policy")
+
+    assert hasattr(adapter, "build_assignment_selection_problem")
+    assert hasattr(adapter, "resolve_assignment_selection_merge")
+
+
+def test_assignment_selection_old_solver_module_is_deleted() -> None:
+    with pytest.raises(ModuleNotFoundError):
+        importlib.import_module("propstore.world.assignment_selection_merge")
 
 
 def _claim_mapping(
