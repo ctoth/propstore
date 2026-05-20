@@ -16,12 +16,12 @@ from assignment_selection import (
 )
 
 from propstore.cel_registry import build_store_cel_registry
-from propstore.core.active_claims import ActiveClaim
 from propstore.core.conditions import CheckedCondition
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, scope_condition_registry
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ClaimId
+from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept, ConceptInput
 from propstore.world.types import (
     IntegrityConstraint,
@@ -31,12 +31,13 @@ from propstore.world.types import (
 )
 
 
-def _claim_id(claim: ActiveClaim) -> ClaimId:
-    return claim.claim_id
+def _claim_id(claim: Claim) -> ClaimId:
+    return ClaimId(str(claim.id))
 
 
-def _claim_value(claim: ActiveClaim) -> float | str | None:
-    value = claim.value
+def _claim_value(claim: Claim) -> float | str | None:
+    numeric_payload = claim.numeric_payload
+    value = None if numeric_payload is None else numeric_payload.value
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):
@@ -46,7 +47,7 @@ def _claim_value(claim: ActiveClaim) -> float | str | None:
     return None
 
 
-def _claim_concept_id(claim: ActiveClaim) -> str:
+def _claim_concept_id(claim: Claim) -> str:
     concept_id = None if claim.value_concept_id is None else str(claim.value_concept_id)
     if not isinstance(concept_id, str) or not concept_id:
         raise KeyError("resolution requires each claim to have a non-empty value concept")
@@ -113,11 +114,11 @@ def _concept_integrity_constraints(
 
 
 def _filtered_assignment_selection_claim_rows(
-    active_claim_rows: Sequence[ActiveClaim],
+    active_claim_rows: Sequence[Claim],
     policy: RenderPolicy | None,
-) -> list[ActiveClaim]:
+) -> list[Claim]:
     branch_filter = None if policy is None else policy.branch_filter
-    filtered: list[ActiveClaim] = []
+    filtered: list[Claim] = []
     for claim in active_claim_rows:
         value = _claim_value(claim)
         if value is None:
@@ -290,7 +291,7 @@ def _compile_integrity_constraint(constraint: IntegrityConstraint) -> Constraint
 
 
 def build_assignment_selection_problem(
-    active_claim_rows: Sequence[ActiveClaim],
+    active_claim_rows: Sequence[Claim],
     target_concept_id: str,
     *,
     world: WorldStore,
@@ -314,7 +315,7 @@ def build_assignment_selection_problem(
     concept_ids.add(target_concept_id)
     concept_ids.update(_integrity_constraint_concept_ids(explicit_constraints))
 
-    grouped: dict[str, dict[str, ActiveClaim]] = {}
+    grouped: dict[str, dict[str, Claim]] = {}
     for claim in active_claim_rows:
         claim_id = _claim_id(claim)
         concept_id = _claim_concept_id(claim)
@@ -363,8 +364,8 @@ def build_assignment_selection_problem(
 
 
 def resolve_assignment_selection_merge(
-    target_claim_rows: Sequence[ActiveClaim],
-    active_claim_rows: Sequence[ActiveClaim],
+    target_claim_rows: Sequence[Claim],
+    active_claim_rows: Sequence[Claim],
     concept_id: str,
     *,
     world: WorldStore,
