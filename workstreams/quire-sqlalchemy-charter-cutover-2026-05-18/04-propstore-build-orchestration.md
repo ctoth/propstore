@@ -485,6 +485,32 @@ Next required item: delete `propstore/families/projection_catalog.py`, update
 test validation expectations away from the deleted projection schema path, then
 run the Phase 5 logged pytest, help, search, and parity gates.
 
+Manual catalog deletion slice:
+
+- Deleted `propstore/families/projection_catalog.py`.
+- Updated `WorldQuery` schema validation to call Quire
+  `validate_sqlalchemy_store` with `world_sqlalchemy_schema()`; because this
+  slice touched that validation path, the old `_validate_schema` message
+  rewrite to `Unsupported sidecar schema` and `Rebuild with 'pks build'.` was
+  deleted in this phase.
+- Updated direct schema tests/helpers to build and inspect the Quire
+  SQLAlchemy world schema and schema-catalog metadata instead of importing the
+  deleted projection catalog.
+- Exact searches for `projection_catalog` and
+  `PROPSTORE_WORLD_PROJECTION_SCHEMA` over `propstore` and `tests` returned no
+  hits.
+- Type gate after catalog deletion: `uv run pyright propstore` passed with 0
+  errors.
+- Focused logged schema gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label schema-catalog-deletion tests/test_fixture_schema_parity.py tests/test_world_model_branch_column_required.py tests/test_opinion_schema.py`
+  passed with 12 passed; log
+  `logs\test-runs\schema-catalog-deletion-20260520-112026.log`.
+- Commit: `41e0f8e7 Delete Propstore projection catalog`.
+
+Next required item: run the Phase 5 required logged pytest gate, repair only
+failures caused by the deletion/replacement, then run the help, old-path
+search, and build-orchestration parity gates.
+
 Old validation-wrapper audit:
 
 - Exact-string audit found one production old-schema message rewrite:
