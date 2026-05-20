@@ -311,7 +311,20 @@ Quire FTS/vector implementation:
   - `FtsProjection` remains in `quire/projections.py`, `quire/__init__.py`, and projection tests.
   - `VecProjection` remains in `quire/projections.py`, `quire/sqlite_vec_store.py`, `quire/__init__.py`, and projection tests.
 - Pushed immutable Quire commit for Propstore consumption: `1d670267eba752a615122c26fdc551c466b06601` (`origin/master`, `git@github.com:ctoth/quire.git`).
-- Propstore pin refreshed to pushed Quire commit `1d670267eba752a615122c26fdc551c466b06601`; `uv.lock` resolves Quire, `sqlalchemy-fts5`, and `sqlite-vec` from non-local sources.
+- Phase 5 build-orchestration deletion exposed a missing Quire FTS capability:
+  Propstore's existing `concept_fts` and `claim_fts` require exact source-query
+  FTS population with FTS key columns `concept_id` and `claim_id`, not only
+  direct field copying from the owning family table.
+- Returned to this Quire-owned phase and added pushed Quire commit
+  `852ab784c1c70484b2b6749393c8c0f8d043ac3d` (`Support charter FTS source
+  queries`). The commit adds `source_query` to `CharterFtsIndex`/`SchemaFtsIndex`,
+  preserves the query in schema catalog payload/hash material, and updates
+  `populate_fts_index` to populate an FTS table from the declared source query.
+- Focused Quire proof gate for the source-query extension:
+  `uv run pytest -vv tests/test_sqlalchemy_engine.py` passed with 6 passed.
+- Quire type gate for the source-query extension: `uv run pyright` passed with
+  0 errors.
+- Propstore pin refreshed to pushed Quire commit `852ab784c1c70484b2b6749393c8c0f8d043ac3d`; `uv.lock` resolves Quire, `sqlalchemy-fts5`, and `sqlite-vec` from non-local sources.
 - Propstore dependency-pin searches for `quire @ file`, `quire @ ..`, `quire @ C:`, `path =`, and `workspace = true` returned no hits; `uv lock --check` passed.
 - Propstore package type gate: `uv run pyright propstore` passed with 0 errors.
 

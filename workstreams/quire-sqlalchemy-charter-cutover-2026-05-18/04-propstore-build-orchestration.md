@@ -400,3 +400,18 @@ Pre-deletion baseline capture:
 
 Next required item: delete and replace the old projection builder with the
 Quire SQLAlchemy charter build path.
+
+Returned-to-Quire capability fix:
+
+- Deletion/replacement planning found that the current Quire charter FTS path
+  could not express Propstore's existing `concept_fts` and `claim_fts`
+  population shape: exact source-query population with FTS key columns
+  `concept_id` and `claim_id`.
+- Returned to `03-quire-fts-vector.md` as required by the index instead of
+  adding a Propstore workaround.
+- Pushed Quire commit `852ab784c1c70484b2b6749393c8c0f8d043ac3d`
+  (`Support charter FTS source queries`) and refreshed Propstore's Quire pin to
+  that pushed commit.
+
+Next required item: resume deletion/replacement of the old projection builder
+using the Quire SQLAlchemy charter FTS source-query path.
