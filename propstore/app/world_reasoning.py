@@ -276,7 +276,7 @@ def _claim_lines(
     world: "WorldQuery",
     active: Sequence["ActiveClaim"],
 ) -> tuple[WorldExtensionsClaimLine, ...]:
-    from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
+    from propstore.families.concepts.declaration import Concept
 
     lines: list[WorldExtensionsClaimLine] = []
     for claim in active:
@@ -285,7 +285,7 @@ def _claim_lines(
         if concept_id:
             concept = world.get_concept(concept_id)
             if concept is not None:
-                concept_name = CONCEPT_ROW_MODEL.coerce(concept).canonical_name
+                concept_name = Concept.coerce(concept).canonical_name
         lines.append(
             WorldExtensionsClaimLine(
                 claim_id=str(claim.claim_id),

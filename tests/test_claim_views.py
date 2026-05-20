@@ -23,7 +23,7 @@ from propstore.app.repository_views import (
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
 from propstore.core.relations import ClaimConceptLinkRole
-from propstore.families.concepts.declaration import ConceptRow
+from propstore.families.concepts.declaration import Concept
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
 
@@ -34,8 +34,8 @@ class _World:
         *,
         claim: ActiveClaim | None = None,
         claims: tuple[ActiveClaim, ...] = (),
-        concept: ConceptRow | None = None,
-        concepts: tuple[ConceptRow, ...] = (),
+        concept: Concept | None = None,
+        concepts: tuple[Concept, ...] = (),
         visible: bool = True,
     ) -> None:
         claim_rows = list(claims)
@@ -51,7 +51,7 @@ class _World:
     def get_claim(self, claim_id: str) -> ActiveClaim | None:
         return self.claims.get(claim_id)
 
-    def get_concept(self, concept_id: str) -> ConceptRow | None:
+    def get_concept(self, concept_id: str) -> Concept | None:
         return self.concepts.get(concept_id)
 
     def claims_with_policy(
@@ -137,16 +137,16 @@ def _claim(**overrides) -> ActiveClaim:
     return ActiveClaim(**values)
 
 
-def _concept() -> ConceptRow:
-    return ConceptRow(
+def _concept() -> Concept:
+    return Concept(
         concept_id="concept1",
         canonical_name="fundamental_frequency",
         form="frequency",
     )
 
 
-def _concept2() -> ConceptRow:
-    return ConceptRow(
+def _concept2() -> Concept:
+    return Concept(
         concept_id="concept2",
         canonical_name="subglottal_pressure",
         form="pressure",

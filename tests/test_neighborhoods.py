@@ -20,7 +20,7 @@ from propstore.app.repository_views import (
 )
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.claim_values import ClaimProvenance
-from propstore.families.concepts.declaration import ConceptRow
+from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import StanceRow
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
@@ -41,8 +41,8 @@ class _World:
     def get_claim(self, claim_id: str) -> ActiveClaim | None:
         return self.claims.get(claim_id)
 
-    def get_concept(self, concept_id: str) -> ConceptRow | None:
-        return ConceptRow(
+    def get_concept(self, concept_id: str) -> Concept | None:
+        return Concept(
             concept_id=concept_id,
             canonical_name="focus_concept",
         )

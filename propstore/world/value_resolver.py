@@ -14,7 +14,7 @@ from ast_equiv import AlgorithmParseError, compare as ast_compare
 from propstore.core.claim_types import ClaimType
 from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.id_types import ConceptId, to_concept_id
-from propstore.families.concepts.declaration import ParameterizationRow
+from propstore.families.concepts.declaration import Parameterization
 from propstore.propagation import rewrite_parameterization_symbols
 from propstore.world.types import (
     DerivedResult,
@@ -84,7 +84,7 @@ def _active_claim_view(claim_input: ActiveClaimInput) -> _ActiveClaimView:
     )
 
 
-def _parameterization_concept_ids(param: ParameterizationRow) -> tuple[ConceptId, ...]:
+def _parameterization_concept_ids(param: Parameterization) -> tuple[ConceptId, ...]:
     try:
         decoded = json.loads(param.concept_ids)
     except json.JSONDecodeError:
@@ -125,8 +125,8 @@ class ActiveClaimResolver:
     def __init__(
         self,
         *,
-        parameterizations_for: Callable[[ConceptId | str], list[ParameterizationRow]],
-        is_param_compatible: Callable[[ParameterizationRow], bool],
+        parameterizations_for: Callable[[ConceptId | str], list[Parameterization]],
+        is_param_compatible: Callable[[Parameterization], bool],
         value_of: Callable[[ConceptId | str], ValueResult],
         extract_variable_concepts: Callable[[ActiveClaim], list[str]],
         collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, Any]],
@@ -320,7 +320,7 @@ class ActiveClaimResolver:
     def _derive_from_parameterization(
         self,
         concept_id: ConceptId,
-        param: ParameterizationRow,
+        param: Parameterization,
         *,
         override_values: Mapping[str, float | str | None] | None,
         derivation_stack: set[ConceptId],
@@ -388,7 +388,7 @@ class ActiveClaimResolver:
 
     def _evaluate_parameterization(
         self,
-        param: ParameterizationRow,
+        param: Parameterization,
         *,
         input_values: Mapping[ConceptId, float],
         output_concept_id: ConceptId,
@@ -461,7 +461,7 @@ class ActiveClaimResolver:
 
     def _parameterization_symbol_aliases(
         self,
-        param: ParameterizationRow,
+        param: Parameterization,
         *,
         output_concept_id: ConceptId,
     ) -> dict[ConceptId, tuple[str, ...]]:

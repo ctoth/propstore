@@ -48,10 +48,9 @@ from propstore.families.relations.projection_model import (
     STANCE_ROW_MODEL,
 )
 from propstore.families.concepts.declaration import (
-    ConceptRow,
-    ParameterizationRow,
+    Concept,
+    Parameterization,
 )
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARAMETERIZATION_ROW_MODEL
 
 
 def _row_provenance(
@@ -211,7 +210,7 @@ def _claim_checked_conditions(row: ActiveClaim) -> CheckedConditionSet | None:
 
 
 def _parameterization_condition_sources(
-    parameterization: ParameterizationRow,
+    parameterization: Parameterization,
 ) -> tuple[str, ...]:
     if parameterization.conditions_ir:
         condition_set = _checked_conditions_from_json_text(
@@ -243,7 +242,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         raise TypeError("build_compiled_world_graph requires conflicts()")
 
     concept_rows = [
-        CONCEPT_ROW_MODEL.coerce(row)
+        Concept.coerce(row)
         for row in store.all_concepts()
     ]
     claim_rows = [
@@ -259,7 +258,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         else []
     )
     parameterization_rows = [
-        PARAMETERIZATION_ROW_MODEL.coerce(row)
+        Parameterization.coerce(row)
         for row in store.all_parameterizations()
     ]
     conflict_rows = [
@@ -293,7 +292,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
             status=row.status,
             form=row.form,
             kind_type=row.kind_type,
-            attributes=_concept_attributes(CONCEPT_ROW_MODEL.to_mapping(row)),
+            attributes=_concept_attributes(row.to_row_mapping()),
         )
         for row in concept_rows
     )

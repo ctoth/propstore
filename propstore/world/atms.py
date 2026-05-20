@@ -75,10 +75,9 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL
 from propstore.families.concepts.declaration import (
-    ParameterizationRow,
-    ParameterizationRowInput,
+    Parameterization,
+    ParameterizationInput,
 )
-from propstore.families.concepts.projection_model import PARAMETERIZATION_ROW_MODEL
 from propstore.support_revision.projection import situated_assertion_from_active_claim
 from propstore.world.types import (
     ATMSConceptFutureStatusEntry,
@@ -130,7 +129,7 @@ class _ATMSRuntimeLike(Protocol):
     def active_graph(self) -> ActiveWorldGraph: ...
 
     @property
-    def all_parameterizations(self) -> Callable[[], list[ParameterizationRowInput]]: ...
+    def all_parameterizations(self) -> Callable[[], list[ParameterizationInput]]: ...
 
     @property
     def all_micropublications(self) -> Callable[[], list[ActiveMicropublicationInput]]: ...
@@ -142,7 +141,7 @@ class _ATMSRuntimeLike(Protocol):
     def conflicts(self) -> Callable[[], list[ConflictRowInput]]: ...
 
     @property
-    def is_param_compatible(self) -> Callable[[ParameterizationRow], bool]: ...
+    def is_param_compatible(self) -> Callable[[Parameterization], bool]: ...
 
     @property
     def condition_registry(self) -> Mapping[str, ConceptInfo]: ...
@@ -165,7 +164,7 @@ class _ATMSBoundLike(Protocol):
     _lifting_system: LiftingSystem | None
     _policy: Any
 
-    def is_param_compatible(self, parameterization: ParameterizationRow) -> bool: ...
+    def is_param_compatible(self, parameterization: Parameterization) -> bool: ...
     def claim_support(self, claim: ActiveClaim) -> tuple[Label | None, SupportQuality]: ...
     def value_of(self, concept_id: str) -> ValueResult: ...
     def rebind(
@@ -309,11 +308,11 @@ class ATMSJustification:
 class _ATMSRuntime:
     environment: Environment
     active_graph: ActiveWorldGraph
-    all_parameterizations: Callable[[], list[ParameterizationRowInput]]
+    all_parameterizations: Callable[[], list[ParameterizationInput]]
     all_micropublications: Callable[[], list[ActiveMicropublicationInput]]
     active_claims: Callable[[], list[ActiveClaim]]
     conflicts: Callable[[], list[ConflictRowInput]]
-    is_param_compatible: Callable[[ParameterizationRow], bool]
+    is_param_compatible: Callable[[Parameterization], bool]
     condition_registry: Mapping[str, ConceptInfo]
     claim_support: Callable[[ActiveClaim], tuple[Label | None, SupportQuality]]
     concept_status: Callable[[str], ValueStatus]
@@ -394,8 +393,8 @@ def _claim_node_to_active_claim(claim_node: ClaimNode) -> ActiveClaim:
     return CLAIM_ROW_MODEL.from_row(row_data)
 
 
-def _parameterization_edge_to_row(edge: ParameterizationEdge) -> ParameterizationRow:
-    return ParameterizationRow(
+def _parameterization_edge_to_row(edge: ParameterizationEdge) -> Parameterization:
+    return Parameterization(
         output_concept_id=edge.output_concept_id,
         concept_ids=json.dumps(list(edge.input_concept_ids)),
         formula=edge.formula,
@@ -527,7 +526,7 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
             if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
         ]
 
-    def _all_parameterizations() -> list[ParameterizationRowInput]:
+    def _all_parameterizations() -> list[ParameterizationInput]:
         return [
             _parameterization_edge_to_row(edge)
             for edge in active_graph.compiled.parameterizations
@@ -1517,7 +1516,7 @@ class ATMSEngine:
         provider_ids_by_concept = self._provider_node_ids_by_concept()
 
         for index, param_input in enumerate(self._all_parameterizations):
-            param = PARAMETERIZATION_ROW_MODEL.coerce(param_input)
+            param = Parameterization.coerce(param_input)
             if not self._runtime.is_param_compatible(param):
                 continue
 
@@ -1700,9 +1699,9 @@ class ATMSEngine:
             for concept_id, node_ids in providers.items()
         }
 
-    def _sorted_parameterizations(self) -> list[ParameterizationRowInput]:
-        def sort_key(row: ParameterizationRowInput) -> tuple[str, str, str]:
-            parameterization = PARAMETERIZATION_ROW_MODEL.coerce(row)
+    def _sorted_parameterizations(self) -> list[ParameterizationInput]:
+        def sort_key(row: ParameterizationInput) -> tuple[str, str, str]:
+            parameterization = Parameterization.coerce(row)
             return (
                 str(parameterization.output_concept_id),
                 parameterization.formula or "",
@@ -1750,7 +1749,7 @@ class ATMSEngine:
 
     @staticmethod
     def _parameterization_condition_set(
-        parameterization: ParameterizationRow,
+        parameterization: Parameterization,
     ) -> CheckedConditionSet | None:
         if not parameterization.conditions_ir:
             if parameterization.conditions_cel:

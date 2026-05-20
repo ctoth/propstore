@@ -20,7 +20,7 @@ from propstore.app.repository_views import (
 )
 from propstore.core.active_claims import ActiveClaim
 from propstore.core.claim_values import ClaimProvenance, ClaimSource
-from propstore.families.concepts.declaration import ConceptRow
+from propstore.families.concepts.declaration import Concept
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
@@ -30,7 +30,7 @@ class _World:
     def __init__(
         self,
         *,
-        concept: ConceptRow | None = None,
+        concept: Concept | None = None,
         claims: tuple[ActiveClaim, ...] = (),
         visible_ids: tuple[str, ...] | None = None,
     ) -> None:
@@ -49,7 +49,7 @@ class _World:
             return str(self.concept.concept_id)
         return None
 
-    def get_concept(self, concept_id: str) -> ConceptRow | None:
+    def get_concept(self, concept_id: str) -> Concept | None:
         if self.concept is None:
             return None
         if concept_id in {
@@ -115,8 +115,8 @@ def _repo() -> Repository:
     return cast(Repository, object())
 
 
-def _concept() -> ConceptRow:
-    return ConceptRow(
+def _concept() -> Concept:
+    return Concept(
         concept_id="concept1",
         canonical_name="fundamental_frequency",
         status="accepted",

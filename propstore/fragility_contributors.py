@@ -12,7 +12,7 @@ from argumentation.datalog_grounding import GroundRuleOrigin
 from propstore.aspic_bridge.build import build_bridge_csaf, compile_bridge_context
 from propstore.aspic_bridge.extract import _extract_justifications, _extract_stance_rows
 from propstore.aspic_bridge.grounding import _decode_grounded_predicate, project_grounded_rules
-from propstore.families.concepts.projection_model import PARAMETERIZATION_ROW_MODEL
+from propstore.families.concepts.declaration import Parameterization
 from propstore.fragility_scoring import FragilityWarning, score_conflict, support_derivative_fragility
 from propstore.fragility_types import (
     AssumptionTarget,
@@ -137,7 +137,7 @@ def _parameterizations_to_queryables(
 ) -> tuple[QueryableAssumption, ...]:
     queryables: list[str | QueryableAssumption] = []
     for parameterization_input in bound._store.all_parameterizations():
-        parameterization = PARAMETERIZATION_ROW_MODEL.coerce(parameterization_input)
+        parameterization = Parameterization.coerce(parameterization_input)
         if not parameterization.conditions_cel:
             continue
         decoded = json.loads(parameterization.conditions_cel)
@@ -153,7 +153,7 @@ def _parameterizations_to_queryables(
 def derive_scored_concepts(bound: FragilityWorld) -> list[str]:
     try:
         concepts: set[str] = {
-            str(PARAMETERIZATION_ROW_MODEL.coerce(row).output_concept_id)
+            str(Parameterization.coerce(row).output_concept_id)
             for row in bound._store.all_parameterizations()
         }
         for claim in bound.active_claims():
@@ -287,7 +287,7 @@ def collect_missing_measurement_interventions(
     parameterizations_by_input: dict[str, set[str]] = {}
 
     for parameterization_input in bound._store.all_parameterizations():
-        parameterization = PARAMETERIZATION_ROW_MODEL.coerce(parameterization_input)
+        parameterization = Parameterization.coerce(parameterization_input)
         output_concept_id = str(parameterization.output_concept_id)
         if concept_ids and output_concept_id not in set(concept_ids):
             continue

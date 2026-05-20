@@ -22,8 +22,7 @@ from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, scope_condition_registry
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ClaimId
-from propstore.families.concepts.declaration import ConceptRowInput
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
+from propstore.families.concepts.declaration import Concept, ConceptInput
 from propstore.world.types import (
     IntegrityConstraint,
     IntegrityConstraintKind,
@@ -54,10 +53,10 @@ def _claim_concept_id(claim: ActiveClaim) -> str:
     return concept_id
 
 
-def _normalized_form_parameters(concept: ConceptRowInput | None) -> Mapping[str, object]:
+def _normalized_form_parameters(concept: ConceptInput | None) -> Mapping[str, object]:
     if concept is None:
         return {}
-    raw = CONCEPT_ROW_MODEL.coerce(concept).form_parameters
+    raw = Concept.coerce(concept).form_parameters
     if isinstance(raw, Mapping):
         return raw
     if isinstance(raw, str):
@@ -77,8 +76,8 @@ def _concept_integrity_constraints(
     concept = world.get_concept(concept_id)
     if concept is None:
         return tuple()
-    concept_row = CONCEPT_ROW_MODEL.coerce(concept)
-    concept_data = CONCEPT_ROW_MODEL.to_mapping(concept_row)
+    concept_row = Concept.coerce(concept)
+    concept_data = concept_row.to_row_mapping()
 
     constraints: list[IntegrityConstraint] = []
     lower = concept_data.get("range_min")
@@ -147,7 +146,7 @@ def _cel_registry_for_concepts(
     concept_ids: Sequence[str],
 ) -> dict[str, ConceptInfo]:
     rows = [
-        CONCEPT_ROW_MODEL.coerce(concept)
+        Concept.coerce(concept)
         for concept_id in concept_ids
         if (concept := world.get_concept(concept_id)) is not None
     ]

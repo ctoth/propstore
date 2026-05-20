@@ -7,7 +7,7 @@ from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import WorldStore
 from propstore.families.claims.declaration import CLAIM_ROW_MODEL
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
+from propstore.families.concepts.declaration import Concept
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
 from propstore.worldline.result_types import WorldlineInputSource, WorldlineTargetValue
@@ -41,7 +41,7 @@ class ResolutionContext:
 def concept_name(world: WorldStore, concept_id: ConceptId | str) -> str:
     concept = world.get_concept(concept_id)
     return (
-        CONCEPT_ROW_MODEL.coerce(concept).canonical_name
+        Concept.coerce(concept).canonical_name
         if concept
         else str(concept_id)
     )

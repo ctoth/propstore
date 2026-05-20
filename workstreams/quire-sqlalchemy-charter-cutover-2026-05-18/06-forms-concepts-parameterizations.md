@@ -481,3 +481,35 @@ Concept/form/parameterization model cutover correction:
 - Internal concept, world, traversal, registry, and view code must not use
   top-level per-model wrapper helpers as a replacement for the deleted
   projection model layer.
+
+Concept projection-model deletion and wrapper cleanup:
+
+- Removed the attempted top-level concept/parameterization wrapper helpers
+  from `propstore/families/concepts/declaration.py`.
+- Deleted `propstore/families/concepts/projection_model.py`.
+- Updated concept and parameterization callers to use `Concept.coerce`,
+  `Concept.to_row_mapping`, `Parameterization.coerce`, and
+  `Parameterization.to_row_mapping` directly instead of
+  `CONCEPT_ROW_MODEL`, `PARAMETERIZATION_ROW_MODEL`, or replacement wrapper
+  helpers.
+- Updated the affected production/test caller set:
+  `propstore/app/world_reasoning.py`, `propstore/core/graph_build.py`,
+  `propstore/fragility_contributors.py`, `propstore/graph_export.py`,
+  `propstore/parameterization_walk.py`, `propstore/sensitivity.py`,
+  `propstore/world/assignment_selection_policy.py`, `propstore/world/atms.py`,
+  `propstore/world/bound.py`, `propstore/world/consistency.py`,
+  `propstore/world/model.py`, `propstore/world/overlay.py`,
+  `propstore/world/queries.py`, `propstore/worldline/resolution.py`, and
+  `tests/test_world_query.py`.
+- Old-path searches for `propstore.families.concepts.projection_model`,
+  `ConceptRow`, `ParameterizationRow`, `CONCEPT_ROW_MODEL`, and
+  `PARAMETERIZATION_ROW_MODEL` returned zero hits in `propstore` and `tests`.
+- Focused pyright passed:
+  `uv run pyright propstore/families/concepts/declaration.py propstore/core/graph_build.py propstore/world/assignment_selection_policy.py propstore/world/bound.py propstore/world/model.py propstore/world/consistency.py propstore/fragility_contributors.py propstore/parameterization_walk.py propstore/graph_export.py propstore/sensitivity.py propstore/worldline/resolution.py propstore/world/atms.py propstore/world/overlay.py propstore/world/queries.py propstore/app/world_reasoning.py`
+  returned 0 errors.
+- Package pyright passed:
+  `uv run pyright propstore` returned 0 errors.
+- Focused logged pytest passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label concept-model-helper-cleanup tests/test_world_query.py tests/test_cel_checker.py tests/test_concept_views.py tests/test_neighborhoods.py`
+  returned `224 passed, 29 warnings`; log:
+  `logs/test-runs/concept-model-helper-cleanup-20260520-124711.log`.

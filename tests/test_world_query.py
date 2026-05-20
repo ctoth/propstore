@@ -29,7 +29,7 @@ from propstore.core.conditions.registry import (
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.declaration import CLAIM_ROW_MODEL
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
+from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -598,7 +598,7 @@ class TestUnboundQueries:
     def test_get_concept(self, world):
         c = world.get_concept("fundamental_frequency")
         assert c is not None
-        assert CONCEPT_ROW_MODEL.coerce(c).canonical_name == "fundamental_frequency"
+        assert Concept.coerce(c).canonical_name == "fundamental_frequency"
 
     def test_get_concept_missing(self, world):
         assert world.get_concept("nonexistent") is None

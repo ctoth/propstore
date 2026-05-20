@@ -31,7 +31,7 @@ from propstore.cel_registry import (
     build_store_cel_registry,
 )
 from propstore.families.concepts.stages import ConceptRecord, parse_concept_record
-from propstore.families.concepts.declaration import ConceptRow
+from propstore.families.concepts.declaration import Concept
 
 
 # ── Fixtures: concept registries ─────────────────────────────────────
@@ -559,7 +559,7 @@ class TestBuildCelRegistry:
             build_store_cel_registry([{"id": "ps:concept:x", "canonical_name": "x"}])
 
     def test_store_projection_rejects_missing_kind(self):
-        row = ConceptRow(
+        row = Concept(
             concept_id="ps:concept:temperature",
             canonical_name="temperature",
             kind_type=None,

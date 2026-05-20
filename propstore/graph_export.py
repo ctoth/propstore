@@ -14,8 +14,7 @@ from propstore.core.environment import Environment
 from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.families.relations.declaration import RelationshipRow, StanceRow
 from propstore.families.relations.projection_model import RELATIONSHIP_ROW_MODEL, STANCE_ROW_MODEL
-from propstore.families.concepts.declaration import ConceptRow, ParameterizationRow
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARAMETERIZATION_ROW_MODEL
+from propstore.families.concepts.declaration import Concept, Parameterization
 from propstore.world import WorldStore, BeliefSpace
 
 if TYPE_CHECKING:
@@ -181,7 +180,7 @@ def build_knowledge_graph(
     # ---- 1. Concept nodes ----
     concept_rows = world.all_concepts()
     for row_input in concept_rows:
-        row = CONCEPT_ROW_MODEL.coerce(row_input)
+        row = Concept.coerce(row_input)
         cid = str(row.concept_id)
         if allowed_concept_ids is not None and cid not in allowed_concept_ids:
             continue
@@ -243,7 +242,7 @@ def build_knowledge_graph(
 
     # ---- 3. Parameterization edges ----
     for row_input in world.all_parameterizations():
-        row = PARAMETERIZATION_ROW_MODEL.coerce(row_input)
+        row = Parameterization.coerce(row_input)
         output_id = str(row.output_concept_id)
         if output_id not in node_ids:
             continue

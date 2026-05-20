@@ -23,10 +23,9 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import (
-    ConceptRow,
-    ParameterizationRow,
+    Concept,
+    Parameterization,
 )
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARAMETERIZATION_ROW_MODEL
 from propstore.core.labels import (
     AssumptionRef,
     EnvironmentKey,
@@ -105,9 +104,9 @@ def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, Concep
     registry: dict[str, dict] = {}
     rows = []
     for concept_input in world.all_concepts():
-        concept = CONCEPT_ROW_MODEL.coerce(concept_input)
+        concept = Concept.coerce(concept_input)
         rows.append(concept)
-        cdata = dict(CONCEPT_ROW_MODEL.to_mapping(concept))
+        cdata = dict(concept.to_row_mapping())
         cid = str(concept.concept_id)
         if concept.form_parameters is not None:
             try:
@@ -120,8 +119,8 @@ def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, Concep
             for param_input in params:
                 param = (
                     param_input
-                    if isinstance(param_input, ParameterizationRow)
-                    else PARAMETERIZATION_ROW_MODEL.from_row(
+                    if isinstance(param_input, Parameterization)
+                    else Parameterization.from_row_mapping(
                         {
                             **dict(param_input),
                             "output_concept_id": dict(param_input).get(
@@ -275,8 +274,8 @@ class BoundWorld(BeliefSpace):
             parameterizations_for=lambda concept_id: [
                 (
                     row
-                    if isinstance(row, ParameterizationRow)
-                    else PARAMETERIZATION_ROW_MODEL.from_row(
+                    if isinstance(row, Parameterization)
+                    else Parameterization.from_row_mapping(
                         {
                             **dict(row),
                             "output_concept_id": dict(row).get(
@@ -351,10 +350,10 @@ class BoundWorld(BeliefSpace):
             lifting_system=self._lifting_system,
         )
 
-    def is_param_compatible(self, parameterization: ParameterizationRow) -> bool:
+    def is_param_compatible(self, parameterization: Parameterization) -> bool:
         return self.is_parameterization_compatible(parameterization)
 
-    def is_parameterization_compatible(self, parameterization: ParameterizationRow) -> bool:
+    def is_parameterization_compatible(self, parameterization: Parameterization) -> bool:
         """Check if parameterization conditions are compatible with bindings."""
         if not parameterization.conditions_ir:
             if parameterization.conditions_cel:
@@ -415,16 +414,16 @@ class BoundWorld(BeliefSpace):
         concept = (
             None
             if concept_input is None
-            else dict(CONCEPT_ROW_MODEL.to_mapping(CONCEPT_ROW_MODEL.coerce(concept_input)))
+            else dict(Concept.coerce(concept_input).to_row_mapping())
         )
         if concept is None:
             for entry in self._store.all_concepts():
-                row = CONCEPT_ROW_MODEL.coerce(entry)
+                row = Concept.coerce(entry)
                 if (
                     str(row.concept_id) == str(concept_id)
                     or row.canonical_name == str(concept_id)
                 ):
-                    concept = dict(CONCEPT_ROW_MODEL.to_mapping(row))
+                    concept = dict(row.to_row_mapping())
                     break
         if concept is None:
             return candidates

@@ -12,13 +12,12 @@ import json
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from propstore.families.concepts.declaration import ParameterizationRow, ParameterizationRowInput
-from propstore.families.concepts.projection_model import PARAMETERIZATION_ROW_MODEL
+from propstore.families.concepts.declaration import Parameterization, ParameterizationInput
 
 
 def reachable_concepts(
     start: set[str],
-    parameterizations_for: Callable[[str], Sequence[ParameterizationRowInput]],
+    parameterizations_for: Callable[[str], Sequence[ParameterizationInput]],
 ) -> set[str]:
     """Find all concepts reachable via parameterization inputs from start.
 
@@ -46,8 +45,8 @@ def reachable_concepts(
         for param_input in parameterizations_for(cid):
             param = (
                 param_input
-                if isinstance(param_input, ParameterizationRow)
-                else PARAMETERIZATION_ROW_MODEL.from_row(
+                if isinstance(param_input, Parameterization)
+                else Parameterization.from_row_mapping(
                     {
                         **dict(param_input),
                         "output_concept_id": dict(param_input).get("output_concept_id", cid),

@@ -58,12 +58,11 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import (
-    ConceptRow,
-    ParameterizationRow,
-    ParameterizationRowInput,
+    Concept,
+    Parameterization,
+    ParameterizationInput,
 )
-from propstore.families.concepts.declaration import ConceptRowInput
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL, PARAMETERIZATION_ROW_MODEL
+from propstore.families.concepts.declaration import ConceptInput
 from propstore.world.bound import BoundWorld, _recomputed_conflicts
 from propstore.world.types import (
     BeliefSpace,
@@ -142,16 +141,16 @@ class _ParameterizationCatalogAdapter:
     def stances_between(self, claim_ids: set[str]):
         return list(self.base.stances_between(claim_ids))
 
-    def all_parameterizations(self) -> list[ParameterizationRow]:
+    def all_parameterizations(self) -> list[Parameterization]:
         seen: set[tuple[object, ...]] = set()
-        rows: list[ParameterizationRow] = []
+        rows: list[Parameterization] = []
         for concept_input in self.base.all_concepts():
-            concept_id = str(CONCEPT_ROW_MODEL.coerce(concept_input).concept_id)
+            concept_id = str(Concept.coerce(concept_input).concept_id)
             for row_input in self.base.parameterizations_for(concept_id):
                 row = (
                     row_input
-                    if isinstance(row_input, ParameterizationRow)
-                    else PARAMETERIZATION_ROW_MODEL.from_row(
+                    if isinstance(row_input, Parameterization)
+                    else Parameterization.from_row_mapping(
                         {
                             **dict(row_input),
                             "output_concept_id": dict(row_input).get(
@@ -336,16 +335,16 @@ class _GraphOverlayStore:
     def __getattr__(self, name: str) -> Any:
         return getattr(self._base, name)
 
-    def get_concept(self, concept_id: str) -> ConceptRowInput | None:
+    def get_concept(self, concept_id: str) -> ConceptInput | None:
         getter = getattr(self._base, "get_concept", None)
         if callable(getter):
-            concept = cast(Callable[[str], ConceptRowInput | None], getter)(concept_id)
+            concept = cast(Callable[[str], ConceptInput | None], getter)(concept_id)
             if concept is not None:
                 return concept
         if not hasattr(self._base, "all_concepts"):
             return None
         for concept_input in self._base.all_concepts():
-            concept = CONCEPT_ROW_MODEL.coerce(concept_input)
+            concept = Concept.coerce(concept_input)
             if str(concept.concept_id) == concept_id or concept.canonical_name == concept_id:
                 return concept
         return None
@@ -372,7 +371,7 @@ class _GraphOverlayStore:
             return cast(Callable[[str], str | None], resolver)(name)
         return None
 
-    def all_concepts(self) -> Sequence[ConceptRowInput]:
+    def all_concepts(self) -> Sequence[ConceptInput]:
         return list(self._base.all_concepts())
 
     def claims_for(self, concept_id: str | None) -> list[ActiveClaimInput]:
@@ -403,7 +402,7 @@ class _GraphOverlayStore:
     def conflicts(self) -> Sequence[ConflictRowInput]:
         return list(self._conflicts)
 
-    def all_parameterizations(self) -> Sequence[ParameterizationRowInput]:
+    def all_parameterizations(self) -> Sequence[ParameterizationInput]:
         return list(self._base.all_parameterizations())
 
     def all_relationships(self) -> Sequence[RelationshipRowInput]:
@@ -452,7 +451,7 @@ class _GraphOverlayStore:
     def stats(self) -> WorldStoreStats:
         return self._base.stats()
 
-    def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationRowInput]:
+    def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationInput]:
         return list(self._base.parameterizations_for(concept_id))
 
     def explain(self, claim_id: str) -> list[StanceRow]:

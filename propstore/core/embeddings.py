@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from propstore.core.active_claims import ActiveClaim
-from propstore.families.concepts.declaration import ConceptRow
+from propstore.families.concepts.declaration import Concept
 
 
 @dataclass(frozen=True)
@@ -34,7 +34,7 @@ def claim_embedding_text(claim: ActiveClaim) -> str:
 
 
 def concept_embedding_text(
-    concept: ConceptRow,
+    concept: Concept,
     aliases: Sequence[str] = (),
 ) -> str:
     """Return the text representation used for concept embeddings."""

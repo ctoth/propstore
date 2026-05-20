@@ -58,8 +58,8 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.micropublications.declaration import select_all_micropublications
 from propstore.families.concepts.declaration import (
-    ConceptRow,
-    ParameterizationRow,
+    Concept,
+    Parameterization,
     build_concept_logical_id_index,
     count_concepts,
     resolve_concept_alias,
@@ -73,7 +73,6 @@ from propstore.families.concepts.declaration import (
     select_parameterizations_for_output_concept,
     search_concept_ids,
 )
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.families.world_charters import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
@@ -278,7 +277,7 @@ class WorldQuery(WorldStore):
     def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[ActiveClaim]:
         return select_claim_rows(self._conn, where_sql, params)
 
-    def get_concept(self, concept_id: str) -> ConceptRow | None:
+    def get_concept(self, concept_id: str) -> Concept | None:
         concept = select_concept_by_id(self._conn, concept_id)
         if concept is None:
             resolved = self.resolve_concept(concept_id)
@@ -287,7 +286,7 @@ class WorldQuery(WorldStore):
             concept = select_concept_by_id(self._conn, resolved)
         if concept is None:
             return None
-        data = dict(CONCEPT_ROW_MODEL.to_mapping(concept))
+        data = dict(concept.to_row_mapping())
         logical_ids_json = data.get("logical_ids_json")
         if isinstance(logical_ids_json, str) and logical_ids_json:
             try:
@@ -297,7 +296,7 @@ class WorldQuery(WorldStore):
         else:
             data["logical_ids"] = []
         data["logical_id"] = data.get("primary_logical_id")
-        return CONCEPT_ROW_MODEL.from_row(data)
+        return Concept.from_row_mapping(data)
 
     def concept_name(self, concept_id: str) -> str | None:
         """Return the canonical name for a concept, or None if not found."""
@@ -549,10 +548,10 @@ class WorldQuery(WorldStore):
     def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
         return select_conflicts(self._conn, concept_id)
 
-    def all_concepts(self) -> list[ConceptRow]:
+    def all_concepts(self) -> list[Concept]:
         return select_all_concepts(self._conn)
 
-    def all_parameterizations(self) -> list[ParameterizationRow]:
+    def all_parameterizations(self) -> list[Parameterization]:
         return select_all_parameterizations(self._conn)
 
     def all_relationships(self) -> list[RelationshipRow]:
@@ -746,7 +745,7 @@ class WorldQuery(WorldStore):
 
     # ── Parameterization queries ─────────────────────────────────────
 
-    def _parameterizations_for(self, concept_id: str) -> list[ParameterizationRow]:
+    def _parameterizations_for(self, concept_id: str) -> list[Parameterization]:
         """Get parameterization rows where output_concept_id matches."""
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
         return select_parameterizations_for_output_concept(
@@ -754,7 +753,7 @@ class WorldQuery(WorldStore):
             resolved_concept_id,
         )
 
-    def parameterizations_for(self, concept_id: str) -> list[ParameterizationRow]:
+    def parameterizations_for(self, concept_id: str) -> list[Parameterization]:
         return self._parameterizations_for(concept_id)
 
     def compiled_graph(self):

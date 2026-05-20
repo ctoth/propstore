@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Mapping
 
 from propstore.reporting import JsonReportMixin
 from propstore.core.environment import Environment
+from propstore.families.concepts.declaration import Concept, Parameterization
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -69,10 +70,6 @@ def _check_transitive_consistency(
 ) -> WorldConsistencyReport:
     from propstore.conflict_detector import detect_transitive_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-    from propstore.families.concepts.projection_model import (
-        CONCEPT_ROW_MODEL,
-        PARAMETERIZATION_ROW_MODEL,
-    )
 
     claim_files = [
         handle
@@ -80,22 +77,14 @@ def _check_transitive_consistency(
     ]
     concept_registry: dict[str, dict] = {}
     for concept_input in world.all_concepts():
-        concept_data = dict(
-            CONCEPT_ROW_MODEL.to_mapping(
-                CONCEPT_ROW_MODEL.coerce(concept_input)
-            )
-        )
+        concept_data = dict(Concept.coerce(concept_input).to_row_mapping())
         concept_id = str(concept_data["id"])
         param_rows = world.parameterizations_for(concept_id)
         if param_rows:
             concept_data["parameterization_relationships"] = []
             for param_row in param_rows:
-                parameterization = PARAMETERIZATION_ROW_MODEL.coerce(param_row)
-                param_data = dict(
-                    PARAMETERIZATION_ROW_MODEL.to_mapping(
-                        parameterization
-                    )
-                )
+                parameterization = Parameterization.coerce(param_row)
+                param_data = dict(parameterization.to_row_mapping())
                 concept_data["parameterization_relationships"].append(
                     {
                         "inputs": json.loads(parameterization.concept_ids),

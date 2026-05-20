@@ -12,8 +12,7 @@ from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.reporting import JsonReportMixin
 from propstore.families.claims.declaration import CLAIM_ROW_MODEL
-from propstore.families.concepts.declaration import ConceptRow, ConceptSearchQuerySyntaxError
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
+from propstore.families.concepts.declaration import Concept, ConceptSearchQuerySyntaxError
 from propstore.world.types import RenderPolicy
 
 if TYPE_CHECKING:
@@ -355,7 +354,7 @@ def _format_value_with_si(
                 concept = world.get_concept(concept_id)
                 if concept is not None:
                     canonical_unit = str(
-                        CONCEPT_ROW_MODEL.coerce(concept).unit_symbol or ""
+                        Concept.coerce(concept).unit_symbol or ""
                     )
         si_label = f"{value_si} {canonical_unit}".rstrip()
         return f"value={value} {unit} (SI: {si_label})"
@@ -379,7 +378,7 @@ def _concept_resolution_candidate(
     concept = world.get_concept(concept_id)
     if concept is None:
         return None
-    row = CONCEPT_ROW_MODEL.coerce(concept)
+    row = Concept.coerce(concept)
     return WorldConceptResolutionCandidate(
         concept_id=concept_id,
         display_id=world_concept_display_id(world, concept_id),
@@ -417,7 +416,7 @@ def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
     concept = world.get_concept(concept_id)
     if concept is None:
         return concept_id
-    row = CONCEPT_ROW_MODEL.coerce(concept)
+    row = Concept.coerce(concept)
     logical_id = row.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return logical_id
@@ -438,7 +437,7 @@ def _world_chain_concept_line(
 ) -> WorldChainConceptLine:
     concept = world.get_concept(concept_id)
     canonical_name = (
-        CONCEPT_ROW_MODEL.coerce(concept).canonical_name
+        Concept.coerce(concept).canonical_name
         if concept is not None
         else None
     )
@@ -457,7 +456,7 @@ def query_world_concept(
     if concept is None:
         raise UnknownConceptError(request.target)
 
-    concept_row = CONCEPT_ROW_MODEL.coerce(concept)
+    concept_row = Concept.coerce(concept)
     claims = tuple(
         WorldClaimLine(
             display_id=world_claim_display_id(claim_row),

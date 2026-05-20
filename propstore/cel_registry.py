@@ -8,7 +8,7 @@ from typing import Any
 
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.families.concepts.stages import ConceptRecord
-from propstore.families.concepts.declaration import ConceptRow
+from propstore.families.concepts.declaration import Concept
 from propstore.families.forms.stages import kind_type_from_form_name
 
 
@@ -69,7 +69,7 @@ def concept_info_from_concept_record(record: ConceptRecord) -> ConceptInfo:
     )
 
 
-def concept_info_from_concept_row(row: ConceptRow) -> ConceptInfo:
+def concept_info_from_concept_row(row: Concept) -> ConceptInfo:
     concept_id = str(row.concept_id)
     if not concept_id:
         raise ValueError("concept row must define a non-empty concept_id")
@@ -137,12 +137,12 @@ def build_canonical_cel_registry(
 
 
 def build_store_cel_registry(
-    rows: Iterable[ConceptRow],
+    rows: Iterable[Concept],
 ) -> dict[str, ConceptInfo]:
-    typed_rows: list[ConceptRow] = []
+    typed_rows: list[Concept] = []
     for row in rows:
-        if not isinstance(row, ConceptRow):
-            raise TypeError("build_store_cel_registry expects Iterable[ConceptRow]")
+        if not isinstance(row, Concept):
+            raise TypeError("build_store_cel_registry expects Iterable[Concept]")
         typed_rows.append(row)
     return _build_registry(
         concept_info_from_concept_row(row)
