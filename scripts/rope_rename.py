@@ -7,6 +7,32 @@ from rope.base.project import Project
 from rope.refactor.rename import Rename
 
 
+IGNORED_RESOURCES = [
+    ".git",
+    ".git/*",
+    ".hypothesis",
+    ".hypothesis/*",
+    ".mypy_cache",
+    ".mypy_cache/*",
+    ".pytest_cache",
+    ".pytest_cache/*",
+    ".ruff_cache",
+    ".ruff_cache/*",
+    ".tmp",
+    ".tmp/*",
+    ".venv",
+    ".venv/*",
+    "logs",
+    "logs/*",
+    "reports",
+    "reports/*",
+    "out",
+    "out/*",
+    "pyghidra_mcp_projects",
+    "pyghidra_mcp_projects/*",
+]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument("path", help="File containing the symbol to rename")
@@ -25,7 +51,11 @@ def main() -> int:
     root = Path(args.root).resolve()
     target_path = Path(args.path).resolve()
 
-    project = Project(str(root))
+    project = Project(
+        str(root),
+        ropefolder=None,
+        ignored_resources=IGNORED_RESOURCES,
+    )
     try:
         resource = project.get_file(str(target_path.relative_to(root)).replace("\\", "/"))
         source = resource.read()
