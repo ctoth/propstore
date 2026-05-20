@@ -17,9 +17,9 @@ from argumentation.aspic import (
     compute_defeats,
     sub,
 )
-from propstore.core.active_claims import ActiveClaimInput
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import IstLiteralKey, LiteralKey, claim_key, ground_key
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import StanceRowInput
 from propstore.grounding.bundle import GroundedRulesBundle
 
@@ -68,7 +68,7 @@ def _query_goal_key(
 
 def query_claim(
     claim_id: str | GroundAtom | LiteralKey,
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[Claim],
     justifications: list[CanonicalJustification],
     stances: Sequence[StanceRowInput],
     *,
