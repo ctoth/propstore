@@ -7,7 +7,10 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from quire.documents import LoadedDocument
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
+from propstore.compiler.ir import ClaimCompilationBundle, SemanticClaim, SemanticClaimFile
+from propstore.families.claims.declaration import Claim, compile_claim_models
 from propstore.families.relations.declaration import StanceRow
 from propstore.stances import coerce_stance_type
 from argumentation.dung import ArgumentationFramework
@@ -295,6 +298,44 @@ def _load_branch_claims(snapshot: RepositorySnapshot, commit: str | None) -> lis
     return active_claims
 
 
+def _claim_entry(claim: MergeClaim) -> LoadedDocument:
+    return LoadedDocument(
+        filename=claim.artifact_id,
+        artifact_path=None,
+        store_root=None,
+        document=claim.document,
+    )
+
+
+def _semantic_claim(claim: MergeClaim, entry: LoadedDocument) -> SemanticClaim:
+    return SemanticClaim(
+        filename=entry.filename,
+        source_paper=claim.provenance_payload().get("paper", claim.artifact_id),
+        artifact_id=claim.artifact_id,
+        claim_type=claim.claim_type,
+        authored_claim=claim.to_payload(include_id_alias=True),
+        resolved_claim=claim.document,
+    )
+
+
+def _compiled_branch_claims(active_claims: list[MergeClaim]) -> tuple[Claim, ...]:
+    entries = tuple(_claim_entry(claim) for claim in active_claims)
+    semantic_files = tuple(
+        SemanticClaimFile(
+            loaded_entry=entry,
+            normalized_entry=entry,
+            claims=(_semantic_claim(claim, entry),),
+        )
+        for claim, entry in zip(active_claims, entries, strict=True)
+    )
+    bundle = ClaimCompilationBundle(
+        context=None,
+        normalized_claim_files=entries,
+        semantic_files=semantic_files,
+    )
+    return compile_claim_models(bundle, concept_registry={}).claims
+
+
 def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[StanceRow]:
     rows: list[StanceRow] = []
     for claim in active_claims:
@@ -328,9 +369,10 @@ def build_branch_structured_summary(snapshot: RepositorySnapshot, branch: str) -
     content_signature = _summary_content_signature(active_claims, stance_rows)
     if active_claims:
         snapshot_store = _BranchSnapshotStore(snapshot.repo, commit, stance_rows)
+        typed_claims = _compiled_branch_claims(active_claims)
         projection = build_aspic_projection(
             snapshot_store,
-            [claim.to_payload(include_id_alias=True) for claim in active_claims],
+            typed_claims,
             bundle=snapshot_store.grounding_bundle(),
         )
     else:

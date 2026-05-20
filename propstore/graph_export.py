@@ -40,7 +40,7 @@ def _display_claim_id_from_store(world: WorldStore, claim_id: str) -> str:
     getter = getattr(world, "get_claim", None)
     if callable(getter):
         claim = getter(claim_id)
-        if claim is not None:
+        if isinstance(claim, Claim):
             return _display_claim_id(claim)
     return claim_id
 
