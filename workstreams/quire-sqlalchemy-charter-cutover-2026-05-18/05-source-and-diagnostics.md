@@ -536,3 +536,54 @@ Completed-phase audit for this correction:
   generic.
 - No Phase 6 source or diagnostics code added a new `resolve_claim`,
   `resolve_concept`, or `resolve_alias` wrapper.
+
+## Current Audit Refresh
+
+Recorded 2026-05-20 against HEAD `49665e19`.
+
+Binding status:
+
+- The Refactor Zen in this file is binding, not advisory. Phase 6 remains
+  complete for the projection-source and source-diagnostic deletion targets
+  only because those named old paths are gone; it is not evidence that
+  string-table model access, duplicate field-shape metadata, or lookup wrappers
+  are acceptable final architecture.
+- Source and diagnostics work may keep source-local semantic policy, but it
+  may not keep generic SQL selection, table/model lookup, row coercion, JSON
+  reshaping, shim APIs, compatibility aliases, or old/new paths outside the
+  owning IO boundary.
+
+Current repository audit:
+
+- The named Phase 6 old-path deletions are still true in current code. Exact
+  searches for `SourceProjectionRow`, `SOURCE_PROJECTION`, `quality_json`,
+  `derived_from_json`, `_opinion_from_mapping`, `from_mapping`,
+  `SourceStatusDiagnosticRow`, `QuarantinableWriter`,
+  `compile_promotion_blocked_diagnostic_rows`, `has_build_diagnostics_table`,
+  `select_source_status_diagnostic_rows`, and
+  `BUILD_DIAGNOSTICS_PROJECTION` under the required production/test paths
+  return zero hits.
+- The remaining Phase 6 generic-family-metadata fix is still present in
+  current code. `propstore/source/status.py::inspect_source_status` still reads
+  `derived.schema.table("claim_core")` directly.
+- `propstore/families/diagnostics/declaration.py` still reads and mutates
+  diagnostics through `derived.schema.table("build_diagnostics")` and
+  `derived.schema.model("build_diagnostics")`. This is not a resurrected
+  projection path, but it remains a string-table model-access surface that must
+  be lowered through Quire/family-registry metadata or a true diagnostics owner
+  API when that generic owner path is cut over.
+- Current `propstore/world/model.py` still has direct `schema.model("claim_core")`
+  accesses and `WorldQuery.resolve_claim`; those are claim/world-query owner
+  follow-ups, not Phase 6 source projection regressions.
+
+Audit commands run for this refresh:
+
+```powershell
+rg -n -F -- "SourceProjectionRow" propstore tests
+rg -n -F -- "BUILD_DIAGNOSTICS_PROJECTION" propstore tests
+rg -n -F -- 'derived.schema.table("claim_core")' propstore tests
+rg -n -F -- 'derived.schema.table("build_diagnostics")' propstore tests
+rg -n -F -- 'derived.schema.model("build_diagnostics")' propstore tests
+rg -n -F -- 'schema.model("claim_core")' propstore tests
+rg -n -F -- "def resolve_claim" propstore tests
+```
