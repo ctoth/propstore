@@ -5,13 +5,9 @@ from pathlib import Path
 
 import tests.conftest as project_conftest
 
-from quire.derived_runtime import write_derived_store_schema_metadata
+from sqlalchemy import create_engine
 
-from propstore.families.projection_catalog import (
-    PROPSTORE_WORLD_META_KEY,
-    PROPSTORE_WORLD_PROJECTION_SCHEMA,
-    PROPSTORE_WORLD_SCHEMA_VERSION,
-)
+from propstore.families.world_charters import world_sqlalchemy_schema
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
@@ -39,7 +35,7 @@ def _table_names(conn: sqlite3.Connection) -> set[str]:
     return {str(row[0]) for row in rows}
 
 
-def test_world_query_fixture_schema_is_built_from_projection_catalog() -> None:
+def test_world_query_fixture_schema_is_built_from_world_sqlalchemy_schema() -> None:
     assert not hasattr(project_conftest, "create_world_model_schema")
     assert not (Path(__file__).parents[1] / "propstore" / "sidecar" / "schema.py").exists()
 
@@ -49,12 +45,18 @@ def test_minimal_world_model_schema_matches_production_builders() -> None:
     production_conn = sqlite3.connect(":memory:")
 
     build_world_projection_schema(fixture_conn)
-    write_derived_store_schema_metadata(
-        production_conn,
-        schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
-        key=PROPSTORE_WORLD_META_KEY,
+    schema = world_sqlalchemy_schema()
+    engine = create_engine("sqlite://", creator=lambda: production_conn)
+    schema.metadata.create_all(engine)
+    production_conn.execute(
+        """
+        CREATE TABLE IF NOT EXISTS quire_schema_catalog (
+            key TEXT PRIMARY KEY,
+            schema_hash TEXT NOT NULL,
+            payload_json TEXT NOT NULL
+        )
+        """
     )
-    PROPSTORE_WORLD_PROJECTION_SCHEMA.create_all(production_conn)
 
     assert _table_names(fixture_conn) == _table_names(production_conn)
     for table in sorted(_table_names(production_conn)):

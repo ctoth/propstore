@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from quire.derived_store import DerivedStoreHandle
-from quire.derived_runtime import validate_derived_store_schema
+from quire.sqlalchemy_store import validate_sqlalchemy_store
 from propstore.core.conditions.registry import (
     ConceptInfo,
     KindType,
@@ -77,10 +77,8 @@ from propstore.families.concepts.declaration import (
     search_concept_ids,
 )
 from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
-from propstore.families.projection_catalog import (
-    PROPSTORE_WORLD_META_KEY,
-    PROPSTORE_WORLD_PROJECTION_SCHEMA,
-    PROPSTORE_WORLD_SCHEMA_VERSION,
+from propstore.families.world_charters import (
+    world_sqlalchemy_schema,
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.core.conditions.solver import ConditionSolver
@@ -169,6 +167,7 @@ class WorldQuery(WorldStore):
             knowledge_root = repo.tree(commit=commit)
         self._repo = repo
         self._source_commit = commit
+        self._derived_store_path = derived_store.path
         self._knowledge_root = knowledge_root
         self._grounding_bundle_cache = None
         self._solver: ConditionSolver | None = None
@@ -228,20 +227,7 @@ class WorldQuery(WorldStore):
         return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:
-        try:
-            validate_derived_store_schema(
-                self._conn,
-                schema=PROPSTORE_WORLD_PROJECTION_SCHEMA,
-                expected_version=PROPSTORE_WORLD_SCHEMA_VERSION,
-                key=PROPSTORE_WORLD_META_KEY,
-            )
-        except ValueError as error:
-            message = str(error).replace(
-                "Unsupported derived store schema",
-                "Unsupported sidecar schema",
-                1,
-            )
-            raise ValueError(f"{message} Rebuild with 'pks build'.") from error
+        validate_sqlalchemy_store(self._derived_store_path, world_sqlalchemy_schema())
 
     # ── Lazy Z3 setup ────────────────────────────────────────────────
 

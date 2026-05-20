@@ -24,19 +24,12 @@ version check).
 
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 
 import pytest
 from tests.family_helpers import world_query_from_sqlite_path
 
-from quire.projections import projection_name
-
-from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
-from propstore.families.projection_catalog import (
-    PROPSTORE_WORLD_META_KEY,
-    PROPSTORE_WORLD_SCHEMA_VERSION,
-)
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.world.model import WorldQuery
 
 
@@ -61,11 +54,10 @@ def _build_legacy_sidecar(path: Path) -> None:
     The meta row is written with the current sidecar schema version so the
     version guard passes cleanly and we isolate the column check.
     """
+    import sqlite3
+
     conn = sqlite3.connect(path)
     try:
-        conn.execute(
-            "CREATE TABLE meta (key TEXT PRIMARY KEY, schema_version INTEGER NOT NULL)"
-        )
         for table, required_columns in _required_columns_by_table().items():
             if table == "claim_core":
                 columns = sorted(required_columns - {"branch"})
@@ -73,10 +65,6 @@ def _build_legacy_sidecar(path: Path) -> None:
                 columns = sorted(required_columns)
             column_defs = ", ".join(f"{col} TEXT" for col in columns)
             conn.execute(f"CREATE TABLE {table} ({column_defs})")  # noqa: S608
-        conn.execute(
-            "INSERT INTO meta (key, schema_version) VALUES (?, ?)",
-            (PROPSTORE_WORLD_META_KEY, PROPSTORE_WORLD_SCHEMA_VERSION),
-        )
         conn.commit()
     finally:
         conn.close()
@@ -84,8 +72,8 @@ def _build_legacy_sidecar(path: Path) -> None:
 
 def _required_columns_by_table() -> dict[str, frozenset[str]]:
     return {
-        projection_name(projection): frozenset(projection.column_names)
-        for projection in PROPSTORE_WORLD_PROJECTION_SCHEMA.projections
+        table_name: frozenset(table.c.keys())
+        for table_name, table in world_sqlalchemy_schema().tables.items()
     }
 
 

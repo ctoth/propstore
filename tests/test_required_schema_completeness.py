@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-from quire.projections import projection_name
-
-from propstore.families.projection_catalog import PROPSTORE_WORLD_PROJECTION_SCHEMA
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
 def _required_columns_by_table() -> dict[str, frozenset[str]]:
     return {
-        projection_name(projection): frozenset(projection.column_names)
-        for projection in PROPSTORE_WORLD_PROJECTION_SCHEMA.projections
+        table_name: frozenset(table.c.keys())
+        for table_name, table in world_sqlalchemy_schema().tables.items()
     }
 
 
