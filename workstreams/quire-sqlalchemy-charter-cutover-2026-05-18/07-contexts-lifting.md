@@ -422,3 +422,42 @@ All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 If a semantic owner needs typed context rows, the owner must request them
 through the generic family metadata/model surface and keep the semantic
 assembly separate from lookup mechanics.
+
+## Current Re-Audit Record
+
+Recorded 2026-05-20.
+
+This audit did not edit source code. It rechecked the completed Phase 9 claim
+against the current repository and found that the earlier correction is still
+open.
+
+Current verified findings:
+
+- `propstore/families/contexts/declaration.py::load_lifting_system` still
+  obtains context typed models with hard-coded `schema.model("context")`,
+  `schema.model("context_assumption")`, and
+  `schema.model("context_lifting_rule")` calls. Those are still in the
+  deletion queue for the generic Quire family metadata/model lookup
+  correction.
+- The same hard-coded context model lookups also appear in
+  `tests/test_contexts.py`; tests must be updated to prove the generic lookup
+  surface instead of codifying the old lookup shape.
+- `propstore/worldline/resolution.py` still calls `world.resolve_concept(name)`.
+  That dependency remains a Phase 9/Phase 12 boundary issue and must not be
+  copied into context/lifting owner code.
+- `resolve_claim(` hits in the context/lifting audit surface are now test-only,
+  but `resolve_concept(` still has a production hit in
+  `propstore/worldline/resolution.py`.
+
+Binding correction:
+
+- Do not restore context projection models, context table constants, raw
+  context row selectors, or raw lifting-system loaders while fixing this
+  residual.
+- Do not add context-specific, concept-specific, claim-specific, assumption-
+  specific, or lifting-specific lookup wrappers. The remaining fix is to use
+  Quire generic family metadata/model and reference lookup APIs directly at the
+  owner boundary, while keeping lifting semantic assembly in the context owner.
+- If Quire lacks a generic lookup capability needed for this correction, the
+  work returns to the Quire owner workstream. Propstore must not add a local
+  shim, alias, bridge, duplicate model map, or helper-shaped replacement.
