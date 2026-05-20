@@ -41,3 +41,41 @@ def test_split_workstream_checker_resolves_prose_prerequisite_aliases(tmp_path, 
 
     assert check_split_workstream(index, index.read_text(encoding="utf-8")) == 1
     assert "01-quire-capability-and-charter.md depends on later phase 02-quire-sqlalchemy-engine.md" in capsys.readouterr().err
+
+
+def test_split_workstream_checker_reads_prerequisite_gate_dependencies(tmp_path, capsys) -> None:
+    index = tmp_path / "00-index.md"
+    index.write_text(
+        """# Index
+
+## Phase Order
+
+| Phase | Child workstream file | Gate to proceed |
+| --- | --- | --- |
+| 0 | `00-index.md` | Start |
+| 1 | `01-quire-capability-and-charter.md` | Capability |
+| 2 | `13-final-deletion-gates.md` | Final |
+""",
+        encoding="utf-8",
+    )
+    (tmp_path / "01-quire-capability-and-charter.md").write_text(
+        """# Capability
+
+## Prerequisites
+""",
+        encoding="utf-8",
+    )
+    (tmp_path / "13-final-deletion-gates.md").write_text(
+        """# Final
+
+## Prerequisite Gate Dependencies
+
+| Dependency | Required evidence |
+| --- | --- |
+| `99-missing.md` | Not in phase order. |
+""",
+        encoding="utf-8",
+    )
+
+    assert check_split_workstream(index, index.read_text(encoding="utf-8")) == 1
+    assert "13-final-deletion-gates.md references prerequisite outside phase order: 99-missing.md" in capsys.readouterr().err

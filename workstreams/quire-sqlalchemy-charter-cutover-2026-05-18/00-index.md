@@ -118,7 +118,7 @@ Execute in this exact order:
 
 | Phase | Child workstream file | Gate to proceed |
 | --- | --- | --- |
-| 0. Mechanical order check and current-state inventory confirmation | `00-index.md` and `inventory-matrix.md` | Phase 0 checklist below is complete; order checker passes; inventory, architecture note, worktree state, Quire pin, and old-path imports are listed. |
+| 0. Mechanical order check and current-state inventory confirmation | `00-index.md`, `inventory-matrix.md`, and `helper-ledger.md` | Phase 0 checklist below is complete; order checker passes; inventory, architecture note, worktree state, Quire pin, and old-path imports are listed. |
 | 1-2. Quire SQLAlchemy capability proof and charter/schema IR | `01-quire-capability-and-charter.md` | Quire proof tests pass; charter/schema IR composes with existing family/document/placement/reference APIs. |
 | 3. Quire SQLAlchemy table/mapping/session/catalog engine | `02-quire-sqlalchemy-engine.md` | Generated DDL, mapping, sessions, relationships, schema catalog, and hash tests pass. |
 | 4. Quire FTS and vector implementation | `03-quire-fts-vector.md` | `sqlalchemy-fts5` and Quire FTS/vector gates pass with no local dependency pins. |

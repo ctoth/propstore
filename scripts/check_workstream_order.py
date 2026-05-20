@@ -24,7 +24,7 @@ ORDER_ITEM_RE = re.compile(r"^\s*\d+\.\s+(?P<title>.+?)\s*$", re.MULTILINE)
 TABLE_ROW_RE = re.compile(r"^\|(?P<cells>.+)\|\s*$")
 FILE_REF_RE = re.compile(r"`(?P<path>[^`]+\.md)`")
 PREREQ_SECTION_RE = re.compile(
-    r"^## Prerequisites\s*$"
+    r"^## (?:Prerequisites|Prerequisite Gate Dependencies)\s*$"
     r"(?P<body>.*?)"
     r"^## ",
     re.MULTILINE | re.DOTALL,
@@ -52,6 +52,11 @@ KNOWN_PREREQUISITE_ALIASES = {
     "relations, stances, and conflicts cutover": "09-relations-stances-conflicts.md",
     "justifications and micropublications cutover": "10-micropublications-justifications.md",
     "rules, grounding, calibration, and embeddings cutover": "11-rules-grounding-calibration-embeddings.md",
+}
+ALLOWED_EXTERNAL_REFS = {
+    "architecture-wanted-outcome-2026-05-17.md",
+    "code-inventory-2026-05-17.md",
+    "quire-sqlalchemy-charter-cutover-workstream-2026-05-18.md",
 }
 
 
@@ -121,6 +126,9 @@ def check_split_workstream(workstream: Path, text: str) -> int:
         for prerequisite in sorted(prerequisite_files(child_text)):
             prerequisite_index = order.get(prerequisite)
             if prerequisite_index is None:
+                if prerequisite in ALLOWED_EXTERNAL_REFS:
+                    continue
+                failures.append(f"{filename} references prerequisite outside phase order: {prerequisite}")
                 continue
             if prerequisite_index > index:
                 failures.append(f"{filename} depends on later phase {prerequisite}")
