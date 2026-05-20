@@ -235,11 +235,12 @@ Every Propstore family phase has this data-parity obligation:
   fixture-run proving row-count, key-set, FTS/vector, diagnostic, and semantic
   query comparison failures are reported, and the harness command shape below
   works for at least one owner slug.
-- Every Propstore phase writes its parity report under `reports/sqlalchemy-charter-parity/<phase-slug>.json`.
+- Every Propstore phase writes its parity report to the literal output path
+  named in that child workstream's parity command.
 - Standard command shape:
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner <phase-slug> --out reports/sqlalchemy-charter-parity/<phase-slug>.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
 - build the sidecar from the same repository snapshot before and after the current phase;

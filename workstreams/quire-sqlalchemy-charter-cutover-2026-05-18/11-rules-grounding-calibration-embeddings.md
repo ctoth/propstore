@@ -279,8 +279,8 @@ session, FTS, and vector capabilities are complete.
 ## Data-Parity And Metric Gates
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner rules-grounding-calibration-embeddings --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings.json
-uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner rules-grounding-calibration-embeddings --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings-vector.json --require-vector claim-similarity --require-vector concept-similarity --require-vector claim-agree-disagree --require-vector concept-agree-disagree --require-vector embedding-snapshot-restore
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/after.sqlite --owner rules-grounding-calibration-embeddings --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/after.sqlite --owner rules-grounding-calibration-embeddings --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings-vector.json --require-vector claim-similarity --require-vector concept-similarity --require-vector claim-agree-disagree --require-vector concept-agree-disagree --require-vector embedding-snapshot-restore
 ```
 
 Build the sidecar from the same repository snapshot before and after this

@@ -160,7 +160,7 @@ Implement the target path:
 Build both sidecars from the same repository snapshot:
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner build-orchestration --out reports/sqlalchemy-charter-parity/build-orchestration.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
 1. Build the current mainline sidecar.

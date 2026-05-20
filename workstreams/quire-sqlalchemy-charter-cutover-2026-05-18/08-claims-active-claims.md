@@ -323,7 +323,7 @@ workstream.
 ## Data Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --before <old-sidecar.sqlite> --after <new-sidecar.sqlite> --owner claims-active-claims --out reports/sqlalchemy-charter-parity/claims-active-claims.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/claims-active-claims/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/claims-active-claims/after.sqlite --owner claims-active-claims --out reports/sqlalchemy-charter-parity/claims-active-claims.json
 ```
 
 Build the sidecar from the same repository snapshot before and after this
