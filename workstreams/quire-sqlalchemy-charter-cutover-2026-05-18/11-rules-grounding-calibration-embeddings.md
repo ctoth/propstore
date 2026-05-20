@@ -103,11 +103,17 @@ as the work queue:
 - `EMBEDDING_MODEL_PROJECTION`;
 - `CLAIM_EMBEDDING_STATUS_PROJECTION`;
 - `CONCEPT_EMBEDDING_STATUS_PROJECTION`;
+- `CONCEPT_VEC_PROJECTION`;
 - embedding projection declarations using `ProjectionTable`;
 - embedding vector declarations using `VecProjection`;
 - raw embedding table setup;
 - raw embedding registry, entity store, vector search, and snapshot store
   implementations;
+- row-shaped claim/concept similarity runtime helpers, including
+  `SidecarClaimRelationStore`, `find_similar_claim_rows`, and
+  `find_similar_concept_rows`;
+- generic similarity result `from_mapping` constructors in
+  `propstore/core/store_results.py`;
 - direct sidecar opening in embedding extraction and restoration.
 
 ## Helper Classification: Grounding And Rules
@@ -177,6 +183,19 @@ File: `propstore/families/embeddings/declaration.py`.
 | `extract_embedding_snapshot_from_store` | replace | Replace raw sidecar opening with Quire vector snapshot API. |
 | `restore_embeddings` | replace | Replace raw restore with Quire vector snapshot API. |
 | `restore_embedding_snapshot` | replace | Replace raw sidecar opening with Quire vector snapshot API. |
+
+Files: `propstore/families/claims/sidecar_runtime.py`,
+`propstore/families/concepts/sidecar_runtime.py`, and
+`propstore/core/store_results.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| `SidecarClaimRelationStore` | delete | Replace raw sidecar relation/vector access with claim owner APIs over Quire sessions/vector APIs. |
+| `find_similar_claim_rows` | delete | Replace row-shaped claim similarity API with typed claim similarity query over Quire vector/session APIs. |
+| `find_similar_concept_rows` | delete | Replace row-shaped concept similarity API with typed concept similarity query over Quire vector/session APIs. |
+| `ConceptSearchHit.from_mapping` | replace | Rename to a boundary-specific constructor such as `from_json_payload` or construct directly from typed query results. |
+| `ClaimSimilarityHit.from_mapping` | replace | Rename to a boundary-specific constructor such as `from_json_payload` or construct directly from typed query results. |
+| `ConceptSimilarityHit.from_mapping` | replace | Rename to a boundary-specific constructor such as `from_json_payload` or construct directly from typed query results. |
 
 ## Caller And Update Surfaces
 
@@ -301,6 +320,7 @@ rg -n -F -- "CALIBRATION_COUNTS_PROJECTION" propstore tests
 rg -n -F -- "EMBEDDING_MODEL_PROJECTION" propstore tests
 rg -n -F -- "CLAIM_EMBEDDING_STATUS_PROJECTION" propstore tests
 rg -n -F -- "CONCEPT_EMBEDDING_STATUS_PROJECTION" propstore tests
+rg -n -F -- "CONCEPT_VEC_PROJECTION" propstore tests
 rg -n -F -- "GroundedFactProjectionRow" propstore tests
 rg -n -F -- "GroundedFactEmptyPredicateProjectionRow" propstore tests
 rg -n -F -- "GroundedBundleInputProjectionRow" propstore tests
@@ -318,6 +338,10 @@ rg -n -F -- "_SidecarEntityEmbeddingStore" propstore tests
 rg -n -F -- "SidecarClaimEmbeddingStore" propstore tests
 rg -n -F -- "SidecarConceptEmbeddingStore" propstore tests
 rg -n -F -- "SidecarEmbeddingSnapshotStore" propstore tests
+rg -n -F -- "SidecarClaimRelationStore" propstore tests
+rg -n -F -- "find_similar_claim_rows" propstore tests
+rg -n -F -- "find_similar_concept_rows" propstore tests
+rg -n -F -- "from_mapping" propstore/core/store_results.py tests
 rg -n -F -- "VecProjection" propstore/families/embeddings tests
 rg -n -F -- "ProjectionTable(" propstore/families/rules propstore/families/calibration propstore/families/embeddings tests
 rg -n -F -- "sqlite3.Connection" propstore/families/rules propstore/families/calibration propstore/families/embeddings propstore/grounding tests
