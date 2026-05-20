@@ -998,3 +998,13 @@ Recorded 2026-05-20.
   `CLAIM_ROW_MODEL`, claim embedding projection constants, and deleted
   row-shaped claim attributes. The next work queue is to delete/fix those
   callers against typed `Claim` relationships, not to restore the old paths.
+- Generic family lookup capability: Quire commit `2917fd0` now carries family
+  identity/reference metadata through the schema IR and exposes generic
+  `SqlAlchemySchema` reference-index and reference-id lookup APIs. Quire
+  gates `uv run pyright` and `uv run pytest tests/test_sqlalchemy_engine.py
+  tests/test_charters_schema_ir.py` passed, the commit was pushed, and
+  Propstore commit `c2c55bed` pins to pushed SHA
+  `2917fd08bd03cb2d317f4dceb5221b1e6b88a6e6` with no local path/workspace/file
+  Quire dependency. Phase 10 can now delete claim-specific lookup wrappers
+  against generic family reference lookup instead of adding a Propstore
+  replacement helper.

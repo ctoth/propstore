@@ -466,3 +466,19 @@ owner-layer query context must expose a generic family metadata lookup that
 returns the mapped main model and reference/FK metadata for any registered
 charter family. Proof coverage must query the claim and concept proof families
 through that same generic path.
+
+Generic family metadata correction implemented 2026-05-20:
+
+- Quire commit `2917fd0` added `identity_field` and `reference_keys` to
+  charter-derived `SchemaObject` records, propagated those facts from
+  `FamilyCharter`, and added generic `SqlAlchemySchema.identity_field`,
+  `reference_index_from_records`, `resolve_reference_id`, and
+  `require_reference_id` APIs.
+- Quire proof gates passed: `uv run pyright` returned 0 errors, and
+  `uv run pytest tests/test_sqlalchemy_engine.py
+  tests/test_charters_schema_ir.py` passed with 14 tests.
+- Quire push completed: `bc71de8..2917fd0 master -> master`.
+- Propstore commit `c2c55bed` pins Quire to pushed SHA
+  `2917fd08bd03cb2d317f4dceb5221b1e6b88a6e6`; local dependency searches for
+  `quire @ file`, `quire @ ..`, `quire @ C:`, `path =`, and
+  `workspace = true` returned no hits.
