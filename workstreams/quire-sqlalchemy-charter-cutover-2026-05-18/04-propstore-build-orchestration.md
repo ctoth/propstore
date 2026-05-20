@@ -461,6 +461,30 @@ World charter registration slice:
 Next required item: update `propstore/derived_build_plan.py` from projection
 row sets to typed model/session write plans.
 
+Build-plan and builder replacement slice:
+
+- Updated `propstore/derived_build_plan.py` so the public
+  `SidecarBuildPlan` carries ordered `WorldWriteBatch` model-object batches,
+  not projection row-set fields.
+- Updated `propstore/derived_build.py` to create the sidecar with
+  `world_sqlalchemy_schema()`, `create_sqlalchemy_store`, Quire
+  `DerivedStoreHandle.writable_session`, mapped model writes, Quire FTS
+  population, and schema-cache identity from the Quire schema catalog hash.
+- Converted the grounding sidecar writer in the same target file to the Quire
+  SQLAlchemy schema/session path so raw SQLite build orchestration is gone
+  from the target file.
+- Target-file old-path searches for `ProjectionSchema`, `ProjectionTable`,
+  `sqlite3.Connection`, and `PROPSTORE_WORLD_PROJECTION_SCHEMA` over
+  `propstore/derived_build.py` and `propstore/derived_build_plan.py` returned
+  no hits.
+- Type gate after the build-plan/session replacement:
+  `uv run pyright propstore` passed with 0 errors.
+- Commit: `75963c64 Use Quire sessions for sidecar build plans`.
+
+Next required item: delete `propstore/families/projection_catalog.py`, update
+test validation expectations away from the deleted projection schema path, then
+run the Phase 5 logged pytest, help, search, and parity gates.
+
 Old validation-wrapper audit:
 
 - Exact-string audit found one production old-schema message rewrite:
