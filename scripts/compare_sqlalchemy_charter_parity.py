@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sqlite3
 import sys
@@ -14,6 +15,8 @@ BLOCK_TABLE_MARKERS = {
     "vectors": ("vec", "embedding"),
     "behaviors": ("behavior",),
 }
+SCHEMA_CATALOG_TABLE = "quire_schema_catalog"
+SCHEMA_CATALOG_KEY = "default"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -184,12 +187,40 @@ def _build_sqlalchemy_charter_sidecar(
 
 
 def _semantic_input_hash(repo: Any, head: str) -> str:
-    from propstore.derived_build import _source_branch_tips, world_sidecar_hash
+    from propstore.derived_build import _source_branch_tips
+    from propstore.families.registry import semantic_import_roots, semantic_init_roots
 
-    return world_sidecar_hash(
-        head,
-        source_branch_tips=_source_branch_tips(repo),
+    git = repo.require_git()
+    roots = tuple(sorted(set(semantic_init_roots()) | set(semantic_import_roots())))
+    source_branch_tips = tuple(_source_branch_tips(repo))
+    digest = hashlib.sha256()
+    digest.update(
+        json.dumps(
+            {
+                "semantic_roots": roots,
+                "source_branch_tips": source_branch_tips,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
     )
+    digest.update(b"\0")
+    _hash_tree_files(digest, git.iter_tree_files(commit=head, roots=roots))
+    for branch_name, branch_tip in source_branch_tips:
+        digest.update(branch_name.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(branch_tip.encode("utf-8"))
+        digest.update(b"\0")
+        _hash_tree_files(digest, git.iter_tree_files(commit=branch_tip))
+    return digest.hexdigest()
+
+
+def _hash_tree_files(digest: Any, tree_files: Any) -> None:
+    for tree_file in tree_files:
+        digest.update(tree_file.relpath.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(tree_file.content)
+        digest.update(b"\0")
 
 
 def _load_baseline(before: Path) -> dict[str, Any]:
@@ -211,6 +242,7 @@ def _snapshot_sqlite(path: Path) -> dict[str, Any]:
         tables = _table_names(conn)
         return {
             "path": str(path),
+            "schema_hash": _schema_hash(conn),
             "tables": {
                 table: _table_snapshot(conn, table)
                 for table in tables
@@ -230,7 +262,22 @@ def _table_names(conn: sqlite3.Connection) -> list[str]:
         ORDER BY name
         """
     )
-    return [str(row[0]) for row in rows]
+    return [str(row[0]) for row in rows if str(row[0]) != SCHEMA_CATALOG_TABLE]
+
+
+def _schema_hash(conn: sqlite3.Connection) -> str:
+    try:
+        row = conn.execute(
+            f"""
+            SELECT schema_hash
+            FROM {_quote(SCHEMA_CATALOG_TABLE)}
+            WHERE key = ?
+            """,
+            (SCHEMA_CATALOG_KEY,),
+        ).fetchone()
+    except sqlite3.OperationalError:
+        return ""
+    return "" if row is None else str(row[0])
 
 
 def _table_snapshot(conn: sqlite3.Connection, table: str) -> dict[str, Any]:
@@ -461,7 +508,7 @@ def _side_report(path: Path | None, snapshot: dict[str, Any] | None) -> dict[str
     return {
         "path": "" if path is None else str(path),
         "build": "not_run" if path is None else "available",
-        "schema_hash": "",
+        "schema_hash": "" if snapshot is None else str(snapshot.get("schema_hash") or ""),
         "diagnostics": [],
         "tables": [] if snapshot is None else sorted(snapshot["tables"]),
     }

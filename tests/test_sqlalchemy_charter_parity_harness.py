@@ -23,6 +23,22 @@ def test_parity_harness_passes_matching_sqlite_fixtures(tmp_path: Path) -> None:
     assert report["row_counts"]["entity"]["status"] == "pass"
 
 
+def test_parity_harness_records_schema_catalog_without_row_comparing_it(tmp_path: Path) -> None:
+    before = tmp_path / "before.sqlite"
+    after = tmp_path / "after.sqlite"
+    out = tmp_path / "report.json"
+    _fixture_db(before)
+    _fixture_db(after, schema_hash="schema-1")
+    _baseline(before)
+
+    code = main(_args(tmp_path, before, after, out))
+
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert code == 0
+    assert "quire_schema_catalog" not in report["tables"]
+    assert report["after"]["schema_hash"] == "schema-1"
+
+
 def test_parity_harness_fails_missing_key(tmp_path: Path) -> None:
     before = tmp_path / "before.sqlite"
     after = tmp_path / "after.sqlite"
@@ -146,7 +162,12 @@ Accepted parity difference allowlist:
     ]
 
 
-def _fixture_db(path: Path, *, include_second: bool = True) -> None:
+def _fixture_db(
+    path: Path,
+    *,
+    include_second: bool = True,
+    schema_hash: str | None = None,
+) -> None:
     conn = sqlite3.connect(path)
     try:
         conn.execute("CREATE TABLE entity (id TEXT PRIMARY KEY, value TEXT NOT NULL)")
@@ -159,6 +180,20 @@ def _fixture_db(path: Path, *, include_second: bool = True) -> None:
         conn.execute("INSERT INTO behavior_claim_lookup VALUES ('a', 'alpha')")
         if include_second:
             conn.execute("INSERT INTO entity VALUES ('b', 'beta')")
+        if schema_hash is not None:
+            conn.execute(
+                """
+                CREATE TABLE quire_schema_catalog (
+                    key TEXT PRIMARY KEY,
+                    schema_hash TEXT NOT NULL,
+                    payload_json TEXT NOT NULL
+                )
+                """
+            )
+            conn.execute(
+                "INSERT INTO quire_schema_catalog VALUES ('default', ?, '{}')",
+                (schema_hash,),
+            )
         conn.commit()
     finally:
         conn.close()

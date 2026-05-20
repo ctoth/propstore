@@ -312,6 +312,10 @@ Accepted parity difference allowlist:
 - deleted build orchestration imports of Quire projection primitives;
 - deleted manual world schema assembly in
   `propstore/families/projection_catalog.py`;
+- added Quire-owned schema catalog metadata table `quire_schema_catalog` as
+  the generated schema identity record; it is not a semantic row table and no
+  semantic table, row, key, diagnostic, FTS result, vector result, semantic
+  query result, or schema identity may disappear;
 - no column rename, table rename, row disappearance, key disappearance,
   diagnostic disappearance, FTS-result disappearance, vector-result
   disappearance, semantic-query disappearance, or schema-identity
@@ -581,6 +585,19 @@ Post-repair type and search gates:
   `sqlite3.Connection`.
 
 Next required item: run the build-orchestration data-parity gate.
+
+Build-orchestration parity repair:
+
+- Initial data-parity run after the Phase 5 type/search gates failed with two
+  harness-side issues: `semantic_input_hash` was comparing the derived-store
+  cache identity, which includes code/schema/build inputs, instead of the
+  semantic Git artifact inputs; and `quire_schema_catalog` was treated as an
+  extra semantic row table even though the target final state requires Quire
+  schema catalog metadata.
+- The accepted parity allowlist now explicitly allows only the added
+  Quire-owned `quire_schema_catalog` metadata table as schema identity, while
+  preserving zero tolerance for semantic table, row, key, diagnostic, FTS,
+  vector, semantic-query, or schema-identity disappearance.
 
 Old validation-wrapper audit:
 
