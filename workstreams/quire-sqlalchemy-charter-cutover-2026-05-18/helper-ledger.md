@@ -251,7 +251,7 @@ Files: `propstore/core/graph_types.py`, `propstore/world/model.py`,
 | `ActiveMicropublicationInput` protocol usage | delete | World/environment APIs receive typed `Micropublication` objects, not dict/mapping unions. |
 | `ActiveClaimResolver` | replace | Rename to `ClaimValueResolver` and make it consume typed `Claim` query results. |
 | `ActiveWorldGraph` | replace | Rename to `WorldActivationGraph`; keep activation graph semantics, delete misleading active-object-family spelling. |
-| `WorldBindActiveReport` | replace | Rename to `WorldBindActivationReport` or another non-`Active*` activation-state report name. |
+| `WorldBindActiveReport` | replace | Rename to `WorldBindActivationReport`. |
 | `ProvenanceRecord.from_mapping` | replace | Rename to a boundary-specific graph/provenance payload constructor. |
 
 File: `propstore/worldline/result_types.py`.
