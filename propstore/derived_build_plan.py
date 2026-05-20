@@ -47,10 +47,9 @@ from propstore.families.relations.declaration import (
     compile_authored_stance_sidecar_rows_with_diagnostics,
 )
 from propstore.families.sources.declaration import (
-    SourceProjectionRow,
-    compile_source_sidecar_rows,
+    compile_source_models,
 )
-from propstore.families.world_charters import WorldModel, world_records
+from propstore.families.world_charters import world_records
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -75,7 +74,7 @@ class RepositoryCheckedBundle:
 @dataclass(frozen=True)
 class WorldWriteBatch:
     table_name: str
-    objects: tuple[WorldModel, ...]
+    objects: tuple[object, ...]
 
 
 @dataclass(frozen=True)
@@ -165,7 +164,7 @@ def compile_sidecar_build_plan(
     if drop_invalid_context_lifting_rows:
         context_rows = filter_invalid_context_lifting_rows(context_rows)
     batches = (
-        _batch("source", compile_source_sidecar_rows(source_entries)),
+        _batch("source", compile_source_models(source_entries)),
         *_concept_batches(
             compile_concept_sidecar_rows(
                 repository_checked_bundle.concepts,

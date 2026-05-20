@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import json
-import sqlite3
+from pathlib import Path
 
+from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.documents.sources import (
     SourceDocument,
@@ -12,11 +12,17 @@ from propstore.families.documents.sources import (
 )
 from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
-from propstore.families.sources.declaration import compile_source_sidecar_rows
-from propstore.families.sources.declaration import SOURCE_PROJECTION, SourceProjectionRow, populate_sources
+from propstore.families.sources.declaration import (
+    Source,
+    SourceOrigin,
+    SourceQuality,
+    SourceTrust,
+    compile_source_models,
+)
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
-def test_source_rows_are_projection_rows_and_round_trip_artifact_code() -> None:
+def test_source_models_round_trip_through_charter_session(tmp_path: Path) -> None:
     source = SourceDocument(
         id="source-alpha",
         kind=SourceKind.ACADEMIC_PAPER,
@@ -41,39 +47,61 @@ def test_source_rows_are_projection_rows_and_round_trip_artifact_code() -> None:
         artifact_code="sha256:source-alpha",
     )
 
-    rows = compile_source_sidecar_rows((("alpha", source),))
+    schema = world_sqlalchemy_schema()
+    sources = compile_source_models((("alpha", source),))
 
-    assert rows == (
-        SourceProjectionRow(
-            slug="alpha",
-            source_id="source-alpha",
-            kind="academic_paper",
-            origin_type="doi",
-            origin_value="10.1000/example",
-            origin_retrieved="2026-05-14",
-            origin_content_ref="sha256:abc",
-            prior_base_rate='{"a": 0.5, "b": 0.2, "d": 0.1, "u": 0.7}',
-            quality_json='{"status": "stated", "b": 0.8, "d": 0.05, "u": 0.15, "a": 0.5}',
-            derived_from_json='["seed-a", "seed-b"]',
-            artifact_code="sha256:source-alpha",
-        ),
+    assert len(sources) == 1
+    compiled = sources[0]
+    assert compiled.slug == "alpha"
+    assert compiled.source_id == "source-alpha"
+    assert compiled.kind == "academic_paper"
+    assert compiled.origin == SourceOrigin(
+        type="doi",
+        value="10.1000/example",
+        retrieved="2026-05-14",
+        content_ref="sha256:abc",
     )
+    assert compiled.trust == SourceTrust(
+        status="stated",
+        prior_base_rate={"a": 0.5, "b": 0.2, "d": 0.1, "u": 0.7},
+    )
+    assert compiled.quality == SourceQuality(
+        status="stated",
+        b=0.8,
+        d=0.05,
+        u=0.15,
+        a=0.5,
+    )
+    assert compiled.derived_from == ["seed-a", "seed-b"]
+    assert compiled.artifact_code == "sha256:source-alpha"
 
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    for statement in SOURCE_PROJECTION.ddl_statements():
-        conn.execute(statement)
+    db_path = tmp_path / "source.sqlite"
+    create_sqlalchemy_store(db_path, schema)
 
-    populate_sources(conn, rows)
+    with writable_session(db_path, schema) as session:
+        session.add_all(sources)
+        session.commit()
 
-    stored = conn.execute('SELECT * FROM "source" WHERE slug = ?', ("alpha",)).fetchone()
-    assert stored["artifact_code"] == "sha256:source-alpha"
-    assert json.loads(stored["prior_base_rate"]) == {"a": 0.5, "b": 0.2, "d": 0.1, "u": 0.7}
-    assert json.loads(stored["quality_json"]) == {
-        "status": "stated",
-        "b": 0.8,
-        "d": 0.05,
-        "u": 0.15,
-        "a": 0.5,
-    }
-    assert json.loads(stored["derived_from_json"]) == ["seed-a", "seed-b"]
+    with readonly_session(db_path, schema) as session:
+        stored = session.get(Source, "alpha")
+
+    assert stored is not None
+    assert stored.artifact_code == "sha256:source-alpha"
+    assert stored.origin == SourceOrigin(
+        type="doi",
+        value="10.1000/example",
+        retrieved="2026-05-14",
+        content_ref="sha256:abc",
+    )
+    assert stored.trust == SourceTrust(
+        status="stated",
+        prior_base_rate={"a": 0.5, "b": 0.2, "d": 0.1, "u": 0.7},
+    )
+    assert stored.quality == SourceQuality(
+        status="stated",
+        b=0.8,
+        d=0.05,
+        u=0.15,
+        a=0.5,
+    )
+    assert stored.derived_from == ["seed-a", "seed-b"]

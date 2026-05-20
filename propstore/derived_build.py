@@ -399,6 +399,7 @@ def _build_sidecar_file(
             else tuple(normalized_claim_files)
         ),
     )
+    schema = world_sqlalchemy_schema()
     sidecar_plan = compile_sidecar_build_plan(
         repository_checked_bundle,
         source_entries=(
@@ -441,7 +442,6 @@ def _build_sidecar_file(
     )
 
     def _write_sidecar(target_path: Path) -> None:
-        schema = world_sqlalchemy_schema()
         create_sqlalchemy_store(target_path, schema)
         build_handle = DerivedStoreHandle(
             projection_id="propstore.world",

@@ -19,6 +19,7 @@ from quire.families import FamilyDefinition
 from quire.schema_catalog import SchemaCatalog
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.versions import VersionId
+from propstore.families.sources.declaration import Source, source_charter
 
 PROPSTORE_WORLD_SCHEMA_VERSION = 6
 PROPSTORE_WORLD_META_KEY = "sidecar"
@@ -32,7 +33,6 @@ class WorldModel:
 
 
 class MetaRecord(WorldModel): ...
-class SourceRecord(WorldModel): ...
 class ConceptRecord(WorldModel): ...
 class AliasRecord(WorldModel): ...
 class ParameterizationRecord(WorldModel): ...
@@ -64,9 +64,9 @@ class ConceptEmbeddingStatusRecord(WorldModel): ...
 class BuildDiagnosticsRecord(WorldModel): ...
 
 
-_MODELS: dict[str, type[WorldModel]] = {
+_MODELS: dict[str, type[Any]] = {
     "meta": MetaRecord,
-    "source": SourceRecord,
+    "source": Source,
     "concept": ConceptRecord,
     "alias": AliasRecord,
     "parameterization": ParameterizationRecord,
@@ -99,18 +99,18 @@ _MODELS: dict[str, type[WorldModel]] = {
 }
 
 
-def world_model(table_name: str) -> type[WorldModel]:
+def world_model(table_name: str) -> type[Any]:
     return _MODELS[table_name]
 
 
-def world_record(table_name: str, values: object) -> WorldModel:
+def world_record(table_name: str, values: object) -> Any:
     payload = _payload(values)
     if table_name == "relationship" and "relationship_type" in payload:
         payload["type"] = payload.pop("relationship_type")
     return world_model(table_name)(**payload)
 
 
-def world_records(table_name: str, rows: Iterable[object] | None) -> tuple[WorldModel, ...]:
+def world_records(table_name: str, rows: Iterable[object] | None) -> tuple[Any, ...]:
     return tuple(world_record(table_name, row) for row in rows or ())
 
 
@@ -118,11 +118,7 @@ def world_records(table_name: str, rows: Iterable[object] | None) -> tuple[World
 def world_charter_catalog() -> SchemaCatalog:
     return charter_catalog(
         _charter("meta", MetaRecord, "key", _f("key", primary_key=True), _i("schema_version", nullable=False)),
-        _charter("source", SourceRecord, "slug",
-            _f("slug", primary_key=True), _f("source_id", nullable=False), _f("kind", nullable=False),
-            _f("origin_type"), _f("origin_value"), _f("origin_retrieved"), _f("origin_content_ref"),
-            _f("prior_base_rate"), _f("quality_json"), _f("derived_from_json"), _f("artifact_code"),
-            indexes=(CharterIndex("idx_source_source_id", ("source_id",)),)),
+        source_charter(),
         _charter("concept", ConceptRecord, "id",
             _f("id", primary_key=True), _f("primary_logical_id", nullable=False, default_sql="''"),
             _f("logical_ids_json", nullable=False, default_sql="'[]'"), _f("version_id", nullable=False, default_sql="''"),
