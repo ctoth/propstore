@@ -119,6 +119,8 @@ as the work queue:
 - `CLAIM_VEC_PROJECTION`;
 - `CLAIM_*_TABLE` projection constants;
 - `ClaimSidecarRows` row-carrier fields that only aggregate projection rows;
+- `RawIdQuarantineSidecarRows`;
+- `PromotionBlockedSidecarRows`;
 - `_optional_float_input`;
 - `_optional_string`;
 - `_optional_int`;
@@ -135,6 +137,10 @@ as the work queue:
 - `coerce_active_claim`;
 - `coerce_active_claims`;
 - `SimpleNamespace` claim/link repair paths.
+
+`ClaimCheckedBundle` is not deleted by name: it is a semantic compiler-stage
+bundle. Its final shape must not import `ProjectionRow`, contain sidecar row
+carriers, or expose projection/dict storage fields.
 
 ## Helper Classification: Claim Storage
 
@@ -160,6 +166,15 @@ File: `propstore/families/claims/storage.py`.
 | `extract_deferred_stance_rows_with_diagnostics` | move | Move embedded-stance validation/quarantine semantics to relation/stance owner; replace tuple rows with `Stance` models. |
 | `prepare_claim_insert_row` | delete | Replace with `Claim` model construction and SQLAlchemy session add. |
 | `prepare_claim_concept_link_rows` | delete | Replace with `ClaimConceptLink` association objects and SQLAlchemy relationship persistence. |
+
+File: `propstore/families/claims/stages.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| `ClaimCheckedBundle` | keep-boundary | Keep as the checked semantic compiler-stage bundle; remove any projection-row or sidecar-row coupling from its reachable fields. |
+| `ClaimSidecarRows` | delete | Replace with typed write plans and SQLAlchemy session adds. |
+| `RawIdQuarantineSidecarRows` | delete | Replace with typed quarantine claim/diagnostic models written through claim and diagnostic owners. |
+| `PromotionBlockedSidecarRows` | delete | Replace with typed promotion-blocked claim/diagnostic models written through claim and diagnostic owners. |
 
 ## Helper Classification: Active Claims
 
@@ -368,6 +383,9 @@ rg -n -F -- "CLAIM_NUMERIC_PAYLOAD_TABLE" propstore tests
 rg -n -F -- "CLAIM_TEXT_PAYLOAD_TABLE" propstore tests
 rg -n -F -- "CLAIM_ALGORITHM_PAYLOAD_TABLE" propstore tests
 rg -n -F -- "CLAIM_STORAGE_TABLES" propstore tests
+rg -n -F -- "ClaimSidecarRows" propstore tests
+rg -n -F -- "RawIdQuarantineSidecarRows" propstore tests
+rg -n -F -- "PromotionBlockedSidecarRows" propstore tests
 rg -n -F -- "_optional_float_input" propstore tests
 rg -n -F -- "_optional_string" propstore tests
 rg -n -F -- "_optional_int" propstore tests
