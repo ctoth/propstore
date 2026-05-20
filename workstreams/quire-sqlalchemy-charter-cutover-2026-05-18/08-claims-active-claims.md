@@ -733,3 +733,21 @@ Recorded 2026-05-20.
   `CLAIM_CORE_TABLE`. Commits `45b97836`, `ee910916`, `ca253848`,
   `8e7a4127`, and `48367543` have started deleting those caller dependencies
   by moving direct users to typed `Claim` or deleting old active-claim paths.
+- Typed claim caller deletion continued in commits `2e374684`, `5c4926f8`,
+  `ec6d3dfd`, `d1811a66`, `6f388498`, `1f319925`, `6e60930a`, and
+  `c8fcee5c`. These commits moved support-revision projection, worldline
+  trace, worldline argumentation, world bridge protocols, journal replay,
+  analyzers, graph build, and worldline runner off `ActiveClaim`,
+  `coerce_active_claim*`, or `CLAIM_ROW_MODEL` where those callers only needed
+  typed claim identity/core/link fields. Payload-derived scalar, condition, and
+  algorithm-body behavior was not reintroduced through a helper or shim; those
+  remaining paths must wait for typed payload relationships or be deleted.
+- Current old-path search queue: `rg -n -F --
+  "propstore.core.active_claims" propstore` still reports active callers in
+  `aspic_bridge`, `app/concept_views.py`, `app/world_reasoning.py`,
+  `preference.py`, `praf/engine.py`, `support_revision`, and `world`.
+  `rg -n -F -- "CLAIM_ROW_MODEL" propstore` still reports callers in
+  `app/claims.py`, `praf/engine.py`, `world/atms.py`, `world/overlay.py`,
+  `world/queries.py`, and `worldline/resolution.py`. These hits remain the
+  deletion work queue; no alias module or replacement row-model helper is
+  allowed.
