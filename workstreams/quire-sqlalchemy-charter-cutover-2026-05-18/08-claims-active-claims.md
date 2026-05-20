@@ -97,7 +97,6 @@ Decision:
 | `propstore/families/claims/storage.py` storage shaping | Loose claim row preparation/helpers | Claim charter generic conversion | Delete storage-shaped helpers |
 | `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | Claim semantic owner modules | Move semantics to claim stages/passes/identity/relation owner modules before deleting storage-shaped remainder |
 | `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model and explicit active-claim view model | Delete projection-row coercion; keep only named active runtime view behavior |
-| `propstore/families/claims/sidecar_runtime.py` | Claim embedding/relation runtime over raw sidecar connection | Claim runtime over Quire session/vector APIs | Replace raw derived-store connection usage |
 
 ## Deletion Targets
 
@@ -223,7 +222,6 @@ row-repair helpers:
 
 - `propstore/app/claim_views.py`;
 - `propstore/app/claims.py`;
-- `propstore/families/claims/sidecar_runtime.py`;
 - `propstore/core/activation.py`;
 - `propstore/core/active_claims.py`;
 - `propstore/core/graph_build.py`;
@@ -249,8 +247,7 @@ Required caller final state:
 
 - app and claim view code render typed claim/view payloads without importing
   `CLAIM_ROW_MODEL`;
-- claim sidecar runtime uses Quire session/vector APIs, not raw derived-store
-  connections;
+- Phase 11 owns claim sidecar runtime migration to Quire session/vector APIs;
 - graph, analyzer, export, relation, support-revision, ASPIC, world, and
   worldline code consume typed `Claim`, `ClaimConceptLink`, payload, stance,
   and relation models;

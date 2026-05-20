@@ -15,13 +15,13 @@ This workstream owns:
 - `propstore/families/forms/stages.py` as the form semantic owner;
 - the concept/form/parameterization slice;
 - concept search over Quire/SQLAlchemy FTS;
-- concept sidecar runtime over Quire sessions/vector APIs;
 - data parity for form, concept, alias, relationship, parameterization, FTS,
   embedding-source, and concept runtime query results.
 
-It does not own claims, relations, contexts, world-query conversion, or generic
-Quire FTS/vector capability work except where a gate exposes a missing
-prerequisite.
+It does not own claims, relations, contexts, world-query conversion, concept
+sidecar vector runtime migration, or generic Quire FTS/vector capability work
+except where a gate exposes a missing prerequisite. Phase 11 owns
+`propstore/families/concepts/sidecar_runtime.py`.
 
 ## Prerequisites
 
@@ -56,7 +56,6 @@ Before implementation:
 | `propstore/families/forms/stages.py` | Form semantic stage/loading owner | Form semantic owner plus form charter | Keep; expose form model data to Quire charter without duplicating parsing |
 | `propstore/families/concepts/projection_model.py` | Concept row mapper | Concept charter plus Quire SQLAlchemy | Delete |
 | `propstore/families/concepts/declaration.py` projection/query pieces | Concept sidecar compiler/query API | Concept semantics plus model queries | Delete generic projection/query plumbing |
-| `propstore/families/concepts/sidecar_runtime.py` | Concept embedding runtime over raw sidecar connection | Concept runtime over Quire session/vector APIs | Replace raw derived-store connection usage |
 | `propstore/parameterization_walk.py` | Parameterization traversal through row coercion | Parameterization traversal over typed models | Replace projection-model imports |
 | `propstore/world/model.py` | Primary sidecar query facade over raw SQLite | Propstore `WorldQuery` over Quire read-only sessions | Replace concept/form selectors with model/session queries in this slice only |
 | `propstore/world/queries.py` | World query helpers through projection rows | Typed world query helpers | Replace concept/form/parameterization projection-model imports in this slice only |
@@ -187,7 +186,6 @@ Named caller/update surfaces:
 - `propstore/app/concept_views.py`;
 - `propstore/app/concepts/display.py`;
 - `propstore/app/concepts/embedding.py`;
-- `propstore/families/concepts/sidecar_runtime.py`;
 - `propstore/core/graph_build.py`;
 - `propstore/fragility_contributors.py`;
 - `propstore/graph_export.py`;
@@ -232,15 +230,12 @@ FTS/search requirements:
 - the concept owner maps Quire FTS syntax failures to
   `ConceptSearchQuerySyntaxError`.
 
-Concept sidecar runtime requirements:
+Concept sidecar runtime ownership:
 
-- replace raw derived-store connection usage with Quire session/vector APIs;
-- concept embedding source queries operate over typed `Concept` models;
-- concept entity resolution policy stays in the concept owner;
-- `find_similar_concept_rows` is deleted as a row-shaped runtime helper; callers
-  use the concept owner API backed by Quire vector/session APIs;
-- app embedding workflows keep presentation/workflow ownership and call the
-  owner-layer runtime API.
+- Phase 11 owns `propstore/families/concepts/sidecar_runtime.py`,
+  `find_similar_concept_rows`, and Quire vector/session runtime migration.
+- This phase owns concept declaration/search/model semantics that Phase 11's
+  runtime APIs consume.
 
 ## Helper Classification
 
