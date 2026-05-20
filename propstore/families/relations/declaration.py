@@ -181,7 +181,6 @@ from propstore.families.relations.projection_model import (  # noqa: E402
     RELATION_EDGE_TABLE,
     RELATIONSHIP_ROW_MODEL,
     STANCE_ROW_MODEL,
-    claim_stance_policy_query_plan,
 )
 
 
@@ -411,38 +410,6 @@ def select_all_relationships(conn: sqlite3.Connection) -> list[RelationshipRow]:
 def select_all_claim_stances(conn: sqlite3.Connection) -> list[StanceRow]:
     rows = conn.execute(
         CLAIM_STANCE_QUERY_PLAN.select_sql()
-    ).fetchall()
-    return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
-
-
-def select_claim_stances_with_policy(
-    conn: sqlite3.Connection,
-    focus_claim_id: str,
-    *,
-    source_predicates: Sequence[str],
-    source_params: Sequence[Any],
-    target_predicates: Sequence[str],
-    target_params: Sequence[Any],
-) -> list[StanceRow]:
-    predicates = [
-        "edge.source_kind = 'claim'",
-        "edge.target_kind = 'claim'",
-        "(edge.source_id = ? OR edge.target_id = ?)",
-        *source_predicates,
-        *target_predicates,
-    ]
-    params: list[Any] = [
-        focus_claim_id,
-        focus_claim_id,
-        *source_params,
-        *target_params,
-    ]
-    from propstore.families.claims.declaration import CLAIM_CORE_TABLE
-
-    plan = claim_stance_policy_query_plan(CLAIM_CORE_TABLE)
-    rows = conn.execute(
-        plan.select_sql(f"WHERE {' AND '.join(predicates)}"),  # noqa: S608
-        tuple(params),
     ).fetchall()
     return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
 

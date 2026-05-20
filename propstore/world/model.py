@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import func, or_, select
+from sqlalchemy.orm import aliased
 from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import FtsQuerySyntaxError, search_fts_index
 from quire.sqlalchemy_store import validate_sqlalchemy_store
@@ -21,7 +22,12 @@ from propstore.core.conditions.registry import (
 )
 from propstore.cel_registry import build_store_cel_registry
 from propstore.families.contexts.declaration import load_lifting_system
-from propstore.core.id_types import to_concept_id, to_context_id
+from propstore.core.id_types import (
+    to_claim_id,
+    to_concept_id,
+    to_context_id,
+    to_justification_id,
+)
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.micropublications import ActiveMicropublication
@@ -50,7 +56,6 @@ from propstore.families.relations.declaration import (
     count_conflicts,
     select_all_claim_stances,
     select_all_relationships,
-    select_claim_stances_with_policy,
     select_conflicts,
     select_explanation_stances,
     select_stances_between,
@@ -684,22 +689,69 @@ class WorldQuery(WorldStore):
         focus_claim_id: str,
         policy: RenderPolicy,
     ) -> list[StanceRow]:
-        source_predicates, source_params = self._render_policy_predicates_for_alias(
-            policy,
-            "source_core",
+        schema = world_sqlalchemy_schema()
+        relation = schema.model("relation_edge")
+        claim = schema.model("claim_core")
+        source_claim = aliased(claim)
+        target_claim = aliased(claim)
+        statement = (
+            select(relation)
+            .join(source_claim, relation.source_id == source_claim.id)
+            .join(target_claim, relation.target_id == target_claim.id)
+            .where(relation.source_kind == "claim")
+            .where(relation.target_kind == "claim")
+            .where(or_(relation.source_id == focus_claim_id, relation.target_id == focus_claim_id))
         )
-        target_predicates, target_params = self._render_policy_predicates_for_alias(
-            policy,
-            "target_core",
-        )
-        return select_claim_stances_with_policy(
-            self._conn,
-            focus_claim_id,
-            source_predicates=source_predicates,
-            source_params=source_params,
-            target_predicates=target_predicates,
-            target_params=target_params,
-        )
+        for claim_alias in (source_claim, target_claim):
+            if not policy.include_drafts:
+                statement = statement.where(
+                    or_(claim_alias.stage.is_(None), claim_alias.stage != "draft")
+                )
+            if not policy.include_blocked:
+                statement = statement.where(
+                    or_(
+                        claim_alias.build_status.is_(None),
+                        claim_alias.build_status != "blocked",
+                    )
+                ).where(
+                    or_(
+                        claim_alias.promotion_status.is_(None),
+                        claim_alias.promotion_status != "blocked",
+                    )
+                )
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = derived.execute(statement).scalars()
+            return [
+                StanceRow(
+                    claim_id=to_claim_id(row.source_id),
+                    target_claim_id=to_claim_id(row.target_id),
+                    stance_type=row.relation_type,
+                    target_justification_id=(
+                        None
+                        if row.target_justification_id is None
+                        else to_justification_id(row.target_justification_id)
+                    ),
+                    perspective_source_claim_id=(
+                        None
+                        if row.perspective_source_claim_id is None
+                        else to_claim_id(row.perspective_source_claim_id)
+                    ),
+                    strength=row.strength,
+                    conditions_differ=row.conditions_differ,
+                    note=row.note,
+                    resolution_method=row.resolution_method,
+                    resolution_model=row.resolution_model,
+                    embedding_model=row.embedding_model,
+                    embedding_distance=row.embedding_distance,
+                    pass_number=row.pass_number,
+                    confidence=row.confidence,
+                    opinion_belief=row.opinion_belief,
+                    opinion_disbelief=row.opinion_disbelief,
+                    opinion_uncertainty=row.opinion_uncertainty,
+                    opinion_base_rate=row.opinion_base_rate,
+                )
+                for row in rows
+            ]
 
     def all_micropublications(self) -> list[ActiveMicropublication]:
         return select_all_micropublications(self._conn)
