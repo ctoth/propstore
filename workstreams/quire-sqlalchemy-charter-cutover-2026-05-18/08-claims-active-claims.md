@@ -93,7 +93,7 @@ Decision:
 
 | Inventory surface | Current owner | Final owner | Required action |
 | --- | --- | --- | --- |
-| `propstore/families/claims/projection_model.py` | Claim split storage/read mapper | Claim charter plus association objects | Delete |
+| `propstore/families/claims/projection_model.py` claim-owned symbols | Claim split storage/read mapper plus a co-located justification residual | Claim charter plus association objects | Delete claim-owned symbols in this phase; leave only the `JUSTIFICATION_STORAGE_MODEL` residual for Phase 10 if it has not moved yet |
 | `propstore/families/claims/storage.py` storage shaping | Loose claim row preparation/helpers | Claim charter generic conversion | Delete storage-shaped helpers |
 | `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | Claim semantic owner modules | Move semantics to claim stages/passes/identity/relation owner modules before deleting storage-shaped remainder |
 | `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model and explicit active-claim view model | Delete projection-row coercion; keep only named active runtime view behavior |
@@ -104,7 +104,7 @@ Decision:
 Delete these old production surfaces first, then use import/type/test failures
 as the work queue:
 
-- `propstore/families/claims/projection_model.py`;
+- claim-owned contents of `propstore/families/claims/projection_model.py`;
 - `CLAIM_CORE_STORAGE_MODEL`;
 - `CLAIM_CONCEPT_LINK_STORAGE_MODEL`;
 - `CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL`;
@@ -137,6 +137,12 @@ as the work queue:
 - `coerce_active_claim`;
 - `coerce_active_claims`;
 - `SimpleNamespace` claim/link repair paths.
+
+This phase does not own the final deletion of
+`propstore/families/claims/projection_model.py` while
+`JUSTIFICATION_STORAGE_MODEL` remains in that file. Phase 10 owns
+`JUSTIFICATION_STORAGE_MODEL` and the final file deletion after the
+justification charter/model replaces it.
 
 `ClaimCheckedBundle` is not deleted by name: it is a semantic compiler-stage
 bundle. Its final shape must not import `ProjectionRow`, contain sidecar row
@@ -364,7 +370,6 @@ promotion, and worldline materialization.
 Additional required searches:
 
 ```powershell
-rg -n -F -- "propstore.families.claims.projection_model" propstore tests
 rg -n -F -- "CLAIM_CORE_STORAGE_MODEL" propstore tests
 rg -n -F -- "CLAIM_CONCEPT_LINK_STORAGE_MODEL" propstore tests
 rg -n -F -- "CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL" propstore tests

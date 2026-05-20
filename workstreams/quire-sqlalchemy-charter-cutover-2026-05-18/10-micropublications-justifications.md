@@ -69,6 +69,7 @@ sessions.
 | Inventory surface | Current owner | Final owner | Required action |
 | --- | --- | --- | --- |
 | `propstore/core/justifications.py` | Active graph justification view | Propstore semantic justification view | Keep semantic view; delete duplicate schema/conversion role |
+| `propstore/families/claims/projection_model.py` justification residual | `JUSTIFICATION_STORAGE_MODEL` co-located in the old claim projection module | `Justification` charter plus justification owner APIs | Delete the residual and remove the file after Phase 8 has deleted claim-owned symbols |
 | `propstore/families/micropublications/declaration.py` projection pieces | Micropub projection/query API | Micropub charter plus association object | Delete generic projection/query plumbing |
 
 The broader world, graph, ASPIC, and worldline conversion rows remain owned by
@@ -104,6 +105,8 @@ Delete these old production surfaces first, then use import/type/test failures
 as the work queue:
 
 - micropublication projection tables/models/query plans;
+- residual `propstore/families/claims/projection_model.py` after claim-owned
+  symbols have been deleted by Phase 8;
 - micropublication `*ProjectionRow` classes;
 - `MicropublicationProjectionRow`;
 - `MicropublicationClaimProjectionRow`;
@@ -126,6 +129,11 @@ as the work queue:
 - duplicated `CanonicalJustification` schema/conversion role;
 - generic `from_mapping` constructors in
   `propstore/core/justifications.py`.
+
+This phase owns final deletion of `propstore/families/claims/projection_model.py`.
+If that file still contains anything besides `JUSTIFICATION_STORAGE_MODEL` and
+direct support code for that model, Phase 8 is incomplete and this phase is
+blocked.
 
 ## Helper Classification
 
@@ -299,6 +307,7 @@ rg -n -F -- "MICROPUBLICATION_PROJECTION" propstore tests
 rg -n -F -- "MICROPUBLICATION_CLAIM_PROJECTION" propstore tests
 rg -n -F -- "MICROPUBLICATION_ROW_MODEL" propstore tests
 rg -n -F -- "JUSTIFICATION_STORAGE_MODEL" propstore tests
+rg -n -F -- "propstore.families.claims.projection_model" propstore tests
 rg -n -F -- "ActiveMicropublication.from_mapping" propstore tests
 rg -n -F -- "coerce_active_micropublication" propstore tests
 rg -n -F -- "_parse_string_tuple" propstore tests
