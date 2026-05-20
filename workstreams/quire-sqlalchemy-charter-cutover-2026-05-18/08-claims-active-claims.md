@@ -923,3 +923,11 @@ Recorded 2026-05-20.
   `Claim.source_assertions`; restoring it with `ActiveClaim`,
   `CLAIM_ROW_MODEL`, graph attributes, mapping repair, or payload attachment
   helpers is explicitly forbidden.
+- Quire ordered-relationship capability: Quire commit `bc71de8` added
+  `order_by` to `CharterRelationship`/`SchemaRelationship` and passes it to
+  SQLAlchemy `relationship()` generically. Quire proof gate `uv run pytest
+  tests/test_sqlalchemy_engine.py` passed with 10 tests. Propstore commit
+  `baf75265` pins Quire to pushed SHA
+  `bc71de8415ab1b8b1ff4ffeb95935035d73e0b7b`, so Phase 10 can declare the
+  ordered `Claim.source_assertions` relationship without a Propstore sorting
+  or attachment helper.
