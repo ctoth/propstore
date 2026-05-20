@@ -201,18 +201,19 @@ returns the work to the Quire owner workstream.
 ## Data-Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/contexts-lifting/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/contexts-lifting/after.sqlite --owner contexts-lifting --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/07-contexts-lifting.md --out reports/sqlalchemy-charter-parity/contexts-lifting.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/contexts-lifting/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/contexts-lifting/after.sqlite --owner contexts-lifting --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/07-contexts-lifting.md --out reports/sqlalchemy-charter-parity/contexts-lifting.json
 ```
 
-Build the sidecar from the same repository snapshot before and after this
-slice and compare:
+Compare the captured projection baseline against the charter-generated sidecar
+for this slice and compare:
 
 - row counts for context, context assumption, lifting rule, and lifting
   materialization tables;
 - primary-key/key-set coverage for every context/lifting table this slice
   owns;
-- context owner API outputs for `compile_context_sidecar_rows`,
-  `compile_context_lifting_materialization_rows`, and `load_lifting_system`
+- context owner API outputs for typed `Context`, `ContextAssumption`,
+  `ContextLiftingRule`, and `ContextLiftingMaterialization` model construction
+  plus `load_lifting_system_from_models`
   over the fixtures exercised by `tests/test_sidecar_contexts.py`,
   `tests/test_contexts.py`, and `tests/test_context_workflows.py`;
 - `LiftingSystem.effective_assumptions`, `materialize_lifted_assertions`,

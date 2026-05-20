@@ -25,12 +25,12 @@ Check these before starting final deletion work:
 | `03-quire-fts-vector.md` | FTS/vector gates are complete and no Propstore workaround owns generic FTS/vector behavior. |
 | `04-propstore-build-orchestration.md` | Build orchestration uses Quire writable sessions and charter catalogs. |
 | `05-source-and-diagnostics.md` | Source and source-diagnostic old paths are deleted and parity passed. |
-| `06-forms-concepts-parameterizations.md` | Form, concept, parameterization, FTS, and concept runtime old paths are deleted and parity passed. |
+| `06-forms-concepts-parameterizations.md` | Form, concept, parameterization, and concept declaration/query old paths are deleted and parity passed; concept sidecar runtime evidence belongs to `11-rules-grounding-calibration-embeddings.md`. |
 | `07-contexts-lifting.md` | Context/lifting projection paths are deleted and parity passed. |
 | `08-claims-active-claims.md` | Claim projection/storage/active-claim row paths are deleted and parity passed. |
 | `09-relations-stances-conflicts.md` | Relation, stance, and conflict row-model paths are deleted and parity passed. |
 | `10-micropublications-justifications.md` | Micropub/justification projection paths are deleted and parity passed. |
-| `11-rules-grounding-calibration-embeddings.md` | Support-family projection/vector duplicates are deleted and parity passed. |
+| `11-rules-grounding-calibration-embeddings.md` | Support-family projection/vector duplicates and claim/concept sidecar runtime old paths are deleted and parity passed. |
 | `12-world-query-graph-reasoning.md` | `WorldQuery`, graph, worldline, support-revision, and ASPIC callers use typed session/model APIs. |
 | `helper-ledger.md` | Every ledger row has a closure entry or is covered by the owning child workstream's closure report. |
 

@@ -147,15 +147,21 @@ Implement the target path:
 11. `scripts/compare_sqlalchemy_charter_parity.py` exists before source,
     forms, concepts, claims, relations, contexts, micropublications, rules,
     embeddings, or world-query cutovers start.
-12. The parity harness compares table names, primary-key/key sets, row counts,
+12. Before deleting the old projection builder, the parity harness captures
+    projection baseline SQLite artifacts for every child owner under
+    `reports/sqlalchemy-charter-parity/<owner>/before.sqlite`.
+13. After baseline capture, the old projection builder is deleted/replaced.
+    Later parity gates read the captured baseline artifact; they do not call
+    the old projection builder.
+14. The parity harness compares table names, primary-key/key sets, row counts,
     FTS hit sets, vector hit sets, diagnostics, and the exact semantic query
     result keys supplied by each child workstream.
-13. The parity harness exits nonzero and writes an actionable report when any
+15. The parity harness exits nonzero and writes an actionable report when any
     required comparison fails.
-14. The parity harness supports `--require-vector <name>` and
+16. The parity harness supports `--require-vector <name>` and
     `--require-behavior <name>` flags; when supplied, the report must contain a
     passing comparison block for every required vector or behavior name.
-15. `tests/test_sqlalchemy_charter_parity_harness.py` proves one passing
+17. `tests/test_sqlalchemy_charter_parity_harness.py` proves one passing
     comparison and one failing comparison for owner slug `harness-self-test`.
 
 ## Parity Harness Contract
@@ -164,26 +170,47 @@ Implement the target path:
 one-off report writer. Implement this command surface:
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --capture-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration/baseline.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
-Builder dispatch is exact:
+Baseline and builder dispatch are exact:
 
-- `--build-before projection` creates `Repository(Path(knowledge_dir))`,
-  reads `head_sha = repo.require_git().head_sha()`, deletes the `--before`
+- `--capture-before projection` is valid only before this phase deletes the
+  projection builder. It creates `Repository(Path(knowledge_dir))`, records
+  `baseline_head_sha = repo.require_git().head_sha()`, records the Quire
+  artifact-family input hash used by the build, deletes the `--before`
   SQLite file when it exists, then calls
-  `propstore.derived_build.export_sidecar(repo, Path(before), force=True, commit_hash=head_sha)`.
-- `--build-after sqlalchemy-charter` uses the same `Repository`, the same
-  `head_sha`, deletes the `--after` SQLite file when it exists, then calls the
-  Phase 4 target function
-  `propstore.derived_build.export_sqlalchemy_charter_sidecar(repo, Path(after), force=True, commit_hash=head_sha)`.
-- `export_sqlalchemy_charter_sidecar` is created in this phase as the
-  charter-backed sibling of `export_sidecar`; it uses Quire generated metadata,
-  Quire writable build sessions, Propstore charters, and typed model/session
-  writes.
-- Both builders operate on the same committed Git tree identified by
-  `head_sha`; the harness records that hash and does not compare different
-  repository snapshots.
+  `propstore.derived_build.export_sidecar(repo, Path(before), force=True, commit_hash=baseline_head_sha)`.
+- The capture mode writes `reports/sqlalchemy-charter-parity/<owner>/baseline.json`
+  containing `owner`, `workstream`, `baseline_head_sha`,
+  `semantic_input_hash`, `before`, table metadata, row counts, key sets,
+  FTS/vector blocks, diagnostics, semantic query blocks, and behavior blocks.
+- Normal comparison mode requires `--before` to point at an existing captured
+  baseline SQLite file and requires the matching `baseline.json`. It never
+  imports or calls the deleted projection builder.
+- `--build-after sqlalchemy-charter` creates `Repository(Path(knowledge_dir))`,
+  records `after_head_sha = repo.require_git().head_sha()`, recomputes the same
+  Quire artifact-family input hash, deletes the `--after` SQLite file when it
+  exists, then calls the Phase 4 target implementation of
+  `propstore.derived_build.export_sidecar(repo, Path(after), force=True, commit_hash=after_head_sha)`.
+- The Phase 4 target implementation of `export_sidecar` uses Quire generated
+  metadata, Quire writable build sessions, Propstore charters, and typed
+  model/session writes. It is not an old/new sibling API.
+- The harness refuses to compare when the captured baseline's
+  `semantic_input_hash` differs from the after build's semantic input hash.
+  Code/workstream commits may differ; the semantic knowledge artifact inputs
+  compared by the sidecar builders may not differ.
+- Before the projection builder is deleted, run capture mode once for each
+  owner/workstream pair: `build-orchestration`/`04-propstore-build-orchestration.md`,
+  `source-diagnostics`/`05-source-and-diagnostics.md`,
+  `forms-concepts-parameterizations`/`06-forms-concepts-parameterizations.md`,
+  `contexts-lifting`/`07-contexts-lifting.md`,
+  `claims-active-claims`/`08-claims-active-claims.md`,
+  `relations-stances-conflicts`/`09-relations-stances-conflicts.md`,
+  `micropublications-justifications`/`10-micropublications-justifications.md`,
+  `rules-grounding-calibration-embeddings`/`11-rules-grounding-calibration-embeddings.md`,
+  and `world-query-graph-reasoning`/`12-world-query-graph-reasoning.md`.
 - `--workstream` is required. It points to the active child workstream file.
   The harness parses that file for the `Accepted parity difference allowlist`
   section and the `Data-Parity Gate` comparison list. Missing section,
@@ -194,7 +221,9 @@ Report schema is exact JSON with these top-level keys:
 - `owner`: owner slug from `--owner`;
 - `workstream`: normalized path supplied by `--workstream`;
 - `knowledge_dir`: normalized path supplied by `--knowledge-dir`;
-- `head_sha`: committed Git hash used by both builders;
+- `baseline_head_sha`: committed Git hash used to capture the baseline;
+- `after_head_sha`: committed Git hash used by the charter build;
+- `semantic_input_hash`: matching artifact-family input hash for both sides;
 - `before`: object with `path`, `build`, `schema_hash`, and `diagnostics`;
 - `after`: object with `path`, `build`, `schema_hash`, and `diagnostics`;
 - `tables`: per-table column names, primary-key columns, and schema notes;
@@ -229,26 +258,31 @@ differences come only from the active child workstream's deletion allowlist.
 - `test_parity_harness_fails_missing_key`;
 - `test_parity_harness_requires_vector_blocks`;
 - `test_parity_harness_requires_behavior_blocks`;
-- `test_parity_harness_rebuilds_same_head_snapshot`.
+- `test_parity_harness_rejects_missing_baseline`;
+- `test_parity_harness_rejects_semantic_input_hash_mismatch`.
 
 ## Data-Parity Gate
 
-Build both sidecars from the same repository snapshot:
+Capture the pre-deletion projection baseline, then compare the captured
+baseline against the charter-generated sidecar:
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --capture-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration/baseline.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
-1. Build the current mainline sidecar.
-2. Build the charter-generated sidecar.
-3. Compare table names.
-4. Compare primary keys.
-5. Compare row counts.
-6. Compare key sets.
-7. Compare build diagnostics emitted by the build path.
-8. Compare catalog/schema hash inputs and recorded schema identity.
-9. Compare column and table names exactly.
-10. Fail on any renamed column, renamed table, dropped table, dropped key, missing diagnostic, missing FTS
+1. Before deleting the projection builder, build the current mainline sidecar
+   as the captured baseline artifact.
+2. Delete/replace the old projection builder.
+3. Build the charter-generated sidecar.
+4. Compare table names.
+5. Compare primary keys.
+6. Compare row counts.
+7. Compare key sets.
+8. Compare build diagnostics emitted by the build path.
+9. Compare catalog/schema hash inputs and recorded schema identity.
+10. Compare column and table names exactly.
+11. Fail on any renamed column, renamed table, dropped table, dropped key, missing diagnostic, missing FTS
     hit, missing vector hit, or missing semantic query result. The only
     accepted drop is a table already named as a deletion target in this
     workstream.
@@ -309,6 +343,7 @@ This workstream is complete only when:
   `--require-vector` and `--require-behavior`, and
   `tests/test_sqlalchemy_charter_parity_harness.py` proves one passing and one
   failing comparison for owner slug `harness-self-test`.
-- The data-parity gate passes from the same repository snapshot.
+- The data-parity gate passes against the captured baseline with a matching
+  semantic input hash.
 - The type gate, logged pytest gate, and old-path search gates pass.
 - Propstore remains pinned to a pushed Quire reference, never a local checkout.

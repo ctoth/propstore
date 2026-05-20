@@ -4,9 +4,8 @@ Date: 2026-05-18
 
 ## Goal
 
-Cut forms, concepts, concept search, concept sidecar runtime, and
-parameterizations from the old projection/read-model layer to Quire
-SQLAlchemy charters.
+Cut forms, concepts, concept search, and parameterizations from the old
+projection/read-model layer to Quire SQLAlchemy charters.
 
 This workstream owns:
 
@@ -16,7 +15,7 @@ This workstream owns:
 - the concept/form/parameterization slice;
 - concept search over Quire/SQLAlchemy FTS;
 - data parity for form, concept, alias, relationship, parameterization, FTS,
-  embedding-source, and concept runtime query results.
+  and embedding-source results.
 
 It does not own claims, relations, contexts, world-query conversion, concept
 sidecar vector runtime migration, or generic Quire FTS/vector capability work.
@@ -300,25 +299,25 @@ projection helpers.
 ## Data-Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/after.sqlite --owner forms-concepts-parameterizations --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/06-forms-concepts-parameterizations.md --out reports/sqlalchemy-charter-parity/forms-concepts-parameterizations.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/after.sqlite --owner forms-concepts-parameterizations --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/06-forms-concepts-parameterizations.md --out reports/sqlalchemy-charter-parity/forms-concepts-parameterizations.json
 ```
 
-Build the sidecar from the same repository snapshot before and after each
-slice in this workstream.
+Compare the captured projection baseline against the charter-generated sidecar
+for each slice in this workstream.
 
 Compare:
 
 - form and form-algebra table names, primary keys, row counts, and key sets;
 - concept, alias, relationship, parameterization, and parameterization-group
   table names, primary keys, row counts, and key sets;
-- form owner query outputs for `select_all_form_rows`,
-  `select_form_algebra_rows_for_output`, and `select_all_form_algebra_rows`
+- form owner query outputs for typed `Form` listing,
+  `FormAlgebra` lookup by output form, and typed `FormAlgebra` listing
   over the fixtures exercised by `tests/test_sidecar_form_projection.py` and
   `tests/test_sidecar_form_algebra_projection.py`;
-- concept owner query outputs for `select_concept_by_id`,
-  `select_all_concepts`, `select_aliases_by_concept_id`,
-  `select_concept_registry_rows`, `build_concept_logical_id_index`,
-  `resolve_concept_alias`, and `resolve_concept_id` over the fixtures
+- concept owner query outputs for `Concept` lookup by id,
+  full concept listing, `Concept.aliases`, typed concept registry projection,
+  `build_concept_logical_id_index`, `resolve_concept_alias`, and
+  `resolve_concept_id` over the fixtures
   exercised by `tests/test_sidecar_concept_projection.py`,
   `tests/test_sidecar_alias_projection.py`, and `tests/test_concept_views.py`;
 - parameterization traversal results;

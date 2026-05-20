@@ -336,11 +336,11 @@ workstream.
 ## Data-Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/claims-active-claims/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/claims-active-claims/after.sqlite --owner claims-active-claims --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/08-claims-active-claims.md --out reports/sqlalchemy-charter-parity/claims-active-claims.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/claims-active-claims/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/claims-active-claims/after.sqlite --owner claims-active-claims --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/08-claims-active-claims.md --out reports/sqlalchemy-charter-parity/claims-active-claims.json
 ```
 
-Build the sidecar from the same repository snapshot before and after this
-slice and compare:
+Compare the captured projection baseline against the charter-generated sidecar
+for this slice and compare:
 
 - row counts for claim core, claim concept links, numeric payloads, text
   payloads, algorithm payloads, claim embedding source rows, and claim-linked

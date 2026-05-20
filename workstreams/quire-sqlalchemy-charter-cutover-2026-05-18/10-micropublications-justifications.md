@@ -274,11 +274,11 @@ owner workstream.
 ## Data-Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/micropublications-justifications/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/micropublications-justifications/after.sqlite --owner micropublications-justifications --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/10-micropublications-justifications.md --out reports/sqlalchemy-charter-parity/micropublications-justifications.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/micropublications-justifications/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/micropublications-justifications/after.sqlite --owner micropublications-justifications --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/10-micropublications-justifications.md --out reports/sqlalchemy-charter-parity/micropublications-justifications.json
 ```
 
-Build the sidecar from the same repository snapshot before and after this
-slice and compare:
+Compare the captured projection baseline against the charter-generated sidecar
+for this slice and compare:
 
 - row counts for micropublication, micropublication claim link, and
   justification tables;

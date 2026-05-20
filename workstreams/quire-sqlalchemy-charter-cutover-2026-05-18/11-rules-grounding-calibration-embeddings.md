@@ -289,17 +289,17 @@ session, FTS, and vector capabilities are complete.
 This gate includes the metric/vector comparisons required by this phase.
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/after.sqlite --owner rules-grounding-calibration-embeddings --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/11-rules-grounding-calibration-embeddings.md --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings.json
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/after.sqlite --owner rules-grounding-calibration-embeddings --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/11-rules-grounding-calibration-embeddings.md --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings-vector.json --require-vector claim-similarity --require-vector concept-similarity --require-vector claim-agree-disagree --require-vector concept-agree-disagree --require-vector embedding-snapshot-restore
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/after.sqlite --owner rules-grounding-calibration-embeddings --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/11-rules-grounding-calibration-embeddings.md --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/after.sqlite --owner rules-grounding-calibration-embeddings --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/11-rules-grounding-calibration-embeddings.md --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings-vector.json --require-vector claim-similarity --require-vector concept-similarity --require-vector claim-agree-disagree --require-vector concept-agree-disagree --require-vector embedding-snapshot-restore
 ```
 
-Build the sidecar from the same repository snapshot before and after this
-slice and compare:
+Compare the captured projection baseline against the charter-generated sidecar
+for this slice and compare:
 
 - grounded fact, grounded empty predicate, and grounded bundle input table
   names, primary keys, row counts, and key sets;
-- grounded bundle outputs for `read_grounded_facts`, `read_grounded_bundle`,
-  and `build_runtime_grounded_bundle` over the fixtures exercised by
+- grounded bundle outputs for typed grounded-fact model queries, typed grounded
+  bundle assembly, and `build_runtime_grounded_bundle` over the fixtures exercised by
   `tests/test_sidecar_grounded_facts.py` and `tests/test_world_query.py`;
 - four-valued grounded fact section contents;
 - deterministic bundle input ordering;

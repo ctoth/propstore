@@ -248,12 +248,12 @@ Quire or family workstreams.
 This gate includes the behavior-vector comparisons required by this phase.
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/world-query-graph-reasoning/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/world-query-graph-reasoning/after.sqlite --owner world-query-graph-reasoning --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/12-world-query-graph-reasoning.md --out reports/sqlalchemy-charter-parity/world-query-graph-reasoning.json
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/world-query-graph-reasoning/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/world-query-graph-reasoning/after.sqlite --owner world-query-graph-reasoning --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/12-world-query-graph-reasoning.md --out reports/sqlalchemy-charter-parity/world-query-graph-reasoning-behavior.json --require-behavior world-query --require-behavior graph-build --require-behavior atms --require-behavior scm-intervention-resolution --require-behavior worldline --require-behavior support-revision --require-behavior aspic
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/world-query-graph-reasoning/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/world-query-graph-reasoning/after.sqlite --owner world-query-graph-reasoning --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/12-world-query-graph-reasoning.md --out reports/sqlalchemy-charter-parity/world-query-graph-reasoning.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/world-query-graph-reasoning/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/world-query-graph-reasoning/after.sqlite --owner world-query-graph-reasoning --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/12-world-query-graph-reasoning.md --out reports/sqlalchemy-charter-parity/world-query-graph-reasoning-behavior.json --require-behavior world-query --require-behavior graph-build --require-behavior atms --require-behavior scm-intervention-resolution --require-behavior worldline --require-behavior support-revision --require-behavior aspic
 ```
 
-Build the sidecar from the same repository snapshot before and after this
-slice and compare:
+Compare the captured projection baseline against the charter-generated sidecar
+for this slice and compare:
 
 - `WorldQuery` method outputs for `get_claim`, `resolve_claim`,
   `claims_for`, `claims_related_to_concept`, `claims_with_policy`,

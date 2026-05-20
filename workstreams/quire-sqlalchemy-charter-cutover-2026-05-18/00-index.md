@@ -236,6 +236,9 @@ Every Propstore family phase has this data-parity obligation:
 
 - The parity harness is `scripts/compare_sqlalchemy_charter_parity.py`.
 - Phase 4 creates the harness before Propstore family cutovers begin.
+- Phase 4 captures the projection baseline SQLite artifacts before deleting
+  the old projection builder. Later family phases read the captured baseline;
+  they do not call the deleted projection builder.
 - Phase 4 is not complete until the harness exists, has a targeted test or
   fixture-run proving row-count, key-set, FTS/vector, diagnostic, and semantic
   query comparison failures are reported, and the harness command shape below
@@ -245,10 +248,13 @@ Every Propstore family phase has this data-parity obligation:
 - Standard command shape:
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
-- build the sidecar from the same repository snapshot before and after the current phase;
+- require the captured `before.sqlite` baseline and matching `baseline.json`;
+- build the charter sidecar after the current phase;
+- fail when the captured baseline semantic input hash differs from the current
+  charter build semantic input hash;
 - read the active child workstream from the required `--workstream` argument
   and fail when the workstream path is missing, mismatched to `--owner`, or
   lacks a parseable deletion allowlist and data-parity comparison list;
@@ -257,7 +263,9 @@ uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-be
   data-parity section;
 - fail the phase when a row, key, diagnostic, FTS hit, vector hit, or semantic query result disappears. The only accepted disappearance is a table or helper already named as a deletion target in the active workstream.
 
-The build-orchestration cutover must additionally compare table names, primary keys, row counts, and key sets between the current mainline sidecar and the charter-generated sidecar from the same repository snapshot.
+The build-orchestration cutover must additionally compare table names, primary
+keys, row counts, and key sets between the captured mainline projection
+baseline and the charter-generated sidecar with the same semantic input hash.
 
 ## Global Search Rules
 

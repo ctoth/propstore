@@ -218,11 +218,11 @@ File: `propstore/families/diagnostics/declaration.py`.
 ## Data-Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/source-diagnostics/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/source-diagnostics/after.sqlite --owner source-diagnostics --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/05-source-and-diagnostics.md --out reports/sqlalchemy-charter-parity/source-diagnostics.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/source-diagnostics/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/source-diagnostics/after.sqlite --owner source-diagnostics --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/05-source-and-diagnostics.md --out reports/sqlalchemy-charter-parity/source-diagnostics.json
 ```
 
-Build the sidecar from the same repository snapshot before and after this
-workstream.
+Compare the captured projection baseline against the charter-generated sidecar
+for this workstream.
 
 Compare:
 
