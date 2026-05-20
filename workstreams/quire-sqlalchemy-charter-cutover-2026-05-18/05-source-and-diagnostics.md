@@ -249,7 +249,11 @@ Accepted parity difference allowlist:
 - deleted source projection constants, row classes, row carriers, table
   helpers, diagnostic table helpers, and raw sidecar selectors named in this
   file's deletion targets;
-- no column rename, table rename, source row disappearance, source key
+- source storage columns `quality_json` and `derived_from_json` are renamed to
+  `quality` and `derived_from` because this workstream's target model forbids
+  `_json` suffixes in source storage columns; the stored semantic payloads must
+  still match the captured baseline;
+- no other column rename, table rename, source row disappearance, source key
   disappearance, diagnostic row disappearance, diagnostic key disappearance,
   or source-status semantic-result disappearance is allowed.
 
@@ -309,3 +313,48 @@ This workstream is complete only when:
 - all deletion targets in this file are gone from production code;
 - source and source-diagnostic data parity passes;
 - the required pyright, pytest, and search gates pass.
+
+## Phase 6 Execution Record
+
+Recorded 2026-05-20.
+
+Prerequisites:
+
+- Reread `reports/code-inventory-2026-05-17.md`; it exists and remains the
+  controlling code inventory.
+- Reread `notes/architecture-wanted-outcome-2026-05-17.md`; it says Quire owns
+  the generic charter/schema engine, SQLAlchemy mapping/session machinery,
+  schema catalog, derived SQLite lifecycle, and query/index mechanics, while
+  Propstore owns source semantics.
+- Propstore current branch: `master`; tracked task-owned files clean before
+  Phase 6 edits; unrelated untracked files present.
+- Quire current branch: `master`; tracked files clean; unrelated untracked
+  notes/reports/prompts/reviews paths present.
+- Order checker passed:
+  `uv run scripts/check_workstream_order.py workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md`
+  returned `workstream order ok`.
+- Quire pin: `pyproject.toml` and `uv.lock` resolve `quire` from pushed commit
+  `65df665b85053c1741dcd22d3a12deb15f35a4be`.
+- Local dependency-pin searches for `path =`, `workspace = true`,
+  `quire @ file`, `quire @ ..`, and `quire @ C:` returned no hits.
+- Read current source/diagnostics files:
+  `propstore/families/sources/declaration.py`,
+  `propstore/families/diagnostics/declaration.py`,
+  `propstore/source/status.py`, `propstore/source/finalize.py`,
+  `propstore/source/promote.py`, `propstore/core/claim_values.py`,
+  `propstore/derived_build_plan.py`, `propstore/derived_build.py`, and
+  `propstore/families/world_charters.py`.
+- Current caller inventory found source projection usage in
+  `propstore/derived_build_plan.py`, `propstore/families/sources/declaration.py`,
+  `propstore/families/claims/declaration.py`, and
+  `tests/test_sidecar_source_projection.py`; diagnostics projection usage in
+  `propstore/families/diagnostics/declaration.py`,
+  `propstore/families/claims/declaration.py`, and source status/finalize/promote
+  paths; and source `_json` storage columns in `propstore/families/world_charters.py`,
+  `propstore/families/sources/declaration.py`, claim projection compatibility
+  code, and source projection tests.
+- Workstream parity contradiction repaired before implementation: the target
+  model forbids source `_json` storage suffixes, so the allowlist now permits
+  only `quality_json` -> `quality` and `derived_from_json` -> `derived_from`
+  while requiring payload parity and forbidding every other column/table/row/key
+  disappearance.
