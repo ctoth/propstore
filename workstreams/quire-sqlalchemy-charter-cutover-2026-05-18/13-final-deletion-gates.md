@@ -85,6 +85,8 @@ Repository: `C:\Users\Q\code\propstore`.
   `from_yaml_payload`, `from_json_payload`, or `from_row_mapping`.
 - [ ] Confirm `from_mapping` is absent from core, families, world, worldline,
   support-revision, and tests.
+- [ ] Confirm no PascalCase `Active*` production type remains. Activation
+  state names use `Activation`, `Activated`, or domain-specific report names.
 
 ### Helper Deletion Predicate
 
@@ -116,7 +118,15 @@ rg -n -F -- "CONCEPT_ROW_MODEL" propstore tests
 rg -n -F -- "STANCE_ROW_MODEL" propstore tests
 rg -n -F -- "RELATIONSHIP_ROW_MODEL" propstore tests
 rg -n -F -- "SOURCE_PROJECTION" propstore tests
+rg -n -F -- "CONCEPT_FTS_PROJECTION" propstore tests
+rg -n -F -- "CONCEPT_VEC_PROJECTION" propstore tests
+rg -n -F -- "CONTEXT_SCHEMA" propstore tests
 rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
+rg -n -F -- "TEXT_CODEC" propstore/families/contexts tests
+rg -n -F -- "PARAMETERS_CODEC" propstore/families/contexts tests
+rg -n -F -- "CONDITIONS_CODEC" propstore/families/contexts tests
+rg -n -F -- "PROVENANCE_CODEC" propstore/families/contexts tests
+rg -n -F -- "AUTOINCREMENT_CODEC" propstore/families/contexts tests
 rg -n -F -- "_optional_float_input" propstore tests
 rg -n -F -- "_optional_string" propstore tests
 rg -n -F -- "_optional_int" propstore tests
@@ -129,14 +139,22 @@ rg -n -F -- "_optional_float" propstore tests
 rg -n -F -- "_parse_string_tuple" propstore tests
 rg -n -F -- "coerce_active_micropublication" propstore tests
 rg -n -F -- "propstore.core.active_claims" propstore tests
+rg -n -- "class Active[A-Z]|\\bActive[A-Z][A-Za-z0-9_]*\\b" propstore tests
 rg -n -F -- "ActiveClaim" propstore tests
 rg -n -F -- "ActiveClaimInput" propstore tests
 rg -n -F -- "ActiveMicropublicationInput" propstore tests
 rg -n -F -- "ActiveClaimVariable" propstore tests
 rg -n -F -- "ActiveClaimResolver" propstore tests
 rg -n -F -- "ActiveWorldGraph" propstore tests
+rg -n -F -- "WorldBindActiveReport" propstore tests
 rg -n -F -- "ActiveClaim(" propstore tests
 rg -n -F -- "ActiveMicropublication" propstore tests
+rg -n -F -- "ClaimSidecarRows" propstore tests
+rg -n -F -- "RawIdQuarantineSidecarRows" propstore tests
+rg -n -F -- "PromotionBlockedSidecarRows" propstore tests
+rg -n -F -- "SidecarClaimRelationStore" propstore tests
+rg -n -F -- "find_similar_claim_rows" propstore tests
+rg -n -F -- "find_similar_concept_rows" propstore tests
 rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
 ```
 
@@ -213,6 +231,7 @@ The cutover is complete only when every item is checked:
 - [ ] Manual helper/coercer families listed in the search gates are deleted.
 - [ ] Remaining IO boundary constructors use boundary-specific names and do
   not use the generic `from_mapping` name.
+- [ ] No PascalCase `Active*` production/report/model type remains.
 - [ ] `WorldQuery` uses Quire sessions and typed model queries.
 - [ ] Every row in `inventory-matrix.md` has a final delete, move, replace, or
   keep-as-semantic-owner outcome in a commit message or final closure report.
