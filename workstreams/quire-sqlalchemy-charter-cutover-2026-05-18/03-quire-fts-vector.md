@@ -266,3 +266,25 @@ This workstream is complete only when:
   artifacts.
 - The required old-path inventory searches have been run and recorded.
 - No local dependency pin is present.
+
+## Phase 4 Execution Record
+
+Recorded 2026-05-20.
+
+Prerequisites:
+
+- Phase 1-2 and Phase 3 are complete in the preceding child workstreams.
+- Propstore current branch: `master`; task-owned files clean before Phase 4 prerequisite edits; unrelated untracked files present.
+- Quire current branch: `master`; tracked files clean; unrelated untracked notes/reports/output paths present.
+- `sqlalchemy-fts5` exists at `C:\Users\Q\code\sqlalchemy-fts5`; current branch `master`; tracked files clean before the Python-floor edit; untracked `.hypothesis/` present.
+- Quire dependency-pin searches for `file://`, `path =`, `workspace = true`, and `C:` returned no hits.
+- `sqlalchemy-fts5` dependency-pin searches for `file://`, `path =`, `workspace = true`, and `C:` returned no hits.
+- Propstore Python floor check: `pyproject.toml:5:requires-python = ">=3.11"`.
+- Quire Python floor check: `pyproject.toml:6:requires-python = ">=3.11"`.
+- Initial `sqlalchemy-fts5` Python floor check did not find `>=3.11`; `pyproject.toml` had `requires-python = ">=3.12"` and Pyright `pythonVersion = "3.12"`.
+
+`sqlalchemy-fts5` prerequisite fix:
+
+- Commit `04eab80 Support Python 3.11` changes `requires-python` to `>=3.11`, adds the Python 3.11 classifier, changes Pyright `pythonVersion` to `3.11`, and refreshes `uv.lock`.
+
+Next required item: run `sqlalchemy-fts5` `uv run pyright` and `uv run pytest -vv`, then add or fix FTS proof coverage as needed.
