@@ -248,7 +248,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         ]
     elif isinstance(store, StanceStore):
         claim_ids = {
-            str(row.claim_id)
+            str(row.id)
             for row in claim_rows
         }
         claim_stance_rows = [

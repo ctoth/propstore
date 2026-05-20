@@ -79,13 +79,14 @@ def _lower_request(request: AppRevisionWorldRequest):
 def revision_atom_display(atom: BeliefAtom) -> RevisionAtomDisplay:
     if is_assertion_atom(atom):
         claim = atom.primary_source_claim
+        numeric_payload = None if claim is None else claim.numeric_payload
         return RevisionAtomDisplay(
             atom_id=atom.atom_id,
             display_id=atom.atom_id,
-            claim_type=None if claim is None or claim.claim_type is None else claim.claim_type.value,
+            claim_type=None if claim is None else claim.type.value,
             concept_id=None if claim is None or claim.value_concept_id is None else str(claim.value_concept_id),
-            value=None if claim is None else claim.value,
-            unit=None if claim is None else claim.unit,
+            value=None if numeric_payload is None else numeric_payload.value,
+            unit=None if numeric_payload is None else numeric_payload.unit,
         )
     if is_assumption_atom(atom):
         return RevisionAtomDisplay(

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
@@ -158,13 +159,13 @@ def _override_source_ids(atom) -> tuple[str, ...]:
 
     values: list[str] = []
     for claim in atom.source_claims:
-        source = claim.source
-        provenance = claim.provenance
+        provenance = claim.provenance_json
         candidates = (
             claim.source_paper,
-            None if source is None else source.source_id,
-            None if source is None else source.slug,
-            None if provenance is None else provenance.paper,
+            claim.source_slug,
+            None
+            if provenance is None
+            else str(json.loads(provenance).get("paper") or ""),
         )
         values.extend(str(value) for value in candidates if value)
     return tuple(dict.fromkeys(values))

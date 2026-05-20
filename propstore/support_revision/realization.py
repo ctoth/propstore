@@ -333,7 +333,7 @@ def _source_claim_ids(
         atom = atoms_by_id.get(atom_id)
         if atom is None or not is_assertion_atom(atom):
             continue
-        claim_ids.extend(str(claim.claim_id) for claim in atom.source_claims)
+        claim_ids.extend(str(claim.id) for claim in atom.source_claims)
     return tuple(dict.fromkeys(claim_ids))
 
 

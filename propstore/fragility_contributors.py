@@ -655,7 +655,7 @@ def collect_bridge_undercut_interventions(
 
 def build_bound_bridge_inputs(bound: FragilityWorld):
     active_claims = tuple(bound.active_claims())
-    active_by_id = {str(claim.claim_id): claim for claim in active_claims}
+    active_by_id = {str(claim.id): claim for claim in active_claims}
     active_graph = getattr(bound, "_active_graph", None)
     stance_rows = _extract_stance_rows(bound._store, active_by_id, active_graph=active_graph)
     justifications = _extract_justifications(
