@@ -366,5 +366,37 @@ Parity harness slice:
 - Added `tests/test_sqlalchemy_charter_parity_harness.py` with the required passing fixture, missing-key failure, required-vector, required-behavior, missing-baseline, and semantic-input-hash mismatch tests.
 - Focused harness gate passed: `powershell -File scripts/run_logged_pytest.ps1 -Label parity-harness tests/test_sqlalchemy_charter_parity_harness.py` passed with 6 passed; log `logs\test-runs\parity-harness-20260520-102010.log`.
 - Help gate passed: `uv run scripts/compare_sqlalchemy_charter_parity.py --help`.
+- Fixed workstream allowlist parsing to preserve wrapped bullet continuation
+  lines instead of truncating deletion allowlist entries.
+- Focused harness gate after parser fix passed: `powershell -File scripts/run_logged_pytest.ps1 -Label parity-harness tests/test_sqlalchemy_charter_parity_harness.py` passed with 6 passed; log `logs\test-runs\parity-harness-20260520-102328.log`.
 
-Next required item: capture the pre-deletion projection baselines for every owner/workstream pair before deleting the projection builder.
+Pre-deletion baseline capture:
+
+- Captured `reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite`
+  and `baseline.json`.
+- Captured `reports/sqlalchemy-charter-parity/source-diagnostics/before.sqlite`
+  and `baseline.json`.
+- Captured
+  `reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/before.sqlite`
+  and `baseline.json`.
+- Captured `reports/sqlalchemy-charter-parity/contexts-lifting/before.sqlite`
+  and `baseline.json`.
+- Captured `reports/sqlalchemy-charter-parity/claims-active-claims/before.sqlite`
+  and `baseline.json`.
+- Captured
+  `reports/sqlalchemy-charter-parity/relations-stances-conflicts/before.sqlite`
+  and `baseline.json`.
+- Captured
+  `reports/sqlalchemy-charter-parity/micropublications-justifications/before.sqlite`
+  and `baseline.json`.
+- Captured
+  `reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/before.sqlite`
+  and `baseline.json`.
+- Captured
+  `reports/sqlalchemy-charter-parity/world-query-graph-reasoning/before.sqlite`
+  and `baseline.json`.
+- Verified the regenerated `build-orchestration/baseline.json` includes the
+  full wrapped allowlist, including the final no-rename/no-disappearance entry.
+
+Next required item: delete and replace the old projection builder with the
+Quire SQLAlchemy charter build path.

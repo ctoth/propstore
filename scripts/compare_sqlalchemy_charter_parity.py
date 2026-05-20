@@ -136,15 +136,16 @@ def _parse_workstream(path: Path, owner: str) -> list[str]:
     tail = text.split(marker, 1)[1]
     for line in tail.splitlines()[1:]:
         stripped = line.strip()
+        if stripped.startswith("## ") and allowed:
+            break
         if not stripped:
-            if allowed:
-                break
             continue
-        if not stripped.startswith("- "):
-            if allowed:
-                break
+        if stripped.startswith("- "):
+            allowed.append(stripped[2:])
             continue
-        allowed.append(stripped[2:])
+        if allowed:
+            allowed[-1] = f"{allowed[-1]} {stripped}"
+            continue
     if not allowed:
         raise ValueError(f"workstream {path} has an empty parity allowlist")
     return allowed
