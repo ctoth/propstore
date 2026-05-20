@@ -371,7 +371,7 @@ Prerequisites:
 
 - `03-quire-fts-vector.md` records Phase 4 and the Quire-first completion gate complete.
 - Propstore current branch: `master`; tracked task-owned files clean before Phase 5 harness edits; unrelated untracked files present.
-- Quire pin: `pyproject.toml` and `uv.lock` resolve `quire` from pushed commit `1d670267eba752a615122c26fdc551c466b06601`.
+- Quire pin: `pyproject.toml` and `uv.lock` resolve `quire` from pushed commit `852ab784c1c70484b2b6749393c8c0f8d043ac3d`.
 - Local dependency-pin searches for `path =`, `workspace = true`, `quire @ file`, `quire @ ..`, and `quire @ C:` returned no hits.
 
 Parity harness slice:
@@ -426,6 +426,8 @@ Returned-to-Quire capability fix:
 - Pushed Quire commit `852ab784c1c70484b2b6749393c8c0f8d043ac3d`
   (`Support charter FTS source queries`) and refreshed Propstore's Quire pin to
   that pushed commit.
+- Full Quire test gate after the source-query extension:
+  `uv run pytest -vv` passed with 360 passed in 331.85s.
 
 Next required item: resume deletion/replacement of the old projection builder
 using the Quire SQLAlchemy charter FTS source-query path.
