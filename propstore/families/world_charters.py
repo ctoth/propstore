@@ -101,6 +101,7 @@ _CLAIM_MODEL_TABLES = {
     "claim_numeric_payload",
     "claim_text_payload",
     "claim_algorithm_payload",
+    "claim_source_assertion",
 }
 
 
@@ -192,6 +193,7 @@ def world_charter_catalog() -> SchemaCatalog:
                 uselist=False,
             ),)),
         _claim_payload_charters()[0], _claim_payload_charters()[1], _claim_payload_charters()[2],
+        _claim_source_assertion_charter(),
         _charter("conflict_witness", ConflictWitnessRecord, "id",
             _i("id", primary_key=True, nullable=False), _f("claim_a_id", nullable=False), _f("claim_b_id", nullable=False),
             _f("concept_id", nullable=False), _f("warning_class", nullable=False), _f("conditions_a"), _f("conditions_b"),
@@ -309,6 +311,7 @@ def _claim_models() -> dict[str, type[Any]]:
         ClaimAlgorithmPayload,
         ClaimConceptLink,
         ClaimNumericPayload,
+        ClaimSourceAssertion,
         ClaimTextPayload,
     )
 
@@ -318,6 +321,7 @@ def _claim_models() -> dict[str, type[Any]]:
         "claim_numeric_payload": ClaimNumericPayload,
         "claim_text_payload": ClaimTextPayload,
         "claim_algorithm_payload": ClaimAlgorithmPayload,
+        "claim_source_assertion": ClaimSourceAssertion,
     }
 
 
@@ -340,6 +344,32 @@ def _claim_core_charter() -> FamilyCharter:
             foreign_key="claim_id",
             back_populates="claim",
             association_object=True,
+            order_by=("ordinal",),
+        ), CharterRelationship(
+            "numeric_payload",
+            target_family="claim_numeric_payload",
+            foreign_key="claim_id",
+            back_populates="claim",
+            uselist=False,
+        ), CharterRelationship(
+            "text_payload",
+            target_family="claim_text_payload",
+            foreign_key="claim_id",
+            back_populates="claim",
+            uselist=False,
+        ), CharterRelationship(
+            "algorithm_payload",
+            target_family="claim_algorithm_payload",
+            foreign_key="claim_id",
+            back_populates="claim",
+            uselist=False,
+        ), CharterRelationship(
+            "source_assertions",
+            target_family="claim_source_assertion",
+            foreign_key="claim_id",
+            back_populates="claim",
+            association_object=True,
+            order_by=("ordinal",),
         ),))
 
 
@@ -348,15 +378,53 @@ def _claim_payload_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyChart
     return (
         _charter("claim_numeric_payload", models["claim_numeric_payload"], "claim_id",
             CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_numeric_payload_claim", "claim_numeric_payload", "claim_id", "claim_core")), _r("value"), _r("lower_bound"), _r("upper_bound"), _r("uncertainty"),
-            _f("uncertainty_type"), _i("sample_size"), _f("unit"), _r("value_si"), _r("lower_bound_si"), _r("upper_bound_si")),
+            _f("uncertainty_type"), _i("sample_size"), _f("unit"), _r("value_si"), _r("lower_bound_si"), _r("upper_bound_si"),
+            relationships=(CharterRelationship(
+                "claim",
+                target_family="claim_core",
+                foreign_key="claim_id",
+                back_populates="numeric_payload",
+                uselist=False,
+            ),)),
         _charter("claim_text_payload", models["claim_text_payload"], "claim_id",
             CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_text_payload_claim", "claim_text_payload", "claim_id", "claim_core")), _f("conditions_cel"), _f("conditions_ir"), _f("statement"),
             _f("expression"), _f("sympy_generated"), _f("sympy_error"), _f("name"), _f("measure"), _f("listener_population"),
-            _f("methodology"), _f("notes"), _f("description"), _f("auto_summary")),
+            _f("methodology"), _f("notes"), _f("description"), _f("auto_summary"),
+            relationships=(CharterRelationship(
+                "claim",
+                target_family="claim_core",
+                foreign_key="claim_id",
+                back_populates="text_payload",
+                uselist=False,
+            ),)),
         _charter("claim_algorithm_payload", models["claim_algorithm_payload"], "claim_id",
             CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_algorithm_payload_claim", "claim_algorithm_payload", "claim_id", "claim_core")), _f("body"), _f("canonical_ast"), _f("variables_json"), _f("algorithm_stage"),
-            indexes=(CharterIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),)),
+            indexes=(CharterIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
+            relationships=(CharterRelationship(
+                "claim",
+                target_family="claim_core",
+                foreign_key="claim_id",
+                back_populates="algorithm_payload",
+                uselist=False,
+            ),)),
     )
+
+
+def _claim_source_assertion_charter() -> FamilyCharter:
+    models = _claim_models()
+    return _charter("claim_source_assertion", models["claim_source_assertion"], "claim_id",
+        CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_source_assertion_claim", "claim_source_assertion", "claim_id", "claim_core")),
+        _f("source_assertion_id", nullable=False),
+        _i("ordinal", primary_key=True, nullable=False),
+        indexes=(CharterIndex("idx_claim_source_assertion_claim", ("claim_id",)),
+                 CharterIndex("idx_claim_source_assertion_source", ("source_assertion_id",))),
+        relationships=(CharterRelationship(
+            "claim",
+            target_family="claim_core",
+            foreign_key="claim_id",
+            back_populates="source_assertions",
+            uselist=False,
+        ),))
 
 
 def _support_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter, FamilyCharter, FamilyCharter]:

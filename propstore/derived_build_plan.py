@@ -225,6 +225,7 @@ def _claim_batches(rows: ClaimWriteModels | None) -> tuple[WorldWriteBatch, ...]
         _batch("claim_numeric_payload", rows.numeric_payloads),
         _batch("claim_text_payload", rows.text_payloads),
         _batch("claim_algorithm_payload", rows.algorithm_payloads),
+        _batch("claim_source_assertion", rows.source_assertions),
         _batch("claim_concept_link", rows.concept_links),
         _batch("relation_edge", rows.stance_rows),
     )

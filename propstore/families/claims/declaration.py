@@ -92,6 +92,10 @@ class Claim:
     stage: str | None
     promotion_status: str | None
     concept_links: list["ClaimConceptLink"]
+    numeric_payload: "ClaimNumericPayload | None"
+    text_payload: "ClaimTextPayload | None"
+    algorithm_payload: "ClaimAlgorithmPayload | None"
+    source_assertions: list["ClaimSourceAssertion"]
 
 
 class ClaimConceptLink:
@@ -130,6 +134,7 @@ class ClaimNumericPayload:
     value_si: float | None
     lower_bound_si: float | None
     upper_bound_si: float | None
+    claim: Claim | None
 
 
 class ClaimTextPayload:
@@ -147,6 +152,7 @@ class ClaimTextPayload:
     notes: str | None
     description: str | None
     auto_summary: str | None
+    claim: Claim | None
 
 
 class ClaimAlgorithmPayload:
@@ -155,6 +161,25 @@ class ClaimAlgorithmPayload:
     canonical_ast: str | None
     variables_json: str | None
     algorithm_stage: str | None
+    claim: Claim | None
+
+
+class ClaimSourceAssertion:
+    claim_id: str
+    source_assertion_id: str
+    ordinal: int
+    claim: Claim | None
+
+    def __init__(
+        self,
+        claim_id: str,
+        source_assertion_id: str,
+        ordinal: int,
+    ) -> None:
+        self.claim_id = claim_id
+        self.source_assertion_id = source_assertion_id
+        self.ordinal = ordinal
+        self.claim = None
 
 
 @dataclass(frozen=True)
@@ -163,6 +188,7 @@ class ClaimWriteModels:
     numeric_payloads: tuple[ClaimNumericPayload, ...]
     text_payloads: tuple[ClaimTextPayload, ...]
     algorithm_payloads: tuple[ClaimAlgorithmPayload, ...]
+    source_assertions: tuple[ClaimSourceAssertion, ...]
     concept_links: tuple[ClaimConceptLink, ...]
     stance_rows: tuple[ProjectionRow, ...]
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]
@@ -417,6 +443,7 @@ def compile_claim_models(
     numeric_payloads: list[ClaimNumericPayload] = []
     text_payloads: list[ClaimTextPayload] = []
     algorithm_payloads: list[ClaimAlgorithmPayload] = []
+    source_assertions: list[ClaimSourceAssertion] = []
     claim_links: list[ClaimConceptLink] = []
     stance_rows: list[ProjectionRow] = []
     quarantine_diagnostics: list[QuarantineDiagnostic] = []
@@ -554,10 +581,28 @@ def compile_claim_models(
                 ),
                 "algorithm_stage": claim_doc.stage,
             }
-            claim_models.append(world_record("claim_core", claim_values))
-            numeric_payloads.append(world_record("claim_numeric_payload", numeric_values))
-            text_payloads.append(world_record("claim_text_payload", text_values))
-            algorithm_payloads.append(world_record("claim_algorithm_payload", algorithm_values))
+            claim_model = world_record("claim_core", claim_values)
+            numeric_payload = world_record("claim_numeric_payload", numeric_values)
+            text_payload = world_record("claim_text_payload", text_values)
+            algorithm_payload = world_record("claim_algorithm_payload", algorithm_values)
+            source_assertion = ClaimSourceAssertion(
+                claim_id=claim_id,
+                source_assertion_id=f"ps:assertion:{claim_id}",
+                ordinal=0,
+            )
+            claim_model.numeric_payload = numeric_payload
+            claim_model.text_payload = text_payload
+            claim_model.algorithm_payload = algorithm_payload
+            claim_model.source_assertions = [source_assertion]
+            numeric_payload.claim = claim_model
+            text_payload.claim = claim_model
+            algorithm_payload.claim = claim_model
+            source_assertion.claim = claim_model
+            claim_models.append(claim_model)
+            numeric_payloads.append(numeric_payload)
+            text_payloads.append(text_payload)
+            algorithm_payloads.append(algorithm_payload)
+            source_assertions.append(source_assertion)
             seen_claim_versions[claim_id] = version_id
             for values in prepare_claim_concept_link_rows(semantic_claim):
                 role = values[2]
@@ -638,6 +683,7 @@ def compile_claim_models(
         numeric_payloads=tuple(numeric_payloads),
         text_payloads=tuple(text_payloads),
         algorithm_payloads=tuple(algorithm_payloads),
+        source_assertions=tuple(source_assertions),
         concept_links=tuple(claim_links),
         stance_rows=tuple(stance_rows),
         quarantine_diagnostics=tuple(quarantine_diagnostics),
