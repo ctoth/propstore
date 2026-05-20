@@ -436,3 +436,26 @@ Prerequisites:
   `powershell -File scripts/run_logged_pytest.ps1 -Label source-trust-payload tests/test_prior_base_rate_is_opinion.py tests/test_sidecar_projection_contract.py`
   returned `12 passed`; log:
   `logs/test-runs/source-trust-payload-20260520-121521.log`.
+- Commit `668ea5f9` removed the remaining generic `from_mapping` boundary
+  constructor spelling from `propstore/core`, `propstore/families`,
+  `propstore/world`, `propstore/worldline`, `propstore/support_revision`, and
+  tests by renaming row-shaped constructors to `from_row_mapping` and
+  payload-shaped constructors to `from_json_payload`.
+- Commit `668ea5f9` also restored current Quire SQLAlchemy store validation
+  semantics in `WorldQuery`: schema table/column validation reports
+  `Unsupported SQLAlchemy store`, and Propstore-owned semantic meta
+  row/version checks remain explicit.
+- Exact required `from_mapping` gate passed:
+  `rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests`
+  returned no hits.
+- Affected-package pyright passed:
+  `uv run pyright propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision`
+  returned 0 errors.
+- Focused schema-validation repair gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label worldquery-schema-validation tests/test_world_query.py::TestWorldQuerySidecarPath::test_worldmodel_rejects_partial_sidecar_schema tests/test_world_query.py::TestWorldQuerySidecarPath::test_worldmodel_rejects_unsupported_schema_version tests/test_world_query.py::TestWorldQuerySidecarPath::test_worldmodel_rejects_boundary_schema_breakage`
+  returned `5 passed`; log:
+  `logs/test-runs/worldquery-schema-validation-20260520-122041.log`.
+- Focused boundary-constructor rename gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label boundary-constructor-rename tests/support_revision/revision_assertion_helpers.py tests/remediation/phase_3_ignorance/test_T3_5_activation_unknown_cel.py tests/architecture/test_argumentation_pin_aba_adf.py tests/test_core_graph_types.py tests/test_defeasible_conformance_tranche.py tests/test_epistemic_history.py tests/test_lifting_blocked_in_provenance.py tests/test_mapping_boundary_failures.py tests/test_pls_property.py tests/test_resolution_helpers.py tests/test_revision_event_contract.py tests/test_worldline_result_boundaries.py tests/test_worldline_revision_event_capture.py tests/test_world_query.py`
+  returned `219 passed`; log:
+  `logs/test-runs/boundary-constructor-rename-20260520-122103.log`.
