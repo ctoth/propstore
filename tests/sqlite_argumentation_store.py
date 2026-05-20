@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import sqlite3
+from sqlite3 import Connection
 
 from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
 
 
 class SQLiteArgumentationStore:
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: Connection) -> None:
         self._conn = conn
 
     def resolve_claim(self, name: str) -> str | None:

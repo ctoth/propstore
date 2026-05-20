@@ -64,6 +64,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from sqlite3 import Connection
 from collections.abc import Mapping
 from typing import TYPE_CHECKING
 
@@ -87,7 +88,7 @@ if TYPE_CHECKING:
 # ---------------------------------------------------------------------------
 
 
-def _fresh_conn_with_schema() -> sqlite3.Connection:
+def _fresh_conn_with_schema() -> Connection:
     """Return an in-memory SQLite connection with the grounded_fact table.
 
     Lives inside the tests (no fixtures, no conftest per the prompt

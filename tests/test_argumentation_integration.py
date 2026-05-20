@@ -7,6 +7,7 @@ Uses in-memory SQLite with direct inserts for speed.
 from __future__ import annotations
 
 import sqlite3
+from sqlite3 import Connection
 
 import pytest
 from hypothesis import given, settings, assume
@@ -32,7 +33,7 @@ from tests.conftest import (
 # ── SQLite fixture ──────────────────────────────────────────────────
 
 
-def _insert_claim(conn: sqlite3.Connection, claim_id: str, concept_id: str,
+def _insert_claim(conn: Connection, claim_id: str, concept_id: str,
                    value: float, sample_size: int | None = None,
                    uncertainty: float | None = None,
                    confidence: float | None = None) -> None:
@@ -48,7 +49,7 @@ def _insert_claim(conn: sqlite3.Connection, claim_id: str, concept_id: str,
     )
 
 
-def _insert_stance(conn: sqlite3.Connection, claim_id: str,
+def _insert_stance(conn: Connection, claim_id: str,
                      target_claim_id: str, stance_type: str,
                      confidence: float = 0.9) -> None:
     insert_stance(
@@ -412,7 +413,7 @@ class TestAFProperties:
 
 
 def _insert_conflict(
-    conn: sqlite3.Connection,
+    conn: Connection,
     concept_id: str,
     claim_a_id: str,
     claim_b_id: str,

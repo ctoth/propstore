@@ -9,12 +9,13 @@ These tests verify that a non-table-missing OperationalError (e.g. "disk I/O
 error") propagates to the caller. They should FAIL on current code because
 the broad catch swallows them.
 
-Strategy: sqlite3.Connection.execute is read-only on C extension objects,
+Strategy: Connection.execute is read-only on C extension objects,
 so we can't patch it directly. Instead we create a thin wrapper class that
 delegates to a real connection but raises on targeted queries.
 """
 
 import sqlite3
+from sqlite3 import Connection
 
 import pytest
 
@@ -78,11 +79,11 @@ class TestEmbedEntitiesStoreProtocol:
 
 
 class _FailingConnection:
-    """Wraps a real sqlite3.Connection, raising on targeted SQL patterns.
+    """Wraps a real Connection, raising on targeted SQL patterns.
 
     Parameters
     ----------
-    real_conn : sqlite3.Connection
+    real_conn : Connection
         The real connection to delegate to.
     fail_pattern : str
         A substring; if it appears in the SQL string, we raise instead.
@@ -90,7 +91,7 @@ class _FailingConnection:
         The OperationalError message to raise.
     """
 
-    def __init__(self, real_conn: sqlite3.Connection, fail_pattern: str, error_msg: str):
+    def __init__(self, real_conn: Connection, fail_pattern: str, error_msg: str):
         self._real = real_conn
         self._fail_pattern = fail_pattern
         self._error_msg = error_msg

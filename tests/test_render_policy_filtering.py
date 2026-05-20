@@ -23,6 +23,7 @@ layer's filtering behavior in isolation.
 from __future__ import annotations
 
 import sqlite3
+from sqlite3 import Connection
 from pathlib import Path
 
 import pytest
@@ -37,7 +38,7 @@ from tests.family_helpers import world_query_from_sqlite_path
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
-def _insert_minimal_source(conn: sqlite3.Connection, slug: str = "test-source") -> None:
+def _insert_minimal_source(conn: Connection, slug: str = "test-source") -> None:
     conn.execute(
         """
         INSERT INTO source (slug, source_id, kind, origin_type, origin_value)
@@ -47,7 +48,7 @@ def _insert_minimal_source(conn: sqlite3.Connection, slug: str = "test-source") 
     )
 
 
-def _insert_concept(conn: sqlite3.Connection, concept_id: str = "concept:alpha") -> None:
+def _insert_concept(conn: Connection, concept_id: str = "concept:alpha") -> None:
     conn.execute(
         """
         INSERT INTO concept (
@@ -62,7 +63,7 @@ def _insert_concept(conn: sqlite3.Connection, concept_id: str = "concept:alpha")
 
 
 def _insert_claim_core(
-    conn: sqlite3.Connection,
+    conn: Connection,
     claim_id: str,
     *,
     concept_id: str = "concept:alpha",
@@ -109,7 +110,7 @@ def _insert_claim_core(
 
 
 def _insert_build_diagnostic(
-    conn: sqlite3.Connection,
+    conn: Connection,
     *,
     claim_id: str | None,
     source_kind: str,

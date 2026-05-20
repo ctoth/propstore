@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from sqlite3 import Connection
 from pathlib import Path
 
 import pytest
@@ -107,7 +108,7 @@ def test_parse_context_record_rejects_malformed_structured_fields(
 
 
 def insert_claim_row(
-    conn: sqlite3.Connection,
+    conn: Connection,
     claim_id: str,
     *,
     concept_id: str = "c1",

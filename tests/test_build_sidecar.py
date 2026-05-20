@@ -5,6 +5,7 @@ populates them from concept YAML files, and builds the FTS5 index.
 """
 
 import sqlite3
+from sqlite3 import Connection
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -249,7 +250,7 @@ _CLAIM_SELECT_SQL = """
 """
 
 
-def _fetch_claim(conn: sqlite3.Connection, claim_id: str) -> sqlite3.Row | None:
+def _fetch_claim(conn: Connection, claim_id: str) -> sqlite3.Row | None:
     conn.row_factory = sqlite3.Row
     if ":" not in claim_id and not claim_id.startswith("ps:claim:"):
         return conn.execute(
@@ -263,7 +264,7 @@ def _fetch_claim(conn: sqlite3.Connection, claim_id: str) -> sqlite3.Row | None:
 
 
 def _fetch_claim_rows(
-    conn: sqlite3.Connection,
+    conn: Connection,
     where_sql: str = "",
     params: tuple[object, ...] = (),
 ) -> list[sqlite3.Row]:
@@ -272,7 +273,7 @@ def _fetch_claim_rows(
 
 
 def _fetch_relation_edge_rows(
-    conn: sqlite3.Connection,
+    conn: Connection,
     where_sql: str = "",
     params: tuple[object, ...] = (),
 ) -> list[sqlite3.Row]:

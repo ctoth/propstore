@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import sqlite3
+from sqlite3 import Connection
 import warnings
 from copy import deepcopy
 from types import MappingProxyType
@@ -304,7 +305,7 @@ def normalize_concept_payloads(
     return normalized_concepts
 
 
-def create_argumentation_schema(conn: sqlite3.Connection) -> None:
+def create_argumentation_schema(conn: Connection) -> None:
     """Create minimal normalized claim/relation/conflict tables for testing."""
     conn.executescript("""
         CREATE TABLE claim_core (
@@ -402,7 +403,7 @@ def create_argumentation_schema(conn: sqlite3.Connection) -> None:
 
 
 def insert_claim(
-    conn: sqlite3.Connection,
+    conn: Connection,
     claim_id: str,
     *,
     claim_type: str | None = None,
@@ -486,7 +487,7 @@ def insert_claim(
 
 
 def insert_stance(
-    conn: sqlite3.Connection,
+    conn: Connection,
     claim_id: str,
     target_claim_id: str,
     stance_type: str,
@@ -541,7 +542,7 @@ def insert_stance(
 
 
 def insert_conflict(
-    conn: sqlite3.Connection,
+    conn: Connection,
     *,
     concept_id: str,
     claim_a_id: str,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from sqlite3 import Connection
 from pathlib import Path
 
 import tests.conftest as project_conftest
@@ -11,19 +12,19 @@ from propstore.families.world_charters import world_sqlalchemy_schema
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
-def _table_info(conn: sqlite3.Connection, table: str) -> list[tuple[object, ...]]:
+def _table_info(conn: Connection, table: str) -> list[tuple[object, ...]]:
     return list(conn.execute(f"PRAGMA table_info({table})"))
 
 
-def _index_list(conn: sqlite3.Connection, table: str) -> list[tuple[object, ...]]:
+def _index_list(conn: Connection, table: str) -> list[tuple[object, ...]]:
     return list(conn.execute(f"PRAGMA index_list({table})"))
 
 
-def _foreign_key_list(conn: sqlite3.Connection, table: str) -> list[tuple[object, ...]]:
+def _foreign_key_list(conn: Connection, table: str) -> list[tuple[object, ...]]:
     return list(conn.execute(f"PRAGMA foreign_key_list({table})"))
 
 
-def _table_names(conn: sqlite3.Connection) -> set[str]:
+def _table_names(conn: Connection) -> set[str]:
     rows = conn.execute(
         """
         SELECT name

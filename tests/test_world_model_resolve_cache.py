@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from sqlite3 import Connection
 from pathlib import Path
 from typing import Any
 
@@ -26,7 +27,7 @@ from tests.family_helpers import world_query_from_sqlite_path
 
 
 def _insert_claim_row(
-    conn: sqlite3.Connection, claim_id: str, seq: int
+    conn: Connection, claim_id: str, seq: int
 ) -> None:
     """Insert a claim_core row with a matching ``test:<id>`` logical id.
 
@@ -62,7 +63,7 @@ def _insert_claim_row(
     )
 
 
-def _insert_concept(conn: sqlite3.Connection, concept_id: str) -> None:
+def _insert_concept(conn: Connection, concept_id: str) -> None:
     """Insert a concept row with a matching ``test:<id>`` logical id.
 
     Mirrors the shape ``insert_claim`` writes for claim_core: a
@@ -122,16 +123,16 @@ def _build_concept_sidecar(tmp_path: Path, n_rows: int) -> Path:
 
 
 class _CountingConnection:
-    """Pass-through proxy around a ``sqlite3.Connection``.
+    """Pass-through proxy around a ``Connection``.
 
-    ``sqlite3.Connection.execute`` is a C-level attribute and cannot be
+    ``Connection.execute`` is a C-level attribute and cannot be
     reassigned on the instance. Instead the whole connection is wrapped
     and ``world._conn`` is repointed at the proxy — all
     ``self._conn.execute(...)`` calls inside ``WorldQuery`` route through
     ``__getattr__`` → the wrapped ``execute`` method on this proxy.
     """
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: Connection) -> None:
         self._conn = conn
         self.count = 0
 

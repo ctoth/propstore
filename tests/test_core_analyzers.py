@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from sqlite3 import Connection
 
 import pytest
 
@@ -13,7 +14,7 @@ from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 
 
 def _insert_claim(
-    conn: sqlite3.Connection,
+    conn: Connection,
     claim_id: str,
     concept_id: str,
     value: float,
@@ -32,7 +33,7 @@ def _insert_claim(
 
 
 def _insert_stance(
-    conn: sqlite3.Connection,
+    conn: Connection,
     claim_id: str,
     target_claim_id: str,
     stance_type: str,
@@ -57,7 +58,7 @@ def _insert_stance(
 
 
 @pytest.fixture
-def conn() -> sqlite3.Connection:
+def conn() -> Connection:
     connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row
     create_argumentation_schema(connection)
@@ -89,7 +90,7 @@ class _StoreWithSourcePrior:
         return self._wrapped.conflicts()
 
 
-def test_shared_claim_graph_analyzer_matches_current_grounded(conn: sqlite3.Connection) -> None:
+def test_shared_claim_graph_analyzer_matches_current_grounded(conn: Connection) -> None:
     _insert_claim(conn, "c1", "temp", 100.0, sample_size=50)
     _insert_claim(conn, "c2", "temp", 200.0, sample_size=50)
     _insert_stance(conn, "c1", "c2", "rebuts")
@@ -149,7 +150,7 @@ def test_shared_claim_graph_analyzer_uses_grounded_over_defeats_only() -> None:
 
 
 def test_shared_claim_graph_analyzer_matches_current_preferred_and_stable(
-    conn: sqlite3.Connection,
+    conn: Connection,
 ) -> None:
     _insert_claim(conn, "c1", "temp", 100.0, sample_size=50)
     _insert_claim(conn, "c2", "temp", 200.0, sample_size=50)
@@ -180,7 +181,7 @@ def test_shared_claim_graph_analyzer_matches_current_preferred_and_stable(
         assert set(result.projection.witness_claim_ids) == {"c1", "c2"}
 
 
-def test_shared_praf_analyzer_matches_current_acceptance(conn: sqlite3.Connection) -> None:
+def test_shared_praf_analyzer_matches_current_acceptance(conn: Connection) -> None:
     _insert_claim(conn, "c1", "temp", 100.0, sample_size=50)
     _insert_claim(conn, "c2", "temp", 200.0, sample_size=50)
     _insert_stance(
@@ -286,7 +287,7 @@ class TestConflictStanceSynthesis:
     """Conflicts should always synthesize rebut stances when not already explicit."""
 
     def test_conflict_visible_despite_existing_stances(
-        self, conn: sqlite3.Connection
+        self, conn: Connection
     ) -> None:
         """A conflict between A and C must still produce synthetic rebuts
         even if A already has an explicit support stance to B."""
@@ -328,7 +329,7 @@ class TestConflictStanceSynthesis:
         )
 
     def test_synthetic_conflict_stances_do_not_fabricate_opinions(
-        self, conn: sqlite3.Connection
+        self, conn: Connection
     ) -> None:
         _insert_claim(conn, "cA", "temp", 100.0, sample_size=50)
         _insert_claim(conn, "cC", "temp", 300.0, sample_size=50)

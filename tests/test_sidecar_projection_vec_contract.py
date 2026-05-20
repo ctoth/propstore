@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from sqlite3 import Connection
 import struct
 from contextlib import closing
 
@@ -9,7 +10,7 @@ import pytest
 from propstore.families.embeddings.declaration import load_vec_extension
 
 
-def _load_or_skip(conn: sqlite3.Connection) -> None:
+def _load_or_skip(conn: Connection) -> None:
     try:
         load_vec_extension(conn)
     except ImportError as exc:

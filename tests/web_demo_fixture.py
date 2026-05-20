@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
+from sqlite3 import Connection
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -38,7 +39,7 @@ def seed_web_demo_repository(tmp_path: Path) -> WebDemoRepositoryFixture:
         concept_id="demo_concept",
     )
 
-def _seed_rows(conn: sqlite3.Connection) -> None:
+def _seed_rows(conn: Connection) -> None:
     conn.execute(
         """
         INSERT INTO source (
@@ -167,7 +168,7 @@ def _seed_rows(conn: sqlite3.Connection) -> None:
 
 
 def _insert_claim(
-    conn: sqlite3.Connection,
+    conn: Connection,
     *,
     claim_id: str,
     logical_id: str,

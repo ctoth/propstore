@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import sqlite3
+from sqlite3 import Connection
 
 import pytest
 
 
-def _claim_db() -> sqlite3.Connection:
+def _claim_db() -> Connection:
     conn = sqlite3.connect(":memory:")
     conn.row_factory = sqlite3.Row
     conn.execute("CREATE TABLE claim_core (id TEXT PRIMARY KEY, source_paper TEXT)")
@@ -34,7 +35,7 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
 
     conn = _claim_db()
 
-    def find_similar(_conn: sqlite3.Connection, claim_id: str, _model_name: str, *, top_k: int) -> list[dict]:
+    def find_similar(_conn: Connection, claim_id: str, _model_name: str, *, top_k: int) -> list[dict]:
         if claim_id == "claim-a":
             return [{"id": "claim-b", "distance": 0.3}]
         if claim_id == "claim-b":

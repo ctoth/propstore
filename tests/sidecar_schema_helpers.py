@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+from sqlite3 import Connection
 
 from sqlalchemy import create_engine, text
 
@@ -12,7 +13,7 @@ from propstore.families.world_charters import (
 )
 
 
-def build_world_projection_schema(conn: sqlite3.Connection) -> None:
+def build_world_projection_schema(conn: Connection) -> None:
     schema = world_sqlalchemy_schema()
     engine = create_engine("sqlite://", creator=lambda: conn)
     schema.metadata.create_all(engine)
