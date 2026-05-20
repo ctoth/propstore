@@ -635,3 +635,48 @@ Remaining concept read/session/search cutover queue:
   `find_similar_concept_rows`, and the vector runtime, but this workstream
   still owns deletion or relocation of declaration-level concept embedding
   source selectors named in the helper table.
+
+Final Phase 7-8 gates:
+
+- Required package pyright passed:
+  `uv run pyright propstore` returned 0 errors.
+- Required forms gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label forms-charter tests/test_form_algebra.py tests/test_required_schema_completeness.py tests/test_fixture_schema_parity.py`
+  returned `34 passed`; log:
+  `logs/test-runs/forms-charter-20260520-135324.log`.
+- Required concept gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label concept-charter tests/test_required_schema_completeness.py tests/test_fixture_schema_parity.py tests/test_render_time_filtering.py`
+  returned `18 passed`; log:
+  `logs/test-runs/concept-charter-20260520-135324.log`.
+- Required forms old-path searches returned zero hits:
+  `FORM_PROJECTION`, `FORM_ALGEBRA_PROJECTION`, `ProjectionTable(` under
+  `propstore/families/concepts`, `propstore/families/forms`, and `tests`, and
+  `propstore.form_utils`.
+- Required concept old-path searches returned zero hits:
+  `propstore.families.concepts.projection_model`, `ConceptRow`,
+  `ParameterizationRow`, `CONCEPT_ROW_MODEL`, `PARAMETERIZATION_ROW_MODEL`,
+  `CONCEPT_PROJECTION`, `CONCEPT_FTS_PROJECTION`,
+  `PARAMETERIZATION_PROJECTION`, `ALIAS_PROJECTION`,
+  `PARAMETERIZATION_GROUP_PROJECTION`, `RELATIONSHIP_PROJECTION`,
+  `_nullable_text`, `fetch_concept_search_hits_from_sidecar`,
+  `select_concept_by_id`, `select_all_concepts`,
+  `select_concept_embedding_sources`,
+  `select_parameterizations_for_output_concept`,
+  `select_parameterization_group_members`, `select_all_form_rows`, and
+  `select_all_form_algebra_rows`.
+- Additional same-pattern cleanup searches returned zero hits for
+  `fetch_concept_search_hits`, `resolve_concept_embedding_entity`,
+  `select_aliases_by_concept_id`, `resolve_sidecar_concept_id`,
+  `to_concept_id(hit.entity_id)`, `_concept_by_id`,
+  `_concept_registry_rows`, and `_parameterizations_for_output_concept`.
+  `_concept_count` has no production helper hit; the only hit is the test
+  method name `tests/test_build_sidecar.py::test_concept_count`.
+- Required data parity passed:
+  `uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/after.sqlite --owner forms-concepts-parameterizations --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/06-forms-concepts-parameterizations.md --out reports/sqlalchemy-charter-parity/forms-concepts-parameterizations.json`
+  exited 0. The report has `failures: []`, `after_head_sha`
+  `78d84a61220322253a2ad64e4bbfd88e4cb3a1bd`, after schema hash
+  `sha256:d517d6d136300f85acd754da8316e73c9161c8e0af2504d0064647d5d9499fdc`,
+  and passing table, row-count, key-set, FTS, vector, and diagnostic
+  comparisons for the captured forms/concepts/parameterizations baseline.
+- Phase 7-8 completion gate is satisfied. The remaining vector runtime
+  migration named in this file stays owned by Phase 11, not this phase.
