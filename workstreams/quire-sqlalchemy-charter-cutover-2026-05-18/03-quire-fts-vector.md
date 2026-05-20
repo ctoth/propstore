@@ -434,3 +434,39 @@ Remaining fix audit:
   SQL, a sidecar-opening declaration helper, claim/concept lookup wrappers,
   duplicate model maps, local model aliases, compatibility adapters, fallback
   readers, or old/new dual paths.
+
+### Dynamic Vector Dimension Capability Gap
+
+Recorded 2026-05-20 during Phase 10 claim embedding cleanup.
+
+The remaining Propstore package type errors are in
+`propstore/families/embeddings/declaration.py`, where claim embedding runtime
+still imports deleted claim projection constants and
+`select_claim_embedding_rows`. Moving that caller to Quire SQLAlchemy vector
+caches exposed a Quire-owned gap: `CharterVectorCache` and
+`SchemaVectorCache` currently require a fixed `dimensions` value in the
+charter, while Propstore embedding dimensions are determined by the registered
+embedding model at runtime and are already stored in `embedding_model`.
+
+Required Quire repair before Propstore deletes the old claim embedding
+projection imports:
+
+- vector cache declarations must support model-determined dimensions without a
+  Propstore side table, wrapper, or vector-spec helper;
+- `SqlAlchemyVecEntityStore.prepare_model` must accept/use the actual model
+  dimensions when the cache is model-dimensioned;
+- vector table names, creation, insert, search, snapshot, and restore must use
+  the registered model dimensions generically;
+- proof coverage must include a vector cache whose dimensions come from
+  `prepare_model`, plus the existing fixed-dimension proof;
+- Quire gates must pass and the repair must be pushed before Propstore pins
+  it.
+
+Forbidden Propstore replacements:
+
+- do not recreate `CLAIM_EMBEDDING_JOIN_COLUMNS`,
+  `CLAIM_EMBEDDING_JOIN_SOURCE`, `CLAIM_EMBEDDING_STATUS_PROJECTION`,
+  `CLAIM_VEC_PROJECTION`, or `select_claim_embedding_rows`;
+- do not hard-code vector table dimensions or table names in Propstore;
+- do not keep claim/concept vector access on the retained sqlite projection
+  API once the generic Quire cache covers the needed behavior.
