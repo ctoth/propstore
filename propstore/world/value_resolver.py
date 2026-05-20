@@ -12,8 +12,8 @@ from typing import Any, Callable
 from ast_equiv import AlgorithmParseError, compare as ast_compare
 
 from propstore.core.claim_types import ClaimType
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
 from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Parameterization
 from propstore.propagation import rewrite_parameterization_symbols
 from propstore.world.types import (
@@ -55,15 +55,16 @@ def _comparison_from_equivalence(equivalent: object) -> _AlgorithmComparison:
 
 @dataclass(frozen=True)
 class _ActiveClaimView:
-    claim: ActiveClaim
+    claim: Claim
     claim_id: str | None
     claim_type: ClaimType | None
     value: float | str | None
     body: str | None
 
 
-def _active_claim_value(claim: ActiveClaim) -> float | str | None:
-    value = claim.value
+def _active_claim_value(claim: Claim) -> float | str | None:
+    numeric_payload = claim.numeric_payload
+    value = None if numeric_payload is None else numeric_payload.value
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):
@@ -73,14 +74,14 @@ def _active_claim_value(claim: ActiveClaim) -> float | str | None:
     return None
 
 
-def _active_claim_view(claim_input: ActiveClaimInput) -> _ActiveClaimView:
-    claim = coerce_active_claim(claim_input)
+def _active_claim_view(claim: Claim) -> _ActiveClaimView:
+    algorithm_payload = claim.algorithm_payload
     return _ActiveClaimView(
         claim=claim,
-        claim_id=str(claim.claim_id),
-        claim_type=claim.claim_type,
+        claim_id=str(claim.id),
+        claim_type=claim.type,
         value=_active_claim_value(claim),
-        body=claim.body,
+        body=None if algorithm_payload is None else algorithm_payload.body,
     )
 
 
@@ -128,9 +129,9 @@ class ActiveClaimResolver:
         parameterizations_for: Callable[[ConceptId | str], list[Parameterization]],
         is_param_compatible: Callable[[Parameterization], bool],
         value_of: Callable[[ConceptId | str], ValueResult],
-        extract_variable_concepts: Callable[[ActiveClaim], list[str]],
+        extract_variable_concepts: Callable[[Claim], list[str]],
         collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, Any]],
-        extract_bindings: Callable[[ActiveClaim], dict[str, str]],
+        extract_bindings: Callable[[Claim], dict[str, str]],
         concept_symbol_candidates: Callable[[ConceptId | str], Sequence[str]] | None = None,
     ) -> None:
         self._parameterizations_for = parameterizations_for
@@ -202,11 +203,11 @@ class ActiveClaimResolver:
 
     def value_of_from_active(
         self,
-        active: Sequence[ActiveClaimInput],
+        active: Sequence[Claim],
         concept_id: ConceptId | str,
     ) -> ValueResult:
         typed_concept_id = to_concept_id(concept_id)
-        active_claims = [coerce_active_claim(claim) for claim in active]
+        active_claims = list(active)
         if not active_claims:
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
@@ -543,7 +544,7 @@ class ActiveClaimResolver:
 
     def _all_algorithms_equivalent(
         self,
-        algo_claims: Sequence[_ActiveClaimView | ActiveClaimInput],
+        algo_claims: Sequence[_ActiveClaimView | Claim],
         known_values: Mapping[ConceptId, Any],
     ) -> _AlgorithmComparison:
         normalized_claims = [
