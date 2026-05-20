@@ -76,7 +76,8 @@ Repository: `C:\Users\Q\code\propstore`.
 
 ### Deletion Checklist
 
-- [ ] Delete `propstore/families/claims/projection_model.py`.
+- [ ] Verify `propstore/families/claims/projection_model.py` is absent after
+  Phase 10 deletes the justification residual.
 - [ ] Delete `propstore/families/concepts/projection_model.py`.
 - [ ] Delete `propstore/families/relations/projection_model.py`.
 - [ ] Delete `propstore/families/projection_catalog.py`.
