@@ -45,8 +45,8 @@ from propstore.core.environment import (
     ConflictStore,
     Environment,
 )
-from propstore.core.active_claims import ActiveClaimInput
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
+from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -193,19 +193,39 @@ def _conflict_row_from_witness(conflict: ConflictWitness) -> dict:
     }
 
 
-def _claim_node_from_row(row_input: ActiveClaimInput | dict) -> ClaimNode:
-    row = CLAIM_ROW_MODEL.coerce(row_input)
+def _claim_value_concept_id(claim: Claim):
+    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
+        for link in claim.concept_links:
+            if link.role is role:
+                return to_concept_id(link.concept_id)
+    if claim.target_concept is not None:
+        return to_concept_id(claim.target_concept)
+    return None
+
+
+def _claim_node_from_row(row: Claim) -> ClaimNode:
     attributes = tuple(
-        (str(key), value)
-        for key, value in CLAIM_ROW_MODEL.to_mapping(row).items()
-        if key not in {"id", "target_concept", "type", "value"}
-        and value is not None
+        (key, value)
+        for key, value in (
+            ("primary_logical_id", row.primary_logical_id),
+            ("version_id", row.version_id),
+            ("source_slug", row.source_slug),
+            ("source_paper", row.source_paper),
+            ("provenance_json", row.provenance_json),
+            ("context_id", row.context_id),
+            ("premise_kind", row.premise_kind),
+            ("branch", row.branch),
+            ("build_status", row.build_status),
+            ("stage", row.stage),
+            ("promotion_status", row.promotion_status),
+        )
+        if value is not None
     )
     return ClaimNode(
-        claim_id=to_claim_id(row.claim_id),
-        claim_type=coerce_claim_type(row.claim_type or "unknown") or ClaimType.UNKNOWN,
-        value_concept_id=row.value_concept_id,
-        scalar_value=row.value,
+        claim_id=to_claim_id(row.id),
+        claim_type=coerce_claim_type(row.type or "unknown") or ClaimType.UNKNOWN,
+        value_concept_id=_claim_value_concept_id(row),
+        scalar_value=None,
         attributes=attributes,
     )
 
