@@ -762,3 +762,10 @@ Recorded 2026-05-20.
   active-claim rows, and serialization records `source_claim_ids` rather than
   duplicating full claim mappings. The remaining support-revision active-claim
   hit is `support_revision/af_adapter.py`.
+- Support revision argumentation deletion: commit `4ea9d47b` removed the last
+  `propstore.core.active_claims` import under `support_revision`. The revision
+  argumentation overlay now stores typed `Claim` objects directly and derives
+  the concept id from the claim association-object links or `target_concept`.
+  The refreshed active-claim import search now reports only `aspic_bridge`,
+  `app`, `preference.py`, `praf/engine.py`, `world`, and
+  `worldline/resolution.py`.
