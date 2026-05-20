@@ -85,6 +85,7 @@ Declare these Propstore domain models through the Quire charter system:
 - `ClaimNumericPayload`
 - `ClaimTextPayload`
 - `ClaimAlgorithmPayload`
+- `ClaimSourceAssertion`
 
 Payload requirements:
 
@@ -100,6 +101,10 @@ Payload requirements:
 - authored YAML/JSON parsing and raw row decoding are IO-boundary work only;
   typed compiler stages and mapped claim models must receive already-typed
   values and fail hard when the boundary did not produce them.
+- source-assertion provenance is not a loose graph attribute and is not an
+  `ActiveClaim` payload; `ClaimSourceAssertion` is a typed claim-owned
+  association object with `claim_id`, `source_assertion_id`, and `ordinal`
+  fields declared once in the claim charter and related to `Claim`.
 
 ## Claim Concept Links
 
@@ -115,6 +120,75 @@ Decision:
   `claim.concept_links`.
 - Link payload data must remain visible to graph construction, render policy,
   source promotion, conflict detection, and worldline materialization.
+
+## Typed Payload And Source-Assertion Wiring Gate
+
+The deletion-first caller slices removed row-only reads for scalar values,
+conditions, algorithm bodies, uncertainty/sample metadata, provenance payloads,
+and source assertion ids. That is not an accepted final state. Before deleting
+more world-facing active-claim callers, restore that behavior through the typed
+claim model only.
+
+Required model shape:
+
+- `Claim` has typed one-to-one relationships named `numeric_payload`,
+  `text_payload`, and `algorithm_payload` to `ClaimNumericPayload`,
+  `ClaimTextPayload`, and `ClaimAlgorithmPayload`.
+- Each payload model has a typed back-reference named `claim`; payload fields
+  remain declared once in the existing payload charters.
+- `Claim` has a typed ordered relationship named `source_assertions` to
+  `ClaimSourceAssertion`.
+- `ClaimSourceAssertion` is a claim-owned association object with fields
+  `claim_id`, `source_assertion_id`, and `ordinal`; it replaces the old
+  `attributes["source_assertion_ids"]` path and no mapping/list coercer may be
+  introduced for it.
+- Quire relationships for these fields must be declared in charters. If Quire
+  cannot map these one-to-one and ordered one-to-many relationships generically,
+  return to the Quire engine workstream and add that capability there; do not
+  hand-roll lazy loaders, row joins, or payload attachment helpers in
+  Propstore.
+
+Required compiler/write shape:
+
+- `compile_claim_models` constructs `Claim`, payload models,
+  `ClaimConceptLink`, and `ClaimSourceAssertion` objects from already typed
+  semantic compiler values.
+- `ClaimWriteModels` may group typed objects for write batching, but must not
+  expose row dictionaries, `ProjectionRow`, or payload DTOs for claim-owned
+  state.
+- The write batch persists the claim core row and all payload/assertion/link
+  objects through Quire family routing or SQLAlchemy sessions.
+
+Required read/runtime shape:
+
+- `WorldQuery`, world bind/overlay/resolution code, graph construction,
+  concept views, ASPIC projection, worldline materialization, and support
+  revision consume typed `Claim` relationships directly.
+- `ClaimNode.scalar_value` comes from `Claim.numeric_payload.value` for
+  numeric claims and from the typed text payload where a text claim has a
+  scalar text value.
+- `ClaimNode.checked_conditions` comes from
+  `Claim.text_payload.conditions_ir`.
+- concept view value, unit, uncertainty, condition, and provenance summaries
+  use typed payload/provenance fields, not deleted row mappings.
+- ASPIC projection source assertion ids come from
+  `Claim.source_assertions`, and missing assertions remain a typed
+  `ProjectionLossWitness`.
+- preference strength receives explicit typed payload metadata extracted from
+  `Claim.numeric_payload` and typed provenance/source fields; it must not
+  accept a claim object and introspect arbitrary attributes.
+
+Old paths that remain forbidden while restoring this behavior:
+
+- `ActiveClaim`, `ActiveClaimInput`, `coerce_active_claim`,
+  `coerce_active_claims`, `CLAIM_ROW_MODEL`, and any replacement alias;
+- `attribute_value("source_assertion_ids")` as a production source of claim
+  assertion ids;
+- `claim_payload_from_mapping`, `claim_model_from_payload`,
+  `*_from_payload`, broad `**values` mapped-model constructors, or
+  model-layer string/int/float cleanup;
+- helper functions that join payload tables and attach values to claims outside
+  Quire relationships/session mechanics.
 
 ## Inventory Rows
 
@@ -534,12 +608,16 @@ All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 This slice is complete only when:
 
 - the claim charter declares `Claim`, `ClaimConceptLink`,
-  `ClaimNumericPayload`, `ClaimTextPayload`, and `ClaimAlgorithmPayload`;
+  `ClaimNumericPayload`, `ClaimTextPayload`, `ClaimAlgorithmPayload`, and
+  `ClaimSourceAssertion`;
 - `claim.concept_links` is the primary persistence relationship;
 - `ClaimConceptLink` owns role, ordinal, binding name, and link metadata;
 - `claim.concepts` exists only as a convenience association proxy over
   `claim.concept_links`;
 - claim payloads are typed components persisted through the charter;
+- claim payloads and source assertions are reachable from `Claim` through
+  Quire-declared typed relationships, not through row dictionaries or graph
+  attributes;
 - claim population writes typed model objects through a Quire SQLAlchemy
   session;
 - claim lookup, graph construction, conflict resolution, source promotion,
@@ -833,3 +911,15 @@ Recorded 2026-05-20.
   active-claim import search now reports only the `world` package; the
   refreshed `CLAIM_ROW_MODEL` search reports `app/claims.py`,
   `world/atms.py`, `world/overlay.py`, and `world/queries.py`.
+- Functionality recovery gate: after rereading the workstream, inventory,
+  `claims/declaration.py`, `world_charters.py`, `graph_build.py`,
+  `concept_views.py`, `structured_projection.py`, Quire
+  `CharterRelationship`, and Quire SQLAlchemy relationship mapping, Phase 10
+  now requires typed payload and `ClaimSourceAssertion` relationships before
+  more world-facing active-claim caller deletion continues. The deleted
+  row-only scalar/condition/uncertainty/provenance/source-assertion behavior
+  must be restored through `Claim.numeric_payload`, `Claim.text_payload`,
+  `Claim.algorithm_payload`, `Claim.concept_links`, and
+  `Claim.source_assertions`; restoring it with `ActiveClaim`,
+  `CLAIM_ROW_MODEL`, graph attributes, mapping repair, or payload attachment
+  helpers is explicitly forbidden.
