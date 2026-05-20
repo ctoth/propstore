@@ -705,3 +705,31 @@ Recorded 2026-05-20.
   `coerce_active_claims`, `ActiveClaimInput`, `CLAIM_ROW_MODEL.coerce`,
   `prepare_claim_insert_row`, `canonicalize_claim_for_storage` as a storage
   repair surface, `_optional_*`, and typed-claim field extraction helpers.
+- Deletion-first restart: commits `503d6ec2`, `21108179`, `afa2bd94`,
+  `0f8af73d`, and `08fcc4f3` deleted `propstore/core/active_claims.py`, the
+  claim row-preparation helper family in `claims/storage.py`, `CLAIM_ROW_MODEL`,
+  all claim-owned definitions in `claims/projection_model.py` except the
+  justification residual, and the declaration-level claim projection query/FTS/
+  embedding constants. These deletions intentionally made pyright fail so the
+  old callers became the work queue.
+- Quire capability repair: Quire commit `8a84f20` added charter-driven
+  SQLAlchemy model construction and family write routing on `SqlAlchemySchema`
+  and `DerivedSession`; Quire test gate `uv run pytest
+  tests/test_sqlalchemy_engine.py` passed with 10 tests. Propstore commit
+  `8b1daac7` pins Quire to pushed SHA
+  `8a84f2014e6b3c7e844eb8b182f3b0c2c88a51c8`.
+- Claim constructor/fake-row deletion: commits `10b2b748`, `64a25f57`, and
+  `2fe0d1af` routed `world_record` through Quire construction, deleted broad
+  `**values` constructors from `Claim` and claim payload models, and deleted
+  fake `type="quarantine"` / `type="promotion_blocked"` claim rows. Blocked
+  and quarantine state now remains diagnostic/status data instead of fake claim
+  types.
+- Current fix queue from `uv run pyright propstore`: Phase 10-local
+  `prepare_claim_insert_row` is gone and `compile_claim_models` now constructs
+  claim objects through Quire-backed `world_record` in commit `39e00ffb`.
+  Remaining package errors are old callers of deleted `ActiveClaim`,
+  `ActiveClaimInput`, `coerce_active_claim*`, `CLAIM_ROW_MODEL`, deleted claim
+  embedding projection constants, and the relation policy import of deleted
+  `CLAIM_CORE_TABLE`. Commits `45b97836`, `ee910916`, `ca253848`,
+  `8e7a4127`, and `48367543` have started deleting those caller dependencies
+  by moving direct users to typed `Claim` or deleting old active-claim paths.
