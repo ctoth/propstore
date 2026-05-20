@@ -115,6 +115,8 @@ projection rows, projection models, row factories, or raw SQL query helpers:
 
 - `propstore/world/model.py`;
 - `propstore/world/queries.py`;
+- `propstore/app/world.py`;
+- `propstore/cli/world/query.py`;
 - `propstore/world/bound.py`;
 - `propstore/world/overlay.py`;
 - `propstore/world/atms.py`;
@@ -131,6 +133,8 @@ projection rows, projection models, row factories, or raw SQL query helpers:
 - `propstore/support_revision/projection.py`;
 - `propstore/support_revision/af_adapter.py`;
 - `propstore/support_revision/dispatch.py`;
+- `tests/test_mapping_boundary_failures.py`;
+- `tests/test_revision_event_contract.py`;
 - `propstore/aspic_bridge/extract.py`;
 - `propstore/aspic_bridge/translate.py`.
 
