@@ -787,3 +787,11 @@ Recorded 2026-05-20.
   and drops payload-row fields from the report lines. The refreshed
   active-claim import search now reports only `aspic_bridge`, `praf/engine.py`,
   `world`, and `worldline/resolution.py`.
+- PrAF deletion: commit `799f7714` removed `ActiveClaim`, `ActiveClaimInput`,
+  and `CLAIM_ROW_MODEL` from `praf/engine.py`; `p_arg_from_claim` now accepts
+  explicit claim graph metadata mappings and raises at the boundary for
+  non-mappings instead of coercing row objects. The refreshed active-claim
+  import search now reports only `aspic_bridge`, `world`, and
+  `worldline/resolution.py`; the refreshed `CLAIM_ROW_MODEL` search now
+  reports `app/claims.py`, `world/queries.py`, `world/overlay.py`,
+  `world/atms.py`, and `worldline/resolution.py`.
