@@ -807,3 +807,8 @@ Recorded 2026-05-20.
   typed `Claim` objects. The refreshed active-claim import search reports the
   remaining ASPIC callers in `build.py`, `projection.py`, `query.py`, and
   `translate.py`, plus the `world` package.
+- ASPIC query deletion: commit `cf8eca43` removed `ActiveClaimInput` from
+  `aspic_bridge/query.py`; query compilation now takes typed `Claim`
+  sequences. The refreshed active-claim import search reports remaining ASPIC
+  callers in `build.py`, `projection.py`, and `translate.py`, plus the `world`
+  package.
