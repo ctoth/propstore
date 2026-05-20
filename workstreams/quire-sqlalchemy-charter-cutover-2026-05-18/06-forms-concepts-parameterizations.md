@@ -600,19 +600,37 @@ Remaining concept read/session/search cutover queue:
   `powershell -File scripts/run_logged_pytest.ps1 -Label concept-worldquery-sessions tests/test_world_query.py tests/test_cel_checker.py tests/test_concept_views.py tests/test_neighborhoods.py`
   returned `224 passed, 29 warnings`; log:
   `logs/test-runs/concept-worldquery-sessions-20260520-131346.log`.
-- Remaining same-pattern cleanup before proceeding past this slice:
-  app concept search still imports `fetch_concept_search_hits_from_sidecar`
-  and maps raw result dictionaries, and declaration-level embedding source
-  selection still constructs `Concept` from raw row mappings.
-- `select_aliases_by_concept_id`, `select_concept_embedding_sources`, and
-  `resolve_concept_embedding_entity` remain only for the next cleanup slice.
-- Replace app concept search with Quire `search_fts_index` through a
-  Quire `DerivedStoreHandle` read-only session; do not recreate direct
-  sidecar-opening helpers.
-- Quire currently exposes `search_fts_index`; if FTS syntax-error
-  classification is not exposed by Quire when the search slice is edited,
-  return to the Quire FTS workstream and add that generic adapter there before
-  deleting Propstore's SQLite-specific `_is_concept_search_syntax_error`.
+- Added generic Quire FTS syntax classification in pushed Quire commit
+  `52312677995eb27f7c72dffb265f8efabacd17bf` and pinned Propstore to that
+  pushed commit in `pyproject.toml` and `uv.lock`.
+- Replaced app concept search with Quire `search_fts_index` through the
+  materialized `DerivedStoreHandle` read-only session. App search now fetches
+  typed `Concept` models and maps presentation results from those typed
+  objects; it no longer calls a sidecar-opening concept declaration helper or
+  maps raw result dictionaries.
+- Deleted `fetch_concept_search_hits`, `fetch_concept_search_hits_from_sidecar`,
+  and the SQLite-specific `_is_concept_search_syntax_error` helper from
+  `propstore/families/concepts/declaration.py`.
+- Replaced declaration-level concept embedding source selection with typed
+  `Concept` and `ConceptAlias` SQLAlchemy model queries in the embedding
+  owner. `SidecarConceptEmbeddingStore` now receives the `DerivedStoreHandle`
+  and uses read-only sessions for concept source text and concept entity
+  resolution.
+- Replaced concept sidecar-runtime concept-handle resolution with
+  `WorldQuery.resolve_concept`, then deleted the unused raw
+  `resolve_sidecar_concept_id` helper.
+- Deleted `select_aliases_by_concept_id`,
+  `select_concept_embedding_sources`, and
+  `resolve_concept_embedding_entity`; searches for those names, for
+  `fetch_concept_search_hits`, and for `resolve_sidecar_concept_id` returned
+  zero hits in `propstore` and `tests`.
+- Focused pyright passed:
+  `uv run pyright propstore/app/concepts/display.py propstore/app/concepts/embedding.py propstore/families/concepts/declaration.py propstore/families/concepts/sidecar_runtime.py propstore/families/embeddings/declaration.py propstore/world/model.py tests/test_concept_workflows.py`
+  returned 0 errors.
+- Focused logged pytest passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label concept-search-embedding-cleanup tests/test_concept_workflows.py tests/test_world_query.py tests/test_concept_views.py tests/test_neighborhoods.py`
+  returned `162 passed, 29 warnings`; log:
+  `logs/test-runs/concept-search-embedding-cleanup-20260520-134919.log`.
 - Phase 11 still owns `propstore/families/concepts/sidecar_runtime.py`,
   `find_similar_concept_rows`, and the vector runtime, but this workstream
   still owns deletion or relocation of declaration-level concept embedding

@@ -5,14 +5,14 @@ from __future__ import annotations
 import contextlib
 import sqlite3
 from collections.abc import Callable
-from pathlib import Path
 from typing import Any
 
-from propstore.families.concepts.declaration import resolve_sidecar_concept_id
+from quire.derived_store import DerivedStoreHandle
+from propstore.world import WorldQuery
 
 
 def embed_concepts_for_request(
-    sidecar: Path,
+    derived_store: DerivedStoreHandle,
     *,
     concept_id: str | None,
     embed_all: bool,
@@ -30,12 +30,18 @@ def embed_concepts_for_request(
     )
     from quire.derived_runtime import connect_sqlite_store
 
+    sidecar = derived_store.path
     reports: list[tuple[str, Any]] = []
     conn = connect_sqlite_store(sidecar)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         load_vec_extension(conn)
-        ids = [resolve_sidecar_concept_id(conn, concept_id)] if concept_id else None
+        ids = None
+        if concept_id:
+            resolved = WorldQuery(derived_store=derived_store).resolve_concept(concept_id)
+            if resolved is None:
+                raise ValueError(f"Unknown concept: {concept_id}")
+            ids = [resolved]
 
         if model == "all":
             models = get_registered_models(conn)
@@ -46,6 +52,7 @@ def embed_concepts_for_request(
                 result = embed_concepts(
                     conn,
                     model_name,
+                    derived_store=derived_store,
                     concept_ids=ids,
                     batch_size=batch_size,
                     on_progress=(
@@ -63,6 +70,7 @@ def embed_concepts_for_request(
             result = embed_concepts(
                 conn,
                 model,
+                derived_store=derived_store,
                 concept_ids=ids,
                 batch_size=batch_size,
                 on_progress=(
@@ -77,7 +85,7 @@ def embed_concepts_for_request(
 
 
 def find_similar_concept_rows(
-    sidecar: Path,
+    derived_store: DerivedStoreHandle,
     *,
     concept_id: str,
     model: str | None,
@@ -94,16 +102,29 @@ def find_similar_concept_rows(
     )
     from quire.derived_runtime import connect_sqlite_store
 
+    sidecar = derived_store.path
     conn = connect_sqlite_store(sidecar)
     conn.row_factory = sqlite3.Row
     load_vec_extension(conn)
 
     try:
-        resolved_id = resolve_sidecar_concept_id(conn, concept_id)
+        resolved_id = WorldQuery(derived_store=derived_store).resolve_concept(concept_id)
+        if resolved_id is None:
+            raise ValueError(f"Unknown concept: {concept_id}")
         if agree:
-            rows = find_similar_concepts_agree(conn, resolved_id, top_k=top_k)
+            rows = find_similar_concepts_agree(
+                conn,
+                resolved_id,
+                derived_store=derived_store,
+                top_k=top_k,
+            )
         elif disagree:
-            rows = find_similar_concepts_disagree(conn, resolved_id, top_k=top_k)
+            rows = find_similar_concepts_disagree(
+                conn,
+                resolved_id,
+                derived_store=derived_store,
+                top_k=top_k,
+            )
         else:
             selected_model = model
             if selected_model is None:
@@ -115,6 +136,7 @@ def find_similar_concept_rows(
                 conn,
                 resolved_id,
                 selected_model,
+                derived_store=derived_store,
                 top_k=top_k,
             )
     finally:

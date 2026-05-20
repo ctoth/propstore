@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Mapping
 
+from sqlalchemy import select
+from quire.sqlalchemy_store import FtsQuerySyntaxError, search_fts_index
+
 from .mutation import (
     ConceptCategoriesReport,
     ConceptCategoryEntry,
@@ -14,19 +17,17 @@ from .mutation import (
     ConceptSearchRequest,
     ConceptShowReport,
     ConceptShowRequest,
+    ConceptSidecarMissingError,
     UnknownConceptError,
     _concept_display_handle,
     _concept_document,
     _concept_ref,
     _find_concept_entry,
     _loaded_concepts,
-    _require_sidecar,
 )
+from propstore.derived_build import materialize_world_sidecar
 from propstore.app.repository_views import repository_view_label
-from propstore.families.concepts.declaration import (
-    ConceptSearchQuerySyntaxError,
-    fetch_concept_search_hits_from_sidecar,
-)
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -43,25 +44,42 @@ def search_concepts(
     request: ConceptSearchRequest,
 ) -> ConceptSearchReport:
     _ = repository_view_label(request.repository_view)
-    sidecar = _require_sidecar(repo)
+    derived_store, _rebuilt = materialize_world_sidecar(repo)
+    if not derived_store.path.exists():
+        raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
+    schema = world_sqlalchemy_schema()
+    concept = schema.model("concept")
     try:
-        rows = fetch_concept_search_hits_from_sidecar(
-            sidecar,
-            query=request.query,
-            limit=request.limit,
-        )
-    except ConceptSearchQuerySyntaxError as exc:
+        with derived_store.readonly_session(schema) as derived:
+            hits = search_fts_index(
+                derived,
+                "concept_fts",
+                request.query,
+                limit=request.limit,
+            )
+            concept_ids = tuple(hit.entity_id for hit in hits)
+            if not concept_ids:
+                return ConceptSearchReport(hits=())
+            concepts = derived.execute(
+                select(concept).where(concept.id.in_(concept_ids))
+            ).scalars()
+            concepts_by_id = {row.id: row for row in concepts}
+    except FtsQuerySyntaxError as exc:
         raise ConceptSearchSyntaxError(request.query) from exc
     return ConceptSearchReport(
         hits=tuple(
             ConceptSearchHit(
-                handle=str(row["handle"]),
-                logical_id=None if row["logical_id"] is None else str(row["logical_id"]),
-                canonical_name=str(row["canonical_name"]),
-                status=None if row["status"] is None else str(row["status"]),
-                definition=str(row["definition"] or ""),
+                handle=str(row.primary_logical_id or row.id),
+                logical_id=(
+                    None if row.primary_logical_id is None else str(row.primary_logical_id)
+                ),
+                canonical_name=str(row.canonical_name),
+                status=None if row.status is None else str(row.status),
+                definition=str(row.definition or ""),
             )
-            for row in rows
+            for concept_id in concept_ids
+            for row in (concepts_by_id.get(concept_id),)
+            if row is not None
         )
     )
 

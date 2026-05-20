@@ -9,7 +9,9 @@ from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import ClassVar
 
+from quire.derived_store import DerivedStoreHandle
 from quire.derived_runtime import connect_sqlite_store
+from sqlalchemy import or_, select
 from quire.sqlite_vec_store import (
     EMBEDDING_MODEL_PROJECTION,
     RestoreReport,
@@ -45,9 +47,8 @@ from propstore.families.claims.declaration import (
 from propstore.families.concepts.declaration import (
     CONCEPT_EMBEDDING_STATUS_PROJECTION,
     CONCEPT_VEC_PROJECTION,
-    resolve_concept_embedding_entity,
-    select_concept_embedding_sources,
 )
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
 CLAIM_VEC_SPEC = VecEntityStoreSpec(
@@ -241,27 +242,63 @@ class SidecarConceptEmbeddingStore(_SidecarEntityEmbeddingStore):
     join_source = "concept"
     join_columns = "c.id, c.primary_logical_id, c.canonical_name, c.definition"
 
+    def __init__(self, conn: sqlite3.Connection, derived_store: DerivedStoreHandle) -> None:
+        super().__init__(conn)
+        self._derived_store = derived_store
+
     def load_entities(
         self,
         entity_ids: Sequence[str] | None = None,
     ) -> list[EmbeddingEntity]:
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        alias = schema.model("alias")
         entities: list[EmbeddingEntity] = []
-        for source in select_concept_embedding_sources(self._conn, entity_ids):
+        with self._derived_store.readonly_session(schema) as derived:
+            stmt = select(concept)
+            if entity_ids:
+                stmt = stmt.where(concept.id.in_(tuple(entity_ids)))
+            concepts = list(derived.execute(stmt).scalars())
+            concept_ids = tuple(row.id for row in concepts)
+            aliases_by_concept_id: dict[str, list[str]] = {
+                concept_id: [] for concept_id in concept_ids
+            }
+            if concept_ids:
+                alias_rows = derived.execute(
+                    select(alias.concept_id, alias.alias_name).where(
+                        alias.concept_id.in_(concept_ids)
+                    )
+                )
+                for concept_id, alias_name in alias_rows:
+                    aliases_by_concept_id.setdefault(str(concept_id), []).append(
+                        str(alias_name)
+                    )
+        for concept_model in concepts:
             entities.append(
                 EmbeddingEntity(
-                    entity_id=str(source.concept.concept_id),
-                    seq=source.seq,
-                    content_hash=source.content_hash,
+                    entity_id=str(concept_model.concept_id),
+                    seq=int(concept_model.seq),
+                    content_hash=str(concept_model.content_hash),
                     text=concept_embedding_text(
-                        source.concept,
-                        source.aliases,
+                        concept_model,
+                        tuple(aliases_by_concept_id.get(str(concept_model.id), ())),
                     ),
                 )
             )
         return entities
 
     def resolve_entity(self, entity_id: str) -> tuple[str, int]:
-        return resolve_concept_embedding_entity(self._conn, entity_id)
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            row = derived.execute(
+                select(concept.id, concept.seq).where(
+                    or_(concept.id == entity_id, concept.canonical_name == entity_id)
+                )
+            ).first()
+        if row is None:
+            raise ValueError(f"Concept {entity_id} not found")
+        return str(row[0]), int(row[1])
 
 
 class SidecarEmbeddingSnapshotStore:
@@ -308,6 +345,8 @@ def embed_claims(
 def embed_concepts(
     conn: sqlite3.Connection,
     model_name: str,
+    *,
+    derived_store: DerivedStoreHandle,
     concept_ids: list[str] | None = None,
     batch_size: int = 64,
     on_progress: Callable[[int, int], None] | None = None,
@@ -315,7 +354,7 @@ def embed_concepts(
     """Generate and store embeddings for concepts."""
 
     return _embed_entities(
-        SidecarConceptEmbeddingStore(conn),
+        SidecarConceptEmbeddingStore(conn, derived_store),
         model_name,
         concept_ids,
         batch_size,
@@ -343,12 +382,14 @@ def find_similar_concepts(
     conn: sqlite3.Connection,
     concept_id: str,
     model_name: str,
+    *,
+    derived_store: DerivedStoreHandle,
     top_k: int = 10,
 ) -> list[dict]:
     """Find top-k most similar concepts by embedding distance."""
 
     return _find_similar_entities(
-        SidecarConceptEmbeddingStore(conn),
+        SidecarConceptEmbeddingStore(conn, derived_store),
         concept_id,
         model_name,
         top_k,
@@ -388,12 +429,14 @@ def find_similar_disagree(
 def find_similar_concepts_agree(
     conn: sqlite3.Connection,
     concept_id: str,
+    *,
+    derived_store: DerivedStoreHandle,
     top_k: int = 10,
 ) -> list[dict]:
     """Concepts similar under all stored models."""
 
     return _find_similar_agree_generic(
-        SidecarConceptEmbeddingStore(conn),
+        SidecarConceptEmbeddingStore(conn, derived_store),
         concept_id,
         get_registered_models(conn),
         top_k,
@@ -403,12 +446,14 @@ def find_similar_concepts_agree(
 def find_similar_concepts_disagree(
     conn: sqlite3.Connection,
     concept_id: str,
+    *,
+    derived_store: DerivedStoreHandle,
     top_k: int = 10,
 ) -> list[dict]:
     """Concepts similar under some stored models but not others."""
 
     return _find_similar_disagree_generic(
-        SidecarConceptEmbeddingStore(conn),
+        SidecarConceptEmbeddingStore(conn, derived_store),
         concept_id,
         get_registered_models(conn),
         top_k,

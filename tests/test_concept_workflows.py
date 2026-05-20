@@ -4,6 +4,12 @@ from pathlib import Path
 
 import propstore.app.concepts.display as concepts_display_mod
 import propstore.app.concepts.embedding as concepts_embedding_mod
+from quire.derived_store import DerivedStoreHandle
+from quire.sqlalchemy_store import create_sqlalchemy_store
+from sqlalchemy import select
+from propstore.derived_build import materialize_world_sidecar
+from propstore.families.concepts.declaration import Concept
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.app.concepts import (
     ConceptEmbedRequest,
     ConceptSearchRequest,
@@ -22,39 +28,65 @@ def _repo_with_sidecar(tmp_path: Path) -> Repository:
     return repo
 
 
-def test_search_concepts_uses_concept_declaration_query_owner(
+def test_search_concepts_uses_quire_fts_session(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
     repo = _repo_with_sidecar(tmp_path)
     calls: list[tuple[str, int]] = []
+    schema = world_sqlalchemy_schema()
+    concept_model = schema.model("concept")
+    store_path = tmp_path / "search-sidecar.sqlite"
+    create_sqlalchemy_store(store_path, schema)
+    handle = DerivedStoreHandle(
+        projection_id="propstore.world.test",
+        source_commit="test",
+        content_hash="test",
+        cache_key="test",
+        path=store_path,
+    )
+    with handle.writable_session(schema) as derived:
+        derived.add(
+            Concept(
+                "ps:concept:test",
+                canonical_name="concept a",
+                primary_logical_id="speech:concept-a",
+                status="accepted",
+                definition="definition text",
+                content_hash="hash-concept-a",
+                seq=1,
+                kind_type="quantity",
+                form="scalar",
+            )
+        )
+        derived.commit()
+    with handle.readonly_session(schema) as derived:
+        concept = derived.execute(select(concept_model)).scalars().one()
 
-    def fake_search(sidecar, *, query, limit):
-        assert sidecar.exists()
-        calls.append((query, limit))
-        return [
-            {
-                "handle": "concept-a",
-                "logical_id": "speech:concept-a",
-                "canonical_name": "concept a",
-                "status": "accepted",
-                "definition": "definition text",
-            }
-        ]
+    class FakeHit:
+        entity_id = str(concept.id)
+
+    def fake_search(derived, index_name, query, *, limit=None):
+        calls.append((query, int(limit or 0)))
+        assert index_name == "concept_fts"
+        return (FakeHit(),)
 
     monkeypatch.setattr(
         concepts_display_mod,
-        "fetch_concept_search_hits_from_sidecar",
+        "search_fts_index",
         fake_search,
+    )
+    monkeypatch.setattr(
+        concepts_display_mod,
+        "materialize_world_sidecar",
+        lambda repo: (handle, False),
     )
 
     report = search_concepts(repo, ConceptSearchRequest(query="concept", limit=7))
 
     assert calls == [("concept", 7)]
-    assert report.hits[0].handle == "concept-a"
-    assert report.hits[0].logical_id == "speech:concept-a"
-    assert report.hits[0].canonical_name == "concept a"
-    assert report.hits[0].status == "accepted"
+    assert report.hits[0].handle == str(concept.primary_logical_id or concept.id)
+    assert report.hits[0].canonical_name == str(concept.canonical_name)
 
 
 def test_embed_concept_embeddings_uses_concept_declaration_embedding_owner(
@@ -65,7 +97,7 @@ def test_embed_concept_embeddings_uses_concept_declaration_embedding_owner(
     calls: list[tuple[str, int]] = []
 
     def fake_embed_for_request(
-        sidecar,
+        derived_store,
         *,
         concept_id,
         embed_all,
@@ -73,7 +105,7 @@ def test_embed_concept_embeddings_uses_concept_declaration_embedding_owner(
         batch_size,
         on_progress,
     ):
-        assert sidecar.exists()
+        assert derived_store.path.exists()
         assert concept_id is None
         assert embed_all is True
         calls.append((model, batch_size))
@@ -115,7 +147,7 @@ def test_find_similar_concepts_resolves_id_uses_default_model_and_closes(
     captured: dict[str, object] = {}
 
     def fake_find_similar_rows(
-        sidecar,
+        derived_store,
         *,
         concept_id,
         model,
@@ -125,7 +157,7 @@ def test_find_similar_concepts_resolves_id_uses_default_model_and_closes(
     ):
         captured.update(
             {
-                "sidecar_exists": sidecar.exists(),
+                "sidecar_exists": derived_store.path.exists(),
                 "concept_id": concept_id,
                 "model_name": model,
                 "top_k": top_k,

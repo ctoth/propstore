@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import func, select
 from quire.derived_store import DerivedStoreHandle
-from quire.sqlalchemy_store import search_fts_index
+from quire.sqlalchemy_store import FtsQuerySyntaxError, search_fts_index
 from quire.sqlalchemy_store import validate_sqlalchemy_store
 from propstore.core.conditions.registry import (
     ConceptInfo,
@@ -60,6 +60,7 @@ from propstore.families.relations.declaration import (
 from propstore.families.micropublications.declaration import select_all_micropublications
 from propstore.families.concepts.declaration import (
     Concept,
+    ConceptSearchQuerySyntaxError,
     Parameterization,
 )
 from propstore.families.world_charters import (
@@ -682,7 +683,10 @@ class WorldQuery(WorldStore):
         schema = world_sqlalchemy_schema()
         concept = schema.model("concept")
         with self._derived_store.readonly_session(schema) as derived:
-            hits = search_fts_index(derived, "concept_fts", query)
+            try:
+                hits = search_fts_index(derived, "concept_fts", query)
+            except FtsQuerySyntaxError as exc:
+                raise ConceptSearchQuerySyntaxError(query) from exc
             concept_ids = tuple(hit.entity_id for hit in hits)
             if not concept_ids:
                 return []
@@ -743,7 +747,13 @@ class WorldQuery(WorldStore):
         assert model_name is not None  # narrowed above
         return [
             ConceptSimilarityHit.from_row_mapping(result)
-            for result in find_similar_concepts(self._conn, concept_id, model_name, top_k=top_k)
+            for result in find_similar_concepts(
+                self._conn,
+                concept_id,
+                model_name,
+                derived_store=self._derived_store,
+                top_k=top_k,
+            )
         ]
 
     # ── Form algebra queries ────────────────────────────────────────

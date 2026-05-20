@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import sqlite3
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
 from dataclasses import dataclass
-from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
@@ -395,14 +393,6 @@ class ConceptRelationship:
         return self.type
 
 
-@dataclass(frozen=True)
-class ConceptEmbeddingSource:
-    concept: Concept
-    seq: int
-    content_hash: str
-    aliases: tuple[str, ...] = ()
-
-
 class Parameterization:
     attributes: Mapping[str, Any] = MappingProxyType({})
 
@@ -487,149 +477,3 @@ CONCEPT_VEC_PROJECTION = rowid_vec_projection("concept_vec_{model_identity_hash}
 
 class ConceptSearchQuerySyntaxError(ValueError):
     pass
-
-
-def _is_concept_search_syntax_error(exc: sqlite3.OperationalError) -> bool:
-    message = str(exc).casefold()
-    return "fts5: syntax error" in message or "unterminated string" in message
-
-
-def fetch_concept_search_hits(
-    conn: sqlite3.Connection,
-    *,
-    query: str,
-    limit: int,
-) -> list[dict[str, Any]]:
-    rows = conn.execute(
-        "SELECT "
-        "COALESCE(NULLIF(concept.primary_logical_id, ''), concept.id) AS handle, "
-        "concept.primary_logical_id AS logical_id, "
-        "concept_fts.canonical_name AS canonical_name, "
-        "concept.status AS status, "
-        "concept_fts.definition AS definition "
-        "FROM concept_fts JOIN concept ON concept.id = concept_fts.concept_id "
-        "WHERE concept_fts MATCH ? LIMIT ?",
-        (query, limit),
-    ).fetchall()
-    decoded: list[dict[str, Any]] = []
-    for row in rows:
-        try:
-            decoded.append(dict(row))
-        except (TypeError, ValueError):
-            decoded.append(
-                {
-                    "handle": row[0],
-                    "logical_id": row[1],
-                    "canonical_name": row[2],
-                    "status": row[3],
-                    "definition": row[4],
-                }
-            )
-    return decoded
-
-
-def fetch_concept_search_hits_from_sidecar(
-    sidecar: Path,
-    *,
-    query: str,
-    limit: int,
-) -> list[dict[str, Any]]:
-    from quire.derived_runtime import connect_sqlite_store_readonly
-
-    conn = connect_sqlite_store_readonly(sidecar)
-    try:
-        try:
-            return fetch_concept_search_hits(conn, query=query, limit=limit)
-        except sqlite3.OperationalError as exc:
-            if _is_concept_search_syntax_error(exc):
-                raise ConceptSearchQuerySyntaxError(query) from exc
-            raise
-    finally:
-        conn.close()
-
-
-def select_concept_embedding_sources(
-    conn: sqlite3.Connection,
-    entity_ids: Sequence[str] | None = None,
-) -> list[ConceptEmbeddingSource]:
-    query = """
-        SELECT
-            id,
-            seq,
-            content_hash,
-            canonical_name,
-            definition
-        FROM concept
-    """
-    params: tuple[str, ...] = ()
-    if entity_ids:
-        placeholders = ",".join("?" for _ in entity_ids)
-        query += f" WHERE id IN ({placeholders})"
-        params = tuple(entity_ids)
-    rows = conn.execute(query, params).fetchall()
-    aliases = select_aliases_by_concept_id(conn, tuple(str(row["id"]) for row in rows))
-    return [
-        ConceptEmbeddingSource(
-            concept=Concept.from_row_mapping(dict(row)),
-            seq=int(row["seq"]),
-            content_hash=str(row["content_hash"]),
-            aliases=aliases.get(str(row["id"]), ()),
-        )
-        for row in rows
-    ]
-
-
-def resolve_concept_embedding_entity(conn: sqlite3.Connection, entity_id: str) -> tuple[str, int]:
-    row = conn.execute(
-        "SELECT id, seq FROM concept WHERE id = ? OR canonical_name = ?",
-        (entity_id, entity_id),
-    ).fetchone()
-    if row is None:
-        raise ValueError(f"Concept {entity_id} not found")
-    return str(row["id"]), int(row["seq"])
-
-
-def select_aliases_by_concept_id(
-    conn: sqlite3.Connection,
-    concept_ids: Sequence[str],
-) -> dict[str, tuple[str, ...]]:
-    if not concept_ids:
-        return {}
-    placeholders = ",".join("?" for _ in concept_ids)
-    rows = conn.execute(
-        f"SELECT concept_id, alias_name FROM alias WHERE concept_id IN ({placeholders})",
-        tuple(concept_ids),
-    ).fetchall()
-    aliases: dict[str, list[str]] = {}
-    for row in rows:
-        aliases.setdefault(str(row["concept_id"]), []).append(str(row["alias_name"]))
-    return {
-        concept_id: tuple(names)
-        for concept_id, names in aliases.items()
-    }
-
-
-def resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:
-    conn.row_factory = sqlite3.Row
-    direct = conn.execute("SELECT id FROM concept WHERE id = ?", (handle,)).fetchone()
-    if direct is not None:
-        return str(direct["id"])
-    primary = conn.execute(
-        "SELECT id FROM concept WHERE primary_logical_id = ?",
-        (handle,),
-    ).fetchone()
-    if primary is not None:
-        return str(primary["id"])
-    canonical = conn.execute(
-        "SELECT id FROM concept WHERE canonical_name = ?",
-        (handle,),
-    ).fetchone()
-    if canonical is not None:
-        return str(canonical["id"])
-    alias = conn.execute(
-        "SELECT concept_id FROM alias WHERE alias_name = ?",
-        (handle,),
-    ).fetchone()
-    if alias is not None:
-        return str(alias["concept_id"])
-    raise ValueError(f"Unknown concept: {handle}")

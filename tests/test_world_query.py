@@ -1037,7 +1037,7 @@ class TestUnboundQueries:
         monkeypatch.setattr(
             embeddings,
             "find_similar_concepts",
-            lambda conn, concept_id, model_name, top_k=10: [
+            lambda conn, concept_id, model_name, *, derived_store, top_k=10: [
                 {
                     "id": CONCEPT2_ID,
                     "distance": 0.25,
