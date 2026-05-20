@@ -59,6 +59,20 @@ Binding notes from the 2026-05-20 update:
   active-graph-derived justification view behavior. Generic identity, FK,
   table, session, and main-model lookup mechanics do not belong in this
   family.
+- The current Phase 10 claim work has already reduced
+  `propstore/families/claims/projection_model.py` to the justification
+  residual. This phase owns deleting that residual file. Do not move those
+  remaining projection codecs, table constants, or dict storage shape into a
+  new justification helper, view DTO, kwargs builder, or compatibility reader.
+- Justification and micropublication caller repair must consume typed `Claim`
+  objects, typed `Justification`, typed `Micropublication`, and typed
+  `MicropublicationClaimLink` relationships. It must not restore
+  `ActiveClaim`, `CLAIM_ROW_MODEL`, row-shaped claim attributes, generic
+  `from_mapping`, or a micropublication-specific claim lookup wrapper.
+- No subsection of this phase is complete while the residual justification
+  projection file, micropublication projection table/model constants, active
+  micropublication coercers, duplicated canonical justification conversion, or
+  generic mapping constructor names remain in production.
 
 Current old-surface findings from `rg` on 2026-05-20:
 
@@ -85,6 +99,41 @@ Current old-surface findings from `rg` on 2026-05-20:
   `propstore/aspic_bridge/extract.py`, and tests, so this phase must decide
   which constructions are authored-document boundaries and delete only the
   duplicated canonical schema/conversion role.
+
+Current audit update on 2026-05-20:
+
+- Status: not started. This phase remains a future workstream and is blocked
+  until the current Phase 10 claim queue is clean and Phase 11
+  relations/stances/conflicts is complete.
+- Completed-prerequisite audit: `propstore/families/claims/projection_model.py`
+  currently contains only `_nullable_text`, `_claim_id`, `TEXT_CODEC`,
+  `CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, and `JUSTIFICATION_TABLE`.
+  That satisfies this file's precondition that Phase 8/10 claim-owned symbols
+  are already gone from the residual projection file. The fix still needed in
+  this phase is final deletion of that residual file and every
+  `JUSTIFICATION_STORAGE_MODEL`/`propstore.families.claims.projection_model`
+  dependency.
+- Current Phase 10 queue from `uv run pyright propstore`: 25 package errors
+  remain in claim field-name callers, deleted claim embedding projection
+  imports, the relation `CLAIM_CORE_TABLE` import, `graph_export.py`, and
+  `merge/structured_merge.py`. This phase must not start implementation until
+  those Phase 10-local errors are resolved by typed claim callers, not by
+  restoring row-model compatibility.
+- Current old-path searches: `MICROPUBLICATION_PROJECTION` remains in
+  `propstore/families/micropublications/declaration.py`;
+  `ActiveMicropublication` remains in `propstore/core/micropublications.py`,
+  `propstore/core/environment.py`,
+  `propstore/families/micropublications/declaration.py`,
+  `propstore/world/atms.py`, `propstore/world/model.py`, and
+  `propstore/world/overlay.py`; `JUSTIFICATION_STORAGE_MODEL` remains only in
+  the residual claim projection file; `CanonicalJustification(` remains in
+  ASPIC/core production code and tests.
+- Known dependency from completed Phase 10 work: justification and
+  micropublication world/ASPIC callers that formerly depended on active claim
+  rows must use typed `Claim.id`, `Claim.type`, payload relationships,
+  `Claim.concept_links`, and `Claim.source_assertions`. Do not reintroduce
+  row-only claim fields such as `claim_id`, `claim_type`, `statement`, or
+  `artifact_id` as a bridge.
 
 ## Prerequisites
 
