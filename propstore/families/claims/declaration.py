@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import sqlite3
 from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
@@ -47,7 +48,6 @@ from propstore.families.claims.storage import (
     prepare_claim_insert_row,
 )
 from propstore.families.claims.stages import (
-    ClaimSidecarRows,
     PromotionBlockedClaimFact,
     PromotionBlockedSidecarRows,
     RawIdQuarantineRecord,
@@ -184,9 +184,21 @@ class ClaimAlgorithmPayload:
             setattr(self, key, value)
 
 
+@dataclass(frozen=True)
+class ClaimWriteModels:
+    claims: tuple[Claim, ...]
+    numeric_payloads: tuple[ClaimNumericPayload, ...]
+    text_payloads: tuple[ClaimTextPayload, ...]
+    algorithm_payloads: tuple[ClaimAlgorithmPayload, ...]
+    concept_links: tuple[ClaimConceptLink, ...]
+    stance_rows: tuple[ProjectionRow, ...]
+    quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]
+
+
 from propstore.families.claims.projection_model import (  # noqa: E402
     CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL,
     CLAIM_ALGORITHM_PAYLOAD_TABLE,
+    CLAIM_CONCEPT_LINK_STORAGE_MODEL,
     CLAIM_CONCEPT_LINK_TABLE,
     CLAIM_CORE_STORAGE_MODEL,
     CLAIM_CORE_TABLE,
@@ -593,20 +605,23 @@ CLAIM_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
 CLAIM_VEC_PROJECTION = rowid_vec_projection("claim_vec_{model_identity_hash}")
 
 
-def compile_claim_sidecar_rows(
+def compile_claim_models(
     claim_bundle: ClaimCompilationBundle,
     concept_registry: dict,
     *,
     form_registry: dict | None = None,
-) -> ClaimSidecarRows:
+) -> ClaimWriteModels:
     claim_seq = 0
-    claim_core_rows: list[ProjectionRow] = []
-    numeric_payload_rows: list[ProjectionRow] = []
-    text_payload_rows: list[ProjectionRow] = []
-    algorithm_payload_rows: list[ProjectionRow] = []
-    claim_link_rows: list[ProjectionRow] = []
+    claim_models: list[Claim] = []
+    numeric_payloads: list[ClaimNumericPayload] = []
+    text_payloads: list[ClaimTextPayload] = []
+    algorithm_payloads: list[ClaimAlgorithmPayload] = []
+    claim_links: list[ClaimConceptLink] = []
     stance_rows: list[ProjectionRow] = []
     quarantine_diagnostics: list[QuarantineDiagnostic] = []
+    seen_claim_versions: dict[str, str] = {}
+    emitted_version_conflicts: set[tuple[str, str, str]] = set()
+    seen_claim_link_keys: set[tuple[str, ClaimConceptLinkRole, int, str]] = set()
     claim_index = build_claim_file_reference_index(
         claim_bundle.normalized_claim_files
     )
@@ -630,22 +645,52 @@ def compile_claim_sidecar_rows(
             )
             if file_stage is not None:
                 row["stage"] = file_stage
-            claim_core_rows.append(CLAIM_CORE_TABLE.row(**CLAIM_CORE_STORAGE_MODEL.to_row(row)))
-            numeric_payload_rows.append(
-                CLAIM_NUMERIC_PAYLOAD_TABLE.row(**CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL.to_row(row))
-            )
-            text_payload_rows.append(
-                CLAIM_TEXT_PAYLOAD_TABLE.row(**CLAIM_TEXT_PAYLOAD_STORAGE_MODEL.to_row(row))
-            )
-            algorithm_payload_rows.append(
-                CLAIM_ALGORITHM_PAYLOAD_TABLE.row(**CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL.to_row(row))
-            )
+            claim_id = row.get("id")
+            if not isinstance(claim_id, str) or not claim_id:
+                raise TypeError("compiled claim id must be a non-empty string")
+            version_id = row.get("version_id")
+            if not isinstance(version_id, str):
+                raise TypeError("compiled claim version_id must be a string")
+            if claim_id in seen_claim_versions:
+                existing_version = seen_claim_versions[claim_id]
+                if existing_version == version_id:
+                    continue
+                conflict_key = (claim_id, existing_version, version_id)
+                if conflict_key not in emitted_version_conflicts:
+                    quarantine_diagnostics.append(
+                        QuarantineDiagnostic(
+                            artifact_id=claim_id,
+                            kind="claim",
+                            diagnostic_kind="claim_version_conflict",
+                            message=(
+                                f"Claim logical id {claim_id!r} appears with "
+                                "multiple version_id values"
+                            ),
+                            file=semantic_claim.filename,
+                        )
+                    )
+                    emitted_version_conflicts.add(conflict_key)
+                continue
+            payload_values = dict(row)
+            payload_values["claim_id"] = claim_id
+            claim_models.append(Claim(**row))
+            numeric_payloads.append(ClaimNumericPayload(**payload_values))
+            text_payloads.append(ClaimTextPayload(**payload_values))
+            algorithm_payloads.append(ClaimAlgorithmPayload(**payload_values))
+            seen_claim_versions[claim_id] = version_id
             for values in prepare_claim_concept_link_rows(semantic_claim):
-                claim_link_rows.append(
-                    CLAIM_CONCEPT_LINK_TABLE.row(
+                role = values[2]
+                if not isinstance(role, ClaimConceptLinkRole):
+                    raise TypeError("compiled claim concept-link role must be typed")
+                link_key = (values[0], role, values[3], values[1])
+                if link_key in seen_claim_link_keys:
+                    continue
+                seen_claim_link_keys.add(link_key)
+                claim_links.append(
+                    ClaimConceptLink(
                         claim_id=values[0],
                         concept_id=values[1],
-                        role=values[2],
+                        role=role,
                         ordinal=values[3],
                         binding_name=values[4],
                     )
@@ -707,12 +752,12 @@ def compile_claim_sidecar_rows(
                 stance_rows.append(RELATION_EDGE_TABLE.row(**row_values))
             quarantine_diagnostics.extend(deferred_stance_diagnostics)
 
-    return ClaimSidecarRows(
-        claim_core_rows=tuple(claim_core_rows),
-        numeric_payload_rows=tuple(numeric_payload_rows),
-        text_payload_rows=tuple(text_payload_rows),
-        algorithm_payload_rows=tuple(algorithm_payload_rows),
-        claim_link_rows=tuple(claim_link_rows),
+    return ClaimWriteModels(
+        claims=tuple(claim_models),
+        numeric_payloads=tuple(numeric_payloads),
+        text_payloads=tuple(text_payloads),
+        algorithm_payloads=tuple(algorithm_payloads),
+        concept_links=tuple(claim_links),
         stance_rows=tuple(stance_rows),
         quarantine_diagnostics=tuple(quarantine_diagnostics),
     )
@@ -1060,7 +1105,7 @@ def _insert_build_diagnostic_values(
 
 def populate_claims(
     conn: sqlite3.Connection,
-    rows: ClaimSidecarRows,
+    rows: ClaimWriteModels,
 ) -> None:
     """Populate normalized claim storage from compiled sidecar rows.
 
@@ -1082,17 +1127,17 @@ def populate_claims(
     seen_claim_versions: dict[str, str] = {}
     emitted_conflicts: set[tuple[str, str, str]] = set()
     payloads_by_claim_id = {
-        numeric_row.values["claim_id"]: (numeric_row, text_row, algorithm_row)
+        numeric_row.claim_id: (numeric_row, text_row, algorithm_row)
         for numeric_row, text_row, algorithm_row in zip(
-            rows.numeric_payload_rows,
-            rows.text_payload_rows,
-            rows.algorithm_payload_rows,
+            rows.numeric_payloads,
+            rows.text_payloads,
+            rows.algorithm_payloads,
             strict=True,
         )
     }
-    for row in rows.claim_core_rows:
-        claim_id = row.values.get("id")
-        version_id = row.values.get("version_id")
+    for row in rows.claims:
+        claim_id = row.id
+        version_id = row.version_id
         if isinstance(claim_id, str) and claim_id in seen_claim_versions:
             existing_version = seen_claim_versions[claim_id]
             new_version = str(version_id or "")
@@ -1105,29 +1150,41 @@ def populate_claims(
                     claim_id=claim_id,
                     existing_version=existing_version,
                     new_version=new_version,
-                    source_ref=str(row.values.get("primary_logical_id") or claim_id),
+                    source_ref=str(row.primary_logical_id or claim_id),
                 )
                 emitted_conflicts.add(conflict_key)
             continue
-        CLAIM_CORE_TABLE.insert_row(conn, row.values)
+        CLAIM_CORE_TABLE.insert_row(conn, CLAIM_CORE_STORAGE_MODEL.to_row(vars(row)))
         numeric_row, text_row, algorithm_row = payloads_by_claim_id[claim_id]
-        CLAIM_NUMERIC_PAYLOAD_TABLE.insert_row(conn, numeric_row.values)
-        CLAIM_TEXT_PAYLOAD_TABLE.insert_row(conn, text_row.values)
-        CLAIM_ALGORITHM_PAYLOAD_TABLE.insert_row(conn, algorithm_row.values)
+        CLAIM_NUMERIC_PAYLOAD_TABLE.insert_row(
+            conn,
+            CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL.to_row(vars(numeric_row)),
+        )
+        CLAIM_TEXT_PAYLOAD_TABLE.insert_row(
+            conn,
+            CLAIM_TEXT_PAYLOAD_STORAGE_MODEL.to_row(vars(text_row)),
+        )
+        CLAIM_ALGORITHM_PAYLOAD_TABLE.insert_row(
+            conn,
+            CLAIM_ALGORITHM_PAYLOAD_STORAGE_MODEL.to_row(vars(algorithm_row)),
+        )
         if isinstance(claim_id, str):
             seen_claim_versions[claim_id] = str(version_id or "")
     seen_link_keys: set[tuple[object, object, object, object]] = set()
-    for row in rows.claim_link_rows:
+    for row in rows.concept_links:
         key = (
-            row.values["claim_id"],
-            row.values["role"],
-            row.values["ordinal"],
-            row.values["concept_id"],
+            row.claim_id,
+            row.role,
+            row.ordinal,
+            row.concept_id,
         )
         if key in seen_link_keys:
             continue
         seen_link_keys.add(key)
-        CLAIM_CONCEPT_LINK_TABLE.insert_row(conn, row)
+        CLAIM_CONCEPT_LINK_TABLE.insert_row(
+            conn,
+            CLAIM_CONCEPT_LINK_STORAGE_MODEL.to_row(vars(row)),
+        )
     if rows.stance_rows:
         RELATION_EDGE_TABLE.insert_rows(conn, (stance_row.values for stance_row in rows.stance_rows))
 

@@ -563,7 +563,7 @@ def prepare_claim_insert_row(
 
 def prepare_claim_concept_link_rows(
     claim: dict | SemanticClaim,
-) -> tuple[tuple[object, ...], ...]:
+) -> tuple[tuple[str, str, ClaimConceptLinkRole, int, str | None], ...]:
     if isinstance(claim, SemanticClaim):
         normalized_claim = copy.deepcopy(claim.resolved_claim.to_payload())
     else:
@@ -575,7 +575,7 @@ def prepare_claim_concept_link_rows(
         (
             claim_id,
             concept_id,
-            role.value,
+            role,
             ordinal,
             binding_name,
         )

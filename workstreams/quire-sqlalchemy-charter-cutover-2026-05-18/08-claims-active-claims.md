@@ -610,6 +610,25 @@ Recorded 2026-05-20.
   `powershell -File scripts/run_logged_pytest.ps1 -Label claim-model-schema
   tests/test_required_schema_completeness.py` passed with 2 tests in
   `logs/test-runs/claim-model-schema-20260520-145308.log`.
+- Typed claim compiler slice: replaced production
+  `compile_claim_sidecar_rows` with `compile_claim_models`, replaced
+  production `ClaimSidecarRows` usage with `ClaimWriteModels`, moved duplicate
+  claim-version and duplicate concept-link handling into typed claim
+  compilation, and changed the temporary concept-link compiler boundary to
+  return typed `ClaimConceptLinkRole` values instead of role strings.
+- Typed claim compiler verification: `uv run pyright
+  propstore/families/claims/declaration.py
+  propstore/families/claims/storage.py propstore/families/claims/stages.py
+  propstore/derived_build_plan.py` passed with 0 errors, and `powershell -File
+  scripts/run_logged_pytest.ps1 -Label claim-write-models
+  tests/test_required_schema_completeness.py tests/test_fixture_schema_parity.py`
+  passed with 4 tests in
+  `logs/test-runs/claim-write-models-20260520-145752.log`.
+- Typed claim compiler searches: `rg -n -F -- "compile_claim_sidecar_rows"
+  propstore tests` returned zero hits. `rg -n -F -- "ClaimSidecarRows"
+  propstore tests` has no production hits and still hits only the two
+  old-`populate_claims` tests that must be removed or rewritten when
+  `populate_claims` is deleted in this phase.
 - Remaining Phase 10 work: delete the remaining claim projection/read-model,
   storage-helper, row-carrier, and active-claim compatibility surfaces; run
   the family gates, old-path searches, and data-parity gate.

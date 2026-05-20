@@ -145,17 +145,6 @@ class ClaimCheckedBundle:
 
 
 @dataclass(frozen=True)
-class ClaimSidecarRows:
-    claim_core_rows: tuple["ProjectionRow", ...]
-    numeric_payload_rows: tuple["ProjectionRow", ...]
-    text_payload_rows: tuple["ProjectionRow", ...]
-    algorithm_payload_rows: tuple["ProjectionRow", ...]
-    claim_link_rows: tuple["ProjectionRow", ...]
-    stance_rows: tuple["ProjectionRow", ...]
-    quarantine_diagnostics: tuple["QuarantineDiagnostic", ...]
-
-
-@dataclass(frozen=True)
 class RawIdQuarantineSidecarRows:
     claim_rows: tuple["ProjectionRow", ...]
     diagnostic_rows: tuple[object, ...]

@@ -21,7 +21,6 @@ from propstore.families.contexts.declaration import (
 )
 from propstore.families.claims.stages import (
     ClaimCheckedBundle,
-    ClaimSidecarRows,
     RawIdQuarantineSidecarRows,
 )
 from propstore.families.claims.references import (
@@ -31,8 +30,9 @@ from propstore.families.forms.stages import (
     FormDefinition,
 )
 from propstore.families.claims.declaration import (
+    ClaimWriteModels,
     compile_authored_justification_sidecar_rows_with_diagnostics,
-    compile_claim_sidecar_rows,
+    compile_claim_models,
     compile_conflict_sidecar_rows,
     compile_raw_id_quarantine_sidecar_rows,
 )
@@ -94,7 +94,7 @@ def compile_sidecar_build_plan(
     micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
     drop_invalid_context_lifting_rows: bool = False,
 ) -> SidecarBuildPlan:
-    claim_rows: ClaimSidecarRows | None = None
+    claim_rows: ClaimWriteModels | None = None
     raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(())
     conflict_rows: tuple[object, ...] = ()
     stance_rows: tuple[object, ...] = ()
@@ -108,7 +108,7 @@ def compile_sidecar_build_plan(
             raise ValueError("checked claim bundle is required to populate claims")
         normalized_claim_files = repository_checked_bundle.normalized_claim_files
         claim_index = build_claim_file_reference_index(normalized_claim_files)
-        claim_rows = compile_claim_sidecar_rows(
+        claim_rows = compile_claim_models(
             checked_claims.bundle,
             repository_checked_bundle.concept_registry,
             form_registry=repository_checked_bundle.form_registry,
@@ -217,15 +217,15 @@ def _concept_batches(rows: ConceptWriteModels) -> tuple[WorldWriteBatch, ...]:
     )
 
 
-def _claim_batches(rows: ClaimSidecarRows | None) -> tuple[WorldWriteBatch, ...]:
+def _claim_batches(rows: ClaimWriteModels | None) -> tuple[WorldWriteBatch, ...]:
     if rows is None:
         return ()
     return (
-        _batch("claim_core", rows.claim_core_rows),
-        _batch("claim_numeric_payload", rows.numeric_payload_rows),
-        _batch("claim_text_payload", rows.text_payload_rows),
-        _batch("claim_algorithm_payload", rows.algorithm_payload_rows),
-        _batch("claim_concept_link", rows.claim_link_rows),
+        _batch("claim_core", rows.claims),
+        _batch("claim_numeric_payload", rows.numeric_payloads),
+        _batch("claim_text_payload", rows.text_payloads),
+        _batch("claim_algorithm_payload", rows.algorithm_payloads),
+        _batch("claim_concept_link", rows.concept_links),
         _batch("relation_edge", rows.stance_rows),
     )
 
