@@ -1122,3 +1122,14 @@ Recorded 2026-05-20.
   `rg -n -F -- "CLAIM_ROW_MODEL" propstore/world/overlay.py` returned zero
   hits. Refreshed world active-claim imports are zero; refreshed
   `CLAIM_ROW_MODEL` hits remain only in `world/queries.py`.
+- World query presentation row-model deletion: commit `a2b4c704` removed
+  `CLAIM_ROW_MODEL` from `propstore/world/queries.py`. World query reports now
+  format claim display ids, values, conditions, algorithm listings, and
+  hypothetical extension diffs from typed `Claim` fields and payload
+  relationships. Focused verification `uv run pyright
+  propstore/world/queries.py` passed with 0 errors, and
+  `rg -n -F -- "CLAIM_ROW_MODEL" propstore/world/queries.py` plus
+  `rg -n -F -- "claim.claim_id" propstore/world/queries.py` returned zero
+  hits. Refreshed `propstore/world` searches for
+  `propstore.core.active_claims` and `CLAIM_ROW_MODEL` both returned zero
+  hits.
