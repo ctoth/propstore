@@ -9,10 +9,11 @@ from typing import TYPE_CHECKING, cast
 from propstore.reporting import JsonReportMixin
 from propstore.app.world import bind_world, open_app_world_model
 from propstore.repository import Repository
+from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim
 from propstore.world.types import GroundingBundleStore, normalize_reasoning_backend
 
 if TYPE_CHECKING:
-    from propstore.core.active_claims import ActiveClaim
     from propstore.core.graph_types import ActiveWorldGraph
     from propstore.core.labels import Label, SupportQuality
     from propstore.world import WorldQuery
@@ -104,17 +105,19 @@ def world_extensions(
 ) -> WorldExtensionsReport | None:
     """Compute argumentation extension reports for a bound world."""
 
-    from propstore.core.active_claims import coerce_active_claims
     from propstore.relation_analysis import stance_summary
     from propstore.world import ReasoningBackend
 
     with open_app_world_model(repo) as world:
         bound = bind_world(world, request.bindings, context_id=request.context)
-        active = coerce_active_claims(bound.active_claims())
+        active = tuple(bound.active_claims())
+        for claim in active:
+            if not isinstance(claim, Claim):
+                raise TypeError("bound.active_claims() must return typed Claim objects")
         if not active:
             return None
 
-        claim_ids = {str(claim.claim_id) for claim in active}
+        claim_ids = {str(claim.id) for claim in active}
         backend = normalize_reasoning_backend(request.backend)
 
         if backend is ReasoningBackend.ATMS:
@@ -219,7 +222,7 @@ def world_extensions(
 
 def _praf_extensions(
     world: "WorldQuery",
-    active: Sequence["ActiveClaim"],
+    active: Sequence[Claim],
     claim_ids: set[str],
     request: AppWorldExtensionsRequest,
     active_lines: tuple[WorldExtensionsClaimLine, ...],
@@ -274,13 +277,13 @@ def _praf_extensions(
 
 def _claim_lines(
     world: "WorldQuery",
-    active: Sequence["ActiveClaim"],
+    active: Sequence[Claim],
 ) -> tuple[WorldExtensionsClaimLine, ...]:
     from propstore.families.concepts.declaration import Concept
 
     lines: list[WorldExtensionsClaimLine] = []
     for claim in active:
-        concept_id = None if claim.value_concept_id is None else str(claim.value_concept_id)
+        concept_id = _claim_concept_id(claim)
         concept_name = None
         if concept_id:
             concept = world.get_concept(concept_id)
@@ -288,14 +291,14 @@ def _claim_lines(
                 concept_name = Concept.coerce(concept).canonical_name
         lines.append(
             WorldExtensionsClaimLine(
-                claim_id=str(claim.claim_id),
-                claim_type=str(claim.claim_type or "unknown"),
+                claim_id=str(claim.id),
+                claim_type=str(claim.type or "unknown"),
                 concept_id=concept_id,
                 concept_name=concept_name,
-                value=claim.value,
-                expression=claim.expression,
-                statement=claim.statement,
-                description=claim.description,
+                value=None,
+                expression=None,
+                statement=None,
+                description=None,
             )
         )
     return tuple(lines)
@@ -388,7 +391,7 @@ def _defeated_claims(
 
 def _support_metadata_for(
     bound: object,
-    active_claims: Sequence["ActiveClaim"],
+    active_claims: Sequence[Claim],
 ) -> dict[str, tuple["Label | None", "SupportQuality"]]:
     from propstore.world.types import ClaimSupportView
 
@@ -397,7 +400,7 @@ def _support_metadata_for(
 
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     for claim in active_claims:
-        support_metadata[str(claim.claim_id)] = bound.claim_support(claim)
+        support_metadata[str(claim.id)] = bound.claim_support(claim)
     return support_metadata
 
 
@@ -407,3 +410,11 @@ def _active_graph_for(bound: object) -> ActiveWorldGraph | None:
     if isinstance(bound, HasActiveGraph):
         return bound._active_graph
     return None
+
+
+def _claim_concept_id(claim: Claim) -> str | None:
+    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
+        for link in claim.concept_links:
+            if link.role == role:
+                return str(link.concept_id)
+    return None if claim.target_concept is None else str(claim.target_concept)
