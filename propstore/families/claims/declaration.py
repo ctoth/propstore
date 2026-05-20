@@ -27,6 +27,7 @@ from propstore.conflict_detector import detect_conflicts, detect_transitive_conf
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.core.conditions import checked_condition_set_to_json
 from propstore.core.id_types import (
     ClaimId,
     to_claim_id,
@@ -182,7 +183,7 @@ class PromotionBlockedModels:
 from propstore.families.claims.projection_model import (  # noqa: E402
     JUSTIFICATION_TABLE,
 )
-from propstore.families.world_charters import BuildDiagnostic
+from propstore.families.world_charters import BuildDiagnostic, world_record
 
 
 def build_claim_logical_id_index(conn: sqlite3.Connection) -> dict[str, str]:
@@ -436,19 +437,54 @@ def compile_claim_models(
         )
         for semantic_claim in semantic_file.claims:
             claim_seq += 1
-            row = prepare_claim_insert_row(
-                semantic_claim,
-                semantic_claim.source_paper,
-                claim_seq=claim_seq,
-                concept_registry=concept_registry,
-                form_registry=form_registry,
+            claim_doc = semantic_claim.resolved_claim
+            provenance = claim_doc.provenance
+            provenance_payload = None if provenance is None else provenance.to_payload()
+            conditions_ir = (
+                json.dumps(
+                    checked_condition_set_to_json(semantic_claim.checked_conditions),
+                    sort_keys=True,
+                )
+                if semantic_claim.checked_conditions is not None
+                else None
             )
+            logical_ids_payload = [
+                logical_id.to_payload()
+                for logical_id in claim_doc.logical_ids
+            ]
+            claim_values: dict[str, object] = {
+                "id": semantic_claim.artifact_id or claim_doc.artifact_id,
+                "primary_logical_id": claim_doc.primary_logical_id or "",
+                "logical_ids_json": json.dumps(logical_ids_payload),
+                "version_id": claim_doc.version_id or "",
+                "seq": claim_seq,
+                "type": claim_doc.type,
+                "target_concept": claim_doc.target_concept,
+                "source_slug": semantic_claim.source_paper,
+                "source_paper": (
+                    semantic_claim.source_paper
+                    if provenance is None or provenance.paper is None
+                    else provenance.paper
+                ),
+                "provenance_page": 0 if provenance is None else provenance.page,
+                "provenance_json": (
+                    None
+                    if provenance_payload is None
+                    else json.dumps(provenance_payload, sort_keys=True)
+                ),
+                "context_id": claim_doc.context.id,
+                "premise_kind": "ordinary",
+                "branch": None,
+                "build_status": "ingested",
+                "stage": file_stage,
+                "promotion_status": None,
+            }
             if file_stage is not None:
-                row["stage"] = file_stage
-            claim_id = row.get("id")
+                claim_values["stage"] = file_stage
+            claim_id = claim_values.get("id")
             if not isinstance(claim_id, str) or not claim_id:
                 raise TypeError("compiled claim id must be a non-empty string")
-            version_id = row.get("version_id")
+            version_id = claim_values.get("version_id")
             if not isinstance(version_id, str):
                 raise TypeError("compiled claim version_id must be a string")
             if claim_id in seen_claim_versions:
@@ -471,12 +507,59 @@ def compile_claim_models(
                     )
                     emitted_version_conflicts.add(conflict_key)
                 continue
-            payload_values = dict(row)
-            payload_values["claim_id"] = claim_id
-            claim_models.append(Claim(**row))
-            numeric_payloads.append(ClaimNumericPayload(**payload_values))
-            text_payloads.append(ClaimTextPayload(**payload_values))
-            algorithm_payloads.append(ClaimAlgorithmPayload(**payload_values))
+            numeric_values = {
+                "claim_id": claim_id,
+                "value": claim_doc.value,
+                "lower_bound": claim_doc.lower_bound,
+                "upper_bound": claim_doc.upper_bound,
+                "uncertainty": claim_doc.uncertainty,
+                "uncertainty_type": claim_doc.uncertainty_type,
+                "sample_size": claim_doc.sample_size,
+                "unit": claim_doc.unit,
+                "value_si": claim_doc.value,
+                "lower_bound_si": claim_doc.lower_bound,
+                "upper_bound_si": claim_doc.upper_bound,
+            }
+            text_values = {
+                "claim_id": claim_id,
+                "conditions_cel": (
+                    json.dumps(list(claim_doc.conditions))
+                    if claim_doc.conditions
+                    else None
+                ),
+                "conditions_ir": conditions_ir,
+                "statement": claim_doc.statement,
+                "expression": claim_doc.expression,
+                "sympy_generated": claim_doc.sympy,
+                "sympy_error": None,
+                "name": claim_doc.name,
+                "measure": claim_doc.measure,
+                "listener_population": claim_doc.listener_population,
+                "methodology": claim_doc.methodology,
+                "notes": claim_doc.notes,
+                "description": None,
+                "auto_summary": None,
+            }
+            algorithm_values = {
+                "claim_id": claim_id,
+                "body": claim_doc.body,
+                "canonical_ast": None,
+                "variables_json": (
+                    json.dumps([
+                        variable.to_payload()
+                        for variable in claim_doc.variables
+                    ])
+                    if claim_doc.variables
+                    else None
+                ),
+                "algorithm_stage": (
+                    None if claim_doc.stage is None else claim_doc.stage.value
+                ),
+            }
+            claim_models.append(world_record("claim_core", claim_values))
+            numeric_payloads.append(world_record("claim_numeric_payload", numeric_values))
+            text_payloads.append(world_record("claim_text_payload", text_values))
+            algorithm_payloads.append(world_record("claim_algorithm_payload", algorithm_values))
             seen_claim_versions[claim_id] = version_id
             for values in prepare_claim_concept_link_rows(semantic_claim):
                 role = values[2]
