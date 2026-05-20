@@ -802,3 +802,8 @@ Recorded 2026-05-20.
   The refreshed active-claim import search now reports only `aspic_bridge` and
   `world`; the refreshed `CLAIM_ROW_MODEL` search now reports `app/claims.py`,
   `world/atms.py`, `world/overlay.py`, and `world/queries.py`.
+- ASPIC extraction deletion: commit `4200fb66` removed `ActiveClaim` from
+  `aspic_bridge/extract.py`; extraction helpers now type active claim maps as
+  typed `Claim` objects. The refreshed active-claim import search reports the
+  remaining ASPIC callers in `build.py`, `projection.py`, `query.py`, and
+  `translate.py`, plus the `world` package.
