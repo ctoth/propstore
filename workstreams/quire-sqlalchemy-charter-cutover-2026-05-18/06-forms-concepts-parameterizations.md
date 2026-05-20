@@ -463,3 +463,21 @@ Forms closure:
   `propstore/families/concepts` still finds concept, alias, relationship, and
   parameterization projection tables. Those are the next slice's named
   deletion targets in this same workstream.
+
+Concept/form/parameterization model cutover correction:
+
+- During the initial concept model cutover, the attempted top-level helpers
+  `coerce_concept`, `concept_to_mapping`, `coerce_parameterization`, and
+  `parameterization_to_mapping` were identified as duplicate projection-model
+  wrapper helpers, not the target architecture.
+- The required correction is deletion-first: remove those attempted helpers,
+  delete `CONCEPT_ROW_MODEL` and `PARAMETERIZATION_ROW_MODEL`, and update
+  callers to consume typed `Concept` and `Parameterization` models directly.
+- Remaining IO-boundary conversion must live on the boundary-specific model
+  constructors/methods such as `Concept.from_row_mapping`,
+  `Concept.to_row_mapping`, `Parameterization.from_row_mapping`, and
+  `Parameterization.to_row_mapping` only where a row-mapping boundary still
+  exists during the slice.
+- Internal concept, world, traversal, registry, and view code must not use
+  top-level per-model wrapper helpers as a replacement for the deleted
+  projection model layer.
