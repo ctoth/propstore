@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.reporting import JsonReportMixin
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
+from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept, ConceptSearchQuerySyntaxError
 from propstore.world.types import RenderPolicy
 
@@ -333,12 +333,13 @@ def _maybe_float(value: object) -> float | None:
 
 
 def _format_value_with_si(
-    claim: Mapping[str, object],
+    claim: Claim,
     world: WorldQuery | None = None,
 ) -> str:
-    value = claim.get("value")
-    unit = claim.get("unit")
-    value_si = claim.get("value_si")
+    numeric_payload = claim.numeric_payload
+    value = None if numeric_payload is None else numeric_payload.value
+    unit = None if numeric_payload is None else numeric_payload.unit
+    value_si = None if numeric_payload is None else numeric_payload.value_si
     numeric_value = _maybe_float(value)
     numeric_value_si = _maybe_float(value_si)
     if (
@@ -349,8 +350,8 @@ def _format_value_with_si(
     ):
         canonical_unit = ""
         if world is not None:
-            concept_id = claim.get("concept_id")
-            if isinstance(concept_id, str):
+            concept_id = claim.value_concept_id
+            if concept_id is not None:
                 concept = world.get_concept(concept_id)
                 if concept is not None:
                     canonical_unit = str(
@@ -423,12 +424,11 @@ def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
     return str(row.concept_id or concept_id)
 
 
-def world_claim_display_id(claim: Mapping[str, object] | Any) -> str:
-    row = CLAIM_ROW_MODEL.coerce(claim)
-    logical_id = row.primary_logical_id
+def world_claim_display_id(claim: Claim) -> str:
+    logical_id = claim.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return logical_id
-    return str(row.claim_id)
+    return str(claim.id)
 
 
 def _world_chain_concept_line(
@@ -459,16 +459,16 @@ def query_world_concept(
     concept_row = Concept.coerce(concept)
     claims = tuple(
         WorldClaimLine(
-            display_id=world_claim_display_id(claim_row),
-            claim_type=str(claim_dict["type"]),
-            value_display=_format_value_with_si(claim_dict, world),
-            conditions=str(claim_dict.get("conditions_cel") or "[]"),
+            display_id=world_claim_display_id(claim),
+            claim_type=claim.type.value,
+            value_display=_format_value_with_si(claim, world),
+            conditions=str(
+                "[]"
+                if claim.text_payload is None
+                else claim.text_payload.conditions_cel or "[]"
+            ),
         )
-        for claim_row in (
-            CLAIM_ROW_MODEL.coerce(claim)
-            for claim in world.claims_with_policy(resolved, request.policy)
-        )
-        for claim_dict in (CLAIM_ROW_MODEL.to_mapping(claim_row),)
+        for claim in world.claims_with_policy(resolved, request.policy)
     )
     diagnostics = tuple(
         WorldDiagnosticLine(
@@ -502,18 +502,13 @@ def query_bound_world(
             status=str(result.status),
             claims=tuple(
                 WorldBindClaimLine(
-                    display_id=world_claim_display_id(claim_dict),
+                    display_id=world_claim_display_id(active_claim),
                     concept_display_id=None,
-                    value_display=_format_value_with_si(claim_dict, world),
+                    value_display=_format_value_with_si(active_claim, world),
                     conditions=None,
-                    source=(
-                        None
-                        if claim_dict.get("source_paper") is None
-                        else str(claim_dict.get("source_paper"))
-                    ),
+                    source=active_claim.source_paper,
                 )
                 for active_claim in result.claims
-                for claim_dict in (CLAIM_ROW_MODEL.to_mapping(active_claim),)
             ),
         )
 
@@ -522,16 +517,19 @@ def query_bound_world(
         active_claim_count=len(active_claims),
         claims=tuple(
             WorldBindClaimLine(
-                display_id=world_claim_display_id(claim_dict),
+                display_id=world_claim_display_id(active_claim),
                 concept_display_id=world_concept_display_id(
                     world,
-                    str(claim_dict.get("concept_id", "?")),
+                    str(active_claim.value_concept_id or "?"),
                 ),
-                value_display=_format_value_with_si(claim_dict, world),
-                conditions=str(claim_dict.get("conditions_cel") or "[]"),
+                value_display=_format_value_with_si(active_claim, world),
+                conditions=str(
+                    "[]"
+                    if active_claim.text_payload is None
+                    else active_claim.text_payload.conditions_cel or "[]"
+                ),
             )
             for active_claim in active_claims
-            for claim_dict in (CLAIM_ROW_MODEL.to_mapping(active_claim),)
         ),
     )
 
@@ -543,10 +541,10 @@ def explain_world_claim(
     claim_input = world.get_claim(request.claim_id)
     if claim_input is None:
         raise UnknownClaimError(request.claim_id)
-    claim = CLAIM_ROW_MODEL.coerce(claim_input)
+    claim = claim_input
     claim_display_id = world_claim_display_id(claim)
     stances: list[WorldStanceLine] = []
-    for stance in world.explain(str(claim.claim_id)):
+    for stance in world.explain(str(claim.id)):
         source_id = str(stance.claim_id)
         source_claim = world.get_claim(source_id)
         source_display_id = (
@@ -566,14 +564,14 @@ def explain_world_claim(
                 target_display_id=target_display_id,
                 strength=stance.attribute_value("strength"),
                 note=stance.attribute_value("note"),
-                nested=source_id != str(claim.claim_id),
+                nested=source_id != str(claim.id),
             )
         )
     return WorldExplainReport(
         claim_display_id=claim_display_id,
-        claim_type=str(claim.claim_type),
+        claim_type=claim.type.value,
         concept_display_id=world_concept_display_id(world, str(claim.value_concept_id)),
-        value=claim.value,
+        value=None if claim.numeric_payload is None else claim.numeric_payload.value,
         stances=tuple(stances),
     )
 
@@ -585,8 +583,8 @@ def list_world_algorithms(
     from propstore.core.algorithm_stage import coerce_algorithm_stage
     from propstore.core.claim_types import ClaimType
 
-    claims = [CLAIM_ROW_MODEL.coerce(claim) for claim in world.claims_for(None)]
-    algorithms = [claim for claim in claims if claim.claim_type is ClaimType.ALGORITHM]
+    claims = list(world.claims_for(None))
+    algorithms = [claim for claim in claims if claim.type is ClaimType.ALGORITHM]
     stage_filter = (
         coerce_algorithm_stage(request.stage)
         if request.stage is not None
@@ -594,7 +592,10 @@ def list_world_algorithms(
     )
     if stage_filter is not None:
         algorithms = [
-            claim for claim in algorithms if claim.algorithm_stage == stage_filter
+            claim
+            for claim in algorithms
+            if claim.algorithm_payload is not None
+            and claim.algorithm_payload.algorithm_stage == stage_filter
         ]
     if request.concept:
         algorithms = [
@@ -605,10 +606,19 @@ def list_world_algorithms(
     return WorldAlgorithmsReport(
         algorithms=tuple(
             WorldAlgorithmLine(
-                claim_id=str(claim.claim_id),
-                name=claim.name or (claim.body or "")[:25] or "?",
-                stage=str(claim.algorithm_stage)
-                if claim.algorithm_stage is not None
+                claim_id=str(claim.id),
+                name=(
+                    None if claim.text_payload is None else claim.text_payload.name
+                )
+                or (
+                    (claim.algorithm_payload.body or "")[:25]
+                    if claim.algorithm_payload is not None
+                    else ""
+                )
+                or "?",
+                stage=str(claim.algorithm_payload.algorithm_stage)
+                if claim.algorithm_payload is not None
+                and claim.algorithm_payload.algorithm_stage is not None
                 else "-",
                 concept_id=str(claim.output_concept_id)
                 if claim.output_concept_id is not None
@@ -723,9 +733,9 @@ def _diff_grounded_extension(
     bound,
     overlay,
 ) -> WorldHypotheticalExtensionDiff:
-    base_active_ids = {str(claim.claim_id) for claim in bound.active_claims()}
+    base_active_ids = {str(claim.id) for claim in bound.active_claims()}
     hypothetical_active_ids = {
-        str(claim.claim_id)
+        str(claim.id)
         for claim in overlay.active_claims()
     }
     before = _grounded_extension_snapshot(world, base_active_ids)
@@ -769,6 +779,8 @@ def _hypothetical_claim_display_id(
             claim = getter(claim_id)
     if claim is None:
         return claim_id
+    if not isinstance(claim, Claim):
+        raise TypeError("overlay get_claim must return a typed Claim")
     return world_claim_display_id(claim)
 
 
