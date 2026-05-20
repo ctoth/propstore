@@ -104,7 +104,7 @@ Decision:
 | `propstore/families/claims/declaration.py` projection compiler/populator paths | Claim sidecar compiler, raw projection-row writes, claim diagnostic row writes | Claim model construction, typed write plans, Quire sessions, and diagnostic model construction | Delete `compile_claim_sidecar_rows`, `populate_claims`, claim-family `ProjectionRow` usage, and claim-family `BUILD_DIAGNOSTICS_PROJECTION` writes |
 | `propstore/families/claims/storage.py` storage shaping | Loose claim row preparation/helpers | Claim charter generic conversion | Delete storage-shaped helpers |
 | `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | `propstore/families/identity/claims.py`, `propstore/source/claims.py`, `propstore/families/claims/references.py`, `propstore/families/claims/stages.py`, `propstore/families/relations/declaration.py`, and `propstore/families/diagnostics/declaration.py` | Move each named semantic to its exact owner before deleting the storage-shaped remainder |
-| `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model and explicit active-claim view model | Delete projection-row coercion; keep only named active runtime view behavior |
+| `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model plus query-state filters | Delete projection-row coercion and the parallel active claim object family |
 
 ## Deletion Targets
 
@@ -112,8 +112,7 @@ Delete these old production surfaces first, then use import/type/test failures
 as the work queue:
 
 - claim-owned contents of `propstore/families/claims/projection_model.py`;
-- `propstore/families/claims/declaration.py` sidecar compiler/populator paths
-  after `compile_claim_models` exists;
+- `propstore/families/claims/declaration.py` sidecar compiler/populator paths;
 - `compile_claim_sidecar_rows`;
 - `populate_claims`;
 - claim-family `ProjectionRow` import, annotations, and row-carrier plumbing;
@@ -214,8 +213,8 @@ File: `propstore/core/active_claims.py`.
 | `ActiveClaim.from_mapping` | delete | Projection-row construction path is deleted. |
 | `ActiveClaim.to_dict` | replace | Replace with explicit view/document payload rendering that does not import `CLAIM_ROW_MODEL`. |
 | `ActiveClaim.to_source_claim_payload` | move | Move conflict-detector payload rendering to `propstore/conflict_detector/collectors.py::conflict_claim_from_active_claim`; delete the `ActiveClaim` method. |
-| `coerce_active_claim` | delete | Runtime receives typed `Claim` or named active view models, not mappings. |
-| `coerce_active_claims` | delete | Runtime receives typed `Claim` or named active view models, not mappings. |
+| `coerce_active_claim` | delete | Runtime receives typed `Claim`, not mappings. |
+| `coerce_active_claims` | delete | Runtime receives typed `Claim`, not mappings. |
 
 ## Helper Classification: Projection Model Family
 
@@ -266,8 +265,8 @@ Required caller final state:
 - graph, analyzer, export, relation, support-revision, ASPIC, world, and
   worldline code consume typed `Claim`, `ClaimConceptLink`, payload, stance,
   and relation models;
-- activation and active-claim code receives typed `Claim` objects or named
-  active view models, not mappings.
+- activation and active-claim code receives typed `Claim` objects, not
+  mappings.
 
 ## Semantic Moves
 

@@ -50,8 +50,11 @@ Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
 2. Confirm the Quire charter/schema IR workstream is complete.
 3. Confirm the Quire SQLAlchemy table, mapping, session, and catalog
    workstream is complete.
-4. Confirm current worktree state in both repositories.
+4. Confirm current worktree state in Propstore, Quire, and `sqlalchemy-fts5`.
 5. Confirm dependency references are not local filesystem pins.
+6. Confirm the Python floor decision: Propstore and Quire remain
+   `requires-python = ">=3.11"`, and `sqlalchemy-fts5` must support Python
+   3.11 before Quire may depend on it.
 
 Required dependency-pin searches:
 
@@ -72,12 +75,36 @@ rg -n -F -- "C:" pyproject.toml uv.lock
 Any dependency entry that resolves only from the local filesystem fails the
 prerequisite gate.
 
+Required Python-floor checks:
+
+```powershell
+Set-Location C:\Users\Q\code\propstore
+rg -n -F -- 'requires-python = ">=3.11"' pyproject.toml
+
+Set-Location C:\Users\Q\code\quire
+rg -n -F -- 'requires-python = ">=3.11"' pyproject.toml
+
+Set-Location C:\Users\Q\code\sqlalchemy-fts5
+rg -n -F -- 'requires-python = ">=3.11"' pyproject.toml
+```
+
+If `sqlalchemy-fts5` still requires Python 3.12 or higher, update
+`sqlalchemy-fts5` to support Python 3.11 and run its gates before editing
+Quire.
+
 ## Execution Rules
 
 - Execute this workstream before Propstore build orchestration.
 - Prove extension capability in `sqlalchemy-fts5` before adding Quire
   production usage.
 - Fix `sqlalchemy-fts5` when it cannot express the required FTS5 behavior.
+- Fix `sqlalchemy-fts5` to keep the stack Python floor at 3.11; do not raise
+  Propstore or Quire to Python 3.12 for this workstream.
+- Push `sqlalchemy-fts5` changes and tag or otherwise identify an immutable
+  pushed commit before Quire pins the dependency.
+- Quire may consume a modified `sqlalchemy-fts5` only from a published package
+  version or immutable pushed commit/tag. Local path, workspace, and file URL
+  pins are forbidden.
 - Keep FTS out of Quire projection classes.
 - Keep FTS out of Propstore raw string SQL.
 - Keep vector behavior in Quire instead of pushing it into Propstore family
@@ -154,6 +181,10 @@ uv run pyright
 uv run pytest -vv
 ```
 
+After any `sqlalchemy-fts5` fix, push the repository and record the pushed tag
+or immutable commit SHA used by Quire. Quire dependency metadata must point to
+that published package version, pushed tag, or immutable pushed commit SHA.
+
 Run in Quire:
 
 ```powershell
@@ -172,6 +203,9 @@ Required proof results:
 - vector snapshot proof passes;
 - vector restore proof passes;
 - no local path dependency pins.
+- `sqlalchemy-fts5` advertises and passes tests for Python 3.11.
+- Quire consumes `sqlalchemy-fts5` from a published package version, pushed
+  tag, or immutable pushed commit SHA.
 
 ## Quire-First Completion Gate
 
@@ -218,6 +252,9 @@ import those old paths.
 This workstream is complete only when:
 
 - `sqlalchemy-fts5` passes its type and test gates.
+- `sqlalchemy-fts5` supports Python 3.11, matching Propstore and Quire.
+- Modified `sqlalchemy-fts5` changes have been pushed and Quire is pinned to a
+  published package version, pushed tag, or immutable pushed commit SHA.
 - Quire passes its type and test gates.
 - Quire has FTS declarations, creation, and query support through SQLAlchemy
   extension machinery.

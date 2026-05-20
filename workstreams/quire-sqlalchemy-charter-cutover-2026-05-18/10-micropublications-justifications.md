@@ -253,18 +253,21 @@ deleted.
    the association-object decision in the implementation notes or commit
    message.
 4. Delete the old micropublication projection/read-model surface first.
-5. Delete duplicated justification schema/conversion paths after the typed
-   justification model and named semantic view exist.
+5. Delete duplicated justification schema/conversion paths immediately after
+   the old micropublication surface deletion; preserve semantic requirements in
+   the target owner notes above, not by keeping the duplicate production path.
 6. Run the smallest import/type/test command that exposes the next failures.
-7. Fix only failures caused by this slice's deletion and named caller list.
-8. Replace raw SQLite access with Quire SQLAlchemy session/model access.
-9. Replace loose dict/list/row payloads with typed justification,
+7. Repair those failures by implementing the typed `Justification` model and
+   named semantic view.
+8. Fix only failures caused by this slice's deletion and named caller list.
+9. Replace raw SQLite access with Quire SQLAlchemy session/model access.
+10. Replace loose dict/list/row payloads with typed justification,
    micropublication, and association objects.
-10. Delete field-specific string tuple, JSON, id, mapping, and row coercers
+11. Delete field-specific string tuple, JSON, id, mapping, and row coercers
     once generic charter conversion covers the field.
-11. Run the family gates.
-12. Run the old-path search gates.
-13. Run the data-parity gate.
+12. Run the family gates.
+13. Run the old-path search gates.
+14. Run the data-parity gate.
 
 No Propstore workaround is allowed for a missing Quire generic feature. A
 missing SQLAlchemy charter, association object, JSON, enum, relationship,
