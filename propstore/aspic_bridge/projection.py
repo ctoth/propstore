@@ -4,16 +4,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-import statistics
 from collections.abc import Mapping, Sequence
 
 from argumentation.aspic import CSAF, Literal, PremiseArg, conc, prem, sub, top_rule
 from argumentation.dung import ArgumentationFramework
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.environment import StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.labels import Label, SupportMetadata, SupportQuality
 from propstore.core.literal_keys import IstLiteralKey
+from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.preference import claim_strength
 from propstore.provenance.records import ProjectionFrameProvenanceRecord
@@ -33,17 +33,12 @@ _STRICT_RULE_STRENGTH = 1.0
 _DEFEASIBLE_RULE_STRENGTH = 0.7
 
 
-def _default_support_metadata(claim: ActiveClaim) -> tuple[Label | None, SupportQuality]:
+def _default_support_metadata(claim: Claim) -> tuple[Label | None, SupportQuality]:
     """Compute default projected support metadata for a claim-backed argument."""
 
     has_context = claim.context_id is not None
-    has_conditions = bool(claim.conditions)
-    if has_context and has_conditions:
-        return None, SupportQuality.MIXED
     if has_context:
         return None, SupportQuality.CONTEXT_VISIBLE_ONLY
-    if has_conditions:
-        return None, SupportQuality.SEMANTIC_COMPATIBLE
     return Label.empty(), SupportQuality.EXACT
 
 
@@ -61,24 +56,11 @@ def _projection_backend_atom_id(literal: Literal) -> str:
     )
 
 
-def _source_assertion_ids_for_claim(claim: ActiveClaim | None) -> tuple[str, ...]:
-    if claim is None:
-        return ()
-    raw = claim.attribute_value("source_assertion_ids")
-    if isinstance(raw, str):
-        return (raw,)
-    if isinstance(raw, Sequence) and not isinstance(raw, str | bytes):
-        return tuple(str(value) for value in raw)
-    return ()
-
-
 def _projection_atom_for_literal(
     literal: Literal,
-    *,
-    claim: ActiveClaim | None,
 ) -> ProjectionAtom:
     backend_atom_id = _projection_backend_atom_id(literal)
-    source_assertion_ids = _source_assertion_ids_for_claim(claim)
+    source_assertion_ids: tuple[str, ...] = ()
     loss = None
     if not source_assertion_ids:
         loss = ProjectionLossWitness(
@@ -122,6 +104,16 @@ def _claim_ids_for_literals(
     return tuple(claim_ids)
 
 
+def _claim_conclusion_concept_id(claim: Claim) -> str | None:
+    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
+        for link in claim.concept_links:
+            if link.role == role:
+                return str(link.concept_id)
+    if claim.target_concept is not None:
+        return str(claim.target_concept)
+    return None
+
+
 def _direct_premise_literals(argument) -> tuple[Literal, ...]:
     if isinstance(argument, PremiseArg):
         return (conc(argument),)
@@ -154,7 +146,7 @@ def _grounded_argument_strength(argument) -> float:
 
 def csaf_to_projection(
     csaf: CSAF,
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[Claim],
     *,
     support_metadata: SupportMetadata | None = None,
 ) -> StructuredProjection:
@@ -163,8 +155,11 @@ def csaf_to_projection(
     metadata: SupportMetadata = {}
     if support_metadata is not None:
         metadata = support_metadata
-    normalized_claims = coerce_active_claims(active_claims)
-    claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
+    normalized_claims = tuple(active_claims)
+    for claim in normalized_claims:
+        if not isinstance(claim, Claim):
+            raise TypeError("csaf_to_projection requires typed Claim objects")
+    claim_by_id = {str(claim.id): claim for claim in normalized_claims}
     claim_literal_ids = {
         literal: str(key.proposition_id)
         for key, literal in claims_to_literals(normalized_claims).items()
@@ -204,8 +199,12 @@ def csaf_to_projection(
         if claim is None:
             strength = _grounded_argument_strength(argument)
         else:
-            vector = claim_strength(claim)
-            strength = 0.0 if vector.is_vacuous else statistics.mean(vector.dimensions)
+            vector = claim_strength({"artifact_id": claim.id})
+            strength = (
+                0.0
+                if vector.is_vacuous
+                else sum(vector.dimensions) / len(vector.dimensions)
+            )
 
         if isinstance(argument, PremiseArg):
             justification_id = (
@@ -236,10 +235,10 @@ def csaf_to_projection(
 
         projected = StructuredArgument(
             arg_id=arg_id,
-            projection=_projection_atom_for_literal(conclusion, claim=claim),
+            projection=_projection_atom_for_literal(conclusion),
             claim_id=claim_id,
             conclusion_concept_id=(
-                None if claim is None or claim.value_concept_id is None else str(claim.value_concept_id)
+                None if claim is None else _claim_conclusion_concept_id(claim)
             ),
             premise_claim_ids=premise_claim_ids,
             label=label,
@@ -302,7 +301,7 @@ def csaf_to_projection(
 
 def build_aspic_projection(
     store: StanceStore,
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[Claim],
     *,
     bundle: GroundedRulesBundle,
     support_metadata: SupportMetadata | None = None,
@@ -312,8 +311,11 @@ def build_aspic_projection(
 ) -> StructuredProjection:
     """Build a ``StructuredProjection`` via the ASPIC bridge."""
 
-    normalized_claims = tuple(coerce_active_claims(active_claims))
-    active_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
+    normalized_claims = tuple(active_claims)
+    for claim in normalized_claims:
+        if not isinstance(claim, Claim):
+            raise TypeError("build_aspic_projection requires typed Claim objects")
+    active_by_id = {str(claim.id): claim for claim in normalized_claims}
 
     stance_rows = _extract_stance_rows(store, active_by_id, active_graph=active_graph)
     justifications = _extract_justifications(
