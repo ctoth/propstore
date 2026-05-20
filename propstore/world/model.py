@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import FtsQuerySyntaxError, search_fts_index
 from quire.sqlalchemy_store import validate_sqlalchemy_store
@@ -25,22 +25,20 @@ from propstore.core.id_types import to_concept_id, to_context_id
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.micropublications import ActiveMicropublication
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.store_results import (
     WorldStoreStats,
     ClaimSimilarityHit,
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.core.active_claims import ActiveClaim
 from propstore.families.claims.declaration import (
+    Claim,
     build_claim_logical_id_index,
     count_authored_justifications,
     count_claims,
     resolve_claim_id,
     select_authored_justifications,
-    select_claim_rows,
-    select_claim_rows_linked_to_concept,
-    select_claim_rows_with_visibility,
 )
 from propstore.families.diagnostics.declaration import (
     build_diagnostics,
@@ -267,9 +265,6 @@ class WorldQuery(WorldStore):
 
     # ── Unbound queries ──────────────────────────────────────────────
 
-    def _claim_rows(self, where_sql: str = "", params: tuple[Any, ...] = ()) -> list[ActiveClaim]:
-        return select_claim_rows(self._conn, where_sql, params)
-
     def get_concept(self, concept_id: str) -> Concept | None:
         schema = world_sqlalchemy_schema()
         concept_model = schema.model("concept")
@@ -310,10 +305,14 @@ class WorldQuery(WorldStore):
             for concept in self.all_concepts()
         }
 
-    def get_claim(self, claim_id: str) -> ActiveClaim | None:
+    def get_claim(self, claim_id: str) -> Claim | None:
         resolved_claim_id = self.resolve_claim(claim_id) or claim_id
-        rows = self._claim_rows("WHERE core.id = ?", (resolved_claim_id,))
-        return rows[0] if rows else None
+        schema = world_sqlalchemy_schema()
+        claim = schema.model("claim_core")
+        with self._derived_store.readonly_session(schema) as derived:
+            return derived.execute(
+                select(claim).where(claim.id == resolved_claim_id)
+            ).scalar_one_or_none()
 
     def _build_logical_id_index(self, table: str) -> dict[str, str]:
         """Return a ``name → artifact_id`` map for one of ``claim_core``/``concept``.
@@ -420,25 +419,44 @@ class WorldQuery(WorldStore):
             ).first()
             return None if row is None else str(row[0])
 
-    def claims_for(self, concept_id: str | None) -> list[ActiveClaim]:
+    def claims_for(self, concept_id: str | None) -> list[Claim]:
         resolved_concept_id = (
             None
             if concept_id is None
             else self.resolve_concept(concept_id) or concept_id
         )
-        return select_claim_rows_linked_to_concept(
-            self._conn,
-            resolved_concept_id,
-            roles=("output", "target"),
-        )
+        schema = world_sqlalchemy_schema()
+        claim = schema.model("claim_core")
+        link = schema.model("claim_concept_link")
+        with self._derived_store.readonly_session(schema) as derived:
+            statement = select(claim).order_by(claim.id)
+            if resolved_concept_id is not None:
+                statement = (
+                    statement.join(link, link.claim_id == claim.id)
+                    .where(link.concept_id == resolved_concept_id)
+                    .where(link.role.in_((ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET)))
+                    .distinct()
+                )
+            return list(derived.execute(statement).scalars())
 
-    def claims_related_to_concept(self, concept_id: str | None) -> list[ActiveClaim]:
+    def claims_related_to_concept(self, concept_id: str | None) -> list[Claim]:
         resolved_concept_id = (
             None
             if concept_id is None
             else self.resolve_concept(concept_id) or concept_id
         )
-        return select_claim_rows_linked_to_concept(self._conn, resolved_concept_id)
+        schema = world_sqlalchemy_schema()
+        claim = schema.model("claim_core")
+        link = schema.model("claim_concept_link")
+        with self._derived_store.readonly_session(schema) as derived:
+            statement = select(claim).order_by(claim.id)
+            if resolved_concept_id is not None:
+                statement = (
+                    statement.join(link, link.claim_id == claim.id)
+                    .where(link.concept_id == resolved_concept_id)
+                    .distinct()
+                )
+            return list(derived.execute(statement).scalars())
 
     def _render_policy_predicates(
         self, policy: RenderPolicy
@@ -485,7 +503,7 @@ class WorldQuery(WorldStore):
         self,
         concept_id: str | None,
         policy: RenderPolicy,
-    ) -> list[ActiveClaim]:
+    ) -> list[Claim]:
         """Return claim rows filtered by the lifecycle visibility flags
         on ``policy``.
 
@@ -503,12 +521,29 @@ class WorldQuery(WorldStore):
             if concept_id is None
             else self.resolve_concept(concept_id) or concept_id
         )
-        return select_claim_rows_with_visibility(
-            self._conn,
-            concept_id=resolved_concept_id,
-            include_drafts=policy.include_drafts,
-            include_blocked=policy.include_blocked,
-        )
+        schema = world_sqlalchemy_schema()
+        claim = schema.model("claim_core")
+        link = schema.model("claim_concept_link")
+        with self._derived_store.readonly_session(schema) as derived:
+            statement = select(claim).order_by(claim.id)
+            if resolved_concept_id is not None:
+                statement = (
+                    statement.join(link, link.claim_id == claim.id)
+                    .where(link.concept_id == resolved_concept_id)
+                    .distinct()
+                )
+            if not policy.include_drafts:
+                statement = statement.where(or_(claim.stage.is_(None), claim.stage != "draft"))
+            if not policy.include_blocked:
+                statement = statement.where(
+                    or_(claim.build_status.is_(None), claim.build_status != "blocked")
+                ).where(
+                    or_(
+                        claim.promotion_status.is_(None),
+                        claim.promotion_status != "blocked",
+                    )
+                )
+            return list(derived.execute(statement).scalars())
 
     def build_diagnostics(self, policy: RenderPolicy) -> list[dict[str, Any]]:
         """Return ``build_diagnostics`` rows when ``policy.show_quarantined``
@@ -527,19 +562,20 @@ class WorldQuery(WorldStore):
         with self._derived_store.readonly_session(world_sqlalchemy_schema()) as derived:
             return build_diagnostics(derived)
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaim]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
         if not claim_ids:
             return {}
         resolved_ids = {
             self.resolve_claim(claim_id) or claim_id
             for claim_id in claim_ids
         }
-        placeholders = ",".join("?" for _ in resolved_ids)
-        rows = self._claim_rows(
-            f"WHERE core.id IN ({placeholders})",  # noqa: S608
-            tuple(resolved_ids),
-        )
-        return {str(row.claim_id): row for row in rows}
+        schema = world_sqlalchemy_schema()
+        claim = schema.model("claim_core")
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = derived.execute(
+                select(claim).where(claim.id.in_(resolved_ids))
+            ).scalars()
+            return {str(row.id): row for row in rows}
 
     def at_journal_step(
         self,
@@ -1045,7 +1081,8 @@ class WorldQuery(WorldStore):
                 # Try value_of first
                 vr = bound.value_of(cid)
                 if vr.status is ValueStatus.DETERMINED:
-                    value = vr.claims[0].value if vr.claims else None
+                    numeric_payload = vr.claims[0].numeric_payload if vr.claims else None
+                    value = None if numeric_payload is None else numeric_payload.value
                     if value is not None:
                         resolved_values[cid] = value
                         steps.append(ChainStep(concept_id=cid, value=value, source="claim"))
