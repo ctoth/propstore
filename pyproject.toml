@@ -79,7 +79,7 @@ markers = [
 
 [tool.uv.sources]
 formal-belief-set = { git = "https://github.com/ctoth/belief-set", rev = "2ebe82cab23a3f379d7c8d1b62eac7ccd12977bd" }
-quire = { git = "https://github.com/ctoth/quire", rev = "52312677995eb27f7c72dffb265f8efabacd17bf" }
+quire = { git = "https://github.com/ctoth/quire", rev = "8a84f2014e6b3c7e844eb8b182f3b0c2c88a51c8" }
 
 [dependency-groups]
 dev = [
