@@ -19,6 +19,13 @@ from quire.families import FamilyDefinition
 from quire.schema_catalog import SchemaCatalog
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.versions import VersionId
+from propstore.families.concepts.declaration import (
+    Concept,
+    ConceptAlias,
+    ConceptRelationship,
+    Parameterization,
+    ParameterizationGroup,
+)
 from propstore.families.forms.stages import Form, FormAlgebra
 from propstore.families.sources.declaration import Source, source_charter
 
@@ -34,11 +41,6 @@ class WorldModel:
 
 
 class MetaRecord(WorldModel): ...
-class ConceptRecord(WorldModel): ...
-class AliasRecord(WorldModel): ...
-class ParameterizationRecord(WorldModel): ...
-class ParameterizationGroupRecord(WorldModel): ...
-class RelationshipRecord(WorldModel): ...
 class RelationEdgeRecord(WorldModel): ...
 class ContextRecord(WorldModel): ...
 class ContextAssumptionRecord(WorldModel): ...
@@ -66,11 +68,11 @@ class BuildDiagnostic(WorldModel): ...
 _MODELS: dict[str, type[Any]] = {
     "meta": MetaRecord,
     "source": Source,
-    "concept": ConceptRecord,
-    "alias": AliasRecord,
-    "parameterization": ParameterizationRecord,
-    "parameterization_group": ParameterizationGroupRecord,
-    "relationship": RelationshipRecord,
+    "concept": Concept,
+    "alias": ConceptAlias,
+    "parameterization": Parameterization,
+    "parameterization_group": ParameterizationGroup,
+    "relationship": ConceptRelationship,
     "relation_edge": RelationEdgeRecord,
     "form": Form,
     "form_algebra": FormAlgebra,
@@ -121,7 +123,7 @@ def world_charter_catalog() -> SchemaCatalog:
     return charter_catalog(
         _charter("meta", MetaRecord, "key", _f("key", primary_key=True), _i("schema_version", nullable=False)),
         source_charter(),
-        _charter("concept", ConceptRecord, "id",
+        _charter("concept", Concept, "id",
             _f("id", primary_key=True), _f("primary_logical_id", nullable=False, default_sql="''"),
             _f("logical_ids_json", nullable=False, default_sql="'[]'"), _f("version_id", nullable=False, default_sql="''"),
             _f("content_hash", nullable=False), _i("seq", nullable=False), _f("canonical_name", nullable=False),
@@ -130,15 +132,15 @@ def world_charter_catalog() -> SchemaCatalog:
             _i("is_dimensionless", nullable=False, default_sql="0"), _f("unit_symbol"), _f("created_date"),
             _f("last_modified"), indexes=(CharterIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
             fts_indexes=(CharterFtsIndex("concept_fts", "concept_id", ("canonical_name", "aliases", "definition", "conditions"), source_query=_CONCEPT_FTS_SOURCE_QUERY),)),
-        _charter("alias", AliasRecord, "concept_id", _f("concept_id", nullable=False), _f("alias_name", nullable=False), _f("source", nullable=False),
+        _charter("alias", ConceptAlias, "concept_id", _f("concept_id", nullable=False), _f("alias_name", nullable=False), _f("source", nullable=False),
             indexes=(CharterIndex("idx_alias_name", ("alias_name",)), CharterIndex("idx_alias_concept", ("concept_id",)))),
-        _charter("parameterization", ParameterizationRecord, "output_concept_id",
+        _charter("parameterization", Parameterization, "output_concept_id",
             _f("output_concept_id", nullable=False), _f("concept_ids", nullable=False), _f("formula", nullable=False),
             _f("sympy"), _f("exactness", nullable=False), _f("conditions_cel"), _f("conditions_ir")),
-        _charter("parameterization_group", ParameterizationGroupRecord, "concept_id",
+        _charter("parameterization_group", ParameterizationGroup, "concept_id",
             _f("concept_id", nullable=False), _i("group_id", nullable=False),
             indexes=(CharterIndex("idx_param_group", ("group_id",)),)),
-        _charter("relationship", RelationshipRecord, "source_id",
+        _charter("relationship", ConceptRelationship, "source_id",
             _f("source_id", nullable=False), _f("type", nullable=False), _f("target_id", nullable=False),
             _f("conditions_cel"), _f("note"),
             indexes=(CharterIndex("idx_rel_source", ("source_id",)), CharterIndex("idx_rel_target", ("target_id",)))),

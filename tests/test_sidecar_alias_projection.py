@@ -1,22 +1,23 @@
 from __future__ import annotations
 
-import sqlite3
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
 
-from propstore.families.concepts.declaration import ALIAS_PROJECTION, populate_concept_sidecar_rows
-from propstore.families.concepts.declaration import ConceptSidecarRows
+from quire.sqlalchemy_store import create_sqlalchemy_store
+from propstore.families.concepts.declaration import (
+    ConceptAlias,
+    ConceptWriteModels,
+)
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
-def test_alias_rows_use_generated_insert() -> None:
-    assert ALIAS_PROJECTION.insert_sql() == (
-        'INSERT INTO "alias" ("concept_id", "alias_name", "source") '
-        "VALUES (:concept_id, :alias_name, :source)"
-    )
-
-    rows = ConceptSidecarRows(
+def test_alias_models_are_typed_and_round_trip(tmp_path) -> None:
+    schema = world_sqlalchemy_schema()
+    rows = ConceptWriteModels(
         form_rows=(),
         concept_rows=(),
         alias_rows=(
-            ALIAS_PROJECTION.row(
+            ConceptAlias(
                 concept_id="concept-alpha",
                 alias_name="F0",
                 source="Sundberg_1993",
@@ -28,16 +29,19 @@ def test_alias_rows_use_generated_insert() -> None:
         parameterization_group_rows=(),
         form_algebra_rows=(),
     )
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    for statement in ALIAS_PROJECTION.ddl_statements():
-        conn.execute(statement)
 
-    populate_concept_sidecar_rows(conn, rows)
+    db_path = tmp_path / "alias.sqlite"
+    create_sqlalchemy_store(db_path, schema)
+    engine = create_engine(f"sqlite:///{db_path.as_posix()}", future=True)
+    try:
+        with Session(engine) as session:
+            session.add_all(rows.alias_rows)
+            session.commit()
+            stored = session.execute(select(schema.model("alias"))).scalar_one()
+    finally:
+        engine.dispose()
 
-    stored = conn.execute('SELECT * FROM "alias"').fetchone()
-    assert dict(stored) == {
-        "concept_id": "concept-alpha",
-        "alias_name": "F0",
-        "source": "Sundberg_1993",
-    }
+    assert isinstance(stored, ConceptAlias)
+    assert stored.concept_id == "concept-alpha"
+    assert stored.alias_name == "F0"
+    assert stored.source == "Sundberg_1993"

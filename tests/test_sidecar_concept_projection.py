@@ -1,33 +1,24 @@
 from __future__ import annotations
 
-import sqlite3
+import json
 
-from propstore.families.concepts.declaration import (
-    CONCEPT_PROJECTION,
-    populate_concept_sidecar_rows,
-)
-from propstore.families.concepts.declaration import ConceptSidecarRows
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
+
+from quire.sqlalchemy_store import create_sqlalchemy_store
+from propstore.families.concepts.declaration import Concept, ConceptWriteModels
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
-def test_concept_rows_use_generated_ddl_and_insert() -> None:
-    assert CONCEPT_PROJECTION.insert_sql() == (
-        'INSERT INTO "concept" ("id", "primary_logical_id", "logical_ids_json", '
-        '"version_id", "content_hash", "seq", "canonical_name", "status", "domain", '
-        '"definition", "kind_type", "form", "form_parameters", "range_min", '
-        '"range_max", "is_dimensionless", "unit_symbol", "created_date", '
-        '"last_modified") VALUES (:id, :primary_logical_id, :logical_ids_json, '
-        ':version_id, :content_hash, :seq, :canonical_name, :status, :domain, '
-        ':definition, :kind_type, :form, :form_parameters, :range_min, :range_max, '
-        ':is_dimensionless, :unit_symbol, :created_date, :last_modified)'
-    )
-
-    rows = ConceptSidecarRows(
+def test_concept_models_are_typed_and_round_trip(tmp_path) -> None:
+    schema = world_sqlalchemy_schema()
+    rows = ConceptWriteModels(
         form_rows=(),
         concept_rows=(
-            CONCEPT_PROJECTION.row(
+            Concept(
                 id="concept-alpha",
                 primary_logical_id="logical-alpha",
-                logical_ids_json='["logical-alpha"]',
+                logical_ids_json='[{"value":"logical-alpha"}]',
                 version_id="sha256:abc",
                 content_hash="abc",
                 seq=1,
@@ -53,12 +44,23 @@ def test_concept_rows_use_generated_ddl_and_insert() -> None:
         parameterization_group_rows=(),
         form_algebra_rows=(),
     )
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    for statement in CONCEPT_PROJECTION.ddl_statements():
-        conn.execute(statement)
 
-    populate_concept_sidecar_rows(conn, rows)
+    db_path = tmp_path / "concept.sqlite"
+    create_sqlalchemy_store(db_path, schema)
+    engine = create_engine(f"sqlite:///{db_path.as_posix()}", future=True)
+    try:
+        with Session(engine) as session:
+            session.add_all(rows.concept_rows)
+            session.commit()
+            stored = session.execute(select(schema.model("concept"))).scalar_one()
+    finally:
+        engine.dispose()
 
-    stored = conn.execute('SELECT * FROM "concept"').fetchone()
-    assert dict(stored) == CONCEPT_PROJECTION.encode_row(rows.concept_rows[0])
+    assert isinstance(stored, Concept)
+    assert stored.id == "concept-alpha"
+    assert stored.concept_id == "concept-alpha"
+    assert stored.primary_logical_id == "logical-alpha"
+    assert stored.logical_ids_json is not None
+    assert json.loads(stored.logical_ids_json) == [{"value": "logical-alpha"}]
+    assert stored.canonical_name == "alpha"
+    assert stored.status == "accepted"

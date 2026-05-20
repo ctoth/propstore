@@ -513,3 +513,36 @@ Concept projection-model deletion and wrapper cleanup:
   `powershell -File scripts/run_logged_pytest.ps1 -Label concept-model-helper-cleanup tests/test_world_query.py tests/test_cel_checker.py tests/test_concept_views.py tests/test_neighborhoods.py`
   returned `224 passed, 29 warnings`; log:
   `logs/test-runs/concept-model-helper-cleanup-20260520-124711.log`.
+
+Concept typed write-model cutover:
+
+- Replaced `ConceptSidecarRows` with `ConceptWriteModels`.
+- Added typed SQLAlchemy-mapped write models `ConceptAlias`,
+  `ConceptRelationship`, and `ParameterizationGroup`, and mapped
+  `concept`, `alias`, `relationship`, `parameterization`, and
+  `parameterization_group` charters to the concept-owner model classes.
+- Updated `compile_concept_sidecar_rows` to emit typed models for concept,
+  alias, relationship, parameterization, and parameterization-group writes.
+- Deleted the old concept-family `ProjectionTable` declarations:
+  `CONCEPT_PROJECTION`, `ALIAS_PROJECTION`, `RELATIONSHIP_PROJECTION`,
+  `PARAMETERIZATION_PROJECTION`, and `PARAMETERIZATION_GROUP_PROJECTION`.
+- Deleted `CONCEPT_FTS_PROJECTION`; the FTS declaration now lives only in the
+  Quire SQLAlchemy charter in `propstore/families/world_charters.py`.
+- Deleted `populate_concept_sidecar_rows`; concept writes now flow through the
+  existing Quire SQLAlchemy write batches in `derived_build_plan.py` and
+  `derived_build.py`.
+- Replaced projection-table tests with SQLAlchemy model round-trip tests for
+  concept, alias, parameterization, parameterization-group, relation-edge,
+  form, and form-algebra write models.
+- Old-path searches for `ConceptSidecarRows`,
+  `populate_concept_sidecar_rows`, `CONCEPT_PROJECTION`, `ALIAS_PROJECTION`,
+  `RELATIONSHIP_PROJECTION`, `PARAMETERIZATION_PROJECTION`,
+  `PARAMETERIZATION_GROUP_PROJECTION`, `CONCEPT_FTS_PROJECTION`, and
+  `ProjectionTable(` under `propstore/families/concepts` plus the updated
+  sidecar tests returned zero hits.
+- Package pyright passed:
+  `uv run pyright propstore` returned 0 errors.
+- Focused logged pytest passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label concept-write-models tests/test_sidecar_concept_projection.py tests/test_sidecar_alias_projection.py tests/test_sidecar_parameterization_projection.py tests/test_sidecar_parameterization_group_projection.py tests/test_sidecar_relation_edge_projection.py tests/test_sidecar_form_projection.py tests/test_sidecar_form_algebra_projection.py`
+  returned `7 passed`; log:
+  `logs/test-runs/concept-write-models-20260520-125547.log`.

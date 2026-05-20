@@ -11,7 +11,7 @@ from propstore.claims import (
 )
 from propstore.families.concepts.stages import LoadedConcept
 from propstore.families.concepts.declaration import (
-    ConceptSidecarRows,
+    ConceptWriteModels,
     compile_concept_sidecar_rows,
 )
 from propstore.families.contexts.stages import LoadedContext, loaded_contexts_to_lifting_system
@@ -216,7 +216,7 @@ def _projection_row_batches(
     )
 
 
-def _concept_batches(rows: ConceptSidecarRows) -> tuple[WorldWriteBatch, ...]:
+def _concept_batches(rows: ConceptWriteModels) -> tuple[WorldWriteBatch, ...]:
     return (
         _batch("form", rows.form_rows),
         _batch("concept", rows.concept_rows),
