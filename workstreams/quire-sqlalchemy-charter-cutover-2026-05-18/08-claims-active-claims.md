@@ -15,6 +15,14 @@ the old production surface first; compiler, type, test, and search failures are
 the work queue. If a bridge feels necessary, stop and move parsing/validation
 to the owning boundary or add the missing Quire generic capability.
 
+Phase 10 binding rule: no `ActiveClaim`, `ActiveClaimInput`,
+`coerce_active_claim*`, `CLAIM_ROW_MODEL`, claim-specific lookup wrapper,
+duplicate mapped payload helper, payload attachment helper, row-model alias,
+or compatibility replacement may be restored to make a caller pass. Deleted
+payload behavior must return only through typed `Claim` relationships declared
+once in the charter and queried through generic Quire session/model/reference
+APIs.
+
 ## Goal
 
 Replace the claim projection/read-model/storage-helper surface with typed
@@ -1144,3 +1152,57 @@ Recorded 2026-05-20.
   `CLAIM_ROW_MODEL` search are already zero, so the next queue is typed
   caller cleanup and deleted projection-constant callers, not restoring any
   row model.
+
+## Current Re-Audit Record
+
+Recorded 2026-05-20.
+
+This audit did not edit source code. It rechecked the active Phase 10 queue
+against the current repository and package type gate.
+
+Current verified findings:
+
+- `uv run pyright propstore` still fails with 25 errors. The current failure
+  set is the Phase 10 queue recorded above: old typed-field names in
+  `propstore/app/claim_views.py`, `propstore/app/neighborhoods.py`, and
+  `propstore/app/world_atms.py`; deleted embedding projection imports in
+  `propstore/families/embeddings/declaration.py`; deleted
+  `CLAIM_CORE_TABLE` import in
+  `propstore/families/relations/declaration.py`; a typed `Claim` boundary
+  issue in `propstore/graph_export.py`; and a dict-shaped ASPIC projection
+  call in `propstore/merge/structured_merge.py`.
+- Production searches for `propstore.core.active_claims`, `ActiveClaim`, and
+  `CLAIM_ROW_MODEL` are zero-hit in `propstore`, but tests still import or
+  construct those deleted surfaces. The test fixes are part of the remaining
+  queue; they must move to typed `Claim` fixtures and must not restore the
+  deleted module or row model.
+- `propstore/families/claims/declaration.py::resolve_claim_id` still exists as
+  a raw `sqlite3.Connection` lookup over `claim_core`, and
+  `propstore/world/model.py::WorldQuery.resolve_claim` still delegates to it.
+  `OverlayWorld.resolve_claim` wrappers also remain. These are old lookup
+  surfaces to delete against Quire generic family reference lookup, not
+  acceptable replacements.
+- The deleted projection-constant callers are still concrete:
+  `propstore/families/embeddings/declaration.py` imports deleted
+  `CLAIM_EMBEDDING_JOIN_COLUMNS`, `CLAIM_EMBEDDING_JOIN_SOURCE`,
+  `CLAIM_EMBEDDING_STATUS_PROJECTION`, `CLAIM_VEC_PROJECTION`, and
+  `select_claim_embedding_rows`; `propstore/families/relations/declaration.py`
+  imports deleted `CLAIM_CORE_TABLE`.
+
+Current binding queue:
+
+- Fix the package pyright errors by moving callers to typed `Claim.id`,
+  `Claim.type`, payload relationships, concept-link relationships, and
+  source-assertion relationships. Do not add `claim_id`, `claim_type`,
+  `artifact_id`, `primary_logical_value`, or `statement` aliases to `Claim`.
+- Delete remaining claim-specific lookup paths by using Quire generic
+  reference-index/model/session APIs. Do not add a new `resolve_claim`,
+  `resolve_concept`, `lookup_claim`, model-map helper, or raw SQL selector as
+  a replacement.
+- Replace embedding and relation callers through the charter/session surface.
+  Do not restore `CLAIM_CORE_TABLE`, claim embedding projection constants,
+  `select_claim_embedding_rows`, `CLAIM_ROW_MODEL`, or any duplicate table
+  shape helper.
+- Convert tests that still use `ActiveClaim` or `CLAIM_ROW_MODEL` to typed
+  `Claim` construction or owner-level fixtures. Test compatibility is not a
+  reason to restore the deleted production path.
