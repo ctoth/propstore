@@ -931,3 +931,19 @@ Recorded 2026-05-20.
   `bc71de8415ab1b8b1ff4ffeb95935035d73e0b7b`, so Phase 10 can declare the
   ordered `Claim.source_assertions` relationship without a Propstore sorting
   or attachment helper.
+- Typed payload/source-assertion relationship slice: commit `7f91c1f5`
+  added `Claim.numeric_payload`, `Claim.text_payload`,
+  `Claim.algorithm_payload`, payload back-references, the
+  `ClaimSourceAssertion` association object, ordered claim charter
+  relationships, and the `claim_source_assertion` write batch. The compiler
+  now constructs claim, payload, concept-link, and source-assertion objects
+  from typed semantic compiler values. Focused schema verification passed for
+  `tests/test_required_schema_completeness.py` and
+  `tests/test_fixture_schema_parity.py`; the same logged run failed when
+  adding `tests/test_argumentation_package_track_e.py` because remaining world
+  package code still imports deleted `is_active_claim_active` and
+  `propstore.core.active_claims`. `uv run pyright propstore` still fails on
+  remaining Phase 10 old-path callers of deleted `ActiveClaim`,
+  `CLAIM_ROW_MODEL`, claim embedding projection constants, and deleted
+  row-shaped claim attributes. The next work queue is to delete/fix those
+  callers against typed `Claim` relationships, not to restore the old paths.
