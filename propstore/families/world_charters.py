@@ -111,13 +111,10 @@ def world_model(table_name: str) -> type[Any]:
 
 
 def world_record(table_name: str, values: object) -> Any:
-    model = world_model(table_name)
+    model = world_sqlalchemy_schema().model(table_name)
     if isinstance(values, model):
         return values
-    payload = _payload(values)
-    if table_name == "relationship" and "relationship_type" in payload:
-        payload["type"] = payload.pop("relationship_type")
-    return model(**payload)
+    return world_sqlalchemy_schema().construct(table_name, _payload(values))
 
 
 def world_records(table_name: str, rows: Iterable[object] | None) -> tuple[Any, ...]:
