@@ -48,7 +48,7 @@ def test_capture_revision_state_serializes_revision_event_contract() -> None:
 
     captured = capture_revision_state(_CaptureBound(initial_state, result), query)
     payload = captured.to_dict()
-    restored = WorldlineRevisionState.from_mapping(payload)
+    restored = WorldlineRevisionState.from_json_payload(payload)
 
     assert captured.event is not None
     assert captured.event.pre_state_hash == EpistemicSnapshot.from_state(initial_state).content_hash

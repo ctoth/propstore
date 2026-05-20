@@ -84,7 +84,7 @@ def test_revision_event_survives_epistemic_state_snapshot_roundtrip() -> None:
     )
 
     payload = EpistemicStateSnapshot.from_state(next_state).to_dict()
-    restored = EpistemicStateSnapshot.from_mapping(payload).to_state()
+    restored = EpistemicStateSnapshot.from_json_payload(payload).to_state()
 
     assert payload["history"][0]["event"]["decision"]["operation"] == "contract"
     assert restored.history[-1].event == next_state.history[-1].event

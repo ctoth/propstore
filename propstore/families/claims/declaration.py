@@ -314,7 +314,7 @@ def _decode_justification_provenance(
         )
     from propstore.core.graph_types import ProvenanceRecord
 
-    return ProvenanceRecord.from_mapping(loaded)
+    return ProvenanceRecord.from_json_payload(loaded)
 
 
 def has_claim_core_table(conn: sqlite3.Connection) -> bool:

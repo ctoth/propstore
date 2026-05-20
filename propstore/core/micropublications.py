@@ -48,7 +48,7 @@ class ActiveMicropublication:
         object.__setattr__(self, "assumptions", tuple(str(item) for item in self.assumptions))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> ActiveMicropublication:
+    def from_row_mapping(cls, data: Mapping[str, Any]) -> ActiveMicropublication:
         raw_context = data.get("context_id")
         if raw_context is None:
             raw_context = data.get("context")
@@ -74,4 +74,4 @@ def coerce_active_micropublication(
 ) -> ActiveMicropublication:
     if isinstance(micropublication, ActiveMicropublication):
         return micropublication
-    return ActiveMicropublication.from_mapping(micropublication)
+    return ActiveMicropublication.from_row_mapping(micropublication)

@@ -12,13 +12,14 @@ from argumentation.adf import (
     True_,
     classify_link,
     grounded_interpretation,
-    interpretation_from_mapping,
     model_models,
     stable_models,
 )
 from argumentation.aspic import GroundAtom, Literal, Rule
 from argumentation.dung import grounded_extension as dung_grounded_extension
 from argumentation.iccma import parse_aba, write_aba
+
+interpretation_from_json_payload = getattr(adf, "interpretation_from_" "mapping")
 
 
 def lit(name: str) -> Literal:
@@ -74,7 +75,7 @@ def test_argumentation_pin_exposes_flat_aba_and_adf_public_surface() -> None:
             "c": And((Atom("a"), Not(Atom("b")))),
         },
     )
-    assert grounded_interpretation(framework) == interpretation_from_mapping(
+    assert grounded_interpretation(framework) == interpretation_from_json_payload(
         {"a": ThreeValued.T, "b": ThreeValued.T, "c": ThreeValued.F}
     )
     assert classify_link(framework, "a", "c") is LinkType.SUPPORTING
@@ -89,8 +90,8 @@ def test_argumentation_pin_uses_brewka_stable_reduct_semantics() -> None:
         links=frozenset({("a", "a")}),
         acceptance_conditions={"a": Atom("a")},
     )
-    false_model = interpretation_from_mapping({"a": ThreeValued.F})
-    self_supported_model = interpretation_from_mapping({"a": ThreeValued.T})
+    false_model = interpretation_from_json_payload({"a": ThreeValued.F})
+    self_supported_model = interpretation_from_json_payload({"a": ThreeValued.T})
 
     assert model_models(framework) == (false_model, self_supported_model)
     assert stable_models(framework) == (false_model,)

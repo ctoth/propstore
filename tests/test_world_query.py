@@ -1673,8 +1673,8 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolve_recency
 
         claims = [
-            ActiveClaim.from_mapping({"id": "a", "provenance_json": '{"date": "2025-01-01"}'}),
-            ActiveClaim.from_mapping({"id": "b", "provenance_json": '{"date": "2025-01-01"}'}),
+            ActiveClaim.from_row_mapping({"id": "a", "provenance_json": '{"date": "2025-01-01"}'}),
+            ActiveClaim.from_row_mapping({"id": "b", "provenance_json": '{"date": "2025-01-01"}'}),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id is None, (
@@ -1688,9 +1688,9 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolve_recency
 
         claims = [
-            ActiveClaim.from_mapping({"id": "a", "provenance_json": '{"date": "2025-01-01"}'}),
-            ActiveClaim.from_mapping({"id": "b", "provenance_json": '{"date": "2024-06-01"}'}),
-            ActiveClaim.from_mapping({"id": "c", "provenance_json": '{"date": "2024-06-01"}'}),
+            ActiveClaim.from_row_mapping({"id": "a", "provenance_json": '{"date": "2025-01-01"}'}),
+            ActiveClaim.from_row_mapping({"id": "b", "provenance_json": '{"date": "2024-06-01"}'}),
+            ActiveClaim.from_row_mapping({"id": "c", "provenance_json": '{"date": "2024-06-01"}'}),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id == "a"
@@ -1701,8 +1701,8 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolve_sample_size
 
         claims = [
-            ActiveClaim.from_mapping({"id": "a", "sample_size": 50}),
-            ActiveClaim.from_mapping({"id": "b", "sample_size": 50}),
+            ActiveClaim.from_row_mapping({"id": "a", "sample_size": 50}),
+            ActiveClaim.from_row_mapping({"id": "b", "sample_size": 50}),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id is None, (
@@ -1716,9 +1716,9 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolve_sample_size
 
         claims = [
-            ActiveClaim.from_mapping({"id": "a", "sample_size": 100}),
-            ActiveClaim.from_mapping({"id": "b", "sample_size": 50}),
-            ActiveClaim.from_mapping({"id": "c", "sample_size": 50}),
+            ActiveClaim.from_row_mapping({"id": "a", "sample_size": 100}),
+            ActiveClaim.from_row_mapping({"id": "b", "sample_size": 50}),
+            ActiveClaim.from_row_mapping({"id": "c", "sample_size": 50}),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id == "a"
@@ -1729,10 +1729,10 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolve_recency
 
         tied_claims = [
-            ActiveClaim.from_mapping(
+            ActiveClaim.from_row_mapping(
                 {"id": "claim1", "value": 200.0, "provenance_json": '{"date": "2025-01-01"}'}
             ),
-            ActiveClaim.from_mapping(
+            ActiveClaim.from_row_mapping(
                 {"id": "claim2", "value": 350.0, "provenance_json": '{"date": "2025-01-01"}'}
             ),
         ]
@@ -1750,8 +1750,8 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolve_sample_size
 
         tied_claims = [
-            ActiveClaim.from_mapping({"id": "claim1", "value": 200.0, "sample_size": 50}),
-            ActiveClaim.from_mapping({"id": "claim2", "value": 350.0, "sample_size": 50}),
+            ActiveClaim.from_row_mapping({"id": "claim1", "value": 200.0, "sample_size": 50}),
+            ActiveClaim.from_row_mapping({"id": "claim2", "value": 350.0, "sample_size": 50}),
         ]
         winner_id, reason = _resolve_sample_size(tied_claims)
         assert winner_id is None
@@ -2639,14 +2639,14 @@ class TestFloatEqualityBugs:
 
         # Two target claims competing for the same concept
         target_claims = [
-            ActiveClaim.from_mapping(
+            ActiveClaim.from_row_mapping(
                 {
                     "id": "claim_x",
                     "concept_links": [{"claim_id": "claim_x", "concept_id": "concept2", "role": "output"}],
                     "value": 800.0,
                 }
             ),
-            ActiveClaim.from_mapping(
+            ActiveClaim.from_row_mapping(
                 {
                     "id": "claim_y",
                     "concept_links": [{"claim_id": "claim_y", "concept_id": "concept2", "role": "output"}],
@@ -2762,7 +2762,7 @@ class TestWorldQuerySidecarPath:
         conn.execute("CREATE TABLE concept (id TEXT PRIMARY KEY)")
         conn.close()
 
-        with pytest.raises(ValueError, match="Unsupported sidecar schema"):
+        with pytest.raises(ValueError, match="Unsupported SQLAlchemy store"):
             world_query_from_sqlite_path(db_path)
 
     def test_worldmodel_rejects_unsupported_schema_version(self, tmp_path):
@@ -2775,7 +2775,7 @@ class TestWorldQuerySidecarPath:
         conn.commit()
         conn.close()
 
-        with pytest.raises(ValueError, match="Unsupported sidecar schema version"):
+        with pytest.raises(ValueError, match="Unsupported SQLAlchemy store schema version"):
             world_query_from_sqlite_path(db_path)
 
     @pytest.mark.parametrize(
@@ -2804,7 +2804,7 @@ class TestWorldQuerySidecarPath:
         conn.commit()
         conn.close()
 
-        with pytest.raises(ValueError, match="Unsupported sidecar schema"):
+        with pytest.raises(ValueError, match="Unsupported SQLAlchemy store"):
             world_query_from_sqlite_path(db_path)
 
     def test_worldmodel_importable_without_cli(self):

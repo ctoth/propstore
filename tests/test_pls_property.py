@@ -111,7 +111,7 @@ def st_pls_pair(draw):
         if delta.key not in accepted_list:
             accepted_list.append(delta.key)
     payload["accepted_atom_ids"] = accepted_list
-    t = EpistemicSnapshot.from_mapping(
+    t = EpistemicSnapshot.from_json_payload(
         {
             "schema_version": s.schema_version,
             "state": payload,

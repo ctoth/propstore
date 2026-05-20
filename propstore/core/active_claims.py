@@ -246,7 +246,7 @@ class ActiveClaim:
         return coerce_active_claim(claim)
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> ActiveClaim:
+    def from_row_mapping(cls, data: Mapping[str, Any]) -> ActiveClaim:
         from propstore.families.claims.projection_model import CLAIM_ROW_MODEL
 
         return CLAIM_ROW_MODEL.coerce(data)
@@ -402,7 +402,7 @@ ActiveClaimInput = ActiveClaim | Mapping[str, Any]
 def coerce_active_claim(claim: ActiveClaimInput) -> ActiveClaim:
     if isinstance(claim, ActiveClaim):
         return claim
-    return ActiveClaim.from_mapping(claim)
+    return ActiveClaim.from_row_mapping(claim)
 
 
 def coerce_active_claims(claims: Iterable[ActiveClaimInput]) -> list[ActiveClaim]:

@@ -86,7 +86,7 @@ class WorldlineVariableRef:
     value: str | None = None
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineVariableRef:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineVariableRef:
         return cls(
             name=None if data.get("name") is None else str(data.get("name")),
             symbol=None if data.get("symbol") is None else str(data.get("symbol")),
@@ -125,7 +125,7 @@ class WorldlineInputSource:
         object.__setattr__(self, "inputs_used", dict(self.inputs_used))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineInputSource:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineInputSource:
         return cls(
             source=str(data.get("source") or "unknown"),
             value=data.get("value"),
@@ -134,7 +134,7 @@ class WorldlineInputSource:
             reason=None if data.get("reason") is None else str(data.get("reason")),
             strategy=None if data.get("strategy") is None else str(data.get("strategy")),
             inputs_used={
-                name: WorldlineInputSource.from_mapping(value)
+                name: WorldlineInputSource.from_json_payload(value)
                 for name, value in _nested_mapping_items(
                     data.get("inputs_used"),
                     field="inputs_used",
@@ -170,7 +170,7 @@ def _coerce_variable_refs(
         for index, item in enumerate(raw_variables):
             if not isinstance(item, Mapping):
                 raise ValueError(f"worldline variables[{index}] must be a mapping")
-            refs.append(WorldlineVariableRef.from_mapping(item))
+            refs.append(WorldlineVariableRef.from_json_payload(item))
         return tuple(refs)
     if isinstance(raw_variables, Mapping):
         raise ValueError("worldline variables must be a list of variable bindings")
@@ -201,10 +201,10 @@ class WorldlineTargetValue:
         object.__setattr__(self, "inputs_used", dict(self.inputs_used))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineTargetValue:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineTargetValue:
         variables = _coerce_variable_refs(data.get("variables"))
         inputs_used = {
-            name: WorldlineInputSource.from_mapping(value)
+            name: WorldlineInputSource.from_json_payload(value)
             for name, value in _nested_mapping_items(
                 data.get("inputs_used"),
                 field="inputs_used",
@@ -279,7 +279,7 @@ WorldlineTargetValueInput = WorldlineTargetValue | Mapping[str, Any]
 def coerce_worldline_target_value(value: WorldlineTargetValueInput) -> WorldlineTargetValue:
     if isinstance(value, WorldlineTargetValue):
         return value
-    return WorldlineTargetValue.from_mapping(value)
+    return WorldlineTargetValue.from_json_payload(value)
 
 
 @dataclass(frozen=True)
@@ -293,7 +293,7 @@ class WorldlineStep:
     formula: str | None = None
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineStep:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineStep:
         return cls(
             concept=str(data.get("concept") or ""),
             source=str(data.get("source") or "unknown"),
@@ -328,7 +328,7 @@ WorldlineStepInput = WorldlineStep | Mapping[str, Any]
 def coerce_worldline_step(step: WorldlineStepInput) -> WorldlineStep:
     if isinstance(step, WorldlineStep):
         return step
-    return WorldlineStep.from_mapping(step)
+    return WorldlineStep.from_json_payload(step)
 
 
 @dataclass(frozen=True)
@@ -340,7 +340,7 @@ class WorldlineDependencies:
     blocked_exceptions: tuple[str, ...] = ()
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> WorldlineDependencies:
+    def from_json_payload(cls, data: Mapping[str, Any] | None) -> WorldlineDependencies:
         payload = {} if data is None else dict(data)
         return cls(
             claims=tuple(str(item) for item in payload.get("claims") or ()),
@@ -372,7 +372,7 @@ class WorldlineSensitivityEntry:
     partial_derivative: float | None = None
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> WorldlineSensitivityEntry:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineSensitivityEntry:
         return cls(
             input_name=str(data.get("input") or ""),
             elasticity=_optional_float(data.get("elasticity")),
@@ -402,7 +402,7 @@ class WorldlineSensitivityOutcome:
         if isinstance(data, Sequence) and not isinstance(data, (str, bytes)):
             return cls(
                 entries=tuple(
-                    WorldlineSensitivityEntry.from_mapping(item)
+                    WorldlineSensitivityEntry.from_json_payload(item)
                     for item in data
                     if isinstance(item, Mapping)
                 )
@@ -427,7 +427,7 @@ class WorldlineSensitivityReport:
         object.__setattr__(self, "targets", dict(self.targets))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> WorldlineSensitivityReport | None:
+    def from_json_payload(cls, data: Mapping[str, Any] | None) -> WorldlineSensitivityReport | None:
         if not data:
             return None
         return cls(
@@ -515,7 +515,7 @@ class WorldlineArgumentationState:
         object.__setattr__(self, "why_out", dict(self.why_out))
 
     @classmethod
-    def from_mapping(cls, data: object) -> WorldlineArgumentationState | None:
+    def from_json_payload(cls, data: object) -> WorldlineArgumentationState | None:
         if data is None:
             return None
         if not isinstance(data, Mapping):

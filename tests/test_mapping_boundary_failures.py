@@ -77,25 +77,25 @@ def test_worldline_result_rejects_malformed_values():
 
 def test_revision_conflicts_reject_wrong_top_level_type():
     with pytest.raises(ValueError, match="conflicts"):
-        RevisionConflictSelection.from_mapping([])
+        RevisionConflictSelection.from_json_payload([])
 
 
 def test_worldline_revision_state_rejects_malformed_nested_blocks():
     with pytest.raises(ValueError, match="result"):
-        WorldlineRevisionState.from_mapping({"operation": "revise", "result": []})
+        WorldlineRevisionState.from_json_payload({"operation": "revise", "result": []})
 
     with pytest.raises(ValueError, match="state"):
-        WorldlineRevisionState.from_mapping({"operation": "revise", "state": []})
+        WorldlineRevisionState.from_json_payload({"operation": "revise", "state": []})
 
 
 def test_revision_explanation_rejects_malformed_atoms():
     with pytest.raises(ValueError, match="atoms"):
-        RevisionExplanation.from_mapping(
+        RevisionExplanation.from_json_payload(
             {"accepted_atom_ids": [], "rejected_atom_ids": [], "atoms": []}
         )
 
     with pytest.raises(ValueError, match="atoms.claim:1"):
-        RevisionExplanation.from_mapping(
+        RevisionExplanation.from_json_payload(
             {
                 "accepted_atom_ids": [],
                 "rejected_atom_ids": [],
@@ -106,7 +106,7 @@ def test_revision_explanation_rejects_malformed_atoms():
 
 def test_support_revision_snapshots_reject_malformed_maps():
     with pytest.raises(ValueError, match="explanation"):
-        RevisionEpisodeSnapshot.from_mapping(
+        RevisionEpisodeSnapshot.from_json_payload(
             {
                 "operator": "revise",
                 "explanation": [],
@@ -114,7 +114,7 @@ def test_support_revision_snapshots_reject_malformed_maps():
         )
 
     with pytest.raises(ValueError, match="support_sets"):
-        EpistemicStateSnapshot.from_mapping(
+        EpistemicStateSnapshot.from_json_payload(
             {
                 "scope": {"bindings": {}},
                 "base": {
@@ -130,7 +130,7 @@ def test_support_revision_snapshots_reject_malformed_maps():
         )
 
     with pytest.raises(ValueError, match="ranking"):
-        EpistemicStateSnapshot.from_mapping(
+        EpistemicStateSnapshot.from_json_payload(
             {
                 "scope": {"bindings": {}},
                 "base": {

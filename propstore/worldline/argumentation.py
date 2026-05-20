@@ -213,7 +213,7 @@ def _capture_atms(
 ) -> WorldlineArgumentationState | None:
     if not isinstance(bound, HasATMSEngine):
         return None
-    return WorldlineArgumentationState.from_mapping(
+    return WorldlineArgumentationState.from_json_payload(
         bound.atms_engine().argumentation_state(
             queryables=coerce_queryable_assumptions(policy.future_queryables),
             future_limit=policy.future_limit or 8,

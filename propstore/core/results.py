@@ -10,7 +10,7 @@ from propstore.core.graph_types import label_from_dict, label_to_dict
 from propstore.core.labels import Label
 
 
-def _pairs_from_mapping(metadata: Mapping[str, object]) -> list[tuple[str, object]]:
+def _pairs_from_json_payload(metadata: Mapping[str, object]) -> list[tuple[str, object]]:
     pairs: list[tuple[str, object]] = []
     for key, value in metadata.items():
         pairs.append((str(key), value))
@@ -33,7 +33,7 @@ def _normalize_metadata(
 ) -> tuple[tuple[str, object], ...]:
     if metadata is None:
         return ()
-    pairs = _pairs_from_mapping(metadata) if isinstance(metadata, Mapping) else _pairs_from_iterable(metadata)
+    pairs = _pairs_from_json_payload(metadata) if isinstance(metadata, Mapping) else _pairs_from_iterable(metadata)
     return tuple(sorted(pairs))
 
 

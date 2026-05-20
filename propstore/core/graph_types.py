@@ -56,7 +56,7 @@ def _require_claim_type(value: object) -> ClaimType:
     return claim_type
 
 
-def _pairs_from_mapping(value: Mapping[str, object]) -> list[tuple[str, object]]:
+def _pairs_from_json_payload(value: Mapping[str, object]) -> list[tuple[str, object]]:
     pairs: list[tuple[str, object]] = []
     for key, item in value.items():
         pairs.append((str(key), item))
@@ -87,7 +87,7 @@ def _normalize_pairs(
 ) -> tuple[tuple[str, object], ...]:
     if value is None:
         return ()
-    pairs = _pairs_from_mapping(value) if isinstance(value, Mapping) else _pairs_from_iterable(value)
+    pairs = _pairs_from_json_payload(value) if isinstance(value, Mapping) else _pairs_from_iterable(value)
     return tuple(
         sorted((key, _freeze_value(item)) for key, item in pairs)
     )
@@ -219,7 +219,7 @@ class ProvenanceRecord:
             object.__setattr__(self, "page", int(self.page))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> ProvenanceRecord:
+    def from_json_payload(cls, data: Mapping[str, Any] | None) -> ProvenanceRecord:
         if not data:
             return cls()
         known = {"source_table", "source_id", "paper", "page"}
@@ -312,7 +312,7 @@ class ClaimNode:
             provenance=(
                 None
                 if provenance_data is None
-                else ProvenanceRecord.from_mapping(provenance_data)
+                else ProvenanceRecord.from_json_payload(provenance_data)
             ),
             label=label_from_dict(data.get("label")),
             attributes=data.get("attributes") or (),
@@ -361,7 +361,7 @@ class RelationEdge:
             provenance=(
                 None
                 if provenance_data is None
-                else ProvenanceRecord.from_mapping(provenance_data)
+                else ProvenanceRecord.from_json_payload(provenance_data)
             ),
             derived_from=tuple(tuple(edge) for edge in data.get("derived_from") or ()),
             attributes=data.get("attributes") or (),
@@ -428,7 +428,7 @@ class ParameterizationEdge:
             provenance=(
                 None
                 if provenance_data is None
-                else ProvenanceRecord.from_mapping(provenance_data)
+                else ProvenanceRecord.from_json_payload(provenance_data)
             ),
         )
 

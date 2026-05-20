@@ -61,7 +61,7 @@ class CanonicalJustification:
             provenance=(
                 None
                 if provenance_data is None
-                else ProvenanceRecord.from_mapping(provenance_data)
+                else ProvenanceRecord.from_json_payload(provenance_data)
             ),
             attributes=data.get("attributes") or (),
         )

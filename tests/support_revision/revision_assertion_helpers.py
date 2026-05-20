@@ -14,7 +14,7 @@ def make_assertion_atom(
     source_paper: str | None = None,
     label: Label | None = None,
 ) -> AssertionAtom:
-    claim = ActiveClaim.from_mapping(
+    claim = ActiveClaim.from_row_mapping(
         {
             "id": f"claim_{name}",
             "type": "parameter",

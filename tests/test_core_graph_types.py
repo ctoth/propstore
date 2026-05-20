@@ -50,7 +50,7 @@ def test_compiled_world_graph_normalizes_order_and_supporting_records() -> None:
         RelationEdge,
     )
 
-    provenance = ProvenanceRecord.from_mapping(
+    provenance = ProvenanceRecord.from_json_payload(
         {
             "paper": "alpha_2025",
             "page": 7,
@@ -139,7 +139,7 @@ def test_compiled_world_graph_normalizes_order_and_supporting_records() -> None:
                 value_concept_id="concept2",
                 claim_type="parameter",
                 scalar_value=2.0,
-                provenance=ProvenanceRecord.from_mapping(
+                provenance=ProvenanceRecord.from_json_payload(
                     {
                         "note": "table 2",
                         "page": 7,
@@ -183,7 +183,7 @@ def test_relation_edge_coerces_graph_relation_type_to_enum() -> None:
 def test_provenance_record_normalizes_known_fields_and_extras() -> None:
     from propstore.core.graph_types import ProvenanceRecord
 
-    record = ProvenanceRecord.from_mapping(
+    record = ProvenanceRecord.from_json_payload(
         {
             "page": "7",
             "paper": "alpha_2025",

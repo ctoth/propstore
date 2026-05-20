@@ -58,7 +58,7 @@ def _claim_mapping(
 
 
 def _active_claim(claim_id: str, *, concept_id: str = "concept1", value: float = 1.0) -> ActiveClaim:
-    return ActiveClaim.from_mapping(_claim_mapping(claim_id, concept_id=concept_id, value=value))
+    return ActiveClaim.from_row_mapping(_claim_mapping(claim_id, concept_id=concept_id, value=value))
 
 
 class _World:

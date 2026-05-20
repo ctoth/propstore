@@ -67,7 +67,7 @@ def _row_provenance(
                 extras.update(row.provenance.to_dict())
             extras["source_table"] = source_table
             extras["source_id"] = source_id or str(row.claim_id)
-            return ProvenanceRecord.from_mapping(extras)
+            return ProvenanceRecord.from_json_payload(extras)
 
         provenance_json = row.get("provenance_json")
         extras: dict[str, Any] = {}
@@ -84,7 +84,7 @@ def _row_provenance(
             extras.setdefault("page", row.get("provenance_page"))
         extras["source_table"] = source_table
         extras["source_id"] = source_id or row.get("id")
-        return ProvenanceRecord.from_mapping(extras)
+        return ProvenanceRecord.from_json_payload(extras)
 
     if not isinstance(row, Mapping):
         raise TypeError("non-claim provenance rows must be mappings")
@@ -92,7 +92,7 @@ def _row_provenance(
     extras["source_table"] = source_table
     if source_id is not None:
         extras["source_id"] = source_id
-    return ProvenanceRecord.from_mapping(extras)
+    return ProvenanceRecord.from_json_payload(extras)
 
 
 def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:

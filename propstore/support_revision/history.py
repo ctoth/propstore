@@ -91,14 +91,14 @@ class EpistemicSnapshot:
         return cls(state=EpistemicStateSnapshot.from_state(state))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> EpistemicSnapshot:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> EpistemicSnapshot:
         payload = _required_mapping(data, "snapshot")
         schema_version = str(payload.get("schema_version") or "")
         if schema_version != EPistemicSnapshotVersion:
             raise ValueError(f"unsupported epistemic snapshot version: {schema_version}")
         state_payload = _required_mapping(payload.get("state"), "state")
         snapshot = cls(
-            state=EpistemicStateSnapshot.from_mapping(state_payload),
+            state=EpistemicStateSnapshot.from_json_payload(state_payload),
             schema_version=schema_version,
         )
         recorded_hash = payload.get("content_hash")
@@ -151,7 +151,7 @@ class TransitionOperation:
         object.__setattr__(self, "parameters", _to_plain_data(dict(self.parameters)))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> TransitionOperation:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> TransitionOperation:
         payload = _required_mapping(data, "operation")
         return cls(
             name=str(payload.get("name") or ""),
@@ -246,17 +246,17 @@ class TransitionJournalEntry:
         )
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> TransitionJournalEntry:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> TransitionJournalEntry:
         payload = _required_mapping(data, "journal entry")
         schema_version = str(payload.get("schema_version") or "")
         if schema_version != TransitionJournalVersion:
             raise ValueError(f"unsupported transition journal version: {schema_version}")
         explanation_payload = _required_mapping(payload.get("explanation") or {}, "explanation")
         entry = cls(
-            state_in=EpistemicSnapshot.from_mapping(
+            state_in=EpistemicSnapshot.from_json_payload(
                 _required_mapping(payload.get("state_in"), "state_in")
             ),
-            operation=TransitionOperation.from_mapping(
+            operation=TransitionOperation.from_json_payload(
                 _required_mapping(payload.get("operation"), "operation")
             ),
             policy_id=str(payload.get("policy_id") or ""),
@@ -276,7 +276,7 @@ class TransitionJournalEntry:
                 payload.get("normalized_state_out"),
                 "normalized_state_out",
             ),
-            state_out=EpistemicSnapshot.from_mapping(
+            state_out=EpistemicSnapshot.from_json_payload(
                 _required_mapping(payload.get("state_out"), "state_out")
             ),
             explanation={
@@ -383,14 +383,14 @@ class TransitionJournal:
         object.__setattr__(self, "entries", tuple(self.entries))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> TransitionJournal:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> TransitionJournal:
         payload = _required_mapping(data, "journal")
         schema_version = str(payload.get("schema_version") or "")
         if schema_version != TransitionJournalVersion:
             raise ValueError(f"unsupported transition journal version: {schema_version}")
         return cls(
             entries=tuple(
-                TransitionJournalEntry.from_mapping(_required_mapping(entry, "entries[]"))
+                TransitionJournalEntry.from_json_payload(_required_mapping(entry, "entries[]"))
                 for entry in (payload.get("entries") or ())
             )
         )
@@ -556,7 +556,7 @@ def apply_epistemic_diff(
             _apply_dependency_delta(state_payload, delta)
         else:
             raise ValueError(f"unsupported semantic diff surface: {delta.surface}")
-    snapshot = EpistemicSnapshot.from_mapping({
+    snapshot = EpistemicSnapshot.from_json_payload({
         "schema_version": EPistemicSnapshotVersion,
         "state": state_payload,
     })

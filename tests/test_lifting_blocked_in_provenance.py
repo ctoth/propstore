@@ -15,7 +15,7 @@ from propstore.worldline.result_types import WorldlineDependencies
 
 
 def test_ws_j_worldline_dependencies_roundtrip_lifting_provenance() -> None:
-    dependencies = WorldlineDependencies.from_mapping(
+    dependencies = WorldlineDependencies.from_json_payload(
         {
             "claims": ["claim_local"],
             "contexts": ["ctx_target"],

@@ -135,7 +135,7 @@ class WorldlineRevisionQuery:
             return None
         atom = None
         if data.atom is not None:
-            atom = RevisionAtomRef.from_mapping(
+            atom = RevisionAtomRef.from_json_payload(
                 {
                     "kind": data.atom.kind,
                     "id": data.atom.id,
@@ -167,9 +167,9 @@ class WorldlineRevisionQuery:
         max_alphabet_size = data.get("max_alphabet_size")
         return cls(
             operation=str(data.get("operation", "")),
-            atom=RevisionAtomRef.from_mapping(data.get("atom")),
+            atom=RevisionAtomRef.from_json_payload(data.get("atom")),
             target=_validated_revision_target(str(data.get("operation", "")), data.get("target")),
-            conflicts=RevisionConflictSelection.from_mapping(data.get("conflicts")),
+            conflicts=RevisionConflictSelection.from_json_payload(data.get("conflicts")),
             operator=data.get("merge_operator") or data.get("operator"),
             profile_atom_ids=_revision_profile_atom_ids(data.get("profile_atom_ids") or ()),
             integrity_constraint=(
@@ -237,13 +237,13 @@ class WorldlineResult:
         }
         self.steps = tuple(coerce_worldline_step(step) for step in self.steps)
         if not isinstance(self.dependencies, WorldlineDependencies):
-            self.dependencies = WorldlineDependencies.from_mapping(self.dependencies)
+            self.dependencies = WorldlineDependencies.from_json_payload(self.dependencies)
         if self.sensitivity is not None and not isinstance(self.sensitivity, WorldlineSensitivityReport):
-            self.sensitivity = WorldlineSensitivityReport.from_mapping(self.sensitivity)
+            self.sensitivity = WorldlineSensitivityReport.from_json_payload(self.sensitivity)
         if self.argumentation is not None and not isinstance(self.argumentation, WorldlineArgumentationState):
-            self.argumentation = WorldlineArgumentationState.from_mapping(self.argumentation)
+            self.argumentation = WorldlineArgumentationState.from_json_payload(self.argumentation)
         if self.revision is not None and not isinstance(self.revision, WorldlineRevisionState):
-            self.revision = WorldlineRevisionState.from_mapping(self.revision)
+            self.revision = WorldlineRevisionState.from_json_payload(self.revision)
 
     @classmethod
     def from_document(cls, data: WorldlineResultDocument | None) -> WorldlineResult | None:
@@ -253,7 +253,7 @@ class WorldlineResult:
             computed=data.computed,
             content_hash=data.content_hash,
             values={
-                str(target_name): WorldlineTargetValue.from_mapping(
+                str(target_name): WorldlineTargetValue.from_json_payload(
                     _required_document_mapping(
                         to_document_builtins(value),
                         f"values.{target_name}",
@@ -262,20 +262,20 @@ class WorldlineResult:
                 for target_name, value in data.values.items()
             },
             steps=tuple(
-                WorldlineStep.from_mapping(
+                WorldlineStep.from_json_payload(
                     _required_document_mapping(to_document_builtins(step), "steps")
                 )
                 for step in data.steps
             ),
-            dependencies=WorldlineDependencies.from_mapping(
+            dependencies=WorldlineDependencies.from_json_payload(
                 _required_document_mapping(
                     to_document_builtins(data.dependencies),
                     "dependencies",
                 )
             ),
-            sensitivity=WorldlineSensitivityReport.from_mapping(data.sensitivity),
-            argumentation=WorldlineArgumentationState.from_mapping(data.argumentation),
-            revision=WorldlineRevisionState.from_mapping(
+            sensitivity=WorldlineSensitivityReport.from_json_payload(data.sensitivity),
+            argumentation=WorldlineArgumentationState.from_json_payload(data.argumentation),
+            revision=WorldlineRevisionState.from_json_payload(
                 None if data.revision is None else to_document_builtins(data.revision)
             ),
         )
@@ -292,20 +292,20 @@ class WorldlineResult:
         for target_name, value in raw_values.items():
             if not isinstance(value, Mapping):
                 raise ValueError(f"worldline field 'values.{target_name}' must be a mapping")
-            values[str(target_name)] = WorldlineTargetValue.from_mapping(value)
+            values[str(target_name)] = WorldlineTargetValue.from_json_payload(value)
         return cls(
             computed=payload.get("computed", ""),
             content_hash=payload.get("content_hash", ""),
             values=values,
             steps=tuple(
-                WorldlineStep.from_mapping(step)
+                WorldlineStep.from_json_payload(step)
                 for step in (payload.get("steps") or ())
                 if isinstance(step, dict)
             ),
-            dependencies=WorldlineDependencies.from_mapping(payload.get("dependencies")),
-            sensitivity=WorldlineSensitivityReport.from_mapping(payload.get("sensitivity")),
-            argumentation=WorldlineArgumentationState.from_mapping(payload.get("argumentation")),
-            revision=WorldlineRevisionState.from_mapping(payload.get("revision")),
+            dependencies=WorldlineDependencies.from_json_payload(payload.get("dependencies")),
+            sensitivity=WorldlineSensitivityReport.from_json_payload(payload.get("sensitivity")),
+            argumentation=WorldlineArgumentationState.from_json_payload(payload.get("argumentation")),
+            revision=WorldlineRevisionState.from_json_payload(payload.get("revision")),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -369,7 +369,7 @@ class WorldlineDefinition:
             journal=(
                 None
                 if data.journal is None
-                else TransitionJournal.from_mapping(
+                else TransitionJournal.from_json_payload(
                     _required_document_mapping(
                         to_document_builtins(data.journal),
                         "journal",
@@ -398,7 +398,7 @@ class WorldlineDefinition:
             journal=(
                 None
                 if data.get("journal") is None
-                else TransitionJournal.from_mapping(
+                else TransitionJournal.from_json_payload(
                     _required_document_mapping(data.get("journal"), "journal")
                 )
             ),

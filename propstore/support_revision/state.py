@@ -154,7 +154,7 @@ class FormalRevisionDecisionReport:
         object.__setattr__(self, "trace", dict(self.trace))
 
     @classmethod
-    def from_mapping(cls, payload: Mapping[str, Any]) -> FormalRevisionDecisionReport:
+    def from_json_payload(cls, payload: Mapping[str, Any]) -> FormalRevisionDecisionReport:
         return cls(
             operation=str(payload.get("operation") or ""),
             policy=str(payload.get("policy") or ""),
@@ -217,7 +217,7 @@ class SupportRevisionRealization:
         object.__setattr__(self, "journal_metadata", dict(self.journal_metadata))
 
     @classmethod
-    def from_mapping(cls, payload: Mapping[str, Any]) -> SupportRevisionRealization:
+    def from_json_payload(cls, payload: Mapping[str, Any]) -> SupportRevisionRealization:
         reasons_payload = payload.get("reasons") or {}
         if not isinstance(reasons_payload, Mapping):
             raise ValueError("support revision realization requires mapping 'reasons'")
@@ -312,7 +312,7 @@ class RevisionEvent:
         )
 
     @classmethod
-    def from_mapping(cls, payload: Mapping[str, Any]) -> RevisionEvent:
+    def from_json_payload(cls, payload: Mapping[str, Any]) -> RevisionEvent:
         decision_payload = payload.get("decision")
         realization_payload = payload.get("realization")
         if decision_payload is not None and not isinstance(decision_payload, Mapping):
@@ -330,12 +330,12 @@ class RevisionEvent:
             decision=(
                 None
                 if decision_payload is None
-                else FormalRevisionDecisionReport.from_mapping(decision_payload)
+                else FormalRevisionDecisionReport.from_json_payload(decision_payload)
             ),
             realization=(
                 None
                 if realization_payload is None
-                else SupportRevisionRealization.from_mapping(realization_payload)
+                else SupportRevisionRealization.from_json_payload(realization_payload)
             ),
             policy_snapshot={str(key): str(value) for key, value in policy_payload.items()},
             replay_status=None if payload.get("replay_status") is None else str(payload.get("replay_status")),

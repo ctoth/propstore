@@ -77,6 +77,8 @@ from propstore.families.concepts.declaration import (
 )
 from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
 from propstore.families.world_charters import (
+    PROPSTORE_WORLD_META_KEY,
+    PROPSTORE_WORLD_SCHEMA_VERSION,
     world_sqlalchemy_schema,
 )
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
@@ -228,6 +230,20 @@ class WorldQuery(WorldStore):
 
     def _validate_schema(self) -> None:
         validate_sqlalchemy_store(self._derived_store_path, world_sqlalchemy_schema())
+        meta_row = self._conn.execute(
+            "SELECT schema_version FROM meta WHERE key = ?",
+            (PROPSTORE_WORLD_META_KEY,),
+        ).fetchone()
+        if meta_row is None:
+            raise ValueError(
+                f"Unsupported SQLAlchemy store: missing metadata row {PROPSTORE_WORLD_META_KEY!r}."
+            )
+        schema_version = int(meta_row[0])
+        if schema_version != PROPSTORE_WORLD_SCHEMA_VERSION:
+            raise ValueError(
+                "Unsupported SQLAlchemy store schema version "
+                f"{schema_version}; expected {PROPSTORE_WORLD_SCHEMA_VERSION}."
+            )
 
     # ── Lazy Z3 setup ────────────────────────────────────────────────
 
@@ -600,7 +616,7 @@ class WorldQuery(WorldStore):
 
     def search(self, query: str) -> list[ConceptSearchHit]:
         rows = search_concept_ids(self._conn, query)
-        return [ConceptSearchHit.from_mapping(dict(row)) for row in rows]
+        return [ConceptSearchHit.from_row_mapping(dict(row)) for row in rows]
 
     def similar_claims(
         self,
@@ -623,7 +639,7 @@ class WorldQuery(WorldStore):
 
         assert model_name is not None  # narrowed above
         return [
-            ClaimSimilarityHit.from_mapping(result)
+            ClaimSimilarityHit.from_row_mapping(result)
             for result in find_similar(self._conn, claim_id, model_name, top_k=top_k)
         ]
 
@@ -648,7 +664,7 @@ class WorldQuery(WorldStore):
 
         assert model_name is not None  # narrowed above
         return [
-            ConceptSimilarityHit.from_mapping(result)
+            ConceptSimilarityHit.from_row_mapping(result)
             for result in find_similar_concepts(self._conn, concept_id, model_name, top_k=top_k)
         ]
 

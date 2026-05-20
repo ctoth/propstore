@@ -17,7 +17,7 @@ class ConceptSearchHit:
         object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> ConceptSearchHit:
+    def from_row_mapping(cls, data: Mapping[str, Any]) -> ConceptSearchHit:
         return cls(concept_id=data["concept_id"])
 
 
@@ -36,7 +36,7 @@ class ClaimSimilarityHit:
             object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> ClaimSimilarityHit:
+    def from_row_mapping(cls, data: Mapping[str, Any]) -> ClaimSimilarityHit:
         return cls(
             claim_id=data["id"],
             distance=float(data["distance"]),
@@ -59,7 +59,7 @@ class ConceptSimilarityHit:
         object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> ConceptSimilarityHit:
+    def from_row_mapping(cls, data: Mapping[str, Any]) -> ConceptSimilarityHit:
         return cls(
             concept_id=data["id"],
             distance=float(data["distance"]),

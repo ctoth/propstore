@@ -91,7 +91,7 @@ def _load_resource_cases(resource_path: str) -> list[SuiteCase]:
         if not isinstance(entries, list):
             raise AssertionError(f"{resource_path}: tests must be a list")
         return [
-            _case_from_mapping(
+            _case_from_json_payload(
                 entry,
                 source=base_source,
                 tags=base_tags,
@@ -99,10 +99,10 @@ def _load_resource_cases(resource_path: str) -> list[SuiteCase]:
             )
             for index, entry in enumerate(entries)
         ]
-    return [_case_from_mapping(raw, source=resource_path, tags=[], path=resource_path)]
+    return [_case_from_json_payload(raw, source=resource_path, tags=[], path=resource_path)]
 
 
-def _case_from_mapping(
+def _case_from_json_payload(
     raw: object,
     *,
     source: str,
@@ -111,7 +111,7 @@ def _case_from_mapping(
 ) -> SuiteCase:
     data = _mapping(raw, path)
     theory = (
-        _theory_from_mapping(data["theory"], f"{path}.theory")
+        _theory_from_json_payload(data["theory"], f"{path}.theory")
         if "theory" in data
         else None
     )
@@ -144,7 +144,7 @@ def _case_from_mapping(
     )
 
 
-def _theory_from_mapping(raw: object, path: str) -> SuiteTheory:
+def _theory_from_json_payload(raw: object, path: str) -> SuiteTheory:
     data = _mapping(raw, path)
     return SuiteTheory(
         facts=_predicate_facts(data.get("facts", {}), f"{path}.facts"),

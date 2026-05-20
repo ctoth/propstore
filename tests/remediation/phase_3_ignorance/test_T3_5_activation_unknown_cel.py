@@ -25,7 +25,7 @@ def test_unknown_cel_identifier_raises_with_context() -> None:
         )
     }
     condition = "some_unknown_concept > 5"
-    claim = ActiveClaim.from_mapping(
+    claim = ActiveClaim.from_row_mapping(
         {
             "id": "claim-01",
             "artifact_id": "test-01",

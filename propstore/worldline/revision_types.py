@@ -28,7 +28,7 @@ class RevisionAtomRef:
     value: float | str | None = None
 
     @classmethod
-    def from_mapping(cls, data: object) -> RevisionAtomRef | None:
+    def from_json_payload(cls, data: object) -> RevisionAtomRef | None:
         if data is None:
             return None
         payload = _optional_mapping(data, "atom")
@@ -104,7 +104,7 @@ class RevisionConflictSelection:
         )
 
     @classmethod
-    def from_mapping(cls, data: object) -> RevisionConflictSelection:
+    def from_json_payload(cls, data: object) -> RevisionConflictSelection:
         if data is None:
             return cls()
         payload = _optional_mapping(data, "conflicts")
@@ -146,7 +146,7 @@ class WorldlineRevisionResult:
         object.__setattr__(self, "incision_set", tuple(str(atom_id) for atom_id in self.incision_set))
 
     @classmethod
-    def from_mapping(cls, data: object) -> WorldlineRevisionResult | None:
+    def from_json_payload(cls, data: object) -> WorldlineRevisionResult | None:
         if data is None:
             return None
         payload = _optional_mapping(data, "result")
@@ -189,7 +189,7 @@ class WorldlineRevisionState:
         object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
 
     @classmethod
-    def from_mapping(cls, data: object) -> WorldlineRevisionState | None:
+    def from_json_payload(cls, data: object) -> WorldlineRevisionState | None:
         if data is None:
             return None
         payload = _optional_mapping(data, "revision")
@@ -208,11 +208,11 @@ class WorldlineRevisionState:
             operation=str(payload.get("operation") or ""),
             input_atom_id=None if payload.get("input_atom_id") is None else str(payload.get("input_atom_id")),
             target_atom_ids=tuple(str(atom_id) for atom_id in (payload.get("target_atom_ids") or ())),
-            result=WorldlineRevisionResult.from_mapping(result_data),
+            result=WorldlineRevisionResult.from_json_payload(result_data),
             state=None if state_data is None else dict(state_data),
             status=None if payload.get("status") is None else str(payload.get("status")),
             error=coerce_worldline_capture_error(payload.get("error")),
-            event=None if event_data is None else RevisionEvent.from_mapping(event_data),
+            event=None if event_data is None else RevisionEvent.from_json_payload(event_data),
         )
 
     def to_dict(self) -> dict[str, Any]:

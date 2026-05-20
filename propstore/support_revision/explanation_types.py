@@ -31,7 +31,7 @@ class RevisionAtomDetail:
         )
 
     @classmethod
-    def from_mapping(cls, data: object) -> RevisionAtomDetail:
+    def from_json_payload(cls, data: object) -> RevisionAtomDetail:
         if data is None:
             return cls()
         payload = _optional_mapping(data, "atom_detail")
@@ -66,7 +66,7 @@ RevisionAtomDetailInput = RevisionAtomDetail | Mapping[str, Any]
 def coerce_revision_atom_detail(detail: RevisionAtomDetailInput) -> RevisionAtomDetail:
     if isinstance(detail, RevisionAtomDetail):
         return detail
-    return RevisionAtomDetail.from_mapping(detail)
+    return RevisionAtomDetail.from_json_payload(detail)
 
 
 @dataclass(frozen=True)
@@ -82,7 +82,7 @@ class EntrenchmentReason:
         object.__setattr__(self, "essential_support", to_assumption_ids(self.essential_support))
 
     @classmethod
-    def from_mapping(cls, data: object) -> EntrenchmentReason:
+    def from_json_payload(cls, data: object) -> EntrenchmentReason:
         if data is None:
             return cls()
         payload = _optional_mapping(data, "entrenchment_reason")
@@ -130,7 +130,7 @@ EntrenchmentReasonInput = EntrenchmentReason | Mapping[str, Any]
 def coerce_entrenchment_reason(reason: EntrenchmentReasonInput) -> EntrenchmentReason:
     if isinstance(reason, EntrenchmentReason):
         return reason
-    return EntrenchmentReason.from_mapping(reason)
+    return EntrenchmentReason.from_json_payload(reason)
 
 
 def _coerce_override_priority(value: Any) -> int | str | None:
@@ -162,7 +162,7 @@ class RevisionAtomExplanation:
         )
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> RevisionAtomExplanation:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> RevisionAtomExplanation:
         ranking_data = data.get("ranking")
         if ranking_data is not None and not isinstance(ranking_data, Mapping):
             raise ValueError("support revision explanation field 'ranking' must be a mapping")
@@ -172,7 +172,7 @@ class RevisionAtomExplanation:
             ranking=(
                 None
                 if ranking_data is None
-                else EntrenchmentReason.from_mapping(ranking_data)
+                else EntrenchmentReason.from_json_payload(ranking_data)
             ),
             incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
             support_sets=tuple(
@@ -209,13 +209,13 @@ class RevisionExplanation:
         object.__setattr__(self, "atoms", dict(self.atoms))
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any]) -> RevisionExplanation:
+    def from_json_payload(cls, data: Mapping[str, Any]) -> RevisionExplanation:
         atoms_payload = _optional_mapping(data.get("atoms"), "atoms")
         atoms: dict[str, RevisionAtomExplanation] = {}
         for atom_id, atom_data in atoms_payload.items():
             if not isinstance(atom_data, Mapping):
                 raise ValueError(f"support revision explanation field 'atoms.{atom_id}' must be a mapping")
-            atoms[str(atom_id)] = RevisionAtomExplanation.from_mapping(atom_data)
+            atoms[str(atom_id)] = RevisionAtomExplanation.from_json_payload(atom_data)
         return cls(
             accepted_atom_ids=tuple(str(atom_id) for atom_id in (data.get("accepted_atom_ids") or ())),
             rejected_atom_ids=tuple(str(atom_id) for atom_id in (data.get("rejected_atom_ids") or ())),

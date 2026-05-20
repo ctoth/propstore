@@ -71,7 +71,7 @@ def claim_target_value(
     claim: ActiveClaim,
     claim_id: str | None,
 ) -> WorldlineTargetValue:
-    return WorldlineTargetValue.from_mapping({
+    return WorldlineTargetValue.from_json_payload({
         "status": status,
         "source": source,
         "claim_id": claim_id,

@@ -38,7 +38,7 @@ def dispatch(
     """Replay one support-revision journal operator from normalized inputs."""
 
     op = JournalOperator(operator)
-    state = EpistemicStateSnapshot.from_mapping(state_in).to_state()
+    state = EpistemicStateSnapshot.from_json_payload(state_in).to_state()
     payload = _required_mapping(operator_input, "operator_input")
     _required_policy_snapshot(policy)
     policy_snapshot = {str(key): str(value) for key, value in policy.items()}

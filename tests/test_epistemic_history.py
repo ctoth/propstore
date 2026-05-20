@@ -26,7 +26,7 @@ def test_epistemic_snapshot_roundtrips_with_stable_hash() -> None:
 
     snapshot = EpistemicSnapshot.from_state(state)
     payload = snapshot.to_dict()
-    restored = EpistemicSnapshot.from_mapping(payload)
+    restored = EpistemicSnapshot.from_json_payload(payload)
 
     assert payload["content_hash"] == snapshot.content_hash
     assert restored == snapshot
@@ -152,7 +152,7 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
         if atom.atom_id != legacy_id:
             changed_atoms.append(atom)
             continue
-        source_claim = ActiveClaim.from_mapping(
+        source_claim = ActiveClaim.from_row_mapping(
             {
                 "id": "claim_legacy_updated",
                 "type": "parameter",
