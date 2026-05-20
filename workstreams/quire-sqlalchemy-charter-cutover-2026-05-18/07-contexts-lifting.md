@@ -322,5 +322,21 @@ Recorded 2026-05-20.
 - Old-path searches: every required search listed above for context table
   constants, projection models, projection helpers, JSON/null helpers, and
   codec constants returned zero hits in `propstore` and `tests`.
-- Remaining Phase 9 gate: run and record the contexts/lifting data-parity
-  command.
+- Data parity: `uv run scripts/compare_sqlalchemy_charter_parity.py
+  --knowledge-dir . --before
+  reports/sqlalchemy-charter-parity/contexts-lifting/before.sqlite
+  --build-after sqlalchemy-charter --after
+  reports/sqlalchemy-charter-parity/contexts-lifting/after.sqlite --owner
+  contexts-lifting --workstream
+  workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/07-contexts-lifting.md
+  --out reports/sqlalchemy-charter-parity/contexts-lifting.json` passed with
+  no failures. The report records `after_head_sha`
+  `953f9edf303dda5e9f68ed57f10d2f73554f6593`, semantic input hash
+  `8a19bc32935e5d1cd86168a10264d2de1f10d11e57d6b1f844acbf0b43a3e8a0`,
+  schema hash
+  `sha256:07f5e2925b90d7d3ed6acbe9ae4baec9f9d3bac4bc8ae07d41a2933f11ba4991`,
+  passing context, context assumption, context lifting rule, and context
+  lifting materialization row-count/key-set comparisons, and no diagnostic,
+  FTS, vector, or table failures.
+
+Phase 9 is complete.
