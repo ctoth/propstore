@@ -49,6 +49,15 @@ File: `propstore/families/sources/declaration.py`.
 | `compile_source_sidecar_rows` | replace | Replace with `Source` model construction. |
 | `populate_sources` | delete | Replace with SQLAlchemy session add/flush. |
 
+File: `propstore/core/claim_values.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| `_opinion_from_mapping` | replace | Replace with boundary-specific source/trust payload conversion or direct typed construction. |
+| `SourceOrigin.from_mapping` | replace | Rename to boundary-specific source payload constructor or construct directly from typed source values. |
+| `SourceTrust.from_mapping` | replace | Rename to boundary-specific source payload constructor or construct directly from typed source values. |
+| `ClaimSource.from_mapping` | replace | Rename to boundary-specific source payload constructor or construct directly from typed source values. |
+
 ## Diagnostics Helpers
 
 File: `propstore/families/diagnostics/declaration.py`.
@@ -120,6 +129,12 @@ File: `propstore/families/contexts/declaration.py`.
 | `_json_or_none` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
 | `_json_mapping` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
 | `_json_string_tuple` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `TEXT_CODEC` | delete | Generic text conversion belongs to Quire charter conversion. |
+| `PARAMETERS_CODEC` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `CONDITIONS_CODEC` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `PROVENANCE_CODEC` | delete | Generic JSON conversion belongs to Quire JSON adapter. |
+| `AUTOINCREMENT_CODEC` | delete | Generic integer/autoincrement conversion belongs to Quire charter conversion. |
+| `CONTEXT_SCHEMA` | delete | Quire charter/schema catalog replaces the local projection schema bundle. |
 | `create_context_tables` | delete | Quire charter creates tables. |
 | `populate_contexts` | delete | Replace with SQLAlchemy session add/flush. |
 | `filter_invalid_context_lifting_rows` | move | Move invalid lifting-rule filtering semantics to context/lifting semantic owner. |
@@ -153,6 +168,15 @@ File: `propstore/families/claims/storage.py`.
 | `extract_deferred_stance_rows_with_diagnostics` | move | Move embedded-stance validation/quarantine semantics to relation/stance owner; replace tuple rows with `Stance` models. |
 | `prepare_claim_insert_row` | delete | Replace with `Claim` model construction and SQLAlchemy session add. |
 | `prepare_claim_concept_link_rows` | delete | Replace with `ClaimConceptLink` association objects and SQLAlchemy relationship persistence. |
+
+File: `propstore/families/claims/stages.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| `ClaimCheckedBundle` | keep-boundary | Keep as the checked semantic compiler-stage bundle; remove projection-row and sidecar-row coupling from its reachable fields. |
+| `ClaimSidecarRows` | delete | Replace with typed write plans and SQLAlchemy session adds. |
+| `RawIdQuarantineSidecarRows` | delete | Replace with typed quarantine claim/diagnostic models written through claim and diagnostic owners. |
+| `PromotionBlockedSidecarRows` | delete | Replace with typed promotion-blocked claim/diagnostic models written through claim and diagnostic owners. |
 
 File: `propstore/core/active_claims.py`.
 
@@ -227,6 +251,14 @@ Files: `propstore/core/graph_types.py`, `propstore/world/model.py`,
 | `ActiveMicropublicationInput` protocol usage | delete | World/environment APIs receive typed `Micropublication` objects, not dict/mapping unions. |
 | `ActiveClaimResolver` | replace | Rename to `ClaimValueResolver` and make it consume typed `Claim` query results. |
 | `ActiveWorldGraph` | replace | Rename to `WorldActivationGraph`; keep activation graph semantics, delete misleading active-object-family spelling. |
+| `WorldBindActiveReport` | replace | Rename to `WorldBindActivationReport` or another non-`Active*` activation-state report name. |
+| `ProvenanceRecord.from_mapping` | replace | Rename to a boundary-specific graph/provenance payload constructor. |
+
+File: `propstore/worldline/result_types.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| worldline result `from_mapping` constructors | replace | Rename persisted-result constructors to boundary-specific document/JSON payload constructors. |
 
 ## Grounding And Rule Helpers
 
@@ -272,6 +304,19 @@ File: `propstore/families/embeddings/declaration.py`.
 | `find_similar_concepts_agree`, `find_similar_concepts_disagree` | replace | Replace raw vector SQL with Quire vector query API. |
 | `extract_embeddings`, `extract_embedding_snapshot_from_store` | replace | Replace raw snapshot extraction/opening with Quire vector snapshot API. |
 | `restore_embeddings`, `restore_embedding_snapshot` | replace | Replace raw restore/opening with Quire vector snapshot API. |
+
+Files: `propstore/families/claims/sidecar_runtime.py`,
+`propstore/families/concepts/sidecar_runtime.py`, and
+`propstore/core/store_results.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| `SidecarClaimRelationStore` | delete | Replace raw sidecar relation/vector access with claim owner APIs over Quire sessions/vector APIs. |
+| `find_similar_claim_rows` | delete | Replace row-shaped claim similarity API with typed claim similarity query over Quire vector/session APIs. |
+| `find_similar_concept_rows` | delete | Replace row-shaped concept similarity API with typed concept similarity query over Quire vector/session APIs. |
+| `ConceptSearchHit.from_mapping` | replace | Rename to boundary-specific payload constructor or construct directly from typed query results. |
+| `ClaimSimilarityHit.from_mapping` | replace | Rename to boundary-specific payload constructor or construct directly from typed query results. |
+| `ConceptSimilarityHit.from_mapping` | replace | Rename to boundary-specific payload constructor or construct directly from typed query results. |
 
 ## Calibration Helpers
 
