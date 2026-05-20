@@ -3,10 +3,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from propstore.core.active_claims import ActiveClaim
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import WorldStore
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
+from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
@@ -57,10 +56,10 @@ def display_claim_id(world: WorldStore, claim_id: str | None) -> str | None:
         return None
     claim = world.get_claim(claim_id)
     if claim is not None:
-        row = CLAIM_ROW_MODEL.coerce(claim)
-        logical_value = row.primary_logical_value
-        if isinstance(logical_value, str) and logical_value:
-            return logical_value
+        if not isinstance(claim, Claim):
+            raise TypeError("get_claim() must return typed Claim objects")
+        if claim.primary_logical_id:
+            return claim.primary_logical_id
     return claim_id
 
 
@@ -68,21 +67,16 @@ def claim_target_value(
     *,
     status: str,
     source: str,
-    claim: ActiveClaim,
+    claim: Claim,
     claim_id: str | None,
+    value: float | str | None,
 ) -> WorldlineTargetValue:
     return WorldlineTargetValue.from_json_payload({
         "status": status,
         "source": source,
         "claim_id": claim_id,
-        "value": claim.value,
-        "claim_type": claim.claim_type,
-        "statement": claim.statement,
-        "expression": claim.expression,
-        "body": claim.body,
-        "name": claim.name,
-        "canonical_ast": claim.canonical_ast,
-        "variables": claim.variable_payload(),
+        "value": value,
+        "claim_type": claim.type,
     })
 
 
@@ -263,7 +257,9 @@ def _resolve_claim_target(
     claim = value_result.claims[0] if value_result.claims else None
     if claim is None:
         return None
-    claim_id = str(claim.claim_id)
+    if not isinstance(claim, Claim):
+        raise TypeError("value_result.claims must contain typed Claim objects")
+    claim_id = str(claim.id)
     trace.record_claim_dependency(claim_id)
     display_id = display_claim_id(context.world, claim_id) or claim_id
     target_value = claim_target_value(
@@ -271,6 +267,7 @@ def _resolve_claim_target(
         source="claim",
         claim=claim,
         claim_id=display_id,
+        value=value_result.value,
     )
     trace.record_step(
         concept=target_name,
@@ -402,7 +399,7 @@ def _resolve_chain_target(
             for input_cid, value in result.input_values.items()
         }
     else:
-        chain_value = result.claims[0].value if result.claims else None
+        chain_value = result.value
 
     if chain_value is None or result.status not in ("derived", "determined"):
         return None
@@ -411,7 +408,7 @@ def _resolve_chain_target(
         if chain_step.source == "claim":
             step_result = context.query_world.value_of(chain_step.concept_id)
             if step_result.claims:
-                trace.record_claim_dependency(str(step_result.claims[0].claim_id))
+                trace.record_claim_dependency(str(step_result.claims[0].id))
 
     for chain_step in chain_result.steps:
         if chain_step.concept_id == concept_id or chain_step.source == "binding":
@@ -504,10 +501,12 @@ def _resolve_claim_input(
     claim = value_result.claims[0] if value_result.claims else None
     if claim is None:
         return None
-    claim_id = str(claim.claim_id)
+    if not isinstance(claim, Claim):
+        raise TypeError("value_result.claims must contain typed Claim objects")
+    claim_id = str(claim.id)
     trace.record_claim_dependency(claim_id)
     return WorldlineInputSource(
-        value=claim.value,
+        value=value_result.value,
         source="claim",
         claim_id=display_claim_id(context.world, claim_id) or claim_id,
     )
