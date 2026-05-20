@@ -1058,3 +1058,17 @@ Recorded 2026-05-20.
   propstore tests` returned zero hits. This enables `world/bound.py` to delete
   `ActiveClaim`, `ActiveClaimInput`, `coerce_active_claim`, and
   `_resolve_claim_lookup_id` rather than copying activation logic locally.
+- Bound world active-claim deletion: commit `7161fb61` removed
+  `propstore.core.active_claims`, `ActiveClaim`, `ActiveClaimInput`,
+  `coerce_active_claim`, `_resolve_claim_lookup_id`, and all
+  `.resolve_claim(` calls from `propstore/world/bound.py`. `BoundWorld` now
+  consumes typed `Claim` objects directly, uses `Claim.id`, `Claim.type`,
+  `Claim.context_id`, `Claim.checked_conditions`, and typed payload/link
+  semantics, and calls the owner activation function with those fields. The
+  old `ActiveClaimResolver`/`_ActiveClaimView` names were also deleted in
+  favor of `ClaimValueResolver`/`_ClaimValueView`; focused verification
+  `uv run pyright propstore/world/bound.py propstore/world/value_resolver.py`
+  passed with 0 errors. Refreshed searches now show `propstore.core.active_claims`
+  remaining only in `world/overlay.py`, `world/atms.py`, `world/model.py`, and
+  `world/resolution.py`; `CLAIM_ROW_MODEL` remains in `world/overlay.py`,
+  `world/atms.py`, and `world/queries.py`.
