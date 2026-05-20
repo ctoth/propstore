@@ -14,7 +14,6 @@ from argumentation.aspic import (
     Rule,
 )
 from argumentation.datalog_grounding import GroundRuleOrigin
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claims
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import (
     IstLiteralKey,
@@ -22,6 +21,7 @@ from propstore.core.literal_keys import (
     REPOSITORY_ROOT_CONTEXT_ID,
     claim_key,
 )
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import StanceRow, StanceRowInput
 from propstore.families.relations.projection_model import STANCE_ROW_MODEL
 from argumentation.preference import strict_partial_order_closure
@@ -29,19 +29,14 @@ from argumentation.preference import strict_partial_order_closure
 from propstore.preference import MetadataStrengthVector, metadata_strength_vector
 
 
-def _claim_attr(claim: ActiveClaim, key: str) -> Any:
-    value = getattr(claim, key, None)
-    return value if value is not None else claim.attribute_value(key)
-
-
-def _claim_context_id(claim: ActiveClaim) -> str:
+def _claim_context_id(claim: Claim) -> str:
     if claim.context_id is None:
         return str(REPOSITORY_ROOT_CONTEXT_ID)
     return str(claim.context_id)
 
 
-def _claim_literal_key(claim: ActiveClaim) -> IstLiteralKey:
-    return claim_key(str(claim.claim_id), context_id=_claim_context_id(claim))
+def _claim_literal_key(claim: Claim) -> IstLiteralKey:
+    return claim_key(str(claim.id), context_id=_claim_context_id(claim))
 
 
 def _literal_key_for_proposition(
@@ -63,15 +58,18 @@ def _literal_key_for_proposition(
     return matches[0]
 
 
-def claims_to_literals(active_claims: Sequence[ActiveClaimInput]) -> dict[LiteralKey, Literal]:
+def claims_to_literals(active_claims: Sequence[Claim]) -> dict[LiteralKey, Literal]:
     """Map each claim to a positive ASPIC+ literal."""
 
-    normalized_claims = coerce_active_claims(active_claims)
+    normalized_claims = tuple(active_claims)
+    for claim in normalized_claims:
+        if not isinstance(claim, Claim):
+            raise TypeError("claims_to_literals requires typed Claim objects")
     return {
         _claim_literal_key(claim): Literal(
             atom=GroundAtom(
                 "ist",
-                (_claim_context_id(claim), str(claim.claim_id)),
+                (_claim_context_id(claim), str(claim.id)),
             ),
             negated=False,
         )
@@ -262,7 +260,7 @@ def preference_sensitive_stance_pairs(
 
 
 def claims_to_kb(
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[Claim],
     justifications: list[CanonicalJustification],
     literals: dict[LiteralKey, Literal],
 ) -> KnowledgeBase:
@@ -274,8 +272,11 @@ def claims_to_kb(
         if justification.rule_kind == "reported_claim"
     }
 
-    normalized_claims = coerce_active_claims(active_claims)
-    claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
+    normalized_claims = tuple(active_claims)
+    for claim in normalized_claims:
+        if not isinstance(claim, Claim):
+            raise TypeError("claims_to_kb requires typed Claim objects")
+    claim_by_id = {str(claim.id): claim for claim in normalized_claims}
     axioms: set[Literal] = set()
     premises: set[Literal] = set()
 
@@ -287,7 +288,7 @@ def claims_to_kb(
         if literal_key not in literals:
             continue
         literal = literals[literal_key]
-        if _claim_attr(claim, "premise_kind") == "necessary":
+        if claim.premise_kind == "necessary":
             axioms.add(literal)
         else:
             premises.add(literal)
@@ -315,7 +316,7 @@ def _democratic_score(vector: MetadataStrengthVector) -> float:
 
 
 def build_preference_config(
-    active_claims: Sequence[ActiveClaimInput],
+    active_claims: Sequence[Claim],
     literals: dict[LiteralKey, Literal],
     defeasible_rules: frozenset[Rule],
     *,
@@ -330,8 +331,11 @@ def build_preference_config(
     oriented ``(weaker, stronger)``.
     """
 
-    normalized_claims = coerce_active_claims(active_claims)
-    claim_by_id = {str(claim.claim_id): claim for claim in normalized_claims}
+    normalized_claims = tuple(active_claims)
+    for claim in normalized_claims:
+        if not isinstance(claim, Claim):
+            raise TypeError("build_preference_config requires typed Claim objects")
+    claim_by_id = {str(claim.id): claim for claim in normalized_claims}
     premise_order: set[tuple[Literal, Literal]] = set()
 
     unknown_rule_pairs = [
@@ -351,8 +355,8 @@ def build_preference_config(
         for key_b in claim_keys[index + 1 :]:
             claim_id_a = str(key_a.proposition_id)
             claim_id_b = str(key_b.proposition_id)
-            vec_a = metadata_strength_vector(claim_by_id[claim_id_a])
-            vec_b = metadata_strength_vector(claim_by_id[claim_id_b])
+            vec_a = metadata_strength_vector(_claim_metadata(claim_by_id[claim_id_a]))
+            vec_b = metadata_strength_vector(_claim_metadata(claim_by_id[claim_id_b]))
             lit_a = literals[key_a]
             lit_b = literals[key_b]
 
@@ -374,6 +378,10 @@ def build_preference_config(
         comparison=comparison,
         link=link,
     )
+
+
+def _claim_metadata(claim: Claim) -> Mapping[str, Any]:
+    return {"artifact_id": claim.id}
 
 
 __all__ = [
