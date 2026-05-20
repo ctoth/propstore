@@ -573,6 +573,17 @@ Recorded 2026-05-20.
   draft was rejected as carrying the old projection codec behavior forward
   under a new name. The draft was removed from the worktree on 2026-05-20 and
   must not be revived.
+- Claim variable cleanup: `472b2a60` removed `ClaimAlgorithmVariable` `coerce`
+  field metadata, removed its generic kwargs repair helper, and kept only
+  stable payload-name metadata. The parser now rejects non-string algorithm
+  variable payload fields at that boundary instead of repairing them inside the
+  model layer.
+- Claim variable cleanup verification: `uv run pyright
+  propstore/families/claims/stages.py propstore/core/active_claims.py` passed
+  with 0 errors. `Select-String -SimpleMatch` searches for
+  `metadata={"coerce"`, `"coerce":`, `_coerce_claim_model_value`, and
+  `claim_model_from_payload` across `propstore/families/claims`,
+  `propstore/core`, and `tests` returned no hits.
 - Remaining Phase 10 work: delete the remaining claim projection/read-model,
   storage-helper, row-carrier, and active-claim compatibility surfaces; run
   the family gates, old-path searches, and data-parity gate.
