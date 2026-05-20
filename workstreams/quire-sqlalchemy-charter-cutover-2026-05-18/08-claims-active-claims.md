@@ -1206,3 +1206,17 @@ Current binding queue:
 - Convert tests that still use `ActiveClaim` or `CLAIM_ROW_MODEL` to typed
   `Claim` construction or owner-level fixtures. Test compatibility is not a
   reason to restore the deleted production path.
+- App typed-claim caller cleanup: commit `21dd6c9c` moved
+  `propstore/app/claim_views.py`, `propstore/app/neighborhoods.py`, and
+  `propstore/app/world_atms.py` off deleted row-field names and onto typed
+  `Claim.id`, `Claim.type`, payload relationships, concept-link
+  relationships, and claim fields. Focused verification `uv run pyright
+  propstore/app/claim_views.py propstore/app/neighborhoods.py
+  propstore/app/world_atms.py` passed with 0 errors, and searches for
+  `claim.claim_id`, `claim.claim_type`, and `primary_logical_value` in those
+  files returned zero hits. The refreshed package gate `uv run pyright
+  propstore` now fails with 8 errors: deleted claim embedding projection
+  imports in `families/embeddings/declaration.py`; deleted `CLAIM_CORE_TABLE`
+  import in `families/relations/declaration.py`; typed `Claim` boundary
+  failure in `graph_export.py`; and stale dict-shaped ASPIC projection input
+  in `merge/structured_merge.py`.
