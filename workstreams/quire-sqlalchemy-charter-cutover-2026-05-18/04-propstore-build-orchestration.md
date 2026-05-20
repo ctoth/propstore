@@ -348,3 +348,23 @@ This workstream is complete only when:
   semantic input hash.
 - The type gate, logged pytest gate, and old-path search gates pass.
 - Propstore remains pinned to a pushed Quire reference, never a local checkout.
+
+## Phase 5 Execution Record
+
+Recorded 2026-05-20.
+
+Prerequisites:
+
+- `03-quire-fts-vector.md` records Phase 4 and the Quire-first completion gate complete.
+- Propstore current branch: `master`; tracked task-owned files clean before Phase 5 harness edits; unrelated untracked files present.
+- Quire pin: `pyproject.toml` and `uv.lock` resolve `quire` from pushed commit `1d670267eba752a615122c26fdc551c466b06601`.
+- Local dependency-pin searches for `path =`, `workspace = true`, `quire @ file`, `quire @ ..`, and `quire @ C:` returned no hits.
+
+Parity harness slice:
+
+- Added `scripts/compare_sqlalchemy_charter_parity.py` with projection baseline capture, after-build comparison dispatch, JSON report output, workstream allowlist parsing, table row-count/key-set comparison, and `--require-vector`/`--require-behavior` checks.
+- Added `tests/test_sqlalchemy_charter_parity_harness.py` with the required passing fixture, missing-key failure, required-vector, required-behavior, missing-baseline, and semantic-input-hash mismatch tests.
+- Focused harness gate passed: `powershell -File scripts/run_logged_pytest.ps1 -Label parity-harness tests/test_sqlalchemy_charter_parity_harness.py` passed with 6 passed; log `logs\test-runs\parity-harness-20260520-102010.log`.
+- Help gate passed: `uv run scripts/compare_sqlalchemy_charter_parity.py --help`.
+
+Next required item: capture the pre-deletion projection baselines for every owner/workstream pair before deleting the projection builder.
