@@ -6,8 +6,6 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from quire.projections import ProjectionRow
-
 from propstore.claims import (
     ClaimFileEntry,
 )
@@ -19,6 +17,7 @@ from propstore.families.concepts.declaration import (
 from propstore.families.contexts.stages import LoadedContext, loaded_contexts_to_lifting_system
 from propstore.families.contexts.declaration import (
     compile_context_sidecar_rows,
+    filter_invalid_context_lifting_rows,
 )
 from propstore.families.claims.stages import (
     ClaimCheckedBundle,
@@ -51,6 +50,7 @@ from propstore.families.sources.declaration import (
     SourceProjectionRow,
     compile_source_sidecar_rows,
 )
+from propstore.families.world_charters import WorldModel, world_records
 
 if TYPE_CHECKING:
     from propstore.compiler.context import CompilationContext
@@ -73,16 +73,16 @@ class RepositoryCheckedBundle:
 
 
 @dataclass(frozen=True)
+class WorldWriteBatch:
+    table_name: str
+    objects: tuple[WorldModel, ...]
+
+
+@dataclass(frozen=True)
 class SidecarBuildPlan:
-    source_rows: tuple[SourceProjectionRow, ...]
-    concept_rows: ConceptSidecarRows
-    context_rows: tuple[ProjectionRow, ...]
-    claim_rows: ClaimSidecarRows | None
-    raw_id_quarantine_rows: RawIdQuarantineSidecarRows
-    conflict_rows: tuple[ProjectionRow, ...]
-    micropublication_rows: MicropublicationSidecarRows
-    stance_rows: tuple[ProjectionRow, ...]
-    justification_rows: tuple[ProjectionRow, ...]
+    write_batches: tuple[WorldWriteBatch, ...]
+    has_claim_rows: bool
+    has_raw_id_quarantine_claims: bool
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...]
 
 
@@ -93,12 +93,13 @@ def compile_sidecar_build_plan(
     stance_entries: Iterable[tuple[str, StanceDocument]],
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
+    drop_invalid_context_lifting_rows: bool = False,
 ) -> SidecarBuildPlan:
     claim_rows: ClaimSidecarRows | None = None
     raw_id_quarantine_rows = compile_raw_id_quarantine_sidecar_rows(())
-    conflict_rows: tuple[ProjectionRow, ...] = ()
-    stance_rows: tuple[ProjectionRow, ...] = ()
-    justification_rows: tuple[ProjectionRow, ...] = ()
+    conflict_rows: tuple[object, ...] = ()
+    stance_rows: tuple[object, ...] = ()
+    justification_rows: tuple[object, ...] = ()
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...] = ()
     claim_index = build_claim_file_reference_index(())
 
@@ -158,21 +159,103 @@ def compile_sidecar_build_plan(
         quarantine_diagnostics + micropublication_quarantine_diagnostics
     )
 
+    context_rows = compile_context_sidecar_rows(
+        repository_checked_bundle.context_files,
+    )
+    if drop_invalid_context_lifting_rows:
+        context_rows = filter_invalid_context_lifting_rows(context_rows)
+    batches = (
+        _batch("source", compile_source_sidecar_rows(source_entries)),
+        *_concept_batches(
+            compile_concept_sidecar_rows(
+                repository_checked_bundle.concepts,
+                repository_checked_bundle.form_registry,
+                dict(repository_checked_bundle.compilation_context.cel_registry),
+            )
+        ),
+        *_projection_row_batches(
+            context_rows,
+            (
+                "context",
+                "context_assumption",
+                "context_lifting_rule",
+                "context_lifting_materialization",
+            ),
+        ),
+        *_claim_batches(claim_rows),
+        *_raw_id_quarantine_batches(raw_id_quarantine_rows),
+        _batch("conflict_witness", conflict_rows),
+        *_micropublication_batches(micropublication_rows),
+        _batch("relation_edge", stance_rows),
+        _batch("justification", justification_rows),
+    )
     return SidecarBuildPlan(
-        source_rows=compile_source_sidecar_rows(source_entries),
-        concept_rows=compile_concept_sidecar_rows(
-            repository_checked_bundle.concepts,
-            repository_checked_bundle.form_registry,
-            dict(repository_checked_bundle.compilation_context.cel_registry),
-        ),
-        context_rows=compile_context_sidecar_rows(
-            repository_checked_bundle.context_files,
-        ),
-        claim_rows=claim_rows,
-        raw_id_quarantine_rows=raw_id_quarantine_rows,
-        conflict_rows=conflict_rows,
-        micropublication_rows=micropublication_rows,
-        stance_rows=stance_rows,
-        justification_rows=justification_rows,
+        write_batches=tuple(batch for batch in batches if batch.objects),
+        has_claim_rows=claim_rows is not None,
+        has_raw_id_quarantine_claims=bool(raw_id_quarantine_rows.claim_rows),
         quarantine_diagnostics=quarantine_diagnostics,
+    )
+
+
+def _batch(table_name: str, rows: Iterable[object] | None) -> WorldWriteBatch:
+    return WorldWriteBatch(table_name=table_name, objects=world_records(table_name, rows))
+
+
+def _projection_row_batches(
+    rows: Iterable[object],
+    table_order: tuple[str, ...],
+) -> tuple[WorldWriteBatch, ...]:
+    grouped: dict[str, list[object]] = {table_name: [] for table_name in table_order}
+    for row in rows:
+        table_name = str(getattr(row, "table"))
+        if table_name not in grouped:
+            grouped[table_name] = []
+        grouped[table_name].append(row)
+    return tuple(
+        _batch(table_name, grouped.get(table_name, ()))
+        for table_name in table_order
+    )
+
+
+def _concept_batches(rows: ConceptSidecarRows) -> tuple[WorldWriteBatch, ...]:
+    return (
+        _batch("form", rows.form_rows),
+        _batch("concept", rows.concept_rows),
+        _batch("alias", rows.alias_rows),
+        _batch("relationship", rows.relationship_rows),
+        _batch("relation_edge", rows.relation_edge_rows),
+        _batch("parameterization", rows.parameterization_rows),
+        _batch("parameterization_group", rows.parameterization_group_rows),
+        _batch("form_algebra", rows.form_algebra_rows),
+    )
+
+
+def _claim_batches(rows: ClaimSidecarRows | None) -> tuple[WorldWriteBatch, ...]:
+    if rows is None:
+        return ()
+    return (
+        _batch("claim_core", rows.claim_core_rows),
+        _batch("claim_numeric_payload", rows.numeric_payload_rows),
+        _batch("claim_text_payload", rows.text_payload_rows),
+        _batch("claim_algorithm_payload", rows.algorithm_payload_rows),
+        _batch("claim_concept_link", rows.claim_link_rows),
+        _batch("relation_edge", rows.stance_rows),
+    )
+
+
+def _raw_id_quarantine_batches(
+    rows: RawIdQuarantineSidecarRows,
+) -> tuple[WorldWriteBatch, ...]:
+    return (
+        _batch("claim_core", rows.claim_rows),
+        _batch("build_diagnostics", rows.diagnostic_rows),
+    )
+
+
+def _micropublication_batches(
+    rows: MicropublicationSidecarRows,
+) -> tuple[WorldWriteBatch, ...]:
+    return (
+        _batch("micropublication", rows.micropublication_rows),
+        _batch("micropublication_claim", rows.claim_rows),
     )

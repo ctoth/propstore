@@ -14,20 +14,24 @@ whether to show these rows. This implements the discipline declared in
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 from quire.derived_store import (
     DerivedStoreHandle,
-    checkpoint_and_close_sqlite,
     derived_store_content_hash,
-    digest_directory,
     materialize_sqlite_file,
     read_dependency_pins,
 )
-from quire.derived_runtime import connect_sqlite_store
-from quire.derived_runtime import write_derived_store_schema_metadata
+from quire.sqlalchemy_store import (
+    DerivedSession,
+    create_sqlalchemy_store,
+    populate_fts_index,
+)
+from quire.sqlite_vec_store import SqlAlchemyVecSnapshotStore
+from sqlalchemy import delete
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
@@ -35,10 +39,6 @@ from propstore.compiler.context import (
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 from propstore.families.claims.passes import register_claim_pipeline, run_claim_pipeline
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
-from propstore.families.contexts.declaration import (
-    filter_invalid_context_lifting_rows,
-    populate_contexts,
-)
 from propstore.families.contexts.passes import register_context_pipeline
 from propstore.families.contexts.stages import (
     LoadedContext,
@@ -50,40 +50,33 @@ from propstore.families.forms.passes import register_form_pipeline, run_form_pip
 from propstore.families.forms.stages import FormCheckedRegistry, LoadedForm
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.families.claims.declaration import (
-    CLAIM_FTS_PROJECTION,
     compile_promotion_blocked_sidecar_rows,
-    populate_authored_justifications,
-    populate_claims,
-    populate_conflicts,
-    populate_promotion_blocked_claims,
-    populate_raw_id_quarantine_records,
-    populate_stances,
 )
-from propstore.derived_build_plan import RepositoryCheckedBundle, compile_sidecar_build_plan
-from propstore.families.concepts.declaration import CONCEPT_FTS_PROJECTION, populate_concept_sidecar_rows
-from propstore.families.diagnostics.declaration import (
-    record_authoring_diagnostics,
-    record_build_exception,
-    record_embedding_restore_diagnostic,
-    record_pass_diagnostics,
-    record_quarantine_diagnostics,
+from propstore.derived_build_plan import (
+    RepositoryCheckedBundle,
+    WorldWriteBatch,
+    compile_sidecar_build_plan,
 )
 from propstore.families.embeddings.declaration import (
+    EmbeddingSnapshot,
     EmbeddingSnapshotReport,
     extract_embedding_snapshot_from_store,
-    restore_embedding_snapshot,
 )
-from propstore.families.projection_catalog import (
+from propstore.families.world_charters import (
+    BuildDiagnosticsRecord,
+    GroundedBundleInputRecord,
+    GroundedFactEmptyPredicateRecord,
+    GroundedFactRecord,
+    MetaRecord,
     PROPSTORE_WORLD_META_KEY,
-    PROPSTORE_WORLD_PROJECTION_SCHEMA,
     PROPSTORE_WORLD_SCHEMA_VERSION,
+    world_records,
+    world_sqlalchemy_schema,
 )
-from propstore.families.micropublications.declaration import populate_micropublications
 from propstore.families.rules.declaration import (
-    create_grounded_fact_table,
-    populate_grounded_facts,
+    _SECTION_NAMES,
+    _encode_bundle_input,
 )
-from propstore.families.sources.declaration import populate_sources
 from propstore.compiler.context import build_authored_concept_registry
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.types import PassDiagnostic
@@ -112,6 +105,7 @@ def world_sidecar_hash_inputs(
     source_branch_tips: tuple[tuple[str, str], ...] = (),
 ) -> dict[str, object]:
     repo_root = _repo_root()
+    schema = world_sqlalchemy_schema()
     dependency_pins = read_dependency_pins(
         repo_root / "uv.lock",
         _SIDECAR_CACHE_DEPENDENCIES,
@@ -120,6 +114,7 @@ def world_sidecar_hash_inputs(
         "source_revision": source_revision,
         "source_branch_tips": source_branch_tips,
         "sidecar_schema_version": PROPSTORE_WORLD_SCHEMA_VERSION,
+        "schema_catalog_hash": schema.catalog_hash,
         "passes": _semantic_pass_versions(),
         "family_contract_versions": _family_contract_versions(),
         "build_time_config": {
@@ -128,7 +123,6 @@ def world_sidecar_hash_inputs(
                 "",
             ),
         },
-        "generated_schema_version": digest_directory(repo_root / "schema" / "generated"),
         "dependency_pins": dependency_pins,
     }
 
@@ -158,11 +152,12 @@ def world_sidecar_hash(
     )
     content_hash = derived_store_content_hash(
         projection_version=str(PROPSTORE_WORLD_SCHEMA_VERSION),
-        schema_hash=str(inputs["generated_schema_version"]),
+        schema_hash=str(inputs["schema_catalog_hash"]),
         dependencies=dependencies,
         extra_inputs={
             "source_revision": inputs["source_revision"],
             "source_branch_tips": inputs["source_branch_tips"],
+            "schema_catalog_hash": inputs["schema_catalog_hash"],
             "passes": inputs["passes"],
             "family_contract_versions": inputs["family_contract_versions"],
             "build_time_config": inputs["build_time_config"],
@@ -434,6 +429,7 @@ def _build_sidecar_file(
             )
             for handle in repo.families.micropubs.iter_handles(commit=commit_hash)
         ),
+        drop_invalid_context_lifting_rows=bool(context_diagnostics),
     )
     promotion_blocked_rows = compile_promotion_blocked_sidecar_rows(
         collect_all_source_promotion_blocked_facts(repo)
@@ -445,119 +441,79 @@ def _build_sidecar_file(
     )
 
     def _write_sidecar(target_path: Path) -> None:
-        conn = connect_sqlite_store(target_path)
+        schema = world_sqlalchemy_schema()
+        create_sqlalchemy_store(target_path, schema)
+        build_handle = DerivedStoreHandle(
+            projection_id="propstore.world",
+            source_commit=str(source_revision),
+            content_hash=content_hash,
+            cache_key="direct-build",
+            path=target_path,
+        )
         try:
-            write_derived_store_schema_metadata(
-                conn,
-                schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
-                key=PROPSTORE_WORLD_META_KEY,
-            )
-            PROPSTORE_WORLD_PROJECTION_SCHEMA.create_all(conn)
-            populate_sources(
-                conn,
-                sidecar_plan.source_rows,
-            )
-            populate_concept_sidecar_rows(
-                conn,
-                sidecar_plan.concept_rows,
-            )
-            CONCEPT_FTS_PROJECTION.populate_from_source_query(conn)
-            record_pass_diagnostics(
-                conn,
-                form_diagnostics,
-                kind="form",
-                diagnostic_kind="form_validation",
-                prefer_filename=True,
-            )
-            record_pass_diagnostics(
-                conn,
-                concept_diagnostics,
-                kind="concept",
-                diagnostic_kind="concept_validation",
-            )
-            record_pass_diagnostics(
-                conn,
-                context_diagnostics,
-                kind="context",
-                diagnostic_kind="context_validation",
-            )
-            record_pass_diagnostics(
-                conn,
-                tuple(recorded_claim_diagnostics),
-                kind="claim",
-                diagnostic_kind="claim_validation",
-            )
-            record_authoring_diagnostics(conn, authoring_diagnostics)
-            record_quarantine_diagnostics(conn, sidecar_plan.quarantine_diagnostics)
-            context_rows = (
-                filter_invalid_context_lifting_rows(sidecar_plan.context_rows)
-                if context_diagnostics
-                else sidecar_plan.context_rows
-            )
-            if context_rows:
-                populate_contexts(conn, context_rows)
+            with build_handle.writable_session(schema) as derived:
+                derived.add(MetaRecord(
+                    key=PROPSTORE_WORLD_META_KEY,
+                    schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
+                ))
+                _add_write_batches(derived, sidecar_plan.write_batches)
+                derived.add_all(_pass_diagnostic_records(
+                    form_diagnostics,
+                    kind="form",
+                    diagnostic_kind="form_validation",
+                    prefer_filename=True,
+                ))
+                derived.add_all(_pass_diagnostic_records(
+                    concept_diagnostics,
+                    kind="concept",
+                    diagnostic_kind="concept_validation",
+                ))
+                derived.add_all(_pass_diagnostic_records(
+                    context_diagnostics,
+                    kind="context",
+                    diagnostic_kind="context_validation",
+                ))
+                derived.add_all(_pass_diagnostic_records(
+                    tuple(recorded_claim_diagnostics),
+                    kind="claim",
+                    diagnostic_kind="claim_validation",
+                ))
+                derived.add_all(_authoring_diagnostic_records(authoring_diagnostics))
+                derived.add_all(_quarantine_diagnostic_records(
+                    sidecar_plan.quarantine_diagnostics
+                ))
 
-            if sidecar_plan.claim_rows is not None:
-                populate_claims(conn, sidecar_plan.claim_rows)
+                _flush_promotion_blocked_claims(derived, promotion_blocked_rows)
 
-                if sidecar_plan.raw_id_quarantine_rows.claim_rows:
-                    populate_raw_id_quarantine_records(
-                        conn,
-                        sidecar_plan.raw_id_quarantine_rows,
-                    )
-
-                populate_promotion_blocked_claims(
-                    conn,
-                    promotion_blocked_rows.claim_rows,
-                    promotion_blocked_rows.diagnostic_rows,
+                grounded_bundle = build_grounded_bundle(
+                    repo,
+                    commit=commit_hash,
                 )
+                derived.add_all(_grounded_bundle_records(grounded_bundle))
 
-                populate_conflicts(conn, sidecar_plan.conflict_rows)
-                CLAIM_FTS_PROJECTION.populate_from_source_query(conn)
-            else:
-                populate_promotion_blocked_claims(
-                    conn,
-                    promotion_blocked_rows.claim_rows,
-                    promotion_blocked_rows.diagnostic_rows,
-                )
+                derived.flush()
+                populate_fts_index(derived, "concept_fts")
+                if sidecar_plan.has_claim_rows:
+                    populate_fts_index(derived, "claim_fts")
 
-            populate_micropublications(conn, sidecar_plan.micropublication_rows)
+                if embedding_snapshot is not None:
+                    try:
+                        _restore_embedding_snapshot(derived, embedding_snapshot)
+                    except ImportError as exc:
+                        derived.add(_embedding_restore_diagnostic_record(exc))
+                    except Exception as exc:
+                        derived.add(_embedding_restore_diagnostic_record(exc))
 
-            grounded_bundle = build_grounded_bundle(
-                repo,
-                commit=commit_hash,
-            )
-            populate_grounded_facts(conn, grounded_bundle)
-
-            if embedding_snapshot is not None:
-                try:
-                    restore_embedding_snapshot(conn, embedding_snapshot)
-                except ImportError as exc:
-                    record_embedding_restore_diagnostic(conn, exc)
-                except Exception as exc:
-                    record_embedding_restore_diagnostic(conn, exc)
-
-            if sidecar_plan.claim_rows is not None:
-                populate_stances(conn, sidecar_plan.stance_rows)
-                populate_authored_justifications(
-                    conn,
-                    sidecar_plan.justification_rows,
-                )
-
-            conn.commit()
+                derived.commit()
         except Exception as exc:
             try:
-                record_build_exception(conn, exc)
-                conn.commit()
+                with build_handle.writable_session(schema) as derived:
+                    derived.rollback()
+                    derived.add(_build_exception_record(exc))
+                    derived.commit()
             except Exception as diagnostic_error:
                 exc.add_note(f"failed to record build diagnostic: {diagnostic_error}")
-            try:
-                checkpoint_and_close_sqlite(conn)
-            except Exception as close_error:
-                exc.add_note(f"failed to close failed sidecar build: {close_error}")
             raise
-
-        checkpoint_and_close_sqlite(conn)
 
     return materialize_sqlite_file(
         output_path,
@@ -566,6 +522,227 @@ def _build_sidecar_file(
         force=force,
         publish_failure_when_missing=True,
     ).built
+
+
+def _add_write_batches(
+    derived: DerivedSession,
+    batches: tuple[WorldWriteBatch, ...],
+) -> None:
+    for batch in batches:
+        derived.add_all(batch.objects)
+
+
+def _pass_diagnostic_records(
+    diagnostics: tuple[PassDiagnostic, ...],
+    *,
+    kind: str,
+    diagnostic_kind: str,
+    prefer_filename: bool = False,
+) -> tuple[BuildDiagnosticsRecord, ...]:
+    records: list[BuildDiagnosticsRecord] = []
+    for diagnostic in diagnostics:
+        if not diagnostic.is_error:
+            continue
+        artifact_id = (
+            diagnostic.filename or diagnostic.artifact_id or "unknown"
+            if prefer_filename
+            else diagnostic.artifact_id or diagnostic.filename or "unknown"
+        )
+        records.append(_quarantine_record(
+            artifact_id=artifact_id,
+            kind=kind,
+            diagnostic_kind=diagnostic_kind,
+            message=diagnostic.render(),
+            file=diagnostic.filename,
+        ))
+    return tuple(records)
+
+
+def _authoring_diagnostic_records(
+    diagnostics: tuple[PassDiagnostic, ...],
+) -> tuple[BuildDiagnosticsRecord, ...]:
+    return tuple(
+        BuildDiagnosticsRecord(
+            claim_id=diagnostic.artifact_id,
+            source_kind="authoring",
+            source_ref=diagnostic.artifact_id or diagnostic.filename,
+            diagnostic_kind=diagnostic.code,
+            severity=diagnostic.level,
+            blocking=1 if diagnostic.is_error else 0,
+            message=diagnostic.render(),
+            file=diagnostic.filename,
+            detail_json=None,
+        )
+        for diagnostic in diagnostics
+    )
+
+
+def _quarantine_diagnostic_records(
+    diagnostics: tuple[object, ...],
+) -> tuple[BuildDiagnosticsRecord, ...]:
+    return tuple(
+        _quarantine_record(
+            artifact_id=str(getattr(diagnostic, "artifact_id")),
+            kind=str(getattr(diagnostic, "kind")),
+            diagnostic_kind=str(getattr(diagnostic, "diagnostic_kind")),
+            message=str(getattr(diagnostic, "message")),
+            file=getattr(diagnostic, "file"),
+        )
+        for diagnostic in diagnostics
+    )
+
+
+def _quarantine_record(
+    *,
+    artifact_id: str,
+    kind: str,
+    diagnostic_kind: str,
+    message: str,
+    file: str | None,
+) -> BuildDiagnosticsRecord:
+    return BuildDiagnosticsRecord(
+        claim_id=artifact_id if kind == "claim" else None,
+        source_kind=kind,
+        source_ref=artifact_id,
+        diagnostic_kind=diagnostic_kind,
+        severity="error",
+        blocking=1,
+        message=message,
+        file=file,
+        detail_json=json.dumps(
+            {
+                "artifact_id": artifact_id,
+                "kind": kind,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ),
+    )
+
+
+def _flush_promotion_blocked_claims(derived: DerivedSession, rows: object) -> None:
+    claim_objects = world_records("claim_core", getattr(rows, "claim_rows"))
+    diagnostic_objects = world_records("build_diagnostics", getattr(rows, "diagnostic_rows"))
+    if not claim_objects and not diagnostic_objects:
+        return
+    claim_ids = tuple(str(getattr(row, "id")) for row in claim_objects)
+    if claim_ids:
+        derived.flush()
+        _delete_claim_children(derived, claim_ids)
+    derived.add_all(claim_objects)
+    derived.add_all(diagnostic_objects)
+
+
+def _delete_claim_children(
+    derived: DerivedSession,
+    claim_ids: tuple[str, ...],
+) -> None:
+    schema = derived.schema
+    session = derived.session
+    for table_name in (
+        "claim_concept_link",
+        "claim_numeric_payload",
+        "claim_text_payload",
+        "claim_algorithm_payload",
+        "micropublication_claim",
+    ):
+        table = schema.tables.get(table_name)
+        if table is None or "claim_id" not in table.c:
+            continue
+        session.execute(delete(table).where(table.c.claim_id.in_(claim_ids)))
+    claim_core = schema.tables["claim_core"]
+    session.execute(delete(claim_core).where(claim_core.c.id.in_(claim_ids)))
+    diagnostics = schema.tables["build_diagnostics"]
+    session.execute(
+        delete(diagnostics).where(
+            diagnostics.c.claim_id.in_(claim_ids),
+            diagnostics.c.diagnostic_kind == "promotion_blocked",
+        )
+    )
+
+
+def _grounded_bundle_records(bundle: object) -> tuple[object, ...]:
+    records: list[object] = []
+    sections = getattr(bundle, "sections")
+    for section_name in _SECTION_NAMES:
+        inner_map = sections.get(section_name)
+        if inner_map is None:
+            continue
+        for predicate_id in sorted(inner_map.keys()):
+            rows = inner_map[predicate_id]
+            if not rows:
+                records.append(GroundedFactEmptyPredicateRecord(
+                    section=section_name,
+                    predicate=predicate_id,
+                ))
+                continue
+            for encoded_arguments in sorted(json.dumps(list(arg_tuple)) for arg_tuple in rows):
+                records.append(GroundedFactRecord(
+                    predicate=predicate_id,
+                    arguments=encoded_arguments,
+                    section=section_name,
+                ))
+    records.extend(_grounded_bundle_input_records(bundle))
+    return tuple(records)
+
+
+def _grounded_bundle_input_records(bundle: object) -> tuple[GroundedBundleInputRecord, ...]:
+    rows = (
+        ("source_rule", getattr(bundle, "source_rules")),
+        ("source_superiority", getattr(bundle, "source_superiority")),
+        ("source_fact", getattr(bundle, "source_facts")),
+        ("argument", getattr(bundle, "arguments")),
+    )
+    return tuple(
+        GroundedBundleInputRecord(
+            kind=kind,
+            position=position,
+            payload=_encode_bundle_input(kind, value),
+        )
+        for kind, values in rows
+        for position, value in enumerate(values)
+    )
+
+
+def _restore_embedding_snapshot(
+    derived: DerivedSession,
+    snapshot: EmbeddingSnapshot,
+) -> object | None:
+    caches = tuple(derived.schema.vector_caches.values())
+    if not caches:
+        return None
+    return SqlAlchemyVecSnapshotStore(
+        derived.session.connection(),
+        caches,
+    ).restore(snapshot.to_vec_snapshot())
+
+
+def _embedding_restore_diagnostic_record(exc: Exception) -> BuildDiagnosticsRecord:
+    return BuildDiagnosticsRecord(
+        claim_id=None,
+        source_kind="embedding",
+        source_ref="restore",
+        diagnostic_kind="embedding_restore",
+        severity="warning",
+        blocking=0,
+        message=f"embedding restore failed: {exc}",
+        file=None,
+        detail_json=None,
+    )
+
+
+def _build_exception_record(exc: Exception) -> BuildDiagnosticsRecord:
+    return BuildDiagnosticsRecord(
+        claim_id=None,
+        source_kind="sidecar_build",
+        source_ref=None,
+        diagnostic_kind="build_exception",
+        severity="error",
+        blocking=1,
+        message=str(exc),
+        file=None,
+        detail_json=None,
+    )
 
 
 def build_grounding_sidecar(
@@ -577,24 +754,26 @@ def build_grounding_sidecar(
     """Materialize the grounding substrate into a sidecar-shaped SQLite file."""
 
     def _write_grounding(target_path: Path) -> None:
-        conn = connect_sqlite_store(target_path)
-        try:
-            write_derived_store_schema_metadata(
-                conn,
-                schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
+        schema = world_sqlalchemy_schema()
+        create_sqlalchemy_store(target_path, schema)
+        build_handle = DerivedStoreHandle(
+            projection_id="propstore.world.grounding",
+            source_commit="" if commit_hash is None else str(commit_hash),
+            content_hash="",
+            cache_key="direct-grounding-build",
+            path=target_path,
+        )
+        with build_handle.writable_session(schema) as derived:
+            derived.add(MetaRecord(
                 key=PROPSTORE_WORLD_META_KEY,
-            )
-            create_grounded_fact_table(conn)
+                schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
+            ))
             grounded_bundle = build_grounded_bundle(
                 repo,
                 commit=commit_hash,
             )
-            populate_grounded_facts(conn, grounded_bundle)
-            conn.commit()
-        except Exception:
-            conn.close()
-            raise
-        checkpoint_and_close_sqlite(conn)
+            derived.add_all(_grounded_bundle_records(grounded_bundle))
+            derived.commit()
 
     materialize_sqlite_file(
         output_path,
