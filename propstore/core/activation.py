@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.conditions import checked_condition_set
+from propstore.core.conditions import CheckedConditionSet
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import with_standard_synthetic_bindings
 from propstore.core.conditions.registry import ConceptInfo, KindType
@@ -88,21 +89,6 @@ def claim_lifting_materializations(
     )
 
 
-def _claim_attributes(claim: ClaimNode) -> dict[str, Any]:
-    return claim.attribute_mapping()
-
-
-def _claim_context_id(claim: ClaimNode) -> str | None:
-    context_id = _claim_attributes(claim).get("context_id")
-    return None if context_id is None else str(context_id)
-
-
-def _claim_node_source_artifact(claim: ClaimNode) -> str | None:
-    if claim.provenance is not None and claim.provenance.source_id is not None:
-        return claim.provenance.source_id
-    return claim.claim_id
-
-
 class UnknownConceptInCEL(ValueError):
     """Raised when activation sees a CEL identifier outside the registry."""
 
@@ -167,23 +153,24 @@ def _solver_with_environment_bindings(
     return ConditionSolver(registry)
 
 
-def is_claim_node_active(
-    claim: ClaimNode,
+def is_claim_active(
     *,
+    claim_id: str,
+    claim_context_id: str | None,
+    claim_conditions: CheckedConditionSet | None,
+    source_artifact: str | None,
     environment: Environment,
     solver: ConditionSolver | None,
     lifting_system: LiftingSystem | None = None,
 ) -> bool:
-    claim_context_id = _claim_context_id(claim)
     if not _claim_projected_into_environment(
         claim_context_id=claim_context_id,
-        claim_id=str(claim.claim_id),
+        claim_id=claim_id,
         environment=environment,
         lifting_system=lifting_system,
     ):
         return False
 
-    claim_conditions = claim.checked_conditions
     if claim_conditions is None or not claim_conditions.conditions:
         return True
 
@@ -207,7 +194,7 @@ def is_claim_node_active(
     except ValueError as exc:
         _raise_unknown_concept_if_present(
             exc,
-            source_artifact=_claim_node_source_artifact(claim),
+            source_artifact=source_artifact,
         )
         raise
     except Z3TranslationError:
@@ -229,7 +216,7 @@ def is_claim_node_active(
         except ValueError as exc:
             _raise_unknown_concept_if_present(
                 exc,
-                source_artifact=_claim_node_source_artifact(claim),
+                source_artifact=source_artifact,
             )
             raise
 
@@ -245,8 +232,17 @@ def activate_compiled_world_graph(
     inactive_claim_ids: list[ClaimId] = []
 
     for claim in compiled.claims:
-        if is_claim_node_active(
-            claim,
+        context_id = claim.attribute_value("context_id")
+        source_artifact = (
+            claim.provenance.source_id
+            if claim.provenance is not None and claim.provenance.source_id is not None
+            else str(claim.claim_id)
+        )
+        if is_claim_active(
+            claim_id=str(claim.claim_id),
+            claim_context_id=None if context_id is None else str(context_id),
+            claim_conditions=claim.checked_conditions,
+            source_artifact=source_artifact,
             environment=environment,
             solver=solver,
             lifting_system=lifting_system,
