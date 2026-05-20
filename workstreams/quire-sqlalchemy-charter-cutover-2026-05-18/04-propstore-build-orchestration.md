@@ -182,6 +182,7 @@ Run:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label build-orchestration-charter tests/test_build_sidecar.py tests/test_sidecar_projection_contract.py tests/test_fixture_schema_parity.py
+if (-not (Test-Path -LiteralPath scripts/compare_sqlalchemy_charter_parity.py -PathType Leaf)) { throw "missing scripts/compare_sqlalchemy_charter_parity.py" }
 uv run scripts/compare_sqlalchemy_charter_parity.py --help
 ```
 
@@ -192,12 +193,9 @@ rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
 rg -n -F -- "ProjectionSchema" propstore tests
 rg -n -F -- "ProjectionTable" propstore/derived_build.py propstore/derived_build_plan.py propstore/families/projection_catalog.py tests
 rg -n -F -- "sqlite3.Connection" propstore/derived_build.py propstore/derived_build_plan.py tests
-rg -n -F -- "compare_sqlalchemy_charter_parity.py" scripts
 ```
 
 All searches are zero-hit gates outside notes, workstreams, docs, and reports.
-The parity-harness search is a one-hit existence gate for
-`scripts/compare_sqlalchemy_charter_parity.py`.
 
 ## Completion Criteria
 
