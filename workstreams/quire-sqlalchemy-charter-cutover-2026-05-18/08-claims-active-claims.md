@@ -823,3 +823,13 @@ Recorded 2026-05-20.
   premise fields directly and passes only explicit graph metadata to preference
   scoring. The refreshed active-claim import search reports one remaining ASPIC
   caller, `aspic_bridge/projection.py`, plus the `world` package.
+- ASPIC projection deletion: commit `66dd72c1` removed `ActiveClaim`,
+  `ActiveClaimInput`, and `coerce_active_claims` from
+  `aspic_bridge/projection.py`; projection now requires typed `Claim` objects,
+  uses claim ids and `ClaimConceptLink` association-object links directly, and
+  drops row-only conditions/source-assertion payload reads instead of
+  rebuilding them through another normalizer. `uv run pyright
+  propstore/aspic_bridge/projection.py` passed with 0 errors. The refreshed
+  active-claim import search now reports only the `world` package; the
+  refreshed `CLAIM_ROW_MODEL` search reports `app/claims.py`,
+  `world/atms.py`, `world/overlay.py`, and `world/queries.py`.
