@@ -3,14 +3,15 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import Field, dataclass, field, fields
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCompilationBundle
+from propstore.core.id_types import ConceptId, to_concept_id
 
 if TYPE_CHECKING:
     from quire.projections import ProjectionRow
@@ -20,6 +21,100 @@ if TYPE_CHECKING:
 class ClaimStage(StrEnum):
     AUTHORED = "claim.authored"
     CHECKED = "claim.checked"
+
+
+@dataclass(frozen=True)
+class ClaimAlgorithmVariable:
+    name: str | None = field(default=None, metadata={"payload": "name", "coerce": "str"})
+    symbol: str | None = field(default=None, metadata={"payload": "symbol", "coerce": "str"})
+    concept_id: ConceptId | None = field(
+        default=None,
+        metadata={"payload": "concept", "coerce": "concept_id"},
+    )
+    role: str | None = field(default=None, metadata={"payload": "role", "coerce": "str"})
+    attributes: Mapping[str, Any] = field(default_factory=dict, metadata={"payload_rest": True})
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "attributes", dict(self.attributes))
+        if self.concept_id is not None:
+            object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
+
+
+def claim_algorithm_variable_payload(
+    variable: ClaimAlgorithmVariable,
+) -> dict[str, Any]:
+    data: dict[str, Any] = {}
+    for variable_field in fields(ClaimAlgorithmVariable):
+        if variable_field.metadata.get("payload_rest") is True:
+            data.update(getattr(variable, variable_field.name))
+            continue
+        payload_name = variable_field.metadata.get("payload")
+        if not isinstance(payload_name, str):
+            continue
+        value = getattr(variable, variable_field.name)
+        if value is not None:
+            data[payload_name] = value
+    return data
+
+
+def _claim_algorithm_variable_kwargs(
+    entry: Mapping[object, object],
+) -> dict[str, object]:
+    kwargs: dict[str, object] = {}
+    consumed_payload_keys: set[str] = set()
+    rest_field: Field[Any] | None = None
+
+    for variable_field in fields(ClaimAlgorithmVariable):
+        payload_name = variable_field.metadata.get("payload")
+        if variable_field.metadata.get("payload_rest") is True:
+            rest_field = variable_field
+        if not isinstance(payload_name, str):
+            continue
+        consumed_payload_keys.add(payload_name)
+        value = entry.get(payload_name)
+        if value is None:
+            continue
+        if variable_field.metadata.get("coerce") == "concept_id":
+            kwargs[variable_field.name] = to_concept_id(value)
+        elif variable_field.metadata.get("coerce") == "str":
+            kwargs[variable_field.name] = str(value)
+        else:
+            kwargs[variable_field.name] = value
+
+    if rest_field is not None:
+        kwargs[rest_field.name] = {
+            str(key): value
+            for key, value in entry.items()
+            if key not in consumed_payload_keys and value is not None
+        }
+    return kwargs
+
+
+def parse_claim_algorithm_variables(
+    raw: object,
+) -> tuple[ClaimAlgorithmVariable, ...]:
+    if raw is None or raw == "":
+        return ()
+    loaded = raw
+    if isinstance(raw, str):
+        try:
+            loaded = json.loads(raw)
+        except json.JSONDecodeError:
+            return ()
+    if isinstance(loaded, Mapping):
+        raise ValueError("algorithm claim variables must be a list of variable bindings")
+    if isinstance(loaded, list):
+        variables: list[ClaimAlgorithmVariable] = []
+        for entry in loaded:
+            if not isinstance(entry, Mapping):
+                continue
+            variables.append(
+                ClaimAlgorithmVariable(
+                    **cast(Any, _claim_algorithm_variable_kwargs(entry))
+                )
+            )
+        return tuple(variables)
+    return ()
 
 
 @dataclass(frozen=True)

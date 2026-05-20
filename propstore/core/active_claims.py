@@ -21,33 +21,11 @@ from propstore.core.id_types import (
     to_concept_id,
 )
 from propstore.core.relations import ClaimConceptLinkRole, coerce_claim_concept_link_role
-
-
-@dataclass(frozen=True)
-class ActiveClaimVariable:
-    name: str | None = None
-    symbol: str | None = None
-    concept_id: ConceptId | None = None
-    role: str | None = None
-    attributes: Mapping[str, Any] = field(default_factory=dict)
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "attributes", dict(self.attributes))
-        if self.concept_id is not None:
-            object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
-
-    def to_payload(self) -> dict[str, Any]:
-        data: dict[str, Any] = {}
-        if self.name is not None:
-            data["name"] = self.name
-        if self.symbol is not None:
-            data["symbol"] = self.symbol
-        if self.concept_id is not None:
-            data["concept"] = self.concept_id
-        if self.role is not None:
-            data["role"] = self.role
-        data.update(self.attributes)
-        return data
+from propstore.families.claims.stages import (
+    ClaimAlgorithmVariable,
+    claim_algorithm_variable_payload,
+    parse_claim_algorithm_variables,
+)
 
 
 def _parse_conditions(raw: object) -> tuple[CelExpr, ...]:
@@ -64,42 +42,6 @@ def _parse_conditions(raw: object) -> tuple[CelExpr, ...]:
     if isinstance(raw, (list, tuple)):
         return to_cel_exprs(str(item) for item in raw)
     return to_cel_exprs((str(raw),))
-
-
-def _parse_variables(
-    raw: object,
-) -> tuple[ActiveClaimVariable, ...]:
-    if raw is None or raw == "":
-        return ()
-    loaded = raw
-    if isinstance(raw, str):
-        try:
-            loaded = json.loads(raw)
-        except json.JSONDecodeError:
-            return ()
-    if isinstance(loaded, Mapping):
-        raise ValueError("algorithm claim variables must be a list of variable bindings")
-    if isinstance(loaded, list):
-        variables: list[ActiveClaimVariable] = []
-        for entry in loaded:
-            if not isinstance(entry, Mapping):
-                continue
-            concept = entry.get("concept")
-            variables.append(
-                ActiveClaimVariable(
-                    name=(None if entry.get("name") is None else str(entry.get("name"))),
-                    symbol=(None if entry.get("symbol") is None else str(entry.get("symbol"))),
-                    concept_id=(None if concept is None else to_concept_id(concept)),
-                    role=(None if entry.get("role") is None else str(entry.get("role"))),
-                    attributes={
-                        str(key): value
-                        for key, value in entry.items()
-                        if key not in {"name", "symbol", "concept", "role"} and value is not None
-                    },
-                )
-            )
-        return tuple(variables)
-    return ()
 
 
 def _parse_checked_conditions(raw: object) -> CheckedConditionSet | None:
@@ -203,7 +145,7 @@ class ActiveClaim:
     attributes: Mapping[str, Any] = field(default_factory=dict)
     conditions: tuple[CelExpr, ...] = field(default_factory=tuple)
     checked_conditions: CheckedConditionSet | None = None
-    variables: tuple[ActiveClaimVariable, ...] = field(default_factory=tuple)
+    variables: tuple[ClaimAlgorithmVariable, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "claim_id", to_claim_id(self.claim_id))
@@ -236,7 +178,7 @@ class ActiveClaim:
                 conditions = to_cel_exprs(checked_conditions.sources)
             else:
                 conditions = _parse_conditions(self.conditions_cel)
-        variables = self.variables or _parse_variables(self.variables_json)
+        variables = self.variables or parse_claim_algorithm_variables(self.variables_json)
         object.__setattr__(self, "checked_conditions", checked_conditions)
         object.__setattr__(self, "conditions", to_cel_exprs(conditions))
         object.__setattr__(self, "variables", tuple(variables))
@@ -367,7 +309,7 @@ class ActiveClaim:
     def variable_payload(self) -> list[dict[str, Any]] | None:
         if not self.variables:
             return None
-        return [variable.to_payload() for variable in self.variables]
+        return [claim_algorithm_variable_payload(variable) for variable in self.variables]
 
     def to_dict(self) -> dict[str, Any]:
         from propstore.families.claims.projection_model import CLAIM_ROW_MODEL
