@@ -93,7 +93,7 @@ Decision:
 
 | Inventory surface | Current owner | Final owner | Required action |
 | --- | --- | --- | --- |
-| `propstore/families/claims/projection_model.py` claim-owned symbols | Claim split storage/read mapper plus a co-located justification residual | Claim charter plus association objects | Delete claim-owned symbols in this phase; leave only `JUSTIFICATION_STORAGE_MODEL` and direct support code for Phase 10 |
+| `propstore/families/claims/projection_model.py` claim-owned symbols | Claim split storage/read mapper plus a co-located justification residual | Claim charter plus association objects | Delete claim-owned symbols in this phase; the only permitted residual symbols in this file after this phase are `TEXT_CODEC`, `CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, and `JUSTIFICATION_TABLE` |
 | `propstore/families/claims/storage.py` storage shaping | Loose claim row preparation/helpers | Claim charter generic conversion | Delete storage-shaped helpers |
 | `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | Claim semantic owner modules | Move semantics to claim stages/passes/identity/relation owner modules before deleting storage-shaped remainder |
 | `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model and explicit active-claim view model | Delete projection-row coercion; keep only named active runtime view behavior |
@@ -307,8 +307,7 @@ behavior moves to Quire charter/session/catalog machinery or disappears.
    association objects.
 9. Use Rope for the `ActiveClaimVariable` to `ClaimAlgorithmVariable` move or
    rename before hand-fixing imports and call sites. Verify with the named `rg`
-   gates because tests, docs, and dynamic references may remain outside Rope's
-   model.
+   gates; Rope's model is not accepted as the final reference inventory.
 10. Delete field-specific optional, enum, id, JSON, and row coercers once
    generic charter conversion covers the field.
 11. Run the family gates.
@@ -347,10 +346,17 @@ slice and compare:
 
 The phase fails when a row, key, diagnostic, FTS hit, vector hit, semantic
 query result, graph edge, conflict result, source promotion output, or
-worldline materialization disappears. The only accepted disappearances are the
-table constants, projection rows, row helpers, and coercion paths named as
-deletion targets in this file. Accepted column/table renames must be listed in
-the implementation closure report or commit message.
+worldline materialization disappears.
+
+Accepted parity difference allowlist:
+
+- deleted projection constants, projection rows, row helpers, and coercion
+  paths named in this file's deletion targets;
+- no column rename, table rename, row disappearance, key disappearance,
+  diagnostic disappearance, FTS-result disappearance, vector-result
+  disappearance, semantic-query disappearance, graph-edge disappearance,
+  conflict-result disappearance, source-promotion disappearance, or
+  worldline-materialization disappearance is allowed.
 
 ## Required Gates
 

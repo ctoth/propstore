@@ -247,7 +247,6 @@ uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-be
 - compare row counts and primary-key/key-set coverage for every table the phase owns;
 - compare the exact owner API results named in the active child workstream's
   data-parity section;
-- explicitly list accepted column/table renames in the commit message;
 - fail the phase when a row, key, diagnostic, FTS hit, vector hit, or semantic query result disappears. The only accepted disappearance is a table or helper already named as a deletion target in the active workstream.
 
 The build-orchestration cutover must additionally compare table names, primary keys, row counts, and key sets between the current mainline sidecar and the charter-generated sidecar from the same repository snapshot.

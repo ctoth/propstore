@@ -131,9 +131,10 @@ as the work queue:
   `propstore/core/justifications.py`.
 
 This phase owns final deletion of `propstore/families/claims/projection_model.py`.
-If that file still contains anything besides `JUSTIFICATION_STORAGE_MODEL` and
-direct support code for that model, Phase 8 is incomplete and this phase is
-blocked.
+At the start of this phase, the only permitted symbols remaining in that file
+are `TEXT_CODEC`, `CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, and
+`JUSTIFICATION_TABLE`. If any other symbol remains in that file, Phase 8 is
+incomplete and this phase is blocked.
 
 ## Helper Classification
 
@@ -287,11 +288,21 @@ slice and compare:
 
 The phase fails when a row, key, diagnostic, semantic query result,
 micropublication link, justification view result, analyzer result, ASPIC input,
-or worldline argumentation result disappears. The accepted disappearances are
-the projection rows, row carriers, row dictionaries, mapping coercers,
-duplicated canonical conversion role, table helpers, and generic helper paths
-named as deletion targets in this file. Accepted column/table renames must be
-listed in the implementation closure report or commit message.
+or worldline argumentation result disappears.
+
+Accepted parity difference allowlist:
+
+- deleted projection rows, row carriers, row dictionaries, mapping coercers,
+  duplicated canonical conversion role, table helpers, and generic helper paths
+  named in this file's deletion targets;
+- final deletion of `TEXT_CODEC`, `CLAIM_ID_CODEC`,
+  `JUSTIFICATION_STORAGE_MODEL`, `JUSTIFICATION_TABLE`, and
+  `propstore/families/claims/projection_model.py`;
+- no column rename, table rename, row disappearance, key disappearance,
+  diagnostic disappearance, semantic-query disappearance, micropublication-link
+  disappearance, justification-view disappearance, analyzer-result
+  disappearance, ASPIC-input disappearance, or worldline-argumentation
+  disappearance is allowed.
 
 ## Required Gates
 

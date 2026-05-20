@@ -19,8 +19,9 @@ This workstream owns:
   embedding-source, and concept runtime query results.
 
 It does not own claims, relations, contexts, world-query conversion, concept
-sidecar vector runtime migration, or generic Quire FTS/vector capability work
-except where a gate exposes a missing prerequisite. Phase 11 owns
+sidecar vector runtime migration, or generic Quire FTS/vector capability work.
+Missing generic Quire FTS/vector capability blocks this workstream and returns
+to Phases 1-4; it is not discovered or implemented here. Phase 11 owns
 `propstore/families/concepts/sidecar_runtime.py`.
 
 ## Prerequisites
@@ -313,7 +314,7 @@ Compare:
 - parameterization traversal results;
 - concept FTS hit sets;
 - concept embedding source rows and entity resolution results;
-- accepted column/table renames, explicitly listed in the commit message.
+- exact column and table names.
 
 Fail the phase when a row, key, FTS hit, embedding-source row, vector entity,
 or semantic query result disappears. The only accepted disappearance is a

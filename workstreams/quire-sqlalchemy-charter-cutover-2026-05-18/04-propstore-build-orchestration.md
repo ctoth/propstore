@@ -171,9 +171,8 @@ uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-be
 6. Compare key sets.
 7. Compare build diagnostics emitted by the build path.
 8. Compare catalog/schema hash inputs and recorded schema identity.
-9. Record explicit column rename allowances in the phase commit message or
-   workstream report.
-10. Fail on any dropped table, dropped key, missing diagnostic, missing FTS
+9. Compare column and table names exactly.
+10. Fail on any renamed column, renamed table, dropped table, dropped key, missing diagnostic, missing FTS
     hit, missing vector hit, or missing semantic query result. The only
     accepted drop is a table already named as a deletion target in this
     workstream.

@@ -258,11 +258,18 @@ slice and compare:
 
 The phase fails when a row, key, diagnostic, semantic query result, graph edge,
 stance summary, conflict result, ASPIC input, support-revision input, or
-worldline relation result disappears. The accepted disappearances are the
-projection model file, storage model constants, row classes, query-plan
-helpers, and generic helper paths named as deletion targets in this file.
-Accepted column/table renames must be listed in the implementation closure
-report or commit message.
+worldline relation result disappears.
+
+Accepted parity difference allowlist:
+
+- deleted projection model file, storage model constants, row classes,
+  query-plan helpers, and generic helper paths named in this file's deletion
+  targets;
+- no column rename, table rename, row disappearance, key disappearance,
+  diagnostic disappearance, semantic-query disappearance, graph-edge
+  disappearance, stance-summary disappearance, conflict-result disappearance,
+  ASPIC-input disappearance, support-revision-input disappearance, or
+  worldline-relation-result disappearance is allowed.
 
 ## Required Gates
 

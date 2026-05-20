@@ -16,8 +16,9 @@ This workstream owns:
 - data parity for source rows and source-tied diagnostics.
 
 It does not own forms, concepts, claims, world-query conversion, embeddings, or
-generic Quire SQLAlchemy capability work except where a source gate exposes a
-missing prerequisite.
+generic Quire SQLAlchemy capability work. Missing generic Quire SQLAlchemy
+capability blocks this workstream and returns to Phases 1-4; it is not
+discovered or implemented here.
 
 ## Prerequisites
 
@@ -232,7 +233,7 @@ Compare:
   promotion fixtures exercised by `tests/test_source_promotion_alignment.py`
   and `tests/test_source_promote_dangling_refs.py`;
 - promotion-blocked diagnostic delete behavior;
-- accepted column/table renames, explicitly listed in the commit message.
+- exact column and table names.
 
 Fail the phase when a source row, source key, diagnostic row, diagnostic key,
 or source-status semantic result disappears. The only accepted disappearance

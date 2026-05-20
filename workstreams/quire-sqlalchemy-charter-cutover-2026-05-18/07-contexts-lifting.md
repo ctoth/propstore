@@ -213,10 +213,15 @@ slice and compare:
 - build diagnostics associated with invalid context/lifting rows.
 
 The phase fails when a row, key, diagnostic, semantic query result, or lifting
-materialization disappears. The only accepted disappearances are the table
-constants, projection rows, and helper paths named as deletion targets in this
-file. Accepted column/table renames must be listed in the implementation
-closure report or commit message.
+materialization disappears.
+
+Accepted parity difference allowlist:
+
+- deleted table constants, projection rows, and helper paths named in this
+  file's deletion targets;
+- no column rename, table rename, row disappearance, key disappearance,
+  diagnostic disappearance, semantic-query disappearance, or lifting
+  materialization disappearance is allowed.
 
 ## Required Gates
 

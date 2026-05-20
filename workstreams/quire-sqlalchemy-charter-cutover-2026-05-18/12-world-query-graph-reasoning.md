@@ -272,11 +272,18 @@ slice and compare:
 
 The phase fails when a row, key, semantic query result, graph edge, ATMS label,
 reasoning result, render policy result, worldline materialization, support
-revision result, or ASPIC output disappears. The only accepted disappearances
-are the raw connection paths, projection imports, row-coercion helpers, raw SQL
-snippets, and constructor names listed as deletion targets in this file.
-Accepted output-shape renames must be listed in the implementation closure
-report or commit message.
+revision result, or ASPIC output disappears.
+
+Accepted parity difference allowlist:
+
+- deleted raw connection paths, projection imports, row-coercion helpers, raw
+  SQL snippets, and constructor names listed as deletion targets in this file;
+- no output-shape rename, row disappearance, key disappearance,
+  semantic-query disappearance, graph-edge disappearance, ATMS-label
+  disappearance, reasoning-result disappearance, render-policy-result
+  disappearance, worldline-materialization disappearance,
+  support-revision-result disappearance, or ASPIC-output disappearance is
+  allowed.
 
 ## Required Gates
 

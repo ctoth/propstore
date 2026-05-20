@@ -306,10 +306,16 @@ slice and compare:
 
 The phase fails when a row, key, diagnostic, vector hit, embedding source
 entity, grounded bundle result, calibration result, or semantic query result
-disappears. The only accepted disappearances are the table constants,
-projection rows, vector declarations, and helper paths named as deletion
-targets in this file. Accepted column/table renames must be listed in the
-implementation closure report or commit message.
+disappears.
+
+Accepted parity difference allowlist:
+
+- deleted table constants, projection rows, vector declarations, and helper
+  paths named in this file's deletion targets;
+- no column rename, table rename, row disappearance, key disappearance,
+  diagnostic disappearance, vector-hit disappearance, embedding-source-entity
+  disappearance, grounded-bundle-result disappearance, calibration-result
+  disappearance, or semantic-query disappearance is allowed.
 
 ## Required Gates
 
