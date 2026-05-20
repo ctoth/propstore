@@ -25,9 +25,14 @@ from propstore.claims import (
 )
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
+from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.claim_types import ClaimType, coerce_claim_type
-from propstore.core.conditions import checked_condition_set_to_json
+from propstore.core.conditions import (
+    CheckedConditionSet,
+    checked_condition_set_from_json,
+    checked_condition_set_to_json,
+)
 from propstore.core.id_types import (
     ClaimId,
     to_claim_id,
@@ -43,8 +48,11 @@ from propstore.families.claims.storage import (
     prepare_claim_concept_link_rows,
 )
 from propstore.families.claims.stages import (
+    ClaimAlgorithmVariable,
+    claim_algorithm_variable_payload,
     PromotionBlockedClaimFact,
     RawIdQuarantineRecord,
+    parse_claim_algorithm_variables,
 )
 from propstore.families.diagnostics.declaration import (
     QuarantineDiagnostic,
@@ -96,6 +104,144 @@ class Claim:
     text_payload: "ClaimTextPayload | None"
     algorithm_payload: "ClaimAlgorithmPayload | None"
     source_assertions: list["ClaimSourceAssertion"]
+
+    def concept_ids_for_role(self, role: ClaimConceptLinkRole) -> tuple[str, ...]:
+        return tuple(
+            str(link.concept_id)
+            for link in self.concept_links
+            if link.role is role
+        )
+
+    @property
+    def output_concept_id(self) -> str | None:
+        concept_ids = self.concept_ids_for_role(ClaimConceptLinkRole.OUTPUT)
+        return concept_ids[0] if concept_ids else None
+
+    @property
+    def value_concept_id(self) -> str | None:
+        return self.output_concept_id or self.target_concept
+
+    @property
+    def about_concept_ids(self) -> tuple[str, ...]:
+        return self.concept_ids_for_role(ClaimConceptLinkRole.ABOUT)
+
+    @property
+    def input_concept_ids(self) -> tuple[str, ...]:
+        return self.concept_ids_for_role(ClaimConceptLinkRole.INPUT)
+
+    @property
+    def target_concept_ids(self) -> tuple[str, ...]:
+        return self.concept_ids_for_role(ClaimConceptLinkRole.TARGET)
+
+    @property
+    def checked_conditions(self) -> CheckedConditionSet | None:
+        text_payload = self.text_payload
+        if text_payload is None or not text_payload.conditions_ir:
+            return None
+        loaded = json.loads(text_payload.conditions_ir)
+        if not isinstance(loaded, Mapping):
+            raise ValueError("claim conditions_ir must decode to a mapping")
+        return checked_condition_set_from_json(loaded)
+
+    @property
+    def conditions(self) -> tuple[CelExpr, ...]:
+        checked_conditions = self.checked_conditions
+        if checked_conditions is not None:
+            return to_cel_exprs(checked_conditions.sources)
+        text_payload = self.text_payload
+        if text_payload is None or not text_payload.conditions_cel:
+            return ()
+        loaded = json.loads(text_payload.conditions_cel)
+        if not isinstance(loaded, list):
+            raise ValueError("claim conditions_cel must decode to a list")
+        return to_cel_exprs(str(item) for item in loaded)
+
+    @property
+    def variables(self) -> tuple[ClaimAlgorithmVariable, ...]:
+        algorithm_payload = self.algorithm_payload
+        if algorithm_payload is None:
+            return ()
+        return parse_claim_algorithm_variables(algorithm_payload.variables_json)
+
+    def variable_bindings(self) -> dict[str, str]:
+        bindings: dict[str, str] = {}
+        for variable in self.variables:
+            if variable.concept_id is None:
+                continue
+            name = variable.name or variable.symbol
+            if name:
+                bindings[name] = str(variable.concept_id)
+        return bindings
+
+    def variable_concept_ids(self) -> tuple[str, ...]:
+        return tuple(
+            str(variable.concept_id)
+            for variable in self.variables
+            if variable.concept_id is not None
+        )
+
+    def variable_payload(self) -> list[dict[str, Any]] | None:
+        if not self.variables:
+            return None
+        return [claim_algorithm_variable_payload(variable) for variable in self.variables]
+
+    def to_source_claim_payload(self) -> dict[str, Any]:
+        numeric_payload = self.numeric_payload
+        text_payload = self.text_payload
+        algorithm_payload = self.algorithm_payload
+        source: dict[str, Any] = {
+            "id": self.id,
+            "type": self.type.value,
+            "target_concept": self.target_concept,
+            "context": {"id": self.context_id},
+            "source_paper": self.source_paper,
+            "provenance": json.loads(self.provenance_json)
+            if self.provenance_json
+            else None,
+        }
+        if self.type is ClaimType.PARAMETER and self.output_concept_id is not None:
+            source["output_concept"] = self.output_concept_id
+        if (
+            self.type is ClaimType.MEASUREMENT
+            and self.output_concept_id is not None
+            and self.target_concept is None
+        ):
+            source["target_concept"] = self.output_concept_id
+        if self.type is ClaimType.ALGORITHM and self.output_concept_id is not None:
+            source["output_concept"] = self.output_concept_id
+        if numeric_payload is not None:
+            source.update(
+                value=numeric_payload.value,
+                lower_bound=numeric_payload.lower_bound,
+                upper_bound=numeric_payload.upper_bound,
+                uncertainty=numeric_payload.uncertainty,
+                uncertainty_type=numeric_payload.uncertainty_type,
+                sample_size=numeric_payload.sample_size,
+                unit=numeric_payload.unit,
+            )
+        if text_payload is not None:
+            source.update(
+                conditions=json.loads(text_payload.conditions_cel)
+                if text_payload.conditions_cel
+                else [],
+                statement=text_payload.statement,
+                expression=text_payload.expression,
+                sympy=text_payload.sympy_generated,
+                name=text_payload.name,
+                measure=text_payload.measure,
+                listener_population=text_payload.listener_population,
+                methodology=text_payload.methodology,
+                notes=text_payload.notes,
+            )
+        if algorithm_payload is not None:
+            source.update(
+                body=algorithm_payload.body,
+                stage=algorithm_payload.algorithm_stage,
+            )
+            variable_payload = self.variable_payload()
+            if variable_payload is not None:
+                source["variables"] = variable_payload
+        return {key: value for key, value in source.items() if value is not None}
 
 
 class ClaimConceptLink:
