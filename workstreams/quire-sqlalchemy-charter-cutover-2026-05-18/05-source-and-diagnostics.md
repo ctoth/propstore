@@ -402,3 +402,22 @@ Prerequisites:
   `quality_json`, and `derived_from_json` returned zero production/test hits;
   focused pyright over `propstore/families/claims/declaration.py` and
   `propstore/families/claims/projection_model.py` returned 0 errors.
+- Commit `90dac376` deleted the diagnostic projection table surface needed by
+  Phase 6 source status/finalize/promote: `BUILD_DIAGNOSTICS_PROJECTION`,
+  `SourceStatusDiagnosticRow`, `QuarantinableWriter`, `Written`,
+  `Quarantined`, `has_build_diagnostics_table`,
+  `select_source_status_diagnostic_rows`, and
+  `compile_promotion_blocked_diagnostic_rows` are gone from
+  `propstore/families/diagnostics/declaration.py`.
+- Commit `90dac376` routes source-status diagnostics through Quire
+  SQLAlchemy sessions and the mapped `BuildDiagnostic` model, updates
+  `WorldQuery.build_diagnostics()` to query through the derived store session,
+  and keeps source promotion-blocked diagnostic semantics as typed diagnostic
+  objects.
+- Focused diagnostics pyright passed:
+  `uv run pyright propstore/families/diagnostics/declaration.py propstore/source/status.py propstore/world/model.py propstore/derived_build.py propstore/families/claims/declaration.py propstore/families/claims/stages.py`
+  returned 0 errors.
+- Focused diagnostics/source-status gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label source-diagnostics-focused tests/test_cli_source_status.py tests/remediation/phase_7_race_atomicity/test_T7_5c_source_status_like_escape.py tests/remediation/phase_2_gates/test_T2_1_quarantine_writer.py`
+  returned `7 passed`; log:
+  `logs/test-runs/source-diagnostics-focused-20260520-121239.log`.
