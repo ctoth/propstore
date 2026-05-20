@@ -153,6 +153,12 @@ Implement the target path:
 10a. Build orchestration does not catch Quire SQLAlchemy schema/catalog
      validation failures to rewrite them into old projection-schema or sidecar
      schema messages.
+10b. If the build-orchestration replacement touches `WorldQuery` sidecar
+     validation while opening the new derived-store handle/session, delete the
+     old `_validate_schema` message-rewrite wrapper in that same slice instead
+     of carrying it forward. If Phase 5 does not touch that runtime validation
+     path, leave the code unchanged and let `12-world-query-graph-reasoning.md`
+     own the deletion.
 11. `scripts/compare_sqlalchemy_charter_parity.py` exists before source,
     forms, concepts, claims, relations, contexts, micropublications, rules,
     embeddings, or world-query cutovers start.
@@ -439,4 +445,7 @@ Old validation-wrapper audit:
   `ProjectionSchemaError`, `Rebuild with 'pks build'`, and `str(error)` found
   no other production error-message rewrite matching this compatibility shape.
 - The owner for deleting that wrapper and its tests is
-  `12-world-query-graph-reasoning.md`, not a Phase 5 compatibility shim.
+  `12-world-query-graph-reasoning.md`, unless Phase 5 directly replaces the
+  same `WorldQuery` validation path while wiring derived-store handles. In that
+  case the wrapper is deleted immediately in the Phase 5 slice; no temporary
+  compatibility wrapper is allowed.

@@ -165,6 +165,11 @@ rg -n -F -- "SidecarClaimRelationStore" propstore tests
 rg -n -F -- "find_similar_claim_rows" propstore tests
 rg -n -F -- "find_similar_concept_rows" propstore tests
 rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
+rg -n -F -- "Unsupported sidecar schema" propstore tests
+rg -n -F -- "ProjectionSchemaError" propstore tests
+rg -n -F -- "validate_derived_store_schema" propstore tests
+rg -n -F -- "schema.validate_connection" propstore tests
+rg -n -F -- "Rebuild with 'pks build'" propstore tests
 ```
 
 Gate: zero production hits. Documentation hits are limited to notes,
@@ -242,6 +247,9 @@ The cutover is complete only when every item is checked:
   not use the generic `from_mapping` name.
 - [ ] No PascalCase `Active*` production/report/model type remains.
 - [ ] `WorldQuery` uses Quire sessions and typed model queries.
+- [ ] `WorldQuery` has no projection-schema validation wrapper and does not
+  rewrite Quire schema/catalog validation failures into old sidecar-schema
+  messages.
 - [ ] Every row in `inventory-matrix.md` has a final delete, move, replace, or
   keep-as-semantic-owner outcome in a commit message or final closure report.
 - [ ] Every family cutover has a passing data-parity gate for row counts, key

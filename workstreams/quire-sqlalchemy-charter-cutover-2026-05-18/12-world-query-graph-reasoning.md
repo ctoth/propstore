@@ -76,6 +76,7 @@ workstream. Production hits outside those targets block implementation.
 | Inventory surface | Current owner | Final owner | Required action |
 | --- | --- | --- | --- |
 | `propstore/world/model.py` | Primary sidecar query facade over raw SQLite | Propstore `WorldQuery` over Quire read-only sessions | Replace raw connection/selectors with model/session queries |
+| `propstore/world/model.py::_validate_schema` | Projection-schema validation wrapper that rewrites errors to `Unsupported sidecar schema` | No Propstore compatibility wrapper; Quire SQLAlchemy catalog/session validation failures flow directly to owner-layer callers | Delete wrapper and update tests away from old projection wording |
 | `propstore/world/queries.py` | World query helpers through projection rows | Typed world query helpers | Replace projection-model imports |
 | `propstore/world/bound.py` and `propstore/world/overlay.py` | Bound/overlay worlds over projection rows | Bound/overlay worlds over typed model graph/store APIs | Replace row-model imports |
 | `propstore/world/atms.py` | ATMS construction through projection rows | ATMS construction through typed graph/relation models | Replace row-model imports |
@@ -238,6 +239,13 @@ Execute in this order:
 8a. Replace `_validate_schema` with Quire SQLAlchemy schema/catalog validation
     through the derived-store handle/session path and delete message rewriting
     around old `Unsupported sidecar schema` wording.
+8b. Update `tests/test_world_query.py` and
+    `tests/test_sidecar_projection_contract.py` so they no longer assert
+    `Unsupported sidecar schema`, `ProjectionSchemaError`,
+    `validate_derived_store_schema`, `schema.validate_connection`, or
+    `Rebuild with 'pks build'`. New tests should assert the Quire SQLAlchemy
+    catalog/session validation contract or the app/CLI/web presentation layer
+    error mapping, depending on the boundary under test.
 9. Rename `ActiveWorldGraph` to `WorldActivationGraph`; it remains a semantic
    activation result because it carries environment plus active/inactive claim
    id sets, but it stops using the misleading active-object-family spelling.
