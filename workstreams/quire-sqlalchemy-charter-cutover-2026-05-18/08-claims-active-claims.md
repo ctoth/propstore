@@ -795,3 +795,10 @@ Recorded 2026-05-20.
   `worldline/resolution.py`; the refreshed `CLAIM_ROW_MODEL` search now
   reports `app/claims.py`, `world/queries.py`, `world/overlay.py`,
   `world/atms.py`, and `worldline/resolution.py`.
+- Worldline resolution deletion: commit `b2be9db5` removed `ActiveClaim` and
+  `CLAIM_ROW_MODEL` from `worldline/resolution.py`; worldline target/input
+  rendering now uses typed `Claim` ids/types plus the already-computed
+  `ValueResult.value`, and drops payload-row fields instead of rebuilding them.
+  The refreshed active-claim import search now reports only `aspic_bridge` and
+  `world`; the refreshed `CLAIM_ROW_MODEL` search now reports `app/claims.py`,
+  `world/atms.py`, `world/overlay.py`, and `world/queries.py`.
