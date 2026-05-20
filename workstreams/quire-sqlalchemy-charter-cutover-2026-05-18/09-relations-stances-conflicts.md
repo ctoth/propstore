@@ -29,7 +29,8 @@ Final state:
 
 Complete the earlier cutover workstreams before starting implementation:
 
-Required phase file prerequisites: `01-quire-capability-and-charter.md`,
+Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
+`helper-ledger.md`, `01-quire-capability-and-charter.md`,
 `02-quire-sqlalchemy-engine.md`, `03-quire-fts-vector.md`,
 `04-propstore-build-orchestration.md`, `05-source-and-diagnostics.md`,
 `06-forms-concepts-parameterizations.md`, `07-contexts-lifting.md`,

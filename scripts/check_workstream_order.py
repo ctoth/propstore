@@ -103,11 +103,7 @@ def check_split_workstream(workstream: Path, text: str) -> int:
         if requires_declared_prerequisites(filename) and not has_prerequisite_section(child_text):
             failures.append(f"{filename} is missing a prerequisite section")
 
-        required_prior = {
-            earlier
-            for earlier in ordered_files[:index]
-            if requires_declared_prerequisites(earlier)
-        }
+        required_prior = set(ordered_files[:index]) if requires_declared_prerequisites(filename) else set()
         missing_prior = sorted(required_prior - prerequisites)
         for prerequisite in missing_prior:
             failures.append(f"{filename} omits required earlier phase prerequisite: {prerequisite}")

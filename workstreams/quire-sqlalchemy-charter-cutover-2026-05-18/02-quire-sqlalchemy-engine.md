@@ -35,6 +35,7 @@ The end state for this workstream is:
 
 ## Prerequisites
 
+- `00-index.md`, `inventory-matrix.md`, and `helper-ledger.md` are complete.
 - `01-quire-capability-and-charter.md` is complete.
 - Quire SQLAlchemy dependency is declared from a published package source.
 - Quire capability proof tests pass for imperative mapping, `metadata` field

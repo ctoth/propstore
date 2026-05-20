@@ -25,6 +25,7 @@ def test_split_workstream_checker_rejects_prose_prerequisites(tmp_path, capsys) 
 
 ## Prerequisites
 
+- `00-index.md`.
 - Quire SQLAlchemy table/mapping/session/catalog engine.
 """,
         encoding="utf-8",
@@ -63,6 +64,8 @@ def test_split_workstream_checker_reads_prerequisite_gate_dependencies(tmp_path,
         """# Capability
 
 ## Prerequisites
+
+- `00-index.md`.
 """,
         encoding="utf-8",
     )
@@ -102,6 +105,8 @@ def test_split_workstream_checker_requires_all_earlier_phase_prerequisites(tmp_p
         """# Capability
 
 ## Prerequisites
+
+- `00-index.md`.
 """,
         encoding="utf-8",
     )

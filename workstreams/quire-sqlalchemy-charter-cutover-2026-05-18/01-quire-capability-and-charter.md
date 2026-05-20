@@ -37,6 +37,9 @@ The end state for this workstream is:
 
 ## Prerequisites
 
+Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
+`helper-ledger.md`.
+
 - Confirm the Quire and Propstore worktree states before editing.
 - Confirm `reports/code-inventory-2026-05-17.md` is still present and is the
   controlling inventory.

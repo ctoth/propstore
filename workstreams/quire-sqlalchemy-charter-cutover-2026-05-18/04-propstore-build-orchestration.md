@@ -49,7 +49,8 @@ family production paths in this workstream.
 
 Before implementation:
 
-Required phase file prerequisites: `01-quire-capability-and-charter.md`,
+Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
+`helper-ledger.md`, `01-quire-capability-and-charter.md`,
 `02-quire-sqlalchemy-engine.md`, `03-quire-fts-vector.md`.
 
 1. Confirm the Quire SQLAlchemy dependency and capability workstream is
