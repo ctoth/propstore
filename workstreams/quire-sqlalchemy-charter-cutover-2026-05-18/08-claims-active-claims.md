@@ -134,7 +134,8 @@ new generic coercion layer in Propstore.
 
 Before the next Phase 10 code slice, read and satisfy
 `duplicate-definition-audit-2026-05-20.md` and
-`charter-field-metadata-spec-2026-05-20.md`. These files are binding for this
+`charter-field-metadata-spec-2026-05-20.md` and
+`coercion-compatibility-audit-2026-05-20.md`. These files are binding for this
 phase: no `*CompiledPayload`, `*_from_payload` replacement factory, scalar
 field DTO, broad `**values` mapped-model constructor, mapping-repair input
 union, or table-routing helper may be added as a substitute for deleted
@@ -696,3 +697,11 @@ Recorded 2026-05-20.
   spec says the replacement is not "put everything in metadata"; generic
   model construction and table routing must be Quire capability, and the claim
   slice must return to Quire if that capability is not present.
+- Coercion/compatibility audit: `coercion-compatibility-audit-2026-05-20.md`
+  requires classification of every `coerce`, `from_row_mapping`, old-shape,
+  fallback, and compatibility path into real IO boundary, semantic lowering,
+  or illegal compatibility shim before Phase 10 resumes. Known claim illegal
+  surfaces include `ActiveClaim.from_row_mapping`, `coerce_active_claim`,
+  `coerce_active_claims`, `ActiveClaimInput`, `CLAIM_ROW_MODEL.coerce`,
+  `prepare_claim_insert_row`, `canonicalize_claim_for_storage` as a storage
+  repair surface, `_optional_*`, and typed-claim field extraction helpers.
