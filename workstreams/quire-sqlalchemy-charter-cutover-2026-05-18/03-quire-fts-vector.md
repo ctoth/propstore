@@ -286,5 +286,13 @@ Prerequisites:
 `sqlalchemy-fts5` prerequisite fix:
 
 - Commit `04eab80 Support Python 3.11` changes `requires-python` to `>=3.11`, adds the Python 3.11 classifier, changes Pyright `pythonVersion` to `3.11`, and refreshes `uv.lock`.
+- Commit `9af77f4 Type FTS5 SQLAlchemy constructs` fixes strict Pyright typing for the SQLAlchemy DDL/expression/table hooks and property tests.
+- Commit `e50ebd2 Add Propstore-shaped FTS proofs` adds concept-like and claim-like FTS5 proof coverage for stable ids and ranks.
+- Focused proof gate: `uv run pytest -vv tests/test_propstore_shapes.py` passed with 2 passed.
+- Commit `ac6d059 Constrain generated FTS identifiers` fixes the existing Hypothesis DDL property gate by excluding FTS5-reserved generated table names and passing insert payloads as mappings.
+- Full `sqlalchemy-fts5` gates after the fixes:
+  - `uv run pyright` passed with 0 errors.
+  - `uv run pytest -vv` passed with 48 passed.
+- Pushed immutable `sqlalchemy-fts5` commit for Quire consumption: `ac6d05968f2f3bcf61c20a09efa41de4a605560d` (`origin/master`, `git@github.com:ctoth/sqlalchemy-fts5.git`).
 
-Next required item: run `sqlalchemy-fts5` `uv run pyright` and `uv run pytest -vv`, then add or fix FTS proof coverage as needed.
+Next required item: pin Quire to the pushed `sqlalchemy-fts5` commit and implement Quire FTS/vector declarations, lifecycle, query, and catalog support.
