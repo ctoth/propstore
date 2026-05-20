@@ -511,6 +511,16 @@ Next required item: run the Phase 5 required logged pytest gate, repair only
 failures caused by the deletion/replacement, then run the help, old-path
 search, and build-orchestration parity gates.
 
+Phase 5 required logged pytest gate:
+
+- Required logged pytest gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label build-orchestration-charter tests/test_build_sidecar.py tests/test_sidecar_projection_contract.py tests/test_fixture_schema_parity.py`
+  passed with 113 passed; log
+  `logs\test-runs\build-orchestration-charter-20260520-112156.log`.
+
+Next required item: run the parity harness logged pytest gate, help gate,
+old-path searches, and build-orchestration parity gate.
+
 Old validation-wrapper audit:
 
 - Exact-string audit found one production old-schema message rewrite:
