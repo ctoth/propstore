@@ -769,3 +769,8 @@ Recorded 2026-05-20.
   The refreshed active-claim import search now reports only `aspic_bridge`,
   `app`, `preference.py`, `praf/engine.py`, `world`, and
   `worldline/resolution.py`.
+- Preference deletion: commit `699590f8` removed the active-claim branch from
+  `preference.py`; preference scoring now consumes the mapping-shaped graph
+  metadata already passed by analyzers and tests. The refreshed active-claim
+  import search now reports `aspic_bridge`, `app`, `praf/engine.py`, `world`,
+  and `worldline/resolution.py`.
