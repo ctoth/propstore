@@ -246,7 +246,7 @@ missing SQLAlchemy charter, polymorphic mapping, JSON, enum, relationship,
 catalog, reference/FK, or session capability returns the work to the Quire
 owner workstream.
 
-## Data Parity Gate
+## Data-Parity Gate
 
 ```powershell
 uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/relations-stances-conflicts/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/relations-stances-conflicts/after.sqlite --owner relations-stances-conflicts --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/09-relations-stances-conflicts.md --out reports/sqlalchemy-charter-parity/relations-stances-conflicts.json

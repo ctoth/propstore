@@ -284,7 +284,9 @@ Execute in this order:
 Implementation starts only after Quire SQLAlchemy charter, JSON, catalog,
 session, FTS, and vector capabilities are complete.
 
-## Data-Parity And Metric Gates
+## Data-Parity Gate
+
+This gate includes the metric/vector comparisons required by this phase.
 
 ```powershell
 uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings/after.sqlite --owner rules-grounding-calibration-embeddings --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/11-rules-grounding-calibration-embeddings.md --out reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings.json

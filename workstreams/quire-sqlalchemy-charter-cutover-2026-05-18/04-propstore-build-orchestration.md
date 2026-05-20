@@ -253,6 +253,21 @@ uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-be
     accepted drop is a table already named as a deletion target in this
     workstream.
 
+Accepted parity difference allowlist:
+
+- deleted direct `ProjectionSchema` creation;
+- deleted direct `PROPSTORE_WORLD_PROJECTION_SCHEMA` creation;
+- deleted build-plan row-set abstractions whose only purpose is projection
+  insertion;
+- deleted raw `sqlite3.Connection` sidecar population orchestration;
+- deleted build orchestration imports of Quire projection primitives;
+- deleted manual world schema assembly in
+  `propstore/families/projection_catalog.py`;
+- no column rename, table rename, row disappearance, key disappearance,
+  diagnostic disappearance, FTS-result disappearance, vector-result
+  disappearance, semantic-query disappearance, or schema-identity
+  disappearance is allowed.
+
 ## Required Gates
 
 Run:

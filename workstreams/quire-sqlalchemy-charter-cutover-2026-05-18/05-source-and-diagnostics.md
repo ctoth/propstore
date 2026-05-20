@@ -244,6 +244,15 @@ Fail the phase when a source row, source key, diagnostic row, diagnostic key,
 or source-status semantic result disappears. The only accepted disappearance
 is a table, helper, or column already named as a deletion target in this file.
 
+Accepted parity difference allowlist:
+
+- deleted source projection constants, row classes, row carriers, table
+  helpers, diagnostic table helpers, and raw sidecar selectors named in this
+  file's deletion targets;
+- no column rename, table rename, source row disappearance, source key
+  disappearance, diagnostic row disappearance, diagnostic key disappearance,
+  or source-status semantic-result disappearance is allowed.
+
 ## Required Gates
 
 Run:

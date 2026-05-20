@@ -22,7 +22,8 @@ End state:
   objects, not a second claim object family.
 - `ActiveClaimInput`, `coerce_active_claim`, and `coerce_active_claims` are
   deleted with the dict/mapping boundary they supported.
-- `ActiveClaimVariable` is renamed/moved to the claim algorithm payload owner
+- `ActiveClaimVariable` is renamed/moved to
+  `propstore/families/claims/stages.py::ClaimAlgorithmVariable`
   as `ClaimAlgorithmVariable`.
 
 ## Prerequisites
@@ -129,10 +130,10 @@ as the work queue:
 - `_optional_float_input`;
 - `_optional_string`;
 - `_optional_int`;
-- claim projection codecs for claim id, concept id, claim type, algorithm
-  stage, logical ids, provenance, source, and concept-link role;
+- claim projection codecs for concept id, claim type, algorithm stage, logical
+  ids, provenance, source, and concept-link role;
 - `propstore/core/active_claims.py` after `ClaimAlgorithmVariable` is moved to
-  the claim algorithm payload owner;
+  `propstore/families/claims/stages.py`;
 - `ActiveClaim` row-repair coercion that duplicates the claim charter;
 - `ActiveClaimInput`;
 - `ActiveClaim.from_claim`;
@@ -146,8 +147,9 @@ as the work queue:
 This phase does not own the final deletion of
 `propstore/families/claims/projection_model.py` while
 `JUSTIFICATION_STORAGE_MODEL` remains in that file. Phase 10 owns
-`JUSTIFICATION_STORAGE_MODEL` and the final file deletion after the
-justification charter/model replaces it.
+`_nullable_text`, `_claim_id`, `TEXT_CODEC`, `CLAIM_ID_CODEC`,
+`JUSTIFICATION_STORAGE_MODEL`, `JUSTIFICATION_TABLE`, and the final file
+deletion after the justification charter/model replaces them.
 
 `ClaimCheckedBundle` is not deleted by name: it is a semantic compiler-stage
 bundle. Its final shape must not import `ProjectionRow`, contain sidecar row
@@ -193,9 +195,9 @@ File: `propstore/core/active_claims.py`.
 
 | Helper | Classification | Required final owner/action |
 | --- | --- | --- |
-| `ActiveClaimVariable` | move | Rename/move to `ClaimAlgorithmVariable` in the claim algorithm payload owner; delete the `Active*` spelling. |
+| `ActiveClaimVariable` | move | Rename/move to `propstore/families/claims/stages.py::ClaimAlgorithmVariable`; delete the `Active*` spelling. |
 | `_parse_conditions` | delete | Replaced by typed checked-condition fields on `Claim`; no row JSON repair. |
-| `_parse_variables` | move | Move to algorithm payload document/model boundary; delete runtime row parser. |
+| `_parse_variables` | move | Move to `propstore/families/claims/stages.py::parse_claim_algorithm_variables`; delete runtime row parser. |
 | `_parse_checked_conditions` | delete | Quire JSON adapter plus claim model owns checked-condition loading. |
 | `_require_claim_concept_link_role` | delete | SQLAlchemy `ClaimConceptLink.role` uses typed enum validation. |
 | `_coerce_claim_concept_link` | delete | `SimpleNamespace` link repair is deleted; `ClaimConceptLink` is the object. |
@@ -214,8 +216,8 @@ File: `propstore/families/claims/projection_model.py`.
 
 | Helper family | Classification | Required final owner/action |
 | --- | --- | --- |
-| nullable scalar codecs such as `_nullable_text`, `_nullable_int`, `_nullable_float`, `_optional_float`, `_optional_int` | delete | Quire charter conversion owns generic scalar/null handling. |
-| id coercion codecs such as `_claim_id`, `_concept_id`, `_context_id`, `_justification_id` | delete | SQLAlchemy mapped model fields use typed id constructors at model/document boundaries. |
+| nullable scalar codecs such as `_nullable_int`, `_nullable_float`, `_optional_float`, `_optional_int` | delete | Quire charter conversion owns generic scalar/null handling; `_nullable_text` remains only as a Phase 10 justification residual. |
+| id coercion codecs such as `_concept_id`, `_context_id`, `_justification_id` | delete | SQLAlchemy mapped model fields use typed id constructors at model/document boundaries; `_claim_id` remains only as a Phase 10 justification residual. |
 | enum value codecs such as `_role_value`, `_claim_type_value`, `_algorithm_stage_value` | delete | Enum storage adapters are generic Quire SQLAlchemy adapters. |
 | JSON/render helpers such as `_logical_ids_payload`, `_logical_ids_from_value`, `_logical_ids_to_columns`, `_logical_ids_from_columns`, `_provenance_to_columns`, `_provenance_from_columns`, `_source_to_columns`, `_source_from_columns`, `_normalize_conditions_differ` | replace | Replace with typed value objects and Quire JSON adapter; semantic payload rendering moves to document/view boundaries. |
 | query-plan builders such as `claim_row_query_plan`, `_edge_column`, `claim_stance_policy_query_plan` | delete | SQLAlchemy relationships/session query construction replaces projection query-plan helpers. |
@@ -331,7 +333,7 @@ missing SQLAlchemy charter, association object, JSON, enum, relationship,
 catalog, FTS, vector, or session capability returns the work to the Quire owner
 workstream.
 
-## Data Parity Gate
+## Data-Parity Gate
 
 ```powershell
 uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/claims-active-claims/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/claims-active-claims/after.sqlite --owner claims-active-claims --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/08-claims-active-claims.md --out reports/sqlalchemy-charter-parity/claims-active-claims.json
@@ -451,7 +453,7 @@ This slice is complete only when:
 - claim lookup, graph construction, conflict resolution, source promotion,
   render policy, FTS, embedding source rows, and worldline materialization use
   typed model/session APIs;
-- every semantic move listed above has a final Propstore owner;
+- every semantic move listed above has a final target module/function;
 - `ActiveClaim`, `ActiveClaimInput`, `ActiveClaimVariable`,
   `coerce_active_claim`, and `coerce_active_claims` are absent from production
   code and tests;

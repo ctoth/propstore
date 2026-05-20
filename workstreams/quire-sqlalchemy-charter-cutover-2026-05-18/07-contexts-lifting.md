@@ -198,7 +198,7 @@ No Propstore workaround is allowed for a missing Quire generic feature. A
 missing SQLAlchemy charter, JSON, relationship, catalog, or session capability
 returns the work to the Quire owner workstream.
 
-## Data Parity Gate
+## Data-Parity Gate
 
 ```powershell
 uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/contexts-lifting/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/contexts-lifting/after.sqlite --owner contexts-lifting --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/07-contexts-lifting.md --out reports/sqlalchemy-charter-parity/contexts-lifting.json

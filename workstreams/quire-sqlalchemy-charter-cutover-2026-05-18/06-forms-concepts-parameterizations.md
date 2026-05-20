@@ -330,6 +330,15 @@ Fail the phase when a row, key, FTS hit, embedding-source row, vector entity,
 or semantic query result disappears. The only accepted disappearance is a
 table, helper, or column already named as a deletion target in this file.
 
+Accepted parity difference allowlist:
+
+- deleted form, form-algebra, concept, alias, relationship, parameterization,
+  parameterization-group, FTS, vector, row, codec, table-helper, and raw
+  selector surfaces named in this file's deletion targets;
+- no column rename, table rename, row disappearance, key disappearance,
+  FTS-result disappearance, embedding-source disappearance, vector-entity
+  disappearance, or semantic-query disappearance is allowed.
+
 ## Required Gates
 
 Run the forms gates before the concept slice:

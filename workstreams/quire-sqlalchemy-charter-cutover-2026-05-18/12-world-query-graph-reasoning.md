@@ -243,7 +243,9 @@ Implementation starts only after session, relationship, query, catalog, FTS,
 vector, JSON, and association-object capabilities are complete in their owning
 Quire or family workstreams.
 
-## Data-Parity And Metric Gates
+## Data-Parity Gate
+
+This gate includes the behavior-vector comparisons required by this phase.
 
 ```powershell
 uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/world-query-graph-reasoning/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/world-query-graph-reasoning/after.sqlite --owner world-query-graph-reasoning --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/12-world-query-graph-reasoning.md --out reports/sqlalchemy-charter-parity/world-query-graph-reasoning.json
