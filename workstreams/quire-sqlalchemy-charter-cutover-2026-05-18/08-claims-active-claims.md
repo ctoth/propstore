@@ -1025,3 +1025,11 @@ Recorded 2026-05-20.
   passed with 0 errors, and `rg -n -F -- "CLAIM_ROW_MODEL"
   propstore/app/claims.py` returned zero hits. The refreshed row-model queue
   is now `world/queries.py`, `world/overlay.py`, and `world/atms.py`.
+- Typed field caller cleanup: commit `5b9b33f3` changed app revision display,
+  embedding text, graph build, fragility bridge inputs, and support-revision
+  realization/entrenchment callers from old `ActiveClaim` field names to
+  typed `Claim` fields and payload relationships. Focused verification
+  `uv run pyright propstore/app/world_revision.py propstore/core/embeddings.py
+  propstore/core/graph_build.py propstore/fragility_contributors.py
+  propstore/support_revision/realization.py
+  propstore/support_revision/entrenchment.py` passed with 0 errors.
