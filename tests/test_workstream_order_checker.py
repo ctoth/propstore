@@ -5,7 +5,7 @@ from pathlib import Path
 from scripts.check_workstream_order import check_split_workstream
 
 
-def test_split_workstream_checker_resolves_prose_prerequisite_aliases(tmp_path, capsys) -> None:
+def test_split_workstream_checker_rejects_prose_prerequisites(tmp_path, capsys) -> None:
     index = tmp_path / "00-index.md"
     index.write_text(
         """# Index
@@ -40,7 +40,8 @@ def test_split_workstream_checker_resolves_prose_prerequisite_aliases(tmp_path, 
     )
 
     assert check_split_workstream(index, index.read_text(encoding="utf-8")) == 1
-    assert "01-quire-capability-and-charter.md depends on later phase 02-quire-sqlalchemy-engine.md" in capsys.readouterr().err
+    output = capsys.readouterr().err
+    assert "02-quire-sqlalchemy-engine.md omits required earlier phase prerequisite: 01-quire-capability-and-charter.md" in output
 
 
 def test_split_workstream_checker_reads_prerequisite_gate_dependencies(tmp_path, capsys) -> None:

@@ -24,6 +24,10 @@ discovered or implemented here.
 
 Complete the earlier cutover workstreams before starting implementation:
 
+Required phase file prerequisites: `01-quire-capability-and-charter.md`,
+`02-quire-sqlalchemy-engine.md`, `03-quire-fts-vector.md`,
+`04-propstore-build-orchestration.md`.
+
 1. Mechanical order check and current-state inventory confirmation.
 2. Quire SQLAlchemy dependency and capability proof.
 3. Quire charter/schema IR.

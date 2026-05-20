@@ -29,6 +29,12 @@ Final state:
 
 Complete the earlier cutover workstreams before starting implementation:
 
+Required phase file prerequisites: `01-quire-capability-and-charter.md`,
+`02-quire-sqlalchemy-engine.md`, `03-quire-fts-vector.md`,
+`04-propstore-build-orchestration.md`, `05-source-and-diagnostics.md`,
+`06-forms-concepts-parameterizations.md`, `07-contexts-lifting.md`,
+`08-claims-active-claims.md`.
+
 1. Mechanical order check and current-state inventory confirmation.
 2. Quire SQLAlchemy dependency and capability proof.
 3. Quire charter/schema IR.

@@ -30,39 +30,11 @@ PREREQ_SECTION_RE = re.compile(
     r"^## ",
     re.MULTILINE | re.DOTALL,
 )
-KNOWN_PREREQUISITE_ALIASES = {
-    "mechanical order check and current-state inventory confirmation": "00-index.md",
-    "quire sqlachemy dependency and capability proof": "01-quire-capability-and-charter.md",
-    "quire sqlalchemy dependency and capability proof": "01-quire-capability-and-charter.md",
-    "quire charter/schema ir": "01-quire-capability-and-charter.md",
-    "quire sqlachemy table/mapping/session/catalog engine": "02-quire-sqlalchemy-engine.md",
-    "quire sqlalchemy table, mapping, session, and catalog": "02-quire-sqlalchemy-engine.md",
-    "quire sqlachemy table, mapping, session, and catalog": "02-quire-sqlalchemy-engine.md",
-    "quire sqlalchemy table/mapping/session/catalog engine": "02-quire-sqlalchemy-engine.md",
-    "quire fts and vector implementation": "03-quire-fts-vector.md",
-    "propstore build orchestration cutover": "04-propstore-build-orchestration.md",
-    "source vertical slice": "05-source-and-diagnostics.md",
-    "source and diagnostics cutover": "05-source-and-diagnostics.md",
-    "source and source-diagnostic old paths": "05-source-and-diagnostics.md",
-    "forms and sources cleanup closure": "06-forms-concepts-parameterizations.md",
-    "forms, concepts, and parameterizations cutover": "06-forms-concepts-parameterizations.md",
-    "concept/form/parameterization slice": "06-forms-concepts-parameterizations.md",
-    "context/lifting slice": "07-contexts-lifting.md",
-    "contexts and lifting cutover": "07-contexts-lifting.md",
-    "claims and active claims cutover": "08-claims-active-claims.md",
-    "relations, stances, and conflicts cutover": "09-relations-stances-conflicts.md",
-    "justifications and micropublications cutover": "10-micropublications-justifications.md",
-    "rules, grounding, calibration, and embeddings cutover": "11-rules-grounding-calibration-embeddings.md",
-}
 ALLOWED_EXTERNAL_REFS = {
     "architecture-wanted-outcome-2026-05-17.md",
     "code-inventory-2026-05-17.md",
     "quire-sqlalchemy-charter-cutover-workstream-2026-05-18.md",
 }
-
-
-def normalize(title: str) -> str:
-    return title.strip().lower().replace("and", "and").replace("`", "")
 
 
 def legacy_dependency_order(text: str) -> list[str]:
@@ -98,12 +70,7 @@ def prerequisite_files(text: str) -> set[str]:
     if match is None:
         return set()
     body = match.group("body")
-    files = {Path(file_match.group("path")).name for file_match in FILE_REF_RE.finditer(body)}
-    normalized_body = normalize(body)
-    for alias, filename in KNOWN_PREREQUISITE_ALIASES.items():
-        if alias in normalized_body:
-            files.add(filename)
-    return files
+    return {Path(file_match.group("path")).name for file_match in FILE_REF_RE.finditer(body)}
 
 
 def has_prerequisite_section(text: str) -> bool:

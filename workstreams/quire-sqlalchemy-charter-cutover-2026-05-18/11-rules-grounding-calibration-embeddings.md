@@ -29,6 +29,13 @@ and does not re-own diagnostics table deletion.
 
 Complete these cutover workstreams before this slice starts:
 
+Required phase file prerequisites: `01-quire-capability-and-charter.md`,
+`02-quire-sqlalchemy-engine.md`, `03-quire-fts-vector.md`,
+`04-propstore-build-orchestration.md`, `05-source-and-diagnostics.md`,
+`06-forms-concepts-parameterizations.md`, `07-contexts-lifting.md`,
+`08-claims-active-claims.md`, `09-relations-stances-conflicts.md`,
+`10-micropublications-justifications.md`.
+
 - Quire SQLAlchemy dependency and capability proof.
 - Quire charter/schema IR.
 - Quire SQLAlchemy table/mapping/session/catalog engine.

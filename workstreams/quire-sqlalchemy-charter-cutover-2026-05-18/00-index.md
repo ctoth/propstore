@@ -146,7 +146,7 @@ Repository: Propstore for the workstream check, Quire for dependency checks.
 Before any implementation edit:
 
 1. Create or update `scripts/check_workstream_order.py`.
-2. The checker reads `workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md`, extracts the Phase Order table, extracts prerequisite file references from every child workstream, and fails when a child depends on a later phase.
+2. The checker reads `workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md`, extracts the Phase Order table, extracts explicit prerequisite file references from every child workstream, fails when a child depends on a later phase, and fails when a child omits any earlier phase file prerequisite.
 3. Run the checker:
 
 ```powershell
