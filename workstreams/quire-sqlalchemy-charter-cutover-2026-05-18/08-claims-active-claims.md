@@ -133,11 +133,15 @@ flowing through the compiler/runtime. Do not replace projection codecs with a
 new generic coercion layer in Propstore.
 
 Before the next Phase 10 code slice, read and satisfy
-`duplicate-definition-audit-2026-05-20.md`. The audit is binding for this
+`duplicate-definition-audit-2026-05-20.md` and
+`charter-field-metadata-spec-2026-05-20.md`. These files are binding for this
 phase: no `*CompiledPayload`, `*_from_payload` replacement factory, scalar
 field DTO, broad `**values` mapped-model constructor, mapping-repair input
 union, or table-routing helper may be added as a substitute for deleted
-projection surfaces.
+projection surfaces. If existing Quire cannot construct/write mapped objects
+from the charter field list as the single shape, return to the Quire workstream
+and add that generic catalog/session capability before more Propstore claim
+code is written.
 
 Allowed:
 
@@ -686,3 +690,9 @@ Recorded 2026-05-20.
   definitions, mapping repair paths, broad kwargs constructors, and
   table-routing helpers. It must be read and satisfied before the next Phase 10
   code slice.
+- Charter metadata specification: `charter-field-metadata-spec-2026-05-20.md`
+  records the exact split between Quire charter metadata, Propstore semantic
+  owner code, IO parsing, and missing Quire catalog/session capability. The
+  spec says the replacement is not "put everything in metadata"; generic
+  model construction and table routing must be Quire capability, and the claim
+  slice must return to Quire if that capability is not present.

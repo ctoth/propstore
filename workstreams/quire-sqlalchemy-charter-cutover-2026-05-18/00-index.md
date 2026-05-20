@@ -117,6 +117,7 @@ Sibling files:
 - `00-index.md`: global target architecture, rules, phase order, dependency rules, parity/search rules, and completion criteria.
 - `inventory-matrix.md`: full inventory deletion matrix with current owner, final owner, required action, and child workstream owner file.
 - `duplicate-definition-audit-2026-05-20.md`: audit of committed cutover work that introduced or left duplicate field/state definitions, mapping repair paths, broad kwargs constructors, and DTO/factory-shaped replacements.
+- `charter-field-metadata-spec-2026-05-20.md`: exact split between Quire charter metadata, Propstore semantic owners, IO parsing boundaries, and missing Quire catalog/session capability required before deleting duplicate constructors and table-routing helpers.
 - `01-quire-capability-and-charter.md`: Quire dependency, SQLAlchemy capability proof, and charter/schema IR.
 - `02-quire-sqlalchemy-engine.md`: Quire SQLAlchemy table/mapping/session/catalog engine.
 - `03-quire-fts-vector.md`: FTS and vector implementation in Quire and `sqlalchemy-fts5`.
