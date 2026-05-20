@@ -149,8 +149,11 @@ Implement the target path:
     result keys supplied by each child workstream.
 13. The parity harness exits nonzero and writes an actionable report when any
     required comparison fails.
-14. The parity harness has a targeted test or fixture-run proving at least one
-    passing comparison and one failing comparison for an owner slug.
+14. The parity harness supports `--require-vector <name>` and
+    `--require-behavior <name>` flags; when supplied, the report must contain a
+    passing comparison block for every required vector or behavior name.
+15. `tests/test_sqlalchemy_charter_parity_harness.py` proves one passing
+    comparison and one failing comparison for owner slug `harness-self-test`.
 
 ## Data-Parity Gate
 
@@ -182,6 +185,7 @@ Run:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label build-orchestration-charter tests/test_build_sidecar.py tests/test_sidecar_projection_contract.py tests/test_fixture_schema_parity.py
+powershell -File scripts/run_logged_pytest.ps1 -Label parity-harness tests/test_sqlalchemy_charter_parity_harness.py
 if (-not (Test-Path -LiteralPath scripts/compare_sqlalchemy_charter_parity.py -PathType Leaf)) { throw "missing scripts/compare_sqlalchemy_charter_parity.py" }
 uv run scripts/compare_sqlalchemy_charter_parity.py --help
 ```
@@ -211,8 +215,10 @@ This workstream is complete only when:
 - Raw `sqlite3.Connection` sidecar population orchestration is gone from the
   target files.
 - Build orchestration imports no Quire projection primitives.
-- `scripts/compare_sqlalchemy_charter_parity.py` exists and has a targeted
-  passing/failing comparison test or fixture-run.
+- `scripts/compare_sqlalchemy_charter_parity.py` exists, implements
+  `--require-vector` and `--require-behavior`, and
+  `tests/test_sqlalchemy_charter_parity_harness.py` proves one passing and one
+  failing comparison for owner slug `harness-self-test`.
 - The data-parity gate passes from the same repository snapshot.
 - The type gate, logged pytest gate, and old-path search gates pass.
 - Propstore remains pinned to a pushed Quire reference, never a local checkout.
