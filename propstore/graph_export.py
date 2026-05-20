@@ -11,7 +11,8 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Mapping
 
 from propstore.core.environment import Environment
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
+from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import RelationshipRow, StanceRow
 from propstore.families.relations.projection_model import RELATIONSHIP_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import Concept, Parameterization
@@ -21,22 +22,18 @@ if TYPE_CHECKING:
     from propstore.world import WorldQuery
 
 
-def _coerce_claim_like(claim_input):
-    row_input = getattr(claim_input, "row", claim_input)
-    return CLAIM_ROW_MODEL.coerce(row_input)
+def _claim_concept_id(claim: Claim) -> Any:
+    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
+        for link in claim.concept_links:
+            if link.role is role:
+                return link.concept_id
+    return claim.target_concept
 
 
-def _claim_concept_id(claim_input) -> Any:
-    claim = _coerce_claim_like(claim_input)
-    return claim.value_concept_id or claim.target_concept
-
-
-def _display_claim_id(claim_input) -> str:
-    claim = _coerce_claim_like(claim_input)
-    logical_value = claim.primary_logical_value
-    if isinstance(logical_value, str) and logical_value:
-        return logical_value
-    return str(claim.claim_id)
+def _display_claim_id(claim: Claim) -> str:
+    if claim.primary_logical_id:
+        return claim.primary_logical_id.split(":", 1)[-1]
+    return str(claim.id)
 
 
 def _display_claim_id_from_store(world: WorldStore, claim_id: str) -> str:
@@ -202,7 +199,7 @@ def build_knowledge_graph(
     else:
         claims = world.claims_for(None)
 
-    claim_rows = [_coerce_claim_like(claim) for claim in claims]
+    claim_rows = list(claims)
 
     # Filter claims to allowed concepts if group scoping is active
     if allowed_concept_ids is not None:
@@ -219,18 +216,15 @@ def build_knowledge_graph(
         claim_id = _display_claim_id(claim)
         concept_id = _claim_concept_id(claim)
         meta: dict[str, Any] = {
-            "type": claim.claim_type,
-            "value": claim.value,
+            "type": claim.type,
             "concept_id": concept_id,
-            "artifact_id": claim.artifact_id,
+            "artifact_id": claim.id,
             "target_concept": claim.target_concept,
         }
         if bound is not None and concept_id and concept_id in concept_statuses:
             meta["status"] = concept_statuses[concept_id]
 
         label = claim_id
-        if claim.value is not None:
-            label = f"{claim_id}={claim.value}"
 
         graph.nodes.append(GraphNode(
             id=claim_id,
