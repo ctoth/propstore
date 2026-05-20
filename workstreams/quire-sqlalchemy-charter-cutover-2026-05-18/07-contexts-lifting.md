@@ -116,7 +116,7 @@ File: `propstore/families/contexts/declaration.py`.
 | `CONTEXT_SCHEMA` | delete | Quire charter/schema catalog replaces the local projection schema bundle. |
 | `create_context_tables` | delete | Quire charter creates tables. |
 | `populate_contexts` | delete | Replace with SQLAlchemy session add/flush. |
-| `filter_invalid_context_lifting_rows` | move | Move invalid lifting-rule filtering semantics to context/lifting semantic owner. |
+| `filter_invalid_context_lifting_rows` | move | Move invalid lifting-rule filtering semantics to `propstore/families/contexts/declaration.py::filter_invalid_context_lifting_models`; delete row-shaped filtering. |
 | `compile_context_sidecar_rows` | replace | Replace with typed `Context`, `ContextAssumption`, and `ContextLiftingRule` model construction. |
 | `compile_context_lifting_materialization_rows` | replace | Replace with typed `ContextLiftingMaterialization` model construction. |
 | `load_lifting_system` | move | Keep lifting-system assembly as context owner API; implement over typed model queries. |
@@ -159,7 +159,7 @@ Required caller final state:
 
 ## Semantic Moves
 
-Preserve these behaviors as Propstore semantic owner code:
+Preserve these behaviors in exact Propstore owner modules:
 
 - context authored document schema;
 - context semantic passes;
@@ -168,9 +168,13 @@ Preserve these behaviors as Propstore semantic owner code:
 - invalid lifting-rule filtering semantics;
 - `LiftingSystem` domain behavior.
 
-Move those semantics into context/lifting owner modules before deleting the
-helper-shaped paths that currently host them. Generic null/JSON/table/query
-behavior moves to Quire charter/session/catalog machinery.
+Move context authored document schema and context semantic passes into
+`propstore/families/contexts/stages.py`; move lifting rule binding, lifting
+graph validation, and invalid lifting-rule filtering into
+`propstore/families/contexts/declaration.py`; keep `LiftingSystem` domain
+behavior in `propstore/context_lifting.py`. Delete the helper-shaped paths that
+currently host those semantics. Generic null/JSON/table/query behavior moves
+to Quire charter/session/catalog machinery.
 
 ## Execution Loop
 
@@ -196,7 +200,7 @@ returns the work to the Quire owner workstream.
 ## Data Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/contexts-lifting/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/contexts-lifting/after.sqlite --owner contexts-lifting --out reports/sqlalchemy-charter-parity/contexts-lifting.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/contexts-lifting/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/contexts-lifting/after.sqlite --owner contexts-lifting --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/07-contexts-lifting.md --out reports/sqlalchemy-charter-parity/contexts-lifting.json
 ```
 
 Build the sidecar from the same repository snapshot before and after this

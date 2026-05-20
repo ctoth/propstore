@@ -129,13 +129,13 @@ File: `propstore/families/relations/declaration.py`.
 | `ConflictRow` | delete | Replace with typed `ConflictWitness` model. |
 | `_optional_numeric` | delete | Generic nullable numeric conversion belongs to Quire charter conversion. |
 | `compile_authored_stance_sidecar_rows` | replace | Replace with `Stance` model construction. |
-| `compile_authored_stance_sidecar_rows_with_diagnostics` | move | Move stance reference validation/quarantine diagnostics to relation semantic owner; delete row output. |
+| `compile_authored_stance_sidecar_rows_with_diagnostics` | move | Move stance reference validation/quarantine diagnostics to `propstore/families/relations/declaration.py::compile_authored_stance_models_with_diagnostics`; delete row output. |
 | `select_stances_between` | replace | Replace with SQLAlchemy relationship/session query. |
 | `select_conflicts` | replace | Replace with SQLAlchemy session query over `ConflictWitness`. |
 | `select_all_relationships` | replace | Replace with SQLAlchemy session query over `ConceptRelation`. |
 | `select_all_claim_stances` | replace | Replace with SQLAlchemy session query over `Stance`. |
-| `select_claim_stances_with_policy` | move | Move visibility/render policy semantics to relation/world owner; implement through typed query predicates. |
-| `select_explanation_stances` | move | Move explanation traversal semantics to relation/world owner; implement over `Stance` relationships. |
+| `select_claim_stances_with_policy` | move | Move visibility/render policy semantics to `propstore/world/model.py::WorldQuery.claim_stances_with_policy`; implement through typed `Stance` relationship predicates. |
+| `select_explanation_stances` | move | Move explanation traversal semantics to `propstore/world/model.py::WorldQuery.explain`; implement over typed `Stance` relationships. |
 | `count_conflicts` | replace | Replace with SQLAlchemy count query over `ConflictWitness`. |
 
 Generic SQL/helper deletion predicate for this slice:
@@ -186,7 +186,7 @@ of raw sidecar world access to Quire read-only sessions.
 
 ## Semantic Moves
 
-Preserve these behaviors as Propstore relation semantic owner code:
+Preserve these behaviors in the named Propstore modules:
 
 - authored stance document schema;
 - stance target/reference validation;
@@ -201,15 +201,21 @@ Preserve these behaviors as Propstore relation semantic owner code:
 
 Target owners:
 
-- relation/stance owner receives authored stance validation, stance reference
-  validation, quarantine diagnostics, stance-resolution validation, opinion
-  extraction, condition-difference serialization, and typed stance query APIs;
-- conflict owner receives conflict detector output materialization and typed
+- `propstore/families/relations/declaration.py::compile_authored_stance_models_with_diagnostics`
+  receives authored stance validation, stance reference validation, and
+  quarantine diagnostics;
+- `propstore/families/relations/declaration.py::coerce_stance_resolution_payload`
+  and `StanceResolutionOpinion.from_payload` receive stance-resolution
+  validation, opinion extraction, and condition-difference serialization;
+- `propstore/families/relations/declaration.py::compile_conflict_witness_models`
+  receives conflict detector output materialization and typed
   `ConflictWitness` query APIs;
-- graph/relation owner receives graph edge classification over typed mapped
-  relation objects;
-- relation/world owner receives visibility/render policy predicates and
-  explanation traversal over typed `Stance` relationships.
+- `propstore/core/graph_build.py` receives graph edge classification over
+  typed mapped relation objects;
+- `propstore/world/model.py::WorldQuery.claim_stances_with_policy` receives
+  visibility/render policy predicates;
+- `propstore/world/model.py::WorldQuery.explain` receives explanation
+  traversal over typed `Stance` relationships.
 
 Generic null, enum, id, JSON, table, query-plan, select/count, insert-row, and
 row-carrier behavior moves to Quire charter/session/catalog machinery or is
@@ -242,7 +248,7 @@ owner workstream.
 ## Data Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/relations-stances-conflicts/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/relations-stances-conflicts/after.sqlite --owner relations-stances-conflicts --out reports/sqlalchemy-charter-parity/relations-stances-conflicts.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/relations-stances-conflicts/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/relations-stances-conflicts/after.sqlite --owner relations-stances-conflicts --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/09-relations-stances-conflicts.md --out reports/sqlalchemy-charter-parity/relations-stances-conflicts.json
 ```
 
 Build the sidecar from the same repository snapshot before and after this

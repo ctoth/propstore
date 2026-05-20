@@ -98,9 +98,9 @@ Decision:
 
 | Inventory surface | Current owner | Final owner | Required action |
 | --- | --- | --- | --- |
-| `propstore/families/claims/projection_model.py` claim-owned symbols | Claim split storage/read mapper plus a co-located justification residual | Claim charter plus association objects | Delete claim-owned symbols in this phase; the only permitted residual symbols in this file after this phase are `TEXT_CODEC`, `CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, and `JUSTIFICATION_TABLE` |
+| `propstore/families/claims/projection_model.py` claim-owned symbols | Claim split storage/read mapper plus a co-located justification residual | Claim charter plus association objects | Delete claim-owned symbols in this phase; the only permitted residual top-level definitions in this file after this phase are `_nullable_text`, `_claim_id`, `TEXT_CODEC`, `CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, and `JUSTIFICATION_TABLE` |
 | `propstore/families/claims/storage.py` storage shaping | Loose claim row preparation/helpers | Claim charter generic conversion | Delete storage-shaped helpers |
-| `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | Claim semantic owner modules | Move semantics to claim stages/passes/identity/relation owner modules before deleting storage-shaped remainder |
+| `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | `propstore/families/identity/claims.py`, `propstore/source/claims.py`, `propstore/families/claims/references.py`, `propstore/families/claims/stages.py`, `propstore/families/relations/declaration.py`, and `propstore/families/diagnostics/declaration.py` | Move each named semantic to its exact owner before deleting the storage-shaped remainder |
 | `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model and explicit active-claim view model | Delete projection-row coercion; keep only named active runtime view behavior |
 
 ## Deletion Targets
@@ -166,14 +166,14 @@ File: `propstore/families/claims/storage.py`.
 | `_iter_claim_concept_link_values` | replace | Construct `ClaimConceptLink` association objects from claim contracts; delete tuple-row generation. |
 | `_claim_concept_link_values_for_declaration` | replace | Construct `ClaimConceptLink` association objects from claim contracts; delete tuple-row generation. |
 | `normalize_conditions_differ` | delete | Condition-difference serialization belongs to the relation/stance model JSON adapter. |
-| `coerce_stance_resolution` | move | Move stance resolution validation to the relation/stance semantic owner. |
-| `resolution_opinion_columns` | move | Move opinion extraction to a typed stance-resolution value object. |
-| `canonicalize_claim_for_storage` | move | Split raw-id/logical/artifact identity into claim identity/source promotion owners; split concept-reference lowering into claim semantic normalization; delete the storage function. |
+| `coerce_stance_resolution` | move | Move stance resolution validation to `propstore/families/relations/declaration.py::coerce_stance_resolution_payload`. |
+| `resolution_opinion_columns` | move | Move opinion extraction to `propstore/families/relations/declaration.py::StanceResolutionOpinion.from_payload`. |
+| `canonicalize_claim_for_storage` | move | Split raw-id/logical/artifact identity into `propstore/families/identity/claims.py`, source-local support into `propstore/source/claims.py`, and concept-reference lowering into `propstore/families/claims/references.py::resolve_first_claim_reference_id`; delete the storage function. |
 | `extract_numeric_claim_fields` | replace | Replace with typed claim payload construction from claim contracts. |
 | `extract_typed_claim_fields` | replace | Replace with typed claim payload construction from claim contracts. |
-| `resolve_equation_sympy` | move | Move equation Sympy generation to claim semantic compilation. |
-| `resolve_algorithm_storage` | move | Move algorithm body/canonical AST/stage handling to claim semantic compilation. |
-| `extract_deferred_stance_rows_with_diagnostics` | move | Move embedded-stance validation/quarantine semantics to relation/stance owner; replace tuple rows with `Stance` models. |
+| `resolve_equation_sympy` | move | Move equation Sympy generation to `propstore/families/claims/stages.py::compile_claim_equation`. |
+| `resolve_algorithm_storage` | move | Move algorithm body/canonical AST/stage handling to `propstore/families/claims/stages.py::compile_claim_algorithm`. |
+| `extract_deferred_stance_rows_with_diagnostics` | move | Move embedded-stance validation/quarantine semantics to `propstore/families/relations/declaration.py::compile_embedded_stance_models`; replace tuple rows with `Stance` models. |
 | `prepare_claim_insert_row` | delete | Replace with `Claim` model construction and SQLAlchemy session add. |
 | `prepare_claim_concept_link_rows` | delete | Replace with `ClaimConceptLink` association objects and SQLAlchemy relationship persistence. |
 
@@ -203,7 +203,7 @@ File: `propstore/core/active_claims.py`.
 | `ActiveClaim.from_claim` | delete | Projection/dict coercion constructor is deleted. |
 | `ActiveClaim.from_mapping` | delete | Projection-row construction path is deleted. |
 | `ActiveClaim.to_dict` | replace | Replace with explicit view/document payload rendering that does not import `CLAIM_ROW_MODEL`. |
-| `ActiveClaim.to_source_claim_payload` | move | Move conflict-detector payload rendering to a conflict-detector input adapter; delete the `ActiveClaim` method. |
+| `ActiveClaim.to_source_claim_payload` | move | Move conflict-detector payload rendering to `propstore/conflict_detector/collectors.py::conflict_claim_from_active_claim`; delete the `ActiveClaim` method. |
 | `coerce_active_claim` | delete | Runtime receives typed `Claim` or named active view models, not mappings. |
 | `coerce_active_claims` | delete | Runtime receives typed `Claim` or named active view models, not mappings. |
 
@@ -282,18 +282,24 @@ helpers:
 
 Target owners:
 
-- claim identity/source promotion owners receive raw-id, logical id,
-  artifact/version identity, and source-local support;
-- claim semantic normalization receives concept-reference lowering and
-  unit/form compatibility checks;
-- claim semantic compilation receives CEL, checked-condition IR, Sympy, and
-  algorithm canonicalization;
-- relation/stance owner receives stance-resolution validation, opinion
-  extraction, condition-difference serialization, and embedded-stance
+- `propstore/families/identity/claims.py` receives raw-id, logical id, and
+  artifact/version identity helpers;
+- `propstore/source/claims.py` receives source-local claim support;
+- `propstore/families/claims/references.py::resolve_first_claim_reference_id`
+  receives concept-reference lowering;
+- `propstore/families/claims/stages.py::compile_claim_payload_models`
+  receives unit/form compatibility checks, CEL, checked-condition IR, Sympy,
+  and algorithm canonicalization;
+- `propstore/families/relations/declaration.py::coerce_stance_resolution_payload`,
+  `StanceResolutionOpinion.from_payload`, and
+  `compile_embedded_stance_models` receive stance-resolution validation,
+  opinion extraction, condition-difference serialization, and embedded-stance
   quarantine semantics;
-- diagnostics owner receives draft/blocking and promotion-blocked diagnostics;
-- conflict-detector input adapter receives source-claim payload rendering that
-  used to live on `ActiveClaim.to_source_claim_payload`.
+- `propstore/families/diagnostics/declaration.py` receives draft/blocking and
+  promotion-blocked diagnostics;
+- `propstore/conflict_detector/collectors.py::conflict_claim_from_active_claim`
+  receives source-claim payload rendering that used to live on
+  `ActiveClaim.to_source_claim_payload`.
 
 Generic null, enum, JSON, table, query-plan, insert-row, and row-carrier
 behavior moves to Quire charter/session/catalog machinery or disappears.
@@ -327,7 +333,7 @@ workstream.
 ## Data Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/claims-active-claims/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/claims-active-claims/after.sqlite --owner claims-active-claims --out reports/sqlalchemy-charter-parity/claims-active-claims.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/claims-active-claims/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/claims-active-claims/after.sqlite --owner claims-active-claims --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/08-claims-active-claims.md --out reports/sqlalchemy-charter-parity/claims-active-claims.json
 ```
 
 Build the sidecar from the same repository snapshot before and after this

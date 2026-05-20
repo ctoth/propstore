@@ -12,7 +12,7 @@ This workstream owns:
 
 - forms closure before concept cutover;
 - `propstore/form_utils.py` deletion after callers use the forms owner;
-- `propstore/families/forms/stages.py` as the form semantic owner;
+- form parsing and validation in `propstore/families/forms/stages.py`;
 - the concept/form/parameterization slice;
 - concept search over Quire/SQLAlchemy FTS;
 - data parity for form, concept, alias, relationship, parameterization, FTS,
@@ -58,7 +58,7 @@ Before implementation:
 | Inventory surface | Current owner | Final owner | Required action |
 | --- | --- | --- | --- |
 | `propstore/form_utils.py` | Duplicate form loading/parsing facade | `propstore/families/forms/stages.py` | Delete duplicate facade after callers use the family owner |
-| `propstore/families/forms/stages.py` | Form semantic stage/loading owner | Form semantic owner plus form charter | Keep; expose form model data to Quire charter without duplicating parsing |
+| `propstore/families/forms/stages.py` | Form semantic stage/loading owner | Form parsing/validation module plus form charter | Keep; expose form model data to Quire charter without duplicating parsing |
 | `propstore/families/concepts/projection_model.py` | Concept row mapper | Concept charter plus Quire SQLAlchemy | Delete |
 | `propstore/families/concepts/declaration.py` projection/query pieces | Concept sidecar compiler/query API | Concept semantics plus model queries | Delete generic projection/query plumbing |
 | `propstore/parameterization_walk.py` | Parameterization traversal through row coercion | Parameterization traversal over typed models | Replace projection-model imports |
@@ -203,17 +203,22 @@ Named caller/update surfaces:
 - `propstore/world/atms.py`;
 - `propstore/worldline/resolution.py`.
 
-Keep as semantic owner code:
+Keep in exact target modules/functions:
 
-- concept normalization and identity in `stages.py`;
-- concept semantic passes;
-- form parameter validation;
-- relationship target validation;
-- parameterization dimensional checks;
-- CEL registry building from typed `Concept` objects;
-- concept handle/alias resolution policy;
-- concept logical-id precedence/index semantics;
-- concept symbol-candidate semantics in the concept/form-algebra owner.
+- concept normalization in `propstore/families/concepts/stages.py`;
+- concept identity in `propstore/families/identity/concepts.py`;
+- concept semantic passes in `propstore/families/concepts/passes.py`;
+- form parameter validation in `propstore/families/forms/stages.py`;
+- relationship target validation in `propstore/families/concepts/stages.py`;
+- parameterization dimensional checks in `propstore/families/concepts/stages.py`;
+- CEL registry building from typed `Concept` objects in
+  `propstore/compiler/context.py::build_authored_concept_registry`;
+- concept handle/alias resolution policy in
+  `propstore/families/concepts/declaration.py::resolve_concept_id`;
+- concept logical-id precedence/index semantics in
+  `propstore/families/identity/concepts.py`;
+- concept symbol-candidate semantics in
+  `propstore/families/concepts/stages.py::concept_symbol_candidates`.
 
 Relationships:
 
@@ -250,9 +255,9 @@ File: `propstore/families/concepts/declaration.py`.
 | --- | --- | --- |
 | `ConceptRelationshipProjectionRow` | delete | Replace with typed `ConceptRelationship`/relation model. |
 | `ConceptSidecarRows` | delete | Replace with typed write plan/session adds. |
-| `_concept_symbol_candidates` | move | Move symbol-candidate semantics to concept/form-algebra owner; reuse the same owner from conflict detection and world value resolution. |
+| `_concept_symbol_candidates` | move | Move symbol-candidate semantics to `propstore/families/concepts/stages.py::concept_symbol_candidates`; reuse that exact function from conflict detection and world value resolution. |
 | `compile_concept_sidecar_rows` | replace | Replace with typed concept/form/alias/relationship/parameterization model construction. |
-| `_compile_form_algebra_rows` | move | Move form algebra semantics to form/concept semantic owner; delete row helper. |
+| `_compile_form_algebra_rows` | move | Move form algebra semantics to `propstore/families/forms/stages.py::compile_form_algebra`; delete row helper. |
 | `ConceptRow` | delete | Replace with `Concept` model. |
 | `ConceptEmbeddingSource` | replace | Replace with typed embedding source projection over `Concept` model. |
 | `ParameterizationRow` | delete | Replace with `Parameterization` model. |
@@ -294,7 +299,7 @@ projection helpers.
 ## Data-Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/after.sqlite --owner forms-concepts-parameterizations --out reports/sqlalchemy-charter-parity/forms-concepts-parameterizations.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/forms-concepts-parameterizations/after.sqlite --owner forms-concepts-parameterizations --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/06-forms-concepts-parameterizations.md --out reports/sqlalchemy-charter-parity/forms-concepts-parameterizations.json
 ```
 
 Build the sidecar from the same repository snapshot before and after each
@@ -376,7 +381,7 @@ All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 This workstream is complete only when:
 
 - `Form` and `FormAlgebra` are mapped through Quire SQLAlchemy charters;
-- `propstore/families/forms/stages.py` remains the form semantic owner;
+- form parsing and validation remains in `propstore/families/forms/stages.py`;
 - `propstore/form_utils.py` is deleted and its callers use the forms owner;
 - `Concept`, `ConceptAlias`, `ConceptRelationship`, `Parameterization`,
   `ParameterizationGroup`, and `FormAlgebra` reads/writes are mapped through

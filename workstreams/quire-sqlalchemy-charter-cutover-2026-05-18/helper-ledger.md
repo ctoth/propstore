@@ -34,7 +34,7 @@ movement during the Quire SQLAlchemy charter cutover.
   report or commit message.
 - [ ] Every `delete` row is absent from production code by its search gate.
 - [ ] Every `replace` row has typed model/session/owner API callers.
-- [ ] Every `move` row has the named semantic owner and no old helper-shaped
+- [ ] Every `move` row has the named target module/function and no old helper-shaped
   production path.
 - [ ] Every `keep-boundary` row has no DB row/projection coupling.
 
@@ -88,9 +88,9 @@ File: `propstore/families/concepts/declaration.py`.
 | --- | --- | --- |
 | `ConceptRelationshipProjectionRow` | delete | Replace with typed `ConceptRelationship` or relation model. |
 | `ConceptSidecarRows` | delete | Replace with typed write plan/session adds. |
-| `_concept_symbol_candidates` | move | Move symbol selection semantics to concept/form-algebra owner. |
+| `_concept_symbol_candidates` | move | Move symbol selection semantics to `propstore/families/concepts/stages.py::concept_symbol_candidates`; update `propstore/conflict_detector/parameterization_conflicts.py`, `propstore/world/bound.py`, and `propstore/world/value_resolver.py` to call that function. |
 | `compile_concept_sidecar_rows` | replace | Replace with typed concept/form/alias/relationship/parameterization model construction. |
-| `_compile_form_algebra_rows` | move | Move form algebra semantics to form/concept semantic owner. |
+| `_compile_form_algebra_rows` | move | Move form algebra semantics to `propstore/families/forms/stages.py::compile_form_algebra`; concept construction reads that typed result instead of row dictionaries. |
 | `ConceptRow` | delete | Replace with `Concept` model. |
 | `ConceptEmbeddingSource` | replace | Replace with typed embedding source projection over `Concept` model. |
 | `ParameterizationRow` | delete | Replace with `Parameterization` model. |
@@ -137,7 +137,7 @@ File: `propstore/families/contexts/declaration.py`.
 | `CONTEXT_SCHEMA` | delete | Quire charter/schema catalog replaces the local projection schema bundle. |
 | `create_context_tables` | delete | Quire charter creates tables. |
 | `populate_contexts` | delete | Replace with SQLAlchemy session add/flush. |
-| `filter_invalid_context_lifting_rows` | move | Move invalid lifting-rule filtering semantics to context/lifting semantic owner. |
+| `filter_invalid_context_lifting_rows` | move | Move invalid lifting-rule filtering semantics to `propstore/families/contexts/declaration.py::filter_invalid_context_lifting_models`; delete row-shaped filtering after context/lifting models replace rows. |
 | `compile_context_sidecar_rows` | replace | Replace with typed `Context`, `ContextAssumption`, and `ContextLiftingRule` model construction. |
 | `compile_context_lifting_materialization_rows` | replace | Replace with typed `ContextLiftingMaterialization` model construction. |
 | `load_lifting_system` | move | Keep lifting-system assembly as context owner API; implement over typed model queries. |
@@ -158,14 +158,14 @@ File: `propstore/families/claims/storage.py`.
 | `_iter_claim_concept_link_values` | replace | Construct `ClaimConceptLink` association objects from claim contracts. |
 | `_claim_concept_link_values_for_declaration` | replace | Construct `ClaimConceptLink` association objects from claim contracts. |
 | `normalize_conditions_differ` | delete | Condition-difference serialization belongs to the relation/stance model JSON adapter. |
-| `coerce_stance_resolution` | move | Move stance resolution validation to relation/stance semantic owner. |
-| `resolution_opinion_columns` | move | Move opinion extraction to a typed stance-resolution value object. |
-| `canonicalize_claim_for_storage` | move | Split raw-id/logical/artifact identity into claim identity/source promotion owners; split concept-reference lowering into claim semantic normalization. |
+| `coerce_stance_resolution` | move | Move stance resolution validation to `propstore/families/relations/declaration.py::coerce_stance_resolution_payload`. |
+| `resolution_opinion_columns` | move | Move opinion extraction to `propstore/families/relations/declaration.py::StanceResolutionOpinion.from_payload`. |
+| `canonicalize_claim_for_storage` | move | Split raw-id/logical/artifact identity into `propstore/families/identity/claims.py`, source-local support into `propstore/source/claims.py`, and concept-reference lowering into `propstore/families/claims/references.py::resolve_first_claim_reference_id`. |
 | `extract_numeric_claim_fields` | replace | Replace with typed claim payload construction from claim contracts. |
 | `extract_typed_claim_fields` | replace | Replace with typed claim payload construction from claim contracts. |
-| `resolve_equation_sympy` | move | Move equation Sympy generation to claim semantic compilation. |
-| `resolve_algorithm_storage` | move | Move algorithm body/canonical AST/stage handling to claim semantic compilation. |
-| `extract_deferred_stance_rows_with_diagnostics` | move | Move embedded-stance validation/quarantine semantics to relation/stance owner; replace tuple rows with `Stance` models. |
+| `resolve_equation_sympy` | move | Move equation Sympy generation to `propstore/families/claims/stages.py::compile_claim_equation`. |
+| `resolve_algorithm_storage` | move | Move algorithm body/canonical AST/stage handling to `propstore/families/claims/stages.py::compile_claim_algorithm`. |
+| `extract_deferred_stance_rows_with_diagnostics` | move | Move embedded-stance validation/quarantine semantics to `propstore/families/relations/declaration.py::compile_embedded_stance_models`; replace tuple rows with `Stance` models. |
 | `prepare_claim_insert_row` | delete | Replace with `Claim` model construction and SQLAlchemy session add. |
 | `prepare_claim_concept_link_rows` | delete | Replace with `ClaimConceptLink` association objects and SQLAlchemy relationship persistence. |
 
@@ -193,7 +193,7 @@ File: `propstore/core/active_claims.py`.
 | `ActiveClaim.from_claim` | delete | Projection/dict coercion constructor is deleted. |
 | `ActiveClaim.from_mapping` | delete | Projection-row construction path is deleted. |
 | `ActiveClaim.to_dict` | replace | Replace with explicit view/document payload rendering that does not import `CLAIM_ROW_MODEL`. |
-| `ActiveClaim.to_source_claim_payload` | move | Move conflict-detector payload rendering to a conflict-detector input adapter. |
+| `ActiveClaim.to_source_claim_payload` | move | Move conflict-detector payload rendering to `propstore/conflict_detector/collectors.py::conflict_claim_from_active_claim`. |
 | `coerce_active_claim` | delete | Runtime receives typed `Claim`; mapping coercion is deleted. |
 | `coerce_active_claims` | delete | Runtime receives typed `Claim`; mapping coercion is deleted. |
 
@@ -208,13 +208,13 @@ File: `propstore/families/relations/declaration.py`.
 | `ConflictRow` | delete | Replace with typed `ConflictWitness` model. |
 | `_optional_numeric` | delete | Generic nullable numeric conversion belongs to Quire charter conversion. |
 | `compile_authored_stance_sidecar_rows` | replace | Replace with `Stance` model construction. |
-| `compile_authored_stance_sidecar_rows_with_diagnostics` | move | Move stance reference validation/quarantine diagnostics to relation semantic owner. |
+| `compile_authored_stance_sidecar_rows_with_diagnostics` | move | Move stance reference validation/quarantine diagnostics to `propstore/families/relations/declaration.py::compile_authored_stance_models_with_diagnostics`. |
 | `select_stances_between` | replace | Replace with SQLAlchemy relationship/session query. |
 | `select_conflicts` | replace | Replace with SQLAlchemy session query over `ConflictWitness`. |
 | `select_all_relationships` | replace | Replace with SQLAlchemy session query over `ConceptRelation`. |
 | `select_all_claim_stances` | replace | Replace with SQLAlchemy session query over `Stance`. |
-| `select_claim_stances_with_policy` | move | Move visibility/render policy semantics to relation/world owner. |
-| `select_explanation_stances` | move | Move explanation traversal semantics to relation/world owner. |
+| `select_claim_stances_with_policy` | move | Move visibility/render policy semantics to `propstore/world/model.py::WorldQuery.claim_stances_with_policy`; implement relation filtering with typed `Stance` relationships. |
+| `select_explanation_stances` | move | Move explanation traversal semantics to `propstore/world/model.py::WorldQuery.explain`; implement traversal with typed `Stance` relationships. |
 | `count_conflicts` | replace | Replace with SQLAlchemy count query over `ConflictWitness`. |
 
 ## Micropublication Helpers

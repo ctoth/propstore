@@ -163,7 +163,7 @@ Implement the target path:
 one-off report writer. Implement this command surface:
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --out reports/sqlalchemy-charter-parity/build-orchestration.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
 Builder dispatch is exact:
@@ -183,10 +183,15 @@ Builder dispatch is exact:
 - Both builders operate on the same committed Git tree identified by
   `head_sha`; the harness records that hash and does not compare different
   repository snapshots.
+- `--workstream` is required. It points to the active child workstream file.
+  The harness parses that file for the `Accepted parity difference allowlist`
+  section and the `Data-Parity Gate` comparison list. Missing section,
+  unparseable allowlist, or owner/workstream mismatch is a command failure.
 
 Report schema is exact JSON with these top-level keys:
 
 - `owner`: owner slug from `--owner`;
+- `workstream`: normalized path supplied by `--workstream`;
 - `knowledge_dir`: normalized path supplied by `--knowledge-dir`;
 - `head_sha`: committed Git hash used by both builders;
 - `before`: object with `path`, `build`, `schema_hash`, and `diagnostics`;
@@ -230,7 +235,7 @@ differences come only from the active child workstream's deletion allowlist.
 Build both sidecars from the same repository snapshot:
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --out reports/sqlalchemy-charter-parity/build-orchestration.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
 1. Build the current mainline sidecar.

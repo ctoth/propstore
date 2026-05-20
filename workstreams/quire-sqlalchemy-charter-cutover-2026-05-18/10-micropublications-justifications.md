@@ -137,10 +137,11 @@ as the work queue:
   `propstore/core/justifications.py`.
 
 This phase owns final deletion of `propstore/families/claims/projection_model.py`.
-At the start of this phase, the only permitted symbols remaining in that file
-are `TEXT_CODEC`, `CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, and
-`JUSTIFICATION_TABLE`. If any other symbol remains in that file, Phase 8 is
-incomplete and this phase is blocked.
+At the start of this phase, the only permitted top-level definitions remaining
+in that file are `_nullable_text`, `_claim_id`, `TEXT_CODEC`,
+`CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, and `JUSTIFICATION_TABLE`.
+If any other top-level definition remains in that file, Phase 8 is incomplete
+and this phase is blocked.
 
 ## Helper Classification
 
@@ -272,7 +273,7 @@ owner workstream.
 ## Data Parity Gate
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/micropublications-justifications/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/micropublications-justifications/after.sqlite --owner micropublications-justifications --out reports/sqlalchemy-charter-parity/micropublications-justifications.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/micropublications-justifications/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/micropublications-justifications/after.sqlite --owner micropublications-justifications --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/10-micropublications-justifications.md --out reports/sqlalchemy-charter-parity/micropublications-justifications.json
 ```
 
 Build the sidecar from the same repository snapshot before and after this
@@ -301,8 +302,8 @@ Accepted parity difference allowlist:
 - deleted projection rows, row carriers, row dictionaries, mapping coercers,
   duplicated canonical conversion role, table helpers, and generic helper paths
   named in this file's deletion targets;
-- final deletion of `TEXT_CODEC`, `CLAIM_ID_CODEC`,
-  `JUSTIFICATION_STORAGE_MODEL`, `JUSTIFICATION_TABLE`, and
+- final deletion of `_nullable_text`, `_claim_id`, `TEXT_CODEC`,
+  `CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, `JUSTIFICATION_TABLE`, and
   `propstore/families/claims/projection_model.py`;
 - no column rename, table rename, row disappearance, key disappearance,
   diagnostic disappearance, semantic-query disappearance, micropublication-link

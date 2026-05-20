@@ -245,10 +245,13 @@ Every Propstore family phase has this data-parity obligation:
 - Standard command shape:
 
 ```powershell
-uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --out reports/sqlalchemy-charter-parity/build-orchestration.json
+uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --build-before projection --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
 - build the sidecar from the same repository snapshot before and after the current phase;
+- read the active child workstream from the required `--workstream` argument
+  and fail when the workstream path is missing, mismatched to `--owner`, or
+  lacks a parseable deletion allowlist and data-parity comparison list;
 - compare row counts and primary-key/key-set coverage for every table the phase owns;
 - compare the exact owner API results named in the active child workstream's
   data-parity section;
