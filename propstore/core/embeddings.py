@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from propstore.core.active_claims import ActiveClaim
+from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept
 
 
@@ -19,7 +19,7 @@ class EmbeddingEntity:
     text: str
 
 
-def claim_embedding_text(claim: ActiveClaim) -> str:
+def claim_embedding_text(claim: Claim) -> str:
     """Return the text representation used for claim embeddings."""
 
     for value in (
@@ -30,7 +30,7 @@ def claim_embedding_text(claim: ActiveClaim) -> str:
     ):
         if value:
             return str(value)
-    return str(claim.claim_id)
+    return str(claim.id)
 
 
 def concept_embedding_text(
