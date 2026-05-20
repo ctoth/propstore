@@ -771,3 +771,57 @@ rg -n -F -- "getattr(world, \"resolve_concept\"" propstore tests
 All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 If a public query method remains for presentation compatibility, it must be a
 generic `family + reference` API, not a concept-named lookup wrapper.
+
+## Current Audit Refresh
+
+Recorded 2026-05-20 against HEAD `93100fde`.
+
+Binding status:
+
+- The Refactor Zen in this file is binding, not advisory. Phase 7-8 is
+  complete for the projection/read-model deletion targets recorded above, but
+  it is not complete for the newer generic family-reference architecture while
+  concept-named lookup wrappers, direct string-family model access, or local
+  logical-id indexes remain in production.
+- The correction final state above is mandatory. Do not treat `resolve_alias`,
+  `resolve_concept`, `schema.model("alias")`, `schema.model("concept")`, local
+  concept logical-id indexes, or presentation-layer direct model lookup as
+  acceptable compatibility surfaces. Replace the interface and update callers;
+  do not add shims, adapters, aliases, fallback readers, old/new dual paths, or
+  renamed selector helpers.
+
+Current repository audit:
+
+- The old concept projection/read-model deletion remains true. Current history
+  includes `3b6395ff Record forms concepts charter gates`, and current searches
+  still show no resurrected `resolve_concept_id` or
+  `resolve_sidecar_concept_id` production helper.
+- The generic family-reference correction remains open in current code.
+  `propstore/world/model.py` still defines `resolve_alias` and
+  `resolve_concept`; `resolve_alias` uses `schema.model("alias")`, and
+  `resolve_concept` uses `schema.model("concept")` plus
+  `_get_concept_logical_id_index`.
+- `propstore/world/model.py::_build_logical_id_index` still contains the
+  special `table == "concept"` branch.
+- Direct concept model lookup remains in current production code:
+  `propstore/app/concepts/display.py`, `propstore/families/embeddings/declaration.py`,
+  and multiple `propstore/world/model.py` methods still use
+  `schema.model("concept")`.
+- Current callers still depend on the old concept-named public method shape:
+  `propstore/families/concepts/sidecar_runtime.py` uses
+  `WorldQuery(derived_store=derived_store).resolve_concept(...)`, and app/world
+  query callers still call `world.resolve_concept(...)`.
+
+Audit commands run for this refresh:
+
+```powershell
+rg -n -F -- "def resolve_alias" propstore tests
+rg -n -F -- "def resolve_concept" propstore tests
+rg -n -F -- 'schema.model("alias")' propstore tests
+rg -n -F -- 'schema.model("concept")' propstore tests
+rg -n -F -- '_get_concept_logical_id_index' propstore tests
+rg -n -F -- 'table == "concept"' propstore tests
+rg -n -F -- 'resolve_concept_id' propstore tests
+rg -n -F -- 'WorldQuery(derived_store=derived_store).resolve_concept' propstore tests
+rg -n -F -- 'world.resolve_concept(' propstore tests
+```
