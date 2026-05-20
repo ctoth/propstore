@@ -284,3 +284,43 @@ This slice is complete only when:
 - all required tests pass through the logged pytest wrapper;
 - all old-path search gates above are zero-hit outside notes, workstreams,
   docs, and reports.
+
+## Phase 9 Execution Record
+
+Recorded 2026-05-20.
+
+- Prerequisite state: `git status --short` showed only unrelated untracked
+  paths outside this slice; `uv run pyright propstore` passed with 0 errors;
+  `powershell -File scripts/run_logged_pytest.ps1 -Label context-prereq
+  tests/test_world_query.py tests/test_required_schema_completeness.py
+  tests/test_fixture_schema_parity.py` passed with 153 tests in
+  `logs/test-runs/context-prereq-20260520-135618.log`.
+- Prerequisite searches: `ProjectionTable` and `ProjectionModel` searches had
+  hits only in the context declaration deletion target; `sqlite3.Connection`
+  hits were confined to the context declaration raw selector/delete target.
+- Model cutover commit: `cd011c7e` deleted the context projection
+  declarations, table constants, codec constants, row builders, raw SQLite
+  population helpers, and raw lifting-system loader path; added typed
+  `Context`, `ContextAssumption`, `ContextLiftingRule`, and
+  `ContextLiftingMaterialization` model construction; updated build planning,
+  world charters, world loading, and tests to use Quire SQLAlchemy models.
+- Helper gate commit: `d8884ed2` deleted the remaining generic context JSON
+  helper gates `_json_or_none` and `_json_string_tuple`; context model JSON is
+  now encoded or decoded only at the model construction/load boundary.
+- Focused verification: `uv run pyright
+  propstore/families/contexts/declaration.py` passed with 0 errors;
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  context-helper-deletion tests/test_contexts.py
+  tests/test_context_lifting_ws5.py tests/test_sidecar_contexts.py` passed
+  with 33 tests in
+  `logs/test-runs/context-helper-deletion-20260520-140846.log`.
+- Required family gates: `uv run pyright propstore` passed with 0 errors;
+  `powershell -File scripts/run_logged_pytest.ps1 -Label context-charter
+  tests/test_world_query.py tests/test_required_schema_completeness.py
+  tests/test_fixture_schema_parity.py` passed with 153 tests in
+  `logs/test-runs/context-charter-20260520-140608.log`.
+- Old-path searches: every required search listed above for context table
+  constants, projection models, projection helpers, JSON/null helpers, and
+  codec constants returned zero hits in `propstore` and `tests`.
+- Remaining Phase 9 gate: run and record the contexts/lifting data-parity
+  command.
