@@ -448,6 +448,19 @@ Next required item: resume deletion/replacement of the old projection builder
 using the Quire SQLAlchemy charter FTS source-query and no-primary-key mapper
 paths.
 
+World charter registration slice:
+
+- Added `propstore/families/world_charters.py` with Propstore-owned Quire
+  `FamilyCharter` declarations, mapped model classes, FTS source-query
+  charters, and `world_sqlalchemy_schema()` for the existing sidecar table
+  surface.
+- Type gate after the charter registration:
+  `uv run pyright propstore` passed with 0 errors.
+- Commit: `d3762490 Register Propstore world SQLAlchemy charters`.
+
+Next required item: update `propstore/derived_build_plan.py` from projection
+row sets to typed model/session write plans.
+
 Old validation-wrapper audit:
 
 - Exact-string audit found one production old-schema message rewrite:
