@@ -1133,3 +1133,14 @@ Recorded 2026-05-20.
   hits. Refreshed `propstore/world` searches for
   `propstore.core.active_claims` and `CLAIM_ROW_MODEL` both returned zero
   hits.
+- Package Pyright queue after world cleanup: `uv run pyright propstore` now
+  fails with 25 errors. Remaining Phase 10-local queue: typed-claim field-name
+  callers in `app/claim_views.py`, `app/neighborhoods.py`, and
+  `app/world_atms.py`; deleted claim embedding projection imports in
+  `families/embeddings/declaration.py`; deleted `CLAIM_CORE_TABLE` import in
+  `families/relations/declaration.py`; typed `Claim` boundary failure in
+  `graph_export.py`; and a stale dict-shaped ASPIC projection call in
+  `merge/structured_merge.py`. The active-claim import search and
+  `CLAIM_ROW_MODEL` search are already zero, so the next queue is typed
+  caller cleanup and deleted projection-constant callers, not restoring any
+  row model.
