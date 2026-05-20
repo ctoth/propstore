@@ -227,6 +227,169 @@ mapping metadata determine them. Do not introduce a parallel `PrimaryKey[T]`,
 The IR must be serializable into a stable schema catalog payload and hash.
 That hash participates in derived-store cache identity.
 
+### Phase 2 Execution Record
+
+Recorded 2026-05-20.
+
+- Quire charter/schema IR commits: `af545e0 Add charter schema IR tests`, `87b3a6d Add schema IR objects`, `eaede7e Add Python type SQL mapping`, `9d2bf7a Add schema catalog hashing`, `ada528b Add schema relationship IR`, and `30e23ca Add family charter declarations`.
+- Quire type-fix commits needed for the full Phase 2 gate: `34f622d Type-narrow enum SQL mapping`, `57d17f9 Type-tighten charter IR tests`, `c1724c6 Type-tighten SQLAlchemy proof tests`, `d21b879 Type benchmark repo access`, `de7ff76 Type vec identity test double`, `fc38400 Type custom document codec test`, `a8e1e2f Type family tests`, `b805dd8 Type family store tests`, `781d8b2 Accept homogeneous path mappings`, `081d079 Keep GitStore backend protocol compatible`, `e66d6a0 Type document codec constructors`, `485887e Type family store codec constructor`, `76f39c5 Type projection mapping schema material tests`, and `c3e53c5 Type reference key extractors`.
+- Charter API coverage: Python model class, existing `ArtifactFamily`, optional `DocumentFamilyStore` binding, lifecycle/state metadata, typed fields, primary keys, nullable fields, `ForeignKeySpec`-derived FKs, association-object and relationship metadata, JSON value-object fields, enum fields, generated/default fields, indexes, search/vector metadata, source-local/canonical scopes, and consumer semantic metadata.
+- Existing Quire ownership preserved: `ArtifactFamily` remains family identity, document stores remain document IO, placement/addressing remains in `quire.artifacts`, and cross-family references remain through `ForeignKeySpec`.
+- Schema catalog: `SchemaCatalog.from_objects(...)` serializes a stable payload and `canonical_json_sha256` hash.
+- Quire type gate: `uv run pyright` passed with 0 errors, 0 warnings, 0 informations.
+- Quire test gate: `uv run pytest -vv` passed with 355 tests in 304.38s.
+
+Old-path inventory outputs copied from the Phase 2 completion searches:
+
+```text
+rg -n -F -- "ProjectionTable" quire tests
+tests\test_derived_store.py:38:    ProjectionTable,
+tests\test_derived_store.py:389:    pages = ProjectionTable(
+tests\test_derived_store.py:432:    table = ProjectionTable(
+tests\test_derived_store.py:456:        ProjectionTable(
+tests\test_derived_store.py:469:        ProjectionTable(
+tests\test_derived_store.py:477:    pages = ProjectionTable(
+tests\test_derived_store.py:510:    pages = ProjectionTable(
+tests\test_derived_store.py:543:    first = ProjectionTable(
+tests\test_derived_store.py:547:    second = ProjectionTable(
+tests\test_derived_store.py:561:        pages = ProjectionTable(
+tests\test_derived_store.py:575:        notes = ProjectionTable(
+tests\test_derived_store.py:629:    pages = ProjectionTable(
+tests\test_derived_store.py:675:        pages = ProjectionTable(
+tests\test_derived_store.py:710:        pages = ProjectionTable(
+tests\test_derived_store.py:734:        ProjectionTable(
+tests\test_derived_store.py:750:        pages = ProjectionTable(
+tests\test_projection_mapping.py:28:from quire.projections import ProjectionColumn, ProjectionField, ProjectionIndex, ProjectionRow, ProjectionTable, json_decoder, json_encoder
+tests\test_projection_mapping.py:430:    core = ProjectionTable(
+tests\test_projection_mapping.py:437:    source = ProjectionTable(
+tests\test_projection_mapping.py:474:    edge = ProjectionTable(
+quire\derived_runtime.py:12:    ProjectionTable,
+quire\derived_runtime.py:30:DERIVED_STORE_META_PROJECTION = ProjectionTable(
+quire\projections.py:294:class ProjectionTable:
+quire\projections.py:734:SemanticProjection: TypeAlias = ProjectionTable | FtsProjection | VecProjection
+quire\projections.py:763:            if isinstance(projection, (ProjectionTable, FtsProjection, VecProjection)):
+quire\projections.py:797:            if not isinstance(projection, (ProjectionTable, FtsProjection, VecProjection)):
+quire\projections.py:838:    if isinstance(projection, ProjectionTable):
+quire\projections.py:850:    if isinstance(projection, ProjectionTable):
+quire\projection_mapping.py:16:    ProjectionTable,
+quire\projection_mapping.py:346:    def child_table(self, parent_table: str) -> ProjectionTable:
+quire\projection_mapping.py:350:        return ProjectionTable(
+quire\projection_mapping.py:445:    table: ProjectionTable
+quire\projection_mapping.py:500:    base_table: ProjectionTable
+quire\projection_mapping.py:729:    def projection_tables(self) -> tuple[ProjectionTable, ...]:
+quire\projection_mapping.py:756:            ProjectionTable(
+quire\__init__.py:78:    ProjectionTable,
+quire\__init__.py:232:    "ProjectionTable",
+quire\sqlite_vec_store.py:7:from quire.projections import ProjectionColumn, ProjectionIndex, ProjectionTable, VecProjection, quote_identifier
+quire\sqlite_vec_store.py:46:    status_projection: ProjectionTable
+quire\sqlite_vec_store.py:74:EMBEDDING_MODEL_PROJECTION = ProjectionTable(
+quire\sqlite_vec_store.py:94:) -> ProjectionTable:
+quire\sqlite_vec_store.py:95:    return ProjectionTable(
+
+rg -n -F -- "ProjectionModel" quire tests
+tests\test_projection_mapping.py:21:    ProjectionModel,
+tests\test_projection_mapping.py:122:    model = ProjectionModel(
+tests\test_projection_mapping.py:136:    model = ProjectionModel(
+tests\test_projection_mapping.py:153:    model = ProjectionModel(
+tests\test_projection_mapping.py:166:    model = ProjectionModel(
+tests\test_projection_mapping.py:180:    model = ProjectionModel(
+tests\test_projection_mapping.py:218:    model = ProjectionModel(
+tests\test_projection_mapping.py:308:    model = ProjectionModel(
+tests\test_projection_mapping.py:329:    model = ProjectionModel(
+tests\test_projection_mapping.py:372:    model = ProjectionModel(
+tests\test_projection_mapping.py:384:    model = ProjectionModel(
+tests\test_projection_mapping.py:411:    model = ProjectionModel(
+tests\test_projection_mapping.py:520:    model = ProjectionModel(
+tests\test_projection_mapping.py:545:    model = ProjectionModel(
+tests\test_projection_mapping.py:560:    first = ProjectionModel(
+tests\test_projection_mapping.py:566:    second = ProjectionModel(
+tests\test_projection_mapping.py:577:    first = ProjectionModel(
+tests\test_projection_mapping.py:583:    second = ProjectionModel(
+tests\test_projection_mapping.py:594:    flat = ProjectionModel(
+tests\test_projection_mapping.py:600:    reference = ProjectionModel(
+tests\test_projection_mapping.py:612:    model = ProjectionModel(
+tests\test_projection_mapping.py:642:    model = ProjectionModel(
+tests\test_projection_mapping.py:687:    model = ProjectionModel(
+tests\test_projection_mapping.py:750:    model = ProjectionModel(
+tests\test_projection_mapping.py:781:def _parent_model() -> ProjectionModel:
+tests\test_projection_mapping.py:782:    return ProjectionModel(
+quire\projection_mapping.py:553:class ProjectionModel(Generic[ResultT]):
+quire\__init__.py:107:    ProjectionModel,
+quire\__init__.py:225:    "ProjectionModel",
+
+rg -n -F -- "ProjectionCodec" quire tests
+tests\test_projection_mapping.py:15:    ProjectionCodec,
+tests\test_projection_mapping.py:641:    real_codec = ProjectionCodec("real", "REAL")
+tests\test_projection_mapping.py:686:    id_codec = ProjectionCodec("auto_id", "INTEGER PRIMARY KEY AUTOINCREMENT")
+quire\projection_mapping.py:28:class ProjectionCodec:
+quire\projection_mapping.py:48:SCALAR_CODEC = ProjectionCodec()
+quire\projection_mapping.py:49:JSON_CODEC = ProjectionCodec("json", "TEXT", json_encoder, json_decoder)
+quire\projection_mapping.py:111:    codec: ProjectionCodec = SCALAR_CODEC
+quire\projection_mapping.py:163:    codec: ProjectionCodec = JSON_CODEC
+quire\projection_mapping.py:212:    codec: ProjectionCodec = SCALAR_CODEC
+quire\__init__.py:101:    ProjectionCodec,
+quire\__init__.py:214:    "ProjectionCodec",
+
+rg -n -F -- "ScalarPath" quire tests
+tests\test_projection_mapping.py:26:    ScalarPath,
+tests\test_projection_mapping.py:126:        fields=(ScalarPath(("id",), "id"), ScalarPath(("title",), "title"),),
+tests\test_projection_mapping.py:141:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:142:            ScalarPath(("source", "origin", "type"), "source_origin_type"),
+tests\test_projection_mapping.py:157:        fields=(ScalarPath(("id",), "id"), EnumPath(("status",), "status", enum=Status),),
+tests\test_projection_mapping.py:170:        fields=(ScalarPath(("id",), "id"), JsonPath(("payload",), "payload_json"),),
+tests\test_projection_mapping.py:184:        fields=(ScalarPath(("id",), "id"), ScalarPath(("note",), "note"),),
+tests\test_projection_mapping.py:223:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:230:                fields=(ScalarPath(("concept_id",), "concept_id"), ScalarPath(("role",), "role")),
+tests\test_projection_mapping.py:313:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:334:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:376:        fields=(ScalarPath(("id",), "id"),),
+tests\test_projection_mapping.py:389:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:392:                fields=(ScalarPath(("confidence",), "confidence"),),
+tests\test_projection_mapping.py:416:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:525:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:526:            ScalarPath(("title",), "title"),
+tests\test_projection_mapping.py:549:        fields=(ScalarPath(("id",), "id"), ScalarPath(("title",), "title"),),
+tests\test_projection_mapping.py:564:        fields=(ScalarPath(("id",), "id"),),
+tests\test_projection_mapping.py:570:        fields=(ScalarPath(("identifier",), "id"),),
+tests\test_projection_mapping.py:581:        fields=(ScalarPath(("id",), "id"), ScalarPath(("title",), "title"),),
+tests\test_projection_mapping.py:587:        fields=(ScalarPath(("title",), "title"), ScalarPath(("id",), "id"),),
+tests\test_projection_mapping.py:598:        fields=(ScalarPath(("id",), "id"),),
+tests\test_projection_mapping.py:604:        fields=(ScalarPath(("id",), "id"), ReferencePath(("context_id",), "context_id", family="context")),
+tests\test_projection_mapping.py:617:            ScalarPath(("source_id",), "source_id"),
+tests\test_projection_mapping.py:618:            ScalarPath(("target_id",), "target_id"),
+tests\test_projection_mapping.py:620:            ScalarPath(("note",), "note"),
+tests\test_projection_mapping.py:647:            ScalarPath(
+tests\test_projection_mapping.py:653:            ScalarPath(("target_id",), "target_id", nullable=False),
+tests\test_projection_mapping.py:654:            ScalarPath(("relation_type",), "relation_type", nullable=False),
+tests\test_projection_mapping.py:655:            ScalarPath(
+tests\test_projection_mapping.py:692:            ScalarPath(("id",), "id", codec=id_codec, insertable=False),
+tests\test_projection_mapping.py:693:            ScalarPath(("title",), "title"),
+tests\test_projection_mapping.py:755:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:787:            ScalarPath(("id",), "id"),
+tests\test_projection_mapping.py:795:                fields=(ScalarPath(("concept_id",), "concept_id"), ScalarPath(("role",), "role")),
+quire\projection_mapping.py:108:class ScalarPath:
+quire\projection_mapping.py:162:class JsonPath(ScalarPath):
+quire\projection_mapping.py:167:class EnumPath(ScalarPath):
+quire\projection_mapping.py:194:class ReferencePath(ScalarPath):
+quire\projection_mapping.py:249:ProjectionPath = ScalarPath | JsonPath | EnumPath | ReferencePath | ProjectionBinding
+quire\projection_mapping.py:753:            if isinstance(field, ScalarPath) and field.indexed
+quire\projection_mapping.py:833:        elif isinstance(field, ScalarPath | ProjectionBinding) and field.path == path:
+quire\__init__.py:112:    ScalarPath,
+quire\__init__.py:245:    "ScalarPath",
+
+rg -n -F -- "ReferencePath" quire tests
+tests\test_projection_mapping.py:25:    ReferencePath,
+tests\test_projection_mapping.py:314:            ReferencePath(("context_id",), "context_id", family="context"),
+tests\test_projection_mapping.py:604:        fields=(ScalarPath(("id",), "id"), ReferencePath(("context_id",), "context_id", family="context")),
+quire\projection_mapping.py:194:class ReferencePath(ScalarPath):
+quire\projection_mapping.py:249:ProjectionPath = ScalarPath | JsonPath | EnumPath | ReferencePath | ProjectionBinding
+quire\projection_mapping.py:748:            if isinstance(field, ReferencePath)
+quire\__init__.py:111:    ReferencePath,
+quire\__init__.py:234:    "ReferencePath",
+```
+
+Phase 2 Quire gates are complete. Propstore dependency pin update is pending the required Quire push.
+
 ## Completion Gates
 
 Run from `C:\Users\Q\code\quire`:
