@@ -21,7 +21,7 @@ def test_ic_merge_docs_exist_and_separate_assignment_selection() -> None:
     assert "belief_set.ic_merge" in text
     assert "Konieczny" in text
     assert "mu-models" in text
-    assert "propstore.world.assignment_selection_merge" in text
+    assert "assignment-selection" in text
 
 
 def test_af_revision_docs_exist_and_cite_af_surfaces() -> None:

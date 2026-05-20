@@ -15,11 +15,9 @@ from propstore.core.assertions.situated import SituatedAssertion
 from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR
 from propstore.world.types import (
     ArgumentationSemantics,
-    MergeOperator,
     ReasoningBackend,
     RenderPolicy,
     normalize_argumentation_semantics,
-    normalize_merge_operator,
     normalize_reasoning_backend,
 )
 
@@ -43,6 +41,13 @@ def _plain(value: Any) -> Any:
 
 def _hash(value: Any) -> str:
     return hashlib.sha256(canonical_json_bytes(_plain(value))).hexdigest()
+
+
+def _normalize_merge_operator_value(value: object) -> str:
+    normalized = str(getattr(value, "value", value))
+    if normalized not in {"sigma", "max", "gmax"}:
+        raise ValueError(f"Unknown merge_operator '{value}'")
+    return normalized
 
 
 @dataclass(frozen=True, order=True)
@@ -73,13 +78,13 @@ class RevisionPolicy:
 
 @dataclass(frozen=True, order=True)
 class MergePolicy:
-    operator: MergeOperator = MergeOperator.SIGMA
+    operator: str = "sigma"
     conflict_strategy: str = "surface_conflicts"
     branch_filter: tuple[str, ...] | None = None
     require_witnesses: bool = True
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "operator", normalize_merge_operator(self.operator))
+        object.__setattr__(self, "operator", _normalize_merge_operator_value(self.operator))
         if self.branch_filter is not None:
             object.__setattr__(self, "branch_filter", tuple(str(item) for item in self.branch_filter))
 
@@ -88,7 +93,7 @@ class MergePolicy:
         payload = {} if data is None else data
         branch_filter = payload.get("branch_filter")
         return cls(
-            operator=payload.get("operator", MergeOperator.SIGMA),
+            operator=payload.get("operator", "sigma"),
             conflict_strategy=str(payload.get("conflict_strategy", "surface_conflicts")),
             branch_filter=None if branch_filter is None else tuple(str(item) for item in branch_filter),
             require_witnesses=bool(payload.get("require_witnesses", True)),
@@ -96,7 +101,7 @@ class MergePolicy:
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
-            "operator": self.operator.value,
+            "operator": self.operator,
             "conflict_strategy": self.conflict_strategy,
             "require_witnesses": self.require_witnesses,
         }

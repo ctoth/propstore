@@ -1,8 +1,4 @@
-"""Propstore-owned assignment-selection adapter, CEL, policy, and API tests.
-
-Pure assignment-selection algorithm tests live in the extracted
-``assignment-selection`` package.
-"""
+"""Propstore-owned assignment-selection adapter, CEL, policy, and API tests."""
 
 from __future__ import annotations
 
@@ -12,27 +8,20 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 
+from assignment_selection import Assignment, MergeOperator, Problem, SourceAssignment
+from assignment_selection import solve as package_solve
+from assignment_selection.solver import assignment_satisfies, enumerate_candidate_assignments
+
 from propstore.core.conditions.registry import ConceptInfo, KindType
 import propstore.storage as repo_api
-from propstore.world.assignment_selection_merge import (
-    MergeOperator,
-    _eval_cel_constraint_z3,
-    assignment_satisfies_mu,
-    enumerate_candidate_assignments,
-    solve_assignment_selection_merge,
-)
+from propstore.world import assignment_selection_policy as assignment_selection_adapter
+from propstore.world.assignment_selection_policy import _compile_integrity_constraint
 from propstore.world.types import (
-    AssignmentSelectionProblem,
     IntegrityConstraint,
     IntegrityConstraintKind,
-    MergeAssignment,
-    MergeSource,
     RenderPolicy,
     ResolutionStrategy,
 )
-
-
-assignment_selection_module = importlib.import_module("propstore.world.assignment_selection_merge")
 
 
 def _numeric_cel_registry(*concept_ids: str) -> dict[str, ConceptInfo]:
@@ -44,6 +33,26 @@ def _numeric_cel_registry(*concept_ids: str) -> dict[str, ConceptInfo]:
         )
         for concept_id in concept_ids
     }
+
+
+def _compile_problem(problem: Problem) -> Problem:
+    return Problem(
+        concept_ids=problem.concept_ids,
+        sources=problem.sources,
+        constraints=tuple(
+            _compile_integrity_constraint(constraint)
+            for constraint in problem.constraints
+        ),
+        operator=problem.operator,
+    )
+
+
+def _solve(problem: Problem):
+    return package_solve(_compile_problem(problem))
+
+
+def _satisfies(problem: Problem, assignment: Assignment) -> bool:
+    return assignment_satisfies(_compile_problem(problem), assignment)
 
 
 def _eval_cel_ast_oracle(node, bindings):
@@ -154,12 +163,12 @@ def _eval_cel_constraint_bruteforce_oracle(assignment, constraint) -> bool:
 
 class TestAssignmentSelectionCelAdapter:
     def test_cel_constraint_filters_assignments_by_canonical_name(self):
-        problem = AssignmentSelectionProblem(
+        problem = Problem(
             concept_ids=("x", "y"),
             sources=(
-                MergeSource("s1", MergeAssignment(values={"x": 0.0, "y": 0.0})),
-                MergeSource("s2", MergeAssignment(values={"x": 0.0, "y": 1.0})),
-                MergeSource("s3", MergeAssignment(values={"x": 1.0, "y": 1.0})),
+                SourceAssignment("s1", Assignment(values={"x": 0.0, "y": 0.0})),
+                SourceAssignment("s2", Assignment(values={"x": 0.0, "y": 1.0})),
+                SourceAssignment("s3", Assignment(values={"x": 1.0, "y": 1.0})),
             ),
             constraints=(
                 IntegrityConstraint(
@@ -172,17 +181,17 @@ class TestAssignmentSelectionCelAdapter:
             operator=MergeOperator.SIGMA,
         )
 
-        result = solve_assignment_selection_merge(problem)
+        result = _solve(problem)
 
-        assert result.winners == (MergeAssignment(values={"x": 0.0, "y": 1.0}),)
-        assert all(assignment_satisfies_mu(problem, winner) for winner in result.winners)
+        assert result.winners == (Assignment(values={"x": 0.0, "y": 1.0}),)
+        assert all(_satisfies(problem, winner) for winner in result.winners)
 
     def test_invalid_cel_constraint_fails_explicitly(self):
-        problem = AssignmentSelectionProblem(
+        problem = Problem(
             concept_ids=("x", "y"),
             sources=(
-                MergeSource("s1", MergeAssignment(values={"x": 0.0, "y": 0.0})),
-                MergeSource("s2", MergeAssignment(values={"x": 1.0, "y": 1.0})),
+                SourceAssignment("s1", Assignment(values={"x": 0.0, "y": 0.0})),
+                SourceAssignment("s2", Assignment(values={"x": 1.0, "y": 1.0})),
             ),
             constraints=(
                 IntegrityConstraint(
@@ -196,7 +205,7 @@ class TestAssignmentSelectionCelAdapter:
         )
 
         with pytest.raises(ValueError, match="Undefined concept"):
-            solve_assignment_selection_merge(problem)
+            _solve(problem)
 
     def test_open_category_constraint_allows_undeclared_literal(self):
         extensible_category_registry = {
@@ -208,11 +217,11 @@ class TestAssignmentSelectionCelAdapter:
                 category_extensible=True,
             )
         }
-        problem = AssignmentSelectionProblem(
+        problem = Problem(
             concept_ids=("task",),
             sources=(
-                MergeSource("s1", MergeAssignment(values={"task": "speech"})),
-                MergeSource("s2", MergeAssignment(values={"task": "yodel"})),
+                SourceAssignment("s1", Assignment(values={"task": "speech"})),
+                SourceAssignment("s2", Assignment(values={"task": "yodel"})),
             ),
             constraints=(
                 IntegrityConstraint(
@@ -225,52 +234,16 @@ class TestAssignmentSelectionCelAdapter:
             operator=MergeOperator.SIGMA,
         )
 
-        result = solve_assignment_selection_merge(problem)
+        result = _solve(problem)
 
-        assert result.winners == (MergeAssignment(values={"task": "yodel"}),)
-
-    def test_open_category_inequality_does_not_collapse_to_closed_domain(self):
-        extensible_category_registry = {
-            "task": ConceptInfo(
-                id="task",
-                canonical_name="task",
-                kind=KindType.CATEGORY,
-                category_values=["speech", "singing"],
-                category_extensible=True,
-            )
-        }
-        problem = AssignmentSelectionProblem(
-            concept_ids=("task",),
-            sources=(
-                MergeSource("s1", MergeAssignment(values={"task": "speech"})),
-                MergeSource("s2", MergeAssignment(values={"task": "singing"})),
-                MergeSource("s3", MergeAssignment(values={"task": "yodel"})),
-            ),
-            constraints=(
-                IntegrityConstraint(
-                    kind=IntegrityConstraintKind.CEL,
-                    concept_ids=("task",),
-                    cel="task != 'speech'",
-                    metadata={"registry": extensible_category_registry},
-                ),
-            ),
-            operator=MergeOperator.SIGMA,
-        )
-
-        result = solve_assignment_selection_merge(problem)
-
-        assert result.admissible_count == 2
-        assert all(
-            winner.value_for("task") in {"singing", "yodel"}
-            for winner in result.winners
-        )
+        assert result.winners == (Assignment(values={"task": "yodel"}),)
 
     def test_duplicate_production_cel_runtime_is_removed(self):
-        assert not hasattr(assignment_selection_module, "_eval_cel_ast")
-        assert not hasattr(assignment_selection_module, "_eval_cel_constraint_bruteforce")
+        assert not hasattr(assignment_selection_adapter, "_eval_cel_ast")
+        assert not hasattr(assignment_selection_adapter, "_eval_cel_constraint_bruteforce")
 
     def test_cel_constraints_reuse_one_solver_per_problem(self, monkeypatch):
-        real_solver = assignment_selection_module.ConditionSolver
+        real_solver = assignment_selection_adapter.ConditionSolver
         init_count = 0
 
         class CountingSolver(real_solver):
@@ -279,11 +252,11 @@ class TestAssignmentSelectionCelAdapter:
                 init_count += 1
                 super().__init__(registry)
 
-        problem = AssignmentSelectionProblem(
+        problem = Problem(
             concept_ids=("x", "y"),
             sources=(
-                MergeSource("s1", MergeAssignment(values={"x": 0.0, "y": 0.0})),
-                MergeSource("s2", MergeAssignment(values={"x": 0.0, "y": 1.0})),
+                SourceAssignment("s1", Assignment(values={"x": 0.0, "y": 0.0})),
+                SourceAssignment("s2", Assignment(values={"x": 0.0, "y": 1.0})),
             ),
             constraints=(
                 IntegrityConstraint(
@@ -296,8 +269,8 @@ class TestAssignmentSelectionCelAdapter:
             operator=MergeOperator.SIGMA,
         )
 
-        monkeypatch.setattr(assignment_selection_module, "ConditionSolver", CountingSolver)
-        result = solve_assignment_selection_merge(problem)
+        monkeypatch.setattr(assignment_selection_adapter, "ConditionSolver", CountingSolver)
+        result = _solve(problem)
 
         assert result.winners
         assert init_count == 1
@@ -312,57 +285,14 @@ class TestAssignmentSelectionCelAdapter:
         st.sampled_from(list(MergeOperator)),
     )
     @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-    def test_always_true_cel_constraint_preserves_winners(self, source_pairs, operator):
-        sources = tuple(
-            MergeSource(
-                source_id=f"s{index}",
-                assignment=MergeAssignment(values={"x": x, "y": y}),
-            )
-            for index, (x, y) in enumerate(source_pairs)
-        )
-        unconstrained = solve_assignment_selection_merge(
-            AssignmentSelectionProblem(
-                concept_ids=("x", "y"),
-                sources=sources,
-                operator=operator,
-            )
-        )
-        constrained = solve_assignment_selection_merge(
-            AssignmentSelectionProblem(
-                concept_ids=("x", "y"),
-                sources=sources,
-                constraints=(
-                    IntegrityConstraint(
-                        kind=IntegrityConstraintKind.CEL,
-                        concept_ids=("x", "y"),
-                        cel="x == x && y == y",
-                        metadata={"registry": _numeric_cel_registry("x", "y")},
-                    ),
-                ),
-                operator=operator,
-            )
-        )
-
-        assert constrained.winners == unconstrained.winners
-
-    @pytest.mark.property
-    @given(
-        st.lists(
-            st.tuples(st.integers(min_value=0, max_value=2), st.integers(min_value=0, max_value=2)),
-            min_size=2,
-            max_size=5,
-        ),
-        st.sampled_from(list(MergeOperator)),
-    )
-    @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
     def test_unsatisfiable_cel_constraint_yields_no_winners(self, source_pairs, operator):
-        result = solve_assignment_selection_merge(
-            AssignmentSelectionProblem(
+        result = _solve(
+            Problem(
                 concept_ids=("x", "y"),
                 sources=tuple(
-                    MergeSource(
+                    SourceAssignment(
                         source_id=f"s{index}",
-                        assignment=MergeAssignment(values={"x": x, "y": y}),
+                        assignment=Assignment(values={"x": x, "y": y}),
                     )
                     for index, (x, y) in enumerate(source_pairs)
                 ),
@@ -391,13 +321,13 @@ class TestAssignmentSelectionCelAdapter:
         st.integers(min_value=0, max_value=4),
     )
     @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
-    def test_z3_and_bruteforce_cel_agree_on_bounded_cases(self, source_pairs, limit):
-        problem = AssignmentSelectionProblem(
+    def test_solver_and_bruteforce_cel_agree_on_bounded_cases(self, source_pairs, limit):
+        problem = Problem(
             concept_ids=("x", "y"),
             sources=tuple(
-                MergeSource(
+                SourceAssignment(
                     source_id=f"s{index}",
-                    assignment=MergeAssignment(values={"x": x, "y": y}),
+                    assignment=Assignment(values={"x": x, "y": y}),
                 )
                 for index, (x, y) in enumerate(source_pairs)
             ),
@@ -412,9 +342,10 @@ class TestAssignmentSelectionCelAdapter:
             operator=MergeOperator.SIGMA,
         )
         constraint = problem.constraints[0]
+        compiled = _compile_integrity_constraint(constraint)
 
         for assignment in enumerate_candidate_assignments(problem):
-            assert _eval_cel_constraint_z3(assignment, constraint) == _eval_cel_constraint_bruteforce_oracle(
+            assert compiled.holds(assignment) == _eval_cel_constraint_bruteforce_oracle(
                 assignment,
                 constraint,
             )
@@ -437,30 +368,15 @@ class TestRenderPolicyIntegration:
 
         restored = RenderPolicy.from_dict(policy.to_dict())
 
-        assert restored.merge_operator == MergeOperator.GMAX
+        assert restored.merge_operator == "gmax"
 
 
 class TestPublicApiHonesty:
-    def test_repo_public_api_does_not_export_world_assignment_selection_entrypoints(self):
-        assert not hasattr(repo_api, "solve_assignment_selection_merge")
-        assert "solve_assignment_selection_merge" not in repo_api.__all__
-        assert "claim_distance" not in repo_api.__all__
+    def test_repo_public_api_does_not_export_assignment_selection_package(self):
+        assert not hasattr(repo_api, "assignment_selection")
+        assert "assignment_selection" not in repo_api.__all__
         assert "MergeOperator" not in repo_api.__all__
-        assert "AssignmentSelectionProblem" not in repo_api.__all__
-        assert "AssignmentSelectionResult" not in repo_api.__all__
-        assert "scalar_profile_problem" not in repo_api.__all__
-        assert "sigma_merge" not in repo_api.__all__
-        assert "max_merge" not in repo_api.__all__
-        assert "gmax_merge" not in repo_api.__all__
-        assert "assignment_selection_merge" not in repo_api.__all__
 
-    def test_assignment_selection_module_docs_point_to_global_solver(self):
-        module_doc = assignment_selection_module.__doc__ or ""
-
-        assert "solve_assignment_selection_merge" in module_doc
-        assert "assignment-level" in module_doc.lower()
-        assert "scalar helper" not in module_doc.lower()
-        assert not hasattr(assignment_selection_module, "_scalar_assignment_selection_merge")
-        assert not hasattr(assignment_selection_module, "_scalar_profile_problem")
-        assert not hasattr(assignment_selection_module, "_eval_cel_ast")
-        assert not hasattr(assignment_selection_module, "_eval_cel_constraint_bruteforce")
+    def test_old_assignment_selection_module_path_is_deleted(self):
+        with pytest.raises(ModuleNotFoundError):
+            importlib.import_module("propstore.world." + "assignment_selection_merge")

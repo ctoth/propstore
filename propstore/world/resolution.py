@@ -7,17 +7,11 @@ is only relevant when the strategy is ARGUMENTATION.
 
 from __future__ import annotations
 
-import json
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import cast
 
-from propstore.core.conditions.registry import (
-    ConceptInfo,
-    scope_condition_registry,
-)
-from propstore.cel_registry import build_store_cel_registry
 from propstore.core.active_claims import (
     ActiveClaim,
     ActiveClaimInput,
@@ -27,11 +21,9 @@ from propstore.core.active_claims import (
 from propstore.core.environment import AuthoredJustificationStore, StanceStore
 from propstore.core.claim_values import ClaimProvenance
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
-from propstore.families.forms.stages import kind_type_from_form_name
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
-from propstore.families.concepts.declaration import ConceptRow, ConceptRowInput
-from propstore.families.concepts.projection_model import CONCEPT_ROW_MODEL
+from propstore.world.assignment_selection_policy import resolve_assignment_selection_merge
 from propstore.world.types import (
     ArgumentationSemantics,
     BeliefSpace,
@@ -40,12 +32,6 @@ from propstore.world.types import (
     HasActiveGraph,
     HasATMSEngine,
     WorldStore,
-    AssignmentSelectionProblem,
-    IntegrityConstraint,
-    IntegrityConstraintKind,
-    MergeAssignment,
-    MergeOperator,
-    MergeSource,
     ReasoningBackend,
     RenderPolicy,
     ResolvedResult,
@@ -209,260 +195,6 @@ def _resolve_sample_size(
     if len(best_claims) == 1:
         return best_claims[0], f"largest sample_size: {best_n}"
     return None, f"tied sample_size ({best_n}): {', '.join(best_claims)}"
-
-
-def _normalized_form_parameters(concept: ConceptRowInput | None) -> Mapping[str, object]:
-    if concept is None:
-        return {}
-    raw = CONCEPT_ROW_MODEL.coerce(concept).form_parameters
-    if isinstance(raw, Mapping):
-        return raw
-    if isinstance(raw, str):
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            return {}
-        if isinstance(parsed, Mapping):
-            return parsed
-    return {}
-
-
-def _concept_integrity_constraints(
-    world: WorldStore,
-    concept_id: str,
-) -> tuple[IntegrityConstraint, ...]:
-    concept = world.get_concept(concept_id)
-    if concept is None:
-        return tuple()
-    concept_row = CONCEPT_ROW_MODEL.coerce(concept)
-    concept_data = CONCEPT_ROW_MODEL.to_mapping(concept_row)
-
-    constraints: list[IntegrityConstraint] = []
-    lower = concept_data.get("range_min")
-    upper = concept_data.get("range_max")
-    if lower is not None or upper is not None:
-        constraints.append(
-            IntegrityConstraint(
-                kind=IntegrityConstraintKind.RANGE,
-                concept_ids=(concept_id,),
-                metadata={"lower": lower, "upper": upper},
-                description="concept range",
-            )
-        )
-
-    form_parameters = _normalized_form_parameters(concept)
-    if concept_row.form == "category":
-        values = form_parameters.get("values")
-        extensible = form_parameters.get("extensible", True)
-        if isinstance(values, list | tuple) and not extensible:
-            constraints.append(
-                IntegrityConstraint(
-                    kind=IntegrityConstraintKind.CATEGORY,
-                    concept_ids=(concept_id,),
-                    metadata={
-                        "allowed_values": tuple(str(value) for value in values),
-                        "extensible": False,
-                    },
-                    description="non-extensible category value set",
-                )
-            )
-
-    return tuple(constraints)
-
-
-def _filtered_assignment_selection_claim_rows(
-    active_claim_rows: Sequence[ActiveClaim],
-    policy: RenderPolicy | None,
-) -> list[ActiveClaim]:
-    branch_filter = None if policy is None else policy.branch_filter
-    filtered: list[ActiveClaim] = []
-    for claim in active_claim_rows:
-        value = _claim_value(claim)
-        if value is None:
-            continue
-        branch = claim.branch
-        if (
-            branch_filter is not None
-            and isinstance(branch, str)
-            and branch not in branch_filter
-        ):
-            continue
-        filtered.append(claim)
-    return filtered
-
-
-def _integrity_constraint_concept_ids(constraints: Sequence[IntegrityConstraint]) -> set[str]:
-    return {
-        concept_id
-        for constraint in constraints
-        for concept_id in constraint.concept_ids
-    }
-
-
-def _cel_registry_for_concepts(
-    world: WorldStore,
-    concept_ids: Sequence[str],
-) -> dict[str, ConceptInfo]:
-    rows = [
-        CONCEPT_ROW_MODEL.coerce(concept)
-        for concept_id in concept_ids
-        if (concept := world.get_concept(concept_id)) is not None
-    ]
-    registry = build_store_cel_registry(rows)
-    return scope_condition_registry(registry, tuple(concept_ids))
-
-
-def _enriched_policy_integrity_constraints(
-    world: WorldStore,
-    constraints: Sequence[IntegrityConstraint],
-) -> tuple[IntegrityConstraint, ...]:
-    concept_ids = sorted(_integrity_constraint_concept_ids(constraints))
-    cel_registry = _cel_registry_for_concepts(world, concept_ids)
-    enriched: list[IntegrityConstraint] = []
-    for constraint in constraints:
-        metadata = dict(constraint.metadata)
-        if constraint.kind == IntegrityConstraintKind.CEL and "registry" not in metadata:
-            metadata["registry"] = cel_registry
-        enriched.append(
-            IntegrityConstraint(
-                kind=constraint.kind,
-                concept_ids=constraint.concept_ids,
-                metadata=metadata,
-                cel=constraint.cel,
-                description=constraint.description,
-            )
-        )
-    return tuple(enriched)
-
-
-def _build_global_assignment_selection_problem(
-    active_claim_rows: Sequence[ActiveClaim],
-    target_concept_id: str,
-    *,
-    world: WorldStore,
-    policy: RenderPolicy | None,
-) -> AssignmentSelectionProblem:
-    branch_weights = None if policy is None else policy.branch_weights
-    merge_operator = (
-        policy.merge_operator
-        if policy is not None
-        else MergeOperator.SIGMA
-    )
-    explicit_constraints = (
-        tuple()
-        if policy is None
-        else _enriched_policy_integrity_constraints(world, policy.integrity_constraints)
-    )
-    concept_ids = {
-        _claim_concept_id(claim)
-        for claim in active_claim_rows
-    }
-    concept_ids.add(target_concept_id)
-    concept_ids.update(_integrity_constraint_concept_ids(explicit_constraints))
-
-    grouped: dict[str, dict[str, ActiveClaim]] = {}
-    for claim in active_claim_rows:
-        claim_id = _claim_id(claim)
-        concept_id = _claim_concept_id(claim)
-        branch = claim.branch
-        source_id = branch if isinstance(branch, str) and branch else claim_id
-        per_source = grouped.setdefault(source_id, {})
-        if concept_id in per_source:
-            raise ValueError(
-                f"source '{source_id}' has multiple active claims for concept '{concept_id}'"
-            )
-        per_source[concept_id] = claim
-
-    sources: list[MergeSource] = []
-    for source_id, concept_claims in grouped.items():
-        sample_claim = next(iter(concept_claims.values()))
-        branch = sample_claim.branch
-        weight = 1.0
-        if branch_weights is not None and isinstance(branch, str) and branch:
-            weight = float(branch_weights.get(branch, 1.0))
-        sources.append(
-            MergeSource(
-                source_id=source_id,
-                assignment=MergeAssignment(
-                    values={
-                        concept_id: _claim_value(claim)
-                        for concept_id, claim in concept_claims.items()
-                    }
-                ),
-                weight=weight,
-            )
-        )
-
-    automatic_constraints: list[IntegrityConstraint] = []
-    for concept_id in sorted(concept_ids):
-        automatic_constraints.extend(_concept_integrity_constraints(world, concept_id))
-
-    return AssignmentSelectionProblem(
-        concept_ids=tuple(sorted(concept_ids)),
-        sources=tuple(sources),
-        constraints=tuple(automatic_constraints) + explicit_constraints,
-        operator=merge_operator,
-    )
-
-
-def _claim_concept_id(claim: ActiveClaim) -> str:
-    concept_id = None if claim.value_concept_id is None else str(claim.value_concept_id)
-    if not isinstance(concept_id, str) or not concept_id:
-        raise KeyError("resolution requires each claim to have a non-empty value concept")
-    return concept_id
-
-
-def _resolve_assignment_selection_merge(
-    target_claim_rows: Sequence[ActiveClaim],
-    active_claim_rows: Sequence[ActiveClaim],
-    concept_id: str,
-    *,
-    world: WorldStore,
-    policy: RenderPolicy | None = None,
-) -> tuple[str | None, str | None]:
-    from propstore.world.assignment_selection_merge import solve_assignment_selection_merge
-
-    if world is None:
-        return None, "assignment_selection_merge strategy requires an explicit artifact store"
-
-    filtered_rows = _filtered_assignment_selection_claim_rows(active_claim_rows, policy)
-    if not filtered_rows:
-        return None, "no assignment-selection merge sources after branch filter"
-    try:
-        problem = _build_global_assignment_selection_problem(
-            filtered_rows,
-            concept_id,
-            world=world,
-            policy=policy,
-        )
-    except (KeyError, TypeError, ValueError) as exc:
-        return None, str(exc)
-
-    result = solve_assignment_selection_merge(problem)
-    if not result.winners:
-        return None, result.reason
-
-    target_values = {
-        winner.value_for(concept_id)
-        for winner in result.winners
-    }
-    if len(target_values) != 1:
-        return None, f"{len(result.winners)} assignment-selection merge assignments disagree on target value"
-
-    winning_value = next(iter(target_values))
-    matching_claims = [
-        claim
-        for claim in target_claim_rows
-        if _claim_value(claim) == winning_value
-    ]
-    if len(matching_claims) != 1:
-        return None, (
-            f"merged target value represented by {len(matching_claims)} active claims"
-        )
-
-    return _claim_id(matching_claims[0]), (
-        f"global assignment-selection merge ({problem.operator}) winner satisfies {len(problem.constraints)} constraints across {len(problem.concept_ids)} concepts"
-    )
 
 
 def _resolve_claim_graph_argumentation(
@@ -974,7 +706,7 @@ def resolve(
                 strategy=strategy.value,
                 reason="assignment_selection_merge strategy requires an explicit artifact store",
             )
-        winner_id, reason = _resolve_assignment_selection_merge(
+        winner_id, reason = resolve_assignment_selection_merge(
             active,
             active_claim_rows,
             concept_id,

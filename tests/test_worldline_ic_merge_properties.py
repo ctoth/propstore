@@ -263,13 +263,13 @@ def test_ambiguous_two_world_result_fails_typed(count: int) -> None:
     assert exc_info.value.reason == "ambiguous_selected_worlds"
 
 
-def test_generated_ic_merge_path_does_not_call_assignment_selection_merge(monkeypatch) -> None:
-    from propstore.world import assignment_selection_merge
+def test_generated_ic_merge_path_does_not_call_assignment_selection_package(monkeypatch) -> None:
+    import assignment_selection.solver
 
     def _fail(*args, **kwargs):
-        raise AssertionError("IC merge realization must not call assignment-selection merge")
+        raise AssertionError("IC merge realization must not call assignment-selection package")
 
-    monkeypatch.setattr(assignment_selection_merge, "solve_assignment_selection_merge", _fail)
+    monkeypatch.setattr(assignment_selection.solver, "solve", _fail)
     state, atom_ids = _state_with_atoms(2)
 
     next_state = _dispatch_merge(

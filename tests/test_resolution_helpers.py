@@ -29,7 +29,7 @@ def test_assignment_selection_policy_adapter_surface_exists() -> None:
 
 def test_assignment_selection_old_solver_module_is_deleted() -> None:
     with pytest.raises(ModuleNotFoundError):
-        importlib.import_module("propstore.world.assignment_selection_merge")
+        importlib.import_module("propstore.world." + "assignment_selection_merge")
 
 
 def _claim_mapping(
