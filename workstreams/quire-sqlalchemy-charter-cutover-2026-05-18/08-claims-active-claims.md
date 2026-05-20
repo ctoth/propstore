@@ -1109,3 +1109,16 @@ Recorded 2026-05-20.
   hits. Refreshed world active-claim imports remain only in `world/overlay.py`;
   refreshed `CLAIM_ROW_MODEL` hits remain in `world/overlay.py` and
   `world/queries.py`.
+- Overlay active-claim row deletion: commit `8d16de52` removed
+  `propstore.core.active_claims` and `CLAIM_ROW_MODEL` from
+  `propstore/world/overlay.py`. Overlay store claims are typed `Claim`
+  objects, synthetic overlay claims are constructed through existing Quire
+  `world_record` model construction plus typed payload/link relationships, and
+  overlay value comparison reads typed numeric payload values instead of row
+  `value` fields. Focused verification `uv run pyright
+  propstore/world/overlay.py` passed with 0 errors, and
+  `rg -n -F -- "propstore.core.active_claims" propstore/world/overlay.py`,
+  `rg -n -F -- "ActiveClaim" propstore/world/overlay.py`, and
+  `rg -n -F -- "CLAIM_ROW_MODEL" propstore/world/overlay.py` returned zero
+  hits. Refreshed world active-claim imports are zero; refreshed
+  `CLAIM_ROW_MODEL` hits remain only in `world/queries.py`.
