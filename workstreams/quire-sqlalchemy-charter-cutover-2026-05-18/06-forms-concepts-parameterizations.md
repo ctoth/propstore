@@ -572,21 +572,40 @@ Concept typed write-model cutover:
 
 Remaining concept read/session/search cutover queue:
 
-- Replace `WorldQuery` concept and parameterization reads with Quire
-  SQLAlchemy read-only sessions over `Concept`, `ConceptAlias`,
-  `Parameterization`, and `ParameterizationGroup` directly inside the public
-  `WorldQuery` methods that own those reads. The interrupted private-method
-  shape using `_concept_by_id`, `_concept_count`, `_concept_registry_rows`,
-  or `_build_concept_logical_id_index` is explicitly rejected.
-- Delete declaration-owned raw selector helpers once their `WorldQuery`
-  callers use typed model queries directly:
+- Completed `WorldQuery` concept and parameterization read cutover to Quire
+  SQLAlchemy read-only sessions over typed `Concept`, `ConceptAlias`,
+  `Parameterization`, and `ParameterizationGroup` models directly inside the
+  owner methods that own the reads.
+- Deleted declaration-owned raw selector helpers whose `WorldQuery` callers
+  now use typed model queries directly:
   `select_concept_by_id`, `select_all_concepts`,
-  `select_aliases_by_concept_id`, `select_concept_registry_rows`,
-  `build_concept_logical_id_index`, `resolve_concept_alias`,
-  `resolve_concept_id`, `select_concept_ids_for_group`,
+  `select_concept_registry_rows`, `build_concept_logical_id_index`,
+  `resolve_concept_alias`, `resolve_concept_id`,
+  `select_concept_ids_for_group`,
   `select_parameterizations_for_output_concept`,
   `select_all_parameterizations`, `select_parameterization_group_members`,
   `search_concept_ids`, and `count_concepts`.
+- Did not replace those selectors with private `WorldQuery` selector methods.
+  Searches for `_concept_by_id`, `_concept_registry_rows`, and
+  `to_concept_id(hit.entity_id)` returned zero hits in `propstore` and
+  `tests`; `_concept_count` has no production helper hit.
+- Corrected the FTS identity smell in `WorldQuery.search`: FTS entity ids are
+  used only as lookup keys to fetch typed `Concept` models, and the returned
+  `ConceptSearchHit` uses `Concept.concept_id` instead of manually converting
+  `hit.entity_id`.
+- Focused pyright passed:
+  `uv run pyright propstore/world/model.py propstore/families/concepts/declaration.py propstore/core/graph_build.py`
+  returned 0 errors.
+- Focused logged pytest passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label concept-worldquery-sessions tests/test_world_query.py tests/test_cel_checker.py tests/test_concept_views.py tests/test_neighborhoods.py`
+  returned `224 passed, 29 warnings`; log:
+  `logs/test-runs/concept-worldquery-sessions-20260520-131346.log`.
+- Remaining same-pattern cleanup before proceeding past this slice:
+  app concept search still imports `fetch_concept_search_hits_from_sidecar`
+  and maps raw result dictionaries, and declaration-level embedding source
+  selection still constructs `Concept` from raw row mappings.
+- `select_aliases_by_concept_id`, `select_concept_embedding_sources`, and
+  `resolve_concept_embedding_entity` remain only for the next cleanup slice.
 - Replace app concept search with Quire `search_fts_index` through a
   Quire `DerivedStoreHandle` read-only session; do not recreate direct
   sidecar-opening helpers.

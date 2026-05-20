@@ -6,6 +6,7 @@ import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 import json
@@ -213,6 +214,8 @@ def compile_concept_sidecar_rows(
 
 
 class Concept:
+    attributes: Mapping[str, Any] = MappingProxyType({})
+
     def __init__(
         self,
         concept_id: ConceptId | str | None = None,
@@ -321,7 +324,7 @@ class Concept:
             "created_date": self.created_date,
             "last_modified": self.last_modified,
         }
-        data.update(self.attributes)
+        data.update(getattr(self, "attributes", {}))
         return data
 
     def parsed_logical_ids(self) -> list[dict[str, Any]]:
@@ -334,7 +337,7 @@ class Concept:
         return loaded if isinstance(loaded, list) else []
 
     def attribute_mapping(self) -> dict[str, Any]:
-        data = dict(self.attributes)
+        data = dict(getattr(self, "attributes", {}))
         for key in (
             "version_id",
             "content_hash",
@@ -356,7 +359,7 @@ class Concept:
             value = getattr(self, key)
             if value is not None:
                 return value
-        return dict(self.attributes).get(key)
+        return dict(getattr(self, "attributes", {})).get(key)
 
 
 class ConceptAlias:
@@ -401,6 +404,8 @@ class ConceptEmbeddingSource:
 
 
 class Parameterization:
+    attributes: Mapping[str, Any] = MappingProxyType({})
+
     def __init__(
         self,
         output_concept_id: ConceptId | str,
@@ -454,7 +459,7 @@ class Parameterization:
             "conditions_cel": self.conditions_cel,
             "conditions_ir": self.conditions_ir,
         }
-        data.update(self.attributes)
+        data.update(getattr(self, "attributes", {}))
         return data
 
 
@@ -543,18 +548,6 @@ def fetch_concept_search_hits_from_sidecar(
         conn.close()
 
 
-def select_concept_by_id(conn: sqlite3.Connection, concept_id: str) -> Concept | None:
-    row = conn.execute("SELECT * FROM concept WHERE id = ?", (concept_id,)).fetchone()
-    if row is None:
-        return None
-    return Concept.from_row_mapping(dict(row))
-
-
-def select_all_concepts(conn: sqlite3.Connection) -> list[Concept]:
-    rows = conn.execute("SELECT * FROM concept").fetchall()
-    return [Concept.from_row_mapping(dict(row)) for row in rows]
-
-
 def select_concept_embedding_sources(
     conn: sqlite3.Connection,
     entity_ids: Sequence[str] | None = None,
@@ -614,149 +607,6 @@ def select_aliases_by_concept_id(
         concept_id: tuple(names)
         for concept_id, names in aliases.items()
     }
-
-
-def select_concept_registry_rows(conn: sqlite3.Connection) -> list[Concept]:
-    rows = conn.execute(
-        "SELECT id, canonical_name, kind_type, form_parameters FROM concept"
-    ).fetchall()
-    return [Concept.from_row_mapping(dict(row)) for row in rows]
-
-
-def build_concept_logical_id_index(conn: sqlite3.Connection) -> dict[str, str]:
-    index: dict[str, str] = {}
-    rows = conn.execute(
-        "SELECT id, primary_logical_id, logical_ids_json FROM concept"
-    ).fetchall()
-    for row in rows:
-        artifact_id = row["id"]
-        primary_logical_id = row["primary_logical_id"]
-        if isinstance(primary_logical_id, str) and primary_logical_id:
-            index.setdefault(primary_logical_id, artifact_id)
-        logical_ids_json = row["logical_ids_json"]
-        if not isinstance(logical_ids_json, str) or not logical_ids_json:
-            continue
-        try:
-            logical_ids = json.loads(logical_ids_json)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(logical_ids, list):
-            continue
-        for entry in logical_ids:
-            if not isinstance(entry, dict):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if isinstance(namespace, str) and isinstance(value, str):
-                index.setdefault(f"{namespace}:{value}", artifact_id)
-                index.setdefault(value, artifact_id)
-    return index
-
-
-def resolve_concept_alias(conn: sqlite3.Connection, alias: str) -> str | None:
-    row = conn.execute(
-        "SELECT concept_id FROM alias WHERE alias_name = ?",
-        (alias,),
-    ).fetchone()
-    return None if row is None else str(row["concept_id"])
-
-
-def resolve_concept_id(
-    conn: sqlite3.Connection,
-    name: str,
-    *,
-    logical_id_index: Mapping[str, str] | None = None,
-) -> str | None:
-    resolved = resolve_concept_alias(conn, name)
-    if resolved:
-        return resolved
-
-    row = conn.execute("SELECT id FROM concept WHERE id = ?", (name,)).fetchone()
-    if row is not None:
-        return str(row["id"])
-
-    row = conn.execute(
-        "SELECT id FROM concept WHERE primary_logical_id = ?",
-        (name,),
-    ).fetchone()
-    if row is not None:
-        return str(row["id"])
-
-    cached = None if logical_id_index is None else logical_id_index.get(name)
-    if cached is not None:
-        return cached
-
-    row = conn.execute(
-        "SELECT id FROM concept WHERE canonical_name = ?",
-        (name,),
-    ).fetchone()
-    return None if row is None else str(row["id"])
-
-
-def select_concept_ids_for_group(conn: sqlite3.Connection, group_id: int) -> set[str]:
-    rows = conn.execute(
-        "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
-        (group_id,),
-    ).fetchall()
-    return {str(row["concept_id"]) for row in rows}
-
-
-def select_parameterizations_for_output_concept(
-    conn: sqlite3.Connection,
-    concept_id: str,
-) -> list[Parameterization]:
-    rows = conn.execute(
-        "SELECT * FROM parameterization WHERE output_concept_id = ?",
-        (concept_id,),
-    ).fetchall()
-    return [
-        Parameterization.from_row_mapping(
-            {
-                **dict(row),
-                "output_concept_id": dict(row).get("output_concept_id", concept_id),
-            }
-        )
-        for row in rows
-    ]
-
-
-def select_all_parameterizations(conn: sqlite3.Connection) -> list[Parameterization]:
-    rows = conn.execute("SELECT * FROM parameterization").fetchall()
-    return [Parameterization.from_row_mapping(dict(row)) for row in rows]
-
-
-def select_parameterization_group_members(
-    conn: sqlite3.Connection,
-    concept_id: str,
-) -> list[str]:
-    row = conn.execute(
-        "SELECT group_id FROM parameterization_group WHERE concept_id = ?",
-        (concept_id,),
-    ).fetchone()
-    if row is None:
-        return []
-    rows = conn.execute(
-        "SELECT concept_id FROM parameterization_group WHERE group_id = ?",
-        (row["group_id"],),
-    ).fetchall()
-    return [str(group_row["concept_id"]) for group_row in rows]
-
-
-def search_concept_ids(conn: sqlite3.Connection, query: str) -> list[dict[str, Any]]:
-    try:
-        rows = conn.execute(
-            "SELECT concept_id FROM concept_fts WHERE concept_fts MATCH ?",
-            (query,),
-        ).fetchall()
-    except sqlite3.OperationalError as exc:
-        if _is_concept_search_syntax_error(exc):
-            raise ConceptSearchQuerySyntaxError(query) from exc
-        raise
-    return [dict(row) for row in rows]
-
-
-def count_concepts(conn: sqlite3.Connection) -> int:
-    return int(conn.execute("SELECT COUNT(*) FROM concept").fetchone()[0])
 
 
 def resolve_sidecar_concept_id(conn: sqlite3.Connection, handle: str) -> str:

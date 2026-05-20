@@ -10,8 +10,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from quire.derived_store import DerivedStoreHandle
+from quire.sqlalchemy_store import search_fts_index
 from quire.sqlalchemy_store import validate_sqlalchemy_store
 from propstore.core.conditions.registry import (
     ConceptInfo,
@@ -60,18 +61,6 @@ from propstore.families.micropublications.declaration import select_all_micropub
 from propstore.families.concepts.declaration import (
     Concept,
     Parameterization,
-    build_concept_logical_id_index,
-    count_concepts,
-    resolve_concept_alias,
-    resolve_concept_id,
-    select_all_concepts,
-    select_all_parameterizations,
-    select_concept_by_id,
-    select_concept_ids_for_group,
-    select_concept_registry_rows,
-    select_parameterization_group_members,
-    select_parameterizations_for_output_concept,
-    search_concept_ids,
 )
 from propstore.families.world_charters import (
     PROPSTORE_WORLD_META_KEY,
@@ -254,7 +243,10 @@ class WorldQuery(WorldStore):
     def _build_registry(self) -> dict[str, ConceptInfo]:
         if self._registry is not None:
             return self._registry
-        normalized_rows = select_concept_registry_rows(self._conn)
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            normalized_rows = list(derived.execute(select(concept)).scalars())
         registry = with_standard_synthetic_bindings(
             build_store_cel_registry(normalized_rows)
         )
@@ -278,12 +270,19 @@ class WorldQuery(WorldStore):
         return select_claim_rows(self._conn, where_sql, params)
 
     def get_concept(self, concept_id: str) -> Concept | None:
-        concept = select_concept_by_id(self._conn, concept_id)
-        if concept is None:
-            resolved = self.resolve_concept(concept_id)
-            if resolved is None or resolved == concept_id:
-                return None
-            concept = select_concept_by_id(self._conn, resolved)
+        schema = world_sqlalchemy_schema()
+        concept_model = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            concept = derived.execute(
+                select(concept_model).where(concept_model.id == concept_id)
+            ).scalar_one_or_none()
+            if concept is None:
+                resolved = self.resolve_concept(concept_id)
+                if resolved is None or resolved == concept_id:
+                    return None
+                concept = derived.execute(
+                    select(concept_model).where(concept_model.id == resolved)
+                ).scalar_one_or_none()
         if concept is None:
             return None
         data = dict(concept.to_row_mapping())
@@ -330,7 +329,38 @@ class WorldQuery(WorldStore):
         if table not in ("claim_core", "concept"):
             raise ValueError(f"unsupported logical-id table: {table}")
         if table == "concept":
-            return build_concept_logical_id_index(self._conn)
+            index: dict[str, str] = {}
+            schema = world_sqlalchemy_schema()
+            concept = schema.model("concept")
+            with self._derived_store.readonly_session(schema) as derived:
+                rows = derived.execute(
+                    select(
+                        concept.id,
+                        concept.primary_logical_id,
+                        concept.logical_ids_json,
+                    )
+                )
+                for artifact_id, primary_logical_id, logical_ids_json in rows:
+                    artifact_id_text = str(artifact_id)
+                    if isinstance(primary_logical_id, str) and primary_logical_id:
+                        index.setdefault(primary_logical_id, artifact_id_text)
+                    if not isinstance(logical_ids_json, str) or not logical_ids_json:
+                        continue
+                    try:
+                        logical_ids = json.loads(logical_ids_json)
+                    except json.JSONDecodeError:
+                        continue
+                    if not isinstance(logical_ids, list):
+                        continue
+                    for entry in logical_ids:
+                        if not isinstance(entry, dict):
+                            continue
+                        namespace = entry.get("namespace")
+                        value = entry.get("value")
+                        if isinstance(namespace, str) and isinstance(value, str):
+                            index.setdefault(f"{namespace}:{value}", artifact_id_text)
+                            index.setdefault(value, artifact_id_text)
+            return index
         return build_claim_logical_id_index(self._conn)
 
     def _get_claim_logical_id_index(self) -> dict[str, str]:
@@ -356,15 +386,38 @@ class WorldQuery(WorldStore):
         )
 
     def resolve_alias(self, alias: str) -> str | None:
-        return resolve_concept_alias(self._conn, alias)
+        schema = world_sqlalchemy_schema()
+        alias_model = schema.model("alias")
+        with self._derived_store.readonly_session(schema) as derived:
+            row = derived.execute(
+                select(alias_model.concept_id).where(alias_model.alias_name == alias)
+            ).first()
+            return None if row is None else str(row[0])
 
     def resolve_concept(self, name: str) -> str | None:
         """Resolve a concept by alias, artifact ID, logical ID, or canonical name."""
-        return resolve_concept_id(
-            self._conn,
-            name,
-            logical_id_index=self._get_concept_logical_id_index(),
-        )
+        resolved = self.resolve_alias(name)
+        if resolved:
+            return resolved
+
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            for field_name in ("id", "primary_logical_id"):
+                row = derived.execute(
+                    select(concept.id).where(getattr(concept, field_name) == name)
+                ).first()
+                if row is not None:
+                    return str(row[0])
+
+            cached = self._get_concept_logical_id_index().get(name)
+            if cached is not None:
+                return cached
+
+            row = derived.execute(
+                select(concept.id).where(concept.canonical_name == name)
+            ).first()
+            return None if row is None else str(row[0])
 
     def claims_for(self, concept_id: str | None) -> list[ActiveClaim]:
         resolved_concept_id = (
@@ -549,10 +602,16 @@ class WorldQuery(WorldStore):
         return select_conflicts(self._conn, concept_id)
 
     def all_concepts(self) -> list[Concept]:
-        return select_all_concepts(self._conn)
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            return list(derived.execute(select(concept)).scalars())
 
     def all_parameterizations(self) -> list[Parameterization]:
-        return select_all_parameterizations(self._conn)
+        schema = world_sqlalchemy_schema()
+        parameterization = schema.model("parameterization")
+        with self._derived_store.readonly_session(schema) as derived:
+            return list(derived.execute(select(parameterization)).scalars())
 
     def all_relationships(self) -> list[RelationshipRow]:
         return select_all_relationships(self._conn)
@@ -609,11 +668,33 @@ class WorldQuery(WorldStore):
         return select_all_micropublications(self._conn)
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
-        return select_concept_ids_for_group(self._conn, group_id)
+        schema = world_sqlalchemy_schema()
+        parameterization_group = schema.model("parameterization_group")
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = derived.execute(
+                select(parameterization_group.concept_id).where(
+                    parameterization_group.group_id == group_id
+                )
+            )
+            return {str(row[0]) for row in rows}
 
     def search(self, query: str) -> list[ConceptSearchHit]:
-        rows = search_concept_ids(self._conn, query)
-        return [ConceptSearchHit.from_row_mapping(dict(row)) for row in rows]
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            hits = search_fts_index(derived, "concept_fts", query)
+            concept_ids = tuple(hit.entity_id for hit in hits)
+            if not concept_ids:
+                return []
+            rows = derived.execute(
+                select(concept).where(concept.id.in_(concept_ids))
+            ).scalars()
+            concepts_by_id = {row.id: row for row in rows}
+            return [
+                ConceptSearchHit(concept_id=concepts_by_id[concept_id].concept_id)
+                for concept_id in concept_ids
+                if concept_id in concepts_by_id
+            ]
 
     def similar_claims(
         self,
@@ -731,7 +812,12 @@ class WorldQuery(WorldStore):
         }
 
     def stats(self) -> WorldStoreStats:
-        concepts = count_concepts(self._conn)
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            concepts = int(
+                derived.execute(select(func.count()).select_from(concept)).scalar_one()
+            )
         claims = count_claims(self._conn)
         conflicts = count_conflicts(self._conn)
         return WorldStoreStats(
@@ -748,10 +834,16 @@ class WorldQuery(WorldStore):
     def _parameterizations_for(self, concept_id: str) -> list[Parameterization]:
         """Get parameterization rows where output_concept_id matches."""
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
-        return select_parameterizations_for_output_concept(
-            self._conn,
-            resolved_concept_id,
-        )
+        schema = world_sqlalchemy_schema()
+        parameterization = schema.model("parameterization")
+        with self._derived_store.readonly_session(schema) as derived:
+            return list(
+                derived.execute(
+                    select(parameterization).where(
+                        parameterization.output_concept_id == resolved_concept_id
+                    )
+                ).scalars()
+            )
 
     def parameterizations_for(self, concept_id: str) -> list[Parameterization]:
         return self._parameterizations_for(concept_id)
@@ -792,7 +884,22 @@ class WorldQuery(WorldStore):
     def _group_members(self, concept_id: str) -> list[str]:
         """Get all concept_ids in the same parameterization group."""
         resolved_concept_id = self.resolve_concept(concept_id) or concept_id
-        return select_parameterization_group_members(self._conn, resolved_concept_id)
+        schema = world_sqlalchemy_schema()
+        parameterization_group = schema.model("parameterization_group")
+        with self._derived_store.readonly_session(schema) as derived:
+            group_row = derived.execute(
+                select(parameterization_group.group_id).where(
+                    parameterization_group.concept_id == resolved_concept_id
+                )
+            ).first()
+            if group_row is None:
+                return []
+            rows = derived.execute(
+                select(parameterization_group.concept_id).where(
+                    parameterization_group.group_id == int(group_row[0])
+                )
+            )
+            return [str(row[0]) for row in rows]
 
     def group_members(self, concept_id: str) -> list[str]:
         return self._group_members(concept_id)
