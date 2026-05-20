@@ -817,3 +817,9 @@ Recorded 2026-05-20.
   bridge compilation now requires typed `Claim` objects at the boundary. The
   refreshed active-claim import search reports remaining ASPIC callers only in
   `projection.py` and `translate.py`, plus the `world` package.
+- ASPIC translation deletion: commit `5a93f070` removed `ActiveClaim`,
+  `ActiveClaimInput`, and `coerce_active_claims` from
+  `aspic_bridge/translate.py`; translation now uses typed `Claim` id/context/
+  premise fields directly and passes only explicit graph metadata to preference
+  scoring. The refreshed active-claim import search reports one remaining ASPIC
+  caller, `aspic_bridge/projection.py`, plus the `world` package.
