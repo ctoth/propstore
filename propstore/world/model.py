@@ -262,7 +262,7 @@ class WorldQuery(WorldStore):
             return self._lifting_system
         self._lifting_system_loaded = True
 
-        self._lifting_system = load_lifting_system(self._conn)
+        self._lifting_system = load_lifting_system(self._derived_store)
         return self._lifting_system
 
     # ── Unbound queries ──────────────────────────────────────────────

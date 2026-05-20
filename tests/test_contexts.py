@@ -12,7 +12,9 @@ import yaml
 from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from sqlalchemy import select
 
+from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.families.contexts.documents import ContextDocument
 from propstore.core.conditions.registry import synthetic_category_concept
@@ -33,12 +35,9 @@ from propstore.families.contexts.stages import (
     parse_context_record,
 )
 from propstore.families.contexts.declaration import (
-    CONTEXT_ASSUMPTION_TABLE,
-    CONTEXT_LIFTING_RULE_TABLE,
-    CONTEXT_TABLE,
-    create_context_tables,
-    populate_contexts,
+    compile_context_models,
 )
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from tests.conftest import make_compilation_context
@@ -318,23 +317,24 @@ class TestLiftingSystem:
 
 
 class TestContextSidecar:
-    def test_create_context_tables_uses_lifting_rule_table(self) -> None:
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        create_context_tables(conn)
-
-        tables = {
-            row[0]
-            for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
-        }
+    def test_context_charter_uses_lifting_rule_table(self, tmp_path: Path) -> None:
+        schema = world_sqlalchemy_schema()
+        sidecar_path = tmp_path / "propstore.sqlite"
+        create_sqlalchemy_store(sidecar_path, schema)
+        conn = sqlite3.connect(sidecar_path)
+        try:
+            tables = {
+                row[0]
+                for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            }
+        finally:
+            conn.close()
 
         assert {"context", "context_assumption", "context_lifting_rule"}.issubset(tables)
         assert "context_exclusion" not in tables
 
-    def test_populate_contexts_stores_structure_and_lifting_rules(self) -> None:
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        create_context_tables(conn)
+    def test_context_models_store_structure_and_lifting_rules(self, tmp_path: Path) -> None:
+        schema = world_sqlalchemy_schema()
         contexts = [
             loaded_context("source", None, make_context("ctx_source", "Source")),
             loaded_context(
@@ -356,28 +356,35 @@ class TestContextSidecar:
                 ),
             ),
         ]
+        compiled = compile_context_models(contexts)
+        sidecar_path = tmp_path / "propstore.sqlite"
+        create_sqlalchemy_store(sidecar_path, schema)
 
-        from propstore.families.contexts.declaration import (
-            compile_context_sidecar_rows,
-        )
+        with writable_session(sidecar_path, schema) as session:
+            session.add_all(compiled.contexts)
+            session.add_all(compiled.assumptions)
+            session.add_all(compiled.lifting_rules)
+            session.commit()
 
-        rows = compile_context_sidecar_rows(contexts)
-        populate_contexts(conn, rows)
+        context_model = schema.model("context")
+        assumption_model = schema.model("context_assumption")
+        rule_model = schema.model("context_lifting_rule")
+        with readonly_session(sidecar_path, schema) as session:
+            rows = {
+                str(row.id): row
+                for row in session.execute(select(context_model)).scalars()
+            }
+            assumption = session.execute(select(assumption_model)).scalars().one()
+            rule = session.execute(select(rule_model)).scalars().one()
 
-        rows = {
-            str(row["id"]): row
-            for row in CONTEXT_TABLE.select_all(conn)
-        }
         row = rows["ctx_target"]
-        assert row["parameters"] == {"domain": "speech"}
-        assert row["perspective"] == "local-model"
-        assumption = CONTEXT_ASSUMPTION_TABLE.select_all(conn)[0]
-        assert assumption["assumption_cel"] == "framework == 'target'"
-        rule = CONTEXT_LIFTING_RULE_TABLE.select_all(conn)[0]
-        assert rule["source_context_id"] == "ctx_source"
-        assert rule["target_context_id"] == "ctx_target"
-        assert rule["conditions"] == ("variant == 'controlled'",)
-        assert rule["mode"] == "specialization"
+        assert json.loads(row.parameters_json) == {"domain": "speech"}
+        assert row.perspective == "local-model"
+        assert assumption.assumption_cel == "framework == 'target'"
+        assert rule.source_context_id == "ctx_source"
+        assert rule.target_context_id == "ctx_target"
+        assert tuple(json.loads(rule.conditions_cel)) == ("variant == 'controlled'",)
+        assert rule.mode == "specialization"
 
 
 class TestBoundWorldContextLifting:

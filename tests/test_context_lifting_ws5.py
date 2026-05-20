@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
-import sqlite3
+
+from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from sqlalchemy import select
 
 from propstore.context_lifting import (
     IstProposition,
@@ -12,13 +14,11 @@ from propstore.context_lifting import (
 )
 from propstore.core.assertions import ContextReference
 from propstore.families.contexts.declaration import (
-    CONTEXT_LIFTING_MATERIALIZATION_TABLE,
-    compile_context_lifting_materialization_rows,
-    compile_context_sidecar_rows,
-    create_context_tables,
-    populate_contexts,
+    compile_context_lifting_materializations,
+    compile_context_models,
 )
 from propstore.families.contexts.stages import LoadedContext
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from propstore.core.conditions.solver import (
@@ -228,11 +228,8 @@ def test_bound_world_projection_honors_local_lifting_exception() -> None:
     }
 
 
-def test_sidecar_stores_lifting_materialization_provenance() -> None:
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    create_context_tables(conn)
-
+def test_sidecar_stores_lifting_materialization_provenance(tmp_path) -> None:
+    schema = world_sqlalchemy_schema()
     source = ContextReference("ctx_source")
     target = ContextReference("ctx_target")
     system = LiftingSystem(
@@ -244,23 +241,30 @@ def test_sidecar_stores_lifting_materialization_provenance() -> None:
     materializations = system.materialize_lifted_assertions(
         (IstProposition(context=source, proposition_id="claim_alpha"),)
     )
-    materialization_rows = compile_context_lifting_materialization_rows(
+    materialization_rows = compile_context_lifting_materializations(
         materializations
     )
 
-    populate_contexts(conn, materialization_rows)
+    sidecar_path = tmp_path / "propstore.sqlite"
+    create_sqlalchemy_store(sidecar_path, schema)
+    with writable_session(sidecar_path, schema) as session:
+        session.add_all(materialization_rows)
+        session.commit()
 
-    row = CONTEXT_LIFTING_MATERIALIZATION_TABLE.select_all(conn)[0]
-    assert row["rule_id"] == "lift-source-target"
-    assert row["source_context_id"] == "ctx_source"
-    assert row["target_context_id"] == "ctx_target"
-    assert row["proposition_id"] == "claim_alpha"
-    assert row["status"] == "lifted"
-    assert row["provenance"]["source_proposition_id"] == "claim_alpha"
+    model = schema.model("context_lifting_materialization")
+    with readonly_session(sidecar_path, schema) as session:
+        row = session.execute(select(model)).scalars().one()
+
+    assert row.rule_id == "lift-source-target"
+    assert row.source_context_id == "ctx_source"
+    assert row.target_context_id == "ctx_target"
+    assert row.proposition_id == "claim_alpha"
+    assert row.status == "lifted"
+    assert row.provenance["source_proposition_id"] == "claim_alpha"
 
 
 def test_context_sidecar_compiler_materializes_authored_ist_assertions() -> None:
-    rows = compile_context_sidecar_rows(
+    models = compile_context_models(
         (
             LoadedContext.from_payload(
                 filename="source.yaml",
@@ -291,19 +295,15 @@ def test_context_sidecar_compiler_materializes_authored_ist_assertions() -> None
         ),
     )
 
-    materialization_rows = tuple(
-        row
-        for row in rows
-        if row.table == "context_lifting_materialization"
-    )
+    materialization_rows = models.lifting_materializations
     assert len(materialization_rows) == 1
     row = materialization_rows[0]
     assert (
-        row.values["rule_id"],
-        row.values["source_context_id"],
-        row.values["target_context_id"],
-        row.values["proposition_id"],
-        row.values["status"],
+        row.rule_id,
+        row.source_context_id,
+        row.target_context_id,
+        row.proposition_id,
+        row.status,
     ) == (
         "lift-source-target",
         "ctx_source",

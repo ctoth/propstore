@@ -13,7 +13,8 @@ from propstore.families.micropublications.declaration import (
     create_micropublication_tables,
     populate_micropublications,
 )
-from propstore.families.contexts.declaration import create_context_tables
+from propstore.families.world_charters import world_sqlalchemy_schema
+from quire.sqlalchemy_store import create_sqlalchemy_store
 from quire.derived_runtime import connect_sqlite_store
 
 
@@ -60,9 +61,9 @@ def test_micropublication_sidecar_dedupe_keeps_distinct_payload_ids(
     assert micropub_artifact_id(first) != micropub_artifact_id(changed)
 
     sidecar_path = tmp_path / "propstore.sqlite"
+    create_sqlalchemy_store(sidecar_path, world_sqlalchemy_schema())
     conn = connect_sqlite_store(sidecar_path)
     try:
-        create_context_tables(conn)
         create_micropublication_tables(conn)
         conn.execute("INSERT INTO context (id, name) VALUES (?, ?)", ("ctx_alpha", "alpha"))
 

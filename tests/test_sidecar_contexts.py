@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 
+from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from sqlalchemy import select
 from propstore.context_lifting import (
     IstProposition,
     LiftingDecisionStatus,
@@ -10,8 +12,9 @@ from propstore.context_lifting import (
 )
 from propstore.core.assertions import ContextReference
 from propstore.families.contexts.declaration import (
-    compile_context_lifting_materialization_rows,
+    compile_context_lifting_materializations,
 )
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.solver import SolverSat, SolverUnknown, SolverUnknownReason
 
@@ -60,10 +63,10 @@ def test_sidecar_materialization_rows_persist_decision_status_and_witness_refere
         bindings={"license": "bridge"},
     )
 
-    row = compile_context_lifting_materialization_rows(decisions)[0]
-    provenance = json.loads(row.values["provenance_json"])
+    row = compile_context_lifting_materializations(decisions)[0]
+    provenance = json.loads(row.provenance_json)
 
-    assert row.values["status"] == LiftingDecisionStatus.UNKNOWN.value
+    assert row.status == LiftingDecisionStatus.UNKNOWN.value
     assert provenance["status"] == "unknown"
     assert provenance["diagnostic"] == "lifting rule condition is unknown: timeout"
 
@@ -73,7 +76,7 @@ def test_sidecar_materialization_rows_are_recomputed_inspection_records() -> Non
         context=ContextReference("ctx_source"),
         proposition_id="claim_alpha",
     )
-    old_row = compile_context_lifting_materialization_rows(
+    old_row = compile_context_lifting_materializations(
         _system("license == 'bridge'").lift_decisions_for(
             assertion,
             solver=_ConditionSolver(
@@ -82,7 +85,7 @@ def test_sidecar_materialization_rows_are_recomputed_inspection_records() -> Non
             bindings={"license": "bridge"},
         )
     )[0]
-    new_row = compile_context_lifting_materialization_rows(
+    new_row = compile_context_lifting_materializations(
         _system("license == 'open'").lift_decisions_for(
             assertion,
             solver=_ConditionSolver(SolverSat()),
@@ -90,6 +93,34 @@ def test_sidecar_materialization_rows_are_recomputed_inspection_records() -> Non
         )
     )[0]
 
-    assert old_row.values["status"] == "unknown"
-    assert new_row.values["status"] == "lifted"
-    assert old_row.values["provenance_json"] != new_row.values["provenance_json"]
+    assert old_row.status == "unknown"
+    assert new_row.status == "lifted"
+    assert old_row.provenance_json != new_row.provenance_json
+
+
+def test_context_lifting_materialization_round_trips_through_sqlalchemy(tmp_path) -> None:
+    schema = world_sqlalchemy_schema()
+    assertion = IstProposition(
+        context=ContextReference("ctx_source"),
+        proposition_id="claim_alpha",
+    )
+    rows = compile_context_lifting_materializations(
+        _system("license == 'open'").lift_decisions_for(
+            assertion,
+            solver=_ConditionSolver(SolverSat()),
+            bindings={"license": "open"},
+        )
+    )
+    db_path = tmp_path / "propstore.sqlite"
+    create_sqlalchemy_store(db_path, schema)
+
+    with writable_session(db_path, schema) as session:
+        session.add_all(rows)
+        session.commit()
+
+    model = schema.model("context_lifting_materialization")
+    with readonly_session(db_path, schema) as session:
+        stored = session.execute(select(model)).scalars().one()
+
+    assert stored.status == "lifted"
+    assert stored.provenance["source_proposition_id"] == "claim_alpha"

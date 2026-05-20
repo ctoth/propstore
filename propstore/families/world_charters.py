@@ -26,6 +26,12 @@ from propstore.families.concepts.declaration import (
     Parameterization,
     ParameterizationGroup,
 )
+from propstore.families.contexts.declaration import (
+    Context,
+    ContextAssumption,
+    ContextLiftingMaterialization,
+    ContextLiftingRule,
+)
 from propstore.families.forms.stages import Form, FormAlgebra
 from propstore.families.sources.declaration import Source, source_charter
 
@@ -42,10 +48,6 @@ class WorldModel:
 
 class MetaRecord(WorldModel): ...
 class RelationEdgeRecord(WorldModel): ...
-class ContextRecord(WorldModel): ...
-class ContextAssumptionRecord(WorldModel): ...
-class ContextLiftingRuleRecord(WorldModel): ...
-class ContextLiftingMaterializationRecord(WorldModel): ...
 class ClaimCoreRecord(WorldModel): ...
 class ClaimConceptLinkRecord(WorldModel): ...
 class ClaimNumericPayloadRecord(WorldModel): ...
@@ -76,10 +78,10 @@ _MODELS: dict[str, type[Any]] = {
     "relation_edge": RelationEdgeRecord,
     "form": Form,
     "form_algebra": FormAlgebra,
-    "context": ContextRecord,
-    "context_assumption": ContextAssumptionRecord,
-    "context_lifting_rule": ContextLiftingRuleRecord,
-    "context_lifting_materialization": ContextLiftingMaterializationRecord,
+    "context": Context,
+    "context_assumption": ContextAssumption,
+    "context_lifting_rule": ContextLiftingRule,
+    "context_lifting_materialization": ContextLiftingMaterialization,
     "claim_core": ClaimCoreRecord,
     "claim_concept_link": ClaimConceptLinkRecord,
     "claim_numeric_payload": ClaimNumericPayloadRecord,
@@ -160,17 +162,17 @@ def world_charter_catalog() -> SchemaCatalog:
             _i("id", primary_key=True, nullable=False), _f("output_form", nullable=False), _f("input_forms", nullable=False),
             _f("operation", nullable=False), _f("source_concept_id"), _f("source_formula"),
             _i("dim_verified", nullable=False, default_sql="1"), indexes=(CharterIndex("idx_form_algebra_output", ("output_form",)),)),
-        _charter("context", ContextRecord, "id", _f("id", primary_key=True, nullable=False), _f("name", nullable=False),
+        _charter("context", Context, "id", _f("id", primary_key=True, nullable=False), _f("name", nullable=False),
             _f("description"), _f("parameters_json"), _f("perspective")),
-        _charter("context_assumption", ContextAssumptionRecord, "context_id", _f("context_id", nullable=False), _f("assumption_cel", nullable=False), _i("seq", nullable=False),
+        _charter("context_assumption", ContextAssumption, "context_id", _f("context_id", nullable=False), _f("assumption_cel", nullable=False), _i("seq", nullable=False),
             indexes=(CharterIndex("idx_context_assumption_context_id", ("context_id",)),)),
-        _charter("context_lifting_rule", ContextLiftingRuleRecord, "id",
+        _charter("context_lifting_rule", ContextLiftingRule, "id",
             _f("id", primary_key=True, nullable=False), _f("source_context_id", nullable=False), _f("target_context_id", nullable=False),
             _f("conditions_cel"), _f("mode", nullable=False), _f("justification"),
             indexes=(CharterIndex("idx_context_lifting_rule_source_context_id", ("source_context_id",)),
                      CharterIndex("idx_context_lifting_rule_target_context_id", ("target_context_id",)))),
-        _charter("context_lifting_materialization", ContextLiftingMaterializationRecord, "id",
-            _i("id", primary_key=True, nullable=False), _f("rule_id", nullable=False), _f("source_context_id", nullable=False),
+        _charter("context_lifting_materialization", ContextLiftingMaterialization, "id",
+            _i("id", primary_key=True, nullable=True), _f("rule_id", nullable=False), _f("source_context_id", nullable=False),
             _f("target_context_id", nullable=False), _f("proposition_id", nullable=False), _f("status", nullable=False),
             _f("exception_id"), _f("provenance_json", nullable=False),
             indexes=(CharterIndex("idx_context_lifting_materialization_source_context_id", ("source_context_id",)),

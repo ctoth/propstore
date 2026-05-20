@@ -6,10 +6,6 @@ from pathlib import Path
 import yaml
 
 from propstore.compiler.workflows import build_repository
-from propstore.families.contexts.declaration import (
-    CONTEXT_LIFTING_RULE_TABLE,
-    CONTEXT_TABLE,
-)
 from propstore.repository import Repository
 from tests.conftest import normalize_concept_payloads
 
@@ -66,14 +62,15 @@ def test_build_repository_context_lifting_error_quarantines_not_raises(
     assert sidecar_path.exists()
 
     conn = sqlite3.connect(sidecar_path)
+    conn.row_factory = sqlite3.Row
     try:
         context_ids = {
             str(row["id"])
-            for row in CONTEXT_TABLE.select_all(conn)
+            for row in conn.execute("SELECT id FROM context").fetchall()
         }
         lifting_rule_ids = {
             str(row["id"])
-            for row in CONTEXT_LIFTING_RULE_TABLE.select_all(conn)
+            for row in conn.execute("SELECT id FROM context_lifting_rule").fetchall()
         }
         diagnostic_rows = conn.execute(
             """

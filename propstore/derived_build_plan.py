@@ -16,8 +16,8 @@ from propstore.families.concepts.declaration import (
 )
 from propstore.families.contexts.stages import LoadedContext, loaded_contexts_to_lifting_system
 from propstore.families.contexts.declaration import (
-    compile_context_sidecar_rows,
-    filter_invalid_context_lifting_rows,
+    compile_context_models,
+    filter_invalid_context_lifting_models,
 )
 from propstore.families.claims.stages import (
     ClaimCheckedBundle,
@@ -158,11 +158,11 @@ def compile_sidecar_build_plan(
         quarantine_diagnostics + micropublication_quarantine_diagnostics
     )
 
-    context_rows = compile_context_sidecar_rows(
+    context_models = compile_context_models(
         repository_checked_bundle.context_files,
     )
     if drop_invalid_context_lifting_rows:
-        context_rows = filter_invalid_context_lifting_rows(context_rows)
+        context_models = filter_invalid_context_lifting_models(context_models)
     batches = (
         _batch("source", compile_source_models(source_entries)),
         *_concept_batches(
@@ -172,15 +172,7 @@ def compile_sidecar_build_plan(
                 dict(repository_checked_bundle.compilation_context.cel_registry),
             )
         ),
-        *_projection_row_batches(
-            context_rows,
-            (
-                "context",
-                "context_assumption",
-                "context_lifting_rule",
-                "context_lifting_materialization",
-            ),
-        ),
+        *_context_batches(context_models),
         *_claim_batches(claim_rows),
         *_raw_id_quarantine_batches(raw_id_quarantine_rows),
         _batch("conflict_witness", conflict_rows),
@@ -200,19 +192,15 @@ def _batch(table_name: str, rows: Iterable[object] | None) -> WorldWriteBatch:
     return WorldWriteBatch(table_name=table_name, objects=world_records(table_name, rows))
 
 
-def _projection_row_batches(
-    rows: Iterable[object],
-    table_order: tuple[str, ...],
-) -> tuple[WorldWriteBatch, ...]:
-    grouped: dict[str, list[object]] = {table_name: [] for table_name in table_order}
-    for row in rows:
-        table_name = str(getattr(row, "table"))
-        if table_name not in grouped:
-            grouped[table_name] = []
-        grouped[table_name].append(row)
-    return tuple(
-        _batch(table_name, grouped.get(table_name, ()))
-        for table_name in table_order
+def _context_batches(rows: object) -> tuple[WorldWriteBatch, ...]:
+    return (
+        _batch("context", getattr(rows, "contexts")),
+        _batch("context_assumption", getattr(rows, "assumptions")),
+        _batch("context_lifting_rule", getattr(rows, "lifting_rules")),
+        _batch(
+            "context_lifting_materialization",
+            getattr(rows, "lifting_materializations"),
+        ),
     )
 
 
