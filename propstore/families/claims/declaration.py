@@ -667,32 +667,9 @@ def compile_authored_justification_sidecar_rows_with_diagnostics(
 def compile_raw_id_quarantine_models(
     records: Sequence[RawIdQuarantineRecord],
 ) -> RawIdQuarantineModels:
-    claims: list[Claim] = []
     diagnostics: list[BuildDiagnostic] = []
 
     for record in records:
-        claims.append(
-            Claim(
-                id=record.synthetic_id,
-                primary_logical_id="",
-                logical_ids_json="[]",
-                version_id="",
-                content_hash="",
-                seq=record.seq,
-                type="quarantine",
-                target_concept=None,
-                source_slug=record.source_paper,
-                source_paper=record.source_paper,
-                provenance_page=0,
-                provenance_json=None,
-                context_id=None,
-                premise_kind="ordinary",
-                branch=None,
-                build_status="blocked",
-                stage=None,
-                promotion_status=None,
-            )
-        )
         diagnostics.append(
             BuildDiagnostic(
                 claim_id=record.synthetic_id,
@@ -708,36 +685,8 @@ def compile_raw_id_quarantine_models(
         )
 
     return RawIdQuarantineModels(
-        claims=tuple(claims),
+        claims=(),
         diagnostics=tuple(diagnostics),
-    )
-
-
-def compile_promotion_blocked_claim_models(
-    facts: Sequence[PromotionBlockedClaimFact],
-) -> tuple[Claim, ...]:
-    return tuple(
-        Claim(
-            id=fact.artifact_id,
-            primary_logical_id="",
-            logical_ids_json="[]",
-            version_id="",
-            content_hash="",
-            seq=0,
-            type="promotion_blocked",
-            target_concept=None,
-            source_slug=fact.source_paper,
-            source_paper=fact.source_paper,
-            provenance_page=0,
-            provenance_json=None,
-            context_id=None,
-            premise_kind="ordinary",
-            branch=fact.source_branch,
-            build_status="ingested",
-            stage=None,
-            promotion_status="blocked",
-        )
-        for fact in facts
     )
 
 
@@ -745,7 +694,7 @@ def compile_promotion_blocked_models(
     facts: Sequence[PromotionBlockedClaimFact],
 ) -> PromotionBlockedModels:
     return PromotionBlockedModels(
-        claims=compile_promotion_blocked_claim_models(facts),
+        claims=(),
         diagnostics=compile_promotion_blocked_diagnostics(facts),
     )
 
