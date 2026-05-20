@@ -8,7 +8,6 @@ from typing import Any, TypeGuard
 from quire import canonical_json_bytes
 
 from propstore.cel_types import to_cel_expr
-from propstore.core.active_claims import ActiveClaim, coerce_active_claim
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import (
     AssertionId,
@@ -26,6 +25,7 @@ from propstore.support_revision.explanation_types import (
     coerce_entrenchment_reason,
     coerce_revision_atom_detail,
 )
+from propstore.families.claims.declaration import Claim
 
 
 def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> AssumptionRef:
@@ -46,7 +46,7 @@ def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> Assumpt
 class AssertionAtom:
     atom_id: str
     assertion: SituatedAssertion
-    source_claims: tuple[ActiveClaim, ...] = field(default_factory=tuple)
+    source_claims: tuple[Claim, ...] = field(default_factory=tuple)
     label: Label | None = None
 
     def __post_init__(self) -> None:
@@ -54,18 +54,16 @@ class AssertionAtom:
             raise TypeError("assertion atom requires a SituatedAssertion")
         assertion_id = self.assertion.assertion_id
         object.__setattr__(self, "atom_id", str(assertion_id))
-        object.__setattr__(
-            self,
-            "source_claims",
-            tuple(coerce_active_claim(claim) for claim in self.source_claims),
-        )
+        for claim in self.source_claims:
+            if not isinstance(claim, Claim):
+                raise TypeError("AssertionAtom.source_claims must contain typed Claim objects")
 
     @property
     def assertion_id(self) -> AssertionId:
         return to_assertion_id(self.assertion.assertion_id)
 
     @property
-    def primary_source_claim(self) -> ActiveClaim | None:
+    def primary_source_claim(self) -> Claim | None:
         return self.source_claims[0] if self.source_claims else None
 
 
