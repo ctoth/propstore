@@ -378,3 +378,19 @@ Prerequisites:
   into `trust`, and `quality_json`/`derived_from_json` become
   `quality`/`derived_from`; source keys, row counts, and semantic payloads
   remain non-negotiable.
+- Commit `cf305578` deleted the source projection production surface:
+  `SourceProjectionRow`, `SOURCE_PROJECTION`, `_opinion_json`,
+  `compile_source_sidecar_rows`, and `populate_sources` are gone from
+  `propstore/families/sources/declaration.py`.
+- Commit `cf305578` defines the source-owned charter and mapped source models
+  in `propstore/families/sources/declaration.py`: `Source`, `SourceOrigin`,
+  `SourceTrust`, plus the `quality` value object required for the named
+  storage column.
+- Commit `cf305578` updates `propstore/families/world_charters.py` to consume
+  `source_charter()`, updates `propstore/derived_build_plan.py` to carry
+  typed source models, and updates `propstore/derived_build.py` so Quire maps
+  the source model before build-plan construction.
+- Focused source-charter gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label source-charter-focused tests/test_sidecar_source_projection.py tests/test_sidecar_projection_contract.py`
+  returned `9 passed`; log:
+  `logs/test-runs/source-charter-focused-20260520-115803.log`.
