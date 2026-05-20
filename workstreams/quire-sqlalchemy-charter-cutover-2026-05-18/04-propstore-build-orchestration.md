@@ -598,6 +598,15 @@ Build-orchestration parity repair:
   Quire-owned `quire_schema_catalog` metadata table as schema identity, while
   preserving zero tolerance for semantic table, row, key, diagnostic, FTS,
   vector, semantic-query, or schema-identity disappearance.
+- Updated the harness to hash committed semantic artifact roots and source
+  branch artifact contents instead of the derived-store cache identity, and to
+  record `quire_schema_catalog` schema hash without row-comparing the metadata
+  table.
+- Focused logged harness gate after this repair passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label parity-harness tests/test_sqlalchemy_charter_parity_harness.py`
+  passed with 7 passed; log
+  `logs\test-runs\parity-harness-20260520-114010.log`.
+- Commit: `4b6df783 Repair SQLAlchemy charter parity harness`.
 
 Old validation-wrapper audit:
 
