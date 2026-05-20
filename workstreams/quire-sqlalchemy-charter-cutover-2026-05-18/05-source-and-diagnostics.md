@@ -459,3 +459,31 @@ Prerequisites:
   `powershell -File scripts/run_logged_pytest.ps1 -Label boundary-constructor-rename tests/support_revision/revision_assertion_helpers.py tests/remediation/phase_3_ignorance/test_T3_5_activation_unknown_cel.py tests/architecture/test_argumentation_pin_aba_adf.py tests/test_core_graph_types.py tests/test_defeasible_conformance_tranche.py tests/test_epistemic_history.py tests/test_lifting_blocked_in_provenance.py tests/test_mapping_boundary_failures.py tests/test_pls_property.py tests/test_resolution_helpers.py tests/test_revision_event_contract.py tests/test_worldline_result_boundaries.py tests/test_worldline_revision_event_capture.py tests/test_world_query.py`
   returned `219 passed`; log:
   `logs/test-runs/boundary-constructor-rename-20260520-122103.log`.
+- Final Phase 6 source old-path searches passed with zero hits:
+  `SourceProjectionRow`, `SOURCE_PROJECTION`, `quality_json`,
+  `derived_from_json`, `_opinion_from_mapping`, and `from_mapping` under the
+  required source paths.
+- Final Phase 6 diagnostics old-path searches passed with zero hits:
+  `SourceStatusDiagnosticRow`, `QuarantinableWriter`,
+  `compile_promotion_blocked_diagnostic_rows`, `has_build_diagnostics_table`,
+  `select_source_status_diagnostic_rows`, `BUILD_DIAGNOSTICS_PROJECTION` under
+  `propstore/families/diagnostics`, and `ProjectionTable(` under source,
+  diagnostics, and tests.
+- Required Phase 6 pyright passed:
+  `uv run pyright propstore` returned 0 errors.
+- Required Phase 6 pytest gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label source-charter tests/test_fixture_schema_parity.py tests/test_sidecar_projection_contract.py tests/test_required_schema_completeness.py`
+  returned `12 passed`; log:
+  `logs/test-runs/source-charter-20260520-122523.log`.
+- Required Phase 6 parity gate passed:
+  `uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/source-diagnostics/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/source-diagnostics/after.sqlite --owner source-diagnostics --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/05-source-and-diagnostics.md --out reports/sqlalchemy-charter-parity/source-diagnostics.json`
+  exited 0. The report recorded no failures, row-count and key-set pass
+  statuses for `source` and `build_diagnostics`, and the generated
+  `after.sqlite` source schema was verified directly with
+  `PRAGMA table_info(source)` to use `origin`, `trust`, `quality`, and
+  `derived_from`.
+- Phase 6 completion gate is satisfied: source build writes use Quire
+  writable sessions, source status reads through owner-layer
+  model/session queries, finalize/promote diagnostics route through typed
+  `BuildDiagnostic` objects, all named deletion targets are gone from
+  production code, parity passes, and the required type/test/search gates pass.
