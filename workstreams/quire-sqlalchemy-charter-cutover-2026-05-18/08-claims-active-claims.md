@@ -1220,3 +1220,16 @@ Current binding queue:
   import in `families/relations/declaration.py`; typed `Claim` boundary
   failure in `graph_export.py`; and stale dict-shaped ASPIC projection input
   in `merge/structured_merge.py`.
+- Graph/export projection typed-boundary cleanup: commit `c2317fd4` made
+  `graph_export.py` require an actual typed `Claim` before using typed claim
+  display semantics, and changed `merge/structured_merge.py` so branch-local
+  ASPIC projection receives typed `Claim` objects compiled through the
+  existing claim compiler instead of dict payloads. Focused verification
+  `uv run pyright propstore/graph_export.py
+  propstore/merge/structured_merge.py` passed with 0 errors. The refreshed
+  package gate `uv run pyright propstore` now fails with 6 errors: deleted
+  claim embedding projection imports in `families/embeddings/declaration.py`
+  and the deleted `CLAIM_CORE_TABLE` import in
+  `families/relations/declaration.py`. Those remaining callers must move to
+  charter/session/vector APIs or owner-layer typed access, not restore the
+  deleted constants.
