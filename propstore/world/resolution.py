@@ -12,15 +12,10 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import cast
 
-from propstore.core.active_claims import (
-    ActiveClaim,
-    ActiveClaimInput,
-    coerce_active_claim,
-    coerce_active_claims,
-)
 from propstore.core.environment import AuthoredJustificationStore, StanceStore
 from propstore.core.claim_values import ClaimProvenance
 from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
+from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
 from propstore.world.assignment_selection_policy import resolve_assignment_selection_merge
@@ -55,12 +50,13 @@ class _ResolutionClaimView:
     confidence: float | None
 
 
-def _claim_id(claim: ActiveClaim) -> ClaimId:
-    return claim.claim_id
+def _claim_id(claim: Claim) -> ClaimId:
+    return to_claim_id(claim.id)
 
 
-def _claim_value(claim: ActiveClaim) -> float | str | None:
-    value = claim.value
+def _claim_value(claim: Claim) -> float | str | None:
+    numeric_payload = claim.numeric_payload
+    value = None if numeric_payload is None else numeric_payload.value
     if isinstance(value, bool):
         return None
     if isinstance(value, int | float):
@@ -70,10 +66,9 @@ def _claim_value(claim: ActiveClaim) -> float | str | None:
     return None
 
 
-def _claim_optional_int(claim: ActiveClaim, key: str) -> int | None:
-    value = getattr(claim, key, None)
-    if value is None:
-        value = claim.attribute_value(key)
+def _claim_sample_size(claim: Claim) -> int | None:
+    numeric_payload = claim.numeric_payload
+    value = None if numeric_payload is None else numeric_payload.sample_size
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -81,36 +76,25 @@ def _claim_optional_int(claim: ActiveClaim, key: str) -> int | None:
     return None
 
 
-def _claim_optional_float(claim: ActiveClaim, key: str) -> float | None:
-    value = getattr(claim, key, None)
-    if value is None:
-        value = claim.attribute_value(key)
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    return None
+def _claim_provenance(claim: Claim) -> ClaimProvenance | None:
+    return ClaimProvenance.from_components(
+        paper=claim.source_paper,
+        page=claim.provenance_page,
+        provenance_json=claim.provenance_json,
+    )
 
 
-def _claim_provenance_json(claim: ActiveClaim) -> str | Mapping[str, object] | None:
-    return None if claim.provenance is None else claim.provenance.to_dict()
-
-
-def _claim_provenance(claim: ActiveClaim) -> ClaimProvenance | None:
-    return claim.provenance
-
-
-def _resolution_claim_view(claim: ActiveClaim) -> _ResolutionClaimView:
+def _resolution_claim_view(claim: Claim) -> _ResolutionClaimView:
     return _ResolutionClaimView(
         id=_claim_id(claim),
         value=_claim_value(claim),
         provenance=_claim_provenance(claim),
-        sample_size=_claim_optional_int(claim, "sample_size"),
-        opinion_belief=_claim_optional_float(claim, "opinion_belief"),
-        opinion_disbelief=_claim_optional_float(claim, "opinion_disbelief"),
-        opinion_uncertainty=_claim_optional_float(claim, "opinion_uncertainty"),
-        opinion_base_rate=_claim_optional_float(claim, "opinion_base_rate"),
-        confidence=_claim_optional_float(claim, "confidence"),
+        sample_size=_claim_sample_size(claim),
+        opinion_belief=None,
+        opinion_disbelief=None,
+        opinion_uncertainty=None,
+        opinion_base_rate=None,
+        confidence=None,
     )
 
 
@@ -122,17 +106,16 @@ def _display_claim_id(store: WorldStore | None, claim_id: str | None) -> str | N
     getter = getattr(store, "get_claim", None)
     if not callable(getter):
         return claim_id
-    claim = cast(Callable[[str], ActiveClaimInput | None], getter)(claim_id)
+    claim = cast(Callable[[str], Claim | None], getter)(claim_id)
     if claim is not None:
-        row = coerce_active_claim(claim)
-        logical_value = row.primary_logical_value
-        if isinstance(logical_value, str) and logical_value:
-            return logical_value
+        primary_logical_id = claim.primary_logical_id
+        if isinstance(primary_logical_id, str) and primary_logical_id:
+            return primary_logical_id
     return claim_id
 
 
 def _coerce_resolution_claim(
-    claim: _ResolutionClaimView | ActiveClaim,
+    claim: _ResolutionClaimView | Claim,
 ) -> _ResolutionClaimView:
     if isinstance(claim, _ResolutionClaimView):
         return claim
@@ -140,7 +123,7 @@ def _coerce_resolution_claim(
 
 
 def _resolve_recency(
-    claims: Sequence[_ResolutionClaimView | ActiveClaim],
+    claims: Sequence[_ResolutionClaimView | Claim],
 ) -> tuple[str | None, str | None]:
     """Pick the claim with the most recent date in provenance_json.
 
@@ -172,7 +155,7 @@ def _resolve_recency(
 
 
 def _resolve_sample_size(
-    claims: Sequence[_ResolutionClaimView | ActiveClaim],
+    claims: Sequence[_ResolutionClaimView | Claim],
 ) -> tuple[str | None, str | None]:
     """Pick the claim with the largest sample_size.
 
@@ -198,8 +181,8 @@ def _resolve_sample_size(
 
 
 def _resolve_claim_graph_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
-    active_claims: Sequence[_ResolutionClaimView | ActiveClaim],
+    target_claims: Sequence[_ResolutionClaimView | Claim],
+    active_claims: Sequence[_ResolutionClaimView | Claim],
     world: WorldStore,
     *,
     semantics: str = "grounded",
@@ -259,8 +242,8 @@ def _resolve_claim_graph_argumentation(
 
 
 def _resolve_structured_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
-    active_claim_rows: list[ActiveClaim],
+    target_claims: Sequence[_ResolutionClaimView | Claim],
+    active_claim_rows: list[Claim],
     view: BeliefSpace,
     world: WorldStore,
     *,
@@ -317,7 +300,7 @@ def _resolve_structured_argumentation(
 
     projection = build_aspic_projection(
         world,
-        cast(list[ActiveClaimInput], active_claim_rows),
+        active_claim_rows,
         bundle=bundle,
         support_metadata=support_metadata,
         comparison=comparison,
@@ -368,8 +351,8 @@ def _resolve_structured_argumentation(
 
 
 def _resolve_aspic_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
-    active_claim_rows: list[ActiveClaim],
+    target_claims: Sequence[_ResolutionClaimView | Claim],
+    active_claim_rows: list[Claim],
     view: BeliefSpace,
     world: WorldStore,
     *,
@@ -390,8 +373,8 @@ def _resolve_aspic_argumentation(
 
 
 def _resolve_praf(
-    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
-    active_claims: Sequence[_ResolutionClaimView | ActiveClaim],
+    target_claims: Sequence[_ResolutionClaimView | Claim],
+    active_claims: Sequence[_ResolutionClaimView | Claim],
     world: WorldStore,
     *,
     semantics: str = "grounded",
@@ -581,7 +564,7 @@ def _resolve_praf(
 
 
 def _resolve_atms_support(
-    target_claims: Sequence[_ResolutionClaimView | ActiveClaim],
+    target_claims: Sequence[_ResolutionClaimView | Claim],
     view: BeliefSpace,
 ) -> tuple[str | None, str | None]:
     """Resolve by ATMS-supported status over the active belief space."""
@@ -668,7 +651,7 @@ def resolve(
     # Conflicted — apply strategy
     active = vr.claims
     active_views = tuple(_resolution_claim_view(claim) for claim in active)
-    active_claim_rows = coerce_active_claims(view.active_claims())
+    active_claim_rows = list(view.active_claims())
     active_claim_views = tuple(_resolution_claim_view(claim) for claim in active_claim_rows)
     winner_id: str | None = None
     reason: str | None = None
