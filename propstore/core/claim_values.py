@@ -66,7 +66,7 @@ def _parse_list_json(raw: object) -> tuple[str, ...]:
     return tuple(str(item) for item in loaded)
 
 
-def _opinion_from_mapping(raw: object) -> Opinion | None:
+def _opinion_from_json_payload(raw: object) -> Opinion | None:
     payload = _parse_mapping_json(raw)
     if payload is None:
         return None
@@ -106,7 +106,7 @@ class SourceOrigin:
             )
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> SourceOrigin | None:
+    def from_json_payload(cls, data: Mapping[str, Any] | None) -> SourceOrigin | None:
         if data is None:
             return None
         origin_type = data.get("type")
@@ -154,12 +154,12 @@ class SourceTrust:
     derived_from: tuple[str, ...] = field(default_factory=tuple)
 
     @classmethod
-    def from_mapping(cls, data: Mapping[str, Any] | None) -> SourceTrust | None:
+    def from_json_payload(cls, data: Mapping[str, Any] | None) -> SourceTrust | None:
         if data is None:
             return None
         trust = cls(
-            prior_base_rate=_opinion_from_mapping(data.get("prior_base_rate")),
-            quality=_opinion_from_mapping(data.get("quality")),
+            prior_base_rate=_opinion_from_json_payload(data.get("prior_base_rate")),
+            quality=_opinion_from_json_payload(data.get("quality")),
             derived_from=_parse_list_json(data.get("derived_from")),
         )
         return None if trust.is_empty else trust
@@ -206,7 +206,7 @@ class ClaimSource:
             object.__setattr__(self, "kind", coerce_source_kind(self.kind))
 
     @classmethod
-    def from_mapping(
+    def from_json_payload(
         cls,
         data: Mapping[str, Any] | None,
         *,
@@ -214,10 +214,10 @@ class ClaimSource:
     ) -> ClaimSource | None:
         if data is None and slug is None:
             return None
-        origin = SourceOrigin.from_mapping(
+        origin = SourceOrigin.from_json_payload(
             data.get("origin") if isinstance(data, Mapping) and isinstance(data.get("origin"), Mapping) else None
         )
-        trust = SourceTrust.from_mapping(
+        trust = SourceTrust.from_json_payload(
             data.get("trust") if isinstance(data, Mapping) and isinstance(data.get("trust"), Mapping) else None
         )
         kind = (

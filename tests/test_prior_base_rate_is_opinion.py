@@ -6,10 +6,10 @@ from quire.documents import convert_document_value
 
 from propstore.core.claim_values import SourceTrust
 from propstore.families.documents.sources import SourceDocument
+from propstore.families.sources.declaration import compile_source_models
 from propstore.opinion import Opinion
 from propstore.praf.engine import p_arg_from_claim
 from propstore.provenance import ProvenanceStatus
-from propstore.families.sources.declaration import compile_source_sidecar_rows
 
 
 PRIOR_PAYLOAD = {"b": 0.2, "d": 0.1, "u": 0.7, "a": 0.4}
@@ -40,22 +40,21 @@ def test_source_document_prior_base_rate_is_opinion() -> None:
     assert source_doc.to_payload()["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
 
 
-def test_source_sidecar_serializes_prior_base_rate_as_opinion_json() -> None:
+def test_source_model_serializes_prior_base_rate_as_opinion_payload() -> None:
     source_doc = convert_document_value(
         _source_payload(),
         SourceDocument,
-        source="source prior sidecar test",
+        source="source prior model test",
     )
 
-    rows = compile_source_sidecar_rows([("demo", source_doc)])
-    prior_json = rows[0].prior_base_rate
+    models = compile_source_models([("demo", source_doc)])
+    prior_payload = models[0].trust.prior_base_rate
 
-    assert isinstance(prior_json, str)
-    assert json.loads(prior_json) == PRIOR_PAYLOAD
+    assert prior_payload == PRIOR_PAYLOAD
 
 
 def test_claim_row_source_trust_round_trips_prior_opinion() -> None:
-    trust = SourceTrust.from_mapping(
+    trust = SourceTrust.from_json_payload(
         {
             "prior_base_rate": json.dumps(PRIOR_PAYLOAD),
             "derived_from": json.dumps(["rule:demo"]),

@@ -81,7 +81,7 @@ def _identity(value: Any) -> Any:
 
 
 def _source_payload(value: Any) -> Mapping[str, Any] | None:
-    source = value if isinstance(value, ClaimSource) else ClaimSource.from_mapping(value)
+    source = value if isinstance(value, ClaimSource) else ClaimSource.from_json_payload(value)
     if source is None or source.is_empty:
         return None
     return source.to_dict()
@@ -186,7 +186,7 @@ def _json_sequence(value: object) -> tuple[str, ...]:
 
 
 def _source_to_columns(value: Any) -> Mapping[str, Any]:
-    source = value if isinstance(value, ClaimSource) else ClaimSource.from_mapping(value)
+    source = value if isinstance(value, ClaimSource) else ClaimSource.from_json_payload(value)
     if source is None:
         return {
             "source_slug": None,
@@ -224,8 +224,8 @@ def _source_from_columns(values: Mapping[str, Any]) -> ClaimSource | None:
         source_id=None if values.get("source_id") is None else str(values["source_id"]),
         kind=None if values.get("source_kind") is None else coerce_source_kind(values["source_kind"]),
         slug=None if values.get("source_slug") is None else str(values["source_slug"]),
-        origin=SourceOrigin.from_mapping(_json_mapping(values.get("source_origin"))),
-        trust=SourceTrust.from_mapping(source_trust),
+        origin=SourceOrigin.from_json_payload(_json_mapping(values.get("source_origin"))),
+        trust=SourceTrust.from_json_payload(source_trust),
     )
     if source.is_empty:
         return None
