@@ -1042,3 +1042,11 @@ Recorded 2026-05-20.
   passed with 0 errors, and the refreshed `propstore.core.active_claims`
   world queue is `assignment_selection_policy.py`, `bound.py`, `atms.py`,
   `overlay.py`, `model.py`, and `resolution.py`.
+- Assignment-selection deletion: commit `d6633480` removed
+  `propstore.core.active_claims` from
+  `propstore/world/assignment_selection_policy.py`; assignment-selection now
+  receives typed `Claim` objects and reads ids, scalar values, branch, and
+  concept ids from `Claim` fields/relationships. Focused verification
+  `uv run pyright propstore/world/assignment_selection_policy.py` passed with
+  0 errors. The refreshed world active-claim import queue is now `bound.py`,
+  `atms.py`, `model.py`, `overlay.py`, and `resolution.py`.
