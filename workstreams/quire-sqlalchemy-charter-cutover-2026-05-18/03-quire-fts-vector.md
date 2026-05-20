@@ -315,4 +315,4 @@ Quire FTS/vector implementation:
 - Propstore dependency-pin searches for `quire @ file`, `quire @ ..`, `quire @ C:`, `path =`, and `workspace = true` returned no hits; `uv lock --check` passed.
 - Propstore package type gate: `uv run pyright propstore` passed with 0 errors.
 
-Next required item: commit the Phase 4 Propstore pin/workstream record, then proceed to the Quire-first completion gate and Phase 5 only if all Phase 4 gates remain passing.
+Phase 4 and the Quire-first completion gate are complete. Phase 5 may start.
