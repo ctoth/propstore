@@ -11,9 +11,13 @@ from typing import TYPE_CHECKING
 from propstore.families.concepts.stages import parse_concept_record_document
 from propstore.families.forms.documents import FormAlternativeDocument, FormDocument
 from propstore.families.forms.passes import run_form_pipeline
-from propstore.families.forms.stages import FormCheckedRegistry, FormDefinition, LoadedForm
+from propstore.families.forms.stages import (
+    FormCheckedRegistry,
+    FormDefinition,
+    LoadedForm,
+    parse_form,
+)
 from propstore.families.registry import FormRef
-from propstore.form_utils import parse_form
 from quire.documents import convert_document_value
 
 if TYPE_CHECKING:

@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 import yaml
 
-from propstore.form_utils import (
+from propstore.families.forms.stages import (
     FormDefinition,
     clear_form_cache,
     load_form,

@@ -2,18 +2,15 @@
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from ast_equiv import canonical_dump
-from ast_equiv.canonicalizer import AlgorithmParseError
+import json
 from quire.projections import (
     ARTIFACT_ID_FIELD,
-    AUTOINCREMENT_ID_FIELD,
     CONDITIONS_CEL_FIELD,
     CONDITIONS_IR_FIELD,
     CONTENT_HASH_FIELD,
@@ -41,8 +38,14 @@ from propstore.core.conditions import (
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ConceptId, to_concept_id
-from propstore.dimensions import verify_form_algebra_dimensions
-from propstore.families.forms.stages import FormDefinition, kind_value_from_form_name
+from propstore.families.forms.stages import (
+    Form,
+    FormAlgebra,
+    FormDefinition,
+    compile_form_algebra,
+    compile_form_models,
+    kind_value_from_form_name,
+)
 from propstore.families.relations.declaration import (
     CONCEPT_RELATIONSHIP_DISCRIMINATORS,
     CONCEPT_RELATIONSHIP_STORAGE_MODEL,
@@ -50,7 +53,6 @@ from propstore.families.relations.declaration import (
     RELATION_EDGE_TABLE,
 )
 from propstore.parameterization_groups import build_groups
-from propstore.propagation import rewrite_parameterization_symbols
 
 if TYPE_CHECKING:
     from quire.projections import ProjectionRow
@@ -68,18 +70,14 @@ class ConceptRelationshipProjectionRow:
 
 @dataclass(frozen=True)
 class ConceptSidecarRows:
-    form_rows: tuple["ProjectionRow", ...]
+    form_rows: tuple[Form, ...]
     concept_rows: tuple["ProjectionRow", ...]
     alias_rows: tuple["ProjectionRow", ...]
     relationship_rows: tuple[ConceptRelationshipProjectionRow, ...]
     relation_edge_rows: tuple["ProjectionRow", ...]
     parameterization_rows: tuple["ProjectionRow", ...]
     parameterization_group_rows: tuple["ProjectionRow", ...]
-    form_algebra_rows: tuple["ProjectionRow", ...]
-
-
-def _concept_symbol_candidates(record: "ConceptRecord") -> tuple[str, ...]:
-    return record.reference_keys()
+    form_algebra_rows: tuple[FormAlgebra, ...]
 
 
 def compile_concept_sidecar_rows(
@@ -87,33 +85,13 @@ def compile_concept_sidecar_rows(
     form_registry: dict[str, FormDefinition],
     cel_registry: dict[str, ConceptInfo],
 ) -> ConceptSidecarRows:
-    form_rows: list["ProjectionRow"] = []
+    form_rows = compile_form_models(form_registry)
     concept_rows: list["ProjectionRow"] = []
     alias_rows: list["ProjectionRow"] = []
     relationship_rows: list[ConceptRelationshipProjectionRow] = []
     relation_edge_rows: list["ProjectionRow"] = []
     parameterization_rows: list["ProjectionRow"] = []
     parameterization_group_rows: list["ProjectionRow"] = []
-    form_algebra_rows: list["ProjectionRow"] = []
-
-    for form_definition in form_registry.values():
-        dimensions_json = (
-            json.dumps(form_definition.dimensions)
-            if form_definition.dimensions is not None
-            else None
-        )
-        form_rows.append(
-            FORM_PROJECTION.row(
-                name=form_definition.name,
-                kind=form_definition.kind.value
-                if hasattr(form_definition.kind, "value")
-                else str(form_definition.kind),
-                unit_symbol=form_definition.unit_symbol,
-                is_dimensionless=1 if form_definition.is_dimensionless else 0,
-                dimensions=dimensions_json,
-            )
-        )
-
     condition_registry = with_standard_synthetic_bindings(cel_registry)
 
     for seq, concept in enumerate(concepts, 1):
@@ -249,118 +227,16 @@ def compile_concept_sidecar_rows(
                 )
             )
 
-    form_algebra_rows.extend(_compile_form_algebra_rows(concepts, form_registry))
-
     return ConceptSidecarRows(
-        form_rows=tuple(form_rows),
+        form_rows=form_rows,
         concept_rows=tuple(concept_rows),
         alias_rows=tuple(alias_rows),
         relationship_rows=tuple(relationship_rows),
         relation_edge_rows=tuple(relation_edge_rows),
         parameterization_rows=tuple(parameterization_rows),
         parameterization_group_rows=tuple(parameterization_group_rows),
-        form_algebra_rows=tuple(form_algebra_rows),
+        form_algebra_rows=compile_form_algebra(concepts, form_registry),
     )
-
-
-def _compile_form_algebra_rows(
-    concepts: list["LoadedConcept"],
-    form_registry: dict[str, FormDefinition],
-) -> tuple["ProjectionRow", ...]:
-    if not form_registry:
-        return ()
-
-    id_to_form: dict[str, str] = {}
-    id_to_symbols: dict[str, tuple[str, ...]] = {}
-    for concept in concepts:
-        record = concept.record
-        concept_id = str(record.artifact_id)
-        id_to_form[concept_id] = record.form
-        id_to_symbols[concept_id] = _concept_symbol_candidates(record)
-
-    seen: set[tuple[object, ...]] = set()
-    rows: list["ProjectionRow"] = []
-
-    for concept in concepts:
-        record = concept.record
-        concept_id = str(record.artifact_id)
-        output_form = id_to_form.get(concept_id)
-        if not output_form:
-            continue
-
-        for parameterization in record.parameterizations:
-            inputs = [str(input_id) for input_id in parameterization.inputs]
-            if not inputs:
-                continue
-
-            input_forms: list[str] = []
-            all_resolved = True
-            for input_id in inputs:
-                input_form = id_to_form.get(input_id)
-                if not input_form:
-                    all_resolved = False
-                    break
-                input_forms.append(input_form)
-            if not all_resolved:
-                continue
-
-            sympy_str = parameterization.sympy
-            operation = ""
-            if sympy_str:
-                operation = rewrite_parameterization_symbols(
-                    sympy_str,
-                    symbol_aliases={
-                        concept_id: id_to_symbols.get(concept_id, ()),
-                        **{
-                            input_id: id_to_symbols.get(input_id, ())
-                            for input_id in inputs
-                        },
-                    },
-                    symbol_targets={
-                        concept_id: output_form,
-                        **{
-                            input_id: id_to_form[input_id]
-                            for input_id in inputs
-                        },
-                    },
-                )
-            if not operation:
-                operation = parameterization.formula or ""
-
-            dim_verified = 1
-            if sympy_str and operation:
-                output_fd = form_registry.get(output_form)
-                input_fd_list = [form_registry.get(form_name) for form_name in input_forms]
-                if output_fd is not None and all(fd is not None for fd in input_fd_list):
-                    if not verify_form_algebra_dimensions(
-                        output_fd,
-                        input_fd_list,  # type: ignore[arg-type]
-                        operation,
-                    ):
-                        dim_verified = 0
-                else:
-                    dim_verified = 0
-
-            try:
-                canonical_operation = canonical_dump(operation, {})
-            except AlgorithmParseError:
-                canonical_operation = operation
-            dedup_key = (output_form, tuple(sorted(input_forms)), canonical_operation)
-            if dedup_key in seen:
-                continue
-            seen.add(dedup_key)
-            rows.append(
-                FORM_ALGEBRA_PROJECTION.row(
-                    output_form=output_form,
-                    input_forms=json.dumps(input_forms),
-                    operation=operation,
-                    source_concept_id=concept_id,
-                    source_formula=parameterization.formula or "",
-                    dim_verified=dim_verified,
-                )
-            )
-
-    return tuple(rows)
 
 
 @dataclass(frozen=True)
@@ -490,34 +366,6 @@ CONCEPT_PROJECTION = ProjectionTable(
 )
 
 
-FORM_PROJECTION = ProjectionTable(
-    name="form",
-    columns=(
-        text_field("name").column(primary_key=True),
-        text_field("kind", nullable=False).column(),
-        text_field("unit_symbol").column(),
-        integer_field("is_dimensionless", nullable=False).column(default_sql="0"),
-        text_field("dimensions").column(),
-    ),
-)
-
-
-FORM_ALGEBRA_PROJECTION = ProjectionTable(
-    name="form_algebra",
-    columns=(
-        AUTOINCREMENT_ID_FIELD.column(),
-        text_field("output_form", nullable=False).column(),
-        text_field("input_forms", nullable=False).column(),
-        text_field("operation", nullable=False).column(),
-        family_reference_field("concept", role="source").column(),
-        text_field("source_formula").column(),
-        integer_field("dim_verified", nullable=False).column(default_sql="1"),
-    ),
-    foreign_keys=(ProjectionForeignKey(("output_form",), "form", ("name",)),),
-    indexes=(ProjectionIndex("idx_form_algebra_output", ("output_form",)),),
-)
-
-
 ALIAS_PROJECTION = ProjectionTable(
     name="alias",
     columns=(
@@ -636,8 +484,6 @@ def populate_concept_sidecar_rows(
 ) -> None:
     from propstore.families.relations.declaration import RELATION_EDGE_TABLE
 
-    if rows.form_rows:
-        FORM_PROJECTION.insert_rows(conn, rows.form_rows)
     if rows.concept_rows:
         CONCEPT_PROJECTION.insert_rows(conn, rows.concept_rows)
     if rows.alias_rows:
@@ -662,9 +508,6 @@ def populate_concept_sidecar_rows(
         PARAMETERIZATION_PROJECTION.insert_rows(conn, rows.parameterization_rows)
     if rows.parameterization_group_rows:
         PARAMETERIZATION_GROUP_PROJECTION.insert_rows(conn, rows.parameterization_group_rows)
-    if rows.form_algebra_rows:
-        FORM_ALGEBRA_PROJECTION.insert_rows(conn, rows.form_algebra_rows)
-
 
 class ConceptSearchQuerySyntaxError(ValueError):
     pass
@@ -926,27 +769,6 @@ def select_parameterization_group_members(
         (row["group_id"],),
     ).fetchall()
     return [str(group_row["concept_id"]) for group_row in rows]
-
-
-def select_all_form_rows(conn: sqlite3.Connection) -> list[dict[str, Any]]:
-    rows = conn.execute("SELECT * FROM form").fetchall()
-    return [dict(row) for row in rows]
-
-
-def select_form_algebra_rows_for_output(
-    conn: sqlite3.Connection,
-    form_name: str,
-) -> list[dict[str, Any]]:
-    rows = conn.execute(
-        "SELECT * FROM form_algebra WHERE output_form = ?",
-        (form_name,),
-    ).fetchall()
-    return [dict(row) for row in rows]
-
-
-def select_all_form_algebra_rows(conn: sqlite3.Connection) -> list[dict[str, Any]]:
-    rows = conn.execute("SELECT * FROM form_algebra").fetchall()
-    return [dict(row) for row in rows]
 
 
 def search_concept_ids(conn: sqlite3.Connection, query: str) -> list[dict[str, Any]]:

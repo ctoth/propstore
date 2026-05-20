@@ -23,7 +23,7 @@ from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions.cel_frontend import check_cel_expression, check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.solver import ConditionSolver
-from propstore.form_utils import kind_type_from_form_name
+from propstore.families.forms.stages import kind_type_from_form_name
 
 
 def _temporal_registry() -> dict[str, ConceptInfo]:

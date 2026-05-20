@@ -1754,7 +1754,7 @@ class TestSympyExceptNarrowing:
 
     def test_programming_error_in_verify_expr_propagates(self, claims_dir, monkeypatch):
         """NameError inside verify_expr must NOT be silently caught."""
-        from propstore.form_utils import FormDefinition
+        from propstore.families.forms.stages import FormDefinition
         from propstore.core.conditions.registry import KindType
 
         # Build registry with form definitions that have dimensions

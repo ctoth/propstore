@@ -9,7 +9,7 @@ from propstore.conflict_detector.collectors import conflict_claim_from_payload
 from propstore.conflict_detector.models import ConflictClass, ConflictClaim
 from propstore.families.contexts.stages import LoadedContext
 from propstore.dimensions import UnitConversion
-from propstore.form_utils import FormDefinition
+from propstore.families.forms.stages import FormDefinition
 from propstore.conflict_detector import (
     detect_conflicts as _detect_conflicts,
     detect_transitive_conflicts,

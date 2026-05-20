@@ -1142,7 +1142,7 @@ class TestSympyExceptNarrowing:
     def test_programming_error_in_verify_expr_propagates(self, concept_dir, monkeypatch):
         """NameError inside verify_expr must NOT be silently caught."""
         # Clear form cache so our form files with dimensions are loaded fresh
-        from propstore.form_utils import _form_cache
+        from propstore.families.forms.stages import _form_cache
         _form_cache.clear()
 
         # Write form files with actual dimensions so the sympy path triggers

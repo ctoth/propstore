@@ -3,7 +3,7 @@ def test_form_cache_has_single_owner_across_public_and_stage_helpers():
         _form_cache as stage_cache,
         clear_form_cache as clear_stage_cache,
     )
-    from propstore.form_utils import (
+    from propstore.families.forms.stages import (
         _form_cache as public_cache,
         clear_form_cache as clear_public_cache,
     )

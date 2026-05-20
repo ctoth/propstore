@@ -35,7 +35,7 @@ from propstore.families.identity.logical_ids import (
     normalize_identity_namespace,
     normalize_logical_value,
 )
-from propstore.form_utils import FormDefinition
+from propstore.families.forms.stages import FormDefinition
 
 
 TEST_CONTEXT_ID = "ctx_test"

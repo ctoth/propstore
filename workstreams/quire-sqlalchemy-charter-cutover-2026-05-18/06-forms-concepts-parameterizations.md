@@ -403,3 +403,63 @@ This workstream is complete only when:
 - all deletion targets in this file are gone from production code;
 - forms and concept/parameterization data parity passes;
 - required pyright, pytest, and search gates pass.
+
+## Phase 7-8 Execution Record
+
+Recorded 2026-05-20.
+
+Prerequisites:
+
+- Reread `reports/code-inventory-2026-05-17.md`; it remains the controlling
+  inventory for the forms/concepts/parameterizations slice.
+- Reread `notes/architecture-wanted-outcome-2026-05-17.md`; it says Quire
+  owns the generic charter/schema engine, SQLAlchemy mapping/session
+  machinery, schema catalog, FTS/vector hooks, and query/index mechanics,
+  while Propstore owns form/concept/parameterization semantics.
+- Propstore current branch: `master`; tracked task-owned files clean before
+  Phase 7-8 edits; unrelated untracked files present.
+- Quire current branch: `master`; tracked files clean; unrelated untracked
+  notes/reports/prompts/reviews paths present.
+- Order checker passed:
+  `uv run scripts/check_workstream_order.py workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md`
+  returned `workstream order ok`.
+- Quire pin: `pyproject.toml` and `uv.lock` resolve `quire` from pushed commit
+  `65df665b85053c1741dcd22d3a12deb15f35a4be`.
+- Local dependency-pin searches for `path =`, `workspace = true`,
+  `quire @ file`, `quire @ ..`, and `quire @ C:` returned no hits.
+
+Forms closure:
+
+- Current old-path inventory before forms edits found `FORM_PROJECTION` and
+  `FORM_ALGEBRA_PROJECTION` only in `propstore/families/concepts/declaration.py`
+  and form projection tests, and found `propstore.form_utils` imports in
+  production/test callers.
+- Added typed `Form` and `FormAlgebra` model construction to
+  `propstore/families/forms/stages.py` and kept form parsing, cache, unit,
+  dimension, and form-algebra semantic logic in the forms owner.
+- Moved concept symbol-candidate semantics to
+  `propstore/families/concepts/stages.py::concept_symbol_candidates` for the
+  form-algebra compiler.
+- Deleted `FORM_PROJECTION`, `FORM_ALGEBRA_PROJECTION`, form projection row
+  construction, and form raw selector helpers from
+  `propstore/families/concepts/declaration.py`.
+- Updated `propstore/families/world_charters.py` so the `form` and
+  `form_algebra` charters map the forms-owner `Form` and `FormAlgebra`
+  classes.
+- Updated `WorldQuery` form methods to read typed form and form-algebra models
+  through Quire SQLAlchemy read-only sessions.
+- Migrated production and test imports from `propstore.form_utils` to
+  `propstore.families.forms.stages`, then deleted `propstore/form_utils.py`.
+- Focused forms pyright passed:
+  `uv run pyright propstore/families/forms/stages.py propstore/families/concepts/stages.py propstore/families/concepts/declaration.py propstore/families/world_charters.py propstore/world/model.py propstore/app/forms.py`
+  returned 0 errors.
+- Focused forms closure pytest passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label forms-closure-focused tests/test_form_utils.py tests/test_sidecar_form_projection.py tests/test_sidecar_form_algebra_projection.py tests/test_form_algebra.py`
+  returned `66 passed`; log:
+  `logs/test-runs/forms-closure-focused-20260520-123400.log`.
+- Form-specific old-path searches for `FORM_PROJECTION`,
+  `FORM_ALGEBRA_PROJECTION`, and `propstore.form_utils` returned zero hits.
+- The broad forms gate search `ProjectionTable(` under
+  `propstore/families/concepts` still finds concept, alias, relationship, and
+  parameterization projection tables. Those are the next slice's named
+  deletion targets in this same workstream.

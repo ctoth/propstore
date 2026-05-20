@@ -51,7 +51,7 @@ def test_dimension_algebra_has_canonical_module() -> None:
 
 
 def test_form_utils_no_longer_owns_dimension_algebra() -> None:
-    import propstore.form_utils as form_utils
+    import propstore.families.forms.stages as form_utils
 
     path = PROPSTORE / "form_utils.py"
     tree = _parse(path)
@@ -93,7 +93,7 @@ def test_production_callers_do_not_import_dimension_api_from_form_utils() -> Non
         for node in ast.walk(_parse(path)):
             if not isinstance(node, ast.ImportFrom):
                 continue
-            if node.module != "propstore.form_utils":
+            if node.module != "propstore.families.forms.stages":
                 continue
             for alias in node.names:
                 if alias.name in DIMENSION_API:

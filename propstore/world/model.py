@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from sqlalchemy import select
 from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import validate_sqlalchemy_store
 from propstore.core.conditions.registry import (
@@ -64,13 +65,10 @@ from propstore.families.concepts.declaration import (
     resolve_concept_alias,
     resolve_concept_id,
     select_all_concepts,
-    select_all_form_algebra_rows,
-    select_all_form_rows,
     select_all_parameterizations,
     select_concept_by_id,
     select_concept_ids_for_group,
     select_concept_registry_rows,
-    select_form_algebra_rows_for_output,
     select_parameterization_group_members,
     select_parameterizations_for_output_concept,
     search_concept_ids,
@@ -673,7 +671,7 @@ class WorldQuery(WorldStore):
     def forms_by_dimensions(self, dims: dict[str, int]) -> list[dict]:
         """Find all forms with matching SI dimensions."""
         from bridgman import dims_equal
-        rows = select_all_form_rows(self._conn)
+        rows = self._all_form_rows()
         results = []
         for row in rows:
             row_dims_json = row["dimensions"]
@@ -689,17 +687,49 @@ class WorldQuery(WorldStore):
 
     def form_algebra_for(self, form_name: str) -> list[dict]:
         """Get all algebra decompositions that produce *form_name*."""
-        return select_form_algebra_rows_for_output(self._conn, form_name)
+        schema = world_sqlalchemy_schema()
+        form_algebra = schema.model("form_algebra")
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = derived.execute(
+                select(form_algebra).where(form_algebra.output_form == form_name)
+            ).scalars()
+            return [self._model_row("form_algebra", row) for row in rows]
 
     def form_algebra_using(self, form_name: str) -> list[dict]:
         """Get all algebra entries where *form_name* is an input."""
-        rows = select_all_form_algebra_rows(self._conn)
+        rows = self._all_form_algebra_rows()
         results = []
         for row in rows:
             input_forms = json.loads(row["input_forms"])
             if form_name in input_forms:
                 results.append(row)
         return results
+
+    def _all_form_rows(self) -> list[dict[str, Any]]:
+        schema = world_sqlalchemy_schema()
+        form = schema.model("form")
+        with self._derived_store.readonly_session(schema) as derived:
+            return [
+                self._model_row("form", row)
+                for row in derived.execute(select(form)).scalars()
+            ]
+
+    def _all_form_algebra_rows(self) -> list[dict[str, Any]]:
+        schema = world_sqlalchemy_schema()
+        form_algebra = schema.model("form_algebra")
+        with self._derived_store.readonly_session(schema) as derived:
+            return [
+                self._model_row("form_algebra", row)
+                for row in derived.execute(select(form_algebra)).scalars()
+            ]
+
+    @staticmethod
+    def _model_row(table_name: str, row: object) -> dict[str, Any]:
+        schema = world_sqlalchemy_schema()
+        return {
+            column.name: getattr(row, column.name)
+            for column in schema.table(table_name).columns
+        }
 
     def stats(self) -> WorldStoreStats:
         concepts = count_concepts(self._conn)

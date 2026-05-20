@@ -205,7 +205,7 @@ class TestFormAlgebraExceptionVisibility:
             raise RuntimeError("rewrite boom")
 
         monkeypatch.setattr(
-            "propstore.families.concepts.declaration.rewrite_parameterization_symbols",
+            "propstore.families.forms.stages.rewrite_parameterization_symbols",
             _boom,
         )
 
@@ -225,7 +225,7 @@ class TestFormAlgebraExceptionVisibility:
             raise RuntimeError("canonical boom")
 
         monkeypatch.setattr(
-            "propstore.families.concepts.declaration.canonical_dump",
+            "propstore.families.forms.stages.canonical_dump",
             _boom,
         )
 

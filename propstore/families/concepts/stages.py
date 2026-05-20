@@ -721,6 +721,10 @@ def concept_reference_keys(
     return tuple(keys)
 
 
+def concept_symbol_candidates(record: ConceptRecord) -> tuple[str, ...]:
+    return record.reference_keys()
+
+
 def _rewrite_concept_reference(
     value: object,
     concept_ref_map: Mapping[str, str],

@@ -2,16 +2,24 @@
 
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from ast_equiv import canonical_dump
+from ast_equiv.canonicalizer import AlgorithmParseError
 from propstore import dimensions as dimension_api
 from propstore.core.conditions.registry import KindType
+from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.forms.documents import FormDocument
+from propstore.propagation import rewrite_parameterization_symbols
 from quire.documents import decode_document_path
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
+
+if TYPE_CHECKING:
+    from propstore.families.concepts.stages import LoadedConcept
 
 
 class FormStage(StrEnum):
@@ -40,6 +48,18 @@ class FormDefinition:
     delta_conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
     min: float | None = None
     max: float | None = None
+
+
+class Form:
+    def __init__(self, **values: object) -> None:
+        for key, value in values.items():
+            setattr(self, key, value)
+
+
+class FormAlgebra:
+    def __init__(self, **values: object) -> None:
+        for key, value in values.items():
+            setattr(self, key, value)
 
 
 @dataclass(frozen=True)
@@ -190,6 +210,130 @@ def load_all_forms_path(forms_dir: KnowledgePath) -> dict[str, FormDefinition]:
             if fd is not None:
                 registry[fd.name] = fd
     return registry
+
+
+def compile_form_models(form_registry: dict[str, FormDefinition]) -> tuple[Form, ...]:
+    models: list[Form] = []
+    for form_definition in form_registry.values():
+        models.append(
+            Form(
+                name=form_definition.name,
+                kind=form_definition.kind.value
+                if hasattr(form_definition.kind, "value")
+                else str(form_definition.kind),
+                unit_symbol=form_definition.unit_symbol,
+                is_dimensionless=1 if form_definition.is_dimensionless else 0,
+                dimensions=(
+                    json.dumps(form_definition.dimensions)
+                    if form_definition.dimensions is not None
+                    else None
+                ),
+            )
+        )
+    return tuple(models)
+
+
+def compile_form_algebra(
+    concepts: list["LoadedConcept"],
+    form_registry: dict[str, FormDefinition],
+) -> tuple[FormAlgebra, ...]:
+    from propstore.families.concepts.stages import concept_symbol_candidates
+
+    if not form_registry:
+        return ()
+
+    id_to_form: dict[str, str] = {}
+    id_to_symbols: dict[str, tuple[str, ...]] = {}
+    for concept in concepts:
+        record = concept.record
+        concept_id = str(record.artifact_id)
+        id_to_form[concept_id] = record.form
+        id_to_symbols[concept_id] = concept_symbol_candidates(record)
+
+    seen: set[tuple[object, ...]] = set()
+    models: list[FormAlgebra] = []
+
+    for concept in concepts:
+        record = concept.record
+        concept_id = str(record.artifact_id)
+        output_form = id_to_form.get(concept_id)
+        if not output_form:
+            continue
+
+        for parameterization in record.parameterizations:
+            inputs = [str(input_id) for input_id in parameterization.inputs]
+            if not inputs:
+                continue
+
+            input_forms: list[str] = []
+            all_resolved = True
+            for input_id in inputs:
+                input_form = id_to_form.get(input_id)
+                if not input_form:
+                    all_resolved = False
+                    break
+                input_forms.append(input_form)
+            if not all_resolved:
+                continue
+
+            sympy_str = parameterization.sympy
+            operation = ""
+            if sympy_str:
+                operation = rewrite_parameterization_symbols(
+                    sympy_str,
+                    symbol_aliases={
+                        concept_id: id_to_symbols.get(concept_id, ()),
+                        **{
+                            input_id: id_to_symbols.get(input_id, ())
+                            for input_id in inputs
+                        },
+                    },
+                    symbol_targets={
+                        concept_id: output_form,
+                        **{
+                            input_id: id_to_form[input_id]
+                            for input_id in inputs
+                        },
+                    },
+                )
+            if not operation:
+                operation = parameterization.formula or ""
+
+            dim_verified = 1
+            if sympy_str and operation:
+                output_fd = form_registry.get(output_form)
+                input_fd_list = [form_registry.get(form_name) for form_name in input_forms]
+                if output_fd is not None and all(fd is not None for fd in input_fd_list):
+                    if not verify_form_algebra_dimensions(
+                        output_fd,
+                        input_fd_list,  # type: ignore[arg-type]
+                        operation,
+                    ):
+                        dim_verified = 0
+                else:
+                    dim_verified = 0
+
+            try:
+                canonical_operation = canonical_dump(operation, {})
+            except AlgorithmParseError:
+                canonical_operation = operation
+            dedup_key = (output_form, tuple(sorted(input_forms)), canonical_operation)
+            if dedup_key in seen:
+                continue
+            seen.add(dedup_key)
+            models.append(
+                FormAlgebra(
+                    id=len(models) + 1,
+                    output_form=output_form,
+                    input_forms=json.dumps(input_forms),
+                    operation=operation,
+                    source_concept_id=concept_id,
+                    source_formula=parameterization.formula or "",
+                    dim_verified=dim_verified,
+                )
+            )
+
+    return tuple(models)
 
 
 def kind_type_from_form_name(form: str | None) -> KindType | None:

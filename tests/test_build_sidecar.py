@@ -2425,7 +2425,7 @@ class TestClaimValueSI:
                     path.open("w"),
                 )
         # Clear form cache so new YAML is picked up
-        from propstore.form_utils import _form_cache
+        from propstore.families.forms.stages import _form_cache
         _form_cache.clear()
 
     def _build_with_claims(self, concept_dir, sidecar_path, claims_list):

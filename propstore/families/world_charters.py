@@ -19,6 +19,7 @@ from quire.families import FamilyDefinition
 from quire.schema_catalog import SchemaCatalog
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.versions import VersionId
+from propstore.families.forms.stages import Form, FormAlgebra
 from propstore.families.sources.declaration import Source, source_charter
 
 PROPSTORE_WORLD_SCHEMA_VERSION = 6
@@ -39,8 +40,6 @@ class ParameterizationRecord(WorldModel): ...
 class ParameterizationGroupRecord(WorldModel): ...
 class RelationshipRecord(WorldModel): ...
 class RelationEdgeRecord(WorldModel): ...
-class FormRecord(WorldModel): ...
-class FormAlgebraRecord(WorldModel): ...
 class ContextRecord(WorldModel): ...
 class ContextAssumptionRecord(WorldModel): ...
 class ContextLiftingRuleRecord(WorldModel): ...
@@ -73,8 +72,8 @@ _MODELS: dict[str, type[Any]] = {
     "parameterization_group": ParameterizationGroupRecord,
     "relationship": RelationshipRecord,
     "relation_edge": RelationEdgeRecord,
-    "form": FormRecord,
-    "form_algebra": FormAlgebraRecord,
+    "form": Form,
+    "form_algebra": FormAlgebra,
     "context": ContextRecord,
     "context_assumption": ContextAssumptionRecord,
     "context_lifting_rule": ContextLiftingRuleRecord,
@@ -153,9 +152,9 @@ def world_charter_catalog() -> SchemaCatalog:
             indexes=(CharterIndex("idx_relation_edge_source", ("source_kind", "source_id")),
                      CharterIndex("idx_relation_edge_target", ("target_kind", "target_id")),
                      CharterIndex("idx_relation_edge_type", ("relation_type",)))),
-        _charter("form", FormRecord, "name", _f("name", primary_key=True), _f("kind", nullable=False), _f("unit_symbol"),
+        _charter("form", Form, "name", _f("name", primary_key=True), _f("kind", nullable=False), _f("unit_symbol"),
             _i("is_dimensionless", nullable=False, default_sql="0"), _f("dimensions")),
-        _charter("form_algebra", FormAlgebraRecord, "id",
+        _charter("form_algebra", FormAlgebra, "id",
             _i("id", primary_key=True, nullable=False), _f("output_form", nullable=False), _f("input_forms", nullable=False),
             _f("operation", nullable=False), _f("source_concept_id"), _f("source_formula"),
             _i("dim_verified", nullable=False, default_sql="1"), indexes=(CharterIndex("idx_form_algebra_output", ("output_form",)),)),
@@ -210,7 +209,7 @@ def world_sqlalchemy_schema() -> SqlAlchemySchema:
 
 def _charter(
     name: str,
-    model: type[WorldModel],
+    model: type[Any],
     identity_field: str,
     *fields: CharterField,
     indexes: tuple[CharterIndex, ...] = (),
@@ -226,7 +225,7 @@ def _charter(
     )
 
 
-def _world_family(name: str, model: type[WorldModel], identity_field: str) -> FamilyDefinition[Any, Any, Any, Any]:
+def _world_family(name: str, model: type[Any], identity_field: str) -> FamilyDefinition[Any, Any, Any, Any]:
     return FamilyDefinition(
         key=name,
         name=name,

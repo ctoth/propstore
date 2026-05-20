@@ -1,27 +1,20 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 
-from propstore.families.concepts.declaration import (
-    FORM_ALGEBRA_PROJECTION,
-    FORM_PROJECTION,
-    populate_concept_sidecar_rows,
-)
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
+from quire.sqlalchemy_store import create_sqlalchemy_store
+from propstore.families.forms.stages import Form, FormAlgebra
 from propstore.families.concepts.declaration import ConceptSidecarRows
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
-def test_form_algebra_rows_use_generated_insert_and_autoincrement_id() -> None:
-    assert FORM_ALGEBRA_PROJECTION.insert_sql() == (
-        'INSERT INTO "form_algebra" ("output_form", "input_forms", "operation", '
-        '"source_concept_id", "source_formula", "dim_verified") VALUES '
-        "(:output_form, :input_forms, :operation, :source_concept_id, "
-        ":source_formula, :dim_verified)"
-    )
-
+def test_form_algebra_models_round_trip_with_explicit_id(tmp_path) -> None:
+    schema = world_sqlalchemy_schema()
     rows = ConceptSidecarRows(
         form_rows=(
-            FORM_PROJECTION.row(
+            Form(
                 name="force",
                 kind="quantity",
                 unit_symbol="N",
@@ -36,7 +29,8 @@ def test_form_algebra_rows_use_generated_insert_and_autoincrement_id() -> None:
         parameterization_rows=(),
         parameterization_group_rows=(),
         form_algebra_rows=(
-            FORM_ALGEBRA_PROJECTION.row(
+            FormAlgebra(
+                id=1,
                 output_form="force",
                 input_forms='["mass", "acceleration"]',
                 operation="mass * acceleration",
@@ -46,19 +40,23 @@ def test_form_algebra_rows_use_generated_insert_and_autoincrement_id() -> None:
             ),
         ),
     )
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    for projection in (FORM_PROJECTION, FORM_ALGEBRA_PROJECTION):
-        for statement in projection.ddl_statements():
-            conn.execute(statement)
 
-    populate_concept_sidecar_rows(conn, rows)
+    db_path = tmp_path / "form-algebra.sqlite"
+    create_sqlalchemy_store(db_path, schema)
+    engine = create_engine(f"sqlite:///{db_path.as_posix()}", future=True)
+    try:
+        with Session(engine) as session:
+            session.add_all(rows.form_rows)
+            session.add_all(rows.form_algebra_rows)
+            session.commit()
+            stored = session.execute(select(schema.model("form_algebra"))).scalar_one()
+    finally:
+        engine.dispose()
 
-    stored = conn.execute('SELECT * FROM "form_algebra"').fetchone()
-    assert stored["id"] == 1
-    assert stored["output_form"] == "force"
-    assert json.loads(stored["input_forms"]) == ["mass", "acceleration"]
-    assert stored["operation"] == "mass * acceleration"
-    assert stored["source_concept_id"] == "concept-force"
-    assert stored["source_formula"] == "m * a"
-    assert stored["dim_verified"] == 1
+    assert stored.id == 1
+    assert stored.output_form == "force"
+    assert json.loads(stored.input_forms) == ["mass", "acceleration"]
+    assert stored.operation == "mass * acceleration"
+    assert stored.source_concept_id == "concept-force"
+    assert stored.source_formula == "m * a"
+    assert stored.dim_verified == 1
