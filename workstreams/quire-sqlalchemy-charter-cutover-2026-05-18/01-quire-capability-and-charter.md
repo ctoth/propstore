@@ -154,6 +154,17 @@ Quire commit before editing Propstore. Refresh that pushed pin after every
 later Quire phase that changes APIs consumed by Propstore. Never pin Propstore
 to a local Quire checkout.
 
+### Phase 1 Execution Record
+
+Recorded 2026-05-20.
+
+- Quire dependency commit: `20d848f Add SQLAlchemy dependency`; `pyproject.toml` declares `sqlalchemy>=2.0` and `uv.lock` resolves `sqlalchemy==2.0.49` from PyPI.
+- Quire proof-test commits: `50de55a Add SQLAlchemy capability proof tests`, `b7504a2 Fix proof integer SQL type mapping`, and `2741419 Keep relationship proof assertions bound`.
+- Targeted proof gate: `uv run pytest -vv tests/test_sqlalchemy_capability.py` passed with 3 tests.
+- Proof coverage: generated SQLAlchemy Core tables from a small IR, imperative `registry.map_imperatively`, `Source.metadata` mapped to SQL column `metadata`, generic enum adapter, generic JSON value-object adapter for frozen `SourceTrust`, one-to-many and many-to-one relationships, `ClaimConceptLink` association object payload fields, and a read-only SQLAlchemy `Session` over a Quire `DerivedStoreHandle` path.
+
+Phase 1 targeted proof is complete. Full Quire gates still run at the workstream completion gate after Phase 2 IR lands.
+
 ## Phase 2: Quire Charter/Schema IR
 
 Repository: `C:\Users\Q\code\quire`
