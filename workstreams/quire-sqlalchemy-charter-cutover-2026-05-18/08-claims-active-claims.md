@@ -1008,3 +1008,13 @@ Recorded 2026-05-20.
   Quire dependency. Phase 10 can now delete claim-specific lookup wrappers
   against generic family reference lookup instead of adding a Propstore
   replacement helper.
+- Typed claim semantics move: commit `310db0dc` moved claim-local runtime
+  semantics required by remaining callers onto the typed `Claim` model:
+  concept-link role lookup, output/value concept derivation, condition JSON
+  decoding, algorithm variable decoding, and source-claim payload projection.
+  This did not add `claim_id`, `claim_type`, or row-model compatibility
+  aliases. Focused verification `uv run pyright
+  propstore/families/claims/declaration.py` passed with 0 errors. The next
+  caller slices must delete `ActiveClaim`, `ActiveClaimInput`,
+  `coerce_active_claim*`, and `CLAIM_ROW_MODEL` imports by consuming these
+  typed `Claim` fields/relationships directly.
