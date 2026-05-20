@@ -24,6 +24,10 @@ End state:
 - support-revision and ASPIC bridge code consume typed graph, stance, and
   justification models;
 - app, CLI, and web surfaces keep their world-facing API shape.
+- world/runtime validation uses Quire SQLAlchemy schema/catalog validation
+  directly and does not preserve projection-era `Unsupported sidecar schema`
+  wording, `ProjectionSchemaError`, or rebuild advice as a compatibility
+  wrapper.
 
 ## Prerequisites
 
@@ -108,6 +112,13 @@ as the work queue:
 - `WorldBindActiveReport` spelling in world query report APIs;
 - raw SQL snippets that duplicate SQLAlchemy query construction;
 - `ProjectionRow` usage in world, family, graph, and worldline runtime paths;
+- `_validate_schema` in `propstore/world/model.py` as a projection-schema
+  validation wrapper around `validate_derived_store_schema`;
+- message rewriting that translates Quire/derived-store validation failures
+  into `Unsupported sidecar schema` or appends `Rebuild with 'pks build'.`;
+- tests that pin projection-schema validation errors through
+  `ProjectionSchemaError`, `schema.validate_connection`, or
+  `Unsupported sidecar schema` wording;
 - generic `from_mapping` persisted-result constructors in
   `propstore/worldline/result_types.py`;
 - generic `ProvenanceRecord.from_mapping` and graph provenance payload
@@ -191,8 +202,11 @@ Preserve these Propstore-owned behaviors:
 - ASPIC extraction and translation semantics.
 
 Raw SQLite connection management, row factory setup, SQL query construction,
-projection row conversion, and generic persisted-payload mapping names move to
-Quire session/query machinery or disappear.
+projection row conversion, projection-schema validation wrappers, and generic
+persisted-payload mapping names move to Quire session/query machinery or
+disappear. CLI/app/web presentation may map typed owner-layer failures to exit
+codes or HTTP responses, but must not standardize around old projection-schema
+messages.
 
 ## Slice Order
 
@@ -221,6 +235,9 @@ Execute in this order:
 8. Replace loose dict/list/row payloads with typed world, graph, relation,
    claim, stance, justification, grounding, context, and micropublication model
    objects.
+8a. Replace `_validate_schema` with Quire SQLAlchemy schema/catalog validation
+    through the derived-store handle/session path and delete message rewriting
+    around old `Unsupported sidecar schema` wording.
 9. Rename `ActiveWorldGraph` to `WorldActivationGraph`; it remains a semantic
    activation result because it carries environment plus active/inactive claim
    id sets, but it stops using the misleading active-object-family spelling.
@@ -315,6 +332,11 @@ rg -n -F -- "ActiveWorldGraph" propstore tests
 rg -n -F -- "WorldBindActiveReport" propstore tests
 rg -n -F -- "claim_row_query_plan" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision tests
 rg -n -F -- "claim_stance_policy_query_plan" propstore/world propstore/core propstore/graph_export.py propstore/worldline propstore/support_revision tests
+rg -n -F -- "Unsupported sidecar schema" propstore tests
+rg -n -F -- "ProjectionSchemaError" propstore tests
+rg -n -F -- "validate_derived_store_schema" propstore tests
+rg -n -F -- "schema.validate_connection" propstore tests
+rg -n -F -- "Rebuild with 'pks build'" propstore tests
 ```
 
 All searches are zero-hit gates outside notes, workstreams, docs, and reports.
@@ -352,6 +374,11 @@ This slice is complete only when:
 - every named caller/update surface no longer imports raw sidecar connection
   helpers, projection rows, projection models, row factories, or row
   dictionaries;
+- `WorldQuery` does not catch Quire schema/catalog validation failures to
+  rewrite them into old projection-schema or sidecar-schema messages;
+- `Unsupported sidecar schema`, `ProjectionSchemaError`,
+  `validate_derived_store_schema`, `schema.validate_connection`, and
+  `Rebuild with 'pks build'` are absent from production code and tests;
 - the data-parity and behavior-parity gates pass;
 - all required tests pass through the logged pytest wrapper;
 - all old-path search gates above are zero-hit outside notes, workstreams,

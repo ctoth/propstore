@@ -21,6 +21,11 @@ Final state:
 - Schema hash and cache identity are derived from Quire schema catalog
   payloads.
 - Old projection schema creation is deleted before family phases begin.
+- Build and validation errors must not be translated into projection-era
+  schema wording. Quire SQLAlchemy schema/catalog validation errors should flow
+  from the Quire validation API; any user-facing presentation belongs only at
+  app/CLI/web boundaries and must not preserve compatibility with
+  `ProjectionSchema` or `Unsupported sidecar schema` wording.
 
 ## Scope And Repository
 
@@ -145,6 +150,9 @@ Implement the target path:
    derived-store build lifecycle.
 10. Existing build diagnostics and semantic policy remain in Propstore owner
     modules; generic schema and session mechanics remain in Quire.
+10a. Build orchestration does not catch Quire SQLAlchemy schema/catalog
+     validation failures to rewrite them into old projection-schema or sidecar
+     schema messages.
 11. `scripts/compare_sqlalchemy_charter_parity.py` exists before source,
     forms, concepts, claims, relations, contexts, micropublications, rules,
     embeddings, or world-query cutovers start.
@@ -415,3 +423,20 @@ Returned-to-Quire capability fix:
 
 Next required item: resume deletion/replacement of the old projection builder
 using the Quire SQLAlchemy charter FTS source-query path.
+
+Old validation-wrapper audit:
+
+- Exact-string audit found one production old-schema message rewrite:
+  `propstore/world/model.py` catches `ValueError` from
+  `validate_derived_store_schema`, replaces `Unsupported derived store schema`
+  with `Unsupported sidecar schema`, and appends `Rebuild with 'pks build'.`
+- Exact-string audit found test pins for that old wording in
+  `tests/test_world_query.py`.
+- Exact-string audit found projection-schema validation tests in
+  `tests/test_sidecar_projection_contract.py` importing
+  `ProjectionSchemaError` and calling `schema.validate_connection`.
+- Searches for `validate_derived_store_schema`, `Unsupported sidecar schema`,
+  `ProjectionSchemaError`, `Rebuild with 'pks build'`, and `str(error)` found
+  no other production error-message rewrite matching this compatibility shape.
+- The owner for deleting that wrapper and its tests is
+  `12-world-query-graph-reasoning.md`, not a Phase 5 compatibility shim.
