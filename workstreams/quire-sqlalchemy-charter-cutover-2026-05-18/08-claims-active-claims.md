@@ -774,3 +774,10 @@ Recorded 2026-05-20.
   metadata already passed by analyzers and tests. The refreshed active-claim
   import search now reports `aspic_bridge`, `app`, `praf/engine.py`, `world`,
   and `worldline/resolution.py`.
+- Concept-view deletion: commit `9b4c5791` removed the `ActiveClaim` import
+  from `app/concept_views.py`, switched visible claim rendering to typed
+  `Claim` identity/type/source/link fields, and deleted scalar/unit/
+  uncertainty/condition/provenance-object reads instead of recreating them
+  through a row helper. The refreshed active-claim import search now reports
+  only `aspic_bridge`, `app/world_reasoning.py`, `praf/engine.py`, `world`,
+  and `worldline/resolution.py`.
