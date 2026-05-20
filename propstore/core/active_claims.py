@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
-from types import SimpleNamespace
 from typing import Any
 
 from propstore.cel_types import CelExpr, to_cel_exprs
@@ -121,8 +120,23 @@ def _require_claim_concept_link_role(value: object) -> ClaimConceptLinkRole:
     return role
 
 
-def _coerce_claim_concept_link(link: object) -> SimpleNamespace:
-    return SimpleNamespace(
+@dataclass(frozen=True)
+class ActiveClaimConceptLink:
+    claim_id: ClaimId
+    concept_id: ConceptId
+    role: ClaimConceptLinkRole
+    ordinal: int = 0
+    binding_name: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "claim_id", to_claim_id(self.claim_id))
+        object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
+        object.__setattr__(self, "role", _require_claim_concept_link_role(self.role))
+        object.__setattr__(self, "ordinal", int(self.ordinal))
+
+
+def _coerce_claim_concept_link(link: object) -> ActiveClaimConceptLink:
+    return ActiveClaimConceptLink(
         claim_id=to_claim_id(getattr(link, "claim_id")),
         concept_id=to_concept_id(getattr(link, "concept_id")),
         role=_require_claim_concept_link_role(getattr(link, "role")),
@@ -136,7 +150,7 @@ class ActiveClaim:
     claim_id: ClaimId
     artifact_id: str
     claim_type: ClaimType | None = None
-    concept_links: tuple[SimpleNamespace, ...] = field(default_factory=tuple)
+    concept_links: tuple[ActiveClaimConceptLink, ...] = field(default_factory=tuple)
     target_concept: ConceptId | None = None
     logical_ids: tuple[LogicalId, ...] = field(default_factory=tuple)
     version_id: str | None = None

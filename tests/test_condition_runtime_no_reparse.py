@@ -10,7 +10,7 @@ RUNTIME_MODULES = (
     Path("propstore/context_lifting.py"),
     Path("propstore/world/model.py"),
     Path("propstore/world/bound.py"),
-    Path("propstore/world/assignment_selection_merge.py"),
+    Path("propstore/world/assignment_selection_policy.py"),
     Path("propstore/conflict_detector/orchestrator.py"),
     Path("propstore/conflict_detector/parameter_claims.py"),
 )

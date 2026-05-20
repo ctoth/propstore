@@ -5,11 +5,15 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, replace
 from collections.abc import Sequence
-from types import SimpleNamespace
 from typing import Any, Callable, Mapping, cast
 
 from propstore.conflict_detector import ConflictClass
-from propstore.core.active_claims import ActiveClaim, ActiveClaimInput, coerce_active_claim
+from propstore.core.active_claims import (
+    ActiveClaim,
+    ActiveClaimConceptLink,
+    ActiveClaimInput,
+    coerce_active_claim,
+)
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.claim_types import ClaimType
 from propstore.core.conditions import (
@@ -232,14 +236,14 @@ def _conditions_ir_json(condition_set: CheckedConditionSet | None) -> str | None
     )
 
 
-def _synthetic_concept_links(synthetic: SyntheticClaim) -> tuple[SimpleNamespace, ...]:
+def _synthetic_concept_links(synthetic: SyntheticClaim) -> tuple[ActiveClaimConceptLink, ...]:
     role = (
         ClaimConceptLinkRole.TARGET
         if synthetic.type is ClaimType.MEASUREMENT
         else ClaimConceptLinkRole.OUTPUT
     )
     return (
-        SimpleNamespace(
+        ActiveClaimConceptLink(
             claim_id=to_claim_id(synthetic.id),
             concept_id=to_concept_id(synthetic.concept_id),
             role=role,
