@@ -55,6 +55,10 @@ Run from `C:\Users\Q\code\quire`:
 
 ```powershell
 rg -n -F -- "ProjectionTable" quire tests
+rg -n -F -- "ProjectionSchema" quire tests
+rg -n -F -- "ProjectionIndex" quire tests
+rg -n -F -- "ProjectionColumn" quire tests
+rg -n -F -- "ProjectionSelectedColumn" quire tests
 rg -n -F -- "ProjectionModel" quire tests
 rg -n -F -- "ProjectionCodec" quire tests
 rg -n -F -- "ScalarPath" quire tests
@@ -106,6 +110,10 @@ Run from `C:\Users\Q\code\propstore`:
 
 ```powershell
 rg -n -F -- "ProjectionTable" propstore tests
+rg -n -F -- "ProjectionSchema" propstore tests
+rg -n -F -- "ProjectionIndex" propstore tests
+rg -n -F -- "ProjectionColumn" propstore tests
+rg -n -F -- "ProjectionSelectedColumn" propstore tests
 rg -n -F -- "ProjectionModel" propstore tests
 rg -n -F -- "ProjectionCodec" propstore tests
 rg -n -F -- "ProjectionRow" propstore tests
