@@ -47,6 +47,20 @@ Binding notes from the 2026-05-20 update:
   meaning, embedding model identity, text source policy, entity resolution
   policy, and snapshot report semantics. Generic identity, FK, table, session,
   vector, and main-model lookup mechanics do not belong in these families.
+- Current Phase 10 claim work has already deleted the claim-family embedding
+  projection constants and claim row-model production surface. This phase must
+  repair embedding code by deleting the old projection/vector handoff and using
+  generic Quire vector/session APIs; it must not restore
+  `CLAIM_EMBEDDING_STATUS_PROJECTION`, `CLAIM_VEC_PROJECTION`,
+  claim embedding join constants, `select_claim_embedding_rows`,
+  `CLAIM_ROW_MODEL`, or a claim-specific vector adapter.
+- Claim and concept similarity must return typed search results from owner
+  APIs over Quire vector/session data. Do not keep row-shaped similarity
+  helpers, generic `from_mapping` constructors, direct sidecar connections, or
+  per-family lookup wrappers as a transition path.
+- No subsection of this phase is complete while any owned `ProjectionTable`,
+  `VecProjection`, raw `sqlite3.Connection`, sidecar runtime row helper, vector
+  store adapter, or projection constant remains in production.
 
 Current old-surface findings from `rg` on 2026-05-20:
 
@@ -71,6 +85,33 @@ Current old-surface findings from `rg` on 2026-05-20:
   connections with `connect_sqlite_store`, set `row_factory`, and expose
   `find_similar_claim_rows`, `find_similar_concept_rows`, and
   `SidecarClaimRelationStore`.
+
+Current audit update on 2026-05-20:
+
+- Status: not started. This phase remains a future workstream and is blocked
+  until the current Phase 10 claim queue is clean and Phases 11 and 12 are
+  complete.
+- Current Phase 10 queue from `uv run pyright propstore`: 25 package errors
+  remain. The embedding-owned dependency is
+  `propstore/families/embeddings/declaration.py` importing deleted
+  `CLAIM_EMBEDDING_JOIN_COLUMNS`, `CLAIM_EMBEDDING_JOIN_SOURCE`,
+  `CLAIM_EMBEDDING_STATUS_PROJECTION`, `CLAIM_VEC_PROJECTION`, and
+  `select_claim_embedding_rows` from the claim family. This phase must not
+  restore those deleted claim projection symbols; it must delete the old
+  embedding projection/vector handoff and route through Quire vector/session
+  APIs.
+- Current old-path searches: `GROUNDED_FACT_PROJECTION` remains in
+  `propstore/families/rules/declaration.py`; `MICROPUBLICATION_PROJECTION` and
+  relation old paths remain earlier-phase work; `VecProjection` currently has
+  no hits under `propstore/families/embeddings` or `tests`, but embedding code
+  still imports Quire sqlite-vec projection-backed store types and raw
+  sidecar connection APIs. A zero-hit `VecProjection` search alone is not a
+  completion signal for this phase.
+- Known dependency from completed Phase 10 work: claim embedding text and
+  similarity callers must consume typed `Claim` fields and payload
+  relationships. Do not reintroduce row-only claim fields such as `claim_id`,
+  `claim_type`, `statement`, or `artifact_id`, and do not add a claim-specific
+  lookup/vector wrapper to replace the deleted projection constants.
 
 Diagnostics projection cleanup is owned by
 `05-source-and-diagnostics.md`. This workstream depends on the typed
