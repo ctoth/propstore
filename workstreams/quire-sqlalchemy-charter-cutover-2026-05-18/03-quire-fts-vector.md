@@ -295,4 +295,24 @@ Prerequisites:
   - `uv run pytest -vv` passed with 48 passed.
 - Pushed immutable `sqlalchemy-fts5` commit for Quire consumption: `ac6d05968f2f3bcf61c20a09efa41de4a605560d` (`origin/master`, `git@github.com:ctoth/sqlalchemy-fts5.git`).
 
-Next required item: pin Quire to the pushed `sqlalchemy-fts5` commit and implement Quire FTS/vector declarations, lifecycle, query, and catalog support.
+Quire FTS/vector implementation:
+
+- Commit `2eeb43a Pin sqlalchemy FTS extension` pins Quire to pushed `sqlalchemy-fts5` commit `ac6d05968f2f3bcf61c20a09efa41de4a605560d` through `https://github.com/ctoth/sqlalchemy-fts5`.
+- Commit `6ff5b82 Add SQLAlchemy FTS and vector caches` adds Quire charter/schema declarations for FTS indexes and vector caches, SQLAlchemy FTS table generation/query/population adapters, SQLAlchemy store lifecycle/validation hooks for FTS/vector artifacts, and vector create/insert/search/snapshot/restore APIs over SQLAlchemy connections.
+- Commit `1d67026 Retain sqlite vector projection APIs` keeps the existing sqlite3 embedding model/entity/snapshot API that current Propstore imports while the later Propstore embeddings phase deletes those imports and moves callers to the SQLAlchemy vector cache path.
+- Focused Quire proof gate: `uv run pytest -vv tests/test_sqlalchemy_engine.py tests/test_derived_store.py::test_vec_projection_materializes_rowids_and_searches_vectors` passed with 6 passed.
+- Full Quire gates after the retained-vector commit:
+  - `uv run pyright` passed with 0 errors.
+  - `uv run pytest -vv` passed with 359 passed in 281.13s.
+- Quire dependency-pin searches for `file://`, `path =`, `workspace = true`, and `C:` returned no hits after adding `sqlalchemy-fts5` and runtime `sqlite-vec`.
+- Quire old-path inventory after Phase 4:
+  - `ProjectionTable` remains in `quire/projections.py`, `quire/derived_runtime.py`, `quire/projection_mapping.py`, `quire/sqlite_vec_store.py`, `quire/__init__.py`, and projection tests.
+  - `ProjectionModel` remains in `quire/projection_mapping.py`, `quire/__init__.py`, and projection mapping tests.
+  - `FtsProjection` remains in `quire/projections.py`, `quire/__init__.py`, and projection tests.
+  - `VecProjection` remains in `quire/projections.py`, `quire/sqlite_vec_store.py`, `quire/__init__.py`, and projection tests.
+- Pushed immutable Quire commit for Propstore consumption: `1d670267eba752a615122c26fdc551c466b06601` (`origin/master`, `git@github.com:ctoth/quire.git`).
+- Propstore pin refreshed to pushed Quire commit `1d670267eba752a615122c26fdc551c466b06601`; `uv.lock` resolves Quire, `sqlalchemy-fts5`, and `sqlite-vec` from non-local sources.
+- Propstore dependency-pin searches for `quire @ file`, `quire @ ..`, `quire @ C:`, `path =`, and `workspace = true` returned no hits; `uv lock --check` passed.
+- Propstore package type gate: `uv run pyright propstore` passed with 0 errors.
+
+Next required item: commit the Phase 4 Propstore pin/workstream record, then proceed to the Quire-first completion gate and Phase 5 only if all Phase 4 gates remain passing.
