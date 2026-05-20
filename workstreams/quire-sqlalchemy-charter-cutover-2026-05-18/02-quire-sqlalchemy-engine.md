@@ -408,4 +408,24 @@ quire\__init__.py:82:    VecProjection,
 quire\__init__.py:260:    "VecProjection",
 ```
 
-Phase 3 Quire-side implementation gates are complete. The remaining Phase 3 closure items are to push Quire, update the Propstore dependency pin to the pushed commit, run the Propstore type/dependency gates, and record closure.
+Quire push:
+
+- Current Quire branch: `master`.
+- Pushed commit: `7637b8a33fa3d8d76ea2f996a8d1bdce5f0ada7f`.
+- Push output: `c3e53c5..7637b8a  master -> master`.
+
+Propstore pin and dependency gates:
+
+- `pyproject.toml` and `uv.lock` pin Quire to pushed Git commit `7637b8a33fa3d8d76ea2f996a8d1bdce5f0ada7f`.
+- `uv run pyright propstore` passed with `0 errors, 0 warnings, 0 informations`; the command built Quire from `git+https://github.com/ctoth/quire@7637b8a33fa3d8d76ea2f996a8d1bdce5f0ada7f`.
+- `rg -n -F -- "quire @ file" pyproject.toml uv.lock`: no hits.
+- `rg -n -F -- "quire @ .." pyproject.toml uv.lock`: no hits.
+- `rg -n -F -- "quire @ C:" pyproject.toml uv.lock`: no hits.
+- `rg -n -F -- "[tool.uv.sources]" pyproject.toml`: `80:[tool.uv.sources]`.
+- `rg -n -F -- "path =" pyproject.toml`: no hits.
+- `rg -n -F -- "workspace = true" pyproject.toml`: no hits.
+- `uv lock --check` resolved 159 packages.
+- `uv tree --package quire` resolves `quire v0.2.0` with `sqlalchemy v2.0.49`.
+- SHA search confirms the pushed Quire commit in `pyproject.toml` and `uv.lock`.
+
+Phase 3 is complete. Phase 4 may start.
