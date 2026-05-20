@@ -101,6 +101,7 @@ Decision:
 | Inventory surface | Current owner | Final owner | Required action |
 | --- | --- | --- | --- |
 | `propstore/families/claims/projection_model.py` claim-owned symbols | Claim split storage/read mapper plus a co-located justification residual | Claim charter plus association objects | Delete claim-owned symbols in this phase; the only permitted residual top-level definitions in this file after this phase are `_nullable_text`, `_claim_id`, `TEXT_CODEC`, `CLAIM_ID_CODEC`, `JUSTIFICATION_STORAGE_MODEL`, and `JUSTIFICATION_TABLE` |
+| `propstore/families/claims/declaration.py` projection compiler/populator paths | Claim sidecar compiler, raw projection-row writes, claim diagnostic row writes | Claim model construction, typed write plans, Quire sessions, and diagnostic model construction | Delete `compile_claim_sidecar_rows`, `populate_claims`, claim-family `ProjectionRow` usage, and claim-family `BUILD_DIAGNOSTICS_PROJECTION` writes |
 | `propstore/families/claims/storage.py` storage shaping | Loose claim row preparation/helpers | Claim charter generic conversion | Delete storage-shaped helpers |
 | `propstore/families/claims/storage.py` semantic conversions | Raw-id canonicalization, concept-ref resolution, unit normalization, stance-resolution conversion | `propstore/families/identity/claims.py`, `propstore/source/claims.py`, `propstore/families/claims/references.py`, `propstore/families/claims/stages.py`, `propstore/families/relations/declaration.py`, and `propstore/families/diagnostics/declaration.py` | Move each named semantic to its exact owner before deleting the storage-shaped remainder |
 | `propstore/core/active_claims.py` row coercion | Runtime row repair | Typed `Claim` model and explicit active-claim view model | Delete projection-row coercion; keep only named active runtime view behavior |
@@ -111,6 +112,12 @@ Delete these old production surfaces first, then use import/type/test failures
 as the work queue:
 
 - claim-owned contents of `propstore/families/claims/projection_model.py`;
+- `propstore/families/claims/declaration.py` sidecar compiler/populator paths
+  after `compile_claim_models` exists;
+- `compile_claim_sidecar_rows`;
+- `populate_claims`;
+- claim-family `ProjectionRow` import, annotations, and row-carrier plumbing;
+- claim-family `BUILD_DIAGNOSTICS_PROJECTION` writes;
 - `CLAIM_CORE_STORAGE_MODEL`;
 - `CLAIM_CONCEPT_LINK_STORAGE_MODEL`;
 - `CLAIM_NUMERIC_PAYLOAD_STORAGE_MODEL`;
@@ -293,13 +300,17 @@ Target owners:
 - `propstore/families/claims/stages.py::compile_claim_payload_models`
   receives unit/form compatibility checks, CEL, checked-condition IR, Sympy,
   and algorithm canonicalization;
+- `propstore/families/claims/declaration.py::compile_claim_models` receives
+  claim model, claim payload, claim-link, embedded-stance, and claim diagnostic
+  model assembly from authored claim documents;
 - `propstore/families/relations/declaration.py::coerce_stance_resolution_payload`,
   `StanceResolutionOpinion.from_payload`, and
   `compile_embedded_stance_models` receive stance-resolution validation,
   opinion extraction, condition-difference serialization, and embedded-stance
   quarantine semantics;
-- `propstore/families/diagnostics/declaration.py` receives draft/blocking and
-  promotion-blocked diagnostics;
+- `propstore/families/diagnostics/declaration.py::claim_diagnostics_to_models`
+  receives draft/blocking, quarantine, and promotion-blocked diagnostic model
+  construction for claim compilation;
 - `propstore/conflict_detector/collectors.py::conflict_claim_from_active_claim`
   receives source-claim payload rendering that used to live on
   `ActiveClaim.to_source_claim_payload`.
@@ -405,6 +416,10 @@ rg -n -F -- "CLAIM_NUMERIC_PAYLOAD_TABLE" propstore tests
 rg -n -F -- "CLAIM_TEXT_PAYLOAD_TABLE" propstore tests
 rg -n -F -- "CLAIM_ALGORITHM_PAYLOAD_TABLE" propstore tests
 rg -n -F -- "CLAIM_STORAGE_TABLES" propstore tests
+rg -n -F -- "compile_claim_sidecar_rows" propstore tests
+rg -n -F -- "populate_claims" propstore tests
+rg -n -F -- "ProjectionRow" propstore/families/claims
+rg -n -F -- "BUILD_DIAGNOSTICS_PROJECTION" propstore/families/claims tests
 rg -n -F -- "ClaimSidecarRows" propstore tests
 rg -n -F -- "RawIdQuarantineSidecarRows" propstore tests
 rg -n -F -- "PromotionBlockedSidecarRows" propstore tests

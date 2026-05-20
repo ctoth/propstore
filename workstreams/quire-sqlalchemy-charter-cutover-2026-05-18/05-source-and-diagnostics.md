@@ -281,15 +281,17 @@ rg -n -F -- "QuarantinableWriter" propstore tests
 rg -n -F -- "compile_promotion_blocked_diagnostic_rows" propstore tests
 rg -n -F -- "has_build_diagnostics_table" propstore tests
 rg -n -F -- "select_source_status_diagnostic_rows" propstore tests
-rg -n -F -- "BUILD_DIAGNOSTICS_PROJECTION" propstore tests
+rg -n -F -- "BUILD_DIAGNOSTICS_PROJECTION" propstore/families/diagnostics tests
 rg -n -F -- "ProjectionTable(" propstore/families/sources propstore/families/diagnostics tests
 ```
 
 `SourceProjectionRow`, `SOURCE_PROJECTION`, `SourceStatusDiagnosticRow`,
 `QuarantinableWriter`, `compile_promotion_blocked_diagnostic_rows`,
 `has_build_diagnostics_table`, `select_source_status_diagnostic_rows`,
-`BUILD_DIAGNOSTICS_PROJECTION`, and `ProjectionTable(` are zero-hit gates
-outside notes, workstreams, docs, and reports.
+`BUILD_DIAGNOSTICS_PROJECTION` under `propstore/families/diagnostics`, and
+`ProjectionTable(` under source/diagnostic paths are zero-hit gates outside
+notes, workstreams, docs, and reports. Claim-family diagnostic writes are owned
+by `08-claims-active-claims.md`.
 
 `quality_json` and `derived_from_json` are zero-hit gates for production
 Propstore code.

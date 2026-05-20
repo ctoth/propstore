@@ -111,7 +111,7 @@ This workstream owns these inventory rows:
 
 Delete these production paths before porting callers:
 
-- direct `ProjectionSchema` creation;
+- direct build/catalog-owned `ProjectionSchema` creation;
 - direct `PROPSTORE_WORLD_PROJECTION_SCHEMA` creation;
 - build-plan row-set abstractions whose only purpose is projection insertion;
 - raw `sqlite3.Connection` sidecar population orchestration;
@@ -119,7 +119,8 @@ Delete these production paths before porting callers:
 - manual world schema assembly in `propstore/families/projection_catalog.py`.
 
 Deleting `propstore/families/projection_catalog.py` in this phase leaves
-per-family `ProjectionTable` and `ProjectionModel` constants as unreferenced
+per-family `ProjectionSchema`, `ProjectionTable`, and `ProjectionModel`
+constants as unreferenced
 inventory inside family modules until their family slices delete them. After
 the catalog deletion, production code has zero imports of those constants.
 
@@ -289,7 +290,7 @@ uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before r
 
 Accepted parity difference allowlist:
 
-- deleted direct `ProjectionSchema` creation;
+- deleted build/catalog-owned direct `ProjectionSchema` creation;
 - deleted direct `PROPSTORE_WORLD_PROJECTION_SCHEMA` creation;
 - deleted build-plan row-set abstractions whose only purpose is projection
   insertion;
@@ -318,7 +319,7 @@ Run old-path searches:
 
 ```powershell
 rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
-rg -n -F -- "ProjectionSchema" propstore tests
+rg -n -F -- "ProjectionSchema" propstore/derived_build.py propstore/derived_build_plan.py propstore/families/projection_catalog.py tests
 rg -n -F -- "ProjectionTable" propstore/derived_build.py propstore/derived_build_plan.py propstore/families/projection_catalog.py tests
 rg -n -F -- "sqlite3.Connection" propstore/derived_build.py propstore/derived_build_plan.py tests
 ```

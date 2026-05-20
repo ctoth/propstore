@@ -169,6 +169,15 @@ File: `propstore/families/claims/storage.py`.
 | `prepare_claim_insert_row` | delete | Replace with `Claim` model construction and SQLAlchemy session add. |
 | `prepare_claim_concept_link_rows` | delete | Replace with `ClaimConceptLink` association objects and SQLAlchemy relationship persistence. |
 
+File: `propstore/families/claims/declaration.py`.
+
+| Helper/surface | Classification | Required final owner/action |
+| --- | --- | --- |
+| `compile_claim_sidecar_rows` | replace | Replace with `propstore/families/claims/declaration.py::compile_claim_models`, returning typed claim models, claim link objects, embedded `Stance` models, and diagnostic models. |
+| `populate_claims` | delete | Replace raw projection inserts with Quire build-session adds and flushes for the typed models emitted by `compile_claim_models`. |
+| claim-family `ProjectionRow` import/annotations | delete | Claim declaration code must not import or type against Quire projection rows after the model compiler exists. |
+| claim-family `BUILD_DIAGNOSTICS_PROJECTION` writes | replace | Replace diagnostic row writes with `propstore/families/diagnostics/declaration.py::claim_diagnostics_to_models` plus Quire session adds. |
+
 File: `propstore/families/claims/stages.py`.
 
 | Helper/surface | Classification | Required final owner/action |

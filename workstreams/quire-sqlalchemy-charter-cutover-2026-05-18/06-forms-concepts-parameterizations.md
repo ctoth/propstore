@@ -105,8 +105,7 @@ Execute in this order:
 2. `form_utils.py` caller migration and deletion.
 3. Concept/form/parameterization model cutover.
 4. Concept search cutover.
-5. Concept sidecar runtime cutover.
-6. Data parity, search gates, and final completion gates.
+5. Data parity, search gates, and final completion gates.
 
 ## Forms Closure
 
