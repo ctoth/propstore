@@ -421,3 +421,18 @@ Prerequisites:
   `powershell -File scripts/run_logged_pytest.ps1 -Label source-diagnostics-focused tests/test_cli_source_status.py tests/remediation/phase_7_race_atomicity/test_T7_5c_source_status_like_escape.py tests/remediation/phase_2_gates/test_T2_1_quarantine_writer.py`
   returned `7 passed`; log:
   `logs/test-runs/source-diagnostics-focused-20260520-121239.log`.
+- Commit `152add0c` renamed the source/trust generic mapping constructors in
+  `propstore/core/claim_values.py` to boundary-specific JSON payload
+  constructors: `SourceOrigin.from_json_payload`,
+  `SourceTrust.from_json_payload`, `ClaimSource.from_json_payload`, and
+  `_opinion_from_json_payload`.
+- Direct old-name searches after `152add0c` returned no hits in production or
+  tests for `SourceOrigin.from_mapping`, `SourceTrust.from_mapping`,
+  `ClaimSource.from_mapping`, and `_opinion_from_mapping`.
+- Focused source/trust payload pyright passed:
+  `uv run pyright propstore/core/claim_values.py propstore/families/claims/projection_model.py`
+  returned 0 errors.
+- Focused source/trust payload gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label source-trust-payload tests/test_prior_base_rate_is_opinion.py tests/test_sidecar_projection_contract.py`
+  returned `12 passed`; log:
+  `logs/test-runs/source-trust-payload-20260520-121521.log`.
