@@ -441,7 +441,7 @@ rg -n -F -- "from propstore.world.types import MergeOperator" propstore tests
 rg -n -F -- "from propstore.world.types import MergeAssignment" propstore tests
 rg -n -F -- "AssignmentSelectionProblem" propstore tests
 rg -n -F -- "AssignmentSelectionResult" propstore tests
-rg -n -F -- "solve_assignment_selection_merge" propstore tests
+rg -n -- "(^|[^A-Za-z0-9_])solve_assignment_selection_merge([^A-Za-z0-9_]|$)" propstore tests
 rg -n -F -- "_eval_cel_constraint_z3" propstore tests
 rg -n -F -- "_scalar_assignment_selection_merge" propstore tests
 rg -n -F -- "assignment-selection @ file" pyproject.toml uv.lock
@@ -453,8 +453,10 @@ Allowed hits:
 
 - `AssignmentSelectionProblem`, `AssignmentSelectionResult`, and solver names
   may appear in `workstreams/` and package dependency metadata only.
-- `solve_assignment_selection_merge` may appear in the new
-  `assignment-selection` repository.
+- The `solve_assignment_selection_merge` search intentionally uses a regex
+  token boundary because the required adapter name
+  `resolve_assignment_selection_merge` contains that literal substring. The
+  standalone old solver name may not appear in Propstore production or tests.
 - `IntegrityConstraint` hits remain allowed in Propstore because those are
   Propstore render-policy declarations.
 - `ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE` remains in Propstore because
