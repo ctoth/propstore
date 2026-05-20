@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from propstore.core.active_claims import ActiveClaim
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions.cel_frontend import check_condition_ir
@@ -232,67 +231,6 @@ def is_claim_node_active(
                 exc,
                 source_artifact=_claim_node_source_artifact(claim),
             )
-            raise
-
-
-def is_active_claim_active(
-    claim: ActiveClaim,
-    *,
-    environment: Environment,
-    solver: ConditionSolver | None,
-    lifting_system: LiftingSystem | None = None,
-) -> bool:
-    claim_context_id = claim.context_id
-    if not _claim_projected_into_environment(
-        claim_context_id=None if claim_context_id is None else str(claim_context_id),
-        claim_id=str(claim.claim_id),
-        environment=environment,
-        lifting_system=lifting_system,
-    ):
-        return False
-
-    claim_conditions = claim.checked_conditions
-    if claim_conditions is None or not claim_conditions.conditions:
-        return True
-
-    binding_conditions = _binding_conditions(environment)
-    if not binding_conditions:
-        return True
-    if solver is None:
-        raise ValueError("A condition solver is required for conditional activation")
-
-    query_solver = _solver_with_environment_bindings(solver, environment)
-
-    try:
-        registry = query_solver.registry
-        return not query_solver.are_disjoint(
-            checked_condition_set(
-                check_condition_ir(str(condition), registry)
-                for condition in binding_conditions
-            ),
-            claim_conditions,
-        )
-    except ValueError as exc:
-        _raise_unknown_concept_if_present(exc, source_artifact=claim.artifact_id)
-        raise
-    except Z3TranslationError:
-        retry_solver = _retry_with_standard_bindings(
-            query_solver,
-        )
-        retry_registry = retry_solver.registry
-        try:
-            return not retry_solver.are_disjoint(
-                checked_condition_set(
-                    check_condition_ir(str(condition), retry_registry)
-                    for condition in binding_conditions
-                ),
-                checked_condition_set(
-                    check_condition_ir(source, retry_registry)
-                    for source in claim_conditions.sources
-                ),
-            )
-        except ValueError as exc:
-            _raise_unknown_concept_if_present(exc, source_artifact=claim.artifact_id)
             raise
 
 
