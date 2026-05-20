@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from propstore.core.active_claims import ActiveClaim
 from propstore.core.environment import AuthoredJustificationStore, StanceStore
 from propstore.core.graph_types import ActiveWorldGraph
 from propstore.core.justifications import (
@@ -10,13 +9,14 @@ from propstore.core.justifications import (
     claim_justifications_from_active_graph,
 )
 from propstore.core.relation_types import ATTACK_TYPES, SUPPORT_TYPES
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import StanceRow
 from propstore.families.relations.projection_model import STANCE_ROW_MODEL
 
 
 def _extract_stance_rows(
     store: StanceStore,
-    active_by_id: dict[str, ActiveClaim],
+    active_by_id: dict[str, Claim],
     *,
     active_graph: ActiveWorldGraph | None,
 ) -> list[StanceRow]:
@@ -53,7 +53,7 @@ def _extract_stance_rows(
 
 def _extract_justifications(
     store: StanceStore,
-    active_by_id: dict[str, ActiveClaim],
+    active_by_id: dict[str, Claim],
     stance_rows: list[StanceRow],
     *,
     active_graph: ActiveWorldGraph | None,
