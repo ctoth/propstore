@@ -39,6 +39,7 @@ Owned integration surfaces:
 - Propstore world charter registration
 - Quire schema catalog/hash/cache identity use from Propstore
 - Data-parity comparison for the build orchestration cutover
+- Creation and validation of the shared SQLAlchemy charter parity harness
 
 Do not cut over source, form, concept, claim, relation, context,
 micropublication, rule, diagnostic, calibration, embedding, or world-query
@@ -100,6 +101,7 @@ This workstream owns these inventory rows:
 | `propstore/derived_build.py` | Propstore sidecar build orchestration over projection tables | Propstore orchestration over Quire writable sessions and charters | Replace projection schema creation/population with charter-driven session writes |
 | `propstore/derived_build_plan.py` | Propstore row-oriented build plan | Propstore typed domain-object build plan | Replace row sets with typed model/session write plans |
 | `propstore/families/projection_catalog.py` | Propstore manual world schema assembly | Quire schema catalog over Propstore charters | Delete; replace with Propstore world charter registration through the Quire catalog |
+| `scripts/compare_sqlalchemy_charter_parity.py` | Missing shared parity harness | Tested parity harness for all child workstreams | Create and validate before any family cutover starts |
 
 ## Deletion-First Targets
 
@@ -139,6 +141,16 @@ Implement the target path:
    derived-store build lifecycle.
 10. Existing build diagnostics and semantic policy remain in Propstore owner
     modules; generic schema and session mechanics remain in Quire.
+11. `scripts/compare_sqlalchemy_charter_parity.py` exists before source,
+    forms, concepts, claims, relations, contexts, micropublications, rules,
+    embeddings, or world-query cutovers start.
+12. The parity harness compares table names, primary-key/key sets, row counts,
+    FTS hit sets, vector hit sets, diagnostics, and representative semantic
+    query results.
+13. The parity harness exits nonzero and writes an actionable report when any
+    required comparison fails.
+14. The parity harness has a targeted test or fixture-run proving at least one
+    passing comparison and one failing comparison for an owner slug.
 
 ## Data-Parity Gate
 
@@ -170,6 +182,7 @@ Run:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label build-orchestration-charter tests/test_build_sidecar.py tests/test_sidecar_projection_contract.py tests/test_fixture_schema_parity.py
+uv run scripts/compare_sqlalchemy_charter_parity.py --help
 ```
 
 Run old-path searches:
@@ -179,9 +192,12 @@ rg -n -F -- "PROPSTORE_WORLD_PROJECTION_SCHEMA" propstore tests
 rg -n -F -- "ProjectionSchema" propstore tests
 rg -n -F -- "ProjectionTable" propstore/derived_build.py propstore/derived_build_plan.py propstore/families/projection_catalog.py tests
 rg -n -F -- "sqlite3.Connection" propstore/derived_build.py propstore/derived_build_plan.py tests
+rg -n -F -- "compare_sqlalchemy_charter_parity.py" scripts
 ```
 
 All searches are zero-hit gates outside notes, workstreams, docs, and reports.
+The parity-harness search is a one-hit existence gate for
+`scripts/compare_sqlalchemy_charter_parity.py`.
 
 ## Completion Criteria
 
@@ -197,6 +213,8 @@ This workstream is complete only when:
 - Raw `sqlite3.Connection` sidecar population orchestration is gone from the
   target files.
 - Build orchestration imports no Quire projection primitives.
+- `scripts/compare_sqlalchemy_charter_parity.py` exists and has a targeted
+  passing/failing comparison test or fixture-run.
 - The data-parity gate passes from the same repository snapshot.
 - The type gate, logged pytest gate, and old-path search gates pass.
 - Propstore remains pinned to a pushed Quire reference, never a local checkout.
