@@ -170,6 +170,7 @@ Deletion-first targets:
 - `CONCEPT_ROW_MODEL`;
 - `PARAMETERIZATION_ROW_MODEL`;
 - `CONCEPT_PROJECTION`;
+- `CONCEPT_FTS_PROJECTION`;
 - `PARAMETERIZATION_PROJECTION`;
 - `ALIAS_PROJECTION`;
 - `PARAMETERIZATION_GROUP_PROJECTION`;
@@ -225,6 +226,8 @@ FTS/search requirements:
 - app `search_concepts` keeps presentation/report ownership;
 - concept family keeps only semantic search result mapping;
 - raw FTS SQL is replaced by Quire/SQLAlchemy FTS query APIs;
+- `CONCEPT_FTS_PROJECTION` is deleted; the concept charter declares FTS
+  fields once and Quire generates the FTS storage/query surface;
 - SQLite/FTS syntax classification moves to Quire FTS adapter;
 - the concept owner maps Quire FTS syntax failures to
   `ConceptSearchQuerySyntaxError`.
@@ -234,6 +237,8 @@ Concept sidecar runtime requirements:
 - replace raw derived-store connection usage with Quire session/vector APIs;
 - concept embedding source queries operate over typed `Concept` models;
 - concept entity resolution policy stays in the concept owner;
+- `find_similar_concept_rows` is deleted as a row-shaped runtime helper; callers
+  use the concept owner API backed by Quire vector/session APIs;
 - app embedding workflows keep presentation/workflow ownership and call the
   owner-layer runtime API.
 
@@ -256,6 +261,7 @@ File: `propstore/families/concepts/declaration.py`.
 | `_is_concept_search_syntax_error` | move | Move SQLite/FTS syntax classification to Quire FTS adapter; concept search owner maps it to `ConceptSearchQuerySyntaxError`. |
 | `fetch_concept_search_hits` | replace | Replace raw FTS SQL with Quire/SQLAlchemy FTS query API; keep presentation mapping in app layer. |
 | `fetch_concept_search_hits_from_sidecar` | delete | Direct sidecar path opening is deleted; callers use Quire sessions. |
+| `find_similar_concept_rows` | delete | Replace row-shaped vector helper with concept owner API over Quire vector/session APIs. |
 | `select_concept_by_id` | replace | Replace with SQLAlchemy session query. |
 | `select_all_concepts` | replace | Replace with SQLAlchemy session query. |
 | `select_concept_embedding_sources` | replace | Replace with typed embedding source query over `Concept` model. |
@@ -341,12 +347,14 @@ rg -n -F -- "ParameterizationRow" propstore tests
 rg -n -F -- "CONCEPT_ROW_MODEL" propstore tests
 rg -n -F -- "PARAMETERIZATION_ROW_MODEL" propstore tests
 rg -n -F -- "CONCEPT_PROJECTION" propstore tests
+rg -n -F -- "CONCEPT_FTS_PROJECTION" propstore tests
 rg -n -F -- "PARAMETERIZATION_PROJECTION" propstore tests
 rg -n -F -- "ALIAS_PROJECTION" propstore tests
 rg -n -F -- "PARAMETERIZATION_GROUP_PROJECTION" propstore tests
 rg -n -F -- "RELATIONSHIP_PROJECTION" propstore tests
 rg -n -F -- "_nullable_text" propstore/families/concepts tests
 rg -n -F -- "fetch_concept_search_hits_from_sidecar" propstore tests
+rg -n -F -- "find_similar_concept_rows" propstore tests
 rg -n -F -- "select_concept_by_id" propstore tests
 rg -n -F -- "select_all_concepts" propstore tests
 rg -n -F -- "select_concept_embedding_sources" propstore tests
