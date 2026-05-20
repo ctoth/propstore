@@ -756,3 +756,9 @@ Recorded 2026-05-20.
   `AssertionAtom.source_claims` accept typed `Claim` objects only. Snapshot
   decoding still has an old mapping-to-active-claim repair path and remains in
   the deletion queue; it must not be replaced with another mapping normalizer.
+- Support revision snapshot deletion: commit `bacd01e9` removed
+  `coerce_active_claim` from `support_revision/snapshot_types.py`. Snapshot
+  decoding now rejects embedded `source_claims` mappings instead of rebuilding
+  active-claim rows, and serialization records `source_claim_ids` rather than
+  duplicating full claim mappings. The remaining support-revision active-claim
+  hit is `support_revision/af_adapter.py`.
