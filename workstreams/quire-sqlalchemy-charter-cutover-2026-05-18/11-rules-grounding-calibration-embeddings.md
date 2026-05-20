@@ -345,6 +345,10 @@ rg -n -F -- "SidecarClaimRelationStore" propstore tests
 rg -n -F -- "find_similar_claim_rows" propstore tests
 rg -n -F -- "find_similar_concept_rows" propstore tests
 rg -n -F -- "from_mapping" propstore/core/store_results.py tests
+rg -n -F -- "connect_sqlite_store" propstore/families/claims/sidecar_runtime.py propstore/families/concepts/sidecar_runtime.py tests
+rg -n -F -- "connect_sqlite_store_readonly" propstore/families/claims/sidecar_runtime.py propstore/families/concepts/sidecar_runtime.py tests
+rg -n -F -- "sqlite3.Connection" propstore/families/claims/sidecar_runtime.py propstore/families/concepts/sidecar_runtime.py tests
+rg -n -F -- "row_factory" propstore/families/claims/sidecar_runtime.py propstore/families/concepts/sidecar_runtime.py tests
 rg -n -F -- "VecProjection" propstore/families/embeddings tests
 rg -n -F -- "ProjectionTable(" propstore/families/rules propstore/families/calibration propstore/families/embeddings tests
 rg -n -F -- "sqlite3.Connection" propstore/families/rules propstore/families/calibration propstore/families/embeddings propstore/grounding tests

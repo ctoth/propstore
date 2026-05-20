@@ -256,7 +256,6 @@ File: `propstore/families/concepts/declaration.py`.
 | `_is_concept_search_syntax_error` | move | Move SQLite/FTS syntax classification to Quire FTS adapter; concept search owner maps it to `ConceptSearchQuerySyntaxError`. |
 | `fetch_concept_search_hits` | replace | Replace raw FTS SQL with Quire/SQLAlchemy FTS query API; keep presentation mapping in app layer. |
 | `fetch_concept_search_hits_from_sidecar` | delete | Direct sidecar path opening is deleted; callers use Quire sessions. |
-| `find_similar_concept_rows` | delete | Replace row-shaped vector helper with concept owner API over Quire vector/session APIs. |
 | `select_concept_by_id` | replace | Replace with SQLAlchemy session query. |
 | `select_all_concepts` | replace | Replace with SQLAlchemy session query. |
 | `select_concept_embedding_sources` | replace | Replace with typed embedding source query over `Concept` model. |
@@ -356,7 +355,6 @@ rg -n -F -- "PARAMETERIZATION_GROUP_PROJECTION" propstore tests
 rg -n -F -- "RELATIONSHIP_PROJECTION" propstore tests
 rg -n -F -- "_nullable_text" propstore/families/concepts tests
 rg -n -F -- "fetch_concept_search_hits_from_sidecar" propstore tests
-rg -n -F -- "find_similar_concept_rows" propstore tests
 rg -n -F -- "select_concept_by_id" propstore tests
 rg -n -F -- "select_all_concepts" propstore tests
 rg -n -F -- "select_concept_embedding_sources" propstore tests
@@ -380,7 +378,8 @@ This workstream is complete only when:
   Quire SQLAlchemy charters;
 - concept build writes use Quire writable sessions and typed write plans;
 - concept search uses Quire/SQLAlchemy FTS APIs;
-- concept sidecar runtime uses Quire session/vector APIs;
+- concept sidecar runtime ownership is handed to Phase 11 and is not a
+  completion criterion for this phase;
 - concept handle, alias, logical-id, form validation, and parameterization
   semantics are preserved in owner modules;
 - all deletion targets in this file are gone from production code;
