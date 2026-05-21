@@ -10,8 +10,6 @@ from sqlalchemy.orm import Session
 from quire.sqlalchemy_store import create_sqlalchemy_store, validate_sqlalchemy_store
 
 from propstore.families.world_charters import (
-    ClaimConceptLinkRecord,
-    RelationshipRecord,
     world_sqlalchemy_schema,
 )
 from propstore.families.sources.declaration import Source, SourceTrust
@@ -144,8 +142,8 @@ def test_world_charter_maps_no_database_primary_key_tables() -> None:
     model = schema.model("relationship")
 
     assert not table.primary_key.columns
-    assert model is RelationshipRecord
-    assert schema.model("claim_concept_link") is ClaimConceptLinkRecord
+    assert model.__name__ == "ConceptRelationship"
+    assert schema.model("claim_concept_link").__name__ == "ClaimConceptLink"
 
 
 def test_world_charter_store_creates_schema_catalog(tmp_path: Path) -> None:
