@@ -151,6 +151,12 @@ that owner workstream.
 - Forms slice complete: `Form` and `FormAlgebra` now subclass `FamilyModel`
   and no longer define Propstore `__init__(**values)` constructors. `uv run
   pyright propstore` passed after the slice.
+- Concept slice complete: `Concept`, `ConceptAlias`, `ConceptRelationship`,
+  `Parameterization`, and `ParameterizationGroup` now subclass `FamilyModel`
+  with methods only. Deleted concept/parameterization constructors,
+  `from_row_mapping`, `coerce`, `to_row_mapping`, `ConceptInput`, and
+  `ParameterizationInput`, then updated callers to consume typed models
+  directly. `uv run pyright propstore` passed after the slice.
 
 ## Completion Criteria
 
