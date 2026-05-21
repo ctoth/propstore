@@ -22,6 +22,8 @@ from hypothesis import strategies as st
 from quire.documents import decode_document_path
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.repository import Repository
+from propstore.core.claim_types import ClaimType
+from tests.claim_model_helpers import claim_model
 from tests.family_helpers import (
     claim_artifact_commit_payloads,
     materialized_world_store_path,
@@ -670,13 +672,19 @@ class TestWorldlineRunner:
         class FakeBound:
             def __init__(self, context_id):
                 self._context_id = context_id
+                self._claim = claim_model(
+                    "ctx_claim",
+                    concept_id="concept1",
+                    value=42.0,
+                    context_id="ctx_physics",
+                )
 
             def value_of(self, concept_id):
                 if self._context_id == "ctx_physics":
                     return ValueResult(
                         concept_id=concept_id,
                         status="determined",
-                        claims=[{"id": "ctx_claim", "value": 42.0}],
+                        claims=[self._claim],
                     )
                 return ValueResult(concept_id=concept_id, status="no_claims")
 
@@ -890,8 +898,8 @@ class TestWorldlineDependencyLiveness:
                 self._winner_id = winner_id
                 self._stance_type = stance_type
                 self._claims = {
-                    "claim_a": {"id": "claim_a", "value": 10.0, "content_hash": "hash-a"},
-                    "claim_b": {"id": "claim_b", "value": 20.0, "content_hash": "hash-b"},
+                    "claim_a": claim_model("claim_a", concept_id="concept1", value=10.0),
+                    "claim_b": claim_model("claim_b", concept_id="concept1", value=20.0),
                 }
 
             def bind(self, environment=None, *, policy=None, **conditions):
@@ -993,13 +1001,19 @@ class TestWorldlineDependencyLiveness:
                 self._context_id = context_id
                 self._active = active
                 self._bindings = {}
+                self._claim = claim_model(
+                    "ctx_claim",
+                    concept_id="concept1",
+                    value=42.0,
+                    context_id="ctx_physics",
+                )
 
             def value_of(self, concept_id):
                 if self._context_id == "ctx_physics" and self._active:
                     return ValueResult(
                         concept_id=concept_id,
                         status="determined",
-                        claims=[{"id": "ctx_claim", "value": 42.0, "content_hash": "ctx-live"}],
+                        claims=[self._claim],
                     )
                 return ValueResult(concept_id=concept_id, status="no_claims")
 
@@ -1008,7 +1022,7 @@ class TestWorldlineDependencyLiveness:
 
             def active_claims(self, concept_id=None):
                 if self._context_id == "ctx_physics" and self._active:
-                    return [{"id": "ctx_claim", "value": 42.0, "content_hash": "ctx-live"}]
+                    return [self._claim]
                 return []
 
         class FakeWorld:
@@ -1029,7 +1043,12 @@ class TestWorldlineDependencyLiveness:
 
             def get_claim(self, claim_id):
                 if self._active and claim_id == "ctx_claim":
-                    return {"id": "ctx_claim", "value": 42.0, "content_hash": "ctx-live"}
+                    return claim_model(
+                        "ctx_claim",
+                        concept_id="concept1",
+                        value=42.0,
+                        context_id="ctx_physics",
+                    )
                 return None
 
             def has_table(self, name):
@@ -1058,19 +1077,20 @@ class TestWorldlineDependencyLiveness:
         class MinimalBound:
             def __init__(self):
                 self._bindings = {}
+                self._claim = claim_model("claim1", concept_id="concept1", value=42.0)
 
             def value_of(self, concept_id):
                 return ValueResult(
                     concept_id=concept_id,
                     status="determined",
-                    claims=[{"id": "claim1", "value": 42.0, "content_hash": "claim-1"}],
+                    claims=[self._claim],
                 )
 
             def derived_value(self, concept_id, override_values=None):
                 return DerivedResult(concept_id=concept_id, status="no_relationship")
 
             def active_claims(self, concept_id=None):
-                return [{"id": "claim1", "value": 42.0, "content_hash": "claim-1"}]
+                return [self._claim]
 
         class MinimalWorld:
             def bind(self, environment=None, *, policy=None, **conditions):
@@ -1086,7 +1106,7 @@ class TestWorldlineDependencyLiveness:
 
             def get_claim(self, claim_id):
                 if claim_id == "claim1":
-                    return {"id": "claim1", "value": 42.0, "content_hash": "claim-1"}
+                    return claim_model("claim1", concept_id="concept1", value=42.0)
                 return None
 
             def has_table(self, name):
@@ -1359,8 +1379,8 @@ class TestSemanticCorePhase7Worldlines:
         class _Bound:
             def __init__(self):
                 self._claims = {
-                    "claim_a": {"id": "claim_a", "concept_id": "concept1", "value": 10.0},
-                    "claim_b": {"id": "claim_b", "concept_id": "concept1", "value": 20.0},
+                    "claim_a": claim_model("claim_a", concept_id="concept1", value=10.0),
+                    "claim_b": claim_model("claim_b", concept_id="concept1", value=20.0),
                 }
 
             def value_of(self, concept_id):
@@ -1529,29 +1549,27 @@ class TestWorldlineFailureModes:
         class FakeBound:
             def __init__(self):
                 self._bindings = {}
+                self._claim = claim_model(
+                    "algo1",
+                    claim_type=ClaimType.ALGORITHM,
+                    concept_id="concept1",
+                    value=None,
+                    algorithm_body="def compute(sr, ws):\n    return sr / ws\n",
+                    expression="(sr/ws)",
+                )
 
             def value_of(self, concept_id):
                 return ValueResult(
                     concept_id=concept_id,
                     status="determined",
-                    claims=[{
-                        "id": "algo1",
-                        "type": "algorithm",
-                        "body": "def compute(sr, ws):\n    return sr / ws\n",
-                        "canonical_ast": "(sr/ws)",
-                    }],
+                    claims=[self._claim],
                 )
 
             def derived_value(self, concept_id, override_values=None):
                 return DerivedResult(concept_id=concept_id, status="no_relationship")
 
             def active_claims(self, concept_id=None):
-                return [{
-                    "id": "algo1",
-                    "type": "algorithm",
-                    "body": "def compute(sr, ws):\n    return sr / ws\n",
-                    "canonical_ast": "(sr/ws)",
-                }]
+                return [self._claim]
 
         class FakeWorld:
             def bind(self, environment=None, *, policy=None, **conditions):
