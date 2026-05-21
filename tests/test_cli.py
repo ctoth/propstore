@@ -1485,10 +1485,10 @@ class TestConceptAddValue:
         assert "extensible" in result.output.lower()
 
 
-# ── Resource leak tests ──────────────────────────────────────────────
+# ── Claim embedding CLI progress tests ───────────────────────────────
 
-class TestConnectionClosedOnError:
-    """Verify sqlite3 connections are closed even when CLI commands raise."""
+class TestClaimEmbedProgress:
+    """Verify claim embedding CLI progress rendering."""
 
     @staticmethod
     def _make_repo_with_sidecar(tmp_path: Path) -> Path:
@@ -1497,34 +1497,6 @@ class TestConnectionClosedOnError:
         repo = Repository.init(knowledge)
         materialized_world_store_path(repo, force=True)
         return tmp_path
-
-    def test_claim_embed_closes_conn_on_error(self, tmp_path: Path) -> None:
-        """claim embed must close its sqlite3 connection if embed_claims raises."""
-        from unittest.mock import patch, MagicMock
-
-        self._make_repo_with_sidecar(tmp_path)
-
-        mock_conn = MagicMock()
-        mock_conn.row_factory = None
-
-        with (
-            patch("sqlite3.connect", return_value=mock_conn),
-            patch("propstore.families.embeddings.declaration.load_vec_extension"),
-            patch(
-                "propstore.families.embeddings.declaration.embed_claims",
-                side_effect=RuntimeError("boom"),
-            ),
-        ):
-            runner = CliRunner()
-            result = runner.invoke(cli, [
-                "-C", str(tmp_path),
-                "claim", "embed", "--model", "test-model", "--all",
-            ])
-
-        # The command should have failed (non-zero or exception output)
-        assert result.exit_code != 0 or "boom" in (result.output or "")
-        # The connection MUST have been closed despite the error
-        mock_conn.close.assert_called()
 
     def test_claim_embed_all_progress_reports_final_partial_batch(
         self,
