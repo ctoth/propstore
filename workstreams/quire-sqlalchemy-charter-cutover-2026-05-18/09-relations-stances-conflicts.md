@@ -611,3 +611,16 @@ Recorded 2026-05-20.
   The next production attempt must delete the old helper names while preserving
   field shape through the typed document/model boundary or Quire field
   metadata, not by recreating a field list in validation or kwargs assembly.
+- Relation owner production helper deletion: commit `23d8ef2d` removed the
+  production `_optional_numeric`, raw SQLite selector/count helpers,
+  row-mapping constructors, and sidecar-row compiler names from
+  `propstore/families/relations/declaration.py`. The embedded claim stance IR
+  now carries typed claim `StanceDocument` objects instead of `dict` payloads,
+  and `derived_build_plan.py` calls typed model compilers. Targeted pyright for
+  `propstore/compiler/ir.py`,
+  `propstore/families/claims/passes/__init__.py`,
+  `propstore/families/relations/declaration.py`, and
+  `propstore/derived_build_plan.py` passed with 0 errors. Search confirms the
+  production old helper names are gone; `tests/test_relate_opinions.py` still
+  references `compile_authored_stance_sidecar_rows` and is the next old-path
+  test repair queue.
