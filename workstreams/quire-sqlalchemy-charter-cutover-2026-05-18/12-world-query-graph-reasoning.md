@@ -191,6 +191,37 @@ workstream. Production hits outside those targets block implementation.
 - Slice 1 session/raw selector cutover is complete. Continue with Slice 2:
   world query helper migration.
 
+2026-05-21 Slice 2 execution update:
+
+- Commit `17574b02` used `scripts/rope_rename.py` to rename
+  `WorldBindActiveReport` to `WorldBindActivationReport` across
+  `propstore/world/queries.py`, `propstore/app/world.py`, and
+  `propstore/cli/world/query.py`.
+- The old `WorldBindActiveReport` spelling search returned zero hits under
+  `propstore` and `tests` after the rename.
+- `uv run pyright propstore` passed with zero errors after the rename.
+- Direct import/layout gate
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-bind-report-layout
+  tests/test_cli_layout.py::test_cli_only_world_arg_parsers_live_in_cli_layer
+  tests/test_world_query.py::TestWorldQuerySidecarPath::test_worldmodel_importable_without_cli`
+  passed with 2 tests; log:
+  `logs/test-runs/world-bind-report-layout-20260521-114736.log`.
+- Attempted focused world-bind behavior gate
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-bind-report-rename
+  tests/test_cli.py::TestWorldQuerySIValues::test_owner_world_bind_report_shows_si_value
+  tests/test_cli.py::TestWorldQuerySIValues::test_world_bind_shows_si_value
+  tests/test_cli.py::TestWorldQuerySIValues::test_world_bind_json_uses_report_shape
+  tests/test_cli.py::TestWorldQuerySIValues::test_world_bind_accepts_canonical_name`
+  reached fixture sidecar build setup and failed before exercising the rename
+  with `sqlite3.IntegrityError: FOREIGN KEY constraint failed`; log:
+  `logs/test-runs/world-bind-report-rename-20260521-114646.log`. This remains
+  evidence to revisit in the broader world/build gate; it is not a reason to
+  add a compatibility wrapper around the report name.
+- Continue Slice 2 with the remaining world query helper and resolver-wrapper
+  deletion work.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
