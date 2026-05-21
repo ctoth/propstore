@@ -4,7 +4,6 @@ Tests that claims can carry an optional free-text notes string, that
 it roundtrips through validation, sidecar storage, and WorldQuery queries.
 """
 
-import sqlite3
 import tempfile
 from pathlib import Path
 
@@ -12,10 +11,13 @@ import pytest
 import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
+from sqlalchemy import select
+from quire.sqlalchemy_store import readonly_session
 
 from tests.family_helpers import build_sidecar
 from tests.family_helpers import load_claim_files
 from tests.family_helpers import world_query_from_sqlite_path
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.families.claims.passes import validate_claims
 from tests.conftest import (
     TEST_CONTEXT_ID,
@@ -205,21 +207,17 @@ class TestClaimNotesSidecar:
 
         build_sidecar(knowledge, sidecar_path, force=True)
 
-        conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute(
-            """
-            SELECT core.*, num.*, txt.*, alg.*
-            FROM claim_core AS core
-            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
-            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-            LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
-            WHERE core.id=?
-            """
-        , (claim1_id,)).fetchone()
-        assert "notes" in row.keys(), "notes column missing from normalized claim storage"
-        assert row["notes"] == "This is a test note"
-        conn.close()
+        schema = world_sqlalchemy_schema()
+        text_payload = schema.model("claim_text_payload")
+        assert "notes" in {
+            column.name for column in schema.table("claim_text_payload").columns
+        }, "notes column missing from typed claim text payload storage"
+        with readonly_session(sidecar_path, schema) as derived:
+            row = derived.execute(
+                select(text_payload).where(text_payload.claim_id == claim1_id)
+            ).scalar_one_or_none()
+        assert row is not None, "claim text payload not found in sidecar"
+        assert row.notes == "This is a test note"
 
     def test_world_query_get_claim_returns_notes(
         self, concept_dir, sidecar_path
@@ -339,16 +337,13 @@ class TestClaimNotesProperties:
             sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
             build_sidecar(knowledge, sidecar_path, force=True)
 
-            conn = sqlite3.connect(sidecar_path)
-            try:
-                conn.row_factory = sqlite3.Row
-                row = conn.execute(
-                    "SELECT notes FROM claim_text_payload WHERE claim_id=?",
-                    (claim1_id,),
-                ).fetchone()
-                assert row is not None, "claim artifact not found in sidecar"
-                assert row["notes"] == notes_text, (
-                    f"Notes roundtrip failed: wrote {notes_text!r}, got {row['notes']!r}"
-                )
-            finally:
-                conn.close()
+            schema = world_sqlalchemy_schema()
+            text_payload = schema.model("claim_text_payload")
+            with readonly_session(sidecar_path, schema) as derived:
+                row = derived.execute(
+                    select(text_payload).where(text_payload.claim_id == claim1_id)
+                ).scalar_one_or_none()
+            assert row is not None, "claim artifact not found in sidecar"
+            assert row.notes == notes_text, (
+                f"Notes roundtrip failed: wrote {notes_text!r}, got {row.notes!r}"
+            )
