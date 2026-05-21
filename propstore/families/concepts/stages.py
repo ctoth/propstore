@@ -29,7 +29,11 @@ from propstore.core.concept_relationship_types import (
 )
 from quire.documents import convert_document_value, load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
-from propstore.core.id_types import ClaimId, ConceptId, LogicalId, to_claim_id, to_concept_id
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+    LogicalId,
+)
 from propstore.families.identity.concepts import (
     compute_concept_version_id,
     derive_concept_artifact_id,
@@ -468,7 +472,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         relationships.append(
             ConceptRelationship(
                 relationship_type=coerced_relationship_type,
-                target=to_concept_id(target),
+                target=ConceptId(target),
                 conditions=to_cel_exprs(_string_list(relationship.get("conditions"))),
                 note=relationship.get("note") if isinstance(relationship.get("note"), str) else None,
             )
@@ -482,7 +486,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
         if not isinstance(raw_inputs, Sequence) or isinstance(raw_inputs, str):
             continue
         inputs = tuple(
-            to_concept_id(value)
+            ConceptId(value)
             for value in raw_inputs
             if isinstance(value, str) and value
         )
@@ -503,7 +507,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
                     else None
                 ),
                 canonical_claim=(
-                    to_claim_id(raw_canonical_claim)
+                    ClaimId(raw_canonical_claim)
                     if isinstance(raw_canonical_claim, str) and raw_canonical_claim
                     else None
                 ),
@@ -522,13 +526,13 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
 
     replaced_by = normalized.get("replaced_by")
     parsed_replaced_by = (
-        to_concept_id(replaced_by)
+        ConceptId(replaced_by)
         if isinstance(replaced_by, str) and replaced_by
         else None
     )
 
     return ConceptRecord(
-        artifact_id=to_concept_id(artifact_id),
+        artifact_id=ConceptId(artifact_id),
         canonical_name=canonical_name,
         status=coerce_concept_status(status),
         definition=definition,

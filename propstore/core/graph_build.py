@@ -19,9 +19,8 @@ from propstore.core.environment import (
     StanceStore,
 )
 from propstore.core.id_types import (
+    ClaimId,
     ConceptId,
-    to_claim_id,
-    to_concept_ids,
 )
 from propstore.core.graph_relation_types import coerce_graph_relation_type
 from propstore.core.graph_types import (
@@ -160,7 +159,7 @@ def _parameterization_condition_sources(
 
 
 def _parse_json_concept_ids(value: Any) -> tuple[ConceptId, ...]:
-    return to_concept_ids(_parse_json_list(value))
+    return tuple(ConceptId(value) for value in _parse_json_list(value))
 
 
 def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) -> CompiledWorldGraph:
@@ -337,7 +336,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         sorted(
             (
                 ConflictWitness(
-                    left_claim_id=to_claim_id(
+                    left_claim_id=ClaimId(
                         claim_display_ids.get(
                             str(conflict.claim_a_id),
                             (
@@ -347,7 +346,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                             ),
                         )
                     ),
-                    right_claim_id=to_claim_id(
+                    right_claim_id=ClaimId(
                         claim_display_ids.get(
                             str(conflict.claim_b_id),
                             (

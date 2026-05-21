@@ -20,7 +20,10 @@ from propstore.core.environment import (
 )
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
-from propstore.core.id_types import ConceptId, to_claim_id, to_claim_ids, to_concept_id
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+)
 from propstore.core.graph_types import (
     CompiledWorldGraph,
     ConflictWitness,
@@ -64,8 +67,8 @@ def _claim_pair(left_id: str, right_id: str) -> tuple[str, str]:
 def _conflict_witness_from_model(row: RelationConflictWitness) -> ConflictWitness:
     conflict = row
     return ConflictWitness(
-        left_claim_id=to_claim_id(conflict.claim_a_id),
-        right_claim_id=to_claim_id(conflict.claim_b_id),
+        left_claim_id=ClaimId(conflict.claim_a_id),
+        right_claim_id=ClaimId(conflict.claim_b_id),
         kind=(
             warning_class.value
             if isinstance(
@@ -337,7 +340,7 @@ class OverlayWorld(BeliefSpace):
             concept = base._store.get_concept(str(concept_id))
             if concept is None:
                 return concept_id
-            return to_concept_id(str(concept.id))
+            return ConceptId(str(concept.id))
 
         self._synthetics = [
             replace(
@@ -370,7 +373,7 @@ class OverlayWorld(BeliefSpace):
                     claim_node_from_claim(claim)
                     for claim in synthetic_claims_by_id.values()
                 ),
-                remove_claim_ids=to_claim_ids(self._removed_ids),
+                remove_claim_ids=tuple(ClaimId(value) for value in self._removed_ids),
             )
             self._compiled_graph = self._graph_delta.apply(self._base_compiled)
         else:

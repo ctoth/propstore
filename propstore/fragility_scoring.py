@@ -17,7 +17,7 @@ from propstore.fragility_types import (
     InterventionKind,
     RankedIntervention,
 )
-from propstore.core.id_types import to_queryable_id
+from propstore.core.id_types import QueryableId
 from propstore.provenance import (
     ProvenanceNogood,
     ProvenancePolynomial,
@@ -167,7 +167,7 @@ def _target_queryable_map(
         if not isinstance(payload, AssumptionTarget):
             continue
         queryables[ranked.target.intervention_id] = QueryableAssumption(
-            assumption_id=to_queryable_id(payload.queryable_id),
+            assumption_id=QueryableId(payload.queryable_id),
             cel=payload.cel,
         )
     return queryables

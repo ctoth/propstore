@@ -13,10 +13,6 @@ from propstore.core.id_types import (
     AssertionId,
     AssumptionId,
     ContextId,
-    to_assertion_id,
-    to_assumption_id,
-    to_assumption_ids,
-    to_context_id,
 )
 from propstore.core.labels import AssumptionRef, Label
 from propstore.support_revision.explanation_types import (
@@ -35,7 +31,7 @@ def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> Assumpt
     if assumption_id is None:
         raise ValueError("Assumption atom requires 'assumption_id' or 'id'")
     return AssumptionRef(
-        assumption_id=to_assumption_id(assumption_id),
+        assumption_id=AssumptionId(assumption_id),
         cel=to_cel_expr(str(payload.get("cel") or "")),
         kind=str(payload.get("kind") or ""),
         source=str(payload.get("source") or ""),
@@ -70,7 +66,7 @@ class AssertionAtom:
 
     @property
     def assertion_id(self) -> AssertionId:
-        return to_assertion_id(self.assertion.assertion_id)
+        return AssertionId(self.assertion.assertion_id)
 
     @property
     def primary_source_claim(self) -> Claim | None:
@@ -110,7 +106,7 @@ class RevisionScope:
         object.__setattr__(
             self,
             "context_id",
-            None if self.context_id is None else to_context_id(self.context_id),
+            None if self.context_id is None else ContextId(self.context_id),
         )
         object.__setattr__(self, "merge_parent_commits", tuple(self.merge_parent_commits))
 
@@ -130,7 +126,7 @@ class BeliefBase:
             self,
             "support_sets",
             {
-                str(atom_id): tuple(to_assumption_ids(support_set) for support_set in support_sets)
+                str(atom_id): tuple(tuple(AssumptionId(value) for value in support_set) for support_set in support_sets)
                 for atom_id, support_sets in self.support_sets.items()
             },
         )
@@ -138,7 +134,7 @@ class BeliefBase:
             self,
             "essential_support",
             {
-                str(atom_id): to_assumption_ids(support)
+                str(atom_id): tuple(AssumptionId(value) for value in support)
                 for atom_id, support in self.essential_support.items()
             },
         )

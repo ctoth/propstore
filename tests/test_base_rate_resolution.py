@@ -103,7 +103,7 @@ def test_base_rate_profile_resolves_for_assertion_id() -> None:
     assert result.provenance.status == ProvenanceStatus.CALIBRATED
 
 
-def test_construct_assertion_opinion_attaches_to_assertion_id() -> None:
+def test_construct_assertion_opinion_attaches_AssertionId() -> None:
     profile = BaseRateProfile(
         profile_assertion_id=_aid("psychology_replication_rate"),
         target_assertion_id=_aid("psychology_claim"),

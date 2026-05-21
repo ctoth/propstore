@@ -10,7 +10,11 @@ from propstore.core.assertions import (
     ContextReference,
     ProvenanceGraphRef,
 )
-from propstore.core.id_types import ConditionId, ContextId, ProvenanceGraphId
+from propstore.core.id_types import (
+    ConditionId,
+    ContextId,
+    ProvenanceGraphId,
+)
 
 
 def test_context_reference_is_owned_by_assertion_core() -> None:

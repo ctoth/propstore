@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 import rfc8785
-from propstore.core.id_types import ClaimId, to_claim_id
+from propstore.core.id_types import ClaimId
 from propstore.core.labels import Label, SupportQuality
 from propstore.families.claims.declaration import Claim
 from propstore.reporting import json_ready
@@ -30,7 +30,7 @@ def capture_argumentation_state(
     from propstore.world.types import ReasoningBackend
 
     active = list(bound.active_claims())
-    active_ids = {to_claim_id(claim.id) for claim in active}
+    active_ids = {ClaimId(claim.id) for claim in active}
     active_graph = bound._active_graph if isinstance(bound, HasActiveGraph) else None
     reasoning_backend = definition.policy.reasoning_backend
     _, normalized_semantics = validate_backend_semantics(
@@ -99,7 +99,7 @@ def _capture_claim_graph(
         )
         extension_claim_sets = tuple(
             frozenset(
-                to_claim_id(claim_id) for claim_id in extension.accepted_claim_ids
+                ClaimId(claim_id) for claim_id in extension.accepted_claim_ids
             )
             for extension in analyzer_result.extensions
         )
@@ -119,7 +119,7 @@ def _capture_claim_graph(
         )
         if isinstance(current, frozenset):
             justified_claims = frozenset(
-                to_claim_id(claim_id)
+                ClaimId(claim_id)
                 for claim_id in current
             )
             extension_claim_sets = (justified_claims,)
@@ -194,7 +194,7 @@ def _capture_aspic(
         return None
 
     justified_claim_ids = {
-        to_claim_id(claim_id)
+        ClaimId(claim_id)
         for arg_id in justified_arguments
         if (claim_id := projection.argument_to_claim_id.get(arg_id)) is not None
     }
@@ -341,8 +341,8 @@ def active_stance_dependencies(
             if edge.relation_type not in graph_relation_types:
                 continue
             if (
-                to_claim_id(edge.source_id) not in active_ids
-                or to_claim_id(edge.target_id) not in active_ids
+                ClaimId(edge.source_id) not in active_ids
+                or ClaimId(edge.target_id) not in active_ids
             ):
                 continue
             stance_rows.append(

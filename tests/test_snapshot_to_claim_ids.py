@@ -112,11 +112,11 @@ def st_multi_source_snapshot(draw):
 @given(snap=st_snapshot())
 @settings(deadline=None)
 def test_p1_snapshot_to_claim_ids_deterministic(snap) -> None:
-    assert snapshot_to_claim_ids(snap) == snapshot_to_claim_ids(snap)
+    assert snapshot_tuple(ClaimId(value) for value in snap) == snapshot_tuple(ClaimId(value) for value in snap)
 
 
 def test_p2_empty_snapshot_yields_empty_set() -> None:
-    assert snapshot_to_claim_ids(empty_snapshot()) == set()
+    assert snapshot_tuple(ClaimId(value) for value in empty_snapshot()) == set()
 
 
 @pytest.mark.property
@@ -124,7 +124,7 @@ def test_p2_empty_snapshot_yields_empty_set() -> None:
 @settings(deadline=None)
 def test_p3_accepted_versus_unaccepted(snap) -> None:
     accepted = set(snap.state.accepted_atom_ids)
-    result = snapshot_to_claim_ids(snap)
+    result = snapshot_tuple(ClaimId(value) for value in snap)
     expected = {
         str(claim_id)
         for atom in snap.state.base.atoms
@@ -154,4 +154,4 @@ def test_p4_many_to_one_collapse(snap) -> None:
         and len(atom.source_claim_ids) >= 2
     ]
     assert multi_atoms, "strategy must guarantee a multi-source accepted atom"
-    assert snapshot_to_claim_ids(snap) == expected
+    assert snapshot_tuple(ClaimId(value) for value in snap) == expected

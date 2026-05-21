@@ -1,4 +1,7 @@
-from propstore.core.id_types import LogicalId, to_concept_id
+from propstore.core.id_types import (
+    ConceptId,
+    LogicalId,
+)
 from propstore.families.concepts.passes import (
     _concept_reference_index,
     _concept_satisfies_type,
@@ -13,12 +16,12 @@ from propstore.families.concepts.stages import (
 def _relationship(relation: str, target: str) -> ConceptRelationship:
     return ConceptRelationship(
         relationship_type=relation,
-        target=to_concept_id(target),
+        target=ConceptId(target),
     )
 
 
 def _concept(name: str, relationships=()) -> LoadedConcept:
-    artifact_id = to_concept_id(f"ps:concept:{name}")
+    artifact_id = ConceptId(f"ps:concept:{name}")
     record = ConceptRecord(
         artifact_id=artifact_id,
         canonical_name=name,

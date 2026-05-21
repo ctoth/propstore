@@ -16,7 +16,7 @@ from propstore.core.conditions.registry import (
 from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.solver import ConditionSolver
-from propstore.core.id_types import to_context_id
+from propstore.core.id_types import ContextId
 
 from .algorithms import detect_algorithm_conflicts
 from .equations import detect_equation_conflicts
@@ -197,7 +197,7 @@ def _expand_lifted_conflict_claims(
                 cache.decisions[decision_key] = applies
             if not applies:
                 continue
-            target_id = to_context_id(rule.target.id)
+            target_id = ContextId(rule.target.id)
             target_conditions = tuple(
                 lifting_system.context_assumptions.get(target_id, ())
             )

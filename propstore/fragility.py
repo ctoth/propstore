@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from propstore.core.environment import Environment
-from propstore.core.id_types import to_context_id
+from propstore.core.id_types import ContextId
 from propstore.fragility_contributors import (
     build_bound_bridge_inputs,
     collect_assumption_interventions,
@@ -77,7 +77,7 @@ def query_fragility(
             context_id=(
                 None
                 if request.context_id is None
-                else to_context_id(request.context_id)
+                else ContextId(request.context_id)
             ),
         )
     )

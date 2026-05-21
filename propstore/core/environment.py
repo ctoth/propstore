@@ -11,7 +11,10 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
-from propstore.core.id_types import ContextId, to_assumption_id, to_context_id
+from propstore.core.id_types import (
+    AssumptionId,
+    ContextId,
+)
 from propstore.core.labels import AssumptionRef
 from propstore.core.store_results import (
     WorldStoreStats,
@@ -77,7 +80,7 @@ class Environment:
             if isinstance(entry, Mapping):
                 assumptions.append(
                     AssumptionRef(
-                        assumption_id=to_assumption_id(entry["assumption_id"]),
+                        assumption_id=AssumptionId(entry["assumption_id"]),
                         kind=str(entry["kind"]),
                         source=str(entry["source"]),
                         cel=to_cel_expr(entry["cel"]),
@@ -89,7 +92,7 @@ class Environment:
             context_id=(
                 None
                 if data.get("context_id") is None
-                else to_context_id(data["context_id"])
+                else ContextId(data["context_id"])
             ),
             effective_assumptions=to_cel_exprs(data.get("effective_assumptions") or ()),
             assumptions=tuple(assumptions),

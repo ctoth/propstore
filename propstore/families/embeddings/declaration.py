@@ -23,7 +23,10 @@ from propstore.core.embeddings import (
     claim_embedding_text,
     concept_embedding_text,
 )
-from propstore.core.id_types import to_claim_id, to_concept_id
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+)
 from propstore.core.store_results import ClaimSimilarityHit, ConceptSimilarityHit
 from propstore.heuristic.embed import (
     _embed_entities,
@@ -298,7 +301,7 @@ def _claim_similarity_hits(
         text_payload = claim_model.text_payload
         enriched.append(
             ClaimSimilarityHit(
-                claim_id=to_claim_id(claim_id),
+                claim_id=ClaimId(claim_id),
                 distance=float(row["distance"]),
                 auto_summary=None if text_payload is None else text_payload.auto_summary,
                 statement=None if text_payload is None else text_payload.statement,
@@ -306,7 +309,7 @@ def _claim_similarity_hits(
                 concept_id=(
                     None
                     if concepts_by_claim_id.get(claim_id) is None
-                    else to_concept_id(str(concepts_by_claim_id[claim_id]))
+                    else ConceptId(str(concepts_by_claim_id[claim_id]))
                 ),
             )
         )
@@ -337,7 +340,7 @@ def _concept_similarity_hits(
             continue
         enriched.append(
             ConceptSimilarityHit(
-                concept_id=to_concept_id(concept_id),
+                concept_id=ConceptId(concept_id),
                 distance=float(row["distance"]),
                 primary_logical_id=concept_model.primary_logical_id,
                 canonical_name=concept_model.canonical_name,

@@ -6,7 +6,10 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from propstore.core.id_types import ConceptId, ContextId, to_concept_id
+from propstore.core.id_types import (
+    ConceptId,
+    ContextId,
+)
 from propstore.families.claims.declaration import Claim
 from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
@@ -54,7 +57,7 @@ def run_worldline(
     for name, value in overrides.items():
         concept = world.get_concept(name)
         if concept is not None:
-            override_concept_ids[to_concept_id(str(concept.id))] = value
+            override_concept_ids[ConceptId(str(concept.id))] = value
 
     trace = ResolutionTrace()
     for key, value in bindings.items():
@@ -66,7 +69,7 @@ def run_worldline(
     for target in definition.targets:
         concept = world.get_concept(target)
         if concept is not None:
-            target_map[target] = to_concept_id(str(concept.id))
+            target_map[target] = ConceptId(str(concept.id))
 
     resolution_context = ResolutionContext(
         query_world=bound,
@@ -188,7 +191,7 @@ def _capture_sensitivity(
 
             result = analyze_sensitivity(
                 world,
-                to_concept_id(concept_id),
+                ConceptId(concept_id),
                 bound,
                 override_values=float_overrides,
             )

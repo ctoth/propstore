@@ -6,7 +6,10 @@ from typing import Any
 
 from propstore.cel_types import to_cel_expr
 from propstore.core.assertions.codec import AssertionCanonicalRecord
-from propstore.core.id_types import to_assumption_id, to_assumption_ids, to_context_id
+from propstore.core.id_types import (
+    AssumptionId,
+    ContextId,
+)
 from propstore.core.labels import AssumptionRef, EnvironmentKey, Label
 from propstore.support_revision.explanation_types import (
     EntrenchmentReason,
@@ -27,7 +30,7 @@ from propstore.support_revision.state import (
 
 
 def _environment_key_from_json_payload(data: Mapping[str, Any]) -> EnvironmentKey:
-    return EnvironmentKey(to_assumption_ids(data.get("assumption_ids") or ()))
+    return EnvironmentKey(tuple(AssumptionId(value) for value in data.get("assumption_ids") or ()))
 
 
 def _environment_key_to_dict(environment: EnvironmentKey) -> dict[str, Any]:
@@ -61,7 +64,7 @@ def _label_to_dict(label: Label | None) -> dict[str, Any] | None:
 
 def _assumption_ref_from_json_payload(data: Mapping[str, Any]) -> AssumptionRef:
     return AssumptionRef(
-        assumption_id=to_assumption_id(data.get("assumption_id") or ""),
+        assumption_id=AssumptionId(data.get("assumption_id") or ""),
         kind=str(data.get("kind") or ""),
         source=str(data.get("source") or ""),
         cel=to_cel_expr(str(data.get("cel") or "")),
@@ -80,7 +83,7 @@ def _assumption_ref_to_dict(assumption: AssumptionRef) -> dict[str, Any]:
 def _scope_from_json_payload(data: Mapping[str, Any]) -> RevisionScope:
     return RevisionScope(
         bindings=dict(_optional_mapping(data.get("bindings"), "bindings")),
-        context_id=None if data.get("context_id") is None else to_context_id(data.get("context_id")),
+        context_id=None if data.get("context_id") is None else ContextId(data.get("context_id")),
         branch=None if data.get("branch") is None else str(data.get("branch")),
         commit=None if data.get("commit") is None else str(data.get("commit")),
         merge_parent_commits=tuple(str(item) for item in (data.get("merge_parent_commits") or ())),
@@ -201,13 +204,13 @@ def _belief_base_from_json_payload(data: Mapping[str, Any]) -> BeliefBase:
         ),
         support_sets={
             str(atom_id): tuple(
-                to_assumption_ids(support_set)
+                tuple(AssumptionId(value) for value in support_set)
                 for support_set in support_sets
             )
             for atom_id, support_sets in support_sets_payload.items()
         },
         essential_support={
-            str(atom_id): to_assumption_ids(support)
+            str(atom_id): tuple(AssumptionId(value) for value in support)
             for atom_id, support in essential_support_payload.items()
         },
     )

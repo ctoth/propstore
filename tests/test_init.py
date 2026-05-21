@@ -77,7 +77,7 @@ class TestInit:
         claim_types = importlib.import_module("propstore.core.claim_types")
         id_types = importlib.import_module("propstore.core.id_types")
         claim = graph_types.ClaimNode(
-            claim_id=id_types.to_claim_id("claim_metadata"),
+            claim_id=id_types.ClaimId("claim_metadata"),
             claim_type=claim_types.ClaimType.PARAMETER,
             sample_size=10,
             uncertainty=0.2,

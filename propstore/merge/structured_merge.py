@@ -8,7 +8,10 @@ from dataclasses import dataclass
 from typing import Any
 
 from quire.documents import LoadedDocument
-from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
+from propstore.core.id_types import (
+    ClaimId,
+    JustificationId,
+)
 from propstore.compiler.ir import ClaimCompilationBundle, SemanticClaim, SemanticClaimFile
 from propstore.families.claims.declaration import Claim, compile_claim_models
 from propstore.families.relations.declaration import Stance
@@ -125,7 +128,7 @@ def _stance_row_from_mapping(
 
     target_justification_id: JustificationId | None = None
     if stance.get("target_justification_id") is not None:
-        target_justification_id = to_justification_id(stance["target_justification_id"])
+        target_justification_id = JustificationId(stance["target_justification_id"])
 
     coerced_stance_type = coerce_stance_type(stance_type)
     if coerced_stance_type is None:
@@ -136,7 +139,7 @@ def _stance_row_from_mapping(
         source_id=str(source_claim_id),
         relation_type=str(coerced_stance_type),
         target_kind="claim",
-        target_id=str(to_claim_id(target)),
+        target_id=str(ClaimId(target)),
         target_justification_id=(
             None if target_justification_id is None else str(target_justification_id)
         ),
@@ -283,7 +286,7 @@ def _canonical_stance_rows(
     stance_rows: list[Stance],
 ) -> list[Stance]:
     in_scope_claim_ids = {
-        to_claim_id(claim.artifact_id)
+        ClaimId(claim.artifact_id)
         for claim in active_claims
     }
     canonical_rows = [
@@ -355,7 +358,7 @@ def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[Stance]:
     rows: list[Stance] = []
     for claim in active_claims:
         for stance in claim.document.stances:
-            row = _stance_row_from_mapping(to_claim_id(claim.artifact_id), stance.to_payload())
+            row = _stance_row_from_mapping(ClaimId(claim.artifact_id), stance.to_payload())
             if row is not None:
                 rows.append(row)
     return rows
@@ -372,7 +375,7 @@ def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[
         )
         if source_claim is None:
             continue
-        row = _stance_row_from_mapping(to_claim_id(source_claim), data.to_payload())
+        row = _stance_row_from_mapping(ClaimId(source_claim), data.to_payload())
         if row is not None:
             rows.append(row)
     return rows

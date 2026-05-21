@@ -4,7 +4,7 @@ import json
 from typing import Any, cast
 
 from propstore.cel_types import to_cel_expr
-from propstore.core.id_types import to_context_id
+from propstore.core.id_types import ContextId
 from propstore.world import BoundWorld, Environment, ReasoningBackend, RenderPolicy
 from propstore.core.conditions import ConditionSolver
 from propstore.families.claims.declaration import Claim
@@ -104,7 +104,7 @@ def _make_bound(
 
     environment = Environment(
         bindings=bindings,
-        context_id=None if context_id is None else to_context_id(context_id),
+        context_id=None if context_id is None else ContextId(context_id),
         effective_assumptions=tuple(to_cel_expr(item) for item in effective_assumptions),
         assumptions=compile_environment_assumptions(
             bindings=bindings,

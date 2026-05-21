@@ -11,9 +11,6 @@ from propstore.core.id_types import (
     ConditionId,
     ContextId,
     ProvenanceGraphId,
-    to_condition_id,
-    to_context_id,
-    to_provenance_graph_id,
 )
 
 _CONDITION_ID_PREFIX = "ps:condition:"
@@ -31,7 +28,7 @@ class ContextReference:
     def __post_init__(self) -> None:
         if not isinstance(self.id, str):
             raise TypeError("context id must be a string")
-        context_id = to_context_id(self.id.strip())
+        context_id = ContextId(self.id.strip())
         if str(context_id) == "":
             raise ValueError("context id must be non-empty")
         object.__setattr__(self, "id", context_id)
@@ -55,7 +52,7 @@ class ConditionRef:
     def __post_init__(self) -> None:
         if not isinstance(self.id, str):
             raise TypeError("condition id must be a string")
-        ref_id = to_condition_id(self.id.strip())
+        ref_id = ConditionId(self.id.strip())
         if not str(ref_id).startswith(_CONDITION_ID_PREFIX):
             raise ValueError("condition id must start with ps:condition:")
         fingerprint = str(self.registry_fingerprint).strip()
@@ -107,7 +104,7 @@ class ProvenanceGraphRef:
     def __post_init__(self) -> None:
         if not isinstance(self.graph_name, str):
             raise TypeError("provenance graph name must be a string")
-        graph_name = to_provenance_graph_id(self.graph_name.strip())
+        graph_name = ProvenanceGraphId(self.graph_name.strip())
         if not str(graph_name).startswith(_GRAPH_NAME_PREFIXES):
             raise ValueError("provenance graph reference must be a URI")
         object.__setattr__(self, "graph_name", graph_name)

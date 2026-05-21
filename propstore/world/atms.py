@@ -38,11 +38,6 @@ from propstore.core.id_types import (
     ClaimId,
     ContextId,
     QueryableId,
-    to_assumption_id,
-    to_assumption_ids,
-    to_claim_ids,
-    to_context_id,
-    to_queryable_ids,
 )
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, ConflictWitness as GraphConflictWitness, ParameterizationEdge
 from propstore.conflict_detector.models import coerce_conflict_class
@@ -243,7 +238,7 @@ class ATMSMicropublicationNode:
 
     @property
     def context_id(self) -> ContextId:
-        return to_context_id(self.micropublication.context_id)
+        return ContextId(self.micropublication.context_id)
 
 
 @dataclass(frozen=True)
@@ -351,15 +346,15 @@ class BudgetExhausted(RuntimeError):
 
 
 def _queryable_id_list(values: Iterable[object]) -> list[QueryableId]:
-    return list(to_queryable_ids(values))
+    return list(tuple(QueryableId(value) for value in values))
 
 
 def _assumption_id_list(values: Iterable[object]) -> list[AssumptionId]:
-    return list(to_assumption_ids(values))
+    return list(tuple(AssumptionId(value) for value in values))
 
 
 def _claim_id_list(values: list[str] | tuple[str, ...] | set[str]) -> list[ClaimId]:
-    return list(to_claim_ids(sorted(values)))
+    return list(tuple(ClaimId(value) for value in sorted(values)))
 
 
 def _is_runtime_like(candidate: object) -> TypeGuard[_ATMSRuntimeLike]:
@@ -444,7 +439,7 @@ def _extend_environment(
             environment.assumptions
             + tuple(
                 AssumptionRef(
-                    assumption_id=to_assumption_id(queryable.assumption_id),
+                    assumption_id=AssumptionId(queryable.assumption_id),
                     kind=queryable.kind,
                     source=queryable.source,
                     cel=queryable.cel,
@@ -1428,7 +1423,7 @@ class ATMSEngine:
             )
             self._micropub_node_ids[item.id] = node_id
 
-            context_node_id = self._context_node_ids.get(to_context_id(item.context_id))
+            context_node_id = self._context_node_ids.get(ContextId(item.context_id))
             if context_node_id is None:
                 continue
             claim_node_ids: list[str] = []
@@ -1699,7 +1694,7 @@ class ATMSEngine:
     ) -> list[tuple[str, ...]]:
         context_antecedents: tuple[str, ...] = ()
         if context_id is not None:
-            context_node_id = self._context_node_ids.get(to_context_id(context_id))
+            context_node_id = self._context_node_ids.get(ContextId(context_id))
             if context_node_id is None:
                 return []
             context_antecedents = (context_node_id,)
@@ -2081,12 +2076,12 @@ class ATMSEngine:
     def _visible_context_ids(self) -> tuple[ContextId, ...]:
         context_ids: set[ContextId] = set()
         if self._runtime.environment.context_id is not None:
-            context_ids.add(to_context_id(self._runtime.environment.context_id))
+            context_ids.add(ContextId(self._runtime.environment.context_id))
         for claim in self._runtime.active_claims():
             if claim.context_id is not None:
-                context_ids.add(to_context_id(claim.context_id))
+                context_ids.add(ContextId(claim.context_id))
         for micropub in self._runtime_micropublications():
-            context_ids.add(to_context_id(micropub.context_id))
+            context_ids.add(ContextId(micropub.context_id))
         return tuple(sorted(context_ids))
 
     def _coerce_queryables(
@@ -2585,7 +2580,7 @@ class ATMSEngine:
     ) -> EnvironmentKey:
         if isinstance(environment, EnvironmentKey):
             return environment
-        return EnvironmentKey(to_assumption_ids(environment))
+        return EnvironmentKey(tuple(AssumptionId(value) for value in environment))
 
     def _explain_justification(
         self,

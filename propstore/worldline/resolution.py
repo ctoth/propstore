@@ -3,7 +3,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 from propstore.core.environment import WorldStore
 from propstore.families.claims.declaration import Claim
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult, ValueResult
@@ -130,7 +130,7 @@ def pre_resolve_conflicts(
     )
 
     for cid in needs_check:
-        normalized_cid = to_concept_id(cid)
+        normalized_cid = ConceptId(cid)
         if normalized_cid in context.override_values:
             continue
 
@@ -431,7 +431,7 @@ def _resolve_chain_target(
         chain_value = result.value
         formula = result.formula
         input_values = {
-            to_concept_id(input_cid): value
+            ConceptId(input_cid): value
             for input_cid, value in result.input_values.items()
         }
     elif isinstance(result, ValueResult):
@@ -604,7 +604,7 @@ def _resolve_derived_input(
 
     nested_inputs: dict[str, WorldlineInputSource] = {}
     for input_cid, input_value in derived.input_values.items():
-        normalized_input_cid = to_concept_id(input_cid)
+        normalized_input_cid = ConceptId(input_cid)
         input_source = trace_input_source(
             context,
             normalized_input_cid,
@@ -636,7 +636,7 @@ def _trace_derived_inputs(
 ) -> dict[str, WorldlineInputSource]:
     inputs_used: dict[str, WorldlineInputSource] = {}
     for input_cid, input_value in derived.input_values.items():
-        normalized_input_cid = to_concept_id(input_cid)
+        normalized_input_cid = ConceptId(input_cid)
         input_source = trace_input_source(
             context,
             normalized_input_cid,

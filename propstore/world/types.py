@@ -18,8 +18,6 @@ from propstore.core.id_types import (
     ClaimId,
     ConceptId,
     QueryableId,
-    to_concept_id,
-    to_queryable_id,
 )
 from propstore.core.labels import (
     AssumptionRef,
@@ -127,7 +125,7 @@ class ValueResult:
     reason: ValueResultReason | None = None
 
     def __post_init__(self) -> None:
-        self.concept_id = to_concept_id(self.concept_id)
+        self.concept_id = ConceptId(self.concept_id)
         self.status = coerce_value_status(self.status)
 
 
@@ -142,11 +140,11 @@ class DerivedResult:
     label: Label | None = None
 
     def __post_init__(self) -> None:
-        self.concept_id = to_concept_id(self.concept_id)
+        self.concept_id = ConceptId(self.concept_id)
         self.status = coerce_value_status(self.status)
         self.exactness = coerce_exactness(self.exactness)
         self.input_values = {
-            to_concept_id(concept_id): float(value)
+            ConceptId(concept_id): float(value)
             for concept_id, value in self.input_values.items()
         }
 
@@ -186,7 +184,7 @@ class QueryableAssumption:
         normalized_cel = to_cel_expr(cel)
         digest = hashlib.sha256(f"queryable\0{source}\0{normalized_cel}".encode("utf-8")).hexdigest()
         return cls(
-            assumption_id=to_queryable_id(f"queryable:{source}:{digest}"),
+            assumption_id=QueryableId(f"queryable:{source}:{digest}"),
             cel=normalized_cel,
             source=source,
         )
@@ -618,7 +616,7 @@ class ResolvedResult:
     acceptance_probs: dict[str, float] | None = None
 
     def __post_init__(self) -> None:
-        self.concept_id = to_concept_id(self.concept_id)
+        self.concept_id = ConceptId(self.concept_id)
         self.status = coerce_value_status(self.status)
 
 
@@ -694,7 +692,7 @@ class SyntheticClaim:
     confidence: float | None = None
 
     def __post_init__(self) -> None:
-        self.concept_id = to_concept_id(self.concept_id)
+        self.concept_id = ConceptId(self.concept_id)
         self.type = coerce_claim_type(self.type) or ClaimType.PARAMETER
         self.conditions = list(to_cel_exprs(self.conditions))
         if self.sample_size is not None:
@@ -749,11 +747,11 @@ class ChainResult:
     unresolved_dependencies: list[ConceptId] = field(default_factory=list)
 
     def __post_init__(self) -> None:
-        self.target_concept_id = to_concept_id(self.target_concept_id)
+        self.target_concept_id = ConceptId(self.target_concept_id)
         self.steps = list(self.steps)
         self.bindings_used = dict(self.bindings_used)
         self.unresolved_dependencies = [
-            to_concept_id(concept_id)
+            ConceptId(concept_id)
             for concept_id in self.unresolved_dependencies
         ]
 

@@ -7,7 +7,7 @@ from propstore.core.conditions import (
     check_condition_ir,
     checked_condition_set,
 )
-from propstore.core.id_types import to_assumption_id
+from propstore.core.id_types import AssumptionId
 from propstore.core.labels import AssumptionRef, Label
 from propstore.world.atms import ATMSAssumptionNode
 from tests.atms_helpers import condition_registry_for_sources
@@ -24,13 +24,13 @@ def test_ws_i_exact_antecedent_sets_match_commuted_cel_equality() -> None:
         solver=ConditionSolver(registry),
     ).atms_engine()
     left_ref = AssumptionRef(
-        assumption_id=to_assumption_id("left_equality"),
+        assumption_id=AssumptionId("left_equality"),
         kind="binding",
         source="test",
         cel="a == b",
     )
     right_ref = AssumptionRef(
-        assumption_id=to_assumption_id("right_equality"),
+        assumption_id=AssumptionId("right_equality"),
         kind="binding",
         source="test",
         cel="b == a",

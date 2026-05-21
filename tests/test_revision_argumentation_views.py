@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 
 from propstore.cel_types import to_cel_expr
-from propstore.core.id_types import to_assumption_id
+from propstore.core.id_types import AssumptionId
 from propstore.core.labels import AssumptionRef
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.entrenchment import EntrenchmentReport
@@ -38,7 +38,7 @@ def test_argumentation_view_keeps_accepted_assumption_atoms_visible() -> None:
     assumption = AssumptionAtom(
         "assumption:accepted",
         AssumptionRef(
-            to_assumption_id("accepted"),
+            AssumptionId("accepted"),
             kind="",
             source="",
             cel=to_cel_expr(""),
@@ -143,7 +143,7 @@ def _realized_ic_merge_state(accepted, rejected, *, support_sets=None) -> Episte
             AssumptionAtom(
                 "assumption:support_a",
                 AssumptionRef(
-                    to_assumption_id("support_a"),
+                    AssumptionId("support_a"),
                     kind="",
                     source="",
                     cel=to_cel_expr(""),

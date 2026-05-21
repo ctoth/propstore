@@ -12,7 +12,7 @@ from sqlalchemy import select
 
 from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import ClaimNode
-from propstore.core.id_types import to_claim_id
+from propstore.core.id_types import ClaimId
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.world_charters import world_sqlalchemy_schema
@@ -33,7 +33,7 @@ def _prior_payload(a: float = 0.62) -> dict[str, float]:
 
 def _claim_with_metadata(**metadata: object) -> ClaimNode:
     return ClaimNode(
-        claim_id=to_claim_id("test_claim"),
+        claim_id=ClaimId("test_claim"),
         claim_type=ClaimType.OBSERVATION,
         attributes=tuple((key, value) for key, value in metadata.items()),
     )

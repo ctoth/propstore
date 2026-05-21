@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 
 
 @dataclass(frozen=True, order=True)
@@ -77,7 +77,7 @@ class ConditionReference:
     category_extensible: bool | None = None
 
     def __post_init__(self) -> None:
-        concept_id = to_concept_id(self.concept_id)
+        concept_id = ConceptId(self.concept_id)
         if str(concept_id) == "":
             raise ValueError("condition reference concept id must be non-empty")
         source_name = self.source_name.strip()

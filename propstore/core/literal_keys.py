@@ -15,10 +15,13 @@ from dataclasses import dataclass
 from typing import TypeAlias
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.core.id_types import ClaimId, ContextId, to_claim_id, to_context_id
+from propstore.core.id_types import (
+    ClaimId,
+    ContextId,
+)
 
 
-REPOSITORY_ROOT_CONTEXT_ID = to_context_id("propstore:context:root")
+REPOSITORY_ROOT_CONTEXT_ID = ContextId("propstore:context:root")
 
 
 @dataclass(frozen=True)
@@ -36,8 +39,8 @@ class IstLiteralKey:
     proposition_id: ClaimId
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "context_id", to_context_id(self.context_id))
-        object.__setattr__(self, "proposition_id", to_claim_id(self.proposition_id))
+        object.__setattr__(self, "context_id", ContextId(self.context_id))
+        object.__setattr__(self, "proposition_id", ClaimId(self.proposition_id))
 
 
 @dataclass(frozen=True)
@@ -65,8 +68,8 @@ def claim_key(
     """Return the canonical typed key for a situated claim literal."""
 
     return IstLiteralKey(
-        context_id=to_context_id(context_id),
-        proposition_id=to_claim_id(claim_id),
+        context_id=ContextId(context_id),
+        proposition_id=ClaimId(claim_id),
     )
 
 

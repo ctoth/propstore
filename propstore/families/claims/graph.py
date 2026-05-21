@@ -15,7 +15,10 @@ from propstore.core.conditions import (
 )
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.core.graph_types import ClaimNode, ProvenanceRecord
-from propstore.core.id_types import to_claim_id, to_concept_id
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+)
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import (
     Claim,
@@ -36,12 +39,12 @@ def claim_node_from_claim(
 ) -> ClaimNode:
     numeric_payload = claim.numeric_payload
     return ClaimNode(
-        claim_id=to_claim_id(claim_id or claim.id),
+        claim_id=ClaimId(claim_id or claim.id),
         claim_type=claim.type or ClaimType.UNKNOWN,
         value_concept_id=(
             None
             if claim.value_concept_id is None
-            else to_concept_id(claim.value_concept_id)
+            else ConceptId(claim.value_concept_id)
         ),
         scalar_value=None if numeric_payload is None else numeric_payload.value,
         context_id=claim.context_id,
@@ -148,7 +151,7 @@ def synthetic_claim_to_claim(
             "seq": existing_claim.seq if existing_claim is not None else 0,
             "type": synthetic.type,
             "target_concept": (
-                to_concept_id(synthetic.concept_id)
+                ConceptId(synthetic.concept_id)
                 if synthetic.type is ClaimType.MEASUREMENT
                 else (
                     existing_claim.target_concept
@@ -285,8 +288,8 @@ def _synthetic_concept_links(synthetic: SyntheticClaim) -> tuple[ClaimConceptLin
     )
     return (
         ClaimConceptLink(
-            claim_id=to_claim_id(synthetic.id),
-            concept_id=to_concept_id(synthetic.concept_id),
+            claim_id=ClaimId(synthetic.id),
+            concept_id=ConceptId(synthetic.concept_id),
             role=role,
             ordinal=0,
         ),

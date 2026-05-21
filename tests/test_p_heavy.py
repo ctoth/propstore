@@ -24,7 +24,7 @@ from typing import cast
 
 import pytest
 
-from propstore.core.id_types import ClaimId, to_claim_id
+from propstore.core.id_types import ClaimId
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.stances import StanceType
 from propstore.support_revision.dispatch import dispatch
@@ -80,7 +80,7 @@ class SyntheticHistoricalBeliefSpace(SyntheticBeliefSpace):
 
 
 def _claim_id(local_id: str) -> ClaimId:
-    return to_claim_id(f"propstore:claim:test/{local_id}")
+    return ClaimId(f"propstore:claim:test/{local_id}")
 
 
 def _build_heavy_journal(*, atoms: tuple[AssertionAtom, ...], commit_sha: str):
@@ -158,11 +158,11 @@ def test_p_heavy_2_heavy_surfaces_stances_minimal_does_not() -> None:
         source_id=str(_claim_id("c1")),
         relation_type=str(StanceType.SUPPORTS),
         target_kind="claim",
-        target_id=str(to_claim_id(extra_row.id)),
+        target_id=str(ClaimId(extra_row.id)),
     )
     fake_conflict = ConflictWitness(
         claim_a_id=_claim_id("c1"),
-        claim_b_id=to_claim_id(extra_row.id),
+        claim_b_id=ClaimId(extra_row.id),
     )
     register_fixture_commit(
         commit_sha,

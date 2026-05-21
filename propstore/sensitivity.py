@@ -13,7 +13,7 @@ from typing import Any
 
 from propstore.reporting import JsonReportMixin
 from propstore.core.environment import Environment
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 from propstore.families.concepts.declaration import Parameterization
 from propstore.propagation import parse_cached, rewrite_parameterization_symbols
 
@@ -26,7 +26,7 @@ class SensitivityEntry:
     elasticity: float | None  # (df/dx * x/f) -- normalized sensitivity
 
     def __post_init__(self) -> None:
-        self.input_concept_id = to_concept_id(self.input_concept_id)
+        self.input_concept_id = ConceptId(self.input_concept_id)
 
 
 @dataclass
@@ -39,10 +39,10 @@ class SensitivityResult:
     method: str = "local_oat"
 
     def __post_init__(self) -> None:
-        self.concept_id = to_concept_id(self.concept_id)
+        self.concept_id = ConceptId(self.concept_id)
         self.entries = list(self.entries)
         self.input_values = {
-            to_concept_id(concept_id): float(value)
+            ConceptId(concept_id): float(value)
             for concept_id, value in self.input_values.items()
         }
 
@@ -55,7 +55,7 @@ class GlobalSensitivityResult:
     total: dict[str, float]
 
     def __post_init__(self) -> None:
-        self.concept_id = to_concept_id(self.concept_id)
+        self.concept_id = ConceptId(self.concept_id)
         self.first_order = {
             str(concept_id): float(value)
             for concept_id, value in self.first_order.items()
@@ -118,9 +118,9 @@ def analyze_sensitivity(
     """
     from sympy import Equality, Symbol, diff as sym_diff
 
-    requested_concept_id = to_concept_id(concept_id)
+    requested_concept_id = ConceptId(concept_id)
     concept = world.get_concept(str(requested_concept_id))
-    lookup_concept_id = to_concept_id(
+    lookup_concept_id = ConceptId(
         str(concept.id) if concept is not None else str(requested_concept_id)
     )
 
@@ -146,7 +146,7 @@ def analyze_sensitivity(
     effective_inputs: list[ConceptId] = []
     for input_id in input_ids:
         input_concept = world.get_concept(str(input_id))
-        canonical_input_id = to_concept_id(
+        canonical_input_id = ConceptId(
             str(input_concept.id) if input_concept is not None else str(input_id)
         )
         if canonical_input_id != lookup_concept_id:
@@ -232,7 +232,7 @@ def analyze_sensitivity(
             resolved_key = (
                 str(override_concept.id) if override_concept is not None else str(key)
             )
-            resolved_overrides[to_concept_id(resolved_key)] = float(value)
+            resolved_overrides[ConceptId(resolved_key)] = float(value)
 
     input_values: dict[ConceptId, float] = {}
     for iid in effective_inputs:

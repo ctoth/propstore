@@ -8,7 +8,10 @@ from collections.abc import Mapping, Sequence
 from argumentation.aspic import GroundAtom, Literal, Rule
 
 from propstore.context_lifting import LiftingDecision, LiftingDecisionStatus, LiftingMode
-from propstore.core.id_types import to_claim_id, to_context_id
+from propstore.core.id_types import (
+    ClaimId,
+    ContextId,
+)
 from propstore.core.literal_keys import IstLiteralKey, LiteralKey
 
 
@@ -53,12 +56,12 @@ def project_lifting_decisions(
 
     for decision in decisions:
         source_key = IstLiteralKey(
-            to_context_id(decision.source_context.id),
-            to_claim_id(decision.proposition_id),
+            ContextId(decision.source_context.id),
+            ClaimId(decision.proposition_id),
         )
         target_key = IstLiteralKey(
-            to_context_id(decision.target_context.id),
-            to_claim_id(decision.proposition_id),
+            ContextId(decision.target_context.id),
+            ClaimId(decision.proposition_id),
         )
         source_literal = projected_literals.setdefault(
             source_key,

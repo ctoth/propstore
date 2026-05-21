@@ -15,7 +15,11 @@ from propstore.cel_types import CelExpr
 from propstore.core.activation import is_claim_active
 from propstore.core.claim_types import ClaimType
 from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore, WorldStore
-from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_context_id
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+    ContextId,
+)
 from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import (
     ConflictWitness,
@@ -173,9 +177,9 @@ def _recomputed_conflicts(
     )
     return [
         ConflictWitness(
-            concept_id=to_concept_id(record.concept_id),
-            claim_a_id=to_claim_id(record.claim_a_id),
-            claim_b_id=to_claim_id(record.claim_b_id),
+            concept_id=ConceptId(record.concept_id),
+            claim_a_id=ClaimId(record.claim_a_id),
+            claim_b_id=ClaimId(record.claim_b_id),
             warning_class=record.warning_class.value,
             conditions_a=json.dumps(record.conditions_a),
             conditions_b=json.dumps(record.conditions_b),
@@ -206,7 +210,7 @@ class BoundWorld(BeliefSpace):
             environment_bindings = {} if bindings is None else bindings
             environment = Environment(
                 bindings=environment_bindings,
-                context_id=(None if context_id is None else to_context_id(context_id)),
+                context_id=(None if context_id is None else ContextId(context_id)),
             )
         self._environment = environment
         self._policy = policy

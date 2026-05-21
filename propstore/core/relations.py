@@ -20,7 +20,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 
 
 BOOTSTRAP_RELATION_IDS: frozenset[str] = frozenset({
@@ -72,7 +72,7 @@ class RelationConceptRef:
     description_kind_id: str | None = None
 
     def __post_init__(self) -> None:
-        concept_id = to_concept_id(self.concept_id)
+        concept_id = ConceptId(self.concept_id)
         if str(concept_id) == "":
             raise ValueError("relation concept id must be non-empty")
         object.__setattr__(self, "concept_id", concept_id)
@@ -149,10 +149,10 @@ class RoleDefinition:
         role = self.role.strip()
         if role == "":
             raise ValueError("role name must be non-empty")
-        domain = to_concept_id(self.domain)
+        domain = ConceptId(self.domain)
         if str(domain) == "":
             raise ValueError("role domain must be non-empty")
-        range_id = to_concept_id(self.range)
+        range_id = ConceptId(self.range)
         if str(range_id) == "":
             raise ValueError("role range must be non-empty")
         object.__setattr__(self, "role", role)

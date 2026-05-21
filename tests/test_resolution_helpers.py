@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cel_types import to_cel_expr
-from propstore.core.id_types import to_concept_id
+from propstore.core.id_types import ConceptId
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from argumentation.dung import ArgumentationFramework
 from propstore.families.claims.declaration import Claim
@@ -81,7 +81,7 @@ class _AspicView:
 
     def value_of(self, concept_id: str):
         return ValueResult(
-            concept_id=to_concept_id(concept_id),
+            concept_id=ConceptId(concept_id),
             status=ValueStatus.CONFLICTED,
             claims=list(self._claims),
         )
@@ -153,7 +153,7 @@ class _GlobalAssignmentSelectionView:
 
     def value_of(self, concept_id: str):
         return ValueResult(
-            concept_id=to_concept_id(concept_id),
+            concept_id=ConceptId(concept_id),
             status=ValueStatus.CONFLICTED,
             claims=[claim for claim in self._claims if _claim_concept_id(claim) == concept_id],
         )
@@ -174,7 +174,7 @@ class _DuplicateSourceAssignmentSelectionView:
 
     def value_of(self, concept_id: str):
         return ValueResult(
-            concept_id=to_concept_id(concept_id),
+            concept_id=ConceptId(concept_id),
             status=ValueStatus.CONFLICTED,
             claims=[claim for claim in self._claims if _claim_concept_id(claim) == concept_id],
         )
@@ -195,7 +195,7 @@ class _AssignmentSelectionView:
 
     def value_of(self, concept_id: str):
         return ValueResult(
-            concept_id=to_concept_id(concept_id),
+            concept_id=ConceptId(concept_id),
             status=ValueStatus.CONFLICTED,
             claims=list(self._claims),
         )

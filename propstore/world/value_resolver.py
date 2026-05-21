@@ -12,7 +12,7 @@ from typing import Any, Callable
 from ast_equiv import AlgorithmParseError, compare as ast_compare
 
 from propstore.core.claim_types import ClaimType, coerce_claim_type
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Parameterization
 from propstore.propagation import rewrite_parameterization_symbols
@@ -92,7 +92,7 @@ def _parameterization_concept_ids(param: Parameterization) -> tuple[ConceptId, .
         return ()
     if not isinstance(decoded, list):
         return ()
-    return tuple(to_concept_id(item) for item in decoded if isinstance(item, str))
+    return tuple(ConceptId(item) for item in decoded if isinstance(item, str))
 
 
 _SAFE_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -108,7 +108,7 @@ def collect_known_values(
     """
     known: dict[ConceptId, Any] = {}
     for cid in variable_concepts:
-        normalized_cid = to_concept_id(cid)
+        normalized_cid = ConceptId(cid)
         vr = value_of(normalized_cid)
         if vr.status is ValueStatus.DETERMINED and vr.claims:
             val = _claim_value(vr.claims[0])
@@ -151,7 +151,7 @@ class ClaimValueResolver:
     ) -> DerivedResult:
         from propstore.propagation import evaluate_parameterization
 
-        typed_concept_id = to_concept_id(concept_id)
+        typed_concept_id = ConceptId(concept_id)
         if _derivation_stack is None:
             _derivation_stack = set()
 
@@ -206,7 +206,7 @@ class ClaimValueResolver:
         active: Sequence[Claim],
         concept_id: ConceptId | str,
     ) -> ValueResult:
-        typed_concept_id = to_concept_id(concept_id)
+        typed_concept_id = ConceptId(concept_id)
         active_claims = list(active)
         if not active_claims:
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
@@ -286,7 +286,7 @@ class ClaimValueResolver:
             all_var_concepts: set[ConceptId] = set()
             for claim in algo_claims:
                 all_var_concepts.update(
-                    to_concept_id(concept_id)
+                    ConceptId(concept_id)
                     for concept_id in self._extract_variable_concepts(claim.claim)
                 )
             all_var_concepts.discard(typed_concept_id)
@@ -453,7 +453,7 @@ class ClaimValueResolver:
         for concept_id, target_symbol in replacement_candidates:
             if concept_id == str(output_concept_id):
                 continue
-            value = input_values.get(to_concept_id(concept_id))
+            value = input_values.get(ConceptId(concept_id))
             if value is not None:
                 safe_values[target_symbol] = value
         return _value_or_none(
@@ -519,7 +519,7 @@ class ClaimValueResolver:
         if constant_body is None:
             return _BENIGN_INCONCLUSIVE
 
-        concept_ids = [to_concept_id(concept_id) for concept_id in dict.fromkeys(bindings.values())]
+        concept_ids = [ConceptId(concept_id) for concept_id in dict.fromkeys(bindings.values())]
         known_values = self._collect_known_values(concept_ids)
         if any(concept_id not in known_values for concept_id in concept_ids):
             return _BENIGN_INCONCLUSIVE

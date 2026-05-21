@@ -15,7 +15,7 @@ from propstore.core.conditions import (
     checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 from propstore.families.forms.stages import (
     Form,
     FormAlgebra,
@@ -203,7 +203,7 @@ def compile_concept_sidecar_rows(
 class Concept(FamilyModel):
     @property
     def concept_id(self) -> ConceptId:
-        return to_concept_id(cast(str, getattr(self, "id")))
+        return ConceptId(cast(str, getattr(self, "id")))
 
     @property
     def logical_ids(self) -> tuple[Mapping[str, object], ...]:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.core.id_types import to_claim_id
+from propstore.core.id_types import ClaimId
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from propstore.world.types import RenderPolicy
 from propstore.worldline.argumentation import _capture_claim_graph
@@ -37,7 +37,7 @@ def test_ws_j_claim_graph_multi_extension_state_is_captured(monkeypatch) -> None
 
     state = _capture_claim_graph(
         world=object(),
-        active_ids={to_claim_id("claim_a"), to_claim_id("claim_b")},
+        active_ids={ClaimId("claim_a"), ClaimId("claim_b")},
         active_graph=object(),
         policy=RenderPolicy(),
         normalized_semantics="preferred",

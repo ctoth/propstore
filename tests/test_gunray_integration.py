@@ -97,11 +97,11 @@ def _build_concept_relationship(relation: str, target: str):
     """
 
     from propstore.families.concepts.stages import ConceptRelationship
-    from propstore.core.id_types import to_concept_id
+    from propstore.core.id_types import ConceptId
 
     return ConceptRelationship(
         relationship_type=relation,
-        target=to_concept_id(target),
+        target=ConceptId(target),
         conditions=(),
         note=None,
     )
@@ -118,9 +118,12 @@ def _build_loaded_concept(canonical_name: str, relationships):
     """
 
     from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
-    from propstore.core.id_types import LogicalId, to_concept_id
+    from propstore.core.id_types import (
+    ConceptId,
+    LogicalId,
+)
 
-    artifact_id = to_concept_id(f"ps:concept:{canonical_name}")
+    artifact_id = ConceptId(f"ps:concept:{canonical_name}")
     logical_id = LogicalId(namespace="propstore", value=canonical_name)
     record = ConceptRecord(
         artifact_id=artifact_id,

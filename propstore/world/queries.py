@@ -654,14 +654,14 @@ def diff_hypothetical_world(
     from propstore.cel_types import to_cel_exprs
     from propstore.core.claim_types import ClaimType, coerce_claim_type
     from propstore.core.environment import Environment
-    from propstore.core.id_types import to_concept_id
+    from propstore.core.id_types import ConceptId
     from propstore.world import OverlayWorld, SyntheticClaim
 
     bound = world.bind(Environment(bindings=dict(request.bindings)))
     synthetics = [
         SyntheticClaim(
             id=spec.claim_id,
-            concept_id=to_concept_id(spec.concept_id),
+            concept_id=ConceptId(spec.concept_id),
             type=coerce_claim_type(spec.claim_type) or ClaimType.PARAMETER,
             value=spec.value,
             conditions=list(to_cel_exprs(spec.conditions)),

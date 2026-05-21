@@ -6,7 +6,7 @@ from argumentation.dung import ArgumentationFramework
 from propstore.core.analyzers import SharedAnalyzerInput, build_praf_from_shared_input
 from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import ClaimNode
-from propstore.core.id_types import to_claim_id
+from propstore.core.id_types import ClaimId
 from propstore.probabilistic_relations import ClaimGraphRelations
 from propstore.provenance import ProvenanceStatus
 
@@ -18,7 +18,7 @@ def test_uncalibrated_arguments_remain_vacuous_in_kernel_framework():
         comparison="elitist",
         claims_by_id={
             "calibrated": ClaimNode(
-                claim_id=to_claim_id("calibrated"),
+                claim_id=ClaimId("calibrated"),
                 claim_type=ClaimType.OBSERVATION,
                 attributes=(
                     ("opinion_belief", 0.8),
@@ -28,7 +28,7 @@ def test_uncalibrated_arguments_remain_vacuous_in_kernel_framework():
                 ),
             ),
             "unknown": ClaimNode(
-                claim_id=to_claim_id("unknown"),
+                claim_id=ClaimId("unknown"),
                 claim_type=ClaimType.OBSERVATION,
             ),
         },

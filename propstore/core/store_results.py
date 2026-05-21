@@ -4,7 +4,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from propstore.core.id_types import ClaimId, ConceptId, to_claim_id, to_concept_id
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+)
 
 
 @dataclass(frozen=True)
@@ -12,7 +15,7 @@ class ConceptSearchHit:
     concept_id: ConceptId
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
+        object.__setattr__(self, "concept_id", ConceptId(self.concept_id))
 
 
 @dataclass(frozen=True)
@@ -25,9 +28,9 @@ class ClaimSimilarityHit:
     concept_id: ConceptId | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "claim_id", to_claim_id(self.claim_id))
+        object.__setattr__(self, "claim_id", ClaimId(self.claim_id))
         if self.concept_id is not None:
-            object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
+            object.__setattr__(self, "concept_id", ConceptId(self.concept_id))
 
 
 @dataclass(frozen=True)
@@ -39,7 +42,7 @@ class ConceptSimilarityHit:
     definition: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
+        object.__setattr__(self, "concept_id", ConceptId(self.concept_id))
 
 
 @dataclass(frozen=True)

@@ -6,7 +6,10 @@ from collections.abc import Container, Mapping
 from dataclasses import dataclass
 from math import inf
 
-from propstore.core.id_types import AssumptionId, ContextId, to_assumption_id, to_context_id
+from propstore.core.id_types import (
+    AssumptionId,
+    ContextId,
+)
 from propstore.provenance.homomorphism import evaluate
 from propstore.provenance.polynomial import ProvenancePolynomial
 from propstore.provenance.variables import SourceVariableId
@@ -22,12 +25,12 @@ class WhySupport:
         object.__setattr__(
             self,
             "assumption_ids",
-            tuple(sorted(dict.fromkeys(to_assumption_id(item) for item in self.assumption_ids))),
+            tuple(sorted(dict.fromkeys(AssumptionId(item) for item in self.assumption_ids))),
         )
         object.__setattr__(
             self,
             "context_ids",
-            tuple(sorted(dict.fromkeys(to_context_id(item) for item in self.context_ids))),
+            tuple(sorted(dict.fromkeys(ContextId(item) for item in self.context_ids))),
         )
         object.__setattr__(
             self,

@@ -14,7 +14,7 @@ from argumentation.dung import ArgumentationFramework
 from propstore.core.analyzers import SharedAnalyzerInput
 from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
-from propstore.core.id_types import to_claim_id
+from propstore.core.id_types import ClaimId
 from propstore.core.results import AnalyzerResult, ClaimProjection
 from propstore.merge.structured_merge import argumentation_evidence_from_projection
 from propstore.probabilistic_relations import ClaimGraphRelations
@@ -82,8 +82,8 @@ def test_track_e_package_semantics_are_exposed_by_propstore() -> None:
 
 
 def test_track_e_projection_lift_preserves_situated_assertion_ids() -> None:
-    claim_a = to_claim_id("claim_a")
-    claim_b = to_claim_id("claim_b")
+    claim_a = ClaimId("claim_a")
+    claim_b = ClaimId("claim_b")
     active_graph = WorldActivationGraph(
         compiled=CompiledWorldGraph(
             claims=(
@@ -148,7 +148,7 @@ def test_track_e_core_analyzer_reports_optional_aspic_backend_absence() -> None:
 def test_track_e_praf_analyzer_can_use_paper_td_package_strategy() -> None:
     from propstore.core.analyzers import analyze_praf
 
-    claim_a = to_claim_id("claim_a")
+    claim_a = ClaimId("claim_a")
     claim_a_node = ClaimNode(
         claim_id=claim_a,
         claim_type=ClaimType.OBSERVATION,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from propstore.core.labels import AssumptionRef, EnvironmentKey, Label, NogoodSet
-from propstore.core.id_types import to_assumption_id
+from propstore.core.id_types import AssumptionId
 from propstore.world.atms import ATMSAssumptionNode, ATMSDerivedNode
 from propstore.world.types import ATMSNodeStatus, ATMSOutKind
 
@@ -15,13 +15,13 @@ def test_ws_i_cycle_whose_external_support_is_nogood_is_nogood_pruned() -> None:
 
     engine = _make_bound(_ATMSStore(claims=[])).atms_engine()
     assumption_a = AssumptionRef(
-        assumption_id=to_assumption_id("cycle_a"),
+        assumption_id=AssumptionId("cycle_a"),
         kind="binding",
         source="test",
         cel="a == 1",
     )
     assumption_b = AssumptionRef(
-        assumption_id=to_assumption_id("cycle_b"),
+        assumption_id=AssumptionId("cycle_b"),
         kind="binding",
         source="test",
         cel="b == 2",
@@ -54,7 +54,7 @@ def test_ws_i_cycle_whose_external_support_is_nogood_is_nogood_pruned() -> None:
         parameterization_index=2,
     )
     engine.nogoods = NogoodSet([
-        EnvironmentKey((to_assumption_id("cycle_a"), to_assumption_id("cycle_b")))
+        EnvironmentKey((AssumptionId("cycle_a"), AssumptionId("cycle_b")))
     ])
     engine._add_justification(
         antecedent_ids=(node_a, d2),

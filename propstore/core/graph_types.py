@@ -21,13 +21,9 @@ from propstore.core.graph_relation_types import (
     coerce_graph_relation_type,
 )
 from propstore.core.id_types import (
-    to_assumption_ids,
+    AssumptionId,
     ClaimId,
     ConceptId,
-    to_claim_id,
-    to_claim_ids,
-    to_concept_id,
-    to_concept_ids,
 )
 from propstore.core.labels import EnvironmentKey, Label
 
@@ -102,7 +98,7 @@ def label_to_dict(label: Label | None) -> list[list[str]] | None:
 def label_from_dict(data: list[list[str]] | None) -> Label | None:
     if data is None:
         return None
-    return Label(tuple(EnvironmentKey(to_assumption_ids(environment)) for environment in data))
+    return Label(tuple(EnvironmentKey(tuple(AssumptionId(value) for value in environment)) for environment in data))
 
 
 def _condition_to_dict(condition: CheckedCondition) -> dict[str, Any]:
@@ -196,7 +192,7 @@ class ConceptNode:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> ConceptNode:
         return cls(
-            concept_id=to_concept_id(data["concept_id"]),
+            concept_id=ConceptId(data["concept_id"]),
             canonical_name=str(data["canonical_name"]),
             status=(None if data.get("status") is None else str(data["status"])),
             form=(None if data.get("form") is None else str(data["form"])),
@@ -337,11 +333,11 @@ class ClaimNode:
     def from_dict(cls, data: Mapping[str, Any]) -> ClaimNode:
         provenance_data = data.get("provenance")
         return cls(
-            claim_id=to_claim_id(data["claim_id"]),
+            claim_id=ClaimId(data["claim_id"]),
             value_concept_id=(
                 None
                 if data.get("value_concept_id") is None
-                else to_concept_id(data["value_concept_id"])
+                else ConceptId(data["value_concept_id"])
             ),
             claim_type=_require_claim_type(data["claim_type"]),
             scalar_value=data.get("scalar_value"),
@@ -476,8 +472,8 @@ class ParameterizationEdge:
     def from_dict(cls, data: Mapping[str, Any]) -> ParameterizationEdge:
         provenance_data = data.get("provenance")
         return cls(
-            output_concept_id=to_concept_id(data["output_concept_id"]),
-            input_concept_ids=to_concept_ids(data.get("input_concept_ids") or ()),
+            output_concept_id=ConceptId(data["output_concept_id"]),
+            input_concept_ids=tuple(ConceptId(value) for value in data.get("input_concept_ids") or ()),
             formula=(None if data.get("formula") is None else str(data["formula"])),
             sympy=(None if data.get("sympy") is None else str(data["sympy"])),
             exactness=coerce_exactness(data.get("exactness")),
@@ -500,8 +496,8 @@ class ConflictWitness:
 
     def __post_init__(self) -> None:
         left, right = sorted((self.left_claim_id, self.right_claim_id))
-        object.__setattr__(self, "left_claim_id", to_claim_id(left))
-        object.__setattr__(self, "right_claim_id", to_claim_id(right))
+        object.__setattr__(self, "left_claim_id", ClaimId(left))
+        object.__setattr__(self, "right_claim_id", ClaimId(right))
         object.__setattr__(self, "details", _normalize_pairs(self.details))
 
     def to_dict(self) -> dict[str, Any]:
@@ -517,8 +513,8 @@ class ConflictWitness:
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> ConflictWitness:
         return cls(
-            left_claim_id=to_claim_id(data["left_claim_id"]),
-            right_claim_id=to_claim_id(data["right_claim_id"]),
+            left_claim_id=ClaimId(data["left_claim_id"]),
+            right_claim_id=ClaimId(data["right_claim_id"]),
             kind=str(data["kind"]),
             details=data.get("details") or (),
         )
@@ -572,7 +568,7 @@ class GraphDelta:
         object.__setattr__(
             self,
             "remove_claim_ids",
-            tuple(sorted(dict.fromkeys(to_claim_ids(self.remove_claim_ids)))),
+            tuple(sorted(dict.fromkeys(tuple(ClaimId(value) for value in self.remove_claim_ids)))),
         )
 
     @property
@@ -631,12 +627,12 @@ class WorldActivationGraph:
         object.__setattr__(
             self,
             "active_claim_ids",
-            tuple(sorted(dict.fromkeys(to_claim_ids(self.active_claim_ids)))),
+            tuple(sorted(dict.fromkeys(tuple(ClaimId(value) for value in self.active_claim_ids)))),
         )
         object.__setattr__(
             self,
             "inactive_claim_ids",
-            tuple(sorted(dict.fromkeys(to_claim_ids(self.inactive_claim_ids)))),
+            tuple(sorted(dict.fromkeys(tuple(ClaimId(value) for value in self.inactive_claim_ids)))),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -654,6 +650,6 @@ class WorldActivationGraph:
                 _optional_mapping(data.get("compiled"), "compiled")
             ),
             environment=Environment.from_dict(data.get("environment")),
-            active_claim_ids=to_claim_ids(data.get("active_claim_ids") or ()),
-            inactive_claim_ids=to_claim_ids(data.get("inactive_claim_ids") or ()),
+            active_claim_ids=tuple(ClaimId(value) for value in data.get("active_claim_ids") or ()),
+            inactive_claim_ids=tuple(ClaimId(value) for value in data.get("inactive_claim_ids") or ()),
         )

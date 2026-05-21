@@ -22,9 +22,9 @@ from propstore.core.conditions.registry import (
 from propstore.cel_registry import build_store_cel_registry
 from propstore.families.contexts.declaration import load_lifting_system
 from propstore.core.id_types import (
-    to_claim_id,
-    to_concept_id,
-    to_context_id,
+    ClaimId,
+    ConceptId,
+    ContextId,
 )
 from propstore.core.justifications import CanonicalJustification, Justification
 from propstore.core.labels import compile_environment_assumptions
@@ -508,7 +508,7 @@ class WorldQuery(WorldStore):
         """
         env = Environment(
             bindings=dict(bindings),
-            context_id=None if context_id is None else to_context_id(context_id),
+            context_id=None if context_id is None else ContextId(context_id),
         )
         bound = self.bind(environment=env)
         # BoundWorld carries _environment; expose the restriction set on the
@@ -1148,9 +1148,9 @@ class WorldQuery(WorldStore):
                 result = bound.value_of(target_concept_id)
 
         return ChainResult(
-            target_concept_id=to_concept_id(target_concept_id),
+            target_concept_id=ConceptId(target_concept_id),
             result=result,
             steps=steps,
             bindings_used=bindings,
-            unresolved_dependencies=[to_concept_id(concept_id) for concept_id in unresolved_conflicted],
+            unresolved_dependencies=[ConceptId(concept_id) for concept_id in unresolved_conflicted],
         )

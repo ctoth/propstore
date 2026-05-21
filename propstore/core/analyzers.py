@@ -10,7 +10,7 @@ from argumentation.bipolar import (
 )
 from propstore.conflict_detector import ConflictClass
 from propstore.core.graph_relation_types import coerce_graph_relation_type
-from propstore.core.id_types import ClaimId, to_claim_id, to_claim_ids
+from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import (
     WorldActivationGraph,
     ClaimNode,
@@ -207,8 +207,8 @@ def _conflict_witness_from_row(conflict: ConflictWitness) -> GraphConflictWitnes
         and value is not None
     )
     return GraphConflictWitness(
-        left_claim_id=to_claim_id(conflict.claim_a_id),
-        right_claim_id=to_claim_id(conflict.claim_b_id),
+        left_claim_id=ClaimId(conflict.claim_a_id),
+        right_claim_id=ClaimId(conflict.claim_b_id),
         kind=warning_class.value if isinstance(warning_class, ConflictClass) else str(warning_class),
         details=details,
     )
@@ -248,7 +248,7 @@ def _active_graph_from_store(
     else:
         compiled = _minimal_compiled_graph(store, active_claim_ids)
     all_claim_ids = {claim.claim_id for claim in compiled.claims}
-    active_ids = set(to_claim_ids(active_claim_ids))
+    active_ids = set(tuple(ClaimId(value) for value in active_claim_ids))
     return WorldActivationGraph(
         compiled=compiled,
         environment=Environment(),

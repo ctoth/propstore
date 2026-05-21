@@ -11,7 +11,7 @@ from propstore.core.assertions.refs import (
     ProvenanceGraphRef,
 )
 from propstore.core.assertions.situated import SituatedAssertion
-from propstore.core.id_types import AssertionId, to_assertion_id
+from propstore.core.id_types import AssertionId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 
 
@@ -31,7 +31,7 @@ class AssertionCanonicalRecord:
     provenance_ref: ProvenanceGraphRef
 
     def __post_init__(self) -> None:
-        assertion_id = to_assertion_id(self.assertion_id)
+        assertion_id = AssertionId(self.assertion_id)
         expected_id = self.to_assertion().assertion_id
         if assertion_id != expected_id:
             raise ValueError("assertion id does not match canonical assertion")

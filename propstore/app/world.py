@@ -13,7 +13,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
-from propstore.core.id_types import to_context_id
+from propstore.core.id_types import ContextId
 from propstore.app.rendering import AppRenderPolicyRequest, build_render_policy
 from propstore.repository import Repository
 from propstore.world import Environment, RenderPolicy
@@ -181,7 +181,7 @@ def bind_world(
 ) -> "BoundWorld":
     environment = Environment(
         bindings=dict(bindings),
-        context_id=(None if context_id is None else to_context_id(context_id)),
+        context_id=(None if context_id is None else ContextId(context_id)),
     )
     return world.bind(environment=environment, policy=policy)
 

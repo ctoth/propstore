@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from propstore.core.id_types import AssumptionId, to_assumption_ids
+from propstore.core.id_types import AssumptionId
 
 
 def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
@@ -27,7 +27,7 @@ class RevisionAtomDetail:
         object.__setattr__(
             self,
             "support_sets",
-            tuple(to_assumption_ids(support_set) for support_set in self.support_sets),
+            tuple(tuple(AssumptionId(value) for value in support_set) for support_set in self.support_sets),
         )
 
     @classmethod
@@ -41,7 +41,7 @@ class RevisionAtomDetail:
             reason=None if payload.get("reason") is None else str(payload.get("reason")),
             incision_set=tuple(str(atom_id) for atom_id in (payload.get("incision_set") or ())),
             support_sets=tuple(
-                to_assumption_ids(support_set)
+                tuple(AssumptionId(value) for value in support_set)
                 for support_set in (payload.get("support_sets") or ())
             ),
             selection_rule=None if payload.get("selection_rule") is None else str(payload.get("selection_rule")),
@@ -79,7 +79,7 @@ class EntrenchmentReason:
     revised_in: bool | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "essential_support", to_assumption_ids(self.essential_support))
+        object.__setattr__(self, "essential_support", tuple(AssumptionId(value) for value in self.essential_support))
 
     @classmethod
     def from_json_payload(cls, data: object) -> EntrenchmentReason:
@@ -96,7 +96,7 @@ class EntrenchmentReason:
             support_count=(
                 None if raw_support_count is None else int(raw_support_count)
             ),
-            essential_support=to_assumption_ids(payload.get("essential_support") or ()),
+            essential_support=tuple(AssumptionId(value) for value in payload.get("essential_support") or ()),
             iterated_operator=(
                 None
                 if payload.get("iterated_operator") is None
@@ -158,7 +158,7 @@ class RevisionAtomExplanation:
         object.__setattr__(
             self,
             "support_sets",
-            tuple(to_assumption_ids(support_set) for support_set in self.support_sets),
+            tuple(tuple(AssumptionId(value) for value in support_set) for support_set in self.support_sets),
         )
 
     @classmethod
@@ -176,7 +176,7 @@ class RevisionAtomExplanation:
             ),
             incision_set=tuple(str(atom_id) for atom_id in (data.get("incision_set") or ())),
             support_sets=tuple(
-                to_assumption_ids(support_set)
+                tuple(AssumptionId(value) for value in support_set)
                 for support_set in (data.get("support_sets") or ())
             ),
         )

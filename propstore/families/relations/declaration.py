@@ -14,8 +14,7 @@ from propstore.conflict_detector import detect_conflicts, detect_transitive_conf
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.core.id_types import (
     ClaimId,
-    to_claim_id,
-    to_justification_id,
+    JustificationId,
 )
 from propstore.compiler.ir import SemanticClaim
 from propstore.families.claims.references import ClaimReferenceRecord
@@ -77,11 +76,11 @@ class ConceptRelation(RelationEdge):
 class Stance(RelationEdge):
     @property
     def claim_id(self) -> ClaimId:
-        return to_claim_id(self.source_id)
+        return ClaimId(self.source_id)
 
     @property
     def target_claim_id(self) -> ClaimId:
-        return to_claim_id(self.target_id)
+        return ClaimId(self.target_id)
 
     @property
     def stance_type(self) -> StanceType:
@@ -316,7 +315,7 @@ def compile_authored_stance_models_with_diagnostics(
             target_justification_id=(
                 None
                 if stance.target_justification_id is None
-                else str(to_justification_id(stance.target_justification_id))
+                else str(JustificationId(stance.target_justification_id))
             ),
             strength=stance.strength,
             conditions_differ=stance.conditions_differ,

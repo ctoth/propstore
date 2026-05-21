@@ -12,7 +12,7 @@ from propstore.app.world import (
     resolve_world_target,
 )
 from propstore.core.environment import Environment
-from propstore.core.id_types import to_context_id
+from propstore.core.id_types import ContextId
 from propstore.repository import Repository
 from propstore.world.types import (
     ATMSConceptRelevanceReport,
@@ -237,7 +237,7 @@ def bind_atms_world(
             context_id=(
                 None
                 if request.context_id is None
-                else to_context_id(request.context_id)
+                else ContextId(request.context_id)
             ),
         ),
         policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),

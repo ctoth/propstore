@@ -14,7 +14,10 @@ from typing import cast
 
 from propstore.core.environment import AuthoredJustificationStore, StanceStore
 from propstore.core.claim_values import ClaimProvenance
-from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
+from propstore.core.id_types import (
+    ClaimId,
+    ConceptId,
+)
 from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
@@ -52,7 +55,7 @@ class _ResolutionClaimView:
 
 
 def _claim_id(claim: Claim) -> ClaimId:
-    return to_claim_id(claim.id)
+    return ClaimId(claim.id)
 
 
 def _claim_value(claim: Claim) -> float | str | None:
@@ -596,7 +599,7 @@ def resolve(
     policy: RenderPolicy | None = None,
 ) -> ResolvedResult:
     """Apply a resolution strategy to a conflicted concept."""
-    typed_concept_id = to_concept_id(concept_id)
+    typed_concept_id = ConceptId(concept_id)
     vr = view.value_of(concept_id)
 
     if vr.status is ValueStatus.NO_CLAIMS:
@@ -753,7 +756,7 @@ def resolve(
     return ResolvedResult(
         concept_id=typed_concept_id, status=ValueStatus.RESOLVED,
         value=value, claims=active,
-        winning_claim_id=to_claim_id(winner_id),
+        winning_claim_id=ClaimId(winner_id),
         strategy=strategy.value, reason=reason,
         acceptance_probs=_acceptance_probs,
     )

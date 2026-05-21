@@ -11,7 +11,7 @@ from argumentation.dung import ArgumentationFramework, grounded_extension, prefe
 from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabilisticAF
 from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import ClaimNode
-from propstore.core.id_types import to_claim_id
+from propstore.core.id_types import ClaimId
 from propstore.opinion import Opinion, from_probability as _from_probability
 from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
@@ -31,7 +31,7 @@ def _probability(value: float | Opinion) -> float:
 
 def _claim_with_metadata(**metadata: object) -> ClaimNode:
     return ClaimNode(
-        claim_id=to_claim_id("test_claim"),
+        claim_id=ClaimId("test_claim"),
         claim_type=ClaimType.OBSERVATION,
         attributes=tuple((key, value) for key, value in metadata.items()),
     )

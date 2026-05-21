@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from propstore.core.graph_types import CompiledWorldGraph
-from propstore.core.id_types import ConceptId, to_concept_id
+from propstore.core.id_types import ConceptId
 from propstore.world.scm import StructuralCausalModel, Value
 from propstore.world.types import ValueStatus
 
@@ -36,7 +36,7 @@ class ObservationInconsistent(ValueError):
         observed_value: Value,
         actual_value: Value,
     ) -> None:
-        typed_concept_id = to_concept_id(concept_id)
+        typed_concept_id = ConceptId(concept_id)
         object.__setattr__(self, "concept_id", typed_concept_id)
         object.__setattr__(self, "observed_value", observed_value)
         object.__setattr__(self, "actual_value", actual_value)
@@ -53,7 +53,7 @@ class InterventionDiffEntry:
     new_value: Value
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
+        object.__setattr__(self, "concept_id", ConceptId(self.concept_id))
 
 
 @dataclass(frozen=True)
@@ -63,7 +63,7 @@ class CausalValueResult:
     value: Value | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "concept_id", to_concept_id(self.concept_id))
+        object.__setattr__(self, "concept_id", ConceptId(self.concept_id))
 
 
 class InterventionWorld:
@@ -106,7 +106,7 @@ class InterventionWorld:
         return self.scm.evaluate()
 
     def derived_value(self, concept_id: ConceptId | str) -> CausalValueResult:
-        typed_concept_id = to_concept_id(concept_id)
+        typed_concept_id = ConceptId(concept_id)
         values = self.scm.evaluate()
         concept_key = str(typed_concept_id)
         if concept_key not in values:
@@ -131,7 +131,7 @@ class InterventionWorld:
             new_value = post_values.get(concept_id)
             if old_value != new_value:
                 result[str(concept_id)] = InterventionDiffEntry(
-                    concept_id=to_concept_id(concept_id),
+                    concept_id=ConceptId(concept_id),
                     old_value=old_value,
                     new_value=new_value,
                 )
@@ -169,7 +169,7 @@ class ObservationWorld:
         return dict(self._assignment)
 
     def derived_value(self, concept_id: ConceptId | str) -> CausalValueResult:
-        typed_concept_id = to_concept_id(concept_id)
+        typed_concept_id = ConceptId(concept_id)
         values = self.scm.evaluate()
         concept_key = str(typed_concept_id)
         if concept_key not in values:

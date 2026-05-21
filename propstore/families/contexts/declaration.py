@@ -18,7 +18,7 @@ from propstore.context_lifting import (
     LiftingSystem,
 )
 from propstore.core.assertions import ContextReference
-from propstore.core.id_types import to_context_id
+from propstore.core.id_types import ContextId
 from propstore.cel_types import to_cel_exprs
 from propstore.families.contexts.stages import (
     LoadedContext,
@@ -226,7 +226,7 @@ def load_lifting_system_from_models(
 
     context_ids = [str(context.id) for context in contexts]
     context_refs = tuple(
-        ContextReference(id=to_context_id(context_id))
+        ContextReference(id=ContextId(context_id))
         for context_id in context_ids
     )
 
@@ -251,8 +251,8 @@ def load_lifting_system_from_models(
         rules.append(
             LiftingRule(
                 id=row.id,
-                source=ContextReference(id=to_context_id(row.source_context_id)),
-                target=ContextReference(id=to_context_id(row.target_context_id)),
+                source=ContextReference(id=ContextId(row.source_context_id)),
+                target=ContextReference(id=ContextId(row.target_context_id)),
                 conditions=to_cel_exprs(conditions),
                 mode=LiftingMode(row.mode),
                 justification=row.justification,
@@ -263,7 +263,7 @@ def load_lifting_system_from_models(
         contexts=context_refs,
         lifting_rules=tuple(rules),
         context_assumptions={
-            to_context_id(context_id): to_cel_exprs(assumptions)
+            ContextId(context_id): to_cel_exprs(assumptions)
             for context_id, assumptions in assumptions_by_id.items()
         },
     )

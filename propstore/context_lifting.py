@@ -14,7 +14,7 @@ from enum import StrEnum
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core import assertions as _assertions
 from propstore.core.conditions.cel_frontend import check_condition_ir
-from propstore.core.id_types import ContextId, to_context_id
+from propstore.core.id_types import ContextId
 from propstore.defeasibility import (
     DecidabilityStatus,
     ExceptionDefeat,
@@ -106,8 +106,8 @@ class LiftingDecisionProvenance:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "rule_id", str(self.rule_id))
-        object.__setattr__(self, "source_context_id", to_context_id(self.source_context_id))
-        object.__setattr__(self, "target_context_id", to_context_id(self.target_context_id))
+        object.__setattr__(self, "source_context_id", ContextId(self.source_context_id))
+        object.__setattr__(self, "target_context_id", ContextId(self.target_context_id))
         object.__setattr__(self, "source_proposition_id", str(self.source_proposition_id))
         object.__setattr__(self, "status", LiftingDecisionStatus(self.status))
         if self.justification is not None:
@@ -215,7 +215,7 @@ class LiftingSystem:
         rules = tuple(self.lifting_rules)
         exceptions = tuple(self.lifting_exceptions)
         assumptions = {
-            to_context_id(context_id): to_cel_exprs(values)
+            ContextId(context_id): to_cel_exprs(values)
             for context_id, values in self.context_assumptions.items()
         }
         context_ids = frozenset(context.id for context in contexts)
@@ -244,7 +244,7 @@ class LiftingSystem:
         object.__setattr__(self, "_context_ids", context_ids)
 
     def effective_assumptions(self, target: ContextId | str) -> tuple[CelExpr, ...]:
-        target_id = to_context_id(target)
+        target_id = ContextId(target)
         return tuple(dict.fromkeys(self.context_assumptions.get(target_id, ())))
 
     def materialize_lifted_assertions(
@@ -311,9 +311,9 @@ class LiftingSystem:
         solver: ExceptionPatternSolver | None = None,
         bindings: Mapping[str, CelScalar] | None = None,
     ) -> tuple[LiftingDecision, ...]:
-        target_id = to_context_id(target)
+        target_id = ContextId(target)
         assertion = IstProposition(
-            context=_assertions.ContextReference(to_context_id(source)),
+            context=_assertions.ContextReference(ContextId(source)),
             proposition_id=proposition_id,
         )
         return tuple(
@@ -343,8 +343,8 @@ class LiftingSystem:
         )
         provenance = LiftingDecisionProvenance(
             rule_id=rule.id,
-            source_context_id=to_context_id(rule.source.id),
-            target_context_id=to_context_id(rule.target.id),
+            source_context_id=ContextId(rule.source.id),
+            target_context_id=ContextId(rule.target.id),
             source_proposition_id=assertion.proposition_id,
             status=rule_status,
             justification=rule.justification,
@@ -380,8 +380,8 @@ class LiftingSystem:
         defeat = _lifting_exception_defeat(rule, assertion, exception)
         blocked_provenance = LiftingDecisionProvenance(
             rule_id=rule.id,
-            source_context_id=to_context_id(rule.source.id),
-            target_context_id=to_context_id(rule.target.id),
+            source_context_id=ContextId(rule.source.id),
+            target_context_id=ContextId(rule.target.id),
             source_proposition_id=assertion.proposition_id,
             status=LiftingDecisionStatus.BLOCKED,
             justification=exception.justification,

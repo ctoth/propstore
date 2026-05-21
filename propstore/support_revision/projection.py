@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING
 import rfc8785
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.assertions.situated import SituatedAssertion
-from propstore.core.id_types import AssumptionId, to_claim_id
+from propstore.core.id_types import (
+    AssumptionId,
+    ClaimId,
+)
 from propstore.core.labels import SupportQuality
 from propstore.core.relations import ClaimConceptLinkRole, RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.families.claims.declaration import Claim
@@ -19,7 +22,7 @@ if TYPE_CHECKING:
     from propstore.support_revision.history import EpistemicSnapshot
 
 
-def snapshot_to_claim_ids(snapshot: "EpistemicSnapshot") -> set[str]:
+def snapshot_tuple(ClaimId(value) for value in snapshot: "EpistemicSnapshot") -> set[str]:
     """Project an ``EpistemicSnapshot`` to the set of source-claim ids it accepts.
 
     For each ``AssertionAtom`` in the snapshot's belief base whose
@@ -43,7 +46,7 @@ def snapshot_to_claim_ids(snapshot: "EpistemicSnapshot") -> set[str]:
 
 
 def _claim_support_lookup_id(claim: Claim) -> str:
-    return to_claim_id(claim.id)
+    return ClaimId(claim.id)
 
 
 def situated_assertion_from_claim(

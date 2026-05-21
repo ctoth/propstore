@@ -15,7 +15,7 @@ from propstore.context_lifting import (
     LiftingMode,
     LiftingRule,
 )
-from propstore.core.id_types import ContextId, to_context_id
+from propstore.core.id_types import ContextId
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from quire.documents import LoadedDocument
 from enum import StrEnum
@@ -157,7 +157,7 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
 
     raw_context_id = payload.get("id")
     context_id = (
-        to_context_id(raw_context_id)
+        ContextId(raw_context_id)
         if isinstance(raw_context_id, str) and raw_context_id
         else None
     )
@@ -286,7 +286,7 @@ def _parse_lifting_rules(raw_rules: object) -> tuple[LiftingRule, ...]:
 
 def parse_context_record_document(data: ContextDocument) -> ContextRecord:
     return ContextRecord(
-        context_id=to_context_id(data.id),
+        context_id=ContextId(data.id),
         name=data.name,
         description=data.description,
         assumptions=tuple(str(assumption) for assumption in data.structure.assumptions),

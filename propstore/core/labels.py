@@ -12,9 +12,6 @@ from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.core.id_types import (
     AssumptionId,
     ContextId,
-    to_assumption_id,
-    to_assumption_ids,
-    to_context_id,
 )
 from propstore.provenance.polynomial import ProvenancePolynomial
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -46,10 +43,10 @@ class EnvironmentKey:
     context_ids: tuple[ContextId, ...] = ()
 
     def __post_init__(self) -> None:
-        normalized = tuple(sorted(dict.fromkeys(to_assumption_ids(self.assumption_ids))))
+        normalized = tuple(sorted(dict.fromkeys(tuple(AssumptionId(value) for value in self.assumption_ids))))
         object.__setattr__(self, "assumption_ids", normalized)
         normalized_contexts = tuple(
-            sorted(dict.fromkeys(to_context_id(value) for value in self.context_ids))
+            sorted(dict.fromkeys(ContextId(value) for value in self.context_ids))
         )
         object.__setattr__(self, "context_ids", normalized_contexts)
 
@@ -171,7 +168,7 @@ class Label:
 
     @classmethod
     def context(cls, context_id: ContextId | str) -> Label:
-        return cls((EnvironmentKey((), context_ids=(to_context_id(context_id),)),))
+        return cls((EnvironmentKey((), context_ids=(ContextId(context_id),)),))
 
 
 def binding_condition_to_cel(key: str, value: Any) -> CelExpr:
@@ -249,7 +246,7 @@ def compile_environment_assumptions(
             )
         )
 
-    normalized_context_id = None if context_id is None else to_context_id(context_id)
+    normalized_context_id = None if context_id is None else ContextId(context_id)
     context_source = normalized_context_id or "<context>"
     for cel in sorted(dict.fromkeys(to_cel_exprs(effective_assumptions))):
         compiled.append(
@@ -352,10 +349,10 @@ def _context_variable(context_id: ContextId) -> SourceVariableId:
 def _variable_to_environment_piece(variable: SourceVariableId) -> tuple[AssumptionId | None, ContextId | None]:
     value = str(variable)
     if value.startswith(_ASSUMPTION_VAR_PREFIX):
-        return to_assumption_id(value.removeprefix(_ASSUMPTION_VAR_PREFIX)), None
+        return AssumptionId(value.removeprefix(_ASSUMPTION_VAR_PREFIX)), None
     if value.startswith(_CONTEXT_VAR_PREFIX):
-        return None, to_context_id(value.removeprefix(_CONTEXT_VAR_PREFIX))
-    return to_assumption_id(value), None
+        return None, ContextId(value.removeprefix(_CONTEXT_VAR_PREFIX))
+    return AssumptionId(value), None
 
 
 def _environment_to_polynomial(environment: EnvironmentKey) -> ProvenancePolynomial:
@@ -391,4 +388,4 @@ def _polynomial_to_environments(poly: ProvenancePolynomial) -> tuple[Environment
 
 def _stable_id(kind: str, source: str, body: str) -> AssumptionId:
     digest = hashlib.sha256(f"{kind}\0{source}\0{body}".encode("utf-8")).hexdigest()
-    return to_assumption_id(f"{kind}:{source}:{digest}")
+    return AssumptionId(f"{kind}:{source}:{digest}")
