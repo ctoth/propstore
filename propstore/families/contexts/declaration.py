@@ -22,7 +22,6 @@ from propstore.core.id_types import to_context_id
 from propstore.cel_types import to_cel_exprs
 from propstore.families.contexts.stages import (
     LoadedContext,
-    coerce_loaded_contexts,
     loaded_contexts_to_lifting_system,
 )
 
@@ -86,7 +85,7 @@ def compile_context_models(
     assumption_models: list[ContextAssumption] = []
     lifting_rule_models: list[ContextLiftingRule] = []
 
-    for context in coerce_loaded_contexts(contexts):
+    for context in contexts:
         record = context.record
         if record.context_id is None:
             continue

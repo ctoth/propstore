@@ -130,12 +130,9 @@ class LoadedContext:
         )
 
 
-ContextInput = LoadedContext
-
-
 @dataclass(frozen=True)
 class ContextAuthoredSet:
-    contexts: tuple[ContextInput, ...]
+    contexts: tuple[LoadedContext, ...]
 
 
 @dataclass(frozen=True)
@@ -309,32 +306,23 @@ def parse_context_record_document(data: ContextDocument) -> ContextRecord:
     )
 
 
-def coerce_loaded_context(context: ContextInput) -> LoadedContext:
-    return context
-
-
-def coerce_loaded_contexts(contexts: Sequence[ContextInput]) -> list[LoadedContext]:
-    return [coerce_loaded_context(context) for context in contexts]
-
-
 def loaded_contexts_to_lifting_system(
-    contexts: Sequence[ContextInput],
+    contexts: Sequence[LoadedContext],
 ) -> LiftingSystem:
-    loaded_contexts = coerce_loaded_contexts(contexts)
     return LiftingSystem(
         contexts=tuple(
             ContextReference(id=context.record.context_id)
-            for context in loaded_contexts
+            for context in contexts
             if context.record.context_id is not None
         ),
         lifting_rules=tuple(
             rule
-            for context in loaded_contexts
+            for context in contexts
             for rule in context.record.lifting_rules
         ),
         context_assumptions={
             context.record.context_id: to_cel_exprs(context.record.assumptions)
-            for context in loaded_contexts
+            for context in contexts
             if context.record.context_id is not None
         },
     )

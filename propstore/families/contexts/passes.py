@@ -12,7 +12,6 @@ from propstore.families.contexts.stages import (
     ContextNormalizedSet,
     ContextStage,
     LoadedContext,
-    coerce_loaded_contexts,
 )
 from propstore.families.registry import PropstoreFamily
 from propstore.semantic_passes.registry import PipelineRegistry
@@ -32,9 +31,7 @@ class ContextNormalizePass:
         value: ContextAuthoredSet,
         context: object,
     ) -> PassResult[ContextNormalizedSet]:
-        return PassResult.ok(
-            ContextNormalizedSet(contexts=tuple(coerce_loaded_contexts(value.contexts)))
-        )
+        return PassResult.ok(ContextNormalizedSet(contexts=tuple(value.contexts)))
 
 
 class ContextIdentityPass:
