@@ -1,20 +1,33 @@
 from __future__ import annotations
 
-import sqlite3
+from collections.abc import Sequence
 from sqlite3 import Connection
 
 from propstore.families.relations.declaration import ConflictWitness, Stance
+from tests.claim_model_helpers import claim_model_from_test_payload
 
 
 class SQLiteArgumentationStore:
     def __init__(self, conn: Connection) -> None:
         self._conn = conn
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
+    def _fetch_dicts(
+        self,
+        query: str,
+        params: Sequence[object] = (),
+    ) -> list[dict[str, object]]:
+        cursor = self._conn.execute(query, params)
+        columns = [description[0] for description in cursor.description]
+        return [dict(zip(columns, row, strict=True)) for row in cursor.fetchall()]
+
+    def get_claim(self, claim_id: str):
+        return self.claims_by_ids({claim_id}).get(claim_id)
+
+    def claims_by_ids(self, claim_ids: set[str]):
         if not claim_ids:
             return {}
         placeholders = ",".join("?" for _ in claim_ids)
-        rows = self._conn.execute(
+        rows = self._fetch_dicts(
             f"""
             SELECT
                 core.id,
@@ -43,14 +56,17 @@ class SQLiteArgumentationStore:
             WHERE core.id IN ({placeholders})
             """,  # noqa: S608
             list(claim_ids),
-        ).fetchall()
-        return {row["id"]: dict(row) for row in rows}
+        )
+        return {
+            str(row["id"]): claim_model_from_test_payload(row)
+            for row in rows
+        }
 
     def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         if not claim_ids:
             return []
         placeholders = ",".join("?" for _ in claim_ids)
-        rows = self._conn.execute(
+        rows = self._fetch_dicts(
             f"""
             SELECT
                 source_id AS claim_id,
@@ -77,7 +93,7 @@ class SQLiteArgumentationStore:
               AND target_id IN ({placeholders})
             """,  # noqa: S608
             list(claim_ids) + list(claim_ids),
-        ).fetchall()
+        )
         return [
             Stance(
                 source_kind="claim",
@@ -105,13 +121,13 @@ class SQLiteArgumentationStore:
 
     def conflicts(self) -> list[ConflictWitness]:
         try:
-            rows = self._conn.execute(
+            rows = self._fetch_dicts(
                 """
                 SELECT concept_id, claim_a_id, claim_b_id, warning_class,
                        conditions_a, conditions_b, value_a, value_b, derivation_chain
                 FROM conflict_witness
                 """
-            ).fetchall()
+            )
             return [
                 ConflictWitness(
                     concept_id=row["concept_id"],

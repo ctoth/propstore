@@ -228,6 +228,15 @@ def claim_model_from_test_payload(row: Mapping[str, object]) -> Claim:
         sample_size=(
             None if row.get("sample_size") is None else int(row["sample_size"])
         ),
+        uncertainty=(
+            None if row.get("uncertainty") is None else float(row["uncertainty"])
+        ),
+        uncertainty_type=(
+            None
+            if row.get("uncertainty_type") is None
+            else str(row["uncertainty_type"])
+        ),
+        unit=None if row.get("unit") is None else str(row["unit"]),
         conditions_cel=(
             None if row.get("conditions_cel") is None else str(row["conditions_cel"])
         ),
