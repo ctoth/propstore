@@ -107,7 +107,7 @@ def at_journal_step(
         return replay_at_step(belief_space, journal, k)
 
     snap = journal.entries[k].state_out
-    claim_ids = snapshot_tuple(ClaimId(value) for value in snap)
+    claim_ids = snapshot_to_claim_ids(snap)
     rows = belief_space.claims_by_ids(claim_ids)
     scope = snap.state.scope
     bound = None

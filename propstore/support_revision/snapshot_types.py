@@ -83,7 +83,7 @@ def _assumption_ref_to_dict(assumption: AssumptionRef) -> dict[str, Any]:
 def _scope_from_json_payload(data: Mapping[str, Any]) -> RevisionScope:
     return RevisionScope(
         bindings=dict(_optional_mapping(data.get("bindings"), "bindings")),
-        context_id=None if data.get("context_id") is None else ContextId(data.get("context_id")),
+        context_id=None if data.get("context_id") is None else ContextId(str(data["context_id"])),
         branch=None if data.get("branch") is None else str(data.get("branch")),
         commit=None if data.get("commit") is None else str(data.get("commit")),
         merge_parent_commits=tuple(str(item) for item in (data.get("merge_parent_commits") or ())),

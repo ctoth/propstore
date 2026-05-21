@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from propstore.support_revision.history import EpistemicSnapshot
 
 
-def snapshot_tuple(ClaimId(value) for value in snapshot: "EpistemicSnapshot") -> set[str]:
+def snapshot_to_claim_ids(snapshot: "EpistemicSnapshot") -> set[str]:
     """Project an ``EpistemicSnapshot`` to the set of source-claim ids it accepts.
 
     For each ``AssertionAtom`` in the snapshot's belief base whose

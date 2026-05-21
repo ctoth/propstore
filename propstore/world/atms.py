@@ -345,11 +345,11 @@ class BudgetExhausted(RuntimeError):
         )
 
 
-def _queryable_id_list(values: Iterable[object]) -> list[QueryableId]:
+def _queryable_id_list(values: Iterable[str]) -> list[QueryableId]:
     return list(tuple(QueryableId(value) for value in values))
 
 
-def _assumption_id_list(values: Iterable[object]) -> list[AssumptionId]:
+def _assumption_id_list(values: Iterable[str]) -> list[AssumptionId]:
     return list(tuple(AssumptionId(value) for value in values))
 
 
