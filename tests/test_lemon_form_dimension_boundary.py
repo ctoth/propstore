@@ -51,45 +51,16 @@ def test_dimension_algebra_has_canonical_module() -> None:
 
 
 def test_form_utils_no_longer_owns_dimension_algebra() -> None:
-    import propstore.families.forms.stages as form_utils
+    import propstore.families.forms.stages as form_stages
 
-    path = PROPSTORE / "form_utils.py"
-    tree = _parse(path)
-    class_names = {
-        node.name
-        for node in ast.walk(tree)
-        if isinstance(node, ast.ClassDef)
-    }
-    function_names = {
-        node.name
-        for node in ast.walk(tree)
-        if isinstance(node, ast.FunctionDef)
-    }
-    assigned_names = {
-        target.id
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Assign)
-        for target in node.targets
-        if isinstance(target, ast.Name)
-    }
-    imported_modules = {
-        alias.name
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Import)
-        for alias in node.names
-    }
-
-    assert "pint" not in imported_modules
-    assert DIMENSION_API.isdisjoint(class_names | function_names | assigned_names)
+    assert not (PROPSTORE / "form_utils.py").exists()
     for name in DIMENSION_API:
-        assert not hasattr(form_utils, name), name
+        assert not hasattr(form_stages, name), name
 
 
 def test_production_callers_do_not_import_dimension_api_from_form_utils() -> None:
     offenders: list[tuple[str, str]] = []
     for path in _production_files():
-        if path == PROPSTORE / "form_utils.py":
-            continue
         for node in ast.walk(_parse(path)):
             if not isinstance(node, ast.ImportFrom):
                 continue

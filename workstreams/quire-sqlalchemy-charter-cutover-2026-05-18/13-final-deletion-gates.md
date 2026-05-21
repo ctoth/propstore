@@ -453,6 +453,11 @@ Gate: no local path, workspace, or file URL Quire dependency.
     typed `Claim`/`ConflictWitness` objects.
   - `uv run pyright propstore` passed with 0 errors after the conflict query
     boundary repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-form-utils-deleted-2 tests/test_lemon_form_dimension_boundary.py`
+    passed 5 tests after keeping `propstore/form_utils.py` deleted and removing
+    the direct dimension API import from `propstore.families.forms.stages`.
+  - `uv run pyright propstore` passed with 0 errors after the forms-stage
+    dimension API import cleanup.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.

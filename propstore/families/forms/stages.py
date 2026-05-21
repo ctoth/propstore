@@ -12,7 +12,6 @@ from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
 from propstore import dimensions as dimension_api
 from propstore.core.conditions.registry import KindType
-from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.forms.documents import FormDocument
 from propstore.propagation import rewrite_parameterization_symbols
 from quire.charters import FamilyModel
@@ -301,7 +300,7 @@ def compile_form_algebra(
                 output_fd = form_registry.get(output_form)
                 input_fd_list = [form_registry.get(form_name) for form_name in input_forms]
                 if output_fd is not None and all(fd is not None for fd in input_fd_list):
-                    if not verify_form_algebra_dimensions(
+                    if not dimension_api.verify_form_algebra_dimensions(
                         output_fd,
                         input_fd_list,  # type: ignore[arg-type]
                         operation,
