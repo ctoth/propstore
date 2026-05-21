@@ -476,3 +476,13 @@ Recorded 2026-05-20.
   slice returns to Quire to add charter/schema/SQLAlchemy polymorphic mapping,
   then Propstore is pinned to the pushed Quire commit before relation callers
   are repaired.
+- Quire capability repair completed: Quire commit
+  `a506af4984f4a83d5e6d4752344a4bd59309492f` adds
+  `CharterPolymorphicModel`, carries polymorphic declarations through schema
+  IR/catalog hashing, maps single-table subclasses with SQLAlchemy
+  `map_imperatively`, and proves querying the base relation table returns
+  typed subclass instances. The commit was pushed to
+  `github.com:ctoth/quire.git` on `master`. Quire gates passed:
+  `uv run pyright` with 0 errors and `uv run pytest -vv` with 368 passed.
+  Propstore `pyproject.toml` and `uv.lock` are pinned to that pushed Git SHA,
+  not a local path.
