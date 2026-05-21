@@ -35,6 +35,9 @@ Final state:
   fields. Quire owns generated mapped model classes or catalog construction
   from `FamilyCharter` metadata; Propstore owns semantic behavior around those
   generated types.
+- Propstore mapped storage classes are methods-only subclasses of Quire
+  `FamilyModel`; field declarations and construction shape live only in Quire
+  charter metadata.
 - The queryable sidecar is a generated Quire derived store over Propstore charters. It can be deleted and rebuilt from Git artifacts.
 - Runtime data access uses Quire-opened SQLAlchemy sessions and Propstore domain model classes.
 
@@ -120,6 +123,8 @@ These are workstream failures:
 - doing cleanup outside the current family slice;
 - porting a caller while leaving the old callee as a production path;
 - inventing a schema declaration outside Quire when the current target is the Quire charter engine;
+- inventing or retaining hand-authored mapped storage fields outside Quire
+  charter metadata;
 - reusing Quire projection primitives after the current phase says they are deleted;
 - claiming a helper is gone without running the named search gate;
 - claiming SQLAlchemy capability without a Quire proof test that exercises the exact feature;
@@ -145,6 +150,10 @@ Sibling files:
 - `08a-typed-claim-graph-projection.md`: typed claim-to-graph projection owner for persisted and synthetic claims.
 - `09-relations-stances-conflicts.md`: relations, stances, and conflicts slice.
 - `10-micropublications-justifications.md`: justifications and micropublications slice.
+- `10a-charter-generated-model-cleanup.md`: cross-cutting cleanup that
+  converts every Propstore mapped sidecar model into a methods-only Quire
+  `FamilyModel` subclass and deletes duplicated field declarations,
+  constructors, placeholder records, and mapping repair APIs.
 - `11-rules-grounding-calibration-embeddings.md`: rules, grounding, calibration, embeddings, and vector runtimes.
 - `12-world-query-graph-reasoning.md`: WorldQuery, session, graph, and reasoning cutover.
 - `13-final-deletion-gates.md`: delete Quire projection modules, delete Propstore projection/helper leftovers, final gates, docs, and dependency pin.
@@ -167,6 +176,7 @@ Execute in this exact order:
 | 10. Claim model and association-object slice | `08-claims-active-claims.md`, `08a-typed-claim-graph-projection.md` | Claim split row models/helpers, active-claim row coercion, and duplicate claim-to-graph field projection are deleted; claim parity passes. |
 | 11. Relations/stances/conflicts slice | `09-relations-stances-conflicts.md` | Relation/stance/conflict row models are deleted and parity passes. |
 | 12. Justifications and micropublications slice | `10-micropublications-justifications.md` | Micropublication/justification projection surfaces are deleted and parity passes. |
+| 12a. Charter-generated model cleanup | `10a-charter-generated-model-cleanup.md` | Quire `FamilyModel` support is pinned; every Propstore mapped sidecar model is methods-only; duplicated mapped field declarations, constructors, placeholder records, and mapping repair APIs are deleted. |
 | 13. Rules/grounding/calibration/embeddings slice | `11-rules-grounding-calibration-embeddings.md` | Support families use typed models and Quire vector APIs. |
 | 14. WorldQuery/session/graph/reasoning cutover | `12-world-query-graph-reasoning.md` | WorldQuery uses Quire sessions and typed model queries. |
 | 15-17. Final deletion gates and dependency pin | `13-final-deletion-gates.md` | Quire projection modules and Propstore projection/helper leftovers are deleted; full gates pass; Propstore is pinned to a pushed Quire commit/tag. |
@@ -455,6 +465,9 @@ The directory workstream is complete only when:
 - Quire schema/catalog/session APIs expose generic family main-model access
   and family-reference lookup from charter metadata, with no Propstore
   per-family lookup wrappers.
+- Quire `FamilyModel` supports Propstore methods-only mapped classes; all
+  Propstore sidecar mapped models subclass it without declaring storage
+  fields or storage constructors.
 - Quire charters compose with existing `ArtifactFamily`, document-store, placement, and reference/FK APIs instead of replacing them with a parallel registry.
 - Quire projection modules and projection public exports are deleted.
 - Propstore supplies domain charters for every sidecar family.
@@ -462,6 +475,9 @@ The directory workstream is complete only when:
 - Propstore no longer imports Quire projection primitives.
 - Propstore has no family `projection_model.py` files.
 - Propstore has no duplicate `*Row` model layer for domain objects.
+- Propstore has no hand-authored mapped storage field declarations,
+  constructor field lists, loose `__init__(**values)` sinks, mapping repair
+  constructors, or placeholder `*Record` classes.
 - `claim.concept_links` is the primary relationship and `ClaimConceptLink` owns role/ordinal/binding metadata.
 - Micropublication claim links, aliases, parameterizations, context lifting records, stances, and conflicts are typed models or association objects.
 - Source-local and canonical states are explicit charter/lifecycle states.
