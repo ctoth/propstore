@@ -469,3 +469,10 @@ Recorded 2026-05-20.
   `ConflictWitness`/`ConflictWitnessRecord` model access through Quire
   sessions and relation owners, not to restore a projection-model module,
   constants, row DTOs, coercers, or compatibility aliases.
+- Required Quire capability repair: current Quire charter mapping has no
+  charter-declared SQLAlchemy polymorphic model support. Phase 11 cannot
+  truthfully map `Stance` and `ConceptRelation` through `relation_edge`
+  polymorphism until Quire owns that generic capability. The next execution
+  slice returns to Quire to add charter/schema/SQLAlchemy polymorphic mapping,
+  then Propstore is pinned to the pushed Quire commit before relation callers
+  are repaired.
