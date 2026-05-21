@@ -172,3 +172,20 @@ projection rather than normalizing around it.
   typed store access (`get_claim`) and the existing generic logical-id table
   index. Do not add `def resolve_claim`, a claim-specific lookup wrapper, or
   an overlay string-rewrite shim.
+- Focused repair committed as `7321c675`. `WorldQuery.get_claim` now consults
+  the generic logical-id table index for `claim_core`; that index now uses the
+  requested table instead of always querying `concept`. `OverlayWorld` lowers
+  removal and replacement ids through `get_claim`, not `_store.resolve_claim`.
+  Runtime tests now assert through `Claim.numeric_payload` instead of the
+  deleted `Claim.value` surface.
+- Focused verification passed: `powershell -File
+  scripts/run_logged_pytest.ps1 -Label typed-claim-overlay-removal
+  tests/test_world_query.py::TestAlgorithmWorldQuery::test_algorithm_value_of_equivalent_pair
+  tests/test_world_query.py::TestAlgorithmWorldQuery::test_algorithm_value_of_different_pair
+  tests/test_world_query.py::TestOverlayWorld::test_collect_known_values_uses_hypothetical
+  tests/test_world_query.py::TestOverlayWorld::test_resolves_conflict` passed
+  with 4 tests and log
+  `logs\test-runs\typed-claim-overlay-removal-20260520-212557.log`.
+  `uv run pyright propstore` reported 0 errors.
+  `rg -n -F -- "def resolve_claim" propstore tests` and
+  `rg -n -F -- ".resolve_claim(" propstore tests` returned no hits.
