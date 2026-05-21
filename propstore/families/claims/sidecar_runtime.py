@@ -5,9 +5,9 @@ from __future__ import annotations
 import contextlib
 import sqlite3
 from collections.abc import Callable, Sequence
-from pathlib import Path
 from typing import Any
 
+from quire.derived_store import DerivedStoreHandle
 from propstore.families.claims.declaration import (
     select_all_claim_ids,
     select_claim_text,
@@ -16,7 +16,7 @@ from propstore.families.claims.declaration import (
 
 
 def embed_claims_for_request(
-    sidecar: Path,
+    derived_store: DerivedStoreHandle,
     *,
     claim_id: str | None,
     embed_all: bool,
@@ -30,57 +30,50 @@ def embed_claims_for_request(
     from propstore.families.embeddings.declaration import (
         embed_claims,
         get_registered_models,
-        load_vec_extension,
     )
-    from quire.derived_runtime import connect_sqlite_store
 
     ids = [claim_id] if claim_id else None
     reports: list[tuple[str, Any]] = []
-    conn = connect_sqlite_store(sidecar)
-    with contextlib.closing(conn):
-        conn.row_factory = sqlite3.Row
-        load_vec_extension(conn)
-        if model == "all":
-            models = get_registered_models(conn)
-            if not models:
-                raise LookupError("no models registered")
-            for model_row in models:
-                model_name = str(model_row["model_name"])
-                result = embed_claims(
-                    conn,
-                    model_name,
-                    claim_ids=ids,
-                    batch_size=batch_size,
-                    on_progress=(
-                        None
-                        if on_progress is None
-                        else lambda done, total, model_name=model_name: on_progress(
-                            model_name,
-                            done,
-                            total,
-                        )
-                    ),
-                )
-                reports.append((model_name, result))
-        else:
+    if model == "all":
+        models = get_registered_models(derived_store)
+        if not models:
+            raise LookupError("no models registered")
+        for model_row in models:
+            model_name = str(model_row["model_name"])
             result = embed_claims(
-                conn,
-                model,
+                derived_store,
+                model_name,
                 claim_ids=ids,
                 batch_size=batch_size,
                 on_progress=(
                     None
                     if on_progress is None
-                    else lambda done, total: on_progress(model, done, total)
+                    else lambda done, total, model_name=model_name: on_progress(
+                        model_name,
+                        done,
+                        total,
+                    )
                 ),
             )
-            reports.append((model, result))
-        conn.commit()
+            reports.append((model_name, result))
+    else:
+        result = embed_claims(
+            derived_store,
+            model,
+            claim_ids=ids,
+            batch_size=batch_size,
+            on_progress=(
+                None
+                if on_progress is None
+                else lambda done, total: on_progress(model, done, total)
+            ),
+        )
+        reports.append((model, result))
     return reports
 
 
 def find_similar_claim_rows(
-    sidecar: Path,
+    derived_store: DerivedStoreHandle,
     *,
     claim_id: str,
     model: str | None,
@@ -93,36 +86,28 @@ def find_similar_claim_rows(
         find_similar_agree,
         find_similar_disagree,
         get_registered_models,
-        load_vec_extension,
     )
-    from quire.derived_runtime import connect_sqlite_store
 
-    conn = connect_sqlite_store(sidecar)
-    conn.row_factory = sqlite3.Row
-    load_vec_extension(conn)
-
-    try:
-        if agree:
-            rows = find_similar_agree(conn, claim_id, top_k=top_k)
-        elif disagree:
-            rows = find_similar_disagree(conn, claim_id, top_k=top_k)
-        else:
-            selected_model = model
-            if selected_model is None:
-                models = get_registered_models(conn)
-                if not models:
-                    raise LookupError("no embeddings found")
-                selected_model = str(models[0]["model_name"])
-            rows = find_similar(conn, claim_id, selected_model, top_k=top_k)
-    finally:
-        conn.close()
+    if agree:
+        rows = find_similar_agree(derived_store, claim_id, top_k=top_k)
+    elif disagree:
+        rows = find_similar_disagree(derived_store, claim_id, top_k=top_k)
+    else:
+        selected_model = model
+        if selected_model is None:
+            models = get_registered_models(derived_store)
+            if not models:
+                raise LookupError("no embeddings found")
+            selected_model = str(models[0]["model_name"])
+        rows = find_similar(derived_store, claim_id, selected_model, top_k=top_k)
 
     return [dict(row) for row in rows]
 
 
 class SidecarClaimRelationStore:
-    def __init__(self, conn: sqlite3.Connection) -> None:
+    def __init__(self, conn: sqlite3.Connection, derived_store: DerivedStoreHandle) -> None:
         self._conn = conn
+        self._derived_store = derived_store
 
     def load_embedding_extension(self) -> None:
         from propstore.families.embeddings.declaration import load_vec_extension
@@ -132,7 +117,7 @@ class SidecarClaimRelationStore:
     def get_registered_models(self) -> list[dict]:
         from propstore.families.embeddings.declaration import get_registered_models
 
-        return get_registered_models(self._conn)
+        return get_registered_models(self._derived_store)
 
     def get_claim_text(self, claim_id: str) -> dict[str, Any] | None:
         return select_claim_text(self._conn, claim_id)
@@ -152,11 +137,11 @@ class SidecarClaimRelationStore:
     ) -> list[dict[str, Any]]:
         from propstore.families.embeddings.declaration import find_similar
 
-        return find_similar(self._conn, claim_id, model_name, top_k=top_k)
+        return find_similar(self._derived_store, claim_id, model_name, top_k=top_k)
 
 
 def relate_claim_from_sidecar(
-    sidecar: Path,
+    derived_store: DerivedStoreHandle,
     claim_id: str,
     model_name: str,
     embedding_model: str | None = None,
@@ -165,11 +150,11 @@ def relate_claim_from_sidecar(
     from quire.derived_runtime import connect_sqlite_store
     from propstore.heuristic.relate import relate_claim
 
-    conn = connect_sqlite_store(sidecar)
+    conn = connect_sqlite_store(derived_store.path)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         return relate_claim(
-            SidecarClaimRelationStore(conn),
+            SidecarClaimRelationStore(conn, derived_store),
             claim_id,
             model_name,
             embedding_model,
@@ -178,7 +163,7 @@ def relate_claim_from_sidecar(
 
 
 def relate_all_from_sidecar(
-    sidecar: Path,
+    derived_store: DerivedStoreHandle,
     model_name: str,
     embedding_model: str | None = None,
     top_k: int = 5,
@@ -188,11 +173,11 @@ def relate_all_from_sidecar(
     from quire.derived_runtime import connect_sqlite_store
     from propstore.heuristic.relate import relate_all
 
-    conn = connect_sqlite_store(sidecar)
+    conn = connect_sqlite_store(derived_store.path)
     with contextlib.closing(conn):
         conn.row_factory = sqlite3.Row
         return relate_all(
-            SidecarClaimRelationStore(conn),
+            SidecarClaimRelationStore(conn, derived_store),
             model_name,
             embedding_model,
             top_k,
