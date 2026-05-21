@@ -19,16 +19,20 @@ from propstore.aspic_bridge.grounding import (
 )
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey, claim_key
+from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
+from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
-def _make_claim(claim_id: str) -> dict[str, object]:
-    return {
-        "id": claim_id,
-        "concept_id": f"concept_{claim_id}",
-        "statement": f"Claim {claim_id}",
-        "premise_kind": "ordinary",
-    }
+def _make_claim(claim_id: str) -> Claim:
+    return claim_from_payload(
+        {
+            "id": claim_id,
+            "concept_id": f"concept_{claim_id}",
+            "statement": f"Claim {claim_id}",
+            "premise_kind": "ordinary",
+        }
+    )
 
 
 def _make_justification(
@@ -242,8 +246,12 @@ def test_query_claim_arguments_against_excludes_counter_attackers() -> None:
         _make_justification("reported:r", "r", rule_kind="reported_claim"),
     ]
     stances = [
-        {"claim_id": "q", "target_claim_id": "p", "stance_type": "rebuts"},
-        {"claim_id": "r", "target_claim_id": "q", "stance_type": "rebuts"},
+        stance_from_payload(
+            {"claim_id": "q", "target_claim_id": "p", "stance_type": "rebuts"}
+        ),
+        stance_from_payload(
+            {"claim_id": "r", "target_claim_id": "q", "stance_type": "rebuts"}
+        ),
     ]
 
     result = query_claim(
@@ -265,7 +273,9 @@ def test_build_bridge_csaf_populates_framework_attacks() -> None:
         _make_justification("reported:b", "b", rule_kind="reported_claim"),
     ]
     stances = [
-        {"claim_id": "a", "target_claim_id": "b", "stance_type": "rebuts"},
+        stance_from_payload(
+            {"claim_id": "a", "target_claim_id": "b", "stance_type": "rebuts"}
+        ),
     ]
 
     csaf = build_bridge_csaf(
@@ -373,12 +383,14 @@ def test_undercut_target_justification_id_matches_grounded_rule_base_id() -> Non
 
     cfn = stances_to_contrariness(
         [
-            {
-                "claim_id": "attacker",
-                "target_claim_id": "target",
-                "stance_type": "undercuts",
-                "target_justification_id": "r1",
-            }
+            stance_from_payload(
+                {
+                    "claim_id": "attacker",
+                    "target_claim_id": "target",
+                    "stance_type": "undercuts",
+                    "target_justification_id": "r1",
+                }
+            )
         ],
         literals,
         defeasible,

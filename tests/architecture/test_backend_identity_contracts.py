@@ -5,6 +5,7 @@ from argumentation.aspic import GroundAtom
 from propstore.aspic_bridge.translate import claims_to_literals
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import ProjectionAtom
+from tests.typed_family_fixtures import claim_from_payload
 
 
 def test_aspic_backend_atom_identity_includes_contextual_ist_frame() -> None:
@@ -16,11 +17,13 @@ def test_aspic_backend_atom_identity_includes_contextual_ist_frame() -> None:
 
     literals = claims_to_literals(
         [
-            {
-                "id": "claim_x",
-                "context_id": "ctx_a",
-                "source_assertion_ids": ["assertion_x"],
-            }
+            claim_from_payload(
+                {
+                    "id": "claim_x",
+                    "context_id": "ctx_a",
+                    "source_assertion_ids": ["assertion_x"],
+                }
+            )
         ]
     )
 

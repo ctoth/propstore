@@ -10,6 +10,7 @@ from propstore.core.literal_keys import (
     claim_key,
     ground_key,
 )
+from tests.typed_family_fixtures import claim_from_payload
 
 
 def test_claim_and_ground_literal_keys_are_disjoint_even_when_surface_matches() -> None:
@@ -66,12 +67,14 @@ def test_ground_literal_key_preserves_atom_shape() -> None:
 
 def test_claims_to_literals_uses_typed_claim_keys() -> None:
     literals = claims_to_literals([
-        {
-            "id": "claim-typed",
-            "concept_id": "concept-typed",
-            "statement": "Typed claim",
-            "premise_kind": "ordinary",
-        }
+        claim_from_payload(
+            {
+                "id": "claim-typed",
+                "concept_id": "concept-typed",
+                "statement": "Typed claim",
+                "premise_kind": "ordinary",
+            }
+        )
     ])
 
     assert set(literals) == {claim_key("claim-typed")}
