@@ -163,6 +163,12 @@ that owner workstream.
   `ContextWriteModels` typed-batch carrier, then updated build/test callers
   to consume positional typed batches. `uv run pyright propstore` passed
   after the slice.
+- Claims slice complete: `Claim`, `ClaimConceptLink`,
+  `ClaimNumericPayload`, `ClaimTextPayload`, `ClaimAlgorithmPayload`, and
+  `ClaimSourceAssertion` now subclass `FamilyModel` with methods only.
+  Deleted storage field annotations and broad constructors; relationship
+  assignment is carried by Quire `FamilyModel` support, not Propstore field
+  redeclarations. `uv run pyright propstore` passed after the slice.
 
 ## Completion Criteria
 
