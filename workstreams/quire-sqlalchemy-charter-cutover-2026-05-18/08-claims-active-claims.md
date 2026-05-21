@@ -1428,6 +1428,24 @@ Current binding queue:
   epistemic-history-typed-claims tests/test_epistemic_history.py
   tests/test_revision_argumentation_views.py` passed with 11 tests and log
   `logs\test-runs\epistemic-history-typed-claims-20260520-190714.log`.
+- Journal fixture typed-claim cleanup: commit `82097015` removed
+  `ActiveClaim` from `tests/fixtures/journal.py`. The fixture now constructs
+  typed `Claim` objects through the existing Quire-backed test claim builder,
+  stores synthetic belief-space rows by `Claim.id`, and projects snapshots
+  through `AssertionAtom.source_claim_ids` rather than row-model
+  `claim_id` fields. `snapshot_to_claim_ids` now reads typed source claim ids
+  directly, and the direct journal-step property tests compare against those
+  ids instead of reconstructed active-claim rows. Focused verification
+  `uv run pyright tests/fixtures/journal.py
+  propstore/support_revision/projection.py
+  tests/test_world_query_at_journal_step.py
+  tests/test_snapshot_to_claim_ids.py tests/test_p_heavy.py` passed with
+  0 errors. Searches for `ActiveClaim` and `claim.claim_id` in the edited
+  files returned zero hits. Logged focused pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label journal-fixture-typed-claims
+  tests/test_snapshot_to_claim_ids.py tests/test_world_query_at_journal_step.py
+  tests/test_p_heavy.py tests/test_p_mara_gate.py` passed with 14 tests and
+  log `logs\test-runs\journal-fixture-typed-claims-20260520-191204.log`.
 - Normalizer deletion queue refresh: `_normalize_attrs` and similar
   broad attribute/payload repair helpers are explicitly in the Phase 10
   deletion queue when they construct or repair claim/runtime model shape
