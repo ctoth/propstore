@@ -155,16 +155,16 @@ def test_p_heavy_2_heavy_surfaces_stances_minimal_does_not() -> None:
     extra_row = space.add_claim("c2")
     fake_stance = StanceRow(
         claim_id=_claim_id("c1"),
-        target_claim_id=extra_row.claim_id,
+        target_claim_id=to_claim_id(extra_row.id),
         stance_type=StanceType.SUPPORTS,
     )
     fake_conflict = ConflictRow(
         claim_a_id=_claim_id("c1"),
-        claim_b_id=extra_row.claim_id,
+        claim_b_id=to_claim_id(extra_row.id),
     )
     register_fixture_commit(
         commit_sha,
-        claim_ids=frozenset({str(extra_row.claim_id)}),
+        claim_ids=frozenset({str(extra_row.id)}),
         stances=(fake_stance,),
         conflicts=(fake_conflict,),
     )

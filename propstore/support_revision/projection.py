@@ -23,23 +23,22 @@ def snapshot_to_claim_ids(snapshot: "EpistemicSnapshot") -> set[str]:
     """Project an ``EpistemicSnapshot`` to the set of source-claim ids it accepts.
 
     For each ``AssertionAtom`` in the snapshot's belief base whose
-    ``atom_id`` is in ``snapshot.state.accepted_atom_ids``, collect the
-        string-form claim id of every typed ``Claim`` in
-    ``atom.source_claims``. Many-to-one is honored: an accepted atom with
-    N source claims contributes all N ids.
+    ``atom_id`` is in ``snapshot.state.accepted_atom_ids``, collect every
+    typed source claim id. Many-to-one is honored: an accepted atom with N
+    source claim ids contributes all N ids.
 
     The reverse map (atom -> claim_ids) is recoverable from the snapshot
-    itself because every ``AssertionAtom`` carries its source_claims
-    (state.py:43-58). This is the read-direction inverse of
+    itself because every ``AssertionAtom`` carries ``source_claim_ids``.
+    This is the read-direction inverse of
     ``project_belief_base``.
     """
     state = snapshot.state
     accepted = set(state.accepted_atom_ids)
     return {
-        str(claim.id)
+        str(claim_id)
         for atom in state.base.atoms
         if isinstance(atom, AssertionAtom) and atom.atom_id in accepted
-        for claim in atom.source_claims
+        for claim_id in atom.source_claim_ids
     }
 
 

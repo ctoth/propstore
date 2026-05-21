@@ -15,7 +15,6 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from propstore.core.active_claims import ActiveClaim
 from typing import Any
 
 from propstore.core.assertions.refs import (
@@ -24,12 +23,12 @@ from propstore.core.assertions.refs import (
     ProvenanceGraphRef,
 )
 from propstore.core.assertions.situated import SituatedAssertion
-from propstore.core.id_types import to_claim_id
 from propstore.core.relations import (
     RelationConceptRef,
     RoleBinding,
     RoleBindingSet,
 )
+from propstore.families.claims.declaration import Claim
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
     EpistemicSnapshot,
@@ -45,6 +44,7 @@ from propstore.support_revision.state import (
     EpistemicState,
     RevisionScope,
 )
+from tests.claim_model_helpers import claim_model
 
 
 _DEFAULT_POLICY: Mapping[str, str] = {
@@ -55,13 +55,20 @@ _DEFAULT_POLICY: Mapping[str, str] = {
 
 
 # ---------------------------------------------------------------------------
-# minimal real ActiveClaim + AssertionAtom builders
+# minimal real Claim + AssertionAtom builders
 
 
-def make_claim(claim_local_id: str) -> ActiveClaim:
-    """Return a real ``ActiveClaim`` with deterministic identity for tests."""
+def make_claim(claim_local_id: str) -> Claim:
+    """Return a typed ``Claim`` with deterministic identity for tests."""
     artifact_id = f"propstore:claim:test/{claim_local_id}"
-    return ActiveClaim(claim_id=to_claim_id(artifact_id), artifact_id=artifact_id)
+    return claim_model(
+        claim_id=artifact_id,
+        concept_id=f"concept:{claim_local_id}",
+        value=None,
+        statement=claim_local_id,
+        source_slug="test",
+        source_paper="test",
+    )
 
 
 def make_assertion_atom(
@@ -71,7 +78,7 @@ def make_assertion_atom(
     value: str,
     source_claim_local_ids: tuple[str, ...] = (),
 ) -> AssertionAtom:
-    """Return a real ``AssertionAtom`` whose source_claims map to real ClaimRows.
+    """Return a real ``AssertionAtom`` whose source_claims map to typed Claims.
 
     The atom_id is derived from the assertion (relation + role bindings +
     context + condition), as production demands.
@@ -211,14 +218,14 @@ class SyntheticBeliefSpace:
     ``SyntheticBoundView`` with all binding state observable.
     """
 
-    rows: dict[str, ActiveClaim] = field(default_factory=dict)
+    rows: dict[str, Claim] = field(default_factory=dict)
 
-    def add_claim(self, claim_local_id: str) -> ActiveClaim:
+    def add_claim(self, claim_local_id: str) -> Claim:
         row = make_claim(claim_local_id)
-        self.rows[str(row.claim_id)] = row
+        self.rows[str(row.id)] = row
         return row
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, ActiveClaim]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
         return {cid: self.rows[cid] for cid in claim_ids if cid in self.rows}
 
     def bind_for_view(
@@ -239,8 +246,8 @@ def synthetic_belief_space_with(*atoms: AssertionAtom) -> SyntheticBeliefSpace:
     """Build a belief space whose rows cover every source_claim of every atom."""
     space = SyntheticBeliefSpace()
     for atom in atoms:
-        for claim in atom.source_claims:
-            local = _local_from_artifact(str(claim.claim_id))
+        for claim_id in atom.source_claim_ids:
+            local = _local_from_artifact(str(claim_id))
             space.add_claim(local)
     return space
 

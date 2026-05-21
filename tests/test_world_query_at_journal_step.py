@@ -12,11 +12,14 @@ The synthetic belief space is a *real* protocol implementation
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.support_revision.projection import snapshot_to_claim_ids
+from propstore.support_revision.state import AssertionAtom
 from propstore.world.bridge import at_journal_step  # NEW — introduced by GREEN
 from tests.fixtures.journal import (
     direct_dispatch,
@@ -46,8 +49,8 @@ def st_atom(draw, *, ix: int):
 @st.composite
 def st_journal(draw):
     n_steps = draw(st.integers(min_value=1, max_value=5))
-    raw = [draw(st_atom(ix=i)) for i in range(n_steps)]
-    seen: dict[str, object] = {}
+    raw = [cast(AssertionAtom, draw(st_atom(ix=i))) for i in range(n_steps)]
+    seen: dict[str, AssertionAtom] = {}
     for atom in raw:
         seen.setdefault(atom.atom_id, atom)
     atoms = tuple(seen.values())
@@ -98,13 +101,14 @@ def test_p5_at_journal_step_matches_direct_dispatch(triple) -> None:
     space, journal = triple
     for k in range(len(journal.entries)):
         ground_state = direct_dispatch(journal, k)
-        ground_truth_claim_ids = {
-            str(claim.claim_id)
-            for atom in ground_state.base.atoms
-            if atom.atom_id in set(ground_state.accepted_atom_ids)
-            and hasattr(atom, "source_claims")
-            for claim in atom.source_claims
-        }
+        ground_truth_claim_ids = set()
+        accepted_atom_ids = set(ground_state.accepted_atom_ids)
+        for atom in ground_state.base.atoms:
+            if not isinstance(atom, AssertionAtom):
+                continue
+            if atom.atom_id not in accepted_atom_ids:
+                continue
+            ground_truth_claim_ids.update(str(claim_id) for claim_id in atom.source_claim_ids)
         # Sanity check: the oracle path uses dispatch, the SUT uses snapshot_to_claim_ids
         # over the journal entry's state_out. They MUST agree on the claim-id set.
         view = at_journal_step(space, journal, k)
