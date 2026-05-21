@@ -488,6 +488,20 @@ All searches are zero-hit gates outside notes, workstreams, docs, and reports.
   `MicropublicationClaimRecord` placeholders. This phase must replace those
   names with the required typed `Justification`, `Micropublication`, and
   `MicropublicationClaimLink` models and must not leave placeholder aliases.
+- Micropublication deletion-first slice completed:
+  `propstore/families/micropublications/declaration.py` no longer imports Quire
+  projection primitives and now owns typed `Micropublication`,
+  `MicropublicationClaimLink`, `MicropublicationWriteModels`, and
+  `compile_micropublication_models_with_diagnostics`; `world_charters.py` maps
+  `Micropublication` and `MicropublicationClaimLink` with an association-object
+  `claim_links` relationship; `derived_build_plan.py`, `world/model.py`,
+  `world/atms.py`, `world/overlay.py`, and `core/environment.py` now consume
+  typed micropublication objects; `propstore/core/micropublications.py` has
+  been deleted.
+- Verification after the micropublication caller repair:
+  `uv run pyright propstore` passed with 0 errors. Remaining Phase 12 work is
+  justification deletion/conversion, old-path search gates, targeted logged
+  tests, and parity.
 
 ## Completion Criteria
 
