@@ -189,3 +189,15 @@ projection rather than normalizing around it.
   `uv run pyright propstore` reported 0 errors.
   `rg -n -F -- "def resolve_claim" propstore tests` and
   `rg -n -F -- ".resolve_claim(" propstore tests` returned no hits.
+- Broad Phase 10 gate passed after the focused repair: `powershell -File
+  scripts/run_logged_pytest.ps1 -Label claim-charter-phase10-gate
+  tests/test_world_query.py tests/test_resolution_helpers.py
+  tests/test_render_policy_filtering.py` passed with 173 tests and log
+  `logs\test-runs\claim-charter-phase10-gate-20260520-212735.log`.
+- Final search gates reran after the broad pass. `attributes["conditions_cel"]`,
+  `attributes["sample_size"]`, and `sample_size` in overlay/graph-build
+  returned no hits. `conditions_cel` remains only in parameterization handling:
+  `propstore/world/overlay.py:157` and `propstore/core/graph_build.py:160`,
+  `:163`, `:337`. `ClaimNode(` remains only in `propstore/world/atms.py` for
+  `ATMSClaimNode`, not a `ClaimNode` projection. `def resolve_claim` and
+  `.resolve_claim(` remain zero-hit gates.
