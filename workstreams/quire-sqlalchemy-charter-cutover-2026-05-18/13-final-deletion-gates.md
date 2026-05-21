@@ -493,7 +493,16 @@ Gate: no local path, workspace, or file URL Quire dependency.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-4`
     failed: 35 failed, 3564 passed, 4 skipped.
   - Log: `logs/test-runs/sqlalchemy-charter-full-4-20260521-145951.log`.
-  - Remaining failure clusters from full-4:
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-5`
+    failed: 26 failed, 3518 passed, 4 skipped, 55 errors.
+  - Log: `logs/test-runs/sqlalchemy-charter-full-5-20260521-152733.log`.
+  - Remaining failure clusters from full-5:
+    - Claim-source FK enforcement is real and must remain: claim compilation
+      currently writes `claim_core.source_slug` for source labels that have no
+      corresponding `source` charter row in minimal test workspaces. Fix the
+      claim/source owner path so `source_slug` is only a family reference to an
+      existing `source` row, while `source_paper` remains provenance/display
+      metadata.
     - Conflict query boundary: non-catalog stores must not require catalog
       concept lookup before the cheap active-claim/conflict pass-through path.
     - Source promotion blocked-row projection: blocked source-local claims are
