@@ -470,6 +470,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     `WorldQuery.get_claim` eager-loaded it through the Quire SQLAlchemy model.
   - `uv run pyright propstore` passed with 0 errors after the claim-source
     relationship repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-algorithm-stage-charter-2 tests/test_algorithm_stage_types.py`
+    passed 3 tests after `claim_algorithm_payload.algorithm_stage` kept `str`
+    storage and carried `propstore.core.algorithm_stage.AlgorithmStage` through
+    charter field metadata.
+  - `uv run pyright propstore` passed with 0 errors after the algorithm-stage
+    charter metadata repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.

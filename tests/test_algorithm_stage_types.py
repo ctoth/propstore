@@ -7,15 +7,24 @@ import yaml
 from propstore.families.claims.documents import ClaimDocument
 from tests.family_helpers import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage, to_algorithm_stage
-from propstore.families.claims.declaration import ClaimAlgorithmPayload
 from propstore.families.documents.sources import SourceClaimDocument
+from propstore.families.world_charters import world_charter_catalog
 from tests.claim_model_helpers import claim_model
+
+
+def _schema_object(name: str):
+    for schema_object in world_charter_catalog().objects:
+        if schema_object.name == name:
+            return schema_object
+    raise AssertionError(f"missing schema object {name}")
 
 
 def test_algorithm_stage_annotations_cover_runtime_path() -> None:
     assert get_type_hints(ClaimDocument)["stage"] == AlgorithmStage | None
     assert get_type_hints(SourceClaimDocument)["stage"] == AlgorithmStage | None
-    assert get_type_hints(ClaimAlgorithmPayload)["algorithm_stage"] == AlgorithmStage | None
+    field = _schema_object("claim_algorithm_payload").field("algorithm_stage")
+    assert field.python_type == "builtins.str"
+    assert field.metadata["semantic_type"] == "propstore.core.algorithm_stage.AlgorithmStage"
 
 
 def test_typed_claim_carries_algorithm_stage() -> None:

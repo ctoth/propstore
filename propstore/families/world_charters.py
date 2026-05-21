@@ -495,7 +495,7 @@ def _claim_payload_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyChart
                 uselist=False,
             ),)),
         _charter("claim_algorithm_payload", models["claim_algorithm_payload"], "claim_id",
-            CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_algorithm_payload_claim", "claim_algorithm_payload", "claim_id", "claim_core")), _f("body"), _f("canonical_ast"), _f("variables_json"), _f("algorithm_stage"),
+            CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_algorithm_payload_claim", "claim_algorithm_payload", "claim_id", "claim_core")), _f("body"), _f("canonical_ast"), _f("variables_json"), CharterField("algorithm_stage", str, metadata={"semantic_type": "propstore.core.algorithm_stage.AlgorithmStage"}),
             indexes=(CharterIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
             relationships=(CharterRelationship(
                 "claim",
