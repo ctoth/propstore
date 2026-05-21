@@ -21,6 +21,32 @@ class Justification(FamilyModel):
             raise ValueError("justification premise_claim_ids must decode to a list")
         return tuple(str(item) for item in loaded)
 
+    def provenance_record(self) -> ProvenanceRecord | None:
+        if self.provenance_json is None or self.provenance_json == "":
+            return None
+        loaded = json.loads(self.provenance_json)
+        if not isinstance(loaded, Mapping):
+            raise ValueError("justification provenance_json must decode to a mapping")
+        from propstore.core.graph_types import ProvenanceRecord
+
+        return ProvenanceRecord.from_json_payload(loaded)
+
+    def to_canonical(self) -> CanonicalJustification:
+        attributes = tuple(
+            (key, getattr(self, key))
+            for key in ("source_relation_type", "source_claim_id")
+            if getattr(self, key) is not None
+        )
+        return CanonicalJustification(
+            justification_id=str(self.id),
+            conclusion_claim_id=str(self.conclusion_claim_id),
+            premise_claim_ids=self.premise_ids,
+            rule_kind=str(self.justification_kind),
+            rule_strength=str(self.rule_strength or "defeasible"),
+            provenance=self.provenance_record(),
+            attributes=attributes,
+        )
+
 
 def _normalize_attrs(
     value: Mapping[str, Any] | tuple[tuple[str, Any], ...] | None,

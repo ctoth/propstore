@@ -3,17 +3,16 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import aliased, selectinload
 from quire.derived_store import DerivedStoreHandle
-from quire.sqlalchemy_store import FtsQuerySyntaxError, readonly_session, search_fts_index
+from quire.sqlalchemy_store import FtsQuerySyntaxError, search_fts_index
 from quire.sqlalchemy_store import validate_sqlalchemy_store
 from propstore.core.conditions.registry import (
     ConceptInfo,
@@ -27,7 +26,7 @@ from propstore.core.id_types import (
     to_concept_id,
     to_context_id,
 )
-from propstore.core.justifications import CanonicalJustification
+from propstore.core.justifications import CanonicalJustification, Justification
 from propstore.core.labels import compile_environment_assumptions
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.store_results import (
@@ -36,11 +35,7 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.families.claims.declaration import (
-    Claim,
-    count_authored_justifications,
-    select_authored_justifications,
-)
+from propstore.families.claims.declaration import Claim
 from propstore.families.diagnostics.declaration import (
     build_diagnostics,
 )
@@ -138,8 +133,6 @@ class WorldQuery(WorldStore):
             raise FileNotFoundError(
                 f"Derived store not found at {derived_store.path}. Run 'pks build' first."
             )
-        self._conn = derived_store.open_readonly()
-        self._conn.row_factory = sqlite3.Row
         knowledge_root: KnowledgePath = FilesystemKnowledgePath.from_filesystem_path(
             derived_store.path.parent
         )
@@ -195,7 +188,6 @@ class WorldQuery(WorldStore):
         self._compiled_graph_cache = None
         self._active_graph_cache.clear()
         self._grounding_bundle_cache = None
-        self._conn.close()
 
     def grounding_bundle(self):
         """Return the grounded-rule bundle materialized in this sidecar."""
@@ -203,24 +195,25 @@ class WorldQuery(WorldStore):
         if self._grounding_bundle_cache is None:
             from propstore.families.rules.declaration import load_grounded_bundle
 
-            with readonly_session(
-                self._derived_store_path,
-                world_sqlalchemy_schema(),
+            with self._derived_store.readonly_session(
+                world_sqlalchemy_schema()
             ) as derived:
                 self._grounding_bundle_cache = load_grounded_bundle(derived)
         return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:
-        validate_sqlalchemy_store(self._derived_store_path, world_sqlalchemy_schema())
-        meta_row = self._conn.execute(
-            "SELECT schema_version FROM meta WHERE key = ?",
-            (PROPSTORE_WORLD_META_KEY,),
-        ).fetchone()
+        schema = world_sqlalchemy_schema()
+        validate_sqlalchemy_store(self._derived_store_path, schema)
+        meta_model = schema.model("meta")
+        with self._derived_store.readonly_session(schema) as derived:
+            meta_row = derived.execute(
+                select(meta_model).where(meta_model.key == PROPSTORE_WORLD_META_KEY)
+            ).scalar_one_or_none()
         if meta_row is None:
             raise ValueError(
                 f"Unsupported SQLAlchemy store: missing metadata row {PROPSTORE_WORLD_META_KEY!r}."
             )
-        schema_version = int(meta_row[0])
+        schema_version = int(meta_row.schema_version)
         if schema_version != PROPSTORE_WORLD_SCHEMA_VERSION:
             raise ValueError(
                 "Unsupported SQLAlchemy store schema version "
@@ -674,7 +667,14 @@ class WorldQuery(WorldStore):
             return list(derived.execute(statement).scalars())
 
     def all_authored_justifications(self) -> tuple[CanonicalJustification, ...]:
-        return select_authored_justifications(self._conn)
+        schema = world_sqlalchemy_schema()
+        justification = schema.model("justification")
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = derived.execute(select(justification).order_by(justification.id))
+            return tuple(
+                cast(Justification, row).to_canonical()
+                for row in rows.scalars()
+            )
 
     def justifications_for_claim_scope(
         self,
@@ -944,7 +944,14 @@ class WorldQuery(WorldStore):
         )
 
     def authored_justification_count(self) -> int:
-        return count_authored_justifications(self._conn)
+        schema = world_sqlalchemy_schema()
+        justification = schema.model("justification")
+        with self._derived_store.readonly_session(schema) as derived:
+            return int(
+                derived.execute(
+                    select(func.count()).select_from(justification)
+                ).scalar_one()
+            )
 
     # ── Parameterization queries ─────────────────────────────────────
 
