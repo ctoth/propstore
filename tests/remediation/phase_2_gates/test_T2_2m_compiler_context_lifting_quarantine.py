@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 
+from quire.sqlalchemy_store import readonly_session
+from sqlalchemy import text
 import yaml
 
 from propstore.compiler.workflows import build_repository
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.repository import Repository
 from tests.conftest import normalize_concept_payloads
 
@@ -61,26 +63,26 @@ def test_build_repository_context_lifting_error_quarantines_not_raises(
     sidecar_path = Path(report.derived_store.path)
     assert sidecar_path.exists()
 
-    conn = sqlite3.connect(sidecar_path)
-    conn.row_factory = sqlite3.Row
-    try:
+    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
         context_ids = {
-            str(row["id"])
-            for row in conn.execute("SELECT id FROM context").fetchall()
+            str(row[0])
+            for row in derived.session.execute(text("SELECT id FROM context")).fetchall()
         }
         lifting_rule_ids = {
-            str(row["id"])
-            for row in conn.execute("SELECT id FROM context_lifting_rule").fetchall()
+            str(row[0])
+            for row in derived.session.execute(
+                text("SELECT id FROM context_lifting_rule")
+            ).fetchall()
         }
-        diagnostic_rows = conn.execute(
-            """
+        diagnostic_rows = derived.session.execute(
+            text(
+                """
             SELECT source_kind, source_ref, diagnostic_kind, severity, blocking, message
             FROM build_diagnostics
             WHERE diagnostic_kind = 'context_validation'
             """
+            )
         ).fetchall()
-    finally:
-        conn.close()
 
     assert context_ids == {"ctx_root"}
     assert "lift_missing_target" not in lifting_rule_ids
