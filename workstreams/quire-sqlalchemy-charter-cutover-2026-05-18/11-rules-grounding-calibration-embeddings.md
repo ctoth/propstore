@@ -271,6 +271,45 @@ Slice 4 is complete. Continue with Slice 5: claim and concept embedding
 runtime migration, starting with deletion of `SidecarClaimRelationStore`,
 `find_similar_claim_rows`, and `find_similar_concept_rows`.
 
+2026-05-21 Slice 5 claim/concept embedding runtime execution update:
+
+- Production/test commit `4b47a68e` deleted `SidecarClaimRelationStore`,
+  `find_similar_claim_rows`, `find_similar_concept_rows`, and the
+  `from_search_row` similarity-result constructors.
+- Claim relation classification no longer receives a sidecar store wrapper or
+  explicit vector-extension hook. `propstore/heuristic/relate.py` now receives
+  typed callback operations for registered models, claim text policy, claim ID
+  enumeration, and typed `ClaimSimilarityHit` results.
+- `propstore/families/claims/sidecar_runtime.py` no longer opens raw sidecar
+  SQLite connections for relation workflows. Claim text source policy reads
+  typed `Claim`/`ClaimTextPayload` models through Quire sessions, and relation
+  workflows pass Quire vector/session-backed owner operations directly.
+- `propstore/families/concepts/sidecar_runtime.py` no longer uses
+  `WorldQuery.resolve_concept` for concept embedding request lowering; it uses
+  Quire generic family reference lookup through `schema.require_reference_id`.
+- Embedding similarity owner APIs now return typed `ClaimSimilarityHit` and
+  `ConceptSimilarityHit` values. App and WorldQuery callers consume those
+  typed hits instead of row dictionaries.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  embedding-runtime-migration tests/test_relate_bulk.py
+  tests/test_claim_workflows.py tests/test_concept_workflows.py
+  tests/test_world_query.py` passed with 161 tests and 29 expected warnings;
+  log: `logs/test-runs/embedding-runtime-migration-20260521-094249.log`.
+- Searches for `SidecarClaimRelationStore`, `find_similar_claim_rows`,
+  `find_similar_concept_rows`, and `from_search_row` across `propstore` and
+  `tests` returned zero hits.
+- Searches for `connect_sqlite_store`, `connect_sqlite_store_readonly`,
+  `sqlite3.Connection`, and `row_factory` in the claim/concept sidecar runtime
+  files returned zero hits.
+- The `from_mapping` gate is still not closed because
+  `tests/claim_model_helpers.py` exposes `claim_model_from_mapping` and its
+  callers. Slice 6 must delete or rename that test helper instead of treating
+  the focused Slice 5 migration as phase completion.
+
+Slice 5 production migration is complete. Continue with Slice 6: data parity,
+vector parity, remaining search gates, and completion gates.
+
 ## Prerequisites
 
 Complete these cutover workstreams before this slice starts:
