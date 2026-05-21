@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 
 from argumentation.aspic import GroundAtom
+from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from tests.family_helpers import world_query_from_sqlite_path
 
 
@@ -194,19 +194,22 @@ def test_ws7_extract_facts_materializes_claim_structural_sources() -> None:
     }
 
 
-def test_ws7_sidecar_runtime_bundle_preserves_four_statuses() -> None:
+def test_ws7_sidecar_runtime_bundle_preserves_four_statuses(tmp_path: Path) -> None:
     from propstore.families.rules.declaration import (
-        create_grounded_fact_table,
-        populate_grounded_facts,
-        read_grounded_facts,
+        load_grounded_sections,
+        persist_grounded_bundle,
     )
+    from propstore.families.world_charters import world_sqlalchemy_schema
 
-    conn = sqlite3.connect(":memory:")
-    create_grounded_fact_table(conn)
+    sidecar_path = tmp_path / "ws7-grounding.sqlite"
+    create_sqlalchemy_store(sidecar_path, world_sqlalchemy_schema())
     bundle = _bundle_with_four_statuses()
 
-    populate_grounded_facts(conn, bundle)
-    restored = read_grounded_facts(conn)
+    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        persist_grounded_bundle(derived, bundle)
+        derived.session.commit()
+    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        restored = load_grounded_sections(derived)
 
     assert restored == bundle.sections
 
@@ -215,17 +218,26 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     tmp_path: Path,
 ) -> None:
     from propstore.families.rules.declaration import (
-        populate_grounded_facts,
+        persist_grounded_bundle,
     )
-    from tests.sidecar_schema_helpers import build_world_projection_schema
-    from propstore.world.model import WorldQuery
+    from propstore.families.world_charters import (
+        PROPSTORE_WORLD_META_KEY,
+        PROPSTORE_WORLD_SCHEMA_VERSION,
+        WorldMeta,
+        world_sqlalchemy_schema,
+    )
 
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = sqlite3.connect(sidecar_path)
-    build_world_projection_schema(conn)
-    populate_grounded_facts(conn, _runtime_grounded_bundle())
-    conn.commit()
-    conn.close()
+    create_sqlalchemy_store(sidecar_path, world_sqlalchemy_schema())
+    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        derived.add(
+            WorldMeta(
+                key=PROPSTORE_WORLD_META_KEY,
+                schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
+            )
+        )
+        persist_grounded_bundle(derived, _runtime_grounded_bundle())
+        derived.session.commit()
 
     with world_query_from_sqlite_path(sidecar_path) as world:
         bundle = world.grounding_bundle()
