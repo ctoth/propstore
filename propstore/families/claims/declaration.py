@@ -17,7 +17,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from quire.references import FamilyReferenceIndex
-from quire.projections import ProjectionRow
 from propstore.claims import (
     claim_file_filename,
     claim_file_stage,
@@ -31,6 +30,7 @@ from propstore.core.conditions import (
     checked_condition_set_from_json,
     checked_condition_set_to_json,
 )
+from propstore.core.justifications import Justification
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
@@ -349,9 +349,6 @@ class PromotionBlockedModels:
     diagnostics: tuple[BuildDiagnostic, ...]
 
 
-from propstore.families.claims.projection_model import (  # noqa: E402
-    JUSTIFICATION_TABLE,
-)
 from propstore.families.world_charters import BuildDiagnostic, world_record
 
 
@@ -692,25 +689,25 @@ def compile_claim_models(
     )
 
 
-def compile_authored_justification_sidecar_rows(
+def compile_authored_justification_models(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[ProjectionRow, ...]:
-    rows, diagnostics = compile_authored_justification_sidecar_rows_with_diagnostics(
+) -> tuple[Justification, ...]:
+    models, diagnostics = compile_authored_justification_models_with_diagnostics(
         justification_entries,
         claim_index,
     )
     if diagnostics:
         raise sqlite3.IntegrityError(diagnostics[0].message)
-    return rows
+    return models
 
 
-def compile_authored_justification_sidecar_rows_with_diagnostics(
+def compile_authored_justification_models_with_diagnostics(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[tuple[ProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
+) -> tuple[tuple[Justification, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_index.ids())
-    rows: list[ProjectionRow] = []
+    models: list[Justification] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, justification in justification_entries:
@@ -776,8 +773,8 @@ def compile_authored_justification_sidecar_rows_with_diagnostics(
         if isinstance(attack_target, dict):
             provenance_payload["attack_target"] = attack_target
 
-        rows.append(
-            JUSTIFICATION_TABLE.row(
+        models.append(
+            Justification(
                 id=justification_id,
                 justification_kind=str(justification.rule_kind or "reported_claim"),
                 conclusion_claim_id=conclusion,
@@ -790,7 +787,7 @@ def compile_authored_justification_sidecar_rows_with_diagnostics(
                 rule_strength=str(justification.rule_strength or "defeasible"),
             )
         )
-    return tuple(rows), tuple(diagnostics)
+    return tuple(models), tuple(diagnostics)
 
 
 def compile_raw_id_quarantine_models(
@@ -826,10 +823,3 @@ def compile_promotion_blocked_models(
         claims=(),
         diagnostics=compile_promotion_blocked_diagnostics(facts),
     )
-
-
-def populate_authored_justifications(
-    conn: sqlite3.Connection,
-    rows: Sequence[ProjectionRow],
-) -> None:
-    JUSTIFICATION_TABLE.insert_rows(conn, rows, or_ignore=True)
