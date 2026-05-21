@@ -583,3 +583,18 @@ Recorded 2026-05-20.
   phase completion because the required old-path searches and parity gate have
   not passed; the next execution queue is the Phase 11 search gates, starting
   with remaining relation owner helper/select/count surfaces.
+- Old-path search gate status after package pyright: production hits remain
+  for relation owner helper names in
+  `propstore/families/relations/declaration.py` and build-plan imports/calls
+  in `propstore/derived_build_plan.py`. Required deletions are
+  `_optional_numeric`, `compile_authored_stance_sidecar_rows*`,
+  `compile_claim_embedded_stance_sidecar_rows_with_diagnostics`,
+  `select_stances_between`, `select_conflicts`, `select_all_relationships`,
+  `select_all_claim_stances`, `select_explanation_stances`, and
+  `count_conflicts`. Test hits remain for deleted row/projection vocabulary in
+  `tests/test_world_query.py`, `tests/test_relate_opinions.py`,
+  `tests/test_neighborhoods.py`, `tests/test_p_heavy.py`,
+  `tests/test_relation_analysis.py`, and semantic-core/support-revision test
+  doubles. The next production slice deletes/renames the relation owner
+  helper names and updates `derived_build_plan.py`; tests are then repaired to
+  use typed `Stance`, `ConceptRelation`, and `ConflictWitness` models directly.
