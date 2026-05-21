@@ -634,6 +634,35 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   claim-notes-sqlalchemy-session tests/test_claim_notes.py` passed with 7
   tests; log:
   `logs/test-runs/claim-notes-sqlalchemy-session-20260521-110320.log`.
+- Test commit `ae04c728` removed all `row_factory` and `sqlite3.Row` access
+  from `tests/test_build_sidecar.py`.
+- The commit also deleted the file's all-fields `_CLAIM_SELECT_SQL`,
+  `_fetch_claim`, `_fetch_claim_rows`, and `_fetch_relation_edge_rows`
+  projection-style helpers instead of replacing `row_factory` with a renamed
+  dict-row reconstruction helper.
+- Remaining build-sidecar readback assertions now select only the fields under
+  test and use tuple access, while column-existence checks read the
+  charter-generated `world_sqlalchemy_schema()` metadata.
+- `rg -n -F -- "row_factory" tests/test_build_sidecar.py`,
+  `rg -n -F -- "sqlite3.Row" tests/test_build_sidecar.py`,
+  `rg -n -F -- "_fetch_claim" tests/test_build_sidecar.py`, and
+  `rg -n -F -- "_fetch_relation_edge_rows" tests/test_build_sidecar.py`
+  returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the helper
+  deletion.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  build-sidecar-row-factory-touched-no-helper tests/test_build_sidecar.py::...`
+  passed with 19 focused row-readback tests; log:
+  `logs/test-runs/build-sidecar-row-factory-touched-no-helper-20260521-111429.log`.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  build-sidecar-no-row-helper tests/test_build_sidecar.py` still failed 8
+  current-state tests after 87 passed; log:
+  `logs/test-runs/build-sidecar-no-row-helper-20260521-111312.log`.
+- The remaining full-file failures are not row-access failures. They cover the
+  existing typed charter behavior gaps for algorithm `canonical_ast`, equation
+  `sympy_error`, `value_si`/bounds SI normalization, `auto_summary`, and the
+  obsolete embedding snapshot patch target
+  `propstore.families.embeddings.declaration.load_vec_extension`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
