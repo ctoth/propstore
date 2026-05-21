@@ -50,7 +50,7 @@ from propstore.app.repository_views import RepositoryViewUnsupportedStateError
 from propstore.app.rendering import RenderPolicyValidationError
 from propstore.app.world_revision import (
     AppRevisionWorldRequest,
-    world_revision_base,
+    world_revision_base_payload,
     world_revision_entrenchment,
 )
 from propstore.app.world import WorldSidecarMissingError
@@ -118,7 +118,7 @@ def register_routes(app: FastAPI) -> None:
             return JSONResponse(
                 to_json_compatible(
                     {
-                        "base": world_revision_base(repo, app_request),
+                        "base": world_revision_base_payload(repo, app_request),
                         "entrenchment": world_revision_entrenchment(repo, app_request),
                     }
                 )

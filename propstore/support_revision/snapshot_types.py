@@ -229,6 +229,10 @@ def _belief_base_to_dict(base: BeliefBase) -> dict[str, Any]:
     }
 
 
+def belief_base_to_canonical_dict(base: BeliefBase) -> dict[str, Any]:
+    return _belief_base_to_dict(base)
+
+
 @dataclass(frozen=True)
 class RevisionEpisodeSnapshot:
     operator: str

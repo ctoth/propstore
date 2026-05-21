@@ -7,6 +7,7 @@ from dataclasses import dataclass
 
 from propstore.app.world import open_app_world_model
 from propstore.repository import Repository
+from propstore.support_revision.snapshot_types import belief_base_to_canonical_dict
 from propstore.support_revision.state import BeliefAtom, RevisionEvent, is_assumption_atom, is_assertion_atom
 
 
@@ -122,6 +123,10 @@ def world_revision_base(repo: Repository, request: AppRevisionWorldRequest):
 
     with open_app_world_model(repo) as world:
         return revision_base(world, _lower_request(request))
+
+
+def world_revision_base_payload(repo: Repository, request: AppRevisionWorldRequest) -> dict[str, object]:
+    return belief_base_to_canonical_dict(world_revision_base(repo, request))
 
 
 def world_revision_entrenchment(repo: Repository, request: AppRevisionWorldRequest):
