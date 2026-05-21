@@ -1281,3 +1281,9 @@ Current binding queue:
   `self._derived_store` directly into the Quire SQLAlchemy vector-cache backed
   embedding APIs. Focused verification `uv run pyright propstore/world/model.py`
   passed with 0 errors.
+- App claim command sidecar handle cleanup: commit `a4afca74` changed
+  `propstore/app/claims.py::_require_sidecar` to return the
+  `DerivedStoreHandle` produced by `materialize_world_sidecar` instead of
+  lowering it to a path. Claim embed/similar/relate app calls now pass the
+  typed handle through to owner-layer runtime functions. Focused verification
+  `uv run pyright propstore/app/claims.py` passed with 0 errors.
