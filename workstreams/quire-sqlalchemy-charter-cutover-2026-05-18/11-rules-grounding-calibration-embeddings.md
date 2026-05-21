@@ -307,8 +307,27 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   callers. Slice 6 must delete or rename that test helper instead of treating
   the focused Slice 5 migration as phase completion.
 
-Slice 5 production migration is complete. Continue with Slice 6: data parity,
-vector parity, remaining search gates, and completion gates.
+2026-05-21 Slice 6 remaining search-gate cleanup update:
+
+- Test commit `d02478da` deleted the remaining generic `from_mapping`-named
+  test helper by renaming `claim_model_from_mapping` to
+  `claim_model_from_test_payload`.
+- The touched `tests/test_labelled_core.py` and
+  `tests/test_semantic_core_phase0.py` fixtures now construct typed
+  `world_record(...)` models for parameterizations and concepts instead of
+  passing dict-shaped semantic objects through the core pipeline.
+- `rg -n -F -- "from_mapping" propstore/core/store_results.py tests`
+  returned zero hits.
+- `uv run pyright propstore` passed with zero errors.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  from-mapping-fixture-cleanup tests/test_core_justifications.py
+  tests/test_labelled_core.py tests/test_semantic_core_phase0.py
+  tests/test_structured_projection.py` passed with 43 tests; log:
+  `logs/test-runs/from-mapping-fixture-cleanup-20260521-094741.log`.
+
+Slice 5 production migration and the Slice 6 `from_mapping` cleanup are
+complete. Continue with Slice 6: data parity, vector parity, remaining search
+gates, and completion gates.
 
 ## Prerequisites
 
