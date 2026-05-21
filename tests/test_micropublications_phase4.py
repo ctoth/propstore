@@ -267,7 +267,7 @@ def test_promoted_micropub_builds_as_atms_node(tmp_path: Path) -> None:
 
     materialized_world_store_path(repo, force=True)
     world = WorldQuery(repo)
-    assert [entry.artifact_id for entry in world.all_micropublications()] == [micropub_id]
+    assert [entry.id for entry in world.all_micropublications()] == [micropub_id]
 
     bound = world.bind(
         Environment(context_id="ctx_test"),

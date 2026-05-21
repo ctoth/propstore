@@ -495,6 +495,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     `ClaimNode` fixtures.
   - `uv run pyright propstore` passed with 0 errors after the fragility/PrAF
     typed fixture repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-typed-atms-micropubs tests/test_atms_engine.py::test_atms_materializes_micropublication_as_contextual_bundle_node tests/test_atms_engine.py::test_phase8_graph_runtime_matches_boundworld_for_labels_and_nogoods tests/test_micropublications_phase4.py::test_promoted_micropub_builds_as_atms_node`
+    passed 3 tests after replacing ATMS graph-runtime parameterization rows and
+    micropublication bundle fixtures with typed charter models, and after using
+    `Micropublication.id` instead of an old artifact-id alias.
+  - `uv run pyright propstore` passed with 0 errors after the ATMS/
+    micropublication typed fixture repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -523,7 +529,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
       sensitivity, micropublication, and preference import tests; fix fixtures
       to build charter/domain objects, not production dict fallbacks.
       Fragility parameterization fixtures and the explicit PrAF uncalibrated
-      claim fixture are repaired after full-5.
+      claim fixture are repaired after full-5. ATMS graph-runtime
+      parameterizations and micropublication fixtures are repaired after
+      full-5.
     - Argumentation/vacuous stance behavior must reject vacuous attackers at
       the typed relation boundary, not via compatibility wrappers.
     - Demo and worldline tests still assert source-local handles where current

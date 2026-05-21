@@ -11,6 +11,10 @@ from propstore.core.conditions import checked_condition_set_to_json
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept, Parameterization
+from propstore.families.micropublications.declaration import (
+    Micropublication,
+    MicropublicationClaimLink,
+)
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.atms import BudgetExhausted
 from propstore.world import BoundWorld
@@ -77,7 +81,7 @@ class _ATMSStore:
         claims: list[dict],
         parameterizations: list[dict] | None = None,
         conflicts: list[dict] | None = None,
-        micropublications: list[dict] | None = None,
+        micropublications: list[Micropublication] | None = None,
         solver=None,
     ) -> None:
         all_sources: list[str] = []
@@ -179,7 +183,7 @@ class _ATMSStore:
     def stances_between(self, claim_ids: set[str]) -> list[dict]:
         return []
 
-    def all_micropublications(self) -> list[dict]:
+    def all_micropublications(self) -> list[Micropublication]:
         return list(self._micropublications)
 
     def get_concept(self, concept_id: str) -> Concept | None:
@@ -343,26 +347,31 @@ class _GraphOnlyATMSRuntime:
             for conflict in self.active_graph.compiled.conflicts
             if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
         ]
-    def all_parameterizations(self) -> list[dict]:
+    def all_parameterizations(self) -> list[Parameterization]:
         rows = []
         for edge in self.active_graph.compiled.parameterizations:
-            row = {
-                "output_concept_id": edge.output_concept_id,
-                "concept_ids": json.dumps(list(edge.input_concept_ids)),
-                "formula": edge.formula,
-                "sympy": edge.sympy,
-                "exactness": edge.exactness,
-                "conditions_cel": (None if not edge.conditions else json.dumps(list(edge.conditions))),
-            }
+            conditions_ir = None
             if edge.checked_conditions is not None:
-                row["conditions_ir"] = json.dumps(
+                conditions_ir = json.dumps(
                     checked_condition_set_to_json(edge.checked_conditions),
                     sort_keys=True,
                 )
-            rows.append(row)
+            rows.append(
+                Parameterization(
+                    output_concept_id=edge.output_concept_id,
+                    concept_ids=json.dumps(list(edge.input_concept_ids)),
+                    formula=edge.formula,
+                    sympy=edge.sympy,
+                    exactness=edge.exactness,
+                    conditions_cel=(
+                        None if not edge.conditions else json.dumps(list(edge.conditions))
+                    ),
+                    conditions_ir=conditions_ir,
+                )
+            )
         return rows
 
-    def all_micropublications(self) -> list[dict]:
+    def all_micropublications(self) -> list[Micropublication]:
         return []
 
     def is_param_compatible(self, conditions_cel: str | None) -> bool:
@@ -618,6 +627,22 @@ def test_atms_records_context_as_label_dimension_for_context_scoped_claim() -> N
 
 
 def test_atms_materializes_micropublication_as_contextual_bundle_node() -> None:
+    micropub = Micropublication(
+        id="ps:micropub:bundle",
+        context_id="ctx_general",
+        assumptions_json="[]",
+        evidence_json="[]",
+        stance=None,
+        provenance_json=None,
+        source_slug=None,
+    )
+    micropub_link = MicropublicationClaimLink(
+        micropublication_id="ps:micropub:bundle",
+        claim_id="claim_ctx",
+        seq=1,
+    )
+    micropub_link.micropublication = micropub
+    micropub.claim_links = [micropub_link]
     store = _ATMSStore(
         claims=[
             {
@@ -629,13 +654,7 @@ def test_atms_materializes_micropublication_as_contextual_bundle_node() -> None:
                 "conditions_cel": None,
             }
         ],
-        micropublications=[
-            {
-                "artifact_id": "ps:micropub:bundle",
-                "context_id": "ctx_general",
-                "claim_ids": ["claim_ctx"],
-            }
-        ],
+        micropublications=[micropub],
     )
     bound = _make_bound(store, context_id="ctx_general")
     engine = bound.atms_engine()
