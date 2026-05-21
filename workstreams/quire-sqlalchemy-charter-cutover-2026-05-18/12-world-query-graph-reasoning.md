@@ -676,6 +676,36 @@ Quire or family workstreams.
   tests/test_world_query.py::TestUnboundQueries::test_stats`
   returned `16 passed`; log:
   `logs/test-runs/claim-confidence-deletion-20260521-124511.log`.
+- Commit `12d9f37a` finished the behavior-parity harness support for the
+  captured baseline: after applying the Phase 6 source-column collapse in a
+  temporary diagnostic copy, it copies the current schema catalog metadata and
+  creates only missing current-schema tables that are empty in the after
+  sidecar, such as the empty `claim_source_assertion` table in this fixture.
+  This remains diagnostic-only and does not add a production old-shape reader.
+- Focused harness gates passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  parity-harness-empty-current-tables tests/test_sqlalchemy_charter_parity_harness.py`
+  returned `10 passed`; log:
+  `logs/test-runs/parity-harness-empty-current-tables-20260521-124731.log`.
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  parity-harness-schema-catalog tests/test_sqlalchemy_charter_parity_harness.py`
+  returned `10 passed`; log:
+  `logs/test-runs/parity-harness-schema-catalog-20260521-124829.log`.
+- Required Phase 14 behavior parity passed:
+  `uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir .
+  --before reports/sqlalchemy-charter-parity/world-query-graph-reasoning/before.sqlite
+  --build-after sqlalchemy-charter
+  --after reports/sqlalchemy-charter-parity/world-query-graph-reasoning/after.sqlite
+  --owner world-query-graph-reasoning
+  --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/12-world-query-graph-reasoning.md
+  --out reports/sqlalchemy-charter-parity/world-query-graph-reasoning-behavior.json
+  --require-behavior world-query --require-behavior graph-build
+  --require-behavior atms --require-behavior scm-intervention-resolution
+  --require-behavior worldline --require-behavior support-revision
+  --require-behavior aspic` exited 0. The generated report has passing
+  behavior blocks for `world-query`, `graph-build`, `atms`,
+  `scm-intervention-resolution`, `worldline`, `support-revision`, and
+  `aspic`.
 
 ## Data-Parity Gate
 
