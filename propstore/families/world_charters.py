@@ -39,6 +39,10 @@ from propstore.families.contexts.declaration import (
     ContextLiftingRule,
 )
 from propstore.families.forms.stages import Form, FormAlgebra
+from propstore.families.micropublications.declaration import (
+    Micropublication,
+    MicropublicationClaimLink,
+)
 from propstore.families.relations.declaration import (
     ConceptRelation,
     ConflictWitness,
@@ -63,8 +67,6 @@ class GroundedFactRecord(WorldModel): ...
 class GroundedFactEmptyPredicateRecord(WorldModel): ...
 class GroundedBundleInputRecord(WorldModel): ...
 class JustificationRecord(WorldModel): ...
-class MicropublicationRecord(WorldModel): ...
-class MicropublicationClaimRecord(WorldModel): ...
 class CalibrationCountsRecord(WorldModel): ...
 class EmbeddingModelRecord(WorldModel): ...
 class EmbeddingStatusRecord(WorldModel): ...
@@ -92,8 +94,8 @@ _MODELS: dict[str, type[Any]] = {
     "grounded_fact_empty_predicate": GroundedFactEmptyPredicateRecord,
     "grounded_bundle_input": GroundedBundleInputRecord,
     "justification": JustificationRecord,
-    "micropublication": MicropublicationRecord,
-    "micropublication_claim": MicropublicationClaimRecord,
+    "micropublication": Micropublication,
+    "micropublication_claim": MicropublicationClaimLink,
     "calibration_counts": CalibrationCountsRecord,
     "embedding_model": EmbeddingModelRecord,
     "embedding_status": EmbeddingStatusRecord,
@@ -225,13 +227,29 @@ def world_charter_catalog() -> SchemaCatalog:
             _f("id", primary_key=True, nullable=False), _f("justification_kind", nullable=False), _f("conclusion_claim_id", nullable=False),
             _f("premise_claim_ids", nullable=False), _f("source_relation_type"), _f("source_claim_id"), _f("provenance_json"),
             _f("rule_strength", nullable=False, default_sql="'defeasible'")),
-        _charter("micropublication", MicropublicationRecord, "id",
+        _charter("micropublication", Micropublication, "id",
             _f("id", primary_key=True, nullable=False), _f("context_id", nullable=False), _f("assumptions_json", nullable=False, default_sql="'[]'"),
             _f("evidence_json", nullable=False, default_sql="'[]'"), _f("stance"), _f("provenance_json"), _f("source_slug"),
-            indexes=(CharterIndex("idx_micropub_context", ("context_id",)),)),
-        _charter("micropublication_claim", MicropublicationClaimRecord, "micropublication_id",
-            _f("micropublication_id", primary_key=True, nullable=False), _f("claim_id", primary_key=True, nullable=False), _i("seq", nullable=False),
-            indexes=(CharterIndex("idx_micropub_claim", ("claim_id",)),)),
+            indexes=(CharterIndex("idx_micropub_context", ("context_id",)),),
+            relationships=(CharterRelationship(
+                "claim_links",
+                target_family="micropublication_claim",
+                foreign_key="micropublication_id",
+                back_populates="micropublication",
+                association_object=True,
+                order_by=("seq",),
+            ),)),
+        _charter("micropublication_claim", MicropublicationClaimLink, "micropublication_id",
+            CharterField("micropublication_id", str, primary_key=True, nullable=False, foreign_key=_fk("micropublication_claim_micropublication", "micropublication_claim", "micropublication_id", "micropublication")),
+            CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("micropublication_claim_claim", "micropublication_claim", "claim_id", "claim_core")), _i("seq", nullable=False),
+            indexes=(CharterIndex("idx_micropub_claim", ("claim_id",)),),
+            relationships=(CharterRelationship(
+                "micropublication",
+                target_family="micropublication",
+                foreign_key="micropublication_id",
+                back_populates="claim_links",
+                uselist=False,
+            ),)),
         _support_charters()[0], _support_charters()[1], _support_charters()[2], _support_charters()[3], _support_charters()[4],
         metadata={"projection": "propstore.world", "schema_version": PROPSTORE_WORLD_SCHEMA_VERSION},
     )
