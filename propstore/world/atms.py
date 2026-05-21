@@ -40,7 +40,7 @@ from propstore.core.id_types import (
     QueryableId,
 )
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, ConflictWitness as GraphConflictWitness, ParameterizationEdge
-from propstore.conflict_detector.models import coerce_conflict_class
+from propstore.conflict_detector.models import ConflictClass
 from propstore.propagation import (
     ParameterizationEvaluationStatus,
     evaluate_parameterization,
@@ -1607,7 +1607,7 @@ class ATMSEngine:
                         warning_class=(
                             None
                             if conflict.warning_class is None
-                            else coerce_conflict_class(conflict.warning_class)
+                            else ConflictClass(conflict.warning_class)
                         ),
                         environment_a=list(env_a.assumption_ids),
                         environment_b=list(env_b.assumption_ids),
