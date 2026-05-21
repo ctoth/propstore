@@ -1087,9 +1087,9 @@ class TestExplain:
         assert chain == []
 
 
-# ── Bind and active claims ───────────────────────────────────────────
+# -- Bind and typed claims --------------------------------------------
 
-class TestBindAndActiveClaims:
+class TestBindAndTypedClaims:
     def test_bind_returns_bound_world(self, world):
         bound = world.bind(task="speech")
         assert isinstance(bound, BoundWorld)
