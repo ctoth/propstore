@@ -5,6 +5,8 @@ from collections.abc import Sequence
 
 import pytest
 
+from propstore.core.store_results import ClaimSimilarityHit
+
 
 def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
     from propstore.heuristic import relate
@@ -24,11 +26,16 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
         },
     }
 
-    def find_similar(claim_id: str, _model_name: str, *, top_k: int) -> list[dict]:
+    def find_similar(
+        claim_id: str,
+        _model_name: str,
+        *,
+        top_k: int,
+    ) -> list[ClaimSimilarityHit]:
         if claim_id == "claim-a":
-            return [{"id": "claim-b", "distance": 0.3}]
+            return [ClaimSimilarityHit(claim_id="claim-b", distance=0.3)]
         if claim_id == "claim-b":
-            return [{"id": "claim-a", "distance": 0.4}]
+            return [ClaimSimilarityHit(claim_id="claim-a", distance=0.4)]
         return []
 
     async def classify_stance_async(
@@ -86,15 +93,23 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
             return find_similar(claim_id, model_name, top_k=top_k)
 
     monkeypatch.setattr(relate, "classify_stance_async", classify_stance_async)
+    store = Store()
 
     result = asyncio.run(
         relate.relate_all_async(
-            Store(),
             model_name="classifier",
             embedding_model=None,
             top_k=1,
             concurrency=1,
             on_progress=None,
+            registered_models=store.get_registered_models,
+            all_claim_ids=store.all_claim_ids,
+            claim_texts=store.get_claim_texts,
+            similar_claims=lambda claim_id, model_name, top_k: store.find_similar(
+                claim_id,
+                model_name,
+                top_k=top_k,
+            ),
         )
     )
 

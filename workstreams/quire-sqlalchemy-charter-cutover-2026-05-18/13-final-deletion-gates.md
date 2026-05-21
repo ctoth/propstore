@@ -501,6 +501,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     `Micropublication.id` instead of an old artifact-id alias.
   - `uv run pyright propstore` passed with 0 errors after the ATMS/
     micropublication typed fixture repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-relate-callback-interface tests/test_relate_perspective_isolation.py::test_relate_perspective_isolation`
+    passed 1 test after updating the relate perspective-isolation fixture to
+    call the current callback-based `relate_all_async` interface with typed
+    `ClaimSimilarityHit` values.
+  - `uv run pyright propstore` passed with 0 errors after the relate callback
+    fixture repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -536,6 +542,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
       the typed relation boundary, not via compatibility wrappers.
     - Demo and worldline tests still assert source-local handles where current
       runtime surfaces expose canonical claim ids.
+    - Relate perspective-isolation fixture is repaired after full-5 to use the
+      callback interface directly.
     - Claim text payload derivation was repaired after full-4 by making the
       description generator accept typed `ClaimDocument` input and by storing
       auto summaries and equation sympy errors from the claim compilation owner
