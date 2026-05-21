@@ -8,79 +8,93 @@ their existing statement unchanged.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping, Sequence
+
+from propstore.core.claim_types import ClaimType
+from propstore.families.claims.documents import ClaimDocument
 
 
-def generate_description(claim: dict, concept_registry: dict) -> str | None:
+ConceptDescriptionRegistry = Mapping[str, Mapping[str, object]]
+
+
+def generate_description(
+    claim: ClaimDocument,
+    concept_registry: ConceptDescriptionRegistry,
+) -> str | None:
     """Generate a human-readable description for a claim.
 
     Args:
-        claim: A claim dict (as loaded from YAML).
-        concept_registry: Mapping from concept ID to concept data dict.
+        claim: A typed claim document.
+        concept_registry: Mapping from concept ID to concept metadata.
 
     Returns:
         A description string, or None if the claim type is unrecognized.
     """
     # If the claim already has an explicit statement, preserve it
-    statement = claim.get("statement")
-    if statement:
-        return statement
+    if claim.statement:
+        return claim.statement
 
-    ctype = claim.get("type")
-
-    if ctype == "parameter":
+    if claim.type is ClaimType.PARAMETER:
         return _describe_parameter(claim, concept_registry)
-    elif ctype == "equation":
+    elif claim.type is ClaimType.EQUATION:
         return _expression_as_description(claim)
-    elif ctype == "observation":
+    elif claim.type is ClaimType.OBSERVATION:
         # Observation claims require statement — return it (or None)
-        return claim.get("statement")
-    elif ctype == "measurement":
+        return claim.statement
+    elif claim.type is ClaimType.MEASUREMENT:
         return _describe_measurement(claim, concept_registry)
-    elif ctype == "model":
-        name = claim.get("name", "unnamed")
+    elif claim.type is ClaimType.MODEL:
+        name = claim.name or "unnamed"
         return f"Model: {name}"
-    elif ctype == "algorithm":
+    elif claim.type is ClaimType.ALGORITHM:
         return _describe_algorithm(claim)
     else:
         return None
 
 
-def _resolve_concept_name(concept_id: str | None, concept_registry: dict) -> str:
+def _resolve_concept_name(
+    concept_id: str | None,
+    concept_registry: ConceptDescriptionRegistry,
+) -> str:
     """Look up canonical_name for a concept ID; fall back to the ID itself."""
     if not concept_id:
         return "unknown"
     concept_data = concept_registry.get(concept_id)
     if concept_data:
-        return concept_data.get("canonical_name", concept_id)
+        canonical_name = concept_data.get("canonical_name")
+        if isinstance(canonical_name, str) and canonical_name:
+            return canonical_name
     return concept_id
 
 
-def _format_number(n: float) -> str:
+def _format_number(n: float | int) -> str:
     """Format a number, dropping trailing zeros for clean display."""
     if isinstance(n, int) or (isinstance(n, float) and n == int(n)):
         return str(int(n))
     return str(n)
 
 
-def _describe_parameter(claim: dict, concept_registry: dict) -> str:
+def _describe_parameter(
+    claim: ClaimDocument,
+    concept_registry: ConceptDescriptionRegistry,
+) -> str:
     """Generate description for a parameter claim."""
-    concept_id = claim.get("output_concept")
-    name = _resolve_concept_name(concept_id, concept_registry)
-    unit = claim.get("unit", "")
-
-    value = claim.get("value")
-    lower = claim.get("lower_bound")
-    upper = claim.get("upper_bound")
-    uncertainty = claim.get("uncertainty")
-    uncertainty_type = claim.get("uncertainty_type")
+    name = _resolve_concept_name(claim.output_concept, concept_registry)
+    unit = claim.unit or ""
 
     # Build the value part
-    if value is not None and uncertainty is not None and uncertainty_type:
-        val_str = f"{name} = {_format_number(value)} \u00b1 {_format_number(uncertainty)} ({uncertainty_type})"
-    elif value is not None:
-        val_str = f"{name} = {_format_number(value)}"
-    elif lower is not None and upper is not None:
-        val_str = f"{name} \u2208 [{_format_number(lower)}, {_format_number(upper)}]"
+    if claim.value is not None and claim.uncertainty is not None and claim.uncertainty_type:
+        val_str = (
+            f"{name} = {_format_number(claim.value)} \u00b1 "
+            f"{_format_number(claim.uncertainty)} ({claim.uncertainty_type})"
+        )
+    elif claim.value is not None:
+        val_str = f"{name} = {_format_number(claim.value)}"
+    elif claim.lower_bound is not None and claim.upper_bound is not None:
+        val_str = (
+            f"{name} \u2208 "
+            f"[{_format_number(claim.lower_bound)}, {_format_number(claim.upper_bound)}]"
+        )
     else:
         val_str = name
 
@@ -89,62 +103,58 @@ def _describe_parameter(claim: dict, concept_registry: dict) -> str:
         val_str = f"{val_str} {unit}"
 
     # Append condition summary
-    conditions = claim.get("conditions")
-    if conditions:
-        summary = _format_conditions_prose(conditions)
+    if claim.conditions:
+        summary = _format_conditions_prose(tuple(str(condition) for condition in claim.conditions))
         if summary:
             val_str = f"{val_str} ({summary})"
 
     return val_str
 
 
-def _expression_as_description(claim: dict) -> str:
+def _expression_as_description(claim: ClaimDocument) -> str:
     """Generate description for an equation claim."""
-    expression = claim.get("expression", "")
-    return expression
+    return claim.expression or ""
 
 
-def _describe_measurement(claim: dict, concept_registry: dict) -> str:
+def _describe_measurement(
+    claim: ClaimDocument,
+    concept_registry: ConceptDescriptionRegistry,
+) -> str:
     """Generate description for a measurement claim."""
-    target_id = claim.get("target_concept")
-    target_name = _resolve_concept_name(target_id, concept_registry)
-    measure = claim.get("measure", "measure")
-    unit = claim.get("unit", "")
+    target_name = _resolve_concept_name(claim.target_concept, concept_registry)
+    measure = claim.measure or "measure"
+    unit = claim.unit or ""
 
-    value = claim.get("value")
-    lower = claim.get("lower_bound")
-    upper = claim.get("upper_bound")
-
-    if value is not None:
-        val_str = f"{measure} of {target_name} = {_format_number(value)}"
-    elif lower is not None and upper is not None:
-        val_str = f"{measure} of {target_name} \u2208 [{_format_number(lower)}, {_format_number(upper)}]"
+    if claim.value is not None:
+        val_str = f"{measure} of {target_name} = {_format_number(claim.value)}"
+    elif claim.lower_bound is not None and claim.upper_bound is not None:
+        val_str = (
+            f"{measure} of {target_name} \u2208 "
+            f"[{_format_number(claim.lower_bound)}, {_format_number(claim.upper_bound)}]"
+        )
     else:
         val_str = f"{measure} of {target_name}"
 
     if unit:
         val_str = f"{val_str} {unit}"
 
-    conditions = claim.get("conditions")
-    if conditions:
-        summary = _format_conditions_prose(conditions)
+    if claim.conditions:
+        summary = _format_conditions_prose(tuple(str(condition) for condition in claim.conditions))
         if summary:
             val_str = f"{val_str} ({summary})"
 
     return val_str
 
 
-def _describe_algorithm(claim: dict) -> str:
+def _describe_algorithm(claim: ClaimDocument) -> str:
     """Generate description for an algorithm claim."""
-    name = claim.get("name", "unnamed")
-    stage = claim.get("stage")
-    output_concept = claim.get("output_concept")
-    if stage:
-        if output_concept:
-            return f"Algorithm: {name} -> {output_concept} [{stage}]"
-        return f"Algorithm: {name} [{stage}]"
-    if output_concept:
-        return f"Algorithm: {name} -> {output_concept}"
+    name = claim.name or "unnamed"
+    if claim.stage:
+        if claim.output_concept:
+            return f"Algorithm: {name} -> {claim.output_concept} [{claim.stage}]"
+        return f"Algorithm: {name} [{claim.stage}]"
+    if claim.output_concept:
+        return f"Algorithm: {name} -> {claim.output_concept}"
     return f"Algorithm: {name}"
 
 
@@ -153,7 +163,7 @@ def _describe_algorithm(claim: dict) -> str:
 # Patterns for common CEL equality conditions
 _EQUALITY_RE = re.compile(r"""^(\w+)\s*==\s*(['"])(.+?)\2$""")
 
-def _format_conditions_prose(conditions: list[str]) -> str:
+def _format_conditions_prose(conditions: Sequence[str]) -> str:
     """Convert CEL conditions to readable text.
 
     Simple equality conditions (``concept == 'value'``) become

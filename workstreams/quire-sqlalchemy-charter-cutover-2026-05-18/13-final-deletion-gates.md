@@ -476,6 +476,13 @@ Gate: no local path, workspace, or file URL Quire dependency.
     charter field metadata.
   - `uv run pyright propstore` passed with 0 errors after the algorithm-stage
     charter metadata repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-claim-text-payload tests/test_description_generator.py tests/test_build_sidecar.py::TestClaimTable::test_claim_has_auto_summary tests/test_build_sidecar.py::TestClaimTable::test_equation_claim_preserves_sympy_error`
+    passed 21 tests after deleting the dict-shaped description-generator input
+    surface, taking typed `ClaimDocument` input, centralizing equation sympy
+    derivation, and writing derived `auto_summary`/`sympy_error` values in the
+    claim compilation owner path.
+  - `uv run pyright propstore` passed with 0 errors after the claim text
+    payload derivation repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -493,13 +500,17 @@ Gate: no local path, workspace, or file URL Quire dependency.
       still omitted from `claim_core` promotion-status rows.
     - Source/source-slug and source status display paths still read fields no
       longer present on the current source charter shape.
-    - Typed fixture drift remains in ATMS, PrAF, semantic repair, fragility,
+    - Typed fixture drift remains in ATMS, semantic repair, fragility,
       sensitivity, micropublication, and preference import tests; fix fixtures
       to build charter/domain objects, not production dict fallbacks.
     - Argumentation/vacuous stance behavior must reject vacuous attackers at
       the typed relation boundary, not via compatibility wrappers.
     - Demo and worldline tests still assert source-local handles where current
       runtime surfaces expose canonical claim ids.
+    - Claim text payload derivation was repaired after full-4 by making the
+      description generator accept typed `ClaimDocument` input and by storing
+      auto summaries and equation sympy errors from the claim compilation owner
+      path.
     - Sidecar cache-key schema fields and contract manifest snapshots must be
       regenerated/versioned through the intended contract workflow after
       production semantics settle.

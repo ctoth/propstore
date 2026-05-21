@@ -755,13 +755,16 @@ def _validate_equation_sympy_generation(
     filename: str,
     diagnostics: list[PassDiagnostic],
 ) -> None:
-    from human_to_sympy import generate_sympy_rhs_with_error
+    from propstore.families.claims.sympy_generation import derive_equation_sympy
 
     expression = claim.get("expression")
     sympy_field = claim.get("sympy")
     if sympy_field:
-        sympy_result = generate_sympy_rhs_with_error(sympy_field)
-        if sympy_result.expression is None:
+        sympy_result = derive_equation_sympy(
+            authored_sympy=str(sympy_field),
+            expression=None,
+        )
+        if sympy_result.generated is None:
             _record(
                 diagnostics,
                 message=(
@@ -773,8 +776,11 @@ def _validate_equation_sympy_generation(
                 artifact_id=cid,
             )
     elif expression:
-        generated = generate_sympy_rhs_with_error(expression)
-        if generated.expression is None:
+        generated = derive_equation_sympy(
+            authored_sympy=None,
+            expression=str(expression),
+        )
+        if generated.generated is None:
             _record(
                 diagnostics,
                 level="warning",

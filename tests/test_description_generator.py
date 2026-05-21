@@ -6,7 +6,17 @@ that lack explicit statement fields.
 
 import pytest
 
+from propstore.core.claim_types import ClaimType
 from propstore.description_generator import generate_description, _format_conditions_prose
+from propstore.families.claims.documents import ClaimDocument
+from propstore.families.contexts.documents import ContextReferenceDocument
+
+
+def claim_document(**kwargs: object) -> ClaimDocument:
+    return ClaimDocument(
+        context=ContextReferenceDocument(id="ctx"),
+        **kwargs,
+    )
 
 
 # ── Concept registry fixture ─────────────────────────────────────────
@@ -35,13 +45,13 @@ def concept_registry():
 # ── Test 1: Parameter claim with value ────────────────────────────────
 
 def test_parameter_claim_with_value(concept_registry):
-    claim = {
-        "type": "parameter",
-        "output_concept": "concept2",
-        "value": 0.7,
-        "unit": "ratio",
-        "conditions": ["voice_quality_type == 'modal'"],
-    }
+    claim = claim_document(
+        type=ClaimType.PARAMETER,
+        output_concept="concept2",
+        value=0.7,
+        unit="ratio",
+        conditions=("voice_quality_type == 'modal'",),
+    )
     result = generate_description(claim, concept_registry)
     assert result == "open_quotient = 0.7 ratio (modal voice_quality_type)"
 
@@ -49,13 +59,13 @@ def test_parameter_claim_with_value(concept_registry):
 # ── Test 2: Parameter claim with range ────────────────────────────────
 
 def test_parameter_claim_with_range(concept_registry):
-    claim = {
-        "type": "parameter",
-        "output_concept": "concept2",
-        "lower_bound": 0.5,
-        "upper_bound": 0.9,
-        "unit": "ratio",
-    }
+    claim = claim_document(
+        type=ClaimType.PARAMETER,
+        output_concept="concept2",
+        lower_bound=0.5,
+        upper_bound=0.9,
+        unit="ratio",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "open_quotient \u2208 [0.5, 0.9] ratio"
 
@@ -63,14 +73,14 @@ def test_parameter_claim_with_range(concept_registry):
 # ── Test 3: Parameter claim with uncertainty ──────────────────────────
 
 def test_parameter_claim_with_uncertainty(concept_registry):
-    claim = {
-        "type": "parameter",
-        "output_concept": "concept2",
-        "value": 0.7,
-        "uncertainty": 0.12,
-        "uncertainty_type": "sd",
-        "unit": "ratio",
-    }
+    claim = claim_document(
+        type=ClaimType.PARAMETER,
+        output_concept="concept2",
+        value=0.7,
+        uncertainty=0.12,
+        uncertainty_type="sd",
+        unit="ratio",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "open_quotient = 0.7 \u00b1 0.12 (sd) ratio"
 
@@ -78,10 +88,10 @@ def test_parameter_claim_with_uncertainty(concept_registry):
 # ── Test 4: Equation claim ────────────────────────────────────────────
 
 def test_equation_claim(concept_registry):
-    claim = {
-        "type": "equation",
-        "expression": "OQ = 1 - CQ",
-    }
+    claim = claim_document(
+        type=ClaimType.EQUATION,
+        expression="OQ = 1 - CQ",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "OQ = 1 - CQ"
 
@@ -89,10 +99,10 @@ def test_equation_claim(concept_registry):
 # ── Test 5: Observation claim with explicit statement ─────────────────
 
 def test_observation_preserves_statement(concept_registry):
-    claim = {
-        "type": "observation",
-        "statement": "Modal voice has the highest harmonic richness",
-    }
+    claim = claim_document(
+        type=ClaimType.OBSERVATION,
+        statement="Modal voice has the highest harmonic richness",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "Modal voice has the highest harmonic richness"
 
@@ -100,12 +110,12 @@ def test_observation_preserves_statement(concept_registry):
 # ── Test 6: Claim with no conditions ──────────────────────────────────
 
 def test_parameter_no_conditions(concept_registry):
-    claim = {
-        "type": "parameter",
-        "output_concept": "concept2",
-        "value": 0.7,
-        "unit": "ratio",
-    }
+    claim = claim_document(
+        type=ClaimType.PARAMETER,
+        output_concept="concept2",
+        value=0.7,
+        unit="ratio",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "open_quotient = 0.7 ratio"
 
@@ -113,16 +123,16 @@ def test_parameter_no_conditions(concept_registry):
 # ── Test 7: Claim with multiple conditions ────────────────────────────
 
 def test_parameter_multiple_conditions(concept_registry):
-    claim = {
-        "type": "parameter",
-        "output_concept": "concept2",
-        "value": 0.7,
-        "unit": "ratio",
-        "conditions": [
+    claim = claim_document(
+        type=ClaimType.PARAMETER,
+        output_concept="concept2",
+        value=0.7,
+        unit="ratio",
+        conditions=(
             "voice_quality_type == 'modal'",
             "speaker_sex == 'male'",
-        ],
-    }
+        ),
+    )
     result = generate_description(claim, concept_registry)
     assert result == "open_quotient = 0.7 ratio (modal voice_quality_type, male speaker_sex)"
 
@@ -130,10 +140,10 @@ def test_parameter_multiple_conditions(concept_registry):
 # ── Test: Model claim ─────────────────────────────────────────────────
 
 def test_model_claim(concept_registry):
-    claim = {
-        "type": "model",
-        "name": "LF glottal flow model",
-    }
+    claim = claim_document(
+        type=ClaimType.MODEL,
+        name="LF glottal flow model",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "Model: LF glottal flow model"
 
@@ -141,13 +151,13 @@ def test_model_claim(concept_registry):
 # ── Test: Measurement claim ───────────────────────────────────────────
 
 def test_measurement_claim(concept_registry):
-    claim = {
-        "type": "measurement",
-        "target_concept": "concept2",
-        "measure": "jnd_absolute",
-        "value": 0.05,
-        "unit": "ratio",
-    }
+    claim = claim_document(
+        type=ClaimType.MEASUREMENT,
+        target_concept="concept2",
+        measure="jnd_absolute",
+        value=0.05,
+        unit="ratio",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "jnd_absolute of open_quotient = 0.05 ratio"
 
@@ -155,11 +165,11 @@ def test_measurement_claim(concept_registry):
 # ── Test: Algorithm claim with stage ─────────────────────────────────
 
 def test_algorithm_claim_with_stage(concept_registry):
-    claim = {
-        "type": "algorithm",
-        "name": "Viterbi decoding",
-        "stage": "inference",
-    }
+    claim = claim_document(
+        type=ClaimType.ALGORITHM,
+        name="Viterbi decoding",
+        stage="inference",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "Algorithm: Viterbi decoding [inference]"
 
@@ -167,10 +177,10 @@ def test_algorithm_claim_with_stage(concept_registry):
 # ── Test: Algorithm claim without stage ──────────────────────────────
 
 def test_algorithm_claim_without_stage(concept_registry):
-    claim = {
-        "type": "algorithm",
-        "name": "Viterbi decoding",
-    }
+    claim = claim_document(
+        type=ClaimType.ALGORITHM,
+        name="Viterbi decoding",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "Algorithm: Viterbi decoding"
 
@@ -178,7 +188,7 @@ def test_algorithm_claim_without_stage(concept_registry):
 # ── Test: Unknown type returns None ───────────────────────────────────
 
 def test_unknown_type_returns_none(concept_registry):
-    claim = {"type": "something_else"}
+    claim = claim_document()
     result = generate_description(claim, concept_registry)
     assert result is None
 
@@ -186,12 +196,12 @@ def test_unknown_type_returns_none(concept_registry):
 # ── Test: Concept not in registry falls back to concept ID ────────────
 
 def test_missing_concept_falls_back_to_id(concept_registry):
-    claim = {
-        "type": "parameter",
-        "output_concept": "concept9999",
-        "value": 42.0,
-        "unit": "Hz",
-    }
+    claim = claim_document(
+        type=ClaimType.PARAMETER,
+        output_concept="concept9999",
+        value=42.0,
+        unit="Hz",
+    )
     result = generate_description(claim, concept_registry)
     assert result == "concept9999 = 42 Hz"
 
@@ -199,14 +209,14 @@ def test_missing_concept_falls_back_to_id(concept_registry):
 # ── Test: Parameter with value + range prefers value ──────────────────
 
 def test_parameter_value_and_range(concept_registry):
-    claim = {
-        "type": "parameter",
-        "output_concept": "concept2",
-        "value": 0.7,
-        "lower_bound": 0.5,
-        "upper_bound": 0.9,
-        "unit": "ratio",
-    }
+    claim = claim_document(
+        type=ClaimType.PARAMETER,
+        output_concept="concept2",
+        value=0.7,
+        lower_bound=0.5,
+        upper_bound=0.9,
+        unit="ratio",
+    )
     result = generate_description(claim, concept_registry)
     # When both value and range exist, show value with range context
     assert result == "open_quotient = 0.7 ratio"

@@ -34,6 +34,7 @@ from propstore.core.conditions import (
 from propstore.core.justifications import Justification
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.dimensions import DimensionalForm, normalize_to_si
+from propstore.description_generator import generate_description
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
@@ -47,6 +48,7 @@ from propstore.families.claims.stages import (
     RawIdQuarantineRecord,
     parse_claim_algorithm_variables,
 )
+from propstore.families.claims.sympy_generation import derive_equation_sympy
 from propstore.families.diagnostics.declaration import (
     QuarantineDiagnostic,
     compile_promotion_blocked_diagnostics,
@@ -441,6 +443,14 @@ def compile_claim_models(
                     form_definition=form_definition,
                 ),
             }
+            sympy_derivation = (
+                derive_equation_sympy(
+                    authored_sympy=claim_doc.sympy,
+                    expression=claim_doc.expression,
+                )
+                if claim_doc.type is ClaimType.EQUATION
+                else None
+            )
             text_values = {
                 "claim_id": claim_id,
                 "conditions_cel": (
@@ -451,15 +461,23 @@ def compile_claim_models(
                 "conditions_ir": conditions_ir,
                 "statement": claim_doc.statement,
                 "expression": claim_doc.expression,
-                "sympy_generated": claim_doc.sympy,
-                "sympy_error": None,
+                "sympy_generated": (
+                    claim_doc.sympy
+                    if sympy_derivation is None
+                    else sympy_derivation.generated
+                ),
+                "sympy_error": (
+                    None
+                    if sympy_derivation is None
+                    else sympy_derivation.error
+                ),
                 "name": claim_doc.name,
                 "measure": claim_doc.measure,
                 "listener_population": claim_doc.listener_population,
                 "methodology": claim_doc.methodology,
                 "notes": claim_doc.notes,
                 "description": None,
-                "auto_summary": None,
+                "auto_summary": generate_description(claim_doc, concept_registry),
             }
             algorithm_values = {
                 "claim_id": claim_id,
