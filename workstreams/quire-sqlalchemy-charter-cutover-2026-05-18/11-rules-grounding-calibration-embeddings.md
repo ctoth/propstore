@@ -492,6 +492,23 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   tests/remediation/phase_7_race_atomicity/test_T7_6_full_race_suite.py`
   passed with 1 stateful aggregate test; log:
   `logs/test-runs/t7-6-sqlalchemy-session-20260521-102549.log`.
+- Test-support commit `9179bd8b` moved
+  `tests/sqlite_argumentation_store.py` off `sqlite3.Row` assumptions by
+  reading cursor metadata and returning typed `Claim` models through the
+  existing `claim_model_from_test_payload` path. The same commit carried
+  numeric `uncertainty`, `uncertainty_type`, and `unit` through
+  `tests/claim_model_helpers.py` so the typed claim graph sees the old test
+  metadata.
+- Test commit `a855bb38` removed the two `row_factory` assignments from
+  `tests/test_argumentation_integration.py`.
+- `rg -n -F -- "row_factory" tests/test_argumentation_integration.py`
+  returned zero hits, and `uv run pyright propstore` passed with zero errors.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  argumentation-integration-no-row-factory
+  tests/test_argumentation_integration.py` still failed two existing
+  preference/grounded assertions after the row-factory deletion; the row
+  conversion crash is gone and 20 of 22 tests passed. Log:
+  `logs/test-runs/argumentation-integration-no-row-factory-20260521-103433.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
