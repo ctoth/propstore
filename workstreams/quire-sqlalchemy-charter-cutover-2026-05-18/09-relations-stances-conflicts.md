@@ -533,3 +533,12 @@ Recorded 2026-05-20.
   with 0 errors. Remaining caller queue still includes graph/export,
   relation-analysis, support-revision, world, and worldline imports plus the
   raw selector helpers in the relation owner.
+- Second caller fallout repair: commit `25d48c0a` updated
+  `propstore/core/graph_build.py`, `propstore/graph_export.py`,
+  `propstore/relation_analysis.py`, `propstore/merge/structured_merge.py`,
+  and `propstore/worldline/argumentation.py` to consume typed relation models
+  directly and remove deleted relation projection-model serialization/coercion
+  calls. Targeted pyright for those five files passed with 0 errors.
+  Remaining pyright/import queue is now concentrated in support-revision and
+  world runtime callers, plus the relation-owner raw selector helpers and
+  final old-path search gates.
