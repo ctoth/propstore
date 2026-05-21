@@ -1530,3 +1530,14 @@ Current binding queue:
   `Error: missing required field(s) for family 'conflict_witness': id`;
   that is Phase 11 relation/conflict work and must not be papered over by
   restoring claim rows.
+- ATMS claim fixture helper deletion: commit `7955b229` deleted the remaining
+  `_claim_from_test_fixture` helper from `tests/test_atms_engine.py`. The
+  test store now calls the existing typed `claim_model(...)` builder directly
+  while preserving the current test fixture condition-IR construction; no new
+  wrapper, alias, or generalized fixture normalizer was introduced. `rg -n -F
+  -- "_claim_from_test_fixture" propstore tests` returned zero hits, `uv run
+  pyright propstore` passed with 0 errors, and logged focused pytest
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  atms-claim-fixture-helper-deletion tests/test_atms_engine.py` passed with
+  39 tests and log
+  `logs\test-runs\atms-claim-fixture-helper-deletion-20260520-194625.log`.
