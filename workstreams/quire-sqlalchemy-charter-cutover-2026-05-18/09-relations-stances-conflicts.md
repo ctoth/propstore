@@ -567,3 +567,14 @@ Recorded 2026-05-20.
   passed with 0 errors. Next required gate is package pyright, followed by
   old-path searches and deletion of remaining raw selector helpers in the
   relation owner.
+- Conflict warning-class typing repair: commit `4bc77c36` tightened
+  `ConflictWitness` construction so stored warning/conflict classes are string
+  model fields, detector output lowers enum values at the construction
+  boundary, graph conflicts pass their existing typed string kind directly,
+  and consistency reporting reads the typed field without `.value` or a
+  coercion repair. Targeted pyright for
+  `propstore/families/relations/declaration.py`, `propstore/world/bound.py`,
+  `propstore/world/atms.py`, and `propstore/world/consistency.py` passed with
+  0 errors. Next required gate remains package pyright, followed by old-path
+  searches and deletion of remaining raw selector helpers in the relation
+  owner.
