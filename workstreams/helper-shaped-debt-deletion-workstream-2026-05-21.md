@@ -290,6 +290,27 @@ Execution record:
   `io-boundary`, `presentation`, or `semantic-owner`.
 - `uv run pyright propstore`: passed with `0 errors, 0 warnings, 0 informations`.
 
+## Phase 3B: Delete Non-Coercer Helper Surfaces
+
+Owned surfaces: every Phase 2 `delete` row that does not start with
+`coerce_`, `_coerce_`, `normalize_`, or `_normalize_` and does not end in
+`Row`, `Record`, or `DTO`.
+
+Delete first, then fix callers from compiler/type/test failures.
+
+Deletion queue:
+
+- `propstore/world/overlay.py:_ParameterizationCatalogAdapter`
+
+Required final state:
+
+- `build_compiled_world_graph` owns graph compilation over stores that expose
+  `all_concepts`, `claims_for`, `conflicts`, and either `all_parameterizations`
+  or `parameterizations_for`;
+- `propstore/world/overlay.py` contains no adapter class for parameterization
+  catalog synthesis;
+- search for `_ParameterizationCatalogAdapter` is zero-hit.
+
 ## Phase 4: Delete Row/Record/DTO Shape Carriers
 
 Owned surfaces: every Phase 2 `delete` row ending in `Row`, `Record`, or `DTO`.
