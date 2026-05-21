@@ -191,6 +191,20 @@ allowed only in tests that assert the old helper family is deleted; otherwise
 they must be removed. Do not rename valid non-helper fields or APIs such as
 `argument_to_claim_id` or `snapshot_to_claim_ids` to satisfy a substring search.
 
+Execution record:
+
+- Deleted the semantic ID conversion helper family from
+  `propstore/core/id_types.py`.
+- Replaced helper callers with direct type construction at typed boundaries and
+  repaired the `snapshot_to_claim_ids` codemod fallout without renaming the valid
+  API.
+- `uv run pyright propstore`: passed with `0 errors, 0 warnings, 0 informations`.
+- Phase 1 symbol search gates: zero hits for deleted helper symbols and zero
+  `def to_*_id` / `def to_*_ids` hits under `propstore` and `tests`.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label helper-id-types-targeted tests/test_init.py tests/test_core_graph_types.py tests/test_condition_ir.py tests/test_condition_z3_backend.py tests/test_world_query.py tests/test_worldline.py tests/test_atms_engine.py tests/test_revision_phase1.py tests/test_resolution_helpers.py`:
+  passed, `304 passed, 29 warnings`, log
+  `logs\test-runs\helper-id-types-targeted-20260521-174047.log`.
+
 ## Phase 2: Classify Remaining Helper-Shaped Surfaces
 
 Input: Phase 0 broad helper-shaped scan.
