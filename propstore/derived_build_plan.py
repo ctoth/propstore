@@ -33,7 +33,6 @@ from propstore.families.claims.declaration import (
     RawIdQuarantineModels,
     compile_authored_justification_sidecar_rows_with_diagnostics,
     compile_claim_models,
-    compile_conflict_sidecar_rows,
     compile_raw_id_quarantine_models,
 )
 from propstore.families.diagnostics.declaration import (
@@ -46,6 +45,7 @@ from propstore.families.micropublications.declaration import (
 from propstore.families.relations.declaration import (
     compile_authored_stance_sidecar_rows_with_diagnostics,
     compile_claim_embedded_stance_sidecar_rows_with_diagnostics,
+    compile_conflict_sidecar_rows,
 )
 from propstore.families.sources.declaration import (
     compile_source_models,

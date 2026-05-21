@@ -19,12 +19,9 @@ from typing import TYPE_CHECKING, Any
 from quire.references import FamilyReferenceIndex
 from quire.projections import ProjectionRow
 from propstore.claims import (
-    ClaimFileEntry,
     claim_file_filename,
     claim_file_stage,
 )
-from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
-from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.algorithm_stage import AlgorithmStage
@@ -52,9 +49,6 @@ from propstore.families.diagnostics.declaration import (
     compile_promotion_blocked_diagnostics,
 )
 from propstore.families.documents.justifications import JustificationDocument
-from propstore.families.relations.declaration import (
-    CONFLICT_WITNESS_TABLE,
-)
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ProvenanceRecord
@@ -904,51 +898,9 @@ def compile_promotion_blocked_models(
     )
 
 
-def compile_conflict_sidecar_rows(
-    claim_files: Sequence[ClaimFileEntry],
-    concept_registry: dict,
-    cel_registry: dict,
-    lifting_system=None,
-) -> tuple[ProjectionRow, ...]:
-    conflict_claims = conflict_claims_from_claim_files(claim_files)
-    records = detect_conflicts(
-        conflict_claims,
-        concept_registry,
-        cel_registry,
-        lifting_system=lifting_system,
-    )
-    records.extend(
-        detect_transitive_conflicts(
-            conflict_claims,
-            concept_registry,
-            lifting_system=lifting_system,
-        )
-    )
-    return tuple(
-        CONFLICT_WITNESS_TABLE.row(
-            concept_id=record.concept_id,
-            claim_a_id=record.claim_a_id,
-            claim_b_id=record.claim_b_id,
-            warning_class=record.warning_class.value,
-            conditions_a=json.dumps(record.conditions_a),
-            conditions_b=json.dumps(record.conditions_b),
-            value_a=record.value_a,
-            value_b=record.value_b,
-            derivation_chain=record.derivation_chain,
-        )
-        for record in records
-    )
-
-
 def populate_authored_justifications(
     conn: sqlite3.Connection,
     rows: Sequence[ProjectionRow],
 ) -> None:
     JUSTIFICATION_TABLE.insert_rows(conn, rows, or_ignore=True)
 
-
-def populate_conflicts(
-    conn: sqlite3.Connection,
-    rows: Sequence[ProjectionRow],
-) -> None:
-    CONFLICT_WITNESS_TABLE.insert_rows(conn, rows)

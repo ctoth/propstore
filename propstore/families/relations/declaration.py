@@ -11,6 +11,9 @@ from typing import Any
 from quire.projections import ProjectionRow
 from quire.references import FamilyReferenceIndex
 
+from propstore.claims import ClaimFileEntry
+from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
+from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.conflict_detector.models import ConflictClass, coerce_conflict_class
 from propstore.core.concept_relationship_types import (
     ConceptRelationshipType,
@@ -338,6 +341,42 @@ def _claim_embedded_stance_projection_row(values: tuple) -> ProjectionRow:
         row_values.update(discriminator.row_values())
     row_values.update(CLAIM_STANCE_STORAGE_MODEL.to_row(stance))
     return RELATION_EDGE_TABLE.row(**row_values)
+
+
+def compile_conflict_sidecar_rows(
+    claim_files: Sequence[ClaimFileEntry],
+    concept_registry: dict,
+    cel_registry: dict,
+    lifting_system=None,
+) -> tuple[ProjectionRow, ...]:
+    conflict_claims = conflict_claims_from_claim_files(claim_files)
+    records = detect_conflicts(
+        conflict_claims,
+        concept_registry,
+        cel_registry,
+        lifting_system=lifting_system,
+    )
+    records.extend(
+        detect_transitive_conflicts(
+            conflict_claims,
+            concept_registry,
+            lifting_system=lifting_system,
+        )
+    )
+    return tuple(
+        CONFLICT_WITNESS_TABLE.row(
+            concept_id=record.concept_id,
+            claim_a_id=record.claim_a_id,
+            claim_b_id=record.claim_b_id,
+            warning_class=record.warning_class.value,
+            conditions_a=json.dumps(record.conditions_a),
+            conditions_b=json.dumps(record.conditions_b),
+            value_a=record.value_a,
+            value_b=record.value_b,
+            derivation_chain=record.derivation_chain,
+        )
+        for record in records
+    )
 
 
 def compile_authored_stance_sidecar_rows(

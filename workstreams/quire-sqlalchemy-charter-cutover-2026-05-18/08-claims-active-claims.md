@@ -1708,3 +1708,23 @@ Current binding queue:
   `logs\test-runs\relation-populate-stances-owner-20260520-214307.log`; and
   `rg -n -F -- "populate_stances" propstore tests`, which now shows only the
   relation owner and focused test call sites, with no claim-family hits.
+- Conflict owner handoff: `compile_conflict_sidecar_rows` was deleted from
+  `propstore/families/claims/declaration.py` and moved to the relation/conflict
+  owner. The unused `populate_conflicts` helper was deleted instead of moved.
+  `derived_build_plan.py` now imports the conflict compiler from
+  `propstore.families.relations.declaration`. Verification passed: focused
+  pyright on `propstore/families/claims/declaration.py`,
+  `propstore/families/relations/declaration.py`, and
+  `propstore/derived_build_plan.py`; logged pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label conflict-owner-handoff
+  tests/test_conflict_detector.py tests/test_build_sidecar.py::TestConflictsTable`
+  with 56 tests in
+  `logs\test-runs\conflict-owner-handoff-20260520-214719.log`; `rg -n -F --
+  "compile_conflict_sidecar_rows" propstore tests`, which now shows only the
+  relation owner and build-plan caller; `rg -n -F -- "populate_conflicts"
+  propstore tests`, which returned zero hits; and `rg -n -F --
+  "CONFLICT_WITNESS_TABLE" propstore/families/claims/declaration.py
+  propstore/families/relations/declaration.py`, which returned only relation
+  owner hits. The remaining `ProjectionRow` hits in
+  `propstore/families/claims/declaration.py` are the authored-justification
+  residual explicitly owned by Phase 12.
