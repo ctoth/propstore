@@ -1287,3 +1287,8 @@ Current binding queue:
   lowering it to a path. Claim embed/similar/relate app calls now pass the
   typed handle through to owner-layer runtime functions. Focused verification
   `uv run pyright propstore/app/claims.py` passed with 0 errors.
+- Package type gate after embedding caller cleanup: `uv run pyright propstore`
+  passed with 0 errors after commits `bc8d8f92`, `3a5470dc`, and
+  `a4afca74`. The next Phase 10 queue is old-path search/deletion for
+  claim-specific lookup wrappers and test fixtures that still construct
+  deleted active-claim/row-model surfaces.
