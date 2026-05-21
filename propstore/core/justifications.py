@@ -2,11 +2,51 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
 from propstore.core.graph_types import ActiveWorldGraph, ProvenanceRecord
+
+
+class Justification:
+    id: str
+    justification_kind: str
+    conclusion_claim_id: str
+    premise_claim_ids: str
+    source_relation_type: str | None
+    source_claim_id: str | None
+    provenance_json: str | None
+    rule_strength: str
+
+    def __init__(
+        self,
+        *,
+        id: str,
+        justification_kind: str,
+        conclusion_claim_id: str,
+        premise_claim_ids: str = "[]",
+        source_relation_type: str | None = None,
+        source_claim_id: str | None = None,
+        provenance_json: str | None = None,
+        rule_strength: str = "defeasible",
+    ) -> None:
+        self.id = id
+        self.justification_kind = justification_kind
+        self.conclusion_claim_id = conclusion_claim_id
+        self.premise_claim_ids = premise_claim_ids
+        self.source_relation_type = source_relation_type
+        self.source_claim_id = source_claim_id
+        self.provenance_json = provenance_json
+        self.rule_strength = rule_strength
+
+    @property
+    def premise_ids(self) -> tuple[str, ...]:
+        loaded = json.loads(self.premise_claim_ids)
+        if not isinstance(loaded, list):
+            raise ValueError("justification premise_claim_ids must decode to a list")
+        return tuple(str(item) for item in loaded)
 
 
 def _normalize_attrs(
