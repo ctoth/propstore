@@ -162,6 +162,35 @@ workstream. Production hits outside those targets block implementation.
 - Phase 14 implementation may start with Slice 1:
   `WorldQuery` session cutover.
 
+2026-05-21 Slice 1 execution update:
+
+- Commit `c9a9e63b` deleted the remaining raw `sqlite3.Connection` authored
+  justification selector/count path from `propstore/families/claims/declaration.py`.
+- `WorldQuery` no longer opens or closes a raw read-only SQLite connection and
+  no longer sets `row_factory`; `_validate_schema`, `grounding_bundle`,
+  `all_authored_justifications`, and `authored_justification_count` use the
+  Quire derived-store SQLAlchemy session path.
+- Canonical justification conversion now lives as behavior on the typed
+  `Justification` family model in `propstore/core/justifications.py`; the
+  storage field list still comes from the charter metadata.
+- Slice 1 search gates run after the edit returned zero hits for
+  `self._conn`, `row_factory`, `select_authored_justifications`,
+  `count_authored_justifications`, `sqlite3.Connection` under the owned
+  world/family/core/worldline/test paths, and the removed standalone
+  `readonly_session` import shape in `propstore/world/model.py`.
+- `uv run pyright propstore` passed with zero errors after the edit.
+- Focused gate
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldquery-session-cutover
+  tests/test_world_query.py::TestWorldQuerySidecarPath
+  tests/test_world_query.py::TestUnboundQueries::test_stats
+  tests/test_world_query.py::TestUnboundQueries::test_get_claim
+  tests/test_world_query.py::TestUnboundQueries::test_get_concept` passed with
+  10 tests; log:
+  `logs/test-runs/worldquery-session-cutover-20260521-114340.log`.
+- Slice 1 session/raw selector cutover is complete. Continue with Slice 2:
+  world query helper migration.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
