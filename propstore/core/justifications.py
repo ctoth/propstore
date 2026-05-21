@@ -5,42 +5,15 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from propstore.core.graph_types import ActiveWorldGraph, ProvenanceRecord
+from quire.charters import FamilyModel
+
+if TYPE_CHECKING:
+    from propstore.core.graph_types import ActiveWorldGraph, ProvenanceRecord
 
 
-class Justification:
-    id: str
-    justification_kind: str
-    conclusion_claim_id: str
-    premise_claim_ids: str
-    source_relation_type: str | None
-    source_claim_id: str | None
-    provenance_json: str | None
-    rule_strength: str
-
-    def __init__(
-        self,
-        *,
-        id: str,
-        justification_kind: str,
-        conclusion_claim_id: str,
-        premise_claim_ids: str = "[]",
-        source_relation_type: str | None = None,
-        source_claim_id: str | None = None,
-        provenance_json: str | None = None,
-        rule_strength: str = "defeasible",
-    ) -> None:
-        self.id = id
-        self.justification_kind = justification_kind
-        self.conclusion_claim_id = conclusion_claim_id
-        self.premise_claim_ids = premise_claim_ids
-        self.source_relation_type = source_relation_type
-        self.source_claim_id = source_claim_id
-        self.provenance_json = provenance_json
-        self.rule_strength = rule_strength
-
+class Justification(FamilyModel):
     @property
     def premise_ids(self) -> tuple[str, ...]:
         loaded = json.loads(self.premise_claim_ids)
@@ -91,6 +64,8 @@ class CanonicalJustification:
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> CanonicalJustification:
+        from propstore.core.graph_types import ProvenanceRecord
+
         provenance_data = data.get("provenance")
         return cls(
             justification_id=str(data["justification_id"]),
