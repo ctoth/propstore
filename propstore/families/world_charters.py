@@ -13,6 +13,7 @@ from quire.charters import (
     CharterFtsIndex,
     CharterIndex,
     CharterRelationship,
+    CharterVectorCache,
     FamilyCharter,
     charter_catalog,
 )
@@ -135,7 +136,15 @@ def world_charter_catalog() -> SchemaCatalog:
             _f("form", nullable=False), _f("form_parameters"), _r("range_min"), _r("range_max"),
             _i("is_dimensionless", nullable=False, default_sql="0"), _f("unit_symbol"), _f("created_date"),
             _f("last_modified"), indexes=(CharterIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
-            fts_indexes=(CharterFtsIndex("concept_fts", "concept_id", ("canonical_name", "aliases", "definition", "conditions"), source_query=_CONCEPT_FTS_SOURCE_QUERY),)),
+            fts_indexes=(CharterFtsIndex("concept_fts", "concept_id", ("canonical_name", "aliases", "definition", "conditions"), source_query=_CONCEPT_FTS_SOURCE_QUERY),),
+            vector_caches=(CharterVectorCache(
+                "concept_embeddings",
+                table="concept_vec_{model_identity_hash}_{dimensions}",
+                entity_id_field="id",
+                source_seq_field="seq",
+                source_content_hash_field="content_hash",
+                status_table="concept_embedding_status",
+            ),)),
         _charter("alias", ConceptAlias, "concept_id", _f("concept_id", nullable=False), _f("alias_name", nullable=False), _f("source", nullable=False),
             indexes=(CharterIndex("idx_alias_name", ("alias_name",)), CharterIndex("idx_alias_concept", ("concept_id",)))),
         _charter("parameterization", Parameterization, "output_concept_id",
@@ -229,6 +238,7 @@ def _charter(
     *fields: CharterField,
     indexes: tuple[CharterIndex, ...] = (),
     fts_indexes: tuple[CharterFtsIndex, ...] = (),
+    vector_caches: tuple[CharterVectorCache, ...] = (),
     relationships: tuple[CharterRelationship, ...] = (),
 ) -> FamilyCharter:
     return FamilyCharter(
@@ -237,6 +247,7 @@ def _charter(
         fields=fields,
         indexes=indexes,
         fts_indexes=fts_indexes,
+        vector_caches=vector_caches,
         relationships=relationships,
         semantic_metadata={"semantic": "propstore.world"},
     )
@@ -338,6 +349,14 @@ def _claim_core_charter() -> FamilyCharter:
                  CharterIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)), CharterIndex("idx_claim_core_build_status", ("build_status",)),
                  CharterIndex("idx_claim_core_stage", ("stage",)), CharterIndex("idx_claim_core_promotion_status", ("promotion_status",))),
         fts_indexes=(CharterFtsIndex("claim_fts", "claim_id", ("statement", "conditions", "expression"), source_query=_CLAIM_FTS_SOURCE_QUERY),),
+        vector_caches=(CharterVectorCache(
+            "claim_embeddings",
+            table="claim_vec_{model_identity_hash}_{dimensions}",
+            entity_id_field="id",
+            source_seq_field="seq",
+            source_content_hash_field="content_hash",
+            status_table="embedding_status",
+        ),),
         relationships=(CharterRelationship(
             "concept_links",
             target_family="claim_concept_link",
