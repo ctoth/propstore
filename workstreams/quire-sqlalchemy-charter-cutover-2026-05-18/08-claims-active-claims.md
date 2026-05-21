@@ -1328,3 +1328,26 @@ Current binding queue:
   'relation_edge': id`; that is a relation-edge build-plan/charter mismatch
   to address in the owning relation/build phase, not a reason to restore
   claim resolver wrappers.
+- App view typed-claim test cleanup: commit `4f5f2d41` removed `ActiveClaim`
+  test fixtures from `tests/test_claim_views.py`,
+  `tests/test_concept_views.py`, and `tests/test_neighborhoods.py`; added
+  `tests/claim_model_helpers.py`, a test-only typed builder that delegates
+  object construction to Quire `world_record(...)`; and restored app view
+  typed-payload behavior in `propstore/app/claim_views.py`,
+  `propstore/app/concept_views.py`, and `propstore/app/neighborhoods.py`.
+  Concept value/unit/uncertainty summaries now read typed numeric payloads,
+  claim provenance missing/known state reads typed source/provenance fields,
+  and neighborhood provenance display no longer uses the old
+  `claim.provenance` ActiveClaim attribute. `uv run pyright propstore` passed
+  with 0 errors. Edited-file searches for `ActiveClaim` and
+  `propstore.core.active_claims` returned zero hits. Logged focused pytest
+  `powershell -File scripts/run_logged_pytest.ps1 -Label typed-claim-app-views
+  tests/test_claim_views.py tests/test_concept_views.py
+  tests/test_neighborhoods.py` passed with 21 tests.
+- Normalizer deletion queue refresh: `_normalize_attrs` and similar
+  broad attribute/payload repair helpers are explicitly in the Phase 10
+  deletion queue when they construct or repair claim/runtime model shape
+  outside the IO boundary or Quire charter/session machinery. They must be
+  deleted first and replaced only by typed boundary parsing, typed semantic
+  owner behavior, or missing generic Quire capability; they must not be
+  renamed, wrapped, or generalized into another Propstore normalizer.
