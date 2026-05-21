@@ -59,6 +59,7 @@ from propstore.world.queries import (
     query_world_concept,
 )
 from tests.conftest import normalize_concept_payloads
+from tests.sidecar_schema_helpers import insert_minimal_source
 
 
 # ── Fixtures ────────────────────────────────────────────────────────
@@ -141,12 +142,11 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
     conn = sqlite3.connect(sidecar)
     try:
         # Ensure a source row the claim can FK against.
-        conn.execute(
-            """
-            INSERT OR IGNORE INTO source (slug, source_id, kind, origin_type, origin_value)
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            ("fixture_paper", "fixture_paper", "academic_paper", "manual", "fixture"),
+        insert_minimal_source(
+            conn,
+            slug="fixture_paper",
+            source_id="fixture_paper",
+            origin_value="fixture",
         )
         base_cols = (
             "id, primary_logical_id, logical_ids_json, version_id, "

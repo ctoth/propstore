@@ -4,8 +4,9 @@ import json
 import sqlite3
 from sqlite3 import Connection
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, insert, text
 
+from propstore.families.sources.declaration import SourceOrigin, SourceTrust
 from propstore.families.world_charters import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
@@ -54,3 +55,28 @@ def build_world_projection_schema(conn: Connection) -> None:
         (PROPSTORE_WORLD_META_KEY, PROPSTORE_WORLD_SCHEMA_VERSION),
     )
     conn.commit()
+
+
+def insert_minimal_source(
+    conn: Connection,
+    *,
+    slug: str = "test-source",
+    source_id: str | None = None,
+    kind: str = "academic_paper",
+    origin_type: str = "manual",
+    origin_value: str = "fixture",
+    trust_status: str = "stated",
+) -> None:
+    schema = world_sqlalchemy_schema()
+    engine = create_engine("sqlite://", creator=lambda: conn)
+    with engine.begin() as sql_conn:
+        sql_conn.execute(
+            insert(schema.table("source")).prefix_with("OR IGNORE"),
+            {
+                "slug": slug,
+                "source_id": source_id or slug,
+                "kind": kind,
+                "origin": SourceOrigin(type=origin_type, value=origin_value),
+                "trust": SourceTrust(status=trust_status),
+            },
+        )

@@ -35,17 +35,14 @@ from propstore.families.world_charters import (
 from propstore.world.model import WorldQuery
 from propstore.world.types import RenderPolicy
 from tests.family_helpers import world_query_from_sqlite_path
-from tests.sidecar_schema_helpers import build_world_projection_schema
+from tests.sidecar_schema_helpers import (
+    build_world_projection_schema,
+    insert_minimal_source,
+)
 
 
 def _insert_minimal_source(conn: Connection, slug: str = "test-source") -> None:
-    conn.execute(
-        """
-        INSERT INTO source (slug, source_id, kind, origin_type, origin_value)
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (slug, slug, "academic_paper", "manual", "fixture"),
-    )
+    insert_minimal_source(conn, slug=slug)
 
 
 def _insert_concept(conn: Connection, concept_id: str = "concept:alpha") -> None:
@@ -230,7 +227,7 @@ def test_default_policy_hides_draft(wm: WorldQuery) -> None:
     """
     policy = RenderPolicy()
     rows = wm.claims_with_policy(None, policy)
-    ids = {str(row.claim_id) for row in rows}
+    ids = {str(row.id) for row in rows}
     assert "claim_draft" not in ids
     assert "claim_final" in ids
 
@@ -239,7 +236,7 @@ def test_default_policy_hides_build_status_blocked(wm: WorldQuery) -> None:
     """Default policy hides ``build_status='blocked'`` rows (Phase 3
     Gate 1 raw-id quarantine)."""
     rows = wm.claims_with_policy(None, RenderPolicy())
-    ids = {str(row.claim_id) for row in rows}
+    ids = {str(row.id) for row in rows}
     assert "claim_raw_id" not in ids
 
 
@@ -247,14 +244,14 @@ def test_default_policy_hides_promotion_status_blocked(wm: WorldQuery) -> None:
     """Default policy hides ``promotion_status='blocked'`` mirror rows
     (Phase 3 Gate 3 partial-promote mirror)."""
     rows = wm.claims_with_policy(None, RenderPolicy())
-    ids = {str(row.claim_id) for row in rows}
+    ids = {str(row.id) for row in rows}
     assert "claim_promote_blocked" not in ids
 
 
 def test_default_policy_only_surfaces_clean_claims(wm: WorldQuery) -> None:
     """Default policy ONLY returns the single ingested final claim."""
     rows = wm.claims_with_policy(None, RenderPolicy())
-    ids = {str(row.claim_id) for row in rows}
+    ids = {str(row.id) for row in rows}
     assert ids == {"claim_final"}
 
 
@@ -277,7 +274,7 @@ def test_include_drafts_surfaces_draft_rows(wm: WorldQuery) -> None:
     other lifecycle filters in effect."""
     policy = RenderPolicy(include_drafts=True)
     rows = wm.claims_with_policy(None, policy)
-    ids = {str(row.claim_id) for row in rows}
+    ids = {str(row.id) for row in rows}
     assert "claim_draft" in ids
     assert "claim_final" in ids
     # Still hides the blocked rows — include_drafts is orthogonal.
@@ -289,7 +286,7 @@ def test_include_blocked_surfaces_build_status_blocked(wm: WorldQuery) -> None:
     """``include_blocked=True`` lifts the build_status filter."""
     policy = RenderPolicy(include_blocked=True)
     rows = wm.claims_with_policy(None, policy)
-    ids = {str(row.claim_id) for row in rows}
+    ids = {str(row.id) for row in rows}
     assert "claim_raw_id" in ids
     assert "claim_final" in ids
 
@@ -301,7 +298,7 @@ def test_include_blocked_surfaces_promotion_status_blocked(wm: WorldQuery) -> No
     ("show me problematic rows")."""
     policy = RenderPolicy(include_blocked=True)
     rows = wm.claims_with_policy(None, policy)
-    ids = {str(row.claim_id) for row in rows}
+    ids = {str(row.id) for row in rows}
     assert "claim_promote_blocked" in ids
 
 
@@ -324,7 +321,7 @@ def test_all_flags_on_surfaces_everything(wm: WorldQuery) -> None:
         show_quarantined=True,
     )
     rows = wm.claims_with_policy(None, policy)
-    ids = {str(row.claim_id) for row in rows}
+    ids = {str(row.id) for row in rows}
     assert ids == {
         "claim_final",
         "claim_draft",
