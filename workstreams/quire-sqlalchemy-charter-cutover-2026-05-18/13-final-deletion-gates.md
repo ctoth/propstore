@@ -373,6 +373,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
   `8a187282 Carry typed fixtures through claim metadata`.
 - Propstore focused ASPIC/IST typed-fixture cleanup is committed as
   `f26d402e Use typed ASPIC fixture inputs`.
+- Propstore remediation bridge typed-fixture cleanup is committed as
+  `1a2a2c6b Use typed remediation bridge fixtures`.
 - Passing focused gates:
   - `uv run pyright propstore`
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
@@ -381,6 +383,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 1 test.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-aspic-ist-typed-fixtures tests/architecture/test_backend_identity_contracts.py tests/architecture/test_ist_projection_contract.py tests/test_literal_keys.py tests/test_defeasibility_aspic_integration.py tests/test_aspic_bridge_review_v2.py`
     passed 30 tests.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-remediation-bridge-typed-2 tests/remediation/phase_4_layers/test_T4_8_exception_defeats_post_preference.py tests/remediation/phase_5_bridge/test_T5_11_exception_sibling_survival.py tests/remediation/phase_5_bridge/test_T5_1_undermines_preference_sensitive.py tests/remediation/phase_5_bridge/test_T5_6_bridge_edge_domain_invariant.py tests/remediation/phase_5_bridge/test_T5_7_justification_unknown_premise.py tests/remediation/phase_5_bridge/test_T5_8_projection_typed_claim_identity.py tests/remediation/phase_5_bridge/test_T5_9_projection_premise_dependency_split.py`
+    passed 7 tests.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -391,8 +395,8 @@ Current full-gate repair queue, deletion-first:
 - Replace remaining dict-shaped context/worldline test fixtures with typed
   `Claim`, `Stance`, `CanonicalJustification`, and typed compiled-graph
   fixtures. Do not add dict fallback acceptance to production ASPIC, revision,
-  worldline, or context-lifting APIs. Direct ASPIC/IST callers from the
-  2026-05-21 focused slice are converted and passing.
+  worldline, or context-lifting APIs. Direct ASPIC/IST callers and remediation
+  bridge callers from the 2026-05-21 focused slices are converted and passing.
 - Repair source/web demo fixture drift by using current source charter fields;
   do not add old source columns such as `origin_type` back as compatibility
   columns.
