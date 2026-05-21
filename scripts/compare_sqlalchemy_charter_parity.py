@@ -561,7 +561,10 @@ def _world_behavior_comparison(
     after_path: Path,
 ) -> dict[str, Any]:
     try:
-        with _world_behavior_baseline_path(before_path) as behavior_before_path:
+        with _world_behavior_baseline_path(
+            before_path,
+            after_path=after_path,
+        ) as behavior_before_path:
             before_value = _world_behavior_payload(name, behavior_before_path)
             after_value = _world_behavior_payload(name, after_path)
     except Exception as exc:
@@ -804,7 +807,7 @@ def _mapped_model_value(value: Any) -> dict[str, Any] | None:
 
 
 @contextmanager
-def _world_behavior_baseline_path(path: Path) -> Any:
+def _world_behavior_baseline_path(path: Path, *, after_path: Path) -> Any:
     if not _has_phase6_source_projection_schema(path):
         yield path
         return
@@ -812,6 +815,8 @@ def _world_behavior_baseline_path(path: Path) -> Any:
         behavior_path = Path(tmpdir) / path.name
         shutil.copy2(path, behavior_path)
         _collapse_phase6_source_columns(behavior_path)
+        _add_missing_empty_current_tables(behavior_path, after_path)
+        _copy_schema_catalog(behavior_path, after_path)
         yield behavior_path
 
 
@@ -929,6 +934,76 @@ def _sqlite_columns(conn: sqlite3.Connection, table: str) -> set[str]:
     except sqlite3.OperationalError:
         return set()
     return {str(row[1]) for row in rows}
+
+
+def _add_missing_empty_current_tables(path: Path, after_path: Path) -> None:
+    conn = sqlite3.connect(path)
+    after_conn = sqlite3.connect(after_path)
+    try:
+        before_tables = set(_table_names(conn))
+        after_tables = set(_table_names(after_conn))
+        for table in sorted(after_tables - before_tables):
+            if _table_row_count(after_conn, table) != 0:
+                continue
+            create_sql = _table_create_sql(after_conn, table)
+            if create_sql is None:
+                continue
+            conn.execute(create_sql)
+        conn.commit()
+    finally:
+        after_conn.close()
+        conn.close()
+
+
+def _table_row_count(conn: sqlite3.Connection, table: str) -> int:
+    row = conn.execute(f"SELECT COUNT(*) FROM {_quote(table)}").fetchone()
+    return int(row[0])
+
+
+def _table_create_sql(conn: sqlite3.Connection, table: str) -> str | None:
+    row = conn.execute(
+        """
+        SELECT sql
+        FROM sqlite_master
+        WHERE type = 'table' AND name = ?
+        """,
+        (table,),
+    ).fetchone()
+    if row is None or row[0] is None:
+        return None
+    return str(row[0])
+
+
+def _copy_schema_catalog(path: Path, after_path: Path) -> None:
+    conn = sqlite3.connect(path)
+    after_conn = sqlite3.connect(after_path)
+    try:
+        if _sqlite_columns(conn, SCHEMA_CATALOG_TABLE):
+            return
+        create_sql = _table_create_sql(after_conn, SCHEMA_CATALOG_TABLE)
+        if create_sql is None:
+            return
+        columns = [
+            str(row[1])
+            for row in after_conn.execute(
+                f"PRAGMA table_info({_quote(SCHEMA_CATALOG_TABLE)})"
+            ).fetchall()
+        ]
+        rows = after_conn.execute(
+            f"SELECT * FROM {_quote(SCHEMA_CATALOG_TABLE)}"
+        ).fetchall()
+        conn.execute(create_sql)
+        placeholders = ", ".join("?" for _column in columns)
+        conn.executemany(
+            f"INSERT INTO {_quote(SCHEMA_CATALOG_TABLE)} "
+            f"({', '.join(_quote(column) for column in columns)}) "
+            f"VALUES ({placeholders})",
+            rows,
+        )
+        conn.commit()
+    finally:
+        after_conn.close()
+        conn.close()
 
 
 def _json_load_optional(value: Any) -> Any:
