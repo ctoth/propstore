@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 import argparse
+import shutil
+import tempfile
+from contextlib import contextmanager
+from dataclasses import asdict, is_dataclass
+from enum import Enum
 import hashlib
 import json
 import sqlite3
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
@@ -86,6 +92,13 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     _add_required_vector_blocks(
         comparison,
         required_vectors=tuple(args.require_vector or ()),
+    )
+    _add_required_behavior_blocks(
+        comparison,
+        owner=args.owner,
+        before_path=before,
+        after_path=after,
+        required_behaviors=tuple(args.require_behavior or ()),
     )
     failures.extend(comparison.pop("failures"))
     failures.extend(
@@ -522,6 +535,420 @@ def _semantic_vector_dependencies(
         if dependency_name in existing
     )
     return dependencies if len(dependencies) == len(dependency_names) else ()
+
+
+def _add_required_behavior_blocks(
+    comparison: dict[str, Any],
+    *,
+    owner: str,
+    before_path: Path,
+    after_path: Path,
+    required_behaviors: tuple[str, ...],
+) -> None:
+    blocks = comparison["behaviors"]
+    existing = {str(block["name"]): block for block in blocks}
+    for name in required_behaviors:
+        if name in existing:
+            continue
+        if owner != "world-query-graph-reasoning":
+            continue
+        blocks.append(_world_behavior_comparison(name, before_path, after_path))
+
+
+def _world_behavior_comparison(
+    name: str,
+    before_path: Path,
+    after_path: Path,
+) -> dict[str, Any]:
+    try:
+        with _world_behavior_baseline_path(before_path) as behavior_before_path:
+            before_value = _world_behavior_payload(name, behavior_before_path)
+            after_value = _world_behavior_payload(name, after_path)
+    except Exception as exc:
+        return _comparison_block(
+            name,
+            "fail",
+            0,
+            0,
+            (),
+            (),
+            (f"error:{type(exc).__name__}:{exc}",),
+            [f"{name} behavior comparison failed: {type(exc).__name__}: {exc}"],
+        )
+    if before_value == after_value:
+        return _comparison_block(name, "pass", 1, 1, (), (), (), [])
+    before_hash = _stable_value_hash(before_value)
+    after_hash = _stable_value_hash(after_value)
+    return _comparison_block(
+        name,
+        "fail",
+        1,
+        1,
+        (),
+        (),
+        (f"{before_hash}->{after_hash}",),
+        [f"{name} behavior changed: {before_hash} -> {after_hash}"],
+    )
+
+
+def _world_behavior_payload(name: str, sqlite_path: Path) -> Any:
+    from quire.derived_store import DerivedStoreHandle
+
+    from propstore.world.model import WorldQuery
+
+    handle = DerivedStoreHandle(
+        projection_id="propstore.world.parity",
+        source_commit="parity",
+        content_hash="parity",
+        cache_key=f"parity:{sqlite_path}",
+        path=sqlite_path,
+    )
+    world = WorldQuery(derived_store=handle)
+    try:
+        if name == "world-query":
+            return _world_query_payload(world)
+        if name == "graph-build":
+            return _graph_build_payload(world)
+        if name == "atms":
+            return _atms_payload(world)
+        if name == "scm-intervention-resolution":
+            return _scm_payload(world)
+        if name == "worldline":
+            return _worldline_payload(world)
+        if name == "support-revision":
+            return _support_revision_payload(world)
+        if name == "aspic":
+            return _aspic_payload(world)
+        raise ValueError(f"unknown world behavior comparison {name!r}")
+    finally:
+        world.close()
+
+
+def _world_query_payload(world: Any) -> dict[str, Any]:
+    claims = list(world.claims_for(None))
+    concepts = list(world.all_concepts())
+    relationships = list(world.all_relationships())
+    stances = list(world.all_claim_stances())
+    conflicts = list(world.conflicts())
+    parameterizations = list(world.all_parameterizations())
+    micropublications = list(world.all_micropublications())
+    justifications = list(world.all_authored_justifications())
+    return _stable_value(
+        {
+            "stats": world.stats(),
+            "authored_justification_count": world.authored_justification_count(),
+            "claims": [_stable_value(claim) for claim in claims],
+            "concepts": [_stable_value(concept) for concept in concepts],
+            "relationships": [_stable_value(relationship) for relationship in relationships],
+            "stances": [_stable_value(stance) for stance in stances],
+            "conflicts": [_stable_value(conflict) for conflict in conflicts],
+            "parameterizations": [
+                _stable_value(parameterization)
+                for parameterization in parameterizations
+            ],
+            "micropublications": [
+                _stable_value(micropublication)
+                for micropublication in micropublications
+            ],
+            "justifications": [_stable_value(justification) for justification in justifications],
+        }
+    )
+
+
+def _graph_build_payload(world: Any) -> dict[str, Any]:
+    graph = world.compiled_graph()
+    graph_data = graph.to_dict()
+    return _stable_value(
+        {
+            "graph": graph_data,
+            "concept_count": len(graph.concepts),
+            "claim_count": len(graph.claims),
+            "relation_count": len(graph.relations),
+            "parameterization_count": len(graph.parameterizations),
+            "conflict_count": len(graph.conflicts),
+        }
+    )
+
+
+def _atms_payload(world: Any) -> dict[str, Any]:
+    bound = world.bind()
+    engine = bound.atms_engine()
+    claim_ids = sorted(str(claim.id) for claim in bound.active_claims(None))
+    return _stable_value(
+        {
+            "active_claim_ids": claim_ids,
+            "supported_claim_ids": sorted(engine.supported_claim_ids(None)),
+            "nogoods": engine.nogoods,
+            "fixpoint_reached": engine.fixpoint_reached,
+            "iterations_run": engine.iterations_run,
+            "warnings": engine.warnings,
+        }
+    )
+
+
+def _scm_payload(world: Any) -> dict[str, Any]:
+    intervention = world.intervene({})
+    observation = world.observe({})
+    return _stable_value(
+        {
+            "intervention_values": intervention.evaluate(),
+            "intervention_diff": intervention.diff(),
+            "intervention_trace_ids": intervention.trace_ids(),
+            "observation_trace_ids": observation.trace_ids(),
+        }
+    )
+
+
+def _worldline_payload(world: Any) -> dict[str, Any]:
+    return _stable_value(
+        {
+            "compiled_graph": world.compiled_graph().to_dict(),
+            "empty_bound_claim_ids": [
+                str(claim.id)
+                for claim in world.bind().active_claims(None)
+            ],
+        }
+    )
+
+
+def _support_revision_payload(world: Any) -> dict[str, Any]:
+    base = world.bind().revision_base()
+    return _stable_value(
+        {
+            "atoms": getattr(base, "atoms", ()),
+            "support_sets": getattr(base, "support_sets", {}),
+            "entrenchment": getattr(base, "entrenchment", ()),
+        }
+    )
+
+
+def _aspic_payload(world: Any) -> dict[str, Any]:
+    from propstore.aspic_bridge import build_aspic_projection
+    from propstore.grounding.bundle import GroundedRulesBundle
+
+    bound = world.bind()
+    active_claims = bound.active_claims(None)
+    projection = build_aspic_projection(
+        world,
+        active_claims,
+        bundle=GroundedRulesBundle.empty(),
+        active_graph=bound._active_graph,
+    )
+    return _stable_value(
+        {
+            "arguments": projection.arguments,
+            "defeats": sorted(projection.framework.defeats),
+            "attacks": sorted(projection.framework.attacks),
+            "claim_to_argument_ids": projection.claim_to_argument_ids,
+            "argument_to_claim_id": projection.argument_to_claim_id,
+        }
+    )
+
+
+def _stable_value_hash(value: Any) -> str:
+    payload = json.dumps(
+        _stable_value(value),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(payload).hexdigest()
+
+
+def _stable_value(value: Any) -> Any:
+    if is_dataclass(value) and not isinstance(value, type):
+        return _stable_value(asdict(value))
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Mapping):
+        return {
+            str(key): _stable_value(val)
+            for key, val in sorted(value.items(), key=lambda item: str(item[0]))
+        }
+    if isinstance(value, (list, tuple, set, frozenset)):
+        return sorted(
+            (_stable_value(item) for item in value),
+            key=lambda item: json.dumps(item, sort_keys=True, default=str),
+        )
+    if isinstance(value, bytes):
+        return {"__bytes__": value.hex()}
+    if hasattr(value, "to_dict") and callable(value.to_dict):
+        return _stable_value(value.to_dict())
+    mapped = _mapped_model_value(value)
+    if mapped is not None:
+        return mapped
+    if hasattr(value, "value"):
+        return _stable_value(value.value)
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def _mapped_model_value(value: Any) -> dict[str, Any] | None:
+    try:
+        from sqlalchemy import inspect as inspect_sqlalchemy
+        from sqlalchemy.exc import NoInspectionAvailable
+        from sqlalchemy.orm.exc import UnmappedInstanceError
+    except Exception:
+        return None
+    try:
+        inspected = inspect_sqlalchemy(value)
+    except (NoInspectionAvailable, UnmappedInstanceError):
+        return None
+    mapper = getattr(inspected, "mapper", None)
+    if mapper is None:
+        return None
+    return {
+        str(attr.key): _stable_value(getattr(value, str(attr.key)))
+        for attr in mapper.column_attrs
+    }
+
+
+@contextmanager
+def _world_behavior_baseline_path(path: Path) -> Any:
+    if not _has_phase6_source_projection_schema(path):
+        yield path
+        return
+    with tempfile.TemporaryDirectory(prefix="propstore-world-behavior-") as tmpdir:
+        behavior_path = Path(tmpdir) / path.name
+        shutil.copy2(path, behavior_path)
+        _collapse_phase6_source_columns(behavior_path)
+        yield behavior_path
+
+
+def _has_phase6_source_projection_schema(path: Path) -> bool:
+    conn = sqlite3.connect(path)
+    try:
+        source_columns = _sqlite_columns(conn, "source")
+    finally:
+        conn.close()
+    return (
+        "source_id" in source_columns
+        and "origin_type" in source_columns
+        and "prior_base_rate" in source_columns
+        and "origin" not in source_columns
+        and "trust" not in source_columns
+    )
+
+
+def _collapse_phase6_source_columns(path: Path) -> None:
+    from propstore.families.sources.declaration import (
+        SourceOrigin,
+        SourceQuality,
+        SourceTrust,
+        source_charter,
+    )
+
+    charter = source_charter()
+    source_columns = tuple(field.name for field in charter.fields)
+    conn = sqlite3.connect(path)
+    conn.row_factory = sqlite3.Row
+    try:
+        rows = [
+            _phase6_source_row(row)
+            for row in conn.execute("SELECT * FROM source ORDER BY slug").fetchall()
+        ]
+        conn.execute("ALTER TABLE source RENAME TO source_phase6_projection")
+        conn.execute(
+            """
+            CREATE TABLE source (
+                slug TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                origin TEXT,
+                trust TEXT,
+                quality TEXT,
+                derived_from TEXT,
+                artifact_code TEXT,
+                PRIMARY KEY (slug)
+            )
+            """
+        )
+        placeholders = ", ".join("?" for _column in source_columns)
+        conn.executemany(
+            f"INSERT INTO source ({', '.join(source_columns)}) VALUES ({placeholders})",
+            [
+                (
+                    row["slug"],
+                    row["source_id"],
+                    row["kind"],
+                    _json_dump_dataclass(
+                        SourceOrigin(
+                            type=row["origin_type"],
+                            value=row["origin_value"],
+                            retrieved=row["origin_retrieved"],
+                            content_ref=row["origin_content_ref"],
+                        )
+                    ),
+                    _json_dump_dataclass(
+                        SourceTrust(
+                            status=row["prior_base_rate_status"],
+                            prior_base_rate=_json_load_optional(row["prior_base_rate"]),
+                        )
+                    ),
+                    _json_dump_dataclass(
+                        SourceQuality(**quality)
+                        if isinstance((quality := _json_load_optional(row["quality"])), dict)
+                        else None
+                    ),
+                    _json_dump_value(_json_load_optional(row["derived_from"])),
+                    row["artifact_code"],
+                )
+                for row in rows
+            ],
+        )
+        conn.execute("DROP TABLE source_phase6_projection")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _phase6_source_row(row: sqlite3.Row) -> dict[str, Any]:
+    return {
+        "slug": row["slug"],
+        "source_id": row["source_id"],
+        "kind": row["kind"],
+        "origin_type": row["origin_type"],
+        "origin_value": row["origin_value"],
+        "origin_retrieved": row["origin_retrieved"],
+        "origin_content_ref": row["origin_content_ref"],
+        "prior_base_rate_status": row["prior_base_rate_status"]
+        if "prior_base_rate_status" in row.keys()
+        else "covered",
+        "prior_base_rate": row["prior_base_rate"],
+        "quality": row["quality_json"] if "quality_json" in row.keys() else None,
+        "derived_from": row["derived_from_json"]
+        if "derived_from_json" in row.keys()
+        else None,
+        "artifact_code": row["artifact_code"],
+    }
+
+
+def _sqlite_columns(conn: sqlite3.Connection, table: str) -> set[str]:
+    try:
+        rows = conn.execute(f"PRAGMA table_info({_quote(table)})").fetchall()
+    except sqlite3.OperationalError:
+        return set()
+    return {str(row[1]) for row in rows}
+
+
+def _json_load_optional(value: Any) -> Any:
+    if value in (None, ""):
+        return None
+    if isinstance(value, (dict, list)):
+        return value
+    return json.loads(str(value))
+
+
+def _json_dump_dataclass(value: Any) -> str | None:
+    if value is None:
+        return None
+    return _json_dump_value(asdict(value))
+
+
+def _json_dump_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    return json.dumps(value, sort_keys=True, separators=(",", ":"))
 
 
 def _require_block(blocks: list[dict[str, Any]], block_kind: str, name: str) -> list[str]:
