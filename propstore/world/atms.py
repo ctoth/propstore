@@ -1714,7 +1714,7 @@ class ATMSEngine:
                 for node_id, node in self._nodes.items()
                 if node.kind == "assumption"
                 and (assumption := _node_assumption(node)) is not None
-                and self._condition_matches_assumption(condition, assumption.cel)
+                and self._condition_matches_assumption(condition, assumption)
             ]
             if not matches:
                 return []
@@ -1743,26 +1743,32 @@ class ATMSEngine:
     def _condition_matches_assumption(
         self,
         condition: CheckedCondition,
-        assumption_cel: str,
+        assumption: AssumptionRef,
     ) -> bool:
+        assumption_cel = str(assumption.cel)
         if condition.source == assumption_cel:
             return True
         assumption_condition = self._checked_assumption_condition(assumption_cel)
+        if assumption_condition is None:
+            return False
         return self._condition_solver.are_equivalent(
             (condition,),
             (assumption_condition,),
         )
 
-    def _checked_assumption_condition(self, assumption_cel: str) -> CheckedCondition:
+    def _checked_assumption_condition(self, assumption_cel: str) -> CheckedCondition | None:
         cached = self._assumption_condition_cache.get(assumption_cel)
         if cached is not None:
             return cached
         from propstore.core.conditions import check_condition_ir
 
-        checked = check_condition_ir(
-            assumption_cel,
-            self._condition_solver.registry,
-        )
+        try:
+            checked = check_condition_ir(
+                assumption_cel,
+                self._condition_solver.registry,
+            )
+        except ValueError:
+            return None
         self._assumption_condition_cache[assumption_cel] = checked
         return checked
 

@@ -139,6 +139,9 @@ class _OverlapSolver:
     def registry(self):
         return condition_registry_for_sources(("x == 1", "x > 0"))
 
+    def are_equivalent(self, left: object, right: object) -> bool:
+        return set(condition_sources(left)) == set(condition_sources(right))
+
     def are_disjoint(self, left: object, right: object) -> bool:
         left_sources = condition_sources(left)
         right_sources = condition_sources(right)

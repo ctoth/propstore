@@ -284,6 +284,9 @@ class _GraphOnlyATMSRuntime:
         self._bound = bound
         self.condition_registry = bound._store.condition_solver().registry
 
+    def condition_solver(self):
+        return self._bound._store.condition_solver()
+
     @staticmethod
     def _claim_node_to_claim(claim_node) -> Claim:
         conditions_ir = None
