@@ -182,20 +182,14 @@ Invalid fixes:
 Phase 1 search gates:
 
 ```powershell
-rg -n -F -- "to_concept_id" propstore tests
-rg -n -F -- "to_claim_id" propstore tests
-rg -n -F -- "to_assertion_id" propstore tests
-rg -n -F -- "to_context_id" propstore tests
-rg -n -F -- "to_condition_id" propstore tests
-rg -n -F -- "to_provenance_graph_id" propstore tests
-rg -n -F -- "to_justification_id" propstore tests
-rg -n -F -- "to_assumption_id" propstore tests
-rg -n -F -- "to_queryable_id" propstore tests
+rg -n -- "\b(to_concept_id|to_claim_id|to_assertion_id|to_context_id|to_condition_id|to_provenance_graph_id|to_justification_id|to_assumption_id|to_queryable_id|to_concept_ids|to_claim_ids|to_assumption_ids|to_queryable_ids)\b" propstore tests
 rg -n -- "def to_[A-Za-z0-9_]+_id|def to_[A-Za-z0-9_]+_ids" propstore tests
 ```
 
-Gate: zero production hits. Test hits are allowed only in tests that assert the
-old helper family is deleted; otherwise they must be removed.
+Gate: zero production hits for the deleted helper symbols. Test hits are
+allowed only in tests that assert the old helper family is deleted; otherwise
+they must be removed. Do not rename valid non-helper fields or APIs such as
+`argument_to_claim_id` or `snapshot_to_claim_ids` to satisfy a substring search.
 
 ## Phase 2: Classify Remaining Helper-Shaped Surfaces
 
@@ -287,15 +281,7 @@ Run:
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label helper-shaped-debt-full
-rg -n -F -- "to_concept_id" propstore tests
-rg -n -F -- "to_claim_id" propstore tests
-rg -n -F -- "to_assertion_id" propstore tests
-rg -n -F -- "to_context_id" propstore tests
-rg -n -F -- "to_condition_id" propstore tests
-rg -n -F -- "to_provenance_graph_id" propstore tests
-rg -n -F -- "to_justification_id" propstore tests
-rg -n -F -- "to_assumption_id" propstore tests
-rg -n -F -- "to_queryable_id" propstore tests
+rg -n -- "\b(to_concept_id|to_claim_id|to_assertion_id|to_context_id|to_condition_id|to_provenance_graph_id|to_justification_id|to_assumption_id|to_queryable_id|to_concept_ids|to_claim_ids|to_assumption_ids|to_queryable_ids)\b" propstore tests
 rg -n -- "def to_[A-Za-z0-9_]+_id|def to_[A-Za-z0-9_]+_ids" propstore tests
 ```
 
