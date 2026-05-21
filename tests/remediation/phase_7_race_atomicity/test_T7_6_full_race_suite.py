@@ -10,11 +10,13 @@ from hypothesis import settings
 from hypothesis.stateful import RuleBasedStateMachine, invariant, rule, run_state_machine_as_test
 from quire.git_store import GitStore, HeadMismatchError
 from quire.refs import RefName
+from quire.sqlalchemy_store import readonly_session
+from sqlalchemy import text
 
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
 from propstore.derived_build import export_sidecar as build_sidecar
-from quire.derived_runtime import connect_sqlite_store
+from propstore.families.world_charters import world_sqlalchemy_schema
 from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.ws_l_merge_helpers import claim_payloads
@@ -172,13 +174,10 @@ class FullRaceMachine(RuleBasedStateMachine):
         sidecar_path = repo.root / ".tmp-race-suite.sqlite"
         assert sidecar_path.exists()
         assert sidecar_path.with_suffix(".hash").exists()
-        conn = connect_sqlite_store(sidecar_path)
-        try:
-            schema_version = conn.execute(
-                "SELECT schema_version FROM meta WHERE key = 'sidecar'"
+        with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+            schema_version = derived.session.execute(
+                text("SELECT schema_version FROM meta WHERE key = 'sidecar'")
             ).fetchone()
-        finally:
-            conn.close()
         assert schema_version is not None
 
     @invariant()
