@@ -16,6 +16,7 @@ from quire.charters import (
     CharterRelationship,
     CharterVectorCache,
     FamilyCharter,
+    FamilyModel,
     charter_catalog,
 )
 from quire.families import FamilyDefinition
@@ -57,25 +58,19 @@ PROPSTORE_WORLD_META_KEY = "sidecar"
 _WORLD_CONTRACT_VERSION = VersionId("2026.05.20", allow_placeholder=False)
 
 
-class WorldModel:
-    def __init__(self, **values: object) -> None:
-        for key, value in values.items():
-            setattr(self, key, value)
-
-
-class MetaRecord(WorldModel): ...
-class GroundedFactRecord(WorldModel): ...
-class GroundedFactEmptyPredicateRecord(WorldModel): ...
-class GroundedBundleInputRecord(WorldModel): ...
-class CalibrationCountsRecord(WorldModel): ...
-class EmbeddingModelRecord(WorldModel): ...
-class EmbeddingStatusRecord(WorldModel): ...
-class ConceptEmbeddingStatusRecord(WorldModel): ...
-class BuildDiagnostic(WorldModel): ...
+class WorldMeta(FamilyModel): ...
+class GroundedFact(FamilyModel): ...
+class GroundedFactEmptyPredicate(FamilyModel): ...
+class GroundedBundleInput(FamilyModel): ...
+class CalibrationCounts(FamilyModel): ...
+class EmbeddingModel(FamilyModel): ...
+class EmbeddingStatus(FamilyModel): ...
+class ConceptEmbeddingStatus(FamilyModel): ...
+class BuildDiagnostic(FamilyModel): ...
 
 
 _MODELS: dict[str, type[Any]] = {
-    "meta": MetaRecord,
+    "meta": WorldMeta,
     "source": Source,
     "concept": Concept,
     "alias": ConceptAlias,
@@ -90,16 +85,16 @@ _MODELS: dict[str, type[Any]] = {
     "context_lifting_rule": ContextLiftingRule,
     "context_lifting_materialization": ContextLiftingMaterialization,
     "conflict_witness": ConflictWitness,
-    "grounded_fact": GroundedFactRecord,
-    "grounded_fact_empty_predicate": GroundedFactEmptyPredicateRecord,
-    "grounded_bundle_input": GroundedBundleInputRecord,
+    "grounded_fact": GroundedFact,
+    "grounded_fact_empty_predicate": GroundedFactEmptyPredicate,
+    "grounded_bundle_input": GroundedBundleInput,
     "justification": Justification,
     "micropublication": Micropublication,
     "micropublication_claim": MicropublicationClaimLink,
-    "calibration_counts": CalibrationCountsRecord,
-    "embedding_model": EmbeddingModelRecord,
-    "embedding_status": EmbeddingStatusRecord,
-    "concept_embedding_status": ConceptEmbeddingStatusRecord,
+    "calibration_counts": CalibrationCounts,
+    "embedding_model": EmbeddingModel,
+    "embedding_status": EmbeddingStatus,
+    "concept_embedding_status": ConceptEmbeddingStatus,
     "build_diagnostics": BuildDiagnostic,
 }
 
@@ -133,7 +128,7 @@ def world_records(table_name: str, rows: Iterable[object] | None) -> tuple[Any, 
 @lru_cache(maxsize=1)
 def world_charter_catalog() -> SchemaCatalog:
     return charter_catalog(
-        _charter("meta", MetaRecord, "key", _f("key", primary_key=True), _i("schema_version", nullable=False)),
+        _charter("meta", WorldMeta, "key", _f("key", primary_key=True), _i("schema_version", nullable=False)),
         source_charter(),
         _charter("concept", Concept, "id",
             _f("id", primary_key=True), _f("primary_logical_id", nullable=False, default_sql="''"),
@@ -220,9 +215,9 @@ def world_charter_catalog() -> SchemaCatalog:
             _i("id", primary_key=True, nullable=False, generated=True), _f("claim_a_id", nullable=False), _f("claim_b_id", nullable=False),
             _f("concept_id", nullable=False), _f("warning_class", nullable=False), _f("conditions_a"), _f("conditions_b"),
             _f("value_a"), _f("value_b"), _f("derivation_chain"), indexes=(CharterIndex("idx_conflict_witness_concept", ("concept_id",)),)),
-        _charter("grounded_fact", GroundedFactRecord, "predicate", _f("predicate", primary_key=True, nullable=False), _f("arguments", primary_key=True, nullable=False), _f("section", primary_key=True, nullable=False)),
-        _charter("grounded_fact_empty_predicate", GroundedFactEmptyPredicateRecord, "section", _f("section", primary_key=True, nullable=False), _f("predicate", primary_key=True, nullable=False)),
-        _charter("grounded_bundle_input", GroundedBundleInputRecord, "kind", _f("kind", primary_key=True, nullable=False), _i("position", primary_key=True, nullable=False), _b("payload", nullable=False)),
+        _charter("grounded_fact", GroundedFact, "predicate", _f("predicate", primary_key=True, nullable=False), _f("arguments", primary_key=True, nullable=False), _f("section", primary_key=True, nullable=False)),
+        _charter("grounded_fact_empty_predicate", GroundedFactEmptyPredicate, "section", _f("section", primary_key=True, nullable=False), _f("predicate", primary_key=True, nullable=False)),
+        _charter("grounded_bundle_input", GroundedBundleInput, "kind", _f("kind", primary_key=True, nullable=False), _i("position", primary_key=True, nullable=False), _b("payload", nullable=False)),
         _charter("justification", Justification, "id",
             _f("id", primary_key=True, nullable=False), _f("justification_kind", nullable=False), _f("conclusion_claim_id", nullable=False),
             _f("premise_claim_ids", nullable=False), _f("source_relation_type"), _f("source_claim_id"), _f("provenance_json"),
@@ -535,15 +530,15 @@ def _claim_source_assertion_charter() -> FamilyCharter:
 
 def _support_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter, FamilyCharter, FamilyCharter]:
     return (
-        _charter("calibration_counts", CalibrationCountsRecord, "pass_number",
+        _charter("calibration_counts", CalibrationCounts, "pass_number",
             _i("pass_number", primary_key=True, nullable=False), _f("category", primary_key=True, nullable=False), _i("correct_count", nullable=False), _i("total_count", nullable=False)),
-        _charter("embedding_model", EmbeddingModelRecord, "model_identity_hash",
+        _charter("embedding_model", EmbeddingModel, "model_identity_hash",
             _f("model_identity_hash", primary_key=True, nullable=False), _f("provider", nullable=False), _f("model_name", nullable=False),
             _f("model_version", nullable=False, default_sql="''"), _f("content_digest", nullable=False), _i("dimensions", nullable=False), _f("created_at", nullable=False)),
-        _charter("embedding_status", EmbeddingStatusRecord, "model_identity_hash",
+        _charter("embedding_status", EmbeddingStatus, "model_identity_hash",
             _f("model_identity_hash", primary_key=True, nullable=False), _f("claim_id", primary_key=True, nullable=False), _f("content_hash", nullable=False), _f("embedded_at", nullable=False),
             indexes=(CharterIndex("idx_embedding_status_model_identity", ("model_identity_hash",)),)),
-        _charter("concept_embedding_status", ConceptEmbeddingStatusRecord, "model_identity_hash",
+        _charter("concept_embedding_status", ConceptEmbeddingStatus, "model_identity_hash",
             _f("model_identity_hash", primary_key=True, nullable=False), _f("concept_id", primary_key=True, nullable=False), _f("content_hash", nullable=False), _f("embedded_at", nullable=False),
             indexes=(CharterIndex("idx_concept_embedding_status_model_identity", ("model_identity_hash",)),)),
         _charter("build_diagnostics", BuildDiagnostic, "id",

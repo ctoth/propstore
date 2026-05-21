@@ -66,10 +66,10 @@ from propstore.families.embeddings.declaration import (
 )
 from propstore.families.world_charters import (
     BuildDiagnostic,
-    GroundedBundleInputRecord,
-    GroundedFactEmptyPredicateRecord,
-    GroundedFactRecord,
-    MetaRecord,
+    GroundedBundleInput,
+    GroundedFact,
+    GroundedFactEmptyPredicate,
+    WorldMeta,
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
     world_records,
@@ -454,7 +454,7 @@ def _build_sidecar_file(
         )
         try:
             with build_handle.writable_session(schema) as derived:
-                derived.add(MetaRecord(
+                derived.add(WorldMeta(
                     key=PROPSTORE_WORLD_META_KEY,
                     schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
                 ))
@@ -682,13 +682,13 @@ def _grounded_bundle_records(bundle: object) -> tuple[object, ...]:
         for predicate_id in sorted(inner_map.keys()):
             rows = inner_map[predicate_id]
             if not rows:
-                records.append(GroundedFactEmptyPredicateRecord(
+                records.append(GroundedFactEmptyPredicate(
                     section=section_name,
                     predicate=predicate_id,
                 ))
                 continue
             for encoded_arguments in sorted(json.dumps(list(arg_tuple)) for arg_tuple in rows):
-                records.append(GroundedFactRecord(
+                records.append(GroundedFact(
                     predicate=predicate_id,
                     arguments=encoded_arguments,
                     section=section_name,
@@ -697,7 +697,7 @@ def _grounded_bundle_records(bundle: object) -> tuple[object, ...]:
     return tuple(records)
 
 
-def _grounded_bundle_input_records(bundle: object) -> tuple[GroundedBundleInputRecord, ...]:
+def _grounded_bundle_input_records(bundle: object) -> tuple[GroundedBundleInput, ...]:
     rows = (
         ("source_rule", getattr(bundle, "source_rules")),
         ("source_superiority", getattr(bundle, "source_superiority")),
@@ -705,7 +705,7 @@ def _grounded_bundle_input_records(bundle: object) -> tuple[GroundedBundleInputR
         ("argument", getattr(bundle, "arguments")),
     )
     return tuple(
-        GroundedBundleInputRecord(
+        GroundedBundleInput(
             kind=kind,
             position=position,
             payload=_encode_bundle_input(kind, value),
@@ -775,7 +775,7 @@ def build_grounding_sidecar(
             path=target_path,
         )
         with build_handle.writable_session(schema) as derived:
-            derived.add(MetaRecord(
+            derived.add(WorldMeta(
                 key=PROPSTORE_WORLD_META_KEY,
                 schema_version=PROPSTORE_WORLD_SCHEMA_VERSION,
             ))
