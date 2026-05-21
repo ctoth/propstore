@@ -1508,3 +1508,25 @@ Current binding queue:
   `ValueError: missing required field(s) for family 'relation_edge': id`;
   that blocker belongs to the relations/build slice, not to restoring claim
   row models.
+- Final `CLAIM_ROW_MODEL` test-surface deletion: commit `cb8aca1c` removed
+  the remaining `CLAIM_ROW_MODEL` imports from `tests/test_claim_notes.py`
+  and `tests/test_source_trust.py`. Claim notes are now asserted through
+  typed `Claim.text_payload.notes`, and source-trust PrAF coverage no longer
+  constructs a deleted claim row DTO. The same slice fixed the claim compiler
+  association-object write path by wiring each compiled `ClaimConceptLink`
+  through `claim.concept_links` and `link.claim`; this keeps the primary
+  persistence relationship as the typed charter relationship and prevents
+  SQLAlchemy from trying to null the `claim_concept_link.claim_id` primary-key
+  FK during flush. `rg -n -F -- "CLAIM_ROW_MODEL" propstore tests` returned
+  zero hits, and `uv run pyright propstore` passed with 0 errors. Logged
+  focused pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
+  claim-row-model-final-reachable
+  tests/test_claim_notes.py::TestClaimNotesSidecar::test_world_query_get_claim_returns_notes
+  tests/test_source_trust.py::test_p_arg_from_claim_uses_source_trust_mapping`
+  passed with 2 tests and log
+  `logs\test-runs\claim-row-model-final-reachable-20260520-194216.log`.
+  The broader edited source-trust promotion regression remains blocked before
+  its edited assertion by the relation/conflict charter mismatch
+  `Error: missing required field(s) for family 'conflict_witness': id`;
+  that is Phase 11 relation/conflict work and must not be papered over by
+  restoring claim rows.
