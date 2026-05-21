@@ -391,6 +391,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
   `656147a7 Use typed review regression fixtures`.
 - Propstore PrAF store typed fixture cleanup is committed as
   `9de025ec Use typed PrAF store fixture`.
+- Propstore web revision base JSON serialization cleanup is committed as
+  `086ac24a Serialize revision base through owner payload`.
 - Passing focused gates:
   - `uv run pyright propstore`
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
@@ -421,6 +423,10 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 6 tests.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-praf-store-typed tests/test_praf.py::test_build_praf_from_store`
     passed 1 test.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-web-revision-json tests/test_web_revision_readonly.py::test_web_revision_base_route_is_read_only_app_backed`
+    passed 1 test.
+  - `uv run pyright propstore` passed with 0 errors after the web revision
+    owner-payload production change.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -445,9 +451,8 @@ Current full-gate repair queue, deletion-first:
   properties directly. The concept view fixture now uses `Concept.id` instead
   of `Concept.concept_id`.
 - Repair remaining typed payload projection gaps found by full suite:
-  algorithm canonical AST, SI-normalized numeric payloads, web revision JSON
-  serialization of typed claims, and worldline dependency identity
-  expectations.
+  algorithm canonical AST, SI-normalized numeric payloads, and worldline
+  dependency identity expectations.
 - Contract manifest failures are not deferrable; after charter-field changes,
   update the manifest/version evidence through the intended contract workflow,
   not by weakening the manifest test.
