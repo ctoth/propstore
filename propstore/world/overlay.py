@@ -3,19 +3,11 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from collections.abc import Sequence
 from typing import Any, Callable, Mapping, cast
 
 from propstore.conflict_detector import ConflictClass
-from propstore.core.relations import ClaimConceptLinkRole
-from propstore.core.claim_types import ClaimType
-from propstore.core.conditions import (
-    CheckedConditionSet,
-    check_condition_ir,
-    checked_condition_set,
-    checked_condition_set_to_json,
-)
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.core.environment import (
     WorldStore,
@@ -28,9 +20,8 @@ from propstore.core.environment import (
 )
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
-from propstore.core.id_types import ConceptId, to_claim_id, to_claim_ids, to_concept_id
+from propstore.core.id_types import ConceptId, to_claim_ids, to_concept_id
 from propstore.core.graph_types import (
-    ClaimNode,
     CompiledWorldGraph,
     ConflictWitness,
     GraphDelta,
@@ -44,10 +35,8 @@ from propstore.core.store_results import (
 )
 from propstore.families.claims.declaration import (
     Claim,
-    ClaimConceptLink,
-    ClaimNumericPayload,
-    ClaimTextPayload,
 )
+from propstore.families.claims.graph import claim_node_from_claim, synthetic_claim_to_claim
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -62,7 +51,6 @@ from propstore.families.concepts.declaration import (
     ParameterizationInput,
 )
 from propstore.families.concepts.declaration import ConceptInput
-from propstore.families.world_charters import world_record
 from propstore.world.bound import BoundWorld, _recomputed_conflicts
 from propstore.world.types import (
     BeliefSpace,
@@ -174,217 +162,6 @@ class _ParameterizationCatalogAdapter:
                 seen.add(row_key)
                 rows.append(row)
         return rows
-
-
-def _claim_node_for_synthetic(
-    synthetic: SyntheticClaim,
-    *,
-    compiled: CompiledWorldGraph,
-    cel_registry: Mapping[str, ConceptInfo],
-) -> ClaimNode:
-    existing = next(
-        (claim for claim in compiled.claims if claim.claim_id == synthetic.id),
-        None,
-    )
-    attributes: dict[str, Any] = {}
-    if existing is not None:
-        attributes = dict(existing.attributes)
-    if synthetic.conditions:
-        attributes["conditions_cel"] = json.dumps(synthetic.conditions)
-    else:
-        attributes.pop("conditions_cel", None)
-    if synthetic.sample_size is not None:
-        attributes["sample_size"] = synthetic.sample_size
-    else:
-        attributes.pop("sample_size", None)
-    checked_conditions = _synthetic_checked_conditions(
-        synthetic,
-        cel_registry=cel_registry,
-    )
-    return ClaimNode(
-        claim_id=to_claim_id(synthetic.id),
-        value_concept_id=to_concept_id(synthetic.concept_id),
-        claim_type=synthetic.type,
-        scalar_value=synthetic.value,
-        checked_conditions=checked_conditions,
-        provenance=(existing.provenance if existing is not None else None),
-        label=(existing.label if existing is not None else None),
-        attributes=tuple(attributes.items()),
-    )
-
-
-def _synthetic_checked_conditions(
-    synthetic: SyntheticClaim,
-    *,
-    cel_registry: Mapping[str, ConceptInfo],
-) -> CheckedConditionSet | None:
-    if not synthetic.conditions:
-        return None
-    return checked_condition_set(
-        check_condition_ir(condition, cel_registry)
-        for condition in synthetic.conditions
-    )
-
-
-def _conditions_ir_json(condition_set: CheckedConditionSet | None) -> str | None:
-    if condition_set is None:
-        return None
-    return json.dumps(
-        checked_condition_set_to_json(condition_set),
-        sort_keys=True,
-    )
-
-
-def _synthetic_concept_links(synthetic: SyntheticClaim) -> tuple[ClaimConceptLink, ...]:
-    role = (
-        ClaimConceptLinkRole.TARGET
-        if synthetic.type is ClaimType.MEASUREMENT
-        else ClaimConceptLinkRole.OUTPUT
-    )
-    return (
-        ClaimConceptLink(
-            claim_id=to_claim_id(synthetic.id),
-            concept_id=to_concept_id(synthetic.concept_id),
-            role=role,
-            ordinal=0,
-        ),
-    )
-
-
-def _synthetic_claim(
-    synthetic: SyntheticClaim,
-    *,
-    existing_claim: Claim | None,
-    cel_registry: Mapping[str, ConceptInfo],
-) -> Claim:
-    conditions_cel = json.dumps(synthetic.conditions) if synthetic.conditions else None
-    conditions_ir = _conditions_ir_json(
-        _synthetic_checked_conditions(
-            synthetic,
-            cel_registry=cel_registry,
-        )
-    )
-    existing_numeric = None if existing_claim is None else existing_claim.numeric_payload
-    existing_text = None if existing_claim is None else existing_claim.text_payload
-    claim = cast(Claim, world_record(
-        "claim_core",
-        {
-            "id": synthetic.id,
-            "primary_logical_id": (
-                existing_claim.primary_logical_id
-                if existing_claim is not None
-                else synthetic.id
-            ),
-            "logical_ids_json": (
-                existing_claim.logical_ids_json
-                if existing_claim is not None
-                else "[]"
-            ),
-            "version_id": existing_claim.version_id if existing_claim is not None else "",
-            "content_hash": existing_claim.content_hash if existing_claim is not None else "",
-            "seq": existing_claim.seq if existing_claim is not None else 0,
-            "type": synthetic.type,
-            "target_concept": (
-                to_concept_id(synthetic.concept_id)
-                if synthetic.type is ClaimType.MEASUREMENT
-                else (
-                    existing_claim.target_concept
-                    if existing_claim is not None
-                    else None
-                )
-            ),
-            "source_slug": existing_claim.source_slug if existing_claim is not None else None,
-            "source_paper": existing_claim.source_paper if existing_claim is not None else "",
-            "provenance_page": (
-                existing_claim.provenance_page if existing_claim is not None else 0
-            ),
-            "provenance_json": (
-                existing_claim.provenance_json if existing_claim is not None else None
-            ),
-            "context_id": existing_claim.context_id if existing_claim is not None else None,
-            "premise_kind": (
-                existing_claim.premise_kind if existing_claim is not None else "ordinary"
-            ),
-            "branch": existing_claim.branch if existing_claim is not None else None,
-            "build_status": (
-                existing_claim.build_status if existing_claim is not None else "ingested"
-            ),
-            "stage": existing_claim.stage if existing_claim is not None else None,
-            "promotion_status": (
-                existing_claim.promotion_status if existing_claim is not None else None
-            ),
-        },
-    ))
-    numeric_payload = cast(ClaimNumericPayload, world_record(
-        "claim_numeric_payload",
-        {
-            "claim_id": synthetic.id,
-            "value": (
-                synthetic.value
-                if isinstance(synthetic.value, int | float)
-                and not isinstance(synthetic.value, bool)
-                else (None if existing_numeric is None else existing_numeric.value)
-            ),
-            "lower_bound": None if existing_numeric is None else existing_numeric.lower_bound,
-            "upper_bound": None if existing_numeric is None else existing_numeric.upper_bound,
-            "uncertainty": None if existing_numeric is None else existing_numeric.uncertainty,
-            "uncertainty_type": (
-                None if existing_numeric is None else existing_numeric.uncertainty_type
-            ),
-            "sample_size": (
-                synthetic.sample_size
-                if synthetic.sample_size is not None
-                else (None if existing_numeric is None else existing_numeric.sample_size)
-            ),
-            "unit": None if existing_numeric is None else existing_numeric.unit,
-            "value_si": None if existing_numeric is None else existing_numeric.value_si,
-            "lower_bound_si": (
-                None if existing_numeric is None else existing_numeric.lower_bound_si
-            ),
-            "upper_bound_si": (
-                None if existing_numeric is None else existing_numeric.upper_bound_si
-            ),
-        },
-    ))
-    text_payload = cast(ClaimTextPayload, world_record(
-        "claim_text_payload",
-        {
-            "claim_id": synthetic.id,
-            "conditions_cel": conditions_cel,
-            "conditions_ir": conditions_ir,
-            "statement": None if existing_text is None else existing_text.statement,
-            "expression": (
-                synthetic.value
-                if isinstance(synthetic.value, str)
-                else (None if existing_text is None else existing_text.expression)
-            ),
-            "sympy_generated": (
-                None if existing_text is None else existing_text.sympy_generated
-            ),
-            "sympy_error": None if existing_text is None else existing_text.sympy_error,
-            "name": None if existing_text is None else existing_text.name,
-            "measure": None if existing_text is None else existing_text.measure,
-            "listener_population": (
-                None if existing_text is None else existing_text.listener_population
-            ),
-            "methodology": None if existing_text is None else existing_text.methodology,
-            "notes": None if existing_text is None else existing_text.notes,
-            "description": None if existing_text is None else existing_text.description,
-            "auto_summary": None if existing_text is None else existing_text.auto_summary,
-        },
-    ))
-    claim.concept_links = list(_synthetic_concept_links(synthetic))
-    claim.numeric_payload = numeric_payload
-    claim.text_payload = text_payload
-    claim.algorithm_payload = None if existing_claim is None else existing_claim.algorithm_payload
-    claim.source_assertions = (
-        [] if existing_claim is None else list(existing_claim.source_assertions)
-    )
-    numeric_payload.claim = claim
-    text_payload.claim = claim
-    for link in claim.concept_links:
-        link.claim = claim
-    return claim
 
 
 class _GraphOverlayStore:
@@ -598,29 +375,35 @@ class OverlayWorld(BeliefSpace):
             return to_concept_id(resolved)
 
         self._synthetics = [
-            SyntheticClaim(
+            replace(
+                synthetic,
                 id=resolve_synthetic_claim_id(synthetic.id),
                 concept_id=resolve_synthetic_concept_id(synthetic.concept_id),
-                type=synthetic.type,
-                value=synthetic.value,
-                conditions=list(synthetic.conditions),
-                sample_size=synthetic.sample_size,
-                confidence=synthetic.confidence,
             )
             for synthetic in (add or [])
         ]
 
-        self._base_compiled = _compiled_graph_for_bound(base)
         cel_registry = base._store.condition_solver().registry
+        base_claim_rows = list(base._store.claims_for(None))
+        base_claim_rows_by_id = {
+            str(claim.id): claim
+            for claim in base_claim_rows
+        }
+        synthetic_claims_by_id = {
+            synthetic.id: synthetic_claim_to_claim(
+                synthetic,
+                existing_claim=base_claim_rows_by_id.get(synthetic.id),
+                cel_registry=cel_registry,
+            )
+            for synthetic in self._synthetics
+        }
+
+        self._base_compiled = _compiled_graph_for_bound(base)
         if self._base_compiled is not None:
             self._graph_delta = GraphDelta(
                 add_claims=tuple(
-                    _claim_node_for_synthetic(
-                        synthetic,
-                        compiled=self._base_compiled,
-                        cel_registry=cel_registry,
-                    )
-                    for synthetic in self._synthetics
+                    claim_node_from_claim(claim)
+                    for claim in synthetic_claims_by_id.values()
                 ),
                 remove_claim_ids=to_claim_ids(self._removed_ids),
             )
@@ -629,11 +412,6 @@ class OverlayWorld(BeliefSpace):
             self._graph_delta = None
             self._compiled_graph = None
 
-        base_claim_rows = list(base._store.claims_for(None))
-        base_claim_rows_by_id = {
-            str(claim.id): claim
-            for claim in base_claim_rows
-        }
         synthetics_by_id = {synthetic.id: synthetic for synthetic in self._synthetics}
 
         overlay_claims: list[Claim] = []
@@ -643,13 +421,7 @@ class OverlayWorld(BeliefSpace):
             if claim_id in self._removed_ids and replacement is None:
                 continue
             if replacement is not None:
-                overlay_claims.append(
-                    _synthetic_claim(
-                        replacement,
-                        existing_claim=claim,
-                        cel_registry=cel_registry,
-                    )
-                )
+                overlay_claims.append(synthetic_claims_by_id[replacement.id])
             else:
                 overlay_claims.append(claim)
 
@@ -657,13 +429,7 @@ class OverlayWorld(BeliefSpace):
         for synthetic in self._synthetics:
             if synthetic.id in existing_ids:
                 continue
-            overlay_claims.append(
-                _synthetic_claim(
-                    synthetic,
-                    existing_claim=base_claim_rows_by_id.get(synthetic.id),
-                    cel_registry=cel_registry,
-                )
-            )
+            overlay_claims.append(synthetic_claims_by_id[synthetic.id])
 
         overlay_claim_ids = {
             str(claim.id)

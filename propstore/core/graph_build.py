@@ -8,7 +8,6 @@ from typing import Any
 
 from propstore.conflict_detector import ConflictClass
 from propstore.cel_types import to_cel_exprs
-from propstore.core.claim_types import ClaimType
 from propstore.core.conditions import CheckedConditionSet, checked_condition_set_from_json
 from propstore.core.environment import (
     ClaimCatalogStore,
@@ -22,12 +21,10 @@ from propstore.core.environment import (
 from propstore.core.id_types import (
     ConceptId,
     to_claim_id,
-    to_concept_id,
     to_concept_ids,
 )
 from propstore.core.graph_relation_types import coerce_graph_relation_type
 from propstore.core.graph_types import (
-    ClaimNode,
     CompiledWorldGraph,
     ConceptNode,
     ConflictWitness,
@@ -37,6 +34,7 @@ from propstore.core.graph_types import (
 )
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
+from propstore.families.claims.graph import claim_node_from_claim
 from propstore.families.relations.declaration import (
     ConflictRow,
     RelationshipRow,
@@ -95,70 +93,6 @@ def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
         for key, value in row.items()
         if key not in known and value is not None
     )
-
-
-def claim_scalar_value_from_claim(claim: Claim) -> float | None:
-    numeric_payload = claim.numeric_payload
-    return None if numeric_payload is None else numeric_payload.value
-
-
-def claim_node_attributes_from_claim(row: Claim) -> tuple[tuple[str, Any], ...]:
-    numeric_payload = row.numeric_payload
-    return tuple(
-        (key, value)
-        for key, value in (
-            ("primary_logical_id", row.primary_logical_id),
-            ("logical_ids_json", row.logical_ids_json),
-            ("version_id", row.version_id),
-            ("seq", row.seq),
-            ("target_concept", row.target_concept),
-            ("source_slug", row.source_slug),
-            ("source_paper", row.source_paper),
-            ("provenance_page", row.provenance_page),
-            ("provenance_json", row.provenance_json),
-            ("context_id", row.context_id),
-            ("premise_kind", row.premise_kind),
-            ("branch", row.branch),
-            ("build_status", row.build_status),
-            ("stage", row.stage),
-            ("promotion_status", row.promotion_status),
-            (
-                "lower_bound",
-                None if numeric_payload is None else numeric_payload.lower_bound,
-            ),
-            (
-                "upper_bound",
-                None if numeric_payload is None else numeric_payload.upper_bound,
-            ),
-            (
-                "uncertainty",
-                None if numeric_payload is None else numeric_payload.uncertainty,
-            ),
-            (
-                "uncertainty_type",
-                None if numeric_payload is None else numeric_payload.uncertainty_type,
-            ),
-            (
-                "sample_size",
-                None if numeric_payload is None else numeric_payload.sample_size,
-            ),
-            ("unit", None if numeric_payload is None else numeric_payload.unit),
-            ("value_si", None if numeric_payload is None else numeric_payload.value_si),
-            (
-                "lower_bound_si",
-                None if numeric_payload is None else numeric_payload.lower_bound_si,
-            ),
-            (
-                "upper_bound_si",
-                None if numeric_payload is None else numeric_payload.upper_bound_si,
-            ),
-        )
-        if value is not None
-    )
-
-
-def _claim_attributes(row: Claim) -> tuple[tuple[str, Any], ...]:
-    return claim_node_attributes_from_claim(row)
 
 
 def _display_claim_id_from_row(row: Claim) -> str:
@@ -234,16 +168,6 @@ def _parameterization_condition_sources(
 
 def _parse_json_concept_ids(value: Any) -> tuple[ConceptId, ...]:
     return to_concept_ids(_parse_json_list(value))
-
-
-def _claim_value_concept_id(claim: Claim) -> ConceptId | None:
-    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
-        for link in claim.concept_links:
-            if link.role == role:
-                return to_concept_id(link.concept_id)
-    if claim.target_concept is not None:
-        return to_concept_id(claim.target_concept)
-    return None
 
 
 def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) -> CompiledWorldGraph:
@@ -323,19 +247,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
     claims = tuple(
         sorted(
             (
-                ClaimNode(
-                    claim_id=to_claim_id(claim_display_ids[str(row.id)]),
-                    claim_type=(row.type or ClaimType.UNKNOWN),
-                    value_concept_id=_claim_value_concept_id(row),
-                    scalar_value=claim_scalar_value_from_claim(row),
-                    checked_conditions=row.checked_conditions,
-                    provenance=_row_provenance(
-                        row,
-                        source_table="claim",
-                        source_id=claim_display_ids[str(row.id)],
-                    ),
-                    attributes=_claim_attributes(row),
-                )
+                claim_node_from_claim(row, claim_id=claim_display_ids[str(row.id)])
                 for row in claim_rows
             )
         )

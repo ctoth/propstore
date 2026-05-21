@@ -232,7 +232,6 @@ def activate_compiled_world_graph(
     inactive_claim_ids: list[ClaimId] = []
 
     for claim in compiled.claims:
-        context_id = claim.attribute_value("context_id")
         source_artifact = (
             claim.provenance.source_id
             if claim.provenance is not None and claim.provenance.source_id is not None
@@ -240,7 +239,7 @@ def activate_compiled_world_graph(
         )
         if is_claim_active(
             claim_id=str(claim.claim_id),
-            claim_context_id=None if context_id is None else str(context_id),
+            claim_context_id=claim.context_id,
             claim_conditions=claim.checked_conditions,
             source_artifact=source_artifact,
             environment=environment,

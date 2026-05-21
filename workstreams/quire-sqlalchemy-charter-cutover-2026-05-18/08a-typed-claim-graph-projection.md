@@ -96,6 +96,9 @@ Allowed remaining hits:
 - `conditions_cel` and `sample_size` may remain in charter declarations,
   typed payload models, IO-boundary fixtures, and tests explicitly exercising
   storage schema.
+- `conditions_cel` may remain in `propstore/world/overlay.py` and
+  `propstore/core/graph_build.py` only for parameterization condition fields,
+  not for claim projection.
 - `ClaimNode(` may remain only where the caller is the single typed projection
   owner or where the test is directly testing `ClaimNode` itself.
 
@@ -127,3 +130,30 @@ projection rather than normalizing around it.
 - Created 2026-05-20 after Phase 6 overlay verification exposed duplicate
   hardcoded projection of `conditions_cel` and `sample_size` in
   `propstore/world/overlay.py`.
+- Executed 2026-05-20. `propstore/families/claims/graph.py` now owns typed
+  `Claim` to `ClaimNode` projection and typed synthetic-claim lowering.
+  `propstore/core/graph_build.py`, `propstore/core/analyzers.py`, and
+  `propstore/world/overlay.py` route through that owner. `ClaimNode` now has
+  typed fields for claim context, source, and numeric payload evidence instead
+  of requiring those values in `attributes`.
+- Deleted the overlay-local mutations of `attributes["conditions_cel"]` and
+  `attributes["sample_size"]`. `rg -n -F -- 'attributes["conditions_cel"]'
+  propstore tests` and `rg -n -F -- 'attributes["sample_size"]' propstore
+  tests` returned no hits. `rg -n -F -- "sample_size"
+  propstore/world/overlay.py propstore/core/graph_build.py` returned no hits.
+  `rg -n -F -- "ClaimNode(" propstore/core propstore/world
+  tests/test_world_query.py` returns only `propstore/world/atms.py`'s
+  `ATMSClaimNode` construction, not a `ClaimNode` projection.
+- Remaining `conditions_cel` hits in `propstore/world/overlay.py` and
+  `propstore/core/graph_build.py` are parameterization condition handling:
+  `_ParameterizationCatalogAdapter` and parameterization graph edges. They are
+  outside this claim-projection deletion target.
+- Verification passed: `uv run pyright propstore` reported 0 errors, and
+  logged pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
+  typed-claim-graph-projection tests/test_world_query.py::TestSemanticCorePhase6HypotheticalDeltas
+  tests/test_world_query.py::TestWorldQueryConstruction::test_construct_from_repo
+  tests/test_world_query.py::TestUnboundQueries::test_get_claim
+  tests/test_world_query.py::TestUnboundQueries::test_claims_for
+  tests/test_world_query.py::TestConflictResolution::test_resolve_sample_size`
+  passed with 8 tests and log
+  `logs\test-runs\typed-claim-graph-projection-20260520-211640.log`.

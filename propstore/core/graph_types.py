@@ -256,6 +256,18 @@ class ClaimNode:
     claim_type: ClaimType
     value_concept_id: ConceptId | None = None
     scalar_value: float | str | None = None
+    context_id: str | None = None
+    source_slug: str | None = None
+    source_paper: str | None = None
+    lower_bound: float | None = None
+    upper_bound: float | None = None
+    uncertainty: float | None = None
+    uncertainty_type: str | None = None
+    sample_size: int | None = None
+    unit: str | None = None
+    value_si: float | None = None
+    lower_bound_si: float | None = None
+    upper_bound_si: float | None = None
     checked_conditions: CheckedConditionSet | None = field(
         default=None,
         compare=False,
@@ -283,6 +295,23 @@ class ClaimNode:
             data["value_concept_id"] = self.value_concept_id
         if self.scalar_value is not None:
             data["scalar_value"] = self.scalar_value
+        for key in (
+            "context_id",
+            "source_slug",
+            "source_paper",
+            "lower_bound",
+            "upper_bound",
+            "uncertainty",
+            "uncertainty_type",
+            "sample_size",
+            "unit",
+            "value_si",
+            "lower_bound_si",
+            "upper_bound_si",
+        ):
+            value = getattr(self, key)
+            if value is not None:
+                data[key] = value
         if self.checked_conditions is not None and self.checked_conditions.conditions:
             data["conditions_ir"] = [
                 _condition_to_dict(condition)
@@ -308,6 +337,24 @@ class ClaimNode:
             ),
             claim_type=_require_claim_type(data["claim_type"]),
             scalar_value=data.get("scalar_value"),
+            context_id=(None if data.get("context_id") is None else str(data["context_id"])),
+            source_slug=(None if data.get("source_slug") is None else str(data["source_slug"])),
+            source_paper=(None if data.get("source_paper") is None else str(data["source_paper"])),
+            lower_bound=data.get("lower_bound"),
+            upper_bound=data.get("upper_bound"),
+            uncertainty=data.get("uncertainty"),
+            uncertainty_type=(
+                None
+                if data.get("uncertainty_type") is None
+                else str(data["uncertainty_type"])
+            ),
+            sample_size=(
+                None if data.get("sample_size") is None else int(data["sample_size"])
+            ),
+            unit=(None if data.get("unit") is None else str(data["unit"])),
+            value_si=data.get("value_si"),
+            lower_bound_si=data.get("lower_bound_si"),
+            upper_bound_si=data.get("upper_bound_si"),
             checked_conditions=_condition_set_from_dicts(data.get("conditions_ir")),
             provenance=(
                 None

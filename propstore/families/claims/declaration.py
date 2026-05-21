@@ -70,6 +70,7 @@ from propstore.stances import coerce_stance_type
 if TYPE_CHECKING:
     from propstore.core.graph_types import ProvenanceRecord
     from propstore.core.justifications import CanonicalJustification
+    from propstore.families.sources.declaration import Source
 
 
 def _require_claim_type(value: object) -> ClaimType:
@@ -103,6 +104,7 @@ class Claim:
     text_payload: "ClaimTextPayload | None"
     algorithm_payload: "ClaimAlgorithmPayload | None"
     source_assertions: list["ClaimSourceAssertion"]
+    source: "Source | None"
 
     def concept_ids_for_role(self, role: ClaimConceptLinkRole) -> tuple[str, ...]:
         return tuple(

@@ -18,7 +18,14 @@ from quire.git_store import GitStore
 from propstore.claims import (
     LoadedClaimsFile,
     claim_batch_files_from_payload,
+    claim_file_source_paper,
     load_claim_file,
+)
+from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.families.documents.sources import (
+    SourceDocument,
+    SourceOriginDocument,
+    SourceTrustDocument,
 )
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.families.documents.justifications import JustificationDocument
@@ -26,8 +33,9 @@ from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.justifications import derive_justification_artifact_id
 from propstore.families.identity.stances import derive_stance_artifact_id
-from propstore.families.registry import ClaimRef
+from propstore.families.registry import CanonicalSourceRef, ClaimRef
 from propstore.families.registry import JustificationRef, StanceRef
+from propstore.provenance import ProvenanceStatus
 from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
 from propstore.derived_build import (
@@ -210,6 +218,7 @@ def _materialize_claim_fixture_batches(repo: Repository) -> None:
     claims_dir = repo.root / "claims"
     if not claims_dir.is_dir():
         return
+    source_names: set[str] = set()
     for path in sorted(claims_dir.glob("*.yaml")):
         data = decode_yaml_mapping(path.read_bytes(), source=path.as_posix())
         if not isinstance(data.get("claims"), list):
@@ -222,6 +231,7 @@ def _materialize_claim_fixture_batches(repo: Repository) -> None:
             knowledge_root=repo.root,
         ):
             claim = loaded.document
+            source_names.add(claim_file_source_paper(loaded))
             artifact_id = claim.artifact_id
             if artifact_id is None:
                 raise ValueError(f"{path.as_posix()}: normalized claim is missing artifact_id")
@@ -233,6 +243,25 @@ def _materialize_claim_fixture_batches(repo: Repository) -> None:
                 encoding="utf-8",
             )
         path.unlink()
+    for source_name in sorted(source_names):
+        ref = CanonicalSourceRef(source_name)
+        source_path = repo.root / repo.families.sources.address(ref).require_path()
+        if source_path.exists():
+            continue
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_doc = SourceDocument(
+            id=source_name,
+            kind=SourceKind.ACADEMIC_PAPER,
+            origin=SourceOriginDocument(
+                type=SourceOriginType.MANUAL,
+                value="fixture",
+            ),
+            trust=SourceTrustDocument(status=ProvenanceStatus.STATED),
+        )
+        source_path.write_text(
+            repo.families.sources.render(source_doc) + "\n",
+            encoding="utf-8",
+        )
 
 
 def _init_git_without_sync(root: Path) -> None:

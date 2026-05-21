@@ -599,7 +599,7 @@ class TestUnboundQueries:
     def test_get_claim(self, world):
         c = world.get_claim(_claim_artifact("test_paper_alpha", "claim1"))
         assert c is not None
-        assert c.claim_type is ClaimType.PARAMETER
+        assert c.type is ClaimType.PARAMETER
         assert c.output_concept_id == CONCEPT1_ID
 
     def test_get_claim_missing(self, world):
@@ -681,9 +681,9 @@ class TestUnboundQueries:
         assert claim.source_slug == "alpha_source"
         assert claim.source_paper == "Alpha Paper"
         assert claim.source is not None
-        assert claim.source.kind is SourceKind.ACADEMIC_PAPER
+        assert claim.source.kind == SourceKind.ACADEMIC_PAPER.value
         assert claim.source.origin is not None
-        assert claim.source.origin.origin_type is SourceOriginType.DOI
+        assert claim.source.origin.type == SourceOriginType.DOI.value
         assert claim.source.source_id == "source-alpha"
         assert claim.source.origin.value == "10.1000/example"
         wm.close()
@@ -706,7 +706,7 @@ class TestUnboundQueries:
             _claim_artifact("test_paper_beta", "claim9"),
             _claim_artifact("test_paper_gamma", "claim15"),
         }
-        assert all(claim.claim_type is ClaimType.PARAMETER for claim in claims)
+        assert all(claim.type is ClaimType.PARAMETER for claim in claims)
 
     def test_claims_for_missing(self, world):
         assert world.claims_for("nonexistent") == []
@@ -1028,7 +1028,7 @@ class TestUnboundQueries:
         monkeypatch.setattr(
             embeddings,
             "find_similar_concepts",
-            lambda conn, concept_id, model_name, *, derived_store, top_k=10: [
+            lambda conn, concept_id, model_name, top_k=10: [
                 {
                     "id": CONCEPT2_ID,
                     "distance": 0.25,
@@ -2966,7 +2966,14 @@ class TestSemanticCorePhase6HypotheticalDeltas:
 
         assert hypo._graph_delta.is_identity
         assert hypo._active_graph == bound._active_graph
-        assert hypo.resolved_value("concept1") == bound.resolved_value("concept1")
+        hypo_result = hypo.resolved_value("concept1")
+        bound_result = bound.resolved_value("concept1")
+        assert hypo_result.status == bound_result.status
+        assert hypo_result.value == bound_result.value
+        assert hypo_result.winning_claim_id == bound_result.winning_claim_id
+        assert {claim.id for claim in hypo_result.claims} == {
+            claim.id for claim in bound_result.claims
+        }
 
     def test_remove_add_inverse_overlay_returns_same_active_graph(self, world):
         bound = world.bind(task="speech")
@@ -2978,7 +2985,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
             remove=["claim2"],
             add=[
                 SyntheticClaim(
-                    id="claim2",
+                    id=str(restored_claim.id),
                     concept_id=str(restored_claim.value_concept_id),
                     type=restored_claim.type or "parameter",
                     value=(
@@ -2992,7 +2999,15 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         )
 
         assert hypo._active_graph == bound._active_graph
-        assert hypo.value_of("concept1") == bound.value_of("concept1")
+        hypo_value = hypo.value_of("concept1")
+        bound_value = bound.value_of("concept1")
+        assert hypo_value.concept_id == bound_value.concept_id
+        assert hypo_value.status == bound_value.status
+        assert hypo_value.label == bound_value.label
+        assert hypo_value.reason == bound_value.reason
+        assert {claim.id for claim in hypo_value.claims} == {
+            claim.id for claim in bound_value.claims
+        }
 
     def test_claim_graph_overlay_uses_delta_backed_conflicts(self, tmp_path):
         bound = _phase6_bound_world(

@@ -9,13 +9,8 @@ from argumentation.bipolar import (
     cayrol_derived_defeats as _cayrol_derived_defeats_impl,
 )
 from propstore.conflict_detector import ConflictClass
-from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.graph_relation_types import coerce_graph_relation_type
-from propstore.core.graph_build import (
-    claim_node_attributes_from_claim,
-    claim_scalar_value_from_claim,
-)
-from propstore.core.id_types import ClaimId, to_claim_id, to_claim_ids, to_concept_id
+from propstore.core.id_types import ClaimId, to_claim_id, to_claim_ids
 from propstore.core.graph_types import (
     ActiveWorldGraph,
     ClaimNode,
@@ -49,8 +44,8 @@ from propstore.core.environment import (
     ConflictStore,
     Environment,
 )
-from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
+from propstore.families.claims.graph import claim_node_from_claim
 from propstore.families.relations.declaration import (
     ConflictRow,
     ConflictRowInput,
@@ -147,7 +142,20 @@ def _claim_mapping_from_node(claim: ClaimNode) -> dict:
         "value_concept_id": claim.value_concept_id,
         "type": claim.claim_type,
         "value": claim.scalar_value,
+        "context_id": claim.context_id,
+        "source_slug": claim.source_slug,
+        "source_paper": claim.source_paper,
+        "lower_bound": claim.lower_bound,
+        "upper_bound": claim.upper_bound,
+        "uncertainty": claim.uncertainty,
+        "uncertainty_type": claim.uncertainty_type,
+        "sample_size": claim.sample_size,
+        "unit": claim.unit,
+        "value_si": claim.value_si,
+        "lower_bound_si": claim.lower_bound_si,
+        "upper_bound_si": claim.upper_bound_si,
     }
+    data = {key: value for key, value in data.items() if value is not None}
     data.update(claim.attribute_mapping())
     if claim.provenance is not None:
         if claim.provenance.paper is not None:
@@ -197,24 +205,8 @@ def _conflict_row_from_witness(conflict: ConflictWitness) -> dict:
     }
 
 
-def _claim_value_concept_id(claim: Claim):
-    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
-        for link in claim.concept_links:
-            if link.role is role:
-                return to_concept_id(link.concept_id)
-    if claim.target_concept is not None:
-        return to_concept_id(claim.target_concept)
-    return None
-
-
 def _claim_node_from_row(row: Claim) -> ClaimNode:
-    return ClaimNode(
-        claim_id=to_claim_id(row.id),
-        claim_type=coerce_claim_type(row.type or "unknown") or ClaimType.UNKNOWN,
-        value_concept_id=_claim_value_concept_id(row),
-        scalar_value=claim_scalar_value_from_claim(row),
-        attributes=claim_node_attributes_from_claim(row),
-    )
+    return claim_node_from_claim(row)
 
 
 def _relation_edge_from_row(row: StanceRowInput) -> RelationEdge:

@@ -748,18 +748,11 @@ def resolve(
         )
 
     winning_claim = next((claim for claim in active_views if claim.id == winner_id), None)
-    display_store: WorldStore | None
-    if world is not None:
-        display_store = world
-    elif isinstance(view, WorldStore):
-        display_store = view
-    else:
-        display_store = None
     value = None if winning_claim is None else winning_claim.value
     return ResolvedResult(
         concept_id=typed_concept_id, status=ValueStatus.RESOLVED,
         value=value, claims=active,
-        winning_claim_id=to_claim_id(_display_claim_id(display_store, winner_id) or winner_id),
+        winning_claim_id=to_claim_id(winner_id),
         strategy=strategy.value, reason=reason,
         acceptance_probs=_acceptance_probs,
     )
