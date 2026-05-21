@@ -38,6 +38,7 @@ from propstore.fragility import (
     weighted_epistemic_score,
 )
 from propstore.fragility_contributors import _in_extension
+from propstore.families.concepts.declaration import Parameterization
 from propstore.provenance import (
     NogoodWitness,
     Provenance,
@@ -373,11 +374,11 @@ class TestUtilityScores:
 def _mock_bound_for_atms(queryable_order: list[str]) -> MagicMock:
     bound = MagicMock()
     bound._store.all_parameterizations.return_value = [
-        {
-            "output_concept_id": "c1",
-            "concept_ids": json.dumps(["x"]),
-            "conditions_cel": json.dumps(queryable_order),
-        }
+        Parameterization(
+            output_concept_id="c1",
+            concept_ids=json.dumps(["x"]),
+            conditions_cel=json.dumps(queryable_order),
+        )
     ]
     bound.active_claims.side_effect = lambda concept_id=None: [{"claim_id": "claim1"}] if concept_id == "c1" else []
     engine = MagicMock()
@@ -455,11 +456,11 @@ class TestMissingMeasurementInterventions:
     def test_parameterization_order_does_not_change_missing_measurement_ids(self, inputs: tuple[str, str]) -> None:
         bound = MagicMock()
         bound._store.all_parameterizations.return_value = [
-            {
-                "output_concept_id": "density",
-                "concept_ids": json.dumps(list(inputs)),
-                "sympy": "density",
-            }
+            Parameterization(
+                output_concept_id="density",
+                concept_ids=json.dumps(list(inputs)),
+                sympy="density",
+            )
         ]
         bound.active_claims.return_value = []
         ranked = collect_missing_measurement_interventions(bound, ["density"])

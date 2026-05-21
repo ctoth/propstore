@@ -489,6 +489,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     preserving the real source relationship when a source row exists.
   - `uv run pyright propstore` passed with 0 errors after the claim-source FK
     repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-typed-fragility-praf tests/test_fragility.py::TestATMSInterventions::test_queryable_order_does_not_change_assumption_ids tests/test_fragility.py::TestATMSInterventions::test_rank_fragility_returns_assumption_interventions_not_concepts tests/test_fragility.py::TestATMSInterventions::test_assumption_interventions_carry_derivative_support tests/test_fragility.py::TestMissingMeasurementInterventions::test_parameterization_order_does_not_change_missing_measurement_ids tests/test_praf_uncalibrated_explicit.py::test_uncalibrated_arguments_remain_vacuous_in_kernel_framework`
+    passed 5 tests after replacing dict-shaped fragility parameterizations with
+    typed `Parameterization` fixtures and replacing PrAF claim dicts with typed
+    `ClaimNode` fixtures.
+  - `uv run pyright propstore` passed with 0 errors after the fragility/PrAF
+    typed fixture repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -516,6 +522,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
     - Typed fixture drift remains in ATMS, semantic repair, fragility,
       sensitivity, micropublication, and preference import tests; fix fixtures
       to build charter/domain objects, not production dict fallbacks.
+      Fragility parameterization fixtures and the explicit PrAF uncalibrated
+      claim fixture are repaired after full-5.
     - Argumentation/vacuous stance behavior must reject vacuous attackers at
       the typed relation boundary, not via compatibility wrappers.
     - Demo and worldline tests still assert source-local handles where current
