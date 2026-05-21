@@ -230,6 +230,18 @@ that owner workstream.
   tests/test_lemon_concept_documents.py tests/test_cli_render_policy_flags.py`
   passed with 26 tests; log:
   `logs/test-runs/document-convert-boundaries-20260521-020159.log`.
+- Final 10a gate complete: `uv run pyright propstore` passed with zero
+  errors. `powershell -File scripts/run_logged_pytest.ps1 -Label
+  charter-generated-model-cleanup tests/test_world_query.py
+  tests/test_graph_export.py` passed with 159 tests and 29 expected warnings;
+  log: `logs/test-runs/charter-generated-model-cleanup-20260521-020528.log`.
+  All required zero-hit searches returned no hits:
+  `__init__(self, **values`, `from_row_mapping`, `.coerce(`, `Input = `,
+  `to_row_mapping`, `class WorldModel`, and `class .*Record\(` across the
+  paths named in this workstream. The child workstream is complete: every
+  mapped sidecar model is a methods-only `FamilyModel` subclass, and Quire
+  charter metadata is the only storage field declaration surface for those
+  mapped models.
 
 ## Completion Criteria
 
