@@ -25,6 +25,7 @@ from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.conditions import (
     CheckedCondition,
     CheckedConditionSet,
+    ConditionSolver,
     checked_condition_set_from_json,
     checked_condition_set_to_json,
 )
@@ -134,6 +135,9 @@ class _ATMSRuntimeLike(Protocol):
 
     @property
     def condition_registry(self) -> Mapping[str, ConceptInfo]: ...
+
+    @property
+    def condition_solver(self) -> Callable[[], ConditionSolver]: ...
 
     @property
     def claim_support(self) -> Callable[[Claim], tuple[Label | None, SupportQuality]]: ...
@@ -305,6 +309,7 @@ class _ATMSRuntime:
     conflicts: Callable[[], list[ConflictWitness]]
     is_param_compatible: Callable[[Parameterization], bool]
     condition_registry: Mapping[str, ConceptInfo]
+    condition_solver: Callable[[], ConditionSolver]
     claim_support: Callable[[Claim], tuple[Label | None, SupportQuality]]
     concept_status: Callable[[str], ValueStatus]
     replay: Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntime"]
@@ -522,6 +527,7 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
         conflicts=_conflicts,
         is_param_compatible=lambda parameterization: bound.is_param_compatible(parameterization),
         condition_registry=bound._store.condition_solver().registry,
+        condition_solver=bound._store.condition_solver,
         all_micropublications=_all_micropublications,
         claim_support=lambda claim: bound.claim_support(claim),
         concept_status=lambda concept_id: bound.value_of(concept_id).status,
@@ -548,6 +554,8 @@ class ATMSEngine:
             runtime = _runtime_from_bound(bound)
         self._runtime = runtime
         self._bound = self._runtime
+        self._condition_solver = self._runtime.condition_solver()
+        self._assumption_condition_cache: dict[str, CheckedCondition] = {}
         self._nodes: dict[str, ATMSNode] = {}
         self._justifications: dict[str, ATMSJustification] = {}
         self._claim_node_ids: dict[str, str] = {}
@@ -1739,7 +1747,24 @@ class ATMSEngine:
     ) -> bool:
         if condition.source == assumption_cel:
             return True
-        return False
+        assumption_condition = self._checked_assumption_condition(assumption_cel)
+        return self._condition_solver.are_equivalent(
+            (condition,),
+            (assumption_condition,),
+        )
+
+    def _checked_assumption_condition(self, assumption_cel: str) -> CheckedCondition:
+        cached = self._assumption_condition_cache.get(assumption_cel)
+        if cached is not None:
+            return cached
+        from propstore.core.conditions import check_condition_ir
+
+        checked = check_condition_ir(
+            assumption_cel,
+            self._condition_solver.registry,
+        )
+        self._assumption_condition_cache[assumption_cel] = checked
+        return checked
 
     def _add_justification(
         self,

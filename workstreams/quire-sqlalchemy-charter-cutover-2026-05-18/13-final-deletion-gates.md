@@ -507,6 +507,11 @@ Gate: no local path, workspace, or file URL Quire dependency.
     `ClaimSimilarityHit` values.
   - `uv run pyright propstore` passed with 0 errors after the relate callback
     fixture repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-atms-semantic-equality tests/test_atms_cel_semantic_equality.py::test_ws_i_exact_antecedent_sets_match_commuted_cel_equality`
+    passed 1 test after exact ATMS antecedent matching was changed to use the
+    checked-condition solver for semantic equivalence instead of raw CEL text.
+  - `uv run pyright propstore` passed with 0 errors after the ATMS
+    semantic-equality repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -560,9 +565,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
     - Argumentation preference/grounded behavior and vacuous stance handling
       still let weak or vacuous attacks defeat stronger claims; fix the typed
       argumentation relation/preference path, not a render-time shim.
-    - ATMS exact antecedent lookup still keys equality assumptions by raw CEL
-      shape; use checked-condition semantic equality so `a == b` and `b == a`
-      match without reparsing or hardcoded string normalization.
+    - ATMS exact antecedent lookup is repaired after full-6: equality
+      assumptions now match through checked-condition semantic equivalence
+      instead of raw CEL text comparison.
     - Reasoning demo CLI assertions still expect source-local handles/text in
       places where runtime output now exposes canonical ids or grouped accepted
       claim output; update the demo surface or test through the owner-layer
