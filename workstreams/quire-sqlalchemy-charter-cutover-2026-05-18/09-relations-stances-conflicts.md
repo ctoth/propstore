@@ -697,3 +697,11 @@ Recorded 2026-05-20.
   `uv run pyright propstore/worldline/resolution.py` passed with 0 errors.
   The next required actions are package pyright and the `relations-charter`
   logged pytest gate.
+- Required package and logged pytest gates passed after the worldline repair:
+  `uv run pyright propstore` passed with 0 errors, and `powershell -File
+  scripts/run_logged_pytest.ps1 -Label relations-charter
+  tests/test_graph_export.py tests/test_world_query.py tests/test_worldline.py`
+  passed with 211 tests and 29 warnings in
+  `logs\test-runs\relations-charter-20260520-235932.log`. The next required
+  Phase 11 queue is to rerun the old-path search gates and then the
+  relations data-parity gate.
