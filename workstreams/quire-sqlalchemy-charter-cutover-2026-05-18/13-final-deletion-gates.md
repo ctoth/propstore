@@ -88,14 +88,32 @@ Repository: `C:\Users\Q\code\quire`.
 
 ### Deletion Checklist
 
-- [ ] Confirm all Propstore and Quire consumers have moved away from Quire
+- [x] Confirm all Propstore and Quire consumers have moved away from Quire
   projection primitives.
-- [ ] Delete `quire/projection_mapping.py`.
-- [ ] Delete `quire/projections.py`.
-- [ ] Delete public exports for projection classes from `quire/__init__.py`.
-- [ ] Delete tests that only test deleted projection primitives.
-- [ ] Confirm replacement coverage exists for charter IR, SQLAlchemy mapping,
+- [x] Delete `quire/projection_mapping.py`.
+- [x] Delete `quire/projections.py`.
+- [x] Delete public exports for projection classes from `quire/__init__.py`.
+- [x] Delete tests that only test deleted projection primitives.
+- [x] Confirm replacement coverage exists for charter IR, SQLAlchemy mapping,
   schema catalog, FTS/vector extension, and derived-store sessions.
+
+### Phase 15 Execution Record
+
+Recorded 2026-05-21.
+
+- Quire commit: `f43dd1be83fd0c0b52a06104c79d1550bdf5f3a6` (`Delete projection primitives`).
+- Deleted in Quire: `quire/projection_mapping.py`, `quire/projections.py`, and
+  `tests/test_projection_mapping.py`.
+- Updated in Quire: `quire/__init__.py`,
+  `quire/derived_runtime.py`, `quire/sqlite_vec_store.py`, and
+  `tests/test_derived_store.py`.
+- Propstore import checks for `from quire.projections`,
+  `from quire.projection_mapping`, `quire.projections`, and
+  `quire.projection_mapping` were zero-hit in `propstore` and `tests`.
+- Quire old-path searches listed below were zero-hit in `quire` and `tests`.
+- Quire replacement coverage: `uv run pyright` passed with 0 errors;
+  `uv run pytest -vv tests/test_derived_store.py` passed with 12 tests; full
+  `uv run pytest -vv` passed with 327 tests.
 
 ### Quire Search Gates
 
