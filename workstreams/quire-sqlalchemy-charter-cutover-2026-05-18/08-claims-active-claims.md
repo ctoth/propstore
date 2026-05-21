@@ -1585,3 +1585,9 @@ Current binding queue:
   tests/test_claim_notes.py::TestClaimNotesSidecar::test_world_query_get_claim_returns_notes
   tests/test_relate_opinions.py` passed with 23 tests and log
   `logs\test-runs\claim-storage-helper-deletion-20260520-195829.log`.
+- Stale `ActiveClaim` text cleanup: commit `83d7b351` renamed the remaining
+  test class `TestBindAndActiveClaims` to `TestBindAndTypedClaims`. This was
+  search-gate cleanup only: it did not delete production code and must not be
+  counted as a substantive Phase 10 reduction. After the rename, `rg -n -F --
+  "ActiveClaim" propstore tests` returned zero hits and `uv run pyright
+  propstore` passed with 0 errors.
