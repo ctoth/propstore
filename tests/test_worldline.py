@@ -21,6 +21,7 @@ from hypothesis import strategies as st
 
 from quire.documents import decode_document_path
 from propstore.families.identity.concepts import derive_concept_artifact_id
+from propstore.families.world_charters import Concept
 from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
@@ -41,6 +42,10 @@ from tests.conftest import normalize_claims_payload, normalize_concept_payloads,
 
 def _concept_artifact(local_id: str) -> str:
     return derive_concept_artifact_id("propstore", local_id)
+
+
+def _concept_model(concept_id: str, canonical_name: str = "target") -> Concept:
+    return Concept(id=concept_id, canonical_name=canonical_name)
 
 
 def _commit_fixture_repository(repo: Repository, message: str) -> None:
@@ -708,7 +713,7 @@ class TestWorldlineRunner:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": concept_id, "canonical_name": "target"}
+                    return _concept_model(concept_id)
                 return None
 
             def resolve_concept(self, name):
@@ -845,7 +850,7 @@ class TestWorldlineDependencyLiveness:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": concept_id, "canonical_name": "target"}
+                    return _concept_model(concept_id)
                 return None
 
             def get_claim(self, claim_id):
@@ -912,7 +917,7 @@ class TestWorldlineDependencyLiveness:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": concept_id, "canonical_name": "target"}
+                    return _concept_model(concept_id)
                 return None
 
             def get_claim(self, claim_id):
@@ -1043,7 +1048,7 @@ class TestWorldlineDependencyLiveness:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": concept_id, "canonical_name": "target"}
+                    return _concept_model(concept_id)
                 return None
 
             def get_claim(self, claim_id):
@@ -1106,7 +1111,7 @@ class TestWorldlineDependencyLiveness:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": "concept1", "canonical_name": "target"}
+                    return _concept_model("concept1")
                 return None
 
             def get_claim(self, claim_id):
@@ -1206,7 +1211,7 @@ class TestSemanticCorePhase7Worldlines:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": "concept1", "canonical_name": "target"}
+                    return _concept_model("concept1")
                 return None
 
             def get_claim(self, claim_id):
@@ -1410,7 +1415,7 @@ class TestSemanticCorePhase7Worldlines:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": "concept1", "canonical_name": "target"}
+                    return _concept_model("concept1")
                 return None
 
             def get_claim(self, claim_id):
@@ -1585,7 +1590,7 @@ class TestWorldlineFailureModes:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": "concept1", "canonical_name": "target"}
+                    return _concept_model("concept1")
                 return None
 
             def get_claim(self, claim_id):
@@ -1630,7 +1635,7 @@ class TestWorldlineFailureModes:
 
             def get_concept(self, concept_id):
                 if concept_id == "concept1":
-                    return {"id": "concept1", "canonical_name": "target"}
+                    return _concept_model("concept1")
                 return None
 
             def chain_query(self, concept_id, strategy=None, **bindings):
@@ -1679,7 +1684,7 @@ class TestSilentExceptionLogging:
 
             def get_concept(self, cid):
                 if cid == "concept1":
-                    return {"id": "concept1", "canonical_name": "target"}
+                    return _concept_model("concept1")
                 return None
 
             def value_of(self, cid):
@@ -1744,7 +1749,7 @@ class TestSilentExceptionLogging:
 
             def get_concept(self, cid):
                 if cid == "concept1":
-                    return {"id": "concept1", "canonical_name": "target"}
+                    return _concept_model("concept1")
                 return None
 
             def value_of(self, cid):
