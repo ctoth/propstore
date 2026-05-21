@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import aliased, selectinload
 from quire.derived_store import DerivedStoreHandle
-from quire.sqlalchemy_store import FtsQuerySyntaxError, search_fts_index
+from quire.sqlalchemy_store import FtsQuerySyntaxError, readonly_session, search_fts_index
 from quire.sqlalchemy_store import validate_sqlalchemy_store
 from propstore.core.conditions.registry import (
     ConceptInfo,
@@ -201,9 +201,13 @@ class WorldQuery(WorldStore):
         """Return the grounded-rule bundle materialized in this sidecar."""
 
         if self._grounding_bundle_cache is None:
-            from propstore.families.rules.declaration import read_grounded_bundle
+            from propstore.families.rules.declaration import load_grounded_bundle
 
-            self._grounding_bundle_cache = read_grounded_bundle(self._conn)
+            with readonly_session(
+                self._derived_store_path,
+                world_sqlalchemy_schema(),
+            ) as derived:
+                self._grounding_bundle_cache = load_grounded_bundle(derived)
         return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:

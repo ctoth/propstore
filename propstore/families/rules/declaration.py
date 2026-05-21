@@ -1,16 +1,14 @@
-"""Grounded-rule projection and query contract.
+"""Grounded-rule typed persistence and query contract.
 
 This module persists the four gunray answer sections
 (``yes`` / ``no`` / ``undecided`` / ``unknown``)
 from a :class:`propstore.grounding.bundle.GroundedRulesBundle` into
-the sidecar's SQLite store. The grounding inputs are persisted with
+the sidecar's Quire SQLAlchemy store. The grounding inputs are persisted with
 explicit JSON payloads rather than Python object pickles because the
 sidecar is a durable boundary, not an in-process cache.
 
-The projection contracts are colocated with the rules family because grounded
-facts are the derived read model for authored rule artifacts. The grounded-fact
-tables do not cross-reference any other sidecar table, so schema and read/write
-functions remain physically next to the declaration.
+The typed persistence functions are colocated with the rules family because
+grounded facts are the derived read model for authored rule artifacts.
 
 Non-commitment discipline anchor (project CLAUDE.md): storage never
 silently collapses a grounded classification. All four section keys are always
@@ -32,7 +30,7 @@ Theoretical anchors:
       across variable-arity atoms.
     - Section 3 (Definition 9): grounding is a deterministic function
       of the program and its fact base. The round-trip property
-      ``read(populate(bundle)) == bundle.sections`` therefore must
+      loading after persisting a bundle must return the same sections
       hold for every bundle — that is the determinism pin for this
       persistence layer.
 
@@ -46,17 +44,14 @@ Theoretical anchors:
     - Section 4 (p.25): the four-valued answer system
       ``{YES, NO, UNDECIDED, UNKNOWN}`` maps onto the four section
       names. All four sections are always returned by
-      :func:`read_grounded_facts`, even when some are empty, because
+      :func:`load_grounded_sections`, even when some are empty, because
       storage is forbidden from collapsing a grounded classification.
 """
 
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Mapping
-from dataclasses import dataclass
-from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -64,18 +59,25 @@ import gunray
 import msgspec
 from argumentation.aspic import Scalar
 from argumentation.aspic import GroundAtom as AspicGroundAtom
+from quire.sqlalchemy_store import DerivedSession
+from sqlalchemy import select
+
 from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
+from propstore.families.world_charters import (
+    GroundedBundleInput,
+    GroundedFact,
+    GroundedFactEmptyPredicate,
+)
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
-from quire.projections import ProjectionField, ProjectionTable, integer_field, text_field
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
-# tuple order is the deterministic iteration order used by
-# ``populate_grounded_facts`` so row insertion is reproducible.
+# tuple order is the deterministic iteration order used when persisting
+# grounded facts so row insertion is reproducible.
 _SECTION_NAMES: tuple[str, ...] = (
     "yes",
     "no",
@@ -84,109 +86,11 @@ _SECTION_NAMES: tuple[str, ...] = (
 )
 
 
-GROUNDED_FACT_PROJECTION = ProjectionTable(
-    name="grounded_fact",
-    columns=(
-        text_field("predicate", nullable=False).column(),
-        text_field("arguments", nullable=False).column(),
-        text_field("section", nullable=False).column(),
-    ),
-    primary_key=("predicate", "arguments", "section"),
-    if_not_exists=True,
-)
-
-
-GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION = ProjectionTable(
-    name="grounded_fact_empty_predicate",
-    columns=(
-        text_field("section", nullable=False).column(),
-        text_field("predicate", nullable=False).column(),
-    ),
-    primary_key=("section", "predicate"),
-    if_not_exists=True,
-)
-
-
-GROUNDED_BUNDLE_INPUT_PROJECTION = ProjectionTable(
-    name="grounded_bundle_input",
-    columns=(
-        text_field("kind", nullable=False).column(),
-        integer_field("position", nullable=False).column(),
-        ProjectionField("payload", "BLOB", nullable=False).column(),
-    ),
-    primary_key=("kind", "position"),
-    if_not_exists=True,
-)
-
-
-@dataclass(frozen=True)
-class GroundedFactProjectionRow:
-    predicate: str
-    arguments: str
-    section: str
-
-
-@dataclass(frozen=True)
-class GroundedFactEmptyPredicateProjectionRow:
-    section: str
-    predicate: str
-
-
-@dataclass(frozen=True)
-class GroundedBundleInputProjectionRow:
-    kind: str
-    position: int
-    payload: bytes
-
-
-def create_grounded_fact_table(conn: sqlite3.Connection) -> None:
-    """Create grounded-fact tables from their projection contracts.
-
-    The ``grounded_fact`` composite primary key enforces set
-    semantics per section while still permitting the same ground
-    atom to appear under multiple sections.
-
-    The ``grounded_fact_empty_predicate`` companion table records
-    predicate keys whose inner ``frozenset`` is empty — gunray's
-    ground model can legitimately contain
-    ``section[predicate] = frozenset()``, meaning "the predicate is
-    mentioned by the program but the grounder produced no facts for
-    it in this section". Storing that presence record in a separate
-    table is required because ``grounded_fact`` stores one row per
-    ground atom, and an empty frozenset has zero atoms to insert.
-    Keeping the empty-predicate marker out of ``grounded_fact`` also
-    preserves the invariant that
-    ``COUNT(*) FROM grounded_fact`` equals the sum of inner-set
-    sizes across all four sections (pinned by
-    ``test_populate_row_count_matches_section_content``).
-
-    Diller, Borg, Bex 2025 §3 Definition 7 (p.3): a Datalog fact base
-    is a finite set of ground atoms keyed by predicate id. The
-    propstore sidecar realises that set as rows in ``grounded_fact``
-    with argument tuples JSON-encoded into a single ``TEXT`` column
-    so SQLite's primary-key mechanism can enforce set semantics
-    across variable-arity atoms.
-
-    Garcia & Simari 2004 §4 (p.25) non-commitment discipline: an
-    empty inner set is still a *grounded classification* — "predicate p is known to
-    the program and its derivation for section s is empty" — and
-    storage must not silently drop it. The empty-predicate table is
-    how that grounded classification is persisted.
-    """
-    for projection in (
-        GROUNDED_FACT_PROJECTION,
-        GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION,
-        GROUNDED_BUNDLE_INPUT_PROJECTION,
-    ):
-        for statement in projection.ddl_statements():
-            conn.execute(statement)
-
-
-def populate_grounded_facts(
-    conn: sqlite3.Connection,
+def persist_grounded_bundle(
+    derived: DerivedSession,
     bundle: GroundedRulesBundle,
 ) -> int:
-    """Insert every ground atom in ``bundle.sections`` into ``grounded_fact``.
+    """Persist every ground atom in ``bundle.sections`` through typed models.
 
     Iterates the four section keys in a deterministic order
     (``yes`` → ``no`` → ``undecided`` → ``unknown``). Within each section, predicates are iterated in
@@ -195,11 +99,9 @@ def populate_grounded_facts(
     the insert sequence is reproducible even though ``frozenset``
     iteration itself is unordered.
 
-    Each row is inserted via ``INSERT`` (no ``OR IGNORE``), which
-    means a duplicate insert raises :class:`sqlite3.IntegrityError`.
-    The test ``test_grounded_fact_table_primary_key_uniqueness``
-    pins that behaviour; it also guards against a careless
-    re-populate double-counting rows.
+    Each object is added through SQLAlchemy without upsert behavior, so a
+    duplicate materialization raises an integrity error at flush/commit. That
+    guards against a careless re-materialization double-counting rows.
 
     Returns the total number of rows inserted, which must match the
     sum of inner-set sizes across all four sections.
@@ -215,7 +117,7 @@ def populate_grounded_facts(
     grounded classification raise loudly instead of being silently coalesced.
     """
     inserted = 0
-    _persist_bundle_inputs(conn, bundle)
+    derived.session.add_all(_grounded_bundle_input_models(bundle))
     sections = bundle.sections
     for section_name in _SECTION_NAMES:
         inner_map = sections.get(section_name)
@@ -235,9 +137,8 @@ def populate_grounded_facts(
                 # ``test_populate_row_count_matches_section_content``
                 # contract sums inner-set *sizes*, which are zero
                 # for an empty frozenset.
-                GROUNDED_FACT_EMPTY_PREDICATE_PROJECTION.insert_row(
-                    conn,
-                    GroundedFactEmptyPredicateProjectionRow(
+                derived.session.add(
+                    GroundedFactEmptyPredicate(
                         section=section_name,
                         predicate=predicate_id,
                     ),
@@ -252,9 +153,8 @@ def populate_grounded_facts(
                 json.dumps(list(arg_tuple)) for arg_tuple in rows
             )
             for encoded_arguments in encoded:
-                GROUNDED_FACT_PROJECTION.insert_row(
-                    conn,
-                    GroundedFactProjectionRow(
+                derived.session.add(
+                    GroundedFact(
                         predicate=predicate_id,
                         arguments=encoded_arguments,
                         section=section_name,
@@ -264,31 +164,98 @@ def populate_grounded_facts(
     return inserted
 
 
-def _persist_bundle_inputs(conn: sqlite3.Connection, bundle: GroundedRulesBundle) -> None:
+def _grounded_bundle_input_models(bundle: GroundedRulesBundle) -> tuple[GroundedBundleInput, ...]:
     rows = (
         ("source_rule", bundle.source_rules),
         ("source_superiority", bundle.source_superiority),
         ("source_fact", bundle.source_facts),
         ("argument", bundle.arguments),
     )
-    for kind, values in rows:
-        for position, value in enumerate(values):
-            GROUNDED_BUNDLE_INPUT_PROJECTION.insert_row(
-                conn,
-                GroundedBundleInputProjectionRow(
-                    kind=kind,
-                    position=position,
-                    payload=_encode_bundle_input(kind, value),
-                ),
-            )
-
-
-def _read_bundle_inputs(conn: sqlite3.Connection, kind: str) -> tuple[object, ...]:
-    cursor = conn.execute(
-        "SELECT payload FROM grounded_bundle_input WHERE kind = ? ORDER BY position",
-        (kind,),
+    return tuple(
+        GroundedBundleInput(
+            kind=kind,
+            position=position,
+            payload=_encode_bundle_input(kind, value),
+        )
+        for kind, values in rows
+        for position, value in enumerate(values)
     )
-    return tuple(_decode_bundle_input(kind, payload) for (payload,) in cursor.fetchall())
+
+
+def _load_bundle_inputs(derived: DerivedSession, kind: str) -> tuple[object, ...]:
+    table = derived.schema.table("grounded_bundle_input")
+    rows = derived.session.execute(
+        select(GroundedBundleInput)
+        .where(table.c.kind == kind)
+        .order_by(table.c.position)
+    ).scalars()
+    return tuple(
+        _decode_bundle_input(kind, getattr(row, "payload"))
+        for row in rows
+    )
+
+
+def load_grounded_sections(
+    derived: DerivedSession,
+) -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
+    """Load grounded sections from typed `Grounded*` models.
+
+    Returns an immutable mapping whose outer keys are exactly the
+    four section names (always present, even when empty) and whose
+    inner maps go ``predicate_id -> frozenset(arg_tuple)``. Argument
+    tuples are decoded from the JSON column via ``json.loads`` and
+    cast to :class:`tuple`; Python's ``json`` module preserves the
+    :data:`~argumentation.aspic.Scalar` union (``str``/``int``/``float``/
+    ``bool``) losslessly for the domain the Hypothesis strategy
+    samples (NaN/Infinity are excluded at the strategy level so the
+    round-trip is well defined).
+
+    Garcia & Simari 2004 §4 (p.25) non-commitment discipline: all
+    four section keys are always present in the read result. Storage
+    never silently drops a grounded classification, so an empty bundle still yields
+    four empty inner maps.
+
+    Diller, Borg, Bex 2025 §3 Definition 9: the grounder is a
+    deterministic function of its inputs, so the composition
+    ``load ∘ persist`` on a fresh store must be the identity on
+    the sections map. That determinism is what the round-trip
+    property test pins.
+    """
+    result: dict[str, dict[str, set[tuple[Scalar, ...]]]] = {
+        name: {} for name in _SECTION_NAMES
+    }
+    fact_rows = derived.session.execute(select(GroundedFact)).scalars()
+    for row in fact_rows:
+        section_name = getattr(row, "section")
+        if section_name not in result:
+            raise ValueError(
+                f"grounded fact row has unknown section {section_name!r}"
+            )
+        decoded = tuple(json.loads(getattr(row, "arguments")))
+        predicate_bucket = result[section_name].setdefault(
+            getattr(row, "predicate"),
+            set(),
+        )
+        predicate_bucket.add(decoded)
+
+    empty_rows = derived.session.execute(select(GroundedFactEmptyPredicate)).scalars()
+    for row in empty_rows:
+        section_name = getattr(row, "section")
+        if section_name not in result:
+            raise ValueError(
+                "grounded empty-predicate row has unknown section "
+                f"{section_name!r}"
+            )
+        result[section_name].setdefault(getattr(row, "predicate"), set())
+
+    frozen: dict[str, Mapping[str, frozenset[tuple[Scalar, ...]]]] = {}
+    for section_name in _SECTION_NAMES:
+        inner_frozen: dict[str, frozenset[tuple[Scalar, ...]]] = {
+            predicate_id: frozenset(rows)
+            for predicate_id, rows in result[section_name].items()
+        }
+        frozen[section_name] = MappingProxyType(inner_frozen)
+    return MappingProxyType(frozen)
 
 
 def _encode_bundle_input(kind: str, value: object) -> bytes:
@@ -424,80 +391,7 @@ def _rule_key(rule: gunray.GroundDefeasibleRule) -> tuple[str, str, str]:
     return (rule.rule_id, rule.kind, repr(rule.head))
 
 
-def read_grounded_facts(
-    conn: sqlite3.Connection,
-) -> Mapping[str, Mapping[str, frozenset[tuple[Scalar, ...]]]]:
-    """Read every row of ``grounded_fact`` back into a sections mapping.
-
-    Returns an immutable mapping whose outer keys are exactly the
-    four section names (always present, even when empty) and whose
-    inner maps go ``predicate_id -> frozenset(arg_tuple)``. Argument
-    tuples are decoded from the JSON column via ``json.loads`` and
-    cast to :class:`tuple`; Python's ``json`` module preserves the
-    :data:`~argumentation.aspic.Scalar` union (``str``/``int``/``float``/
-    ``bool``) losslessly for the domain the Hypothesis strategy
-    samples (NaN/Infinity are excluded at the strategy level so the
-    round-trip is well defined).
-
-    Garcia & Simari 2004 §4 (p.25) non-commitment discipline: all
-    four section keys are always present in the read result. Storage
-    never silently drops a grounded classification, so an empty bundle still yields
-    four empty inner maps.
-
-    Diller, Borg, Bex 2025 §3 Definition 9: the grounder is a
-    deterministic function of its inputs, so the composition
-    ``read ∘ populate`` on a fresh connection must be the identity on
-    the sections map. That determinism is what the round-trip
-    property test pins.
-    """
-    result: dict[str, dict[str, set[tuple[Scalar, ...]]]] = {
-        name: {} for name in _SECTION_NAMES
-    }
-    cursor = conn.execute(
-        "SELECT predicate, arguments, section FROM grounded_fact"
-    )
-    for predicate_id, encoded_arguments, section_name in cursor.fetchall():
-        # Defensive: the table schema pins ``section`` to one of the
-        # four names, but if some future caller inserts a stray value
-        # we surface it loudly rather than silently dropping the row.
-        if section_name not in result:
-            raise ValueError(
-                f"grounded_fact row has unknown section {section_name!r}"
-            )
-        decoded = tuple(json.loads(encoded_arguments))
-        predicate_bucket = result[section_name].setdefault(predicate_id, set())
-        predicate_bucket.add(decoded)
-
-    # Merge empty-predicate markers. These contribute predicate keys
-    # whose inner ``frozenset`` is empty, preserving the
-    # non-commitment-discipline guarantee that storage never silently
-    # drops a grounded classification (Garcia & Simari 2004 §4 (p.25)).
-    empty_cursor = conn.execute(
-        "SELECT section, predicate FROM grounded_fact_empty_predicate"
-    )
-    for section_name, predicate_id in empty_cursor.fetchall():
-        if section_name not in result:
-            raise ValueError(
-                "grounded_fact_empty_predicate row has unknown section "
-                f"{section_name!r}"
-            )
-        # ``setdefault`` preserves any atoms already accumulated
-        # above; if the section truly has no atoms for this
-        # predicate the bucket stays empty and maps to
-        # ``frozenset()`` in the frozen output.
-        result[section_name].setdefault(predicate_id, set())
-
-    frozen: dict[str, Mapping[str, frozenset[tuple[Scalar, ...]]]] = {}
-    for section_name in _SECTION_NAMES:
-        inner_frozen: dict[str, frozenset[tuple[Scalar, ...]]] = {
-            predicate_id: frozenset(rows)
-            for predicate_id, rows in result[section_name].items()
-        }
-        frozen[section_name] = MappingProxyType(inner_frozen)
-    return MappingProxyType(frozen)
-
-
-def read_grounded_bundle(conn: sqlite3.Connection) -> GroundedRulesBundle:
+def load_grounded_bundle(derived: DerivedSession) -> GroundedRulesBundle:
     """Rehydrate a runtime grounding bundle from persisted grounding inputs.
 
     The sidecar persists the source rule/fact inputs and the materialized
@@ -506,12 +400,12 @@ def read_grounded_bundle(conn: sqlite3.Connection) -> GroundedRulesBundle:
     the recomputed sections match the stored materialization.
     """
 
-    stored_sections = read_grounded_facts(conn)
+    stored_sections = load_grounded_sections(derived)
     bundle = ground(
-        _read_source_rules(conn),
-        _read_source_facts(conn),
+        _load_source_rules(derived),
+        _load_source_facts(derived),
         PredicateRegistry(()),
-        superiority=_read_source_superiority(conn),
+        superiority=_load_source_superiority(derived),
         return_arguments=True,
     )
     if bundle.sections != stored_sections:
@@ -535,22 +429,22 @@ def build_runtime_grounded_bundle(
     )
 
 
-def _read_source_rules(conn: sqlite3.Connection) -> tuple[RuleDocument, ...]:
-    values = _read_bundle_inputs(conn, "source_rule")
+def _load_source_rules(derived: DerivedSession) -> tuple[RuleDocument, ...]:
+    values = _load_bundle_inputs(derived, "source_rule")
     if not all(isinstance(value, RuleDocument) for value in values):
         raise TypeError("grounded source_rule inputs must be RuleDocument values")
     return tuple(value for value in values if isinstance(value, RuleDocument))
 
 
-def _read_source_superiority(conn: sqlite3.Connection) -> tuple[RuleSuperiorityDocument, ...]:
-    values = _read_bundle_inputs(conn, "source_superiority")
+def _load_source_superiority(derived: DerivedSession) -> tuple[RuleSuperiorityDocument, ...]:
+    values = _load_bundle_inputs(derived, "source_superiority")
     if not all(isinstance(value, RuleSuperiorityDocument) for value in values):
         raise TypeError("grounded source_superiority inputs must be RuleSuperiorityDocument values")
     return tuple(value for value in values if isinstance(value, RuleSuperiorityDocument))
 
 
-def _read_source_facts(conn: sqlite3.Connection) -> tuple[AspicGroundAtom, ...]:
-    values = _read_bundle_inputs(conn, "source_fact")
+def _load_source_facts(derived: DerivedSession) -> tuple[AspicGroundAtom, ...]:
+    values = _load_bundle_inputs(derived, "source_fact")
     if not all(isinstance(value, AspicGroundAtom) for value in values):
         raise TypeError("grounded source_fact inputs must be ASPIC GroundAtom values")
     return tuple(value for value in values if isinstance(value, AspicGroundAtom))
