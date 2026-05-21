@@ -631,6 +631,36 @@ Quire or family workstreams.
   duplicate constructor was added to close these gates.
 - Continue with the Phase 14 data-parity and behavior-parity commands.
 
+2026-05-21 behavior-parity harness update:
+
+- Commit `afae44c7` added the required Phase 14 behavior blocks to
+  `scripts/compare_sqlalchemy_charter_parity.py` for
+  `world-query-graph-reasoning`.
+- The harness uses current typed `WorldQuery` behavior extraction and generic
+  typed value serialization. It does not add production support for old
+  sidecar shapes.
+- To compare the captured projection baseline after Phase 6, the harness makes
+  a temporary diagnostic copy of the baseline SQLite file and applies only the
+  Phase 6 accepted `source` storage collapse from
+  `origin_type`/`origin_value`/`origin_retrieved`/`origin_content_ref`,
+  `prior_base_rate`, `quality_json`, and `derived_from_json` into the current
+  `source` typed value-object columns before opening it with current
+  `WorldQuery`.
+- Focused harness gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  parity-harness-behavior-clean tests/test_sqlalchemy_charter_parity_harness.py`
+  returned `10 passed`; log:
+  `logs/test-runs/parity-harness-behavior-clean-20260521-124102.log`.
+- The required behavior-parity command then failed before behavior comparison
+  because current schema validation rejects the captured baseline:
+  `claim_numeric_payload` is missing column `confidence`.
+- This is not an allowed Phase 14 difference and must not be hidden by a
+  diagnostic shim. Phase 8 says loose `confidence` must not be carried forward
+  as a typed claim row field. The next action is deletion-first: remove the
+  `confidence` storage field from the current claim numeric payload charter and
+  remove any graph/runtime dependency on that loose numeric-payload field, then
+  rerun the affected claim/world gates and the Phase 14 behavior-parity command.
+
 ## Data-Parity Gate
 
 This gate includes the behavior-vector comparisons required by this phase.
