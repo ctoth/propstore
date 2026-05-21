@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
-from quire.charters import CharterField, CharterIndex, FamilyCharter
+from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyModel
 from quire.families import FamilyDefinition
 from quire.versions import VersionId
 
@@ -40,10 +40,8 @@ class SourceQuality:
     a: float
 
 
-class Source:
-    def __init__(self, **values: object) -> None:
-        for key, value in values.items():
-            setattr(self, key, value)
+class Source(FamilyModel):
+    pass
 
 
 def source_charter() -> FamilyCharter:
