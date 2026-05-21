@@ -1,113 +1,19 @@
-"""Micropublication derived-store declaration and query helpers."""
+"""Micropublication model declarations and family-owned compilation."""
 
 from __future__ import annotations
 
 import json
-import sqlite3
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from quire.projection_mapping import (
-    JsonPath,
-    ProjectionAttachedRows,
-    ProjectionModel,
-    ProjectionQueryPlan,
-    ProjectionSelectedColumn,
-    ScalarPath,
-)
-from quire.projections import (
-    ARTIFACT_ID_FIELD,
-    PROVENANCE_JSON_FIELD,
-    ProjectionForeignKey,
-    ProjectionIndex,
-    ProjectionTable,
-    SEQUENCE_FIELD,
-    family_reference_field,
-    text_field,
-)
 from quire.references import FamilyReferenceIndex
 
-from propstore.core.micropublications import ActiveMicropublication
 from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.diagnostics.declaration import QuarantineDiagnostic
 from propstore.families.documents.micropubs import MicropublicationDocument
 
 
-MICROPUBLICATION_PROJECTION = ProjectionTable(
-    name="micropublication",
-    columns=(
-        ARTIFACT_ID_FIELD.column(nullable=False, primary_key=True),
-        family_reference_field("context", nullable=False).column(),
-        text_field("assumptions_json", nullable=False).column(default_sql="'[]'"),
-        text_field("evidence_json", nullable=False).column(default_sql="'[]'"),
-        text_field("stance").column(),
-        PROVENANCE_JSON_FIELD.column(),
-        text_field("source_slug").column(),
-    ),
-    foreign_keys=(ProjectionForeignKey(("context_id",), "context", ("id",)),),
-    indexes=(ProjectionIndex("idx_micropub_context", ("context_id",)),),
-    if_not_exists=True,
-)
-
-
-MICROPUBLICATION_CLAIM_PROJECTION = ProjectionTable(
-    name="micropublication_claim",
-    columns=(
-        family_reference_field("micropublication", nullable=False).column(),
-        family_reference_field("claim", nullable=False).column(),
-        SEQUENCE_FIELD.column(),
-    ),
-    primary_key=("micropublication_id", "claim_id"),
-    foreign_keys=(
-        ProjectionForeignKey(("micropublication_id",), "micropublication", ("id",)),
-        ProjectionForeignKey(("claim_id",), "claim_core", ("id",)),
-    ),
-    indexes=(ProjectionIndex("idx_micropub_claim", ("claim_id",)),),
-    if_not_exists=True,
-)
-
-
-MICROPUBLICATION_ROW_MODEL: ProjectionModel[ActiveMicropublication] = ProjectionModel(
-    name="micropublication_row",
-    table="micropublication",
-    result_type=ActiveMicropublication,
-    fields=(
-        ScalarPath(("artifact_id",), "id", nullable=False, missing="raise"),
-        ScalarPath(("context_id",), "context_id", nullable=False, missing="raise"),
-        JsonPath(("assumptions",), "assumptions_json", nullable=False, default=()),
-        ScalarPath(("stance",), "stance"),
-        ScalarPath(("source",), "source_slug"),
-        ProjectionAttachedRows(
-            path=("claim_ids",),
-            table="micropublication_claim",
-            parent_fk="micropublication_id",
-            parent_path=("artifact_id",),
-            order_by=("seq", "claim_id"),
-            fields=(
-                ScalarPath(("claim_id",), "claim_id", nullable=False, missing="raise"),
-                ScalarPath(("seq",), "seq", nullable=False, missing="raise"),
-            ),
-        ),
-    ),
-)
-
-
-MICROPUBLICATION_ROW_QUERY_PLAN = ProjectionQueryPlan(
-    name="micropublication_rows",
-    base_table=MICROPUBLICATION_PROJECTION,
-    base_alias="mp",
-    selections=(
-        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("id")),
-        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("context_id")),
-        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("assumptions_json")),
-        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("stance")),
-        ProjectionSelectedColumn("mp", MICROPUBLICATION_PROJECTION.column("source_slug")),
-    ),
-)
-
-
-@dataclass(frozen=True)
-class MicropublicationProjectionRow:
+class Micropublication:
     id: str
     context_id: str
     assumptions_json: str
@@ -115,41 +21,68 @@ class MicropublicationProjectionRow:
     stance: str | None
     provenance_json: str | None
     source_slug: str | None
+    claim_links: list["MicropublicationClaimLink"]
+
+    def __init__(
+        self,
+        *,
+        id: str,
+        context_id: str,
+        assumptions_json: str = "[]",
+        evidence_json: str = "[]",
+        stance: str | None = None,
+        provenance_json: str | None = None,
+        source_slug: str | None = None,
+    ) -> None:
+        self.id = id
+        self.context_id = context_id
+        self.assumptions_json = assumptions_json
+        self.evidence_json = evidence_json
+        self.stance = stance
+        self.provenance_json = provenance_json
+        self.source_slug = source_slug
+        self.claim_links = []
+
+    @property
+    def claim_ids(self) -> tuple[str, ...]:
+        return tuple(
+            link.claim_id
+            for link in sorted(self.claim_links, key=lambda link: (link.seq, link.claim_id))
+        )
 
 
-@dataclass(frozen=True)
-class MicropublicationClaimProjectionRow:
+class MicropublicationClaimLink:
     micropublication_id: str
     claim_id: str
     seq: int
+    micropublication: Micropublication | None
+
+    def __init__(
+        self,
+        *,
+        micropublication_id: str,
+        claim_id: str,
+        seq: int,
+    ) -> None:
+        self.micropublication_id = micropublication_id
+        self.claim_id = claim_id
+        self.seq = seq
+        self.micropublication = None
 
 
 @dataclass(frozen=True)
-class MicropublicationSidecarRows:
-    micropublication_rows: tuple[MicropublicationProjectionRow, ...]
-    claim_rows: tuple[MicropublicationClaimProjectionRow, ...]
+class MicropublicationWriteModels:
+    micropublications: tuple[Micropublication, ...]
+    claim_links: tuple[MicropublicationClaimLink, ...]
 
 
-def compile_micropublication_sidecar_rows(
+def compile_micropublication_models_with_diagnostics(
     micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> MicropublicationSidecarRows:
-    rows, diagnostics = compile_micropublication_sidecar_rows_with_diagnostics(
-        micropub_entries,
-        claim_index,
-    )
-    if diagnostics:
-        raise sqlite3.IntegrityError(diagnostics[0].message)
-    return rows
-
-
-def compile_micropublication_sidecar_rows_with_diagnostics(
-    micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
-    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[MicropublicationSidecarRows, tuple[QuarantineDiagnostic, ...]]:
+) -> tuple[MicropublicationWriteModels, tuple[QuarantineDiagnostic, ...]]:
     valid_claim_ids = set(claim_index.ids())
-    micropublication_rows: list[MicropublicationProjectionRow] = []
-    claim_rows: list[MicropublicationClaimProjectionRow] = []
+    micropublications: list[Micropublication] = []
+    claim_links: list[MicropublicationClaimLink] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, micropub in sorted(micropub_entries, key=lambda item: item[0]):
@@ -185,8 +118,8 @@ def compile_micropublication_sidecar_rows_with_diagnostics(
             )
             continue
 
-        micropublication_rows.append(
-            MicropublicationProjectionRow(
+        micropublications.append(
+            Micropublication(
                 id=micropub.artifact_id,
                 context_id=str(micropub.context.id),
                 assumptions_json=json.dumps(
@@ -210,8 +143,8 @@ def compile_micropublication_sidecar_rows_with_diagnostics(
             )
         )
         for seq, claim_id in enumerate(resolved_claims, start=1):
-            claim_rows.append(
-                MicropublicationClaimProjectionRow(
+            claim_links.append(
+                MicropublicationClaimLink(
                     micropublication_id=micropub.artifact_id,
                     claim_id=claim_id,
                     seq=seq,
@@ -219,59 +152,9 @@ def compile_micropublication_sidecar_rows_with_diagnostics(
             )
 
     return (
-        MicropublicationSidecarRows(
-            micropublication_rows=tuple(micropublication_rows),
-            claim_rows=tuple(claim_rows),
+        MicropublicationWriteModels(
+            micropublications=tuple(micropublications),
+            claim_links=tuple(claim_links),
         ),
         tuple(diagnostics),
-    )
-
-
-def create_micropublication_tables(conn: sqlite3.Connection) -> None:
-    for projection in (
-        MICROPUBLICATION_PROJECTION,
-        MICROPUBLICATION_CLAIM_PROJECTION,
-    ):
-        for statement in projection.ddl_statements():
-            conn.execute(statement)
-
-
-def populate_micropublications(
-    conn: sqlite3.Connection,
-    rows: MicropublicationSidecarRows,
-) -> None:
-    """Populate micropublication tables from compiled sidecar rows.
-
-    ``micropublication.id`` is derived from the full canonical payload by WS-CM.
-    Identical authored payloads produce the same id; changing
-    authored content produces a new id. First-writer-wins dedupe on the
-    id is therefore safe, and link dedupe uses
-    ``(micropublication_id, claim_id)`` as the composite key.
-    """
-
-    seen_micropub_ids: set[str] = set()
-    for row in rows.micropublication_rows:
-        if row.id in seen_micropub_ids:
-            continue
-        MICROPUBLICATION_PROJECTION.insert_row(conn, row)
-        seen_micropub_ids.add(row.id)
-
-    seen_link_keys: set[tuple[str, str]] = set()
-    for row in rows.claim_rows:
-        key = (row.micropublication_id, row.claim_id)
-        if key in seen_link_keys:
-            continue
-        seen_link_keys.add(key)
-        MICROPUBLICATION_CLAIM_PROJECTION.insert_row(conn, row)
-
-
-def select_all_micropublications(
-    conn: sqlite3.Connection,
-) -> list[ActiveMicropublication]:
-    return list(
-        MICROPUBLICATION_ROW_MODEL.select_with_attached_rows(
-            conn,
-            MICROPUBLICATION_ROW_QUERY_PLAN,
-            'ORDER BY "mp"."id"',
-        )
     )
