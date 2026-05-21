@@ -640,3 +640,19 @@ Recorded 2026-05-20.
   `logs\test-runs\relate-opinions-20260520-232747.log`. The next old-path
   queue is the remaining Phase 11 search hits outside
   `tests/test_relate_opinions.py`.
+- Relation row test-surface deletion: commit `5610336e` removed the remaining
+  test imports and uses of deleted relation projection vocabulary:
+  `StanceRow`, `ConflictRow`, `StanceRowInput`, `ConflictRowInput`,
+  `STANCE_ROW_MODEL`, `CONFLICT_ROW_MODEL`, `RELATION_EDGE_TABLE`, and
+  `propstore.families.relations.projection_model`. Test stores now return
+  typed `Stance` and `ConflictWitness` objects, and the touched runtime test
+  fixtures use typed `Claim` objects instead of passing claim dictionaries
+  into typed BoundWorld, ASPIC, graph, and worldline APIs. Package pyright
+  `uv run pyright propstore` passed with 0 errors. Focused logged pytest
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  relation-row-test-repair ...` passed with 246 tests and log
+  `logs\test-runs\relation-row-test-repair-20260520-234025.log`. The full
+  Phase 11 old-path search set for relation projection imports, row classes,
+  storage-model constants, row-model constants, `_optional_numeric`,
+  authored stance sidecar-row compiler names, raw selector helpers, and
+  `count_conflicts` is now zero-hit in `propstore` and `tests`.
