@@ -207,6 +207,29 @@ that owner workstream.
   tests/test_structured_projection.py::test_world_extensions_cli_accepts_aspic_backend
   tests/test_structured_projection.py::test_world_extensions_cli_ignores_unmapped_aspic_arguments`
   passed with 4 tests.
+- Search-result mapping cleanup complete: renamed the non-IO search result
+  constructors from `from_row_mapping` to `from_search_row` in the core store
+  result and world model surfaces, then updated callers. `rg -n -F --
+  "from_row_mapping" propstore/families propstore/core propstore/world tests`
+  returned zero hits, and `uv run pyright propstore` passed after the slice.
+- Context input/coercion alias cleanup complete: deleted `ContextInput =
+  LoadedContext` plus `coerce_loaded_context` and `coerce_loaded_contexts`.
+  Context stages and passes now consume `LoadedContext` directly. `rg -n -F --
+  "Input = " propstore/families propstore/core propstore/world tests`
+  returned zero hits, `rg -n -F -- "coerce_loaded_context" propstore tests`
+  returned zero hits, and `uv run pyright propstore` passed after the slice.
+- Test boundary conversion cleanup complete: replaced the remaining
+  `repo.families.*.coerce(...)` test calls under the required gate with
+  explicit `quire.documents.convert_document(..., DocumentType, source=...)`.
+  The world status fixture now authors the referenced source document and uses
+  typed reference names instead of stringifying reference objects. `rg -n -F --
+  ".coerce(" propstore/families propstore/core propstore/world tests`
+  returned zero hits, `uv run pyright propstore` passed, and
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  document-convert-boundaries tests/test_artifact_identity_policy.py
+  tests/test_lemon_concept_documents.py tests/test_cli_render_policy_flags.py`
+  passed with 26 tests; log:
+  `logs/test-runs/document-convert-boundaries-20260521-020159.log`.
 
 ## Completion Criteria
 
