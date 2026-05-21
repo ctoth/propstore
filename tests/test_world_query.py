@@ -28,7 +28,6 @@ from propstore.core.conditions.registry import (
     with_standard_synthetic_bindings,
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import (
     ConflictRow,
@@ -77,6 +76,7 @@ from propstore.world.queries import (
     query_world_concept,
 )
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
+from tests.claim_model_helpers import claim_model
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -685,16 +685,14 @@ class TestUnboundQueries:
         wm = WorldQuery(repo)
         claim = wm.get_claim(_claim_artifact("alpha_source", "claim_slug"))
         assert claim is not None
-        claim_data = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim)))
         assert claim.source_slug == "alpha_source"
         assert claim.source_paper == "Alpha Paper"
         assert claim.source is not None
         assert claim.source.kind is SourceKind.ACADEMIC_PAPER
         assert claim.source.origin is not None
         assert claim.source.origin.origin_type is SourceOriginType.DOI
-        assert claim_data["source"]["id"] == "source-alpha"
-        assert claim_data["source"]["origin"]["type"] == "doi"
-        assert claim_data["source"]["origin"]["value"] == "10.1000/example"
+        assert claim.source.source_id == "source-alpha"
+        assert claim.source.origin.value == "10.1000/example"
         wm.close()
 
     def test_resolve_alias(self, world):
@@ -1667,14 +1665,13 @@ class TestConflictResolution:
         assert result.reason is not None
         assert "all claims defeated" in result.reason
 
-    def test_resolve_recency_tie_returns_conflicted(self, world):
+    def test_resolve_recency_tie_returns_conflicted(self):
         """Two claims with identical dates → conflicted, not arbitrary winner."""
-        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_recency
 
         claims = [
-            ActiveClaim.from_row_mapping({"id": "a", "provenance_json": '{"date": "2025-01-01"}'}),
-            ActiveClaim.from_row_mapping({"id": "b", "provenance_json": '{"date": "2025-01-01"}'}),
+            claim_model("a", provenance_json={"date": "2025-01-01"}),
+            claim_model("b", provenance_json={"date": "2025-01-01"}),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id is None, (
@@ -1682,27 +1679,25 @@ class TestConflictResolution:
         )
         assert "tie" in reason.lower() or "tied" in reason.lower()
 
-    def test_resolve_recency_tie_unique_best_still_wins(self, world):
+    def test_resolve_recency_tie_unique_best_still_wins(self):
         """One claim has strictly newest date → still resolves to winner."""
-        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_recency
 
         claims = [
-            ActiveClaim.from_row_mapping({"id": "a", "provenance_json": '{"date": "2025-01-01"}'}),
-            ActiveClaim.from_row_mapping({"id": "b", "provenance_json": '{"date": "2024-06-01"}'}),
-            ActiveClaim.from_row_mapping({"id": "c", "provenance_json": '{"date": "2024-06-01"}'}),
+            claim_model("a", provenance_json={"date": "2025-01-01"}),
+            claim_model("b", provenance_json={"date": "2024-06-01"}),
+            claim_model("c", provenance_json={"date": "2024-06-01"}),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id == "a"
 
-    def test_resolve_sample_size_tie_returns_conflicted(self, world):
+    def test_resolve_sample_size_tie_returns_conflicted(self):
         """Two claims with identical sample_size → conflicted, not arbitrary winner."""
-        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_sample_size
 
         claims = [
-            ActiveClaim.from_row_mapping({"id": "a", "sample_size": 50}),
-            ActiveClaim.from_row_mapping({"id": "b", "sample_size": 50}),
+            claim_model("a", sample_size=50),
+            claim_model("b", sample_size=50),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id is None, (
@@ -1710,31 +1705,25 @@ class TestConflictResolution:
         )
         assert "tie" in reason.lower() or "tied" in reason.lower()
 
-    def test_resolve_sample_size_tie_unique_best_still_wins(self, world):
+    def test_resolve_sample_size_tie_unique_best_still_wins(self):
         """One claim has strictly largest sample_size → still resolves to winner."""
-        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_sample_size
 
         claims = [
-            ActiveClaim.from_row_mapping({"id": "a", "sample_size": 100}),
-            ActiveClaim.from_row_mapping({"id": "b", "sample_size": 50}),
-            ActiveClaim.from_row_mapping({"id": "c", "sample_size": 50}),
+            claim_model("a", sample_size=100),
+            claim_model("b", sample_size=50),
+            claim_model("c", sample_size=50),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id == "a"
 
-    def test_resolve_recency_tie_through_resolve_api(self, world):
+    def test_resolve_recency_tie_through_resolve_api(self):
         """Integration: tied dates through resolve() → conflicted status."""
-        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_recency
 
         tied_claims = [
-            ActiveClaim.from_row_mapping(
-                {"id": "claim1", "value": 200.0, "provenance_json": '{"date": "2025-01-01"}'}
-            ),
-            ActiveClaim.from_row_mapping(
-                {"id": "claim2", "value": 350.0, "provenance_json": '{"date": "2025-01-01"}'}
-            ),
+            claim_model("claim1", value=200.0, provenance_json={"date": "2025-01-01"}),
+            claim_model("claim2", value=350.0, provenance_json={"date": "2025-01-01"}),
         ]
         # Test the helper directly — resolve() returns "conflicted" when
         # the helper returns (None, reason)
@@ -1744,14 +1733,13 @@ class TestConflictResolution:
         # that the helper returns None for the winner
         assert reason is not None
 
-    def test_resolve_sample_size_tie_through_resolve_api(self, world):
+    def test_resolve_sample_size_tie_through_resolve_api(self):
         """Integration: tied sample_size through resolve() → conflicted status."""
-        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_sample_size
 
         tied_claims = [
-            ActiveClaim.from_row_mapping({"id": "claim1", "value": 200.0, "sample_size": 50}),
-            ActiveClaim.from_row_mapping({"id": "claim2", "value": 350.0, "sample_size": 50}),
+            claim_model("claim1", value=200.0, sample_size=50),
+            claim_model("claim2", value=350.0, sample_size=50),
         ]
         winner_id, reason = _resolve_sample_size(tied_claims)
         assert winner_id is None
@@ -2634,25 +2622,12 @@ class TestFloatEqualityBugs:
         from unittest.mock import patch
 
         from argumentation.probabilistic import PrAFResult
-        from propstore.core.active_claims import ActiveClaim
         from propstore.world.resolution import _resolve_praf
 
         # Two target claims competing for the same concept
         target_claims = [
-            ActiveClaim.from_row_mapping(
-                {
-                    "id": "claim_x",
-                    "concept_links": [{"claim_id": "claim_x", "concept_id": "concept2", "role": "output"}],
-                    "value": 800.0,
-                }
-            ),
-            ActiveClaim.from_row_mapping(
-                {
-                    "id": "claim_y",
-                    "concept_links": [{"claim_id": "claim_y", "concept_id": "concept2", "role": "output"}],
-                    "value": 810.0,
-                }
-            ),
+            claim_model("claim_x", concept_id="concept2", value=800.0),
+            claim_model("claim_y", concept_id="concept2", value=810.0),
         ]
         active_claims = target_claims[:]
 
@@ -2990,7 +2965,6 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         bound = world.bind(task="speech")
         restored_claim = world.get_claim("claim2")
         assert restored_claim is not None
-        restored = CLAIM_ROW_MODEL.coerce(restored_claim)
 
         hypo = OverlayWorld(
             bound,
@@ -2998,10 +2972,14 @@ class TestSemanticCorePhase6HypotheticalDeltas:
             add=[
                 SyntheticClaim(
                     id="claim2",
-                    concept_id=str(restored.value_concept_id),
-                    type=restored.claim_type or "parameter",
-                    value=restored.value,
-                    conditions=json.loads(restored.conditions_cel or "[]"),
+                    concept_id=str(restored_claim.value_concept_id),
+                    type=restored_claim.type or "parameter",
+                    value=(
+                        None
+                        if restored_claim.numeric_payload is None
+                        else restored_claim.numeric_payload.value
+                    ),
+                    conditions=list(restored_claim.conditions),
                 ),
             ],
         )
