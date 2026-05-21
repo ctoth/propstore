@@ -15,6 +15,8 @@ from propstore.repository import Repository
 from quire.tree_path import TreePath as KnowledgePath
 
 if TYPE_CHECKING:
+    from quire.derived_store import DerivedStoreHandle
+
     from propstore.world import WorldQuery
 
 
@@ -416,13 +418,13 @@ def _concept_override_roots(
     return concepts_root, forms_root
 
 
-def _require_sidecar(repo: Repository) -> Path:
+def _require_sidecar(repo: Repository) -> DerivedStoreHandle:
     from propstore.derived_build import materialize_world_sidecar
 
     handle, _rebuilt = materialize_world_sidecar(repo)
     if not handle.path.exists():
         raise ClaimSidecarMissingError("sidecar not found. Run 'pks build' first.")
-    return handle.path
+    return handle
 
 
 def _required_int(result: Mapping[str, object], key: str) -> int:
