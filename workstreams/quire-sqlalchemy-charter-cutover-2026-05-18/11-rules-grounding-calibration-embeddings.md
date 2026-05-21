@@ -621,6 +621,19 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
 - `powershell -File scripts/run_logged_pytest.ps1 -Label
   graph-build-typed-store tests/test_graph_build.py` passed with 5 tests; log:
   `logs/test-runs/graph-build-typed-store-20260521-110123.log`.
+- Test commit `fa5e57f9` migrated `tests/test_claim_notes.py` from raw
+  `sqlite3.Row` readback to Quire SQLAlchemy `readonly_session` calls over
+  `world_sqlalchemy_schema()`.
+- Claim notes tests now assert the typed `claim_text_payload` model and its
+  charter-declared `notes` column instead of joining raw claim tables into a
+  row dictionary.
+- `rg -n -F -- "row_factory" tests/test_claim_notes.py` and
+  `rg -n -F -- "sqlite3" tests/test_claim_notes.py` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  claim-notes-sqlalchemy-session tests/test_claim_notes.py` passed with 7
+  tests; log:
+  `logs/test-runs/claim-notes-sqlalchemy-session-20260521-110320.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
