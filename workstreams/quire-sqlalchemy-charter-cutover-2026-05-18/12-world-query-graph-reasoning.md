@@ -707,6 +707,37 @@ Quire or family workstreams.
   `scm-intervention-resolution`, `worldline`, `support-revision`, and
   `aspic`.
 
+2026-05-21 final Phase 14 gate update:
+
+- Required pyright gate passed:
+  `uv run pyright propstore` returned 0 errors.
+- Required logged pytest gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label world-charter
+  tests/test_world_query.py tests/test_worldline.py tests/test_graph_export.py
+  tests/test_worldline_ic_merge_properties.py` returned `221 passed` with 29
+  expected warnings; log:
+  `logs/test-runs/world-charter-20260521-125027.log`.
+- Required Phase 14 data parity passed:
+  `uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir .
+  --before reports/sqlalchemy-charter-parity/world-query-graph-reasoning/before.sqlite
+  --build-after sqlalchemy-charter
+  --after reports/sqlalchemy-charter-parity/world-query-graph-reasoning/after.sqlite
+  --owner world-query-graph-reasoning
+  --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/12-world-query-graph-reasoning.md
+  --out reports/sqlalchemy-charter-parity/world-query-graph-reasoning.json`
+  exited 0.
+- Required Phase 14 old-path searches returned zero hits for
+  `sqlite3.Connection`, `row_factory`, `connect_sqlite_store`,
+  `ProjectionRow`, `ProjectionModel`, `from_mapping`, `_claim_rows`,
+  `ActiveClaimInput`, `ActiveMicropublicationInput`, `ActiveClaimResolver`,
+  `ActiveWorldGraph`, `WorldBindActiveReport`, `claim_row_query_plan`,
+  `claim_stance_policy_query_plan`, `Unsupported sidecar schema`,
+  `ProjectionSchemaError`, `validate_derived_store_schema`,
+  `schema.validate_connection`, and `Rebuild with 'pks build'` under the
+  required Phase 14 paths.
+- Phase 14 completion criteria are satisfied on the current branch. Continue
+  with `13-final-deletion-gates.md`.
+
 ## Data-Parity Gate
 
 This gate includes the behavior-vector comparisons required by this phase.
