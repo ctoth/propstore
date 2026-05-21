@@ -11,10 +11,9 @@ from sqlalchemy import delete, select
 
 from quire.sqlalchemy_store import DerivedSession
 
-from propstore.families.world_charters import BuildDiagnostic
-
 if TYPE_CHECKING:
     from propstore.families.claims.stages import PromotionBlockedClaimFact
+    from propstore.families.world_charters import BuildDiagnostic
 
 
 @dataclass(frozen=True)
@@ -34,6 +33,8 @@ def quarantine_diagnostic(
     message: str,
     file: str | None = None,
 ) -> BuildDiagnostic:
+    from propstore.families.world_charters import BuildDiagnostic
+
     return BuildDiagnostic(
         claim_id=artifact_id if kind == "claim" else None,
         source_kind=kind,
@@ -57,6 +58,8 @@ def quarantine_diagnostic(
 def compile_promotion_blocked_diagnostics(
     facts: Sequence[PromotionBlockedClaimFact],
 ) -> tuple[BuildDiagnostic, ...]:
+    from propstore.families.world_charters import BuildDiagnostic
+
     diagnostics: list[BuildDiagnostic] = []
     for fact in facts:
         for reason in fact.reasons:

@@ -12,7 +12,6 @@ Literature grounding:
 
 from __future__ import annotations
 
-import sqlite3
 import json
 from unittest.mock import AsyncMock, patch, MagicMock, PropertyMock
 
@@ -38,7 +37,6 @@ from propstore.families.contexts.documents import ContextReferenceDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.opinion import Opinion, fuse
 from propstore.provenance import Provenance, ProvenanceStatus
-from propstore.families.relations.declaration import RELATION_EDGE_TABLE
 
 
 def _vacuous_provenance_payload() -> dict:
@@ -335,51 +333,7 @@ class TestStanceYamlRoundTrip:
 class TestSidecarPopulatesOpinionColumns:
     def test_opinion_columns_from_stance_yaml(self, tmp_path):
         from propstore.families.relations.declaration import (
-            compile_authored_stance_sidecar_rows,
-            populate_stances,
-        )
-
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        conn.executescript("""
-            CREATE TABLE claim_core (
-                id TEXT PRIMARY KEY,
-                primary_logical_id TEXT,
-                logical_ids_json TEXT,
-                version_id TEXT,
-                content_hash TEXT,
-                seq INTEGER,
-                type TEXT,
-                concept_id TEXT,
-                target_concept TEXT,
-                source_paper TEXT NOT NULL DEFAULT 'test',
-                provenance_page INTEGER NOT NULL DEFAULT 1,
-                provenance_json TEXT,
-                context_id TEXT,
-                branch TEXT
-            );
-        """)
-        for statement in RELATION_EDGE_TABLE.ddl_statements():
-            conn.execute(statement)
-        conn.execute(
-            """
-            INSERT INTO claim_core (
-                id, primary_logical_id, logical_ids_json, version_id,
-                content_hash, seq, type, concept_id, target_concept,
-                source_paper, provenance_page, provenance_json, context_id
-            ) VALUES ('c1', 'test:c1', '[{"namespace": "test", "value": "c1"}]',
-                'sha256:c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)
-            """
-        )
-        conn.execute(
-            """
-            INSERT INTO claim_core (
-                id, primary_logical_id, logical_ids_json, version_id,
-                content_hash, seq, type, concept_id, target_concept,
-                source_paper, provenance_page, provenance_json, context_id
-            ) VALUES ('c2', 'test:c2', '[{"namespace": "test", "value": "c2"}]',
-                'sha256:c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)
-            """
+            compile_authored_stance_models_with_diagnostics,
         )
 
         stances_dir = tmp_path / "stances"
@@ -403,82 +357,33 @@ class TestSidecarPopulatesOpinionColumns:
         stance_path.write_text(yaml.dump(stance_data))
         stance_document = decode_document_path(stance_path, StanceDocument)
 
-        populate_stances(
-            conn,
-            compile_authored_stance_sidecar_rows(
-                [("c1", stance_document)],
-                _claim_reference_index(),
-            ),
+        models, diagnostics = compile_authored_stance_models_with_diagnostics(
+            [("c1", stance_document)],
+            _claim_reference_index(),
         )
 
-        row = conn.execute(
-            "SELECT * FROM relation_edge WHERE source_kind='claim' AND target_kind='claim' AND source_id='c1'"
-        ).fetchone()
-        assert row["opinion_belief"] == pytest.approx(0.0)
-        assert row["opinion_disbelief"] == pytest.approx(0.0)
-        assert row["opinion_uncertainty"] == pytest.approx(1.0)
-        assert row["opinion_base_rate"] == pytest.approx(0.7)
-        assert row["perspective_source_claim_id"] == "c1"
-        conn.close()
+        assert diagnostics == ()
+        assert len(models) == 1
+        stance = models[0]
+        assert stance.opinion_belief == pytest.approx(0.0)
+        assert stance.opinion_disbelief == pytest.approx(0.0)
+        assert stance.opinion_uncertainty == pytest.approx(1.0)
+        assert stance.opinion_base_rate == pytest.approx(0.7)
+        assert stance.perspective_source_claim_id == "c1"
 
 
 # ---------------------------------------------------------------------------
-# Test 7: sidecar handles old format YAML (no opinion fields)
+# Test 7: sidecar handles stance resolution without opinion fields
 # ---------------------------------------------------------------------------
 
-class TestSidecarHandlesOldFormatYaml:
+class TestSidecarHandlesResolutionWithoutOpinion:
     def test_missing_opinion_fields_become_null(self, tmp_path):
         from propstore.families.relations.declaration import (
-            compile_authored_stance_sidecar_rows,
-            populate_stances,
-        )
-
-        conn = sqlite3.connect(":memory:")
-        conn.row_factory = sqlite3.Row
-        conn.executescript("""
-            CREATE TABLE claim_core (
-                id TEXT PRIMARY KEY,
-                primary_logical_id TEXT,
-                logical_ids_json TEXT,
-                version_id TEXT,
-                content_hash TEXT,
-                seq INTEGER,
-                type TEXT,
-                concept_id TEXT,
-                target_concept TEXT,
-                source_paper TEXT NOT NULL DEFAULT 'test',
-                provenance_page INTEGER NOT NULL DEFAULT 1,
-                provenance_json TEXT,
-                context_id TEXT,
-                branch TEXT
-            );
-        """)
-        for statement in RELATION_EDGE_TABLE.ddl_statements():
-            conn.execute(statement)
-        conn.execute(
-            """
-            INSERT INTO claim_core (
-                id, primary_logical_id, logical_ids_json, version_id,
-                content_hash, seq, type, concept_id, target_concept,
-                source_paper, provenance_page, provenance_json, context_id
-            ) VALUES ('c1', 'test:c1', '[{"namespace": "test", "value": "c1"}]',
-                'sha256:c1', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)
-            """
-        )
-        conn.execute(
-            """
-            INSERT INTO claim_core (
-                id, primary_logical_id, logical_ids_json, version_id,
-                content_hash, seq, type, concept_id, target_concept,
-                source_paper, provenance_page, provenance_json, context_id
-            ) VALUES ('c2', 'test:c2', '[{"namespace": "test", "value": "c2"}]',
-                'sha256:c2', NULL, NULL, NULL, NULL, NULL, 'test', 1, NULL, NULL)
-            """
+            compile_authored_stance_models_with_diagnostics,
         )
 
         stances_dir = tmp_path / "stances"
         stances_dir.mkdir()
-        # Old format: no opinion fields in resolution
         stance_data = {
             "source_claim": "c1",
             "classification_model": "test",
@@ -497,23 +402,18 @@ class TestSidecarHandlesOldFormatYaml:
         stance_path.write_text(yaml.dump(stance_data))
         stance_document = decode_document_path(stance_path, StanceDocument)
 
-        populate_stances(
-            conn,
-            compile_authored_stance_sidecar_rows(
-                [("c1", stance_document)],
-                _claim_reference_index(),
-            ),
+        models, diagnostics = compile_authored_stance_models_with_diagnostics(
+            [("c1", stance_document)],
+            _claim_reference_index(),
         )
 
-        row = conn.execute(
-            "SELECT * FROM relation_edge WHERE source_kind='claim' AND target_kind='claim' AND source_id='c1'"
-        ).fetchone()
-        assert row["opinion_belief"] is None
-        assert row["opinion_disbelief"] is None
-        assert row["opinion_uncertainty"] is None
-        # confidence still preserved from old format
-        assert row["confidence"] == pytest.approx(0.95)
-        conn.close()
+        assert diagnostics == ()
+        assert len(models) == 1
+        stance = models[0]
+        assert stance.opinion_belief is None
+        assert stance.opinion_disbelief is None
+        assert stance.opinion_uncertainty is None
+        assert stance.confidence == pytest.approx(0.95)
 
 
 # ---------------------------------------------------------------------------
