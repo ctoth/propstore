@@ -341,11 +341,11 @@ powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full
 
 ### Dependency Pin Checklist
 
-- [ ] Push Quire first.
-- [ ] Pin Propstore to the pushed Quire commit or tag.
-- [ ] Update `uv.lock`.
-- [ ] Inspect parsed `pyproject.toml` dependencies and `[tool.uv.sources]`.
-- [ ] Confirm no Quire dependency entry resolves only from the local
+- [x] Push Quire first.
+- [x] Pin Propstore to the pushed Quire commit or tag.
+- [x] Update `uv.lock`.
+- [x] Inspect parsed `pyproject.toml` dependencies and `[tool.uv.sources]`.
+- [x] Confirm no Quire dependency entry resolves only from the local
   filesystem.
 
 ### Dependency Search Gates
@@ -365,16 +365,22 @@ Gate: no local path, workspace, or file URL Quire dependency.
 
 ### 2026-05-21 Phase 17 Evidence
 
-- Quire projection deletion is complete and pushed at
-  `f43dd1be83fd0c0b52a06104c79d1550bdf5f3a6`; Propstore dependency files
-  are updated to that commit but not yet closed because Propstore full gates
-  still fail.
+- Quire projection deletion and public charter/schema exports are complete and
+  pushed through `ac05ff5e66d8a744ec0be9406f8912c81dfaa6bd`; Propstore
+  dependency files are pinned to that pushed commit in
+  `7664c87c Pin Quire public charter API`.
 - Propstore focused typed-family regression slice is committed as
   `8a187282 Carry typed fixtures through claim metadata`.
+- Propstore focused ASPIC/IST typed-fixture cleanup is committed as
+  `f26d402e Use typed ASPIC fixture inputs`.
 - Passing focused gates:
   - `uv run pyright propstore`
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
     passed 53 tests across value resolver, PrAF, ATMS, and WS-F ASPIC.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-quire-public-api tests/test_quire_boundary.py::test_propstore_quire_imports_are_public`
+    passed 1 test.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-aspic-ist-typed-fixtures tests/architecture/test_backend_identity_contracts.py tests/architecture/test_ist_projection_contract.py tests/test_literal_keys.py tests/test_defeasibility_aspic_integration.py tests/test_aspic_bridge_review_v2.py`
+    passed 30 tests.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -382,14 +388,11 @@ Gate: no local path, workspace, or file URL Quire dependency.
 
 Current full-gate repair queue, deletion-first:
 
-- Replace remaining dict-shaped ASPIC/IST/defeasibility/context/worldline
-  test fixtures with typed `Claim`, `Stance`, `CanonicalJustification`, and
-  typed compiled-graph fixtures. Do not add dict fallback acceptance to
-  production ASPIC, revision, worldline, or context-lifting APIs.
-- Fix Quire public surface before the dependency pin can close:
-  `tests/test_quire_public_api.py::test_propstore_quire_imports_are_public`
-  proves installed Quire does not publicly export the charter/schema symbols
-  Propstore imports.
+- Replace remaining dict-shaped context/worldline test fixtures with typed
+  `Claim`, `Stance`, `CanonicalJustification`, and typed compiled-graph
+  fixtures. Do not add dict fallback acceptance to production ASPIC, revision,
+  worldline, or context-lifting APIs. Direct ASPIC/IST callers from the
+  2026-05-21 focused slice are converted and passing.
 - Repair source/web demo fixture drift by using current source charter fields;
   do not add old source columns such as `origin_type` back as compatibility
   columns.
