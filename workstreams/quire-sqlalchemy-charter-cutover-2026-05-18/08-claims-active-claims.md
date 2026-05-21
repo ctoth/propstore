@@ -177,6 +177,15 @@ Required read/runtime shape:
   scalar text value.
 - `ClaimNode.checked_conditions` comes from
   `Claim.text_payload.conditions_ir`.
+- `ClaimNode.attributes` must carry the claim metadata that graph,
+  preference, PrAF, ASPIC, worldline, and support-revision code still
+  semantically consumes, but the source must be typed claim relationships:
+  `Claim.numeric_payload.lower_bound`, `upper_bound`, `uncertainty`,
+  `uncertainty_type`, `sample_size`, `unit`, `value_si`,
+  `lower_bound_si`, and `upper_bound_si`; typed provenance/source/core fields
+  remain sourced from the mapped `Claim` fields. This is not permission to
+  add a loose `attributes` mapping to `Claim`, a row DTO, or a helper that
+  replays old row dictionaries.
 - concept view value, unit, uncertainty, condition, and provenance summaries
   use typed payload/provenance fields, not deleted row mappings.
 - ASPIC projection source assertion ids come from
@@ -185,6 +194,15 @@ Required read/runtime shape:
 - preference strength receives explicit typed payload metadata extracted from
   `Claim.numeric_payload` and typed provenance/source fields; it must not
   accept a claim object and introspect arbitrary attributes.
+- Synthetic overlay claims may construct typed `Claim`/payload models for
+  counterfactual graph inputs, but only through the existing typed
+  `SyntheticClaim` lowering path and Quire/WorldQuery-backed typed storage.
+  Test fixtures must not use dict-shaped claim rows, loose `confidence`
+  attributes, `claim["..."]` access, or a local `claims_for` loop that
+  reimplements concept-link filtering as a stand-in for the real store query.
+- Runtime tests and fixtures must read typed claim identity from `Claim.id`.
+  Stale `.claim_id` accesses on typed `Claim` objects are deletion targets,
+  not a signal to add a `Claim.claim_id` compatibility property.
 
 Old paths that remain forbidden while restoring this behavior:
 
@@ -197,6 +215,39 @@ Old paths that remain forbidden while restoring this behavior:
   model-layer string/int/float cleanup;
 - helper functions that join payload tables and attach values to claims outside
   Quire relationships/session mechanics.
+- graph/preference repairs that rebuild a claim mapping from arbitrary
+  attributes, preserve a loose `confidence` field on typed claims, add
+  `Claim.claim_id` as a compatibility alias, or make `_claim_attributes` a
+  broad serializer over the mapped object. Only the exact typed metadata fields
+  named above may be surfaced for graph semantics.
+
+Immediate Phase 10 gate fallout recorded 2026-05-20:
+
+- `logs\test-runs\claim-charter-phase10-gate-20260520-201249.log` shows
+  `tests/test_render_policy_filtering.py` and `tests/test_resolution_helpers.py`
+  now pass in the Phase 10 gate after commit `b4d81123`.
+- The remaining claim-owned failures in that gate are stale
+  `tests/test_world_query.py` assumptions:
+  `.claim_id` access on typed `Claim` results, and
+  `_Phase6HypotheticalStore` returning dict-shaped claim rows with loose
+  `confidence` metadata and a hand-written `claims_for` filter over
+  `concept_links`.
+- The next Phase 10 code slice must delete those stale test surfaces and
+  restore the graph/preference behavior through typed `Claim` relationships:
+  first wire the exact numeric payload metadata listed above from
+  `Claim.numeric_payload` into `ClaimNode.attributes`; then delete
+  `_Phase6HypotheticalStore` and make the Phase 6 overlay tests build a real
+  current-schema SQLite sidecar through `build_world_projection_schema`,
+  insert typed rows through Quire SQLAlchemy table metadata or mapped model
+  sessions, and open it through `world_query_from_sqlite_path(...).bind(...)`
+  so `claims_for`, `get_claim`, `claims_by_ids`, concept-link filtering, and
+  condition solving come from the real typed store; then express preference
+  evidence through typed `sample_size`/`uncertainty` payload fields instead of
+  a loose `confidence` key; then change the stale test assertions to
+  `Claim.id`.
+- Do not satisfy these tests by adding `Claim.claim_id`, preserving the dict
+  fixture, adding a normalizer, retaining a test-local `claims_for` query
+  loop, or carrying the old `confidence` row field into typed claims.
 
 ## Claim Reference And Semantics Binding
 
