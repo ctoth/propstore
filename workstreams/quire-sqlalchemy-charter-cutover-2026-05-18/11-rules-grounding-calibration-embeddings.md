@@ -129,7 +129,8 @@ Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
 `06-forms-concepts-parameterizations.md`, `07-contexts-lifting.md`,
 `08-claims-active-claims.md`, `08a-typed-claim-graph-projection.md`,
 `09-relations-stances-conflicts.md`,
-`10-micropublications-justifications.md`.
+`10-micropublications-justifications.md`,
+`10a-charter-generated-model-cleanup.md`.
 
 - Quire SQLAlchemy dependency and capability proof.
 - Quire charter/schema IR.
@@ -142,6 +143,7 @@ Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
 - Claims and active claims cutover.
 - Relations, stances, and conflicts cutover.
 - Justifications and micropublications cutover.
+- Charter-generated model cleanup.
 
 Before implementation, verify the current repo state and prove the
 prerequisite surface is already cut over:
