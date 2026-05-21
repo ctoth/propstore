@@ -520,6 +520,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-5`
     failed: 26 failed, 3518 passed, 4 skipped, 55 errors.
   - Log: `logs/test-runs/sqlalchemy-charter-full-5-20260521-152733.log`.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-6`
+    failed: 13 failed, 3586 passed, 4 skipped.
+  - Log: `logs/test-runs/sqlalchemy-charter-full-6-20260521-154300.log`.
   - Remaining failure clusters from full-5:
     - Claim-source FK enforcement is real and must remain. Repaired after
       full-5: claim compilation now writes `claim_core.source_slug` only for
@@ -553,6 +556,23 @@ Gate: no local path, workspace, or file URL Quire dependency.
       production semantics settle.
     - Deleted `propstore/form_utils.py` test assumes the old file exists; keep
       the production deletion and update the gate to assert absence.
+  - Remaining failure clusters from full-6:
+    - Argumentation preference/grounded behavior and vacuous stance handling
+      still let weak or vacuous attacks defeat stronger claims; fix the typed
+      argumentation relation/preference path, not a render-time shim.
+    - ATMS exact antecedent lookup still keys equality assumptions by raw CEL
+      shape; use checked-condition semantic equality so `a == b` and `b == a`
+      match without reparsing or hardcoded string normalization.
+    - Reasoning demo CLI assertions still expect source-local handles/text in
+      places where runtime output now exposes canonical ids or grouped accepted
+      claim output; update the demo surface or test through the owner-layer
+      display contract, not by adding source-handle fallbacks.
+    - Sidecar cache-key input still lacks the derived schema version key.
+    - Contract manifest snapshot and version-bump gates still fail and remain
+      final settlement work after production semantics stop moving.
+    - Semantic repair, sensitivity, and preference-import failures are
+      remaining dict-shaped fixture drift; convert to typed charter/domain
+      objects instead of accepting dicts in production paths.
 
 Current full-gate repair queue, deletion-first:
 
