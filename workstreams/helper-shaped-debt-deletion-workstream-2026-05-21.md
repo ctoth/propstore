@@ -278,6 +278,18 @@ Gate: every remaining production hit appears in the Phase 2 inventory as
 `io-boundary`, `presentation`, or `semantic-owner`; every `delete` row is
 zero-hit.
 
+Execution record:
+
+- Deleted `propstore/core/justifications.py:_normalize_attrs`.
+- Deleted `propstore/conflict_detector/models.py:coerce_conflict_class`.
+- Deleted `propstore/support_revision/state.py:coerce_assumption_ref`.
+- `rg -n -- "\b(coerce_conflict_class|coerce_assumption_ref|_normalize_attrs)\b" propstore tests`:
+  zero hits.
+- Remaining `def _?coerce_*` and `def _?normalize_*` production hits are
+  classified in `workstreams/helper-shaped-debt-inventory-2026-05-21.md` as
+  `io-boundary`, `presentation`, or `semantic-owner`.
+- `uv run pyright propstore`: passed with `0 errors, 0 warnings, 0 informations`.
+
 ## Phase 4: Delete Row/Record/DTO Shape Carriers
 
 Owned surfaces: every Phase 2 `delete` row ending in `Row`, `Record`, or `DTO`.
