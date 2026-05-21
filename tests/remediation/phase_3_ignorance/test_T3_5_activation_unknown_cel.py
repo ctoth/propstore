@@ -1,15 +1,11 @@
 from __future__ import annotations
 
-import json
-
 import pytest
 
-from propstore.core.active_claims import ActiveClaim
-from propstore.core.activation import UnknownConceptInCEL, is_active_claim_active
+from propstore.core.activation import UnknownConceptInCEL, is_claim_active
 from propstore.core.conditions import (
     check_condition_ir,
     checked_condition_set,
-    checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.environment import Environment
@@ -25,25 +21,16 @@ def test_unknown_cel_identifier_raises_with_context() -> None:
         )
     }
     condition = "some_unknown_concept > 5"
-    claim = ActiveClaim.from_row_mapping(
-        {
-            "id": "claim-01",
-            "artifact_id": "test-01",
-            "conditions_cel": json.dumps([condition]),
-            "conditions_ir": json.dumps(
-                checked_condition_set_to_json(
-                    checked_condition_set(
-                        [check_condition_ir(condition, checked_registry)]
-                    )
-                ),
-                sort_keys=True,
-            ),
-        }
+    claim_conditions = checked_condition_set(
+        [check_condition_ir(condition, checked_registry)]
     )
 
     with pytest.raises(UnknownConceptInCEL) as ei:
-        is_active_claim_active(
-            claim,
+        is_claim_active(
+            claim_id="claim-01",
+            claim_context_id=None,
+            claim_conditions=claim_conditions,
+            source_artifact="test-01",
             environment=Environment(bindings={"framework": "general"}),
             solver=ConditionSolver({}),
         )
