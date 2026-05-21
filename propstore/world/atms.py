@@ -2058,7 +2058,7 @@ class ATMSEngine:
             if claim.context_id is not None:
                 context_ids.add(to_context_id(claim.context_id))
         for micropub in self._runtime_micropublications():
-            context_ids.add(micropub.context_id)
+            context_ids.add(to_context_id(micropub.context_id))
         return tuple(sorted(context_ids))
 
     def _coerce_queryables(
