@@ -20,7 +20,9 @@ from unittest.mock import Mock
 import pytest
 
 import propstore.world.bound as bound_module
+from propstore.families.relations.declaration import ConflictWitness
 from propstore.world.bound import BoundWorld
+from tests.typed_family_fixtures import claim_from_payload
 from tests.test_world_query import (
     CONCEPT1_ID,
     CONCEPT2_ID,
@@ -35,20 +37,22 @@ class _NonCatalogConflictStore:
     """Minimal store with claims/conflicts but no all_concepts method."""
 
     def __init__(self, claims: list[dict], conflicts: list[dict] | None = None) -> None:
-        self._claims = claims
-        self._conflicts = [] if conflicts is None else conflicts
+        self._claims = [claim_from_payload(claim) for claim in claims]
+        self._conflicts = [
+            ConflictWitness(**conflict)
+            for conflict in ([] if conflicts is None else conflicts)
+        ]
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
+    def claims_for(self, concept_id: str | None):
         if concept_id is None:
             return list(self._claims)
         return [
             claim
             for claim in self._claims
-            if claim.get("concept_id") == concept_id
-            or claim.get("target_concept") == concept_id
+            if claim.target_concept == concept_id
         ]
 
-    def conflicts(self) -> list[dict]:
+    def conflicts(self):
         return list(self._conflicts)
 
 

@@ -447,6 +447,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 7 tests after the no-canonical-unit correction.
   - `uv run pyright propstore` passed with 0 errors after the canonical
     dependency id and no-canonical-unit correction.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-bound-conflicts-boundary tests/test_world_bound_conflicts_cache.py`
+    passed 5 tests after moving catalog-only concept resolution behind the
+    catalog-store boundary and converting the non-catalog conflict fixture to
+    typed `Claim`/`ConflictWitness` objects.
+  - `uv run pyright propstore` passed with 0 errors after the conflict query
+    boundary repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.

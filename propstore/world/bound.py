@@ -916,7 +916,11 @@ class BoundWorld(BeliefSpace):
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]:
         """Return active conflicts, revalidated against the current belief space."""
-        concept = None if concept_id is None else self._store.get_concept(concept_id)
+        concept = (
+            self._store.get_concept(concept_id)
+            if concept_id is not None and isinstance(self._store, ConceptCatalogStore)
+            else None
+        )
         resolved_concept_id = (
             None
             if concept_id is None
