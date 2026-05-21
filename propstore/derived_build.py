@@ -635,11 +635,22 @@ def _flush_promotion_blocked_claims(
     if not claim_objects and not diagnostic_objects:
         return
     claim_ids = tuple(str(getattr(row, "id")) for row in claim_objects)
+    diagnostic_claim_ids = tuple(
+        sorted(
+            {
+                str(claim_id)
+                for row in diagnostic_objects
+                if getattr(row, "diagnostic_kind", None) == "promotion_blocked"
+                for claim_id in (getattr(row, "claim_id", None),)
+                if claim_id
+            }
+        )
+    )
     if claim_ids:
         derived.flush()
         _delete_claim_children(derived, claim_ids)
-        for claim_id in claim_ids:
-            delete_promotion_blocked_diagnostics(derived, claim_id)
+    for claim_id in sorted(set(claim_ids) | set(diagnostic_claim_ids)):
+        delete_promotion_blocked_diagnostics(derived, claim_id)
     derived.add_all(claim_objects)
     derived.add_all(diagnostic_objects)
 
