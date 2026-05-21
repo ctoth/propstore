@@ -7,54 +7,18 @@ import logging
 import struct
 from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timezone
-from typing import Any, Protocol
+from typing import Any
 
 from propstore.core.embeddings import EmbeddingEntity
 from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
 
 
-class _EmbeddingStore(Protocol):
-    def ensure_storage(self) -> None: ...
-
-    def load_entities(
-        self,
-        entity_ids: Sequence[str] | None = None,
-    ) -> list[EmbeddingEntity]: ...
-
-    def existing_content_hashes(
-        self,
-        model_identity: EmbeddingModelIdentity,
-    ) -> Mapping[str, str]: ...
-
-    def prepare_model(
-        self,
-        model_identity: EmbeddingModelIdentity,
-        dimensions: int,
-        created_at: str,
-    ) -> None: ...
-
-    def save_embedding(
-        self,
-        model_identity: EmbeddingModelIdentity,
-        entity: EmbeddingEntity,
-        vector_blob: bytes,
-        embedded_at: str,
-    ) -> None: ...
-
-
-class _SimilarityStore(Protocol):
-    def resolve_entity(self, entity_id: str) -> tuple[str, int]: ...
-    def vector_for(
-        self,
-        model_identity: EmbeddingModelIdentity,
-        seq: int,
-    ) -> bytes | None: ...
-    def similar_entities(
-        self,
-        model_identity: EmbeddingModelIdentity,
-        query_vector: bytes,
-        k: int,
-    ) -> list[dict]: ...
+ExistingContentHashes = Callable[[EmbeddingModelIdentity], Mapping[str, str]]
+PrepareEmbeddingModel = Callable[[EmbeddingModelIdentity, int, str], None]
+SaveEmbedding = Callable[[EmbeddingModelIdentity, EmbeddingEntity, bytes, str], None]
+ResolveEmbeddingEntity = Callable[[str], tuple[str, int]]
+LoadEmbeddingVector = Callable[[EmbeddingModelIdentity, int], bytes | None]
+FindSimilarVectors = Callable[[EmbeddingModelIdentity, bytes, int], list[dict]]
 
 
 def _require_litellm():
@@ -77,23 +41,24 @@ def _deserialize_float32(blob: bytes) -> list[float]:
 
 
 def _embed_entities(
-    store: _EmbeddingStore,
+    entities: Sequence[EmbeddingEntity],
     model_name: str,
-    entity_ids: Sequence[str] | None = None,
+    *,
+    existing_content_hashes: ExistingContentHashes,
+    prepare_model: PrepareEmbeddingModel,
+    save_embedding: SaveEmbedding,
     batch_size: int = 64,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> dict:
-    """Embed entities supplied by an embedding store.
+    """Embed typed entities through explicit vector-cache operations.
 
     Returns:
         {"embedded": int, "skipped": int, "errors": int}
     """
 
     litellm = _require_litellm()
-    store.ensure_storage()
     model_identity = EmbeddingModelIdentity.from_model_name(model_name)
-    entities = store.load_entities(entity_ids)
-    existing = store.existing_content_hashes(model_identity)
+    existing = existing_content_hashes(model_identity)
 
     to_embed: list[EmbeddingEntity] = []
     skipped = 0
@@ -128,11 +93,11 @@ def _embed_entities(
 
         if dimensions is None:
             dimensions = len(response.data[0]["embedding"])
-            store.prepare_model(model_identity, dimensions, now)
+            prepare_model(model_identity, dimensions, now)
 
         for index, entity in enumerate(batch):
             vector = response.data[index]["embedding"]
-            store.save_embedding(
+            save_embedding(
                 model_identity,
                 entity,
                 _serialize_float32(vector),
@@ -147,44 +112,55 @@ def _embed_entities(
 
 
 def _find_similar_entities(
-    store: _SimilarityStore,
     entity_id: str,
     model_name: str,
+    *,
+    resolve_entity: ResolveEmbeddingEntity,
+    vector_for: LoadEmbeddingVector,
+    similar_entities: FindSimilarVectors,
     top_k: int = 10,
 ) -> list[dict]:
-    """Find top-k similar entities using a vector-capable store."""
+    """Find top-k similar entities using explicit vector-cache operations."""
 
     return _find_similar_entities_by_identity(
-        store,
         entity_id,
         EmbeddingModelIdentity.from_model_name(model_name),
-        top_k,
+        resolve_entity=resolve_entity,
+        vector_for=vector_for,
+        similar_entities=similar_entities,
+        top_k=top_k,
     )
 
 
 def _find_similar_entities_by_identity(
-    store: _SimilarityStore,
     entity_id: str,
     model_identity: EmbeddingModelIdentity,
+    *,
+    resolve_entity: ResolveEmbeddingEntity,
+    vector_for: LoadEmbeddingVector,
+    similar_entities: FindSimilarVectors,
     top_k: int = 10,
 ) -> list[dict]:
     """Find top-k similar entities for an already registered model identity."""
 
-    resolved_id, seq = store.resolve_entity(entity_id)
-    vector = store.vector_for(model_identity, seq)
+    resolved_id, seq = resolve_entity(entity_id)
+    vector = vector_for(model_identity, seq)
     if vector is None:
         raise ValueError(
             f"No embedding for {resolved_id} under model {model_identity.model_name}"
         )
 
-    results = store.similar_entities(model_identity, vector, top_k + 1)
+    results = similar_entities(model_identity, vector, top_k + 1)
     return [result for result in results if result["id"] != resolved_id][:top_k]
 
 
 def _find_similar_agree_generic(
-    store: _SimilarityStore,
     entity_id: str,
     models: Sequence[dict[str, Any]],
+    *,
+    resolve_entity: ResolveEmbeddingEntity,
+    vector_for: LoadEmbeddingVector,
+    similar_entities: FindSimilarVectors,
     top_k: int = 10,
 ) -> list[dict]:
     """Entities similar under all stored models."""
@@ -196,9 +172,11 @@ def _find_similar_agree_generic(
     for model in models:
         try:
             results = _find_similar_entities_by_identity(
-                store,
                 entity_id,
                 EmbeddingModelIdentity.from_registry_row(model),
+                resolve_entity=resolve_entity,
+                vector_for=vector_for,
+                similar_entities=similar_entities,
                 top_k=top_k * 2,
             )
             result_sets.append({result["id"] for result in results})
@@ -213,18 +191,23 @@ def _find_similar_agree_generic(
         common_ids &= result_set
 
     all_results = _find_similar_entities_by_identity(
-        store,
         entity_id,
         EmbeddingModelIdentity.from_registry_row(models[0]),
+        resolve_entity=resolve_entity,
+        vector_for=vector_for,
+        similar_entities=similar_entities,
         top_k=top_k * 2,
     )
     return [result for result in all_results if result["id"] in common_ids][:top_k]
 
 
 def _find_similar_disagree_generic(
-    store: _SimilarityStore,
     entity_id: str,
     models: Sequence[dict[str, Any]],
+    *,
+    resolve_entity: ResolveEmbeddingEntity,
+    vector_for: LoadEmbeddingVector,
+    similar_entities: FindSimilarVectors,
     top_k: int = 10,
 ) -> list[dict]:
     """Entities similar under some stored models but not others."""
@@ -237,9 +220,11 @@ def _find_similar_disagree_generic(
         model_identity = EmbeddingModelIdentity.from_registry_row(model)
         try:
             results = _find_similar_entities_by_identity(
-                store,
                 entity_id,
                 model_identity,
+                resolve_entity=resolve_entity,
+                vector_for=vector_for,
+                similar_entities=similar_entities,
                 top_k=top_k * 2,
             )
             per_model[model_identity.model_name] = {
@@ -264,9 +249,11 @@ def _find_similar_disagree_generic(
     results = []
     try:
         all_results = _find_similar_entities_by_identity(
-            store,
             entity_id,
             EmbeddingModelIdentity.from_registry_row(models[0]),
+            resolve_entity=resolve_entity,
+            vector_for=vector_for,
+            similar_entities=similar_entities,
             top_k=top_k * 3,
         )
         for result in all_results:

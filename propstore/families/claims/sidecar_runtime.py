@@ -108,9 +108,7 @@ class SidecarClaimRelationStore:
         self._derived_store = derived_store
 
     def load_embedding_extension(self) -> None:
-        from propstore.families.embeddings.declaration import load_vec_extension
-
-        load_vec_extension(self._conn)
+        return None
 
     def get_registered_models(self) -> list[dict]:
         from propstore.families.embeddings.declaration import get_registered_models

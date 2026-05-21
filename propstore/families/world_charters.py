@@ -138,6 +138,7 @@ def world_charter_catalog() -> SchemaCatalog:
             _f("form", nullable=False), _f("form_parameters"), _r("range_min"), _r("range_max"),
             _i("is_dimensionless", nullable=False, default_sql="0"), _f("unit_symbol"), _f("created_date"),
             _f("last_modified"), indexes=(CharterIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
+            reference_keys=(ReferenceKey.field("primary_logical_id"), ReferenceKey.field("canonical_name")),
             fts_indexes=(CharterFtsIndex("concept_fts", "concept_id", ("canonical_name", "aliases", "definition", "conditions"), source_query=_CONCEPT_FTS_SOURCE_QUERY),),
             vector_caches=(CharterVectorCache(
                 "concept_embeddings",
