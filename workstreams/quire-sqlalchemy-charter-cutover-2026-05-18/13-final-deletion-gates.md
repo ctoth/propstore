@@ -517,6 +517,11 @@ Gate: no local path, workspace, or file URL Quire dependency.
     wired to the Quire-generated schema catalog identity.
   - `uv run pyright propstore` passed with 0 errors after the sidecar cache-key
     repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-preference-typed-fixture tests/test_init.py::TestInit::test_preference_import_does_not_require_world_layer`
+    passed 1 test after replacing the remaining preference-strength dict
+    fixture with a typed `ClaimNode`.
+  - `uv run pyright propstore` passed with 0 errors after the preference typed
+    fixture repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -582,9 +587,10 @@ Gate: no local path, workspace, or file URL Quire dependency.
       included in the content hash inputs.
     - Contract manifest snapshot and version-bump gates still fail and remain
       final settlement work after production semantics stop moving.
-    - Semantic repair, sensitivity, and preference-import failures are
-      remaining dict-shaped fixture drift; convert to typed charter/domain
-      objects instead of accepting dicts in production paths.
+    - Preference-import typed fixture drift is repaired after full-6.
+      Semantic repair and sensitivity failures are remaining dict-shaped
+      fixture drift; convert them to typed charter/domain objects instead of
+      accepting dicts in production paths.
 
 Current full-gate repair queue, deletion-first:
 

@@ -73,10 +73,22 @@ class TestInit:
         monkeypatch.setattr(builtins, "__import__", guarded_import)
 
         preference = importlib.import_module("propstore.preference")
+        graph_types = importlib.import_module("propstore.core.graph_types")
+        claim_types = importlib.import_module("propstore.core.claim_types")
+        id_types = importlib.import_module("propstore.core.id_types")
+        claim = graph_types.ClaimNode(
+            claim_id=id_types.to_claim_id("claim_metadata"),
+            claim_type=claim_types.ClaimType.PARAMETER,
+            sample_size=10,
+            uncertainty=0.2,
+            attributes=(("confidence", 0.8),),
+        )
 
-        assert preference.claim_strength(
-            {"sample_size": 10, "uncertainty": 0.2, "confidence": 0.8}
-        ).dimensions == (2.3978952727983707, 5.0, 0.8)
+        assert preference.claim_strength(claim).dimensions == (
+            2.3978952727983707,
+            5.0,
+            0.8,
+        )
 
     def test_root_exports_still_resolve_lazily(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Public package-root exports should remain available after lazy-loading."""
