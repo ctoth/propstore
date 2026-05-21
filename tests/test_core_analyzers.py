@@ -6,7 +6,6 @@ from sqlite3 import Connection
 import pytest
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
-from propstore.praf import build_praf
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph, RelationEdge
 from argumentation.probabilistic import compute_probabilistic_acceptance
 from tests.conftest import create_argumentation_schema, insert_claim, insert_conflict, insert_stance
@@ -60,7 +59,6 @@ def _insert_stance(
 @pytest.fixture
 def conn() -> Connection:
     connection = sqlite3.connect(":memory:")
-    connection.row_factory = sqlite3.Row
     create_argumentation_schema(connection)
     return connection
 
@@ -70,24 +68,6 @@ def _accepted_extensions(result) -> set[frozenset[str]]:
         frozenset(extension.accepted_claim_ids)
         for extension in result.extensions
     }
-
-
-class _StoreWithSourcePrior:
-    def __init__(self, wrapped: SQLiteArgumentationStore, prior: float) -> None:
-        self._wrapped = wrapped
-        self._prior = {"b": 0.0, "d": 0.0, "u": 1.0, "a": prior}
-
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
-        return {
-            claim_id: {**claim, "source_prior_base_rate": self._prior}
-            for claim_id, claim in self._wrapped.claims_by_ids(claim_ids).items()
-        }
-
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
-        return self._wrapped.stances_between(claim_ids)
-
-    def conflicts(self) -> list[dict]:
-        return self._wrapped.conflicts()
 
 
 def test_shared_claim_graph_analyzer_matches_current_grounded(conn: Connection) -> None:
@@ -181,37 +161,70 @@ def test_shared_claim_graph_analyzer_matches_current_preferred_and_stable(
         assert set(result.projection.witness_claim_ids) == {"c1", "c2"}
 
 
-def test_shared_praf_analyzer_matches_current_acceptance(conn: Connection) -> None:
-    _insert_claim(conn, "c1", "temp", 100.0, sample_size=50)
-    _insert_claim(conn, "c2", "temp", 200.0, sample_size=50)
-    _insert_stance(
-        conn,
-        "c1",
-        "c2",
-        "rebuts",
-        confidence=0.3,
-        opinion_belief=0.2,
-        opinion_disbelief=0.1,
-        opinion_uncertainty=0.7,
-        opinion_base_rate=0.15,
+def test_shared_praf_analyzer_matches_current_acceptance() -> None:
+    source_prior = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
+    compiled = CompiledWorldGraph(
+        claims=(
+            ClaimNode(
+                claim_id="c1",
+                value_concept_id="temp",
+                claim_type="parameter",
+                scalar_value=100.0,
+                attributes={
+                    "sample_size": 50,
+                    "source_prior_base_rate": source_prior,
+                },
+            ),
+            ClaimNode(
+                claim_id="c2",
+                value_concept_id="temp",
+                claim_type="parameter",
+                scalar_value=200.0,
+                attributes={
+                    "sample_size": 50,
+                    "source_prior_base_rate": source_prior,
+                },
+            ),
+        ),
+        relations=(
+            RelationEdge(
+                source_id="c1",
+                target_id="c2",
+                relation_type="rebuts",
+                attributes={
+                    "confidence": 0.3,
+                    "opinion_belief": 0.2,
+                    "opinion_disbelief": 0.1,
+                    "opinion_uncertainty": 0.7,
+                    "opinion_base_rate": 0.15,
+                },
+            ),
+            RelationEdge(
+                source_id="c2",
+                target_id="c1",
+                relation_type="rebuts",
+                attributes={
+                    "confidence": 0.95,
+                    "opinion_belief": 0.9,
+                    "opinion_disbelief": 0.03,
+                    "opinion_uncertainty": 0.07,
+                    "opinion_base_rate": 0.5,
+                },
+            ),
+        ),
     )
-    _insert_stance(
-        conn,
-        "c2",
-        "c1",
-        "rebuts",
-        confidence=0.95,
-        opinion_belief=0.9,
-        opinion_disbelief=0.03,
-        opinion_uncertainty=0.07,
-        opinion_base_rate=0.5,
+    active_graph = ActiveWorldGraph(
+        compiled=compiled,
+        active_claim_ids=("c1", "c2"),
     )
-    conn.commit()
 
-    from propstore.core.analyzers import analyze_praf, shared_analyzer_input_from_store
+    from propstore.core.analyzers import (
+        analyze_praf,
+        build_praf_from_shared_input,
+        shared_analyzer_input_from_active_graph,
+    )
 
-    store = _StoreWithSourcePrior(SQLiteArgumentationStore(conn), 0.5)
-    shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
+    shared = shared_analyzer_input_from_active_graph(active_graph)
 
     result = analyze_praf(
         shared,
@@ -220,7 +233,7 @@ def test_shared_praf_analyzer_matches_current_acceptance(conn: Connection) -> No
         target_claim_ids=("c1", "c2"),
     )
     expected_result = compute_probabilistic_acceptance(
-        build_praf(store, {"c1", "c2"}).kernel,
+        build_praf_from_shared_input(shared).kernel,
         semantics="grounded",
         strategy="exact_enum",
     )
