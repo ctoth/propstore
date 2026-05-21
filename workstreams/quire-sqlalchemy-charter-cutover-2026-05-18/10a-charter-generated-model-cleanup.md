@@ -197,6 +197,16 @@ that owner workstream.
   `GroundedFact`, `GroundedBundleInput`, and embedding/calibration status
   models; production builders were updated to those typed model names. `uv run
   pyright propstore` passed after the slice.
+- Structured projection test cleanup complete: replaced the four old
+  dict-shaped `get_concept` fakes with typed `Concept` model instances so
+  world/argumentation tests no longer carry a loose concept payload shape.
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  structured-projection-typed-concepts
+  tests/test_structured_projection.py::test_structured_worldline_argumentation_capture_uses_structured_backend
+  tests/test_structured_projection.py::test_structured_worldline_argumentation_capture_ignores_unmapped_arguments
+  tests/test_structured_projection.py::test_world_extensions_cli_accepts_aspic_backend
+  tests/test_structured_projection.py::test_world_extensions_cli_ignores_unmapped_aspic_arguments`
+  passed with 4 tests.
 
 ## Completion Criteria
 
