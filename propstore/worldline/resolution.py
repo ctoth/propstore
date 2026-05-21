@@ -7,9 +7,13 @@ from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.core.environment import WorldStore
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept
-from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult
+from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult, ValueResult
 from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
-from propstore.worldline.result_types import WorldlineInputSource, WorldlineTargetValue
+from propstore.worldline.result_types import (
+    WorldlineInputSource,
+    WorldlineTargetValue,
+    WorldlineVariableRef,
+)
 from propstore.worldline.trace import ResolutionTrace
 
 
@@ -73,6 +77,17 @@ def _claim_value(claim: Claim) -> float | str | None:
     return None
 
 
+def _claim_worldline_variables(claim: Claim) -> tuple[WorldlineVariableRef, ...]:
+    return tuple(
+        WorldlineVariableRef(
+            name=variable.name,
+            symbol=variable.symbol,
+            concept_id=None if variable.concept_id is None else str(variable.concept_id),
+        )
+        for variable in claim.variables
+    )
+
+
 def claim_target_value(
     *,
     status: str,
@@ -81,13 +96,30 @@ def claim_target_value(
     claim_id: str | None,
     value: float | str | None,
 ) -> WorldlineTargetValue:
-    return WorldlineTargetValue.from_json_payload({
-        "status": status,
-        "source": source,
-        "claim_id": claim_id,
-        "value": value,
-        "claim_type": claim.type,
-    })
+    text_payload = claim.text_payload
+    algorithm_payload = claim.algorithm_payload
+    return WorldlineTargetValue(
+        status=status,
+        source=source,
+        claim_id=claim_id,
+        value=value,
+        claim_type=claim.type.value,
+        statement=None if text_payload is None else text_payload.statement,
+        expression=None if text_payload is None else text_payload.expression,
+        name=None if text_payload is None else text_payload.name,
+        body=None if algorithm_payload is None else algorithm_payload.body,
+        canonical_ast=None if algorithm_payload is None else algorithm_payload.canonical_ast,
+        variables=_claim_worldline_variables(claim),
+    )
+
+
+def _value_result_claim_value(result: ValueResult) -> float | str | None:
+    claim = result.claims[0] if result.claims else None
+    if claim is None:
+        return None
+    if not isinstance(claim, Claim):
+        raise TypeError("chain ValueResult.claims must contain typed Claim objects")
+    return _claim_value(claim)
 
 
 def pre_resolve_conflicts(
@@ -408,8 +440,10 @@ def _resolve_chain_target(
             to_concept_id(input_cid): value
             for input_cid, value in result.input_values.items()
         }
+    elif isinstance(result, ValueResult):
+        chain_value = _value_result_claim_value(result)
     else:
-        chain_value = result.value
+        raise TypeError("chain_result.result must be ValueResult or DerivedResult")
 
     if chain_value is None or result.status not in ("derived", "determined"):
         return None
