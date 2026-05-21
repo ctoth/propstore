@@ -480,7 +480,7 @@ def _claim_payload_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyChart
     return (
         _charter("claim_numeric_payload", models["claim_numeric_payload"], "claim_id",
             CharterField("claim_id", str, primary_key=True, nullable=False, foreign_key=_fk("claim_numeric_payload_claim", "claim_numeric_payload", "claim_id", "claim_core")), _r("value"), _r("lower_bound"), _r("upper_bound"), _r("uncertainty"),
-            _f("uncertainty_type"), _i("sample_size"), _f("unit"), _r("value_si"), _r("lower_bound_si"), _r("upper_bound_si"),
+            _r("confidence"), _f("uncertainty_type"), _i("sample_size"), _f("unit"), _r("value_si"), _r("lower_bound_si"), _r("upper_bound_si"),
             relationships=(CharterRelationship(
                 "claim",
                 target_family="claim_core",

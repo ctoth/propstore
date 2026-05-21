@@ -91,6 +91,7 @@ def _claim_provenance(claim: Claim, *, source_id: str) -> ProvenanceRecord | Non
 
 
 def _claim_graph_attributes(claim: Claim) -> tuple[tuple[str, Any], ...]:
+    numeric_payload = claim.numeric_payload
     return tuple(
         (key, value)
         for key, value in (
@@ -105,6 +106,10 @@ def _claim_graph_attributes(claim: Claim) -> tuple[tuple[str, Any], ...]:
             ("build_status", claim.build_status),
             ("stage", claim.stage),
             ("promotion_status", claim.promotion_status),
+            (
+                "confidence",
+                None if numeric_payload is None else numeric_payload.confidence,
+            ),
         )
         if value is not None
     )
