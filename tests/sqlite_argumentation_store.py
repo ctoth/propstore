@@ -3,7 +3,7 @@ from __future__ import annotations
 import sqlite3
 from sqlite3 import Connection
 
-from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictWitness, Stance
 
 
 class SQLiteArgumentationStore:
@@ -46,7 +46,7 @@ class SQLiteArgumentationStore:
         ).fetchall()
         return {row["id"]: dict(row) for row in rows}
 
-    def stances_between(self, claim_ids: set[str]) -> list[StanceRowInput]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         if not claim_ids:
             return []
         placeholders = ",".join("?" for _ in claim_ids)
@@ -78,9 +78,30 @@ class SQLiteArgumentationStore:
             """,  # noqa: S608
             list(claim_ids) + list(claim_ids),
         ).fetchall()
-        return [dict(row) for row in rows]
+        return [
+            Stance(
+                claim_id=row["claim_id"],
+                target_claim_id=row["target_claim_id"],
+                stance_type=row["stance_type"],
+                target_justification_id=row["target_justification_id"],
+                strength=row["strength"],
+                conditions_differ=row["conditions_differ"],
+                note=row["note"],
+                resolution_method=row["resolution_method"],
+                resolution_model=row["resolution_model"],
+                embedding_model=row["embedding_model"],
+                embedding_distance=row["embedding_distance"],
+                pass_number=row["pass_number"],
+                confidence=row["confidence"],
+                opinion_belief=row["opinion_belief"],
+                opinion_disbelief=row["opinion_disbelief"],
+                opinion_uncertainty=row["opinion_uncertainty"],
+                opinion_base_rate=row["opinion_base_rate"],
+            )
+            for row in rows
+        ]
 
-    def conflicts(self) -> list[ConflictRowInput]:
+    def conflicts(self) -> list[ConflictWitness]:
         try:
             rows = self._conn.execute(
                 """
@@ -89,6 +110,19 @@ class SQLiteArgumentationStore:
                 FROM conflict_witness
                 """
             ).fetchall()
-            return [dict(row) for row in rows]
+            return [
+                ConflictWitness(
+                    concept_id=row["concept_id"],
+                    claim_a_id=row["claim_a_id"],
+                    claim_b_id=row["claim_b_id"],
+                    warning_class=row["warning_class"],
+                    conditions_a=row["conditions_a"],
+                    conditions_b=row["conditions_b"],
+                    value_a=row["value_a"],
+                    value_b=row["value_b"],
+                    derivation_chain=row["derivation_chain"],
+                )
+                for row in rows
+            ]
         except Exception:
             return []

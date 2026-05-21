@@ -25,7 +25,7 @@ from typing import cast
 import pytest
 
 from propstore.core.id_types import ClaimId, to_claim_id
-from propstore.families.relations.declaration import ConflictRow, StanceRow
+from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.stances import StanceType
 from propstore.support_revision.dispatch import dispatch
 from propstore.support_revision.history import (
@@ -54,13 +54,13 @@ from tests.fixtures.journal import (
 
 @dataclass
 class SyntheticHeavyBeliefSpace(SyntheticBeliefSpace):
-    stance_rows: tuple[StanceRow, ...] = ()
-    conflict_rows: tuple[ConflictRow, ...] = ()
+    stance_rows: tuple[Stance, ...] = ()
+    conflict_rows: tuple[ConflictWitness, ...] = ()
 
-    def all_claim_stances(self) -> list[StanceRow]:
+    def all_claim_stances(self) -> list[Stance]:
         return list(self.stance_rows)
 
-    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]:
         return list(self.conflict_rows)
 
 
@@ -153,12 +153,12 @@ def test_p_heavy_2_heavy_surfaces_stances_minimal_does_not() -> None:
     space = synthetic_belief_space_with(atom)
     commit_sha = "b" * 40
     extra_row = space.add_claim("c2")
-    fake_stance = StanceRow(
+    fake_stance = Stance(
         claim_id=_claim_id("c1"),
         target_claim_id=to_claim_id(extra_row.id),
         stance_type=StanceType.SUPPORTS,
     )
-    fake_conflict = ConflictRow(
+    fake_conflict = ConflictWitness(
         claim_a_id=_claim_id("c1"),
         claim_b_id=to_claim_id(extra_row.id),
     )
@@ -187,12 +187,12 @@ def test_p_heavy_2b_unregistered_commit_derives_typed_rows_from_world_query_surf
         source_claim_local_ids=("c1", "c2"),
     )
     base_space = synthetic_belief_space_with(atom)
-    stance = StanceRow(
+    stance = Stance(
         claim_id=_claim_id("c1"),
         target_claim_id=_claim_id("c2"),
         stance_type=StanceType.REBUTS,
     )
-    conflict = ConflictRow(
+    conflict = ConflictWitness(
         claim_a_id=_claim_id("c1"),
         claim_b_id=_claim_id("c2"),
     )
@@ -220,12 +220,12 @@ def test_p_heavy_2c_unregistered_commit_uses_historical_query_surface() -> None:
         source_claim_local_ids=("c1", "c2"),
     )
     base_space = synthetic_belief_space_with(atom)
-    stance = StanceRow(
+    stance = Stance(
         claim_id=_claim_id("c1"),
         target_claim_id=_claim_id("c2"),
         stance_type=StanceType.SUPPORTS,
     )
-    conflict = ConflictRow(
+    conflict = ConflictWitness(
         claim_a_id=_claim_id("c1"),
         claim_b_id=_claim_id("c2"),
     )

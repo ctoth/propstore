@@ -20,7 +20,7 @@ from propstore.app.repository_views import (
 from propstore.core.claim_types import ClaimType
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept
-from propstore.families.relations.declaration import StanceRow
+from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
 from tests.claim_model_helpers import claim_model
@@ -31,7 +31,7 @@ class _World:
         self,
         *,
         claims: tuple[Claim, ...],
-        stances: tuple[StanceRow, ...] = (),
+        stances: tuple[Stance, ...] = (),
         visible_ids: tuple[str, ...] | None = None,
     ) -> None:
         self.claims = {str(claim.id): claim for claim in claims}
@@ -61,14 +61,14 @@ class _World:
             return rows
         return [claim for claim in rows if str(claim.value_concept_id or "") == concept_id]
 
-    def all_claim_stances(self) -> list[StanceRow]:
+    def all_claim_stances(self) -> list[Stance]:
         return list(self.stances)
 
     def claim_stances_with_policy(
         self,
         focus_claim_id: str,
         policy: RenderPolicy,
-    ) -> list[StanceRow]:
+    ) -> list[Stance]:
         return [
             stance
             for stance in self.stances
@@ -103,8 +103,8 @@ def _claim(claim_id: str, *, concept_id: str = "concept1") -> Claim:
     )
 
 
-def _stance(source: str, stance_type: str, target: str) -> StanceRow:
-    return StanceRow(
+def _stance(source: str, stance_type: str, target: str) -> Stance:
+    return Stance(
         claim_id=source,
         target_claim_id=target,
         stance_type=stance_type,

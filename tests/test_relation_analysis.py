@@ -1,27 +1,25 @@
 from __future__ import annotations
 
 from propstore.relation_analysis import stance_summary
-from propstore.families.relations.declaration import StanceRow
+from propstore.families.relations.declaration import Stance
 from propstore.stances import StanceType
 
 
 class _TypedStanceStore:
-    def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
-            StanceRow(
+            Stance(
                 claim_id="claim:a",
                 target_claim_id="claim:b",
                 stance_type=StanceType.SUPERSEDES,
-                attributes={
-                    "resolution_model": "demo-model",
-                    "opinion_uncertainty": 0.25,
-                },
+                resolution_model="demo-model",
+                opinion_uncertainty=0.25,
             ),
-            StanceRow(
+            Stance(
                 claim_id="claim:c",
                 target_claim_id="claim:d",
                 stance_type=StanceType.SUPPORTS,
-                attributes={"opinion_uncertainty": 1.0},
+                opinion_uncertainty=1.0,
             ),
         ]
 

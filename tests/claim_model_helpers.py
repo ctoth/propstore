@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import cast
 
 from propstore.core.algorithm_stage import AlgorithmStage
@@ -193,3 +193,46 @@ def claim_model(
         source_assertion.claim = claim
     claim.source_assertions = source_assertions
     return claim
+
+
+def claim_model_from_mapping(row: Mapping[str, object]) -> Claim:
+    raw_links = row.get("concept_links")
+    links: list[ClaimConceptLink] = []
+    if isinstance(raw_links, Sequence) and not isinstance(raw_links, str):
+        for item in raw_links:
+            if not isinstance(item, Mapping):
+                continue
+            links.append(
+                claim_concept_link(
+                    claim_id=str(item.get("claim_id", row["id"])),
+                    concept_id=str(item["concept_id"]),
+                    role=ClaimConceptLinkRole(str(item.get("role", "output"))),
+                    ordinal=int(item.get("ordinal", 0)),
+                    binding_name=(
+                        None
+                        if item.get("binding_name") is None
+                        else str(item["binding_name"])
+                    ),
+                )
+            )
+    concept_id = str(row.get("concept_id") or row.get("target_concept") or "concept1")
+    return claim_model(
+        claim_id=str(row["id"]),
+        claim_type=ClaimType(str(row.get("type", ClaimType.PARAMETER.value))),
+        concept_id=concept_id,
+        concept_links=links or None,
+        target_concept=(
+            None if row.get("target_concept") is None else str(row["target_concept"])
+        ),
+        value=None if row.get("value") is None else float(row["value"]),
+        sample_size=(
+            None if row.get("sample_size") is None else int(row["sample_size"])
+        ),
+        conditions_cel=(
+            None if row.get("conditions_cel") is None else str(row["conditions_cel"])
+        ),
+        conditions_ir=(
+            None if row.get("conditions_ir") is None else str(row["conditions_ir"])
+        ),
+        context_id=None if row.get("context_id") is None else str(row["context_id"]),
+    )

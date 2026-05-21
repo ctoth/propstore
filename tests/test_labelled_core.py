@@ -14,9 +14,10 @@ from propstore.core.labels import (
     compile_environment_assumptions,
     merge_labels,
 )
-from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.types import DerivedResult, Environment, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
+from tests.claim_model_helpers import claim_model_from_mapping
 
 from tests.atms_helpers import (
     condition_registry_for_rows,
@@ -76,7 +77,10 @@ class _StubStore:
             for row in rows
         ]
         self._condition_registry = condition_registry_for_rows(all_rows)
-        self._claims = rows_with_condition_ir(claims, self._condition_registry)
+        self._claims = [
+            claim_model_from_mapping(row)
+            for row in rows_with_condition_ir(claims, self._condition_registry)
+        ]
         self._parameterizations = {
             concept_id: rows_with_condition_ir(rows, self._condition_registry)
             for concept_id, rows in parameterizations.items()
@@ -86,7 +90,7 @@ class _StubStore:
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+        return [claim for claim in self._claims if claim.value_concept_id == concept_id]
 
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return list(self._parameterizations.get(concept_id, ()))
@@ -94,21 +98,24 @@ class _StubStore:
     def condition_solver(self) -> ConditionSolver:
         return self._solver
 
-    def conflicts(self) -> list[ConflictRowInput]:
+    def conflicts(self) -> list[ConflictWitness]:
         return []
 
     def all_concepts(self) -> list[dict]:
-        concept_ids = sorted({claim["concept_id"] for claim in self._claims} | {"concept3"})
+        concept_ids = sorted(
+            {str(claim.value_concept_id) for claim in self._claims if claim.value_concept_id is not None}
+            | {"concept3"}
+        )
         return [
             {"id": concept_id, "canonical_name": concept_id, "form": "structural"}
             for concept_id in concept_ids
         ]
 
-    def explain(self, claim_id: str) -> list[StanceRowInput]:
+    def explain(self, claim_id: str) -> list[Stance]:
         return []
 
     def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+        return next((claim for claim in self._claims if str(claim.id) == claim_id), None)
 
     def get_concept(self, concept_id: str) -> dict | None:
         for concept in self.all_concepts():
@@ -348,12 +355,14 @@ def test_derived_value_combines_input_labels() -> None:
 
 
 def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
+    claim = claim_model_from_mapping({"id": "claim1", "concept_id": "concept1", "value": 42.0})
+
     class FakeBound:
         def value_of(self, concept_id: str) -> ValueResult:
             return ValueResult(
                 concept_id=concept_id,
                 status="determined",
-                claims=[{"id": "claim1", "value": 42.0}],
+                claims=[claim],
                 label=Label.empty(),
             )
 
@@ -365,8 +374,8 @@ def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
         ) -> DerivedResult:
             return DerivedResult(concept_id=concept_id, status="no_relationship")
 
-        def active_claims(self, concept_id: str | None = None) -> list[dict]:
-            return [{"id": "claim1", "value": 42.0}]
+        def active_claims(self, concept_id: str | None = None):
+            return [claim]
 
     class FakeWorld:
         def bind(self, environment=None, *, policy=None, **conditions):
@@ -380,9 +389,9 @@ def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
                 return {"id": "concept1", "canonical_name": "target"}
             return None
 
-        def get_claim(self, claim_id: str) -> dict | None:
+        def get_claim(self, claim_id: str):
             if claim_id == "claim1":
-                return {"id": "claim1", "value": 42.0}
+                return claim
             return None
 
         def has_table(self, name: str) -> bool:

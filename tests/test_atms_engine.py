@@ -10,7 +10,7 @@ from propstore.cli import cli
 from propstore.core.conditions import checked_condition_set_to_json
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.atms import BudgetExhausted
 from propstore.world import BoundWorld
 from propstore.core.labels import (
@@ -146,16 +146,27 @@ class _ATMSStore:
     def condition_solver(self):
         return self._solver
 
-    def conflicts(self) -> list[ConflictRowInput]:
+    def conflicts(self) -> list[ConflictWitness]:
         return [
-            {"warning_class": "CONFLICT", **conflict}
+            ConflictWitness(
+                warning_class="CONFLICT",
+                claim_a_id=conflict["claim_a_id"],
+                claim_b_id=conflict["claim_b_id"],
+                concept_id=conflict.get("concept_id"),
+                conflict_class=conflict.get("conflict_class"),
+                conditions_a=conflict.get("conditions_a"),
+                conditions_b=conflict.get("conditions_b"),
+                value_a=conflict.get("value_a"),
+                value_b=conflict.get("value_b"),
+                derivation_chain=conflict.get("derivation_chain"),
+            )
             for conflict in self._conflicts
         ]
 
     def all_concepts(self) -> list[dict]:
         return []
 
-    def explain(self, claim_id: str) -> list[StanceRowInput]:
+    def explain(self, claim_id: str) -> list[Stance]:
         return []
 
     def get_claim(self, claim_id: str) -> Claim | None:
@@ -302,19 +313,28 @@ class _GraphOnlyATMSRuntime:
             if claim_id in compiled_claims
         ]
 
-    def conflicts(self) -> list[ConflictRowInput]:
+    def conflicts(self) -> list[ConflictWitness]:
         active_ids = set(self.active_graph.active_claim_ids)
+
+        def conflict_witness(conflict) -> ConflictWitness:
+            details = dict(conflict.details)
+            return ConflictWitness(
+                claim_a_id=conflict.left_claim_id,
+                claim_b_id=conflict.right_claim_id,
+                warning_class=conflict.kind,
+                concept_id=details.get("concept_id"),
+                conditions_a=details.get("conditions_a"),
+                conditions_b=details.get("conditions_b"),
+                value_a=details.get("value_a"),
+                value_b=details.get("value_b"),
+                derivation_chain=details.get("derivation_chain"),
+            )
+
         return [
-            {
-                "claim_a_id": conflict.left_claim_id,
-                "claim_b_id": conflict.right_claim_id,
-                "warning_class": conflict.kind,
-                **dict(conflict.details),
-            }
+            conflict_witness(conflict)
             for conflict in self.active_graph.compiled.conflicts
             if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
         ]
-
     def all_parameterizations(self) -> list[dict]:
         rows = []
         for edge in self.active_graph.compiled.parameterizations:

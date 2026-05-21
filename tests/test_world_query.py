@@ -22,12 +22,9 @@ from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import (
-    ConflictRow,
-    ConflictRowInput,
-    StanceRow,
-    StanceRowInput,
+    ConflictWitness,
+    Stance,
 )
-from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.core.store_results import (
     WorldStoreStats,
     ClaimSimilarityHit,
@@ -102,13 +99,11 @@ def _runtime_claim_id_set(claims) -> set[str]:
 
 
 def _conflict_pair(conflict) -> frozenset[str]:
-    row = CONFLICT_ROW_MODEL.coerce(conflict)
-    return frozenset((str(row.claim_a_id), str(row.claim_b_id)))
+    return frozenset((str(conflict.claim_a_id), str(conflict.claim_b_id)))
 
 
 def _conflict_concept_id(conflict) -> str | None:
-    row = CONFLICT_ROW_MODEL.coerce(conflict)
-    return None if row.concept_id is None else str(row.concept_id)
+    return None if conflict.concept_id is None else str(conflict.concept_id)
 
 
 def _normalize_local_concept_ref(value: object) -> object:
@@ -967,10 +962,7 @@ class TestUnboundQueries:
     def test_conflicts(self, world):
         conflicts = world.conflicts()
         assert len(conflicts) >= 1
-        assert all(
-            isinstance(CONFLICT_ROW_MODEL.coerce(conflict).warning_class, ConflictClass)
-            for conflict in conflicts
-        )
+        assert all(isinstance(conflict.warning_class, str) for conflict in conflicts)
 
     def test_search(self, world):
         results = world.search("frequency")
@@ -1067,7 +1059,7 @@ class TestExplain:
     def test_explain_returns_stance_chain(self, world):
         chain = world.explain(_claim_artifact("test_paper_alpha", "claim2"))
         assert len(chain) >= 1
-        first = STANCE_ROW_MODEL.coerce(chain[0])
+        first = chain[0]
         assert first.target_claim_id == _claim_artifact("test_paper_alpha", "claim1")
         assert first.stance_type is StanceType.REBUTS
 
@@ -1874,10 +1866,7 @@ class TestHypothesisProperties:
     def test_unbound_conflicts_match_build_time(self, world):
         world_conflict_pairs = {
             (conflict.claim_a_id, conflict.claim_b_id)
-            for conflict in (
-                CONFLICT_ROW_MODEL.coerce(row)
-                for row in world.conflicts()
-            )
+            for conflict in world.conflicts()
         }
         bound_conflict_pairs = {
             (c.claim_a_id, c.claim_b_id) for c in world.bind().conflicts()
@@ -2136,9 +2125,9 @@ class TestTransitiveConsistency:
         for c in synthetic_conflicts:
             assert str(c.claim_a_id)
             assert str(c.claim_b_id)
-            assert c.warning_class in {ConflictClass.CONFLICT, ConflictClass.OVERLAP}
-            assert "value_a" in c.attributes
-            assert "value_b" in c.attributes
+            assert c.warning_class in {ConflictClass.CONFLICT.value, ConflictClass.OVERLAP.value}
+            assert "value_a" in c.attribute_mapping()
+            assert "value_b" in c.attribute_mapping()
 
     def test_hypothetical_conflicts_include_recomputed_synthetic_conflicts(self, world):
         bound = world.bind(task="speech")
@@ -2162,13 +2151,11 @@ class TestTransitiveConsistency:
         monkeypatch.setattr(
             "propstore.world.overlay._recomputed_conflicts",
             lambda store, claims: [
-                CONFLICT_ROW_MODEL.from_row(
-                    {
-                        "concept_id": "concept1",
-                        "claim_a_id": "claim2",
-                        "claim_b_id": "claim1",
-                        "warning_class": "CONFLICT",
-                    }
+                ConflictWitness(
+                    concept_id="concept1",
+                    claim_a_id="claim2",
+                    claim_b_id="claim1",
+                    warning_class="CONFLICT",
                 )
             ],
         )

@@ -20,7 +20,7 @@ from argumentation.dung import ArgumentationFramework, complete_extensions
 from propstore.world.bound import BoundWorld
 from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import Label, compile_environment_assumptions
-from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
 from propstore.worldline import WorldlineDefinition, run_worldline
@@ -29,6 +29,7 @@ from tests.atms_helpers import (
     leaf_lifting_system,
     rows_with_condition_ir,
 )
+from tests.claim_model_helpers import claim_model_from_mapping
 
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
@@ -49,7 +50,9 @@ def _parameter_claim(claim_id: str, concept_id: str, value: float) -> dict:
     }
 
 
-def _output_concept_id(claim: dict) -> str | None:
+def _output_concept_id(claim) -> str | None:
+    if hasattr(claim, "value_concept_id"):
+        return claim.value_concept_id
     for link in claim.get("concept_links", ()):
         if link.get("role") == "output":
             return link.get("concept_id")
@@ -66,8 +69,21 @@ class _ProjectionStore:
         has_stance_table: bool = True,
     ) -> None:
         self._condition_registry = condition_registry_for_rows(claims)
-        self._claims = rows_with_condition_ir(claims, self._condition_registry)
-        self._stances = list(stances or [])
+        self._claims = [
+            claim_model_from_mapping(row)
+            for row in rows_with_condition_ir(claims, self._condition_registry)
+        ]
+        self._stances = [
+            stance
+            if isinstance(stance, Stance)
+            else Stance(
+                claim_id=stance["claim_id"],
+                target_claim_id=stance["target_claim_id"],
+                stance_type=stance["stance_type"],
+                target_justification_id=stance.get("target_justification_id"),
+            )
+            for stance in (stances or [])
+        ]
         self._justifications = list(justifications or [])
         self._solver = ConditionSolver(self._condition_registry)
         self._has_stance_table = has_stance_table
@@ -79,16 +95,16 @@ class _ProjectionStore:
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
         return {
-            claim["id"]: claim
+            str(claim.id): claim
             for claim in self._claims
-            if claim["id"] in claim_ids
+            if str(claim.id) in claim_ids
         }
 
-    def stances_between(self, claim_ids: set[str]) -> list[StanceRowInput]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
             stance
             for stance in self._stances
-            if stance["claim_id"] in claim_ids and stance["target_claim_id"] in claim_ids
+            if stance.claim_id in claim_ids and stance.target_claim_id in claim_ids
         ]
 
     def justifications_for_claim_scope(
@@ -111,17 +127,17 @@ class _ProjectionStore:
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return []
 
-    def conflicts(self) -> list[ConflictRowInput]:
+    def conflicts(self) -> list[ConflictWitness]:
         return []
 
     def all_concepts(self) -> list[dict]:
         return []
 
-    def explain(self, claim_id: str) -> list[StanceRowInput]:
+    def explain(self, claim_id: str) -> list[Stance]:
         return []
 
     def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+        return next((claim for claim in self._claims if str(claim.id) == claim_id), None)
 
     def grounding_bundle(self):
         return _EMPTY_BUNDLE
@@ -153,9 +169,9 @@ def _make_bound(
     )
 
 
-def _support_metadata(bound: BoundWorld, active_claims: list[dict]) -> dict[str, tuple[Label | None, SupportQuality]]:
+def _support_metadata(bound: BoundWorld, active_claims) -> dict[str, tuple[Label | None, SupportQuality]]:
     return {
-        str(claim.claim_id): bound.claim_support(claim)
+        str(claim.id): bound.claim_support(claim)
         for claim in active_claims
     }
 
@@ -709,9 +725,10 @@ def test_named_undercut_property_only_defeats_the_selected_rule_arguments(
         "target_justification_id": targeted_justification_id,
     })
 
+    store = _ProjectionStore(claims=claims, stances=stances)
     projection = build_aspic_projection(
-        _ProjectionStore(claims=claims, stances=stances),
-        claims,
+        store,
+        store.claims_for(None),
         bundle=_EMPTY_BUNDLE,
     )
     attacker_args = projection.claim_to_argument_ids["claim_attacker"]
@@ -1057,17 +1074,17 @@ def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(m
 
 
 def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
+    target_a = claim_model_from_mapping(_parameter_claim("target_a", "concept1", 1.0))
+    target_b = claim_model_from_mapping(_parameter_claim("target_b", "concept1", 2.0))
+
     class FakeRepo:
         pass
 
     class FakeBound:
-        def active_claims(self, concept_id: str | None = None) -> list[dict]:
-            return [
-                _parameter_claim("target_a", "concept1", 1.0),
-                _parameter_claim("target_b", "concept1", 2.0),
-            ]
+        def active_claims(self, concept_id: str | None = None):
+            return [target_a, target_b]
 
-        def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
+        def claim_support(self, claim) -> tuple[Label | None, SupportQuality]:
             return Label.empty(), SupportQuality.EXACT
 
     class FakeWorldQuery:
@@ -1140,21 +1157,21 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
     assert result.exit_code == 0
     assert "Backend: aspic" in result.output
     assert "Accepted (1 claims):" in result.output
-    assert "target_a: target = 1.0" in result.output
+    assert "target_a (parameter)" in result.output
 
 
 def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> None:
+    target_a = claim_model_from_mapping(_parameter_claim("target_a", "concept1", 1.0))
+    target_b = claim_model_from_mapping(_parameter_claim("target_b", "concept1", 2.0))
+
     class FakeRepo:
         pass
 
     class FakeBound:
-        def active_claims(self, concept_id: str | None = None) -> list[dict]:
-            return [
-                _parameter_claim("target_a", "concept1", 1.0),
-                _parameter_claim("target_b", "concept1", 2.0),
-            ]
+        def active_claims(self, concept_id: str | None = None):
+            return [target_a, target_b]
 
-        def claim_support(self, claim: dict) -> tuple[Label | None, SupportQuality]:
+        def claim_support(self, claim) -> tuple[Label | None, SupportQuality]:
             return Label.empty(), SupportQuality.EXACT
 
     class FakeWorldQuery:
@@ -1221,8 +1238,8 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
 
     assert result.exit_code == 0
     assert "Accepted (1 claims):" in result.output
-    assert "target_a: target = 1.0" in result.output
-    assert "target_b: target = 2.0" in result.output
+    assert "target_a (parameter)" in result.output
+    assert "target_b (parameter)" in result.output
 
 
 def test_world_extensions_cli_rejects_structured_projection_backend_name() -> None:

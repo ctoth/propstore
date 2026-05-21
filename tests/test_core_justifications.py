@@ -6,8 +6,10 @@ from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
 from propstore.core.justifications import claim_justifications_from_active_graph
 from propstore.core.labels import compile_environment_assumptions
-from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
+from propstore.families.claims.declaration import Claim
+from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.types import Environment
+from tests.claim_model_helpers import claim_model_from_mapping
 
 
 class _JustificationStore:
@@ -17,21 +19,34 @@ class _JustificationStore:
             {"id": "claim_b", "concept_id": "c2", "type": "parameter", "value": 2.0},
             {"id": "claim_c", "concept_id": "c3", "type": "parameter", "value": 3.0},
         ]
+        self._claim_models = [claim_model_from_mapping(claim) for claim in self._claims]
         self._stances = [
-            {"claim_id": "claim_a", "target_claim_id": "claim_b", "stance_type": "supports"},
-            {"claim_id": "claim_b", "target_claim_id": "claim_c", "stance_type": "explains"},
+            Stance(
+                claim_id="claim_a",
+                target_claim_id="claim_b",
+                stance_type="supports",
+            ),
+            Stance(
+                claim_id="claim_b",
+                target_claim_id="claim_c",
+                stance_type="explains",
+            ),
         ]
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
+    def claims_for(self, concept_id: str | None) -> list[Claim]:
         if concept_id is None:
-            return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+            return list(self._claim_models)
+        return [
+            claim
+            for claim in self._claim_models
+            if claim.output_concept_id == concept_id
+        ]
 
-    def stances_between(self, claim_ids: set[str]) -> list[StanceRowInput]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
             stance
             for stance in self._stances
-            if stance["claim_id"] in claim_ids and stance["target_claim_id"] in claim_ids
+            if stance.claim_id in claim_ids and stance.target_claim_id in claim_ids
         ]
 
     def all_parameterizations(self) -> list[dict]:
@@ -40,7 +55,7 @@ class _JustificationStore:
     def all_relationships(self) -> list[dict]:
         return []
 
-    def conflicts(self) -> list[ConflictRowInput]:
+    def conflicts(self) -> list[ConflictWitness]:
         return []
 
     def all_concepts(self) -> list[dict]:

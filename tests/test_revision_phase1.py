@@ -8,7 +8,7 @@ from propstore.core.id_types import to_context_id
 from propstore.world import BoundWorld, Environment, ReasoningBackend, RenderPolicy
 from propstore.core.conditions import ConditionSolver
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.support_revision.state import AssertionAtom
 from tests.atms_helpers import (
     condition_ir_json,
@@ -58,7 +58,7 @@ class _RevisionStore:
     def parameterizations_for(self, concept_id: str) -> list[dict]:
         return []
 
-    def conflicts(self) -> list[ConflictRowInput]:
+    def conflicts(self) -> list[ConflictWitness]:
         return []
 
     def all_concepts(self) -> list[dict]:
@@ -72,7 +72,7 @@ class _RevisionStore:
         )
         return [{"id": concept_id, "canonical_name": concept_id} for concept_id in concept_ids]
 
-    def explain(self, claim_id: str) -> list[StanceRowInput]:
+    def explain(self, claim_id: str) -> list[Stance]:
         return []
 
     def condition_solver(self):

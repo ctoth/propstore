@@ -5,8 +5,9 @@ import json
 from propstore.world import BoundWorld, Environment, OverlayWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
 from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import compile_environment_assumptions
-from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
+from propstore.families.relations.declaration import ConflictWitness, Stance
 from tests.atms_helpers import condition_registry_for_rows, rows_with_condition_ir
+from tests.claim_model_helpers import claim_model_from_mapping
 
 
 class _Store:
@@ -34,7 +35,10 @@ class _Store:
             for row in rows
         ]
         self._condition_registry = condition_registry_for_rows(all_rows)
-        self._claims = rows_with_condition_ir(claims, self._condition_registry)
+        self._claims = [
+            claim_model_from_mapping(row)
+            for row in rows_with_condition_ir(claims, self._condition_registry)
+        ]
         self._parameterizations = {
             concept_id: rows_with_condition_ir(rows, self._condition_registry)
             for concept_id, rows in parameterizations.items()
@@ -69,13 +73,16 @@ class _Store:
     def claims_for(self, concept_id: str | None) -> list[dict]:
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+        return [claim for claim in self._claims if claim.value_concept_id == concept_id]
 
     def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+        return next((claim for claim in self._claims if str(claim.id) == claim_id), None)
 
     def all_concepts(self) -> list[dict]:
-        concept_ids = sorted({claim["concept_id"] for claim in self._claims} | {"concept3"})
+        concept_ids = sorted(
+            {str(claim.value_concept_id) for claim in self._claims if claim.value_concept_id is not None}
+            | {"concept3"}
+        )
         return [
             {"id": concept_id, "canonical_name": concept_id, "form": "structural"}
             for concept_id in concept_ids
@@ -93,10 +100,10 @@ class _Store:
     def condition_solver(self) -> ConditionSolver:
         return self._solver
 
-    def conflicts(self) -> list[ConflictRowInput]:
+    def conflicts(self) -> list[ConflictWitness]:
         return []
 
-    def explain(self, claim_id: str) -> list[StanceRowInput]:
+    def explain(self, claim_id: str) -> list[Stance]:
         return []
 
 
@@ -113,7 +120,7 @@ def _make_bound(*, bindings: dict[str, object]) -> BoundWorld:
 
 
 def _runtime_claim_ids(claims) -> list[str]:
-    return [str(claim.claim_id) for claim in claims]
+    return [str(claim.id) for claim in claims]
 
 
 def test_binding_order_does_not_change_active_or_resolved_semantics() -> None:
@@ -165,5 +172,10 @@ def test_remove_and_add_inverse_overlay_returns_same_semantic_state() -> None:
     )
 
     assert _runtime_claim_ids(inverse.active_claims("concept2")) == ["claim_left"]
-    assert inverse.value_of("concept2") == bound.value_of("concept2")
+    inverse_value = inverse.value_of("concept2")
+    bound_value = bound.value_of("concept2")
+    assert inverse_value.concept_id == bound_value.concept_id
+    assert inverse_value.status == bound_value.status
+    assert _runtime_claim_ids(inverse_value.claims) == _runtime_claim_ids(bound_value.claims)
+    assert inverse_value.label == bound_value.label
     assert inverse.derived_value("concept3") == bound.derived_value("concept3")
