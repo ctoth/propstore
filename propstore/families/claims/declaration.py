@@ -16,6 +16,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from quire.charters import FamilyModel
 from quire.references import FamilyReferenceIndex
 from propstore.claims import (
     claim_file_filename,
@@ -63,32 +64,7 @@ def _require_claim_type(value: object) -> ClaimType:
     return claim_type
 
 
-class Claim:
-    id: str
-    primary_logical_id: str
-    logical_ids_json: str
-    version_id: str
-    content_hash: str
-    seq: int
-    type: ClaimType
-    target_concept: str | None
-    source_slug: str | None
-    source_paper: str
-    provenance_page: int
-    provenance_json: str | None
-    context_id: str | None
-    premise_kind: str
-    branch: str | None
-    build_status: str
-    stage: str | None
-    promotion_status: str | None
-    concept_links: list["ClaimConceptLink"]
-    numeric_payload: "ClaimNumericPayload | None"
-    text_payload: "ClaimTextPayload | None"
-    algorithm_payload: "ClaimAlgorithmPayload | None"
-    source_assertions: list["ClaimSourceAssertion"]
-    source: "Source | None"
-
+class Claim(FamilyModel):
     def concept_ids_for_role(self, role: ClaimConceptLinkRole) -> tuple[str, ...]:
         return tuple(
             str(link.concept_id)
@@ -242,88 +218,24 @@ class Claim:
         return {key: value for key, value in source.items() if value is not None}
 
 
-class ClaimConceptLink:
-    claim_id: str
-    concept_id: str
-    role: ClaimConceptLinkRole
-    ordinal: int
-    binding_name: str | None
-    claim: Claim | None
-
-    def __init__(
-        self,
-        claim_id: str,
-        concept_id: str,
-        role: ClaimConceptLinkRole,
-        ordinal: int,
-        binding_name: str | None = None,
-    ) -> None:
-        self.claim_id = claim_id
-        self.concept_id = concept_id
-        self.role = role
-        self.ordinal = ordinal
-        self.binding_name = binding_name
-        self.claim = None
+class ClaimConceptLink(FamilyModel):
+    pass
 
 
-class ClaimNumericPayload:
-    claim_id: str
-    value: float | None
-    lower_bound: float | None
-    upper_bound: float | None
-    uncertainty: float | None
-    uncertainty_type: str | None
-    sample_size: int | None
-    unit: str | None
-    value_si: float | None
-    lower_bound_si: float | None
-    upper_bound_si: float | None
-    claim: Claim | None
+class ClaimNumericPayload(FamilyModel):
+    pass
 
 
-class ClaimTextPayload:
-    claim_id: str
-    conditions_cel: str | None
-    conditions_ir: str | None
-    statement: str | None
-    expression: str | None
-    sympy_generated: str | None
-    sympy_error: str | None
-    name: str | None
-    measure: str | None
-    listener_population: str | None
-    methodology: str | None
-    notes: str | None
-    description: str | None
-    auto_summary: str | None
-    claim: Claim | None
+class ClaimTextPayload(FamilyModel):
+    pass
 
 
-class ClaimAlgorithmPayload:
-    claim_id: str
-    body: str | None
-    canonical_ast: str | None
-    variables_json: str | None
-    algorithm_stage: AlgorithmStage | None
-    claim: Claim | None
+class ClaimAlgorithmPayload(FamilyModel):
+    pass
 
 
-class ClaimSourceAssertion:
-    claim_id: str
-    source_assertion_id: str
-    ordinal: int
-    claim: Claim | None
-
-    def __init__(
-        self,
-        claim_id: str,
-        source_assertion_id: str,
-        ordinal: int,
-    ) -> None:
-        self.claim_id = claim_id
-        self.source_assertion_id = source_assertion_id
-        self.ordinal = ordinal
-        self.claim = None
+class ClaimSourceAssertion(FamilyModel):
+    pass
 
 
 @dataclass(frozen=True)
