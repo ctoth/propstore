@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 from collections.abc import Iterable
-from dataclasses import dataclass
 
+from quire.charters import FamilyModel
 from quire.references import FamilyReferenceIndex
 
 from propstore.families.claims.references import ClaimReferenceRecord
@@ -13,36 +13,7 @@ from propstore.families.diagnostics.declaration import QuarantineDiagnostic
 from propstore.families.documents.micropubs import MicropublicationDocument
 
 
-class Micropublication:
-    id: str
-    context_id: str
-    assumptions_json: str
-    evidence_json: str
-    stance: str | None
-    provenance_json: str | None
-    source_slug: str | None
-    claim_links: list["MicropublicationClaimLink"]
-
-    def __init__(
-        self,
-        *,
-        id: str,
-        context_id: str,
-        assumptions_json: str = "[]",
-        evidence_json: str = "[]",
-        stance: str | None = None,
-        provenance_json: str | None = None,
-        source_slug: str | None = None,
-    ) -> None:
-        self.id = id
-        self.context_id = context_id
-        self.assumptions_json = assumptions_json
-        self.evidence_json = evidence_json
-        self.stance = stance
-        self.provenance_json = provenance_json
-        self.source_slug = source_slug
-        self.claim_links = []
-
+class Micropublication(FamilyModel):
     @property
     def claim_ids(self) -> tuple[str, ...]:
         return tuple(
@@ -51,35 +22,20 @@ class Micropublication:
         )
 
 
-class MicropublicationClaimLink:
-    micropublication_id: str
-    claim_id: str
-    seq: int
-    micropublication: Micropublication | None
-
-    def __init__(
-        self,
-        *,
-        micropublication_id: str,
-        claim_id: str,
-        seq: int,
-    ) -> None:
-        self.micropublication_id = micropublication_id
-        self.claim_id = claim_id
-        self.seq = seq
-        self.micropublication = None
+class MicropublicationClaimLink(FamilyModel):
+    pass
 
 
-@dataclass(frozen=True)
-class MicropublicationWriteModels:
-    micropublications: tuple[Micropublication, ...]
-    claim_links: tuple[MicropublicationClaimLink, ...]
+MicropublicationModelBatches = tuple[
+    tuple[Micropublication, ...],
+    tuple[MicropublicationClaimLink, ...],
+]
 
 
 def compile_micropublication_models_with_diagnostics(
     micropub_entries: Iterable[tuple[str, MicropublicationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[MicropublicationWriteModels, tuple[QuarantineDiagnostic, ...]]:
+) -> tuple[MicropublicationModelBatches, tuple[QuarantineDiagnostic, ...]]:
     valid_claim_ids = set(claim_index.ids())
     micropublications: list[Micropublication] = []
     claim_links: list[MicropublicationClaimLink] = []
@@ -152,9 +108,6 @@ def compile_micropublication_models_with_diagnostics(
             )
 
     return (
-        MicropublicationWriteModels(
-            micropublications=tuple(micropublications),
-            claim_links=tuple(claim_links),
-        ),
+        (tuple(micropublications), tuple(claim_links)),
         tuple(diagnostics),
     )

@@ -40,7 +40,7 @@ from propstore.families.diagnostics.declaration import (
     QuarantineDiagnostic,
 )
 from propstore.families.micropublications.declaration import (
-    MicropublicationWriteModels,
+    MicropublicationModelBatches,
     compile_micropublication_models_with_diagnostics,
 )
 from propstore.families.relations.declaration import (
@@ -255,9 +255,10 @@ def _raw_id_quarantine_batches(
 
 
 def _micropublication_batches(
-    rows: MicropublicationWriteModels,
+    rows: MicropublicationModelBatches,
 ) -> tuple[WorldWriteBatch, ...]:
+    micropublications, claim_links = rows
     return (
-        _batch("micropublication", rows.micropublications),
-        _batch("micropublication_claim", rows.claim_links),
+        _batch("micropublication", micropublications),
+        _batch("micropublication_claim", claim_links),
     )
