@@ -41,7 +41,6 @@ from propstore.core.store_results import (
 from propstore.families.claims.declaration import (
     Claim,
     count_authored_justifications,
-    count_claims,
     select_authored_justifications,
 )
 from propstore.families.diagnostics.declaration import (
@@ -938,11 +937,14 @@ class WorldQuery(WorldStore):
     def stats(self) -> WorldStoreStats:
         schema = world_sqlalchemy_schema()
         concept = schema.model("concept")
+        claim = schema.model("claim_core")
         with self._derived_store.readonly_session(schema) as derived:
             concepts = int(
                 derived.execute(select(func.count()).select_from(concept)).scalar_one()
             )
-        claims = count_claims(self._conn)
+            claims = int(
+                derived.execute(select(func.count()).select_from(claim)).scalar_one()
+            )
         conflicts = count_conflicts(self._conn)
         return WorldStoreStats(
             concepts=int(concepts),

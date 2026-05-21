@@ -355,10 +355,6 @@ from propstore.families.claims.projection_model import (  # noqa: E402
 from propstore.families.world_charters import BuildDiagnostic, world_record
 
 
-def count_claims(conn: sqlite3.Connection) -> int:
-    return int(conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0])
-
-
 def select_authored_justifications(
     conn: sqlite3.Connection,
 ) -> tuple[CanonicalJustification, ...]:
@@ -446,17 +442,6 @@ def _decode_justification_provenance(
     return ProvenanceRecord.from_json_payload(loaded)
 
 
-def has_claim_core_table(conn: sqlite3.Connection) -> bool:
-    row = conn.execute(
-        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='claim_core'"
-    ).fetchone()
-    return row is not None
-
-
-def delete_claim_core_row(conn: sqlite3.Connection, claim_id: str) -> None:
-    conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
-
-
 def select_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict[str, Any] | None:
     rows = select_claim_texts(conn, [claim_id])
     return rows.get(claim_id)
@@ -494,22 +479,6 @@ def select_claim_texts(
 def select_all_claim_ids(conn: sqlite3.Connection) -> list[str]:
     rows = conn.execute("SELECT id FROM claim_core").fetchall()
     return [str(row["id"]) for row in rows]
-
-
-def select_source_promotion_claim_rows(
-    conn: sqlite3.Connection,
-    branch: str,
-) -> tuple[tuple[str, str], ...]:
-    rows = conn.execute(
-        """
-        SELECT id, promotion_status
-        FROM claim_core
-        WHERE branch = ? AND promotion_status IS NOT NULL
-        ORDER BY id
-        """,
-        (branch,),
-    ).fetchall()
-    return tuple((str(row[0]), str(row[1])) for row in rows)
 
 
 def compile_claim_models(
@@ -903,4 +872,3 @@ def populate_authored_justifications(
     rows: Sequence[ProjectionRow],
 ) -> None:
     JUSTIFICATION_TABLE.insert_rows(conn, rows, or_ignore=True)
-

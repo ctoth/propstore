@@ -1747,3 +1747,19 @@ Current binding queue:
   `logs\test-runs\claim-source-assertion-typed-graph-20260520-215256.log`;
   and zero-hit searches for `attribute_value("source_assertion_ids")`,
   `attributes={"source_assertion_ids"`, and `_coerce_source_assertion_ids`.
+- Raw claim-count helper cleanup: unused raw SQLite helpers
+  `has_claim_core_table`, `delete_claim_core_row`, and
+  `select_source_promotion_claim_rows` were deleted from
+  `propstore/families/claims/declaration.py`. `count_claims` was also deleted;
+  `WorldModel.stats()` now counts `claim_core` through the Quire SQLAlchemy
+  schema/session the same way it already counted concepts. Verification
+  passed: focused pyright on `propstore/families/claims/declaration.py` and
+  `propstore/world/model.py`; logged pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label claim-count-sqlalchemy-stats
+  tests/test_world_query.py::TestUnboundQueries::test_stats
+  tests/test_required_schema_completeness.py` with 3 tests in
+  `logs\test-runs\claim-count-sqlalchemy-stats-20260520-215726.log`; and
+  zero-hit searches for `has_claim_core_table`, `delete_claim_core_row`, and
+  `select_source_promotion_claim_rows`. `rg -n -F -- "count_claims(" propstore
+  tests` now hits only the unrelated app repository-overview helper name, not
+  the deleted claim-family SQLite helper.
