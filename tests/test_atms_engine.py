@@ -7,8 +7,9 @@ from click.testing import CliRunner
 import pytest
 
 from propstore.cli import cli
-from propstore.core.active_claims import ActiveClaim, coerce_active_claim
 from propstore.core.conditions import checked_condition_set_to_json
+from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
 from propstore.world.atms import BudgetExhausted
 from propstore.world import BoundWorld
@@ -41,6 +42,7 @@ from tests.atms_helpers import (
     condition_sources_from_json,
     leaf_lifting_system,
 )
+from tests.claim_model_helpers import claim_concept_link, claim_model
 
 
 def test_atms_bind_workflow_applies_atms_policy_and_context() -> None:
@@ -84,7 +86,7 @@ class _ATMSStore:
             all_sources.extend(condition_sources_from_json(row.get("conditions_cel")))
         self._condition_registry = condition_registry_for_sources(all_sources)
         self._claims = [
-            _normalize_test_claim(claim, condition_registry=self._condition_registry)
+            _claim_from_test_fixture(claim, condition_registry=self._condition_registry)
             for claim in claims
         ]
         self._parameterizations = [
@@ -102,7 +104,7 @@ class _ATMSStore:
 
             self._solver = ConditionSolver(self._condition_registry)
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
+    def claims_for(self, concept_id: str | None) -> list[Claim]:
         if concept_id is None:
             return list(self._claims)
         return [
@@ -135,8 +137,8 @@ class _ATMSStore:
     def explain(self, claim_id: str) -> list[StanceRowInput]:
         return []
 
-    def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+    def get_claim(self, claim_id: str) -> Claim | None:
+        return next((claim for claim in self._claims if claim.id == claim_id), None)
 
     def has_table(self, name: str) -> bool:
         return False
@@ -157,28 +159,26 @@ class _ATMSStore:
         return {"id": concept_id, "canonical_name": concept_id}
 
 
-def _normalize_test_claim(
+def _claim_from_test_fixture(
     claim: dict,
     *,
     condition_registry,
-) -> dict:
-    normalized = dict(claim)
-    if normalized.get("conditions_cel") and not normalized.get("conditions_ir"):
-        normalized["conditions_ir"] = condition_ir_json(
-            normalized.get("conditions_cel"),
-            condition_registry,
-        )
-    concept_id = normalized.pop("concept_id", None)
-    if concept_id is not None and "concept_links" not in normalized:
-        normalized["concept_links"] = [
-            {
-                "claim_id": normalized["id"],
-                "concept_id": concept_id,
-                "role": "output",
-                "ordinal": 0,
-            }
-        ]
-    return normalized
+) -> Claim:
+    conditions_cel = claim.get("conditions_cel")
+    conditions_ir = claim.get("conditions_ir") or condition_ir_json(
+        conditions_cel,
+        condition_registry,
+    )
+    return claim_model(
+        claim_id=str(claim["id"]),
+        concept_id=str(claim["concept_id"]),
+        value=claim.get("value"),
+        conditions_cel=None if conditions_cel is None else str(conditions_cel),
+        conditions_ir=None if conditions_ir is None else str(conditions_ir),
+        context_id=(
+            None if claim.get("context_id") is None else str(claim["context_id"])
+        ),
+    )
 
 
 def _normalize_test_parameterization(
@@ -195,19 +195,12 @@ def _normalize_test_parameterization(
     return normalized
 
 
-def _test_claim_value_concept_id(claim: dict) -> str | None:
-    for link in claim.get("concept_links") or ():
-        if not isinstance(link, dict):
-            continue
-        if link.get("role") == "output":
-            concept_id = link.get("concept_id")
-            return None if concept_id is None else str(concept_id)
-    target = claim.get("target_concept")
-    return None if target is None else str(target)
+def _test_claim_value_concept_id(claim: Claim) -> str | None:
+    return claim.value_concept_id
 
 
 def _runtime_claim_id_set(claims) -> set[str]:
-    return {str(claim.claim_id) for claim in claims}
+    return {str(claim.id) for claim in claims}
 
 
 def _make_bound(
@@ -270,38 +263,39 @@ class _GraphOnlyATMSRuntime:
         self.condition_registry = bound._store.condition_solver().registry
 
     @staticmethod
-    def _claim_node_to_claim(claim_node) -> ActiveClaim:
-        row = {
-            "id": claim_node.claim_id,
-            "type": claim_node.claim_type,
-            "value": claim_node.scalar_value,
-            **dict(claim_node.attributes),
-        }
-        if claim_node.value_concept_id is not None:
-            row["concept_links"] = [
-                {
-                    "claim_id": claim_node.claim_id,
-                    "concept_id": claim_node.value_concept_id,
-                    "role": "output",
-                    "ordinal": 0,
-                }
-            ]
+    def _claim_node_to_claim(claim_node) -> Claim:
+        conditions_ir = None
         if claim_node.checked_conditions is not None:
-            row["conditions_ir"] = json.dumps(
+            conditions_ir = json.dumps(
                 checked_condition_set_to_json(claim_node.checked_conditions),
                 sort_keys=True,
             )
-        return coerce_active_claim(row)
+        concept_links = []
+        if claim_node.value_concept_id is not None:
+            concept_links.append(
+                claim_concept_link(
+                    claim_id=str(claim_node.claim_id),
+                    concept_id=str(claim_node.value_concept_id),
+                    role=ClaimConceptLinkRole.OUTPUT,
+                )
+            )
+        return claim_model(
+            claim_id=str(claim_node.claim_id),
+            claim_type=claim_node.claim_type,
+            concept_links=concept_links,
+            value=claim_node.scalar_value,
+            conditions_ir=conditions_ir,
+        )
 
     def is_parameterization_compatible(self, conditions: tuple[str, ...]) -> bool:
         if not conditions:
             return True
         return self._bound.is_param_compatible(json.dumps(list(conditions)))
 
-    def active_claims(self) -> list[ActiveClaim]:
+    def active_claims(self) -> list[Claim]:
         compiled_claims = {
-            claim.claim_id: claim
-            for claim in self.active_graph.compiled.claims
+            compiled_claim.claim_id: compiled_claim
+            for compiled_claim in self.active_graph.compiled.claims
         }
         return [
             self._claim_node_to_claim(compiled_claims[claim_id])
@@ -347,7 +341,7 @@ class _GraphOnlyATMSRuntime:
     def is_param_compatible(self, conditions_cel: str | None) -> bool:
         return self._bound.is_param_compatible(conditions_cel)
 
-    def claim_support(self, claim_row: ActiveClaim) -> tuple[Label | None, SupportQuality]:
+    def claim_support(self, claim_row: Claim) -> tuple[Label | None, SupportQuality]:
         return self._bound.claim_support(claim_row)
 
     def concept_status(self, concept_id: str) -> ValueStatus:
@@ -566,7 +560,7 @@ def test_atms_supported_claims_are_subset_of_active_claims_and_ignore_semantic_o
         reasoning_backend=ReasoningBackend.ATMS,
     )
     assert result.status == "determined"
-    assert [str(claim.claim_id) for claim in result.claims] == ["claim_exact"]
+    assert [str(claim.id) for claim in result.claims] == ["claim_exact"]
 
 
 def test_atms_records_context_as_label_dimension_for_context_scoped_claim() -> None:
@@ -1127,8 +1121,8 @@ def test_world_extensions_cli_rejects_atms_backend_explicitly(monkeypatch) -> No
         pass
 
     class FakeBound:
-        def active_claims(self, concept_id: str | None = None) -> list[dict]:
-            return [{"id": "claim_exact", "concept_id": "concept1", "type": "parameter", "value": 1.0}]
+        def active_claims(self, concept_id: str | None = None) -> list[Claim]:
+            return [claim_model("claim_exact", concept_id="concept1", value=1.0)]
 
     class FakeWorldQuery:
         def __init__(self, repo) -> None:

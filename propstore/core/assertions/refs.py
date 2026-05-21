@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from propstore.core.id_types import (
@@ -66,6 +69,24 @@ class ConditionRef:
         return cls(
             id=_UNCONDITIONAL_ID,
             registry_fingerprint=_UNCONDITIONAL_FINGERPRINT,
+        )
+
+    @classmethod
+    def from_sources(cls, sources: Sequence[object]) -> ConditionRef:
+        rendered_sources = tuple(str(source) for source in sources)
+        if not rendered_sources:
+            return cls.unconditional()
+        digest = hashlib.sha256(
+            json.dumps(
+                rendered_sources,
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        return cls(
+            id=f"ps:condition:{digest}",
+            registry_fingerprint=f"claim-condition-source:{digest}",
         )
 
     def identity_payload(self) -> tuple[str, str, str]:

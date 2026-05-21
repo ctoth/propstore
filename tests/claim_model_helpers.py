@@ -63,6 +63,7 @@ def claim_model(
     source_paper: str = "paper1",
     provenance_page: int = 1,
     provenance_json: dict[str, object] | None = None,
+    context_id: str | None = None,
     branch: str | None = None,
     build_status: str = "ingested",
     stage: str | None = None,
@@ -90,7 +91,7 @@ def claim_model(
                 "provenance_json": (
                     None if provenance_json is None else json.dumps(provenance_json)
                 ),
-                "context_id": None,
+                "context_id": context_id,
                 "premise_kind": "ordinary",
                 "branch": branch,
                 "build_status": build_status,

@@ -63,6 +63,16 @@ def display_claim_id(world: WorldStore, claim_id: str | None) -> str | None:
     return claim_id
 
 
+def _claim_value(claim: Claim) -> float | str | None:
+    numeric_payload = claim.numeric_payload
+    if numeric_payload is not None:
+        return numeric_payload.value
+    text_payload = claim.text_payload
+    if text_payload is not None:
+        return text_payload.statement or text_payload.expression
+    return None
+
+
 def claim_target_value(
     *,
     status: str,
@@ -267,7 +277,7 @@ def _resolve_claim_target(
         source="claim",
         claim=claim,
         claim_id=display_id,
-        value=value_result.value,
+        value=_claim_value(claim),
     )
     trace.record_step(
         concept=target_name,
@@ -506,7 +516,7 @@ def _resolve_claim_input(
     claim_id = str(claim.id)
     trace.record_claim_dependency(claim_id)
     return WorldlineInputSource(
-        value=value_result.value,
+        value=_claim_value(claim),
         source="claim",
         claim_id=display_claim_id(context.world, claim_id) or claim_id,
     )

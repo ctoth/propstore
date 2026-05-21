@@ -82,7 +82,7 @@ class MergeClaim:
                 )
             ),
             context=ContextReference(self.document.context.id),
-            condition=_condition_ref(tuple(self.document.conditions)),
+            condition=ConditionRef.from_sources(tuple(self.document.conditions)),
             provenance_ref=_provenance_ref(self),
         )
 
@@ -135,16 +135,6 @@ def _semantic_payload(document: ClaimDocument) -> dict[str, Any]:
     ):
         payload.pop(key, None)
     return payload
-
-
-def _condition_ref(conditions: tuple[object, ...]) -> ConditionRef:
-    if not conditions:
-        return ConditionRef.unconditional()
-    digest = _digest(tuple(str(condition) for condition in conditions))
-    return ConditionRef(
-        id=f"ps:condition:{digest}",
-        registry_fingerprint=f"claim-condition-source:{digest}",
-    )
 
 
 def _provenance_ref(claim: MergeClaim) -> ProvenanceGraphRef:

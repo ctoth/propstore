@@ -206,6 +206,11 @@ def _claim_value_concept_id(claim: Claim) -> ConceptId | None:
     return None
 
 
+def _claim_scalar_value(claim: Claim) -> float | None:
+    numeric_payload = claim.numeric_payload
+    return None if numeric_payload is None else numeric_payload.value
+
+
 def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) -> CompiledWorldGraph:
     if not isinstance(store, ConceptCatalogStore):
         raise TypeError("build_compiled_world_graph requires all_concepts()")
@@ -287,8 +292,8 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     claim_id=to_claim_id(claim_display_ids[str(row.id)]),
                     claim_type=(row.type or ClaimType.UNKNOWN),
                     value_concept_id=_claim_value_concept_id(row),
-                    scalar_value=None,
-                    checked_conditions=None,
+                    scalar_value=_claim_scalar_value(row),
+                    checked_conditions=row.checked_conditions,
                     provenance=_row_provenance(
                         row,
                         source_table="claim",

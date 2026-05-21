@@ -183,7 +183,10 @@ def _context_ref(
 
 
 def _condition_ref(claim: Claim) -> ConditionRef:
-    return ConditionRef.unconditional()
+    checked_conditions = claim.checked_conditions
+    if checked_conditions is None:
+        return ConditionRef.unconditional()
+    return ConditionRef.from_sources(checked_conditions.sources)
 
 
 def _provenance_ref(claim: Claim) -> ProvenanceGraphRef:
