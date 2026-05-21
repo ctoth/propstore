@@ -565,6 +565,13 @@ def select_all_claim_stances(conn: sqlite3.Connection) -> list[StanceRow]:
     return [STANCE_ROW_MODEL.from_row(dict(row)) for row in rows]
 
 
+def populate_stances(
+    conn: sqlite3.Connection,
+    rows: Sequence[ProjectionRow],
+) -> None:
+    RELATION_EDGE_TABLE.insert_rows(conn, (row.values for row in rows))
+
+
 def select_explanation_stances(
     conn: sqlite3.Connection,
     claim_id: str,

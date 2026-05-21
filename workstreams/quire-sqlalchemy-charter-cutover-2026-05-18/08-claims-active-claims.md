@@ -1694,3 +1694,17 @@ Current binding queue:
   returned no hits. The remaining `ProjectionRow` hits in
   `propstore/families/claims/declaration.py` are authored justification,
   conflict, and populate helpers still in the Phase 10/Phase 11 deletion queue.
+- Stance population owner cleanup: `populate_stances` was deleted from
+  `propstore/families/claims/declaration.py` and moved to the relation owner
+  beside the relation-edge table/query API. The focused relation opinion tests
+  now import the relation owner directly, and their claim-reference fixture was
+  tightened from loose dict records to typed `ClaimReferenceRecord` records so
+  the relation compiler keeps its production signature. Verification passed:
+  focused pyright on `propstore/families/claims/declaration.py`,
+  `propstore/families/relations/declaration.py`, and
+  `tests/test_relate_opinions.py`; logged pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label relation-populate-stances-owner
+  tests/test_relate_opinions.py` with 21 tests in
+  `logs\test-runs\relation-populate-stances-owner-20260520-214307.log`; and
+  `rg -n -F -- "populate_stances" propstore tests`, which now shows only the
+  relation owner and focused test call sites, with no claim-family hits.

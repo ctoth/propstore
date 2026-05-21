@@ -940,15 +940,6 @@ def compile_conflict_sidecar_rows(
     )
 
 
-def populate_stances(
-    conn: sqlite3.Connection,
-    rows: Sequence[ProjectionRow],
-) -> None:
-    from propstore.families.relations.declaration import RELATION_EDGE_TABLE
-
-    RELATION_EDGE_TABLE.insert_rows(conn, (row.values for row in rows))
-
-
 def populate_authored_justifications(
     conn: sqlite3.Connection,
     rows: Sequence[ProjectionRow],

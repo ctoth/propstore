@@ -29,6 +29,12 @@ from propstore.heuristic.calibrate import (
     categorical_to_opinion,
 )
 from propstore.core.base_rates import BaseRateUnresolved
+from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.references import (
+    ClaimReferenceRecord,
+    claim_reference_keys,
+)
+from propstore.families.contexts.documents import ContextReferenceDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.opinion import Opinion, fuse
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -39,25 +45,31 @@ def _vacuous_provenance_payload() -> dict:
     return {"status": "vacuous", "witnesses": []}
 
 
-def _claim_reference_index() -> FamilyReferenceIndex[dict[str, object]]:
-    records: tuple[dict[str, object], ...] = (
-        {"artifact_id": "c1", "aliases": ("test:c1",)},
-        {"artifact_id": "c2", "aliases": ("test:c2",)},
+def _claim_reference_index() -> FamilyReferenceIndex[ClaimReferenceRecord]:
+    records = (
+        ClaimReferenceRecord(
+            claim=ClaimDocument(
+                context=ContextReferenceDocument(id="test"),
+                artifact_id="c1",
+                id="c1",
+            ),
+            source_paper="test",
+        ),
+        ClaimReferenceRecord(
+            claim=ClaimDocument(
+                context=ContextReferenceDocument(id="test"),
+                artifact_id="c2",
+                id="c2",
+            ),
+            source_paper="test",
+        ),
     )
-
-    def artifact_id(record: dict[str, object]) -> str | None:
-        value = record["artifact_id"]
-        return value if isinstance(value, str) else None
-
-    def aliases(record: dict[str, object]) -> tuple[str, ...]:
-        value = record["aliases"]
-        return value if isinstance(value, tuple) else ()
 
     return FamilyReferenceIndex.from_records(
         records,
         family="claim",
-        artifact_id=artifact_id,
-        keys=(aliases,),
+        artifact_id=lambda record: record.artifact_id,
+        keys=(claim_reference_keys,),
     )
 
 
@@ -322,9 +334,9 @@ class TestStanceYamlRoundTrip:
 
 class TestSidecarPopulatesOpinionColumns:
     def test_opinion_columns_from_stance_yaml(self, tmp_path):
-        from propstore.families.claims.declaration import populate_stances
         from propstore.families.relations.declaration import (
             compile_authored_stance_sidecar_rows,
+            populate_stances,
         )
 
         conn = sqlite3.connect(":memory:")
@@ -416,9 +428,9 @@ class TestSidecarPopulatesOpinionColumns:
 
 class TestSidecarHandlesOldFormatYaml:
     def test_missing_opinion_fields_become_null(self, tmp_path):
-        from propstore.families.claims.declaration import populate_stances
         from propstore.families.relations.declaration import (
             compile_authored_stance_sidecar_rows,
+            populate_stances,
         )
 
         conn = sqlite3.connect(":memory:")
