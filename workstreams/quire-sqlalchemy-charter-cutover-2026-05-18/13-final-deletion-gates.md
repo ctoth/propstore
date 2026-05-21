@@ -522,6 +522,11 @@ Gate: no local path, workspace, or file URL Quire dependency.
     fixture with a typed `ClaimNode`.
   - `uv run pyright propstore` passed with 0 errors after the preference typed
     fixture repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-sensitivity-typed-claim tests/test_sensitivity.py::TestSensitivityUnderspecifiedInputs::test_sensitivity_underspecified_inputs`
+    passed 1 test after sensitivity analysis was updated to read the current
+    typed claim numeric payload instead of the deleted `claim.value` surface.
+  - `uv run pyright propstore` passed with 0 errors after the sensitivity
+    typed-claim repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -588,9 +593,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
     - Contract manifest snapshot and version-bump gates still fail and remain
       final settlement work after production semantics stop moving.
     - Preference-import typed fixture drift is repaired after full-6.
-      Semantic repair and sensitivity failures are remaining dict-shaped
-      fixture drift; convert them to typed charter/domain objects instead of
-      accepting dicts in production paths.
+      Sensitivity typed-claim access is repaired after full-6. Semantic repair
+      failures are remaining dict-shaped fixture drift; convert them to typed
+      charter/domain objects instead of accepting dicts in production paths.
 
 Current full-gate repair queue, deletion-first:
 
