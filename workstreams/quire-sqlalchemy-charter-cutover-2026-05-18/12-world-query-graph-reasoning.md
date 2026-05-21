@@ -298,6 +298,22 @@ workstream. Production hits outside those targets block implementation.
   constructors, typed bound/overlay/ATMS graph migration, support-revision,
   ASPIC, and final parity/search gates.
 
+2026-05-21 constructor-name gate update:
+
+- `rg -n -F -- "from_mapping" propstore/core propstore/families
+  propstore/world propstore/worldline propstore/support_revision tests`
+  returned zero hits.
+- `rg -n -F -- "from_row_mapping" propstore/core propstore/families
+  propstore/world propstore/worldline propstore/support_revision tests`
+  returned zero hits.
+- The Phase 14 generic persisted-result, graph-provenance, and
+  support-revision constructor-name deletion target is already closed in the
+  current repo state. No wrapper, alias, renamed generic constructor, or
+  duplicate helper was added.
+- Continue with the remaining Phase 14 targets: typed bound/overlay/ATMS graph
+  migration, graph/analyzer/export migration, SCM/intervention/resolution,
+  support-revision, ASPIC, and final parity/search gates.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
