@@ -358,10 +358,9 @@ class TestFormAlgebra:
     def test_algebra_stores_dimensionally_invalid_with_flag(self, bad_dims_sidecar):
         """Parameterization with wrong dimensions → stored with dim_verified=0."""
         conn = sqlite3.connect(bad_dims_sidecar)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute("SELECT * FROM form_algebra").fetchall()
+        rows = conn.execute("SELECT dim_verified FROM form_algebra").fetchall()
         assert len(rows) >= 1, "dimensionally invalid entries must be stored, not dropped"
-        assert all(row["dim_verified"] == 0 for row in rows), (
+        assert all(row[0] == 0 for row in rows), (
             "dimensionally invalid entries must have dim_verified=0"
         )
 
