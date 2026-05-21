@@ -76,6 +76,13 @@ Binding notes from the 2026-05-20 update:
   "normalize/coerce" helpers in support-revision/world/runtime callers must be
   deleted by fixing the owning query/session boundary or typed construction
   site, not by adding a new coercion layer.
+- Deleting `_optional_numeric` or row helpers must not be repaired by writing
+  repeated field-name validation blocks, repeated constructor kwargs, or local
+  type-narrowing code for `embedding_distance`, `confidence`, opinion fields,
+  or any other relation field. Field shape is carried by typed documents,
+  typed models, and Quire charter field metadata. If a field's type is unclear,
+  fix the typed boundary or charter metadata; do not restate the field list in
+  relation owner code.
 
 Current old-surface findings from `rg` on 2026-05-20:
 
@@ -598,3 +605,9 @@ Recorded 2026-05-20.
   doubles. The next production slice deletes/renames the relation owner
   helper names and updates `derived_build_plan.py`; tests are then repaired to
   use typed `Stance`, `ConceptRelation`, and `ConflictWitness` models directly.
+- Repeated field-name repair rejection: the attempted local repair after
+  deleting `_optional_numeric` repeated relation field names and constructor
+  shape for resolution numeric fields. That edit was discarded before commit.
+  The next production attempt must delete the old helper names while preserving
+  field shape through the typed document/model boundary or Quire field
+  metadata, not by recreating a field list in validation or kwargs assembly.

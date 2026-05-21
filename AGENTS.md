@@ -16,6 +16,7 @@ In this project:
 - Decoded YAML/JSON/SQLite rows may be `dict` only at the IO boundary. Convert them immediately and do not pass them through the core semantic pipeline as domain objects.
 - In the core pipeline, claims, concepts, sources, stances, justifications, and similar semantic objects should not be typed as `dict`/`Dict`.
 - If a representation changes, do types first so the boundary is explicit before adding more behavior.
+- Do not replace deleted helpers with repeated per-field validation blocks, field-name lists, per-field constructor kwargs builders, or local type-narrowing code that restates model/schema fields. If the code needs to know field shape, get it from typed documents/domain objects, Quire charter field metadata, or the exact semantic owner once.
 - When replacing a representation, interface, or identity surface, delete the old production path first and then fix every caller.
 - Do not preserve old and new paths in parallel.
 - Do not add compatibility shims, aliases, fallback readers, bridge normalizers, or dual-path glue unless the user explicitly says old repos or old data must be supported.
