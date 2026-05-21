@@ -24,6 +24,7 @@ from quire.schema_catalog import SchemaCatalog
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.versions import VersionId
 from propstore.core.claim_types import ClaimType
+from propstore.core.justifications import Justification
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.concepts.declaration import (
     Concept,
@@ -66,7 +67,6 @@ class MetaRecord(WorldModel): ...
 class GroundedFactRecord(WorldModel): ...
 class GroundedFactEmptyPredicateRecord(WorldModel): ...
 class GroundedBundleInputRecord(WorldModel): ...
-class JustificationRecord(WorldModel): ...
 class CalibrationCountsRecord(WorldModel): ...
 class EmbeddingModelRecord(WorldModel): ...
 class EmbeddingStatusRecord(WorldModel): ...
@@ -93,7 +93,7 @@ _MODELS: dict[str, type[Any]] = {
     "grounded_fact": GroundedFactRecord,
     "grounded_fact_empty_predicate": GroundedFactEmptyPredicateRecord,
     "grounded_bundle_input": GroundedBundleInputRecord,
-    "justification": JustificationRecord,
+    "justification": Justification,
     "micropublication": Micropublication,
     "micropublication_claim": MicropublicationClaimLink,
     "calibration_counts": CalibrationCountsRecord,
@@ -223,7 +223,7 @@ def world_charter_catalog() -> SchemaCatalog:
         _charter("grounded_fact", GroundedFactRecord, "predicate", _f("predicate", primary_key=True, nullable=False), _f("arguments", primary_key=True, nullable=False), _f("section", primary_key=True, nullable=False)),
         _charter("grounded_fact_empty_predicate", GroundedFactEmptyPredicateRecord, "section", _f("section", primary_key=True, nullable=False), _f("predicate", primary_key=True, nullable=False)),
         _charter("grounded_bundle_input", GroundedBundleInputRecord, "kind", _f("kind", primary_key=True, nullable=False), _i("position", primary_key=True, nullable=False), _b("payload", nullable=False)),
-        _charter("justification", JustificationRecord, "id",
+        _charter("justification", Justification, "id",
             _f("id", primary_key=True, nullable=False), _f("justification_kind", nullable=False), _f("conclusion_claim_id", nullable=False),
             _f("premise_claim_ids", nullable=False), _f("source_relation_type"), _f("source_claim_id"), _f("provenance_json"),
             _f("rule_strength", nullable=False, default_sql="'defeasible'")),
