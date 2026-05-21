@@ -510,3 +510,16 @@ Recorded 2026-05-20.
   final `ConflictWitness` model. Adding model-looking classes in the relation
   declaration file without charter registration is explicitly not a valid
   Phase 11 repair.
+- Chartered relation model slice: `propstore/families/relations/declaration.py`
+  now defines the relation semantic models `RelationEdge`, `Stance`,
+  `ConceptRelation`, and `ConflictWitness`; `propstore/families/world_charters.py`
+  registers `RelationEdge` as the `relation_edge` family model and maps
+  `Stance`/`ConceptRelation` through Quire `CharterPolymorphicModel` on
+  `source_kind`; `ConflictWitness` is registered directly for the
+  `conflict_witness` family. The concept compiler now emits typed
+  `ConceptRelation` objects for derived relation edges instead of relation
+  projection rows. Targeted pyright for the three edited family files passed
+  with 0 errors. Remaining work: remove the raw selector helpers still present
+  in the relation owner, update named callers importing the deleted projection
+  model, run package pyright, then continue through the old-path and parity
+  gates.

@@ -50,12 +50,7 @@ def compile_concept_sidecar_rows(
     form_registry: dict[str, FormDefinition],
     cel_registry: dict[str, ConceptInfo],
 ) -> ConceptWriteModels:
-    from propstore.families.relations.declaration import (
-        CONCEPT_RELATIONSHIP_DISCRIMINATORS,
-        CONCEPT_RELATIONSHIP_STORAGE_MODEL,
-        RelationshipRow,
-        RELATION_EDGE_TABLE,
-    )
+    from propstore.families.relations.declaration import ConceptRelation
 
     form_rows = compile_form_models(form_registry)
     concept_rows: list[Concept] = []
@@ -138,19 +133,14 @@ def compile_concept_sidecar_rows(
                     note=relationship.note,
                 )
             )
-            relationship_row = RelationshipRow(
-                source_id=concept_id,
-                relation_type=relationship.relationship_type,
-                target_id=target_id,
-                conditions_cel=conditions_json,
-                note=relationship.note,
-            )
-            row_values: dict[str, object] = {}
-            for discriminator in CONCEPT_RELATIONSHIP_DISCRIMINATORS:
-                row_values.update(discriminator.row_values())
-            row_values.update(CONCEPT_RELATIONSHIP_STORAGE_MODEL.to_row(relationship_row))
             relation_edge_rows.append(
-                RELATION_EDGE_TABLE.row(**row_values)
+                ConceptRelation(
+                    source_id=concept_id,
+                    relation_type=relationship.relationship_type,
+                    target_id=target_id,
+                    conditions_cel=conditions_json,
+                    note=relationship.note,
+                )
             )
 
         for parameterization in record.parameterizations:

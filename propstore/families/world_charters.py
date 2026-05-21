@@ -12,6 +12,7 @@ from quire.charters import (
     CharterField,
     CharterFtsIndex,
     CharterIndex,
+    CharterPolymorphicModel,
     CharterRelationship,
     CharterVectorCache,
     FamilyCharter,
@@ -38,6 +39,12 @@ from propstore.families.contexts.declaration import (
     ContextLiftingRule,
 )
 from propstore.families.forms.stages import Form, FormAlgebra
+from propstore.families.relations.declaration import (
+    ConceptRelation,
+    ConflictWitness,
+    RelationEdge,
+    Stance,
+)
 from propstore.families.sources.declaration import Source, source_charter
 
 PROPSTORE_WORLD_SCHEMA_VERSION = 6
@@ -52,8 +59,6 @@ class WorldModel:
 
 
 class MetaRecord(WorldModel): ...
-class RelationEdgeRecord(WorldModel): ...
-class ConflictWitnessRecord(WorldModel): ...
 class GroundedFactRecord(WorldModel): ...
 class GroundedFactEmptyPredicateRecord(WorldModel): ...
 class GroundedBundleInputRecord(WorldModel): ...
@@ -75,14 +80,14 @@ _MODELS: dict[str, type[Any]] = {
     "parameterization": Parameterization,
     "parameterization_group": ParameterizationGroup,
     "relationship": ConceptRelationship,
-    "relation_edge": RelationEdgeRecord,
+    "relation_edge": RelationEdge,
     "form": Form,
     "form_algebra": FormAlgebra,
     "context": Context,
     "context_assumption": ContextAssumption,
     "context_lifting_rule": ContextLiftingRule,
     "context_lifting_materialization": ContextLiftingMaterialization,
-    "conflict_witness": ConflictWitnessRecord,
+    "conflict_witness": ConflictWitness,
     "grounded_fact": GroundedFactRecord,
     "grounded_fact_empty_predicate": GroundedFactEmptyPredicateRecord,
     "grounded_bundle_input": GroundedBundleInputRecord,
@@ -157,7 +162,7 @@ def world_charter_catalog() -> SchemaCatalog:
             _f("source_id", nullable=False), _f("type", nullable=False), _f("target_id", nullable=False),
             _f("conditions_cel"), _f("note"),
             indexes=(CharterIndex("idx_rel_source", ("source_id",)), CharterIndex("idx_rel_target", ("target_id",)))),
-        _charter("relation_edge", RelationEdgeRecord, "id",
+        _charter("relation_edge", RelationEdge, "id",
             _i("id", primary_key=True, nullable=False, generated=True), _f("source_kind", nullable=False), _f("source_id", nullable=False),
             _f("relation_type", nullable=False), _f("target_kind", nullable=False), _f("target_id", nullable=False),
             _f("perspective_source_claim_id"), _f("target_justification_id"), _f("conditions_cel"), _f("strength"),
@@ -166,7 +171,13 @@ def world_charter_catalog() -> SchemaCatalog:
             _r("opinion_uncertainty"), _r("opinion_base_rate"),
             indexes=(CharterIndex("idx_relation_edge_source", ("source_kind", "source_id")),
                      CharterIndex("idx_relation_edge_target", ("target_kind", "target_id")),
-                     CharterIndex("idx_relation_edge_type", ("relation_type",)))),
+                     CharterIndex("idx_relation_edge_type", ("relation_type",))),
+            polymorphic_on="source_kind",
+            polymorphic_identity="edge",
+            polymorphic_models=(
+                CharterPolymorphicModel(Stance, "claim"),
+                CharterPolymorphicModel(ConceptRelation, "concept"),
+            )),
         _charter("form", Form, "name", _f("name", primary_key=True), _f("kind", nullable=False), _f("unit_symbol"),
             _i("is_dimensionless", nullable=False, default_sql="0"), _f("dimensions")),
         _charter("form_algebra", FormAlgebra, "id",
@@ -203,7 +214,7 @@ def world_charter_catalog() -> SchemaCatalog:
             ),)),
         _claim_payload_charters()[0], _claim_payload_charters()[1], _claim_payload_charters()[2],
         _claim_source_assertion_charter(),
-        _charter("conflict_witness", ConflictWitnessRecord, "id",
+        _charter("conflict_witness", ConflictWitness, "id",
             _i("id", primary_key=True, nullable=False, generated=True), _f("claim_a_id", nullable=False), _f("claim_b_id", nullable=False),
             _f("concept_id", nullable=False), _f("warning_class", nullable=False), _f("conditions_a"), _f("conditions_b"),
             _f("value_a"), _f("value_b"), _f("derivation_chain"), indexes=(CharterIndex("idx_conflict_witness_concept", ("concept_id",)),)),
@@ -241,6 +252,9 @@ def _charter(
     vector_caches: tuple[CharterVectorCache, ...] = (),
     relationships: tuple[CharterRelationship, ...] = (),
     reference_keys: tuple[ReferenceKey, ...] = (),
+    polymorphic_on: str | None = None,
+    polymorphic_identity: str | None = None,
+    polymorphic_models: tuple[CharterPolymorphicModel, ...] = (),
 ) -> FamilyCharter:
     return FamilyCharter(
         family=_world_family(
@@ -255,6 +269,9 @@ def _charter(
         fts_indexes=fts_indexes,
         vector_caches=vector_caches,
         relationships=relationships,
+        polymorphic_on=polymorphic_on,
+        polymorphic_identity=polymorphic_identity,
+        polymorphic_models=polymorphic_models,
         semantic_metadata={"semantic": "propstore.world"},
     )
 
