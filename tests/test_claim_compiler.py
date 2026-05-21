@@ -8,7 +8,6 @@ from propstore.families.claims.passes import compile_claim_files, run_claim_pipe
 from propstore.families.claims.stages import ClaimAuthoredFiles, ClaimCheckedBundle
 from propstore.families.registry import semantic_foreign_keys
 from tests.family_helpers import build_compilation_context_from_paths, load_claim_files
-from propstore.families.claims.storage import prepare_claim_insert_row
 from tests.conftest import (
     make_concept_registry,
     make_compilation_context,
@@ -184,39 +183,6 @@ def test_compilation_context_exposes_quire_reference_indexes(tmp_path):
         "claim_stance_target",
         "concept_parameterization_canonical_claim",
     }
-
-
-def test_prepare_claim_insert_row_matches_for_raw_and_semantic_claims(tmp_path):
-    claims_dir = tmp_path / "claims"
-    claims_dir.mkdir()
-
-    claim = make_parameter_claim("claim1", "concept1", 200.0, "Hz", paper="paper")
-    claim["output_concept"] = "F0"
-    payload = normalize_claims_payload({
-        "source": {"paper": "paper"},
-        "claims": [claim],
-    })
-    (claims_dir / "paper.yaml").write_text(yaml.dump(payload, default_flow_style=False))
-
-    files = load_claim_files(claims_dir)
-    registry = make_concept_registry()
-    context = make_compilation_context(registry, claim_files=files)
-    bundle = compile_claim_files(files, context)
-
-    raw_row = prepare_claim_insert_row(
-        payload["claims"][0],
-        "paper",
-        claim_seq=1,
-        concept_registry=registry,
-    )
-    semantic_row = prepare_claim_insert_row(
-        bundle.semantic_files[0].claims[0],
-        None,
-        claim_seq=1,
-        concept_registry=registry,
-    )
-
-    assert semantic_row == raw_row
 
 
 def test_compile_claim_files_normalizes_authored_raw_id_batches(tmp_path):

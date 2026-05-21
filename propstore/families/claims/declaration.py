@@ -46,8 +46,8 @@ from propstore.families.claims.references import (
 )
 from propstore.families.claims.storage import (
     extract_deferred_stance_rows_with_diagnostics,
-    prepare_claim_concept_link_rows,
 )
+from propstore.families.claims.documents import claim_type_contract_for
 from propstore.families.claims.stages import (
     ClaimAlgorithmVariable,
     claim_algorithm_variable_payload,
@@ -703,24 +703,73 @@ def compile_claim_models(
             algorithm_payloads.append(algorithm_payload)
             source_assertions.append(source_assertion)
             seen_claim_versions[claim_id] = version_id
-            for values in prepare_claim_concept_link_rows(semantic_claim):
-                role = values[2]
-                if not isinstance(role, ClaimConceptLinkRole):
-                    raise TypeError("compiled claim concept-link role must be typed")
-                link_key = (values[0], role, values[3], values[1])
-                if link_key in seen_claim_link_keys:
-                    continue
-                seen_claim_link_keys.add(link_key)
-                link = ClaimConceptLink(
-                    claim_id=values[0],
-                    concept_id=values[1],
-                    role=role,
-                    ordinal=values[3],
-                    binding_name=values[4],
-                )
-                link.claim = claim_model
-                claim_model.concept_links.append(link)
-                claim_links.append(link)
+            claim_type_contract = claim_type_contract_for(claim_doc.type)
+            if claim_type_contract is not None:
+                for declaration in claim_type_contract.concept_links:
+                    if declaration.source == "scalar":
+                        if declaration.field == "output_concept":
+                            linked_concepts = (
+                                ((claim_doc.output_concept, None),)
+                                if claim_doc.output_concept is not None
+                                else ()
+                            )
+                        elif declaration.field == "target_concept":
+                            linked_concepts = (
+                                ((claim_doc.target_concept, None),)
+                                if claim_doc.target_concept is not None
+                                else ()
+                            )
+                        else:
+                            raise ValueError(
+                                "unsupported scalar claim concept-link field: "
+                                f"{declaration.field}"
+                            )
+                    elif declaration.source == "list":
+                        if declaration.field != "concepts":
+                            raise ValueError(
+                                "unsupported list claim concept-link field: "
+                                f"{declaration.field}"
+                            )
+                        linked_concepts = tuple(
+                            (concept_id, None)
+                            for concept_id in claim_doc.concepts
+                        )
+                    elif declaration.source == "bindings":
+                        if declaration.field == "variables":
+                            linked_concepts = tuple(
+                                (variable.concept, variable.binding_name)
+                                for variable in claim_doc.variables
+                            )
+                        elif declaration.field == "parameters":
+                            linked_concepts = tuple(
+                                (parameter.concept, parameter.name)
+                                for parameter in claim_doc.parameters
+                            )
+                        else:
+                            raise ValueError(
+                                "unsupported binding claim concept-link field: "
+                                f"{declaration.field}"
+                            )
+                    else:
+                        raise ValueError(
+                            "unsupported claim concept-link source: "
+                            f"{declaration.source}"
+                        )
+                    for ordinal, (concept_id, binding_name) in enumerate(linked_concepts):
+                        link_key = (claim_id, declaration.role, ordinal, concept_id)
+                        if link_key in seen_claim_link_keys:
+                            continue
+                        seen_claim_link_keys.add(link_key)
+                        link = ClaimConceptLink(
+                            claim_id=claim_id,
+                            concept_id=concept_id,
+                            role=declaration.role,
+                            ordinal=ordinal,
+                            binding_name=binding_name,
+                        )
+                        link.claim = claim_model
+                        claim_model.concept_links.append(link)
+                        claim_links.append(link)
             deferred_stance_rows, deferred_stance_diagnostics = (
                 extract_deferred_stance_rows_with_diagnostics(
                     semantic_claim,

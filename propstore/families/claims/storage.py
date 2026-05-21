@@ -2,72 +2,14 @@
 
 from __future__ import annotations
 
-import copy
 import json
 
 from quire.references import FamilyReferenceIndex
 
 from propstore.compiler.ir import SemanticClaim
-from propstore.core.relations import ClaimConceptLinkRole
-from propstore.families.claims.documents import (
-    ClaimConceptLinkDeclaration,
-    claim_type_contract_for,
-)
 from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.diagnostics.declaration import QuarantineDiagnostic
 from propstore.stances import VALID_STANCE_TYPES
-
-
-def _iter_claim_concept_link_values(
-    claim: dict[str, object],
-) -> list[tuple[str, ClaimConceptLinkRole, int, str | None]]:
-    claim_type = claim.get("type")
-    contract = claim_type_contract_for(claim_type)
-    if contract is None:
-        return []
-
-    rows: list[tuple[str, ClaimConceptLinkRole, int, str | None]] = []
-    for declaration in contract.concept_links:
-        rows.extend(_claim_concept_link_values_for_declaration(claim, declaration))
-    return rows
-
-
-def _claim_concept_link_values_for_declaration(
-    claim: dict[str, object],
-    declaration: ClaimConceptLinkDeclaration,
-) -> list[tuple[str, ClaimConceptLinkRole, int, str | None]]:
-    raw_value = claim.get(declaration.field)
-    if declaration.source == "scalar":
-        if isinstance(raw_value, str) and raw_value:
-            return [(raw_value, declaration.role, 0, None)]
-        return []
-    if declaration.source == "list":
-        if not isinstance(raw_value, list):
-            return []
-        rows: list[tuple[str, ClaimConceptLinkRole, int, str | None]] = []
-        for ordinal, item in enumerate(raw_value):
-            if isinstance(item, str) and item:
-                rows.append((item, declaration.role, ordinal, None))
-        return rows
-    if declaration.source == "bindings":
-        if not isinstance(raw_value, list):
-            return []
-        rows = []
-        for ordinal, item in enumerate(raw_value):
-            if not isinstance(item, dict):
-                continue
-            concept_id = item.get("concept")
-            if not isinstance(concept_id, str) or not concept_id:
-                continue
-            binding_name = item.get("name")
-            rows.append((
-                concept_id,
-                declaration.role,
-                ordinal,
-                binding_name if isinstance(binding_name, str) and binding_name else None,
-            ))
-        return rows
-    raise ValueError(f"unsupported claim concept link source: {declaration.source}")
 
 
 def normalize_conditions_differ(value: object) -> object:
@@ -201,25 +143,3 @@ def extract_deferred_stance_rows_with_diagnostics(
             claim_id,
         ))
     return rows, tuple(diagnostics)
-
-
-def prepare_claim_concept_link_rows(
-    claim: dict | SemanticClaim,
-) -> tuple[tuple[str, str, ClaimConceptLinkRole, int, str | None], ...]:
-    if isinstance(claim, SemanticClaim):
-        normalized_claim = copy.deepcopy(claim.resolved_claim.to_payload())
-    else:
-        normalized_claim = copy.deepcopy(claim)
-    claim_id = normalized_claim.get("artifact_id", normalized_claim.get("id"))
-    if not isinstance(claim_id, str) or not claim_id:
-        return ()
-    return tuple(
-        (
-            claim_id,
-            concept_id,
-            role,
-            ordinal,
-            binding_name,
-        )
-        for concept_id, role, ordinal, binding_name in _iter_claim_concept_link_values(normalized_claim)
-    )

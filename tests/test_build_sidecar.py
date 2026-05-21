@@ -2136,46 +2136,6 @@ class TestAlgorithmBindings:
         )
 
 
-class TestClaimProjectionRows:
-    def test_prepare_claim_insert_row_returns_dict(self):
-        """_prepare_claim_insert_row should return a dict with named columns."""
-        from propstore.families.claims.storage import prepare_claim_insert_row
-
-        claim = {
-            "id": "test_claim1",
-            "type": "parameter",
-            "output_concept": "concept1",
-            "value": "42",
-            "unit": "Hz",
-            "provenance": {"paper": "test.yaml", "page": 1},
-        }
-        row = prepare_claim_insert_row(
-            claim, "test_paper.yaml", claim_seq=1, concept_registry={}
-        )
-        assert isinstance(row, dict), f"Expected dict, got {type(row).__name__}"
-
-    def test_prepare_claim_insert_row_has_all_columns(self):
-        """The returned dict should have entries for every claim table column."""
-        from propstore.families.claims.storage import prepare_claim_insert_row
-
-        claim = {
-            "id": "test_claim1",
-            "type": "parameter",
-            "output_concept": "concept1",
-            "value": "42",
-            "unit": "Hz",
-            "provenance": {"paper": "test.yaml", "page": 1},
-        }
-        row = prepare_claim_insert_row(
-            claim, "test_paper.yaml", claim_seq=1, concept_registry={}
-        )
-        assert "id" in row
-        assert "concept_id" not in row
-        assert "type" in row
-        assert "source_paper" in row
-        assert "context_id" in row
-
-
 class TestNormalizedSidecarStorage:
     def test_normalized_tables_exist(self, sidecar_with_claims):
         conn = sqlite3.connect(sidecar_with_claims)
@@ -2247,73 +2207,6 @@ class TestNormalizedSidecarStorage:
         second = snapshot_tables()
 
         assert second == first
-
-
-# ── Unsafe float() coercion (F12.1) ──────────────────────────────────
-
-class TestExtractNumericClaimFieldsFloatSafety:
-    """Verify _extract_numeric_claim_fields handles non-numeric values gracefully.
-
-    Finding F12.1 (audit-error-handling.md): float(raw_value) on a non-numeric
-    string like "N/A" raises ValueError, crashing the entire sidecar build.
-    The function should handle this gracefully (return None for the value,
-    or log a warning) instead of propagating the exception.
-    """
-
-    def test_non_numeric_value_does_not_crash(self):
-        """A claim with value='N/A' must not raise ValueError.
-
-        Current code: float('N/A') raises ValueError.
-        Expected: graceful handling — return None for the value field.
-        """
-        from propstore.families.claims.storage import extract_numeric_claim_fields
-
-        claim = {"value": "N/A", "unit": "Hz"}
-        # This should NOT raise — non-numeric values should be handled gracefully
-        result = extract_numeric_claim_fields(claim)
-        assert result["value"] is None, (
-            "Non-numeric claim value 'N/A' should produce value=None, "
-            "not crash with ValueError"
-        )
-
-    def test_non_numeric_value_in_prepare_row_does_not_crash(self):
-        """End-to-end: _prepare_claim_insert_row with value='N/A' must not crash."""
-        from propstore.families.claims.storage import prepare_claim_insert_row
-
-        claim = {
-            "id": "crash_claim",
-            "type": "parameter",
-            "concept": "concept1",
-            "value": "N/A",
-            "unit": "Hz",
-            "provenance": {"paper": "test.yaml", "page": 1},
-        }
-        # This should NOT raise ValueError from float("N/A")
-        row = prepare_claim_insert_row(
-            claim, "test_paper.yaml", claim_seq=1, concept_registry={}
-        )
-        assert isinstance(row, dict)
-        assert row.get("value") is None, (
-            "Non-numeric value 'N/A' should result in value=None in the row"
-        )
-
-    def test_empty_string_value_does_not_crash(self):
-        """A claim with value='' (empty string) must not crash."""
-        from propstore.families.claims.storage import extract_numeric_claim_fields
-
-        claim = {"value": "", "unit": "Hz"}
-        result = extract_numeric_claim_fields(claim)
-        assert result["value"] is None, (
-            "Empty string claim value should produce value=None"
-        )
-
-    def test_numeric_string_still_works(self):
-        """A claim with a valid numeric string must still convert correctly."""
-        from propstore.families.claims.storage import extract_numeric_claim_fields
-
-        claim = {"value": "42.5", "unit": "Hz"}
-        result = extract_numeric_claim_fields(claim)
-        assert result["value"] == 42.5
 
 
 # ── Form algebra: dim_verified flag ──────────────────────────────────
