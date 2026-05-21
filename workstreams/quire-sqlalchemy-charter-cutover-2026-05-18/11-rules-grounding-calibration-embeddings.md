@@ -477,6 +477,21 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   micropub-typed-dedupe-shape tests/test_micropub_identity_dedupe_shape.py`
   passed with 2 tests; log:
   `logs/test-runs/micropub-typed-dedupe-shape-20260521-102405.log`.
+- Test commit `78d1e70c` migrated
+  `tests/remediation/phase_7_race_atomicity/test_T7_6_full_race_suite.py`
+  from raw `connect_sqlite_store` sidecar `meta` readback to Quire SQLAlchemy
+  `readonly_session` over `world_sqlalchemy_schema()`.
+- `rg -n -F -- "connect_sqlite_store"
+  tests/remediation/phase_7_race_atomicity/test_T7_6_full_race_suite.py`
+  and `rg -n -F -- "row_factory"
+  tests/remediation/phase_7_race_atomicity/test_T7_6_full_race_suite.py`
+  returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  t7-6-sqlalchemy-session
+  tests/remediation/phase_7_race_atomicity/test_T7_6_full_race_suite.py`
+  passed with 1 stateful aggregate test; log:
+  `logs/test-runs/t7-6-sqlalchemy-session-20260521-102549.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
