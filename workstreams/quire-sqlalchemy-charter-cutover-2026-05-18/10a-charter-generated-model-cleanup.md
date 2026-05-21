@@ -183,6 +183,14 @@ that owner workstream.
   Deleted storage field annotations, constructor field lists, and the
   `MicropublicationWriteModels` batch-carrier DTO; build planning now consumes
   typed positional batches. `uv run pyright propstore` passed after the slice.
+- Justification slice complete: `Justification` now subclasses `FamilyModel`
+  with methods only. Deleted storage field annotations and the constructor
+  field list, and moved graph-type imports out of the module import path so
+  the earlier `claims.declaration`/`core.justifications`/`core.graph_types`
+  collection cycle no longer occurs. `uv run pyright propstore` passed after
+  the slice. The follow-up focused logged test run collected and ran; 35 tests
+  passed and 4 failed on old dict-shaped concept fakes that must be updated to
+  typed concept models before final gates.
 
 ## Completion Criteria
 
