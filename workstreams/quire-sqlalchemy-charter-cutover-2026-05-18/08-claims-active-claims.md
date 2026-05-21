@@ -1267,3 +1267,10 @@ Current binding queue:
   the world charters; and move claim/concept embedding stores to Quire
   SQLAlchemy vector-cache APIs and typed session model queries. Do not keep
   the retained sqlite projection API as a Propstore fallback.
+- Concept embedding runtime cleanup: commit `bc8d8f92` removed the raw
+  SQLite connection, `load_vec_extension`, and connection-shaped embedding API
+  calls from `propstore/families/concepts/sidecar_runtime.py`. Concept
+  embedding and similarity requests now pass the typed `DerivedStoreHandle`
+  directly to the Quire SQLAlchemy vector-cache backed embedding APIs. Focused
+  verification `uv run pyright propstore/families/concepts/sidecar_runtime.py`
+  passed with 0 errors.
