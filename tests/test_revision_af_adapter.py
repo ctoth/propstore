@@ -11,6 +11,7 @@ from propstore.claim_graph import build_argumentation_framework
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import SupportQuality
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
+from tests.claim_model_helpers import claim_model
 from tests.test_revision_bound_world import _atom_id_for_claim, _operator_bound
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
@@ -36,7 +37,9 @@ def test_project_epistemic_state_builds_claim_graph_inputs_over_accepted_claims(
     assert "legacy" not in view.active_claim_ids
     assert "claim_synthetic" in view.active_claim_ids
     assert any(claim_id != "claim_synthetic" for claim_id in view.active_claim_ids)
-    assert claim_rows["claim_synthetic"].value == 9.0
+    synthetic_payload = claim_rows["claim_synthetic"].numeric_payload
+    assert synthetic_payload is not None
+    assert synthetic_payload.value == 9.0
     assert "legacy" not in claim_rows
     assert af.arguments == frozenset(view.active_claim_ids)
 
@@ -46,13 +49,12 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
 
     store = _RevisionStore(
         claims=[
-            {
-                "id": "claim_exact",
-                "concept_id": "concept_exact",
-                "type": "parameter",
-                "value": 1.0,
-                "conditions_cel": json.dumps(["x == 1"]),
-            }
+            claim_model(
+                claim_id="claim_exact",
+                concept_id="concept_exact",
+                value=1.0,
+                conditions_cel=json.dumps(["x == 1"]),
+            )
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
@@ -68,7 +70,7 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
     argument = next(arg for arg in projection.arguments if arg.claim_id == "claim_exact")
 
     assert set(view.active_claim_ids) == {"claim_exact"}
-    assert {str(claim.claim_id) for claim in view.active_claims} == {"claim_exact"}
+    assert {str(claim.id) for claim in view.active_claims} == {"claim_exact"}
     assert view.support_metadata["claim_exact"][1] is SupportQuality.EXACT
     assert argument.support_quality is SupportQuality.EXACT
     assert argument.label == view.support_metadata["claim_exact"][0]

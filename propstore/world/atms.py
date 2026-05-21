@@ -77,7 +77,7 @@ from propstore.families.concepts.declaration import (
     Parameterization,
     ParameterizationInput,
 )
-from propstore.support_revision.projection import situated_assertion_from_active_claim
+from propstore.support_revision.projection import situated_assertion_from_claim
 from propstore.world.types import (
     ATMSConceptFutureStatusEntry,
     ATMSConceptInterventionPlan,
@@ -1391,7 +1391,7 @@ class ATMSEngine:
         for claim in sorted(self._runtime.active_claims(), key=lambda row: str(row.id)):
             claim_id = str(claim.id)
             node_id = str(
-                situated_assertion_from_active_claim(
+                situated_assertion_from_claim(
                     claim,
                     context_id=self._runtime.environment.context_id,
                 ).assertion_id

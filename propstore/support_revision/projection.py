@@ -47,7 +47,7 @@ def _claim_support_lookup_id(claim: Claim) -> str:
     return to_claim_id(claim.id)
 
 
-def situated_assertion_from_active_claim(
+def situated_assertion_from_claim(
     claim: Claim,
     *,
     context_id: object | None,
@@ -74,7 +74,7 @@ def project_belief_base(bound, *, include_assumptions: bool = True) -> BeliefBas
         label, quality = bound.claim_support(claim)
         if quality is not SupportQuality.EXACT:
             continue
-        assertion = situated_assertion_from_active_claim(
+        assertion = situated_assertion_from_claim(
             claim,
             context_id=bound._environment.context_id,
         )

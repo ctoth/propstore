@@ -1,30 +1,56 @@
 from __future__ import annotations
 
 import json
+from typing import Any, cast
 
+from propstore.cel_types import to_cel_expr
+from propstore.core.id_types import to_context_id
 from propstore.world import BoundWorld, Environment, ReasoningBackend, RenderPolicy
 from propstore.core.conditions import ConditionSolver
+from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import ConflictRowInput, StanceRowInput
+from propstore.support_revision.state import AssertionAtom
 from tests.atms_helpers import (
+    condition_ir_json,
     condition_registry_for_rows,
     leaf_lifting_system,
-    rows_with_condition_ir,
 )
+from tests.claim_model_helpers import claim_model
 
 
 class _RevisionStore:
-    def __init__(self, *, claims: list[dict]) -> None:
-        self._condition_registry = condition_registry_for_rows(claims)
-        self._claims = rows_with_condition_ir(claims, self._condition_registry)
+    def __init__(self, *, claims: list[Claim]) -> None:
+        condition_rows = [
+            {"conditions_cel": claim.text_payload.conditions_cel}
+            for claim in claims
+            if claim.text_payload is not None
+        ]
+        self._condition_registry = condition_registry_for_rows(condition_rows)
+        self._claims = tuple(claims)
+        for claim in self._claims:
+            text_payload = claim.text_payload
+            if (
+                text_payload is not None
+                and text_payload.conditions_cel
+                and not text_payload.conditions_ir
+            ):
+                text_payload.conditions_ir = condition_ir_json(
+                    text_payload.conditions_cel,
+                    self._condition_registry,
+                )
         self._solver = ConditionSolver(self._condition_registry)
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
+    def claims_for(self, concept_id: str | None) -> list[Claim]:
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim.get("concept_id") == concept_id]
+        return [
+            claim
+            for claim in self._claims
+            if claim.output_concept_id == concept_id or claim.target_concept == concept_id
+        ]
 
-    def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if claim["id"] == claim_id), None)
+    def get_claim(self, claim_id: str) -> Claim | None:
+        return next((claim for claim in self._claims if claim.id == claim_id), None)
 
     def all_parameterizations(self) -> list[dict]:
         return []
@@ -36,7 +62,14 @@ class _RevisionStore:
         return []
 
     def all_concepts(self) -> list[dict]:
-        concept_ids = sorted({claim["concept_id"] for claim in self._claims})
+        concept_ids = sorted(
+            {
+                concept_id
+                for claim in self._claims
+                for concept_id in (claim.output_concept_id, claim.target_concept)
+                if concept_id is not None
+            }
+        )
         return [{"id": concept_id, "canonical_name": concept_id} for concept_id in concept_ids]
 
     def explain(self, claim_id: str) -> list[StanceRowInput]:
@@ -50,7 +83,7 @@ class _RevisionStore:
 
     def resolve_concept(self, name: str) -> str | None:
         for claim in self._claims:
-            if claim.get("concept_id") == name:
+            if claim.output_concept_id == name or claim.target_concept == name:
                 return name
         return None
 
@@ -70,8 +103,8 @@ def _make_bound(
 
     environment = Environment(
         bindings=bindings,
-        context_id=context_id,
-        effective_assumptions=effective_assumptions,
+        context_id=None if context_id is None else to_context_id(context_id),
+        effective_assumptions=tuple(to_cel_expr(item) for item in effective_assumptions),
         assumptions=compile_environment_assumptions(
             bindings=bindings,
             effective_assumptions=effective_assumptions,
@@ -79,7 +112,7 @@ def _make_bound(
         ),
     )
     return BoundWorld(
-        store,
+        cast(Any, store),
         environment=environment,
         lifting_system=leaf_lifting_system(context_id) if context_id is not None else None,
         policy=RenderPolicy(reasoning_backend=ReasoningBackend.ATMS),
@@ -91,20 +124,18 @@ def test_project_belief_base_includes_exact_support_claims_and_active_assumption
 
     store = _RevisionStore(
         claims=[
-            {
-                "id": "claim_exact",
-                "concept_id": "concept_exact",
-                "type": "parameter",
-                "value": 1.0,
-                "conditions_cel": json.dumps(["x == 1"]),
-            },
-            {
-                "id": "claim_semantic_only",
-                "concept_id": "concept_semantic",
-                "type": "parameter",
-                "value": 2.0,
-                "conditions_cel": json.dumps(["x > 0"]),
-            },
+            claim_model(
+                claim_id="claim_exact",
+                concept_id="concept_exact",
+                value=1.0,
+                conditions_cel=json.dumps(["x == 1"]),
+            ),
+            claim_model(
+                claim_id="claim_semantic_only",
+                concept_id="concept_semantic",
+                value=2.0,
+                conditions_cel=json.dumps(["x > 0"]),
+            ),
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
@@ -125,20 +156,18 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
 
     store = _RevisionStore(
         claims=[
-            {
-                "id": "claim_unconditional",
-                "concept_id": "concept_base",
-                "type": "parameter",
-                "value": 1.0,
-                "conditions_cel": None,
-            },
-            {
-                "id": "claim_override_target",
-                "concept_id": "concept_focus",
-                "type": "parameter",
-                "value": 2.0,
-                "conditions_cel": json.dumps(["x == 1"]),
-            },
+            claim_model(
+                claim_id="claim_unconditional",
+                concept_id="concept_base",
+                value=1.0,
+                conditions_cel=None,
+            ),
+            claim_model(
+                claim_id="claim_override_target",
+                concept_id="concept_focus",
+                value=2.0,
+                conditions_cel=json.dumps(["x == 1"]),
+            ),
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
@@ -146,7 +175,8 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
     override_atom_id = next(
         atom.atom_id
         for atom in base.atoms
-        if any(str(claim.claim_id) == "claim_override_target" for claim in atom.source_claims)
+        if isinstance(atom, AssertionAtom)
+        and any(str(claim.id) == "claim_override_target" for claim in atom.source_claims)
     )
 
     report = compute_entrenchment(
@@ -164,13 +194,12 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
 def test_bound_world_revision_phase1_delegates_to_revision_package() -> None:
     store = _RevisionStore(
         claims=[
-            {
-                "id": "claim_exact",
-                "concept_id": "concept_exact",
-                "type": "parameter",
-                "value": 1.0,
-                "conditions_cel": json.dumps(["x == 1"]),
-            }
+            claim_model(
+                claim_id="claim_exact",
+                concept_id="concept_exact",
+                value=1.0,
+                conditions_cel=json.dumps(["x == 1"]),
+            )
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
