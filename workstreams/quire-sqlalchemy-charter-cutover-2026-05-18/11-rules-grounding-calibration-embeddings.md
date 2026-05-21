@@ -660,9 +660,26 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   `logs/test-runs/build-sidecar-no-row-helper-20260521-111312.log`.
 - The remaining full-file failures are not row-access failures. They cover the
   existing typed charter behavior gaps for algorithm `canonical_ast`, equation
-  `sympy_error`, `value_si`/bounds SI normalization, `auto_summary`, and the
-  obsolete embedding snapshot patch target
+  `sympy_error`, `value_si`/bounds SI normalization, `auto_summary`, and an
+  obsolete embedding snapshot patch target.
+- Test commit `e5563ef2` deleted the remaining test references to
   `propstore.families.embeddings.declaration.load_vec_extension`.
+- The same commit deleted `tests/test_sidecar_projection_vec_contract.py`
+  because raw sqlite-vec extension loading and virtual-table mechanics are
+  Quire vector backend behavior, not a Propstore sidecar contract.
+- Embedding restore diagnostic tests now patch the current
+  `propstore.derived_build.extract_embedding_snapshot_from_store` and
+  `_restore_embedding_snapshot` hooks, and read diagnostics through Quire
+  `readonly_session` over `world_sqlalchemy_schema()`.
+- Claim relation proposal tests now patch the current
+  `propstore.app.claims.relate_all_from_sidecar` and
+  `relate_claim_from_sidecar` owner seams instead of monkeypatching the
+  deleted vector loader or old heuristic raw-connection functions.
+- `rg -n -F -- "load_vec_extension" propstore tests` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the cleanup.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  no-load-vec-extension-tests ...` passed with 5 tests; log:
+  `logs/test-runs/no-load-vec-extension-tests-20260521-112028.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
