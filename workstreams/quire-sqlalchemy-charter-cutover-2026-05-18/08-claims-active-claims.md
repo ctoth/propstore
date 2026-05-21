@@ -1655,3 +1655,23 @@ Current binding queue:
   scripts/run_logged_pytest.ps1 -Label render-policy-source-charter
   tests/test_render_policy_filtering.py` passed with 11 tests and log
   `logs\test-runs\render-policy-source-charter-20260520-201119.log`.
+- Phase 6 overlay typed-store cleanup: commit `de705138` deleted
+  `_Phase6HypotheticalStore` and replaced the dict-shaped test store with a
+  real current-schema SQLite sidecar created through
+  `build_world_projection_schema`, populated through Quire SQLAlchemy table
+  metadata, and opened through
+  `world_query_from_sqlite_path(...).bind(...)`. The Phase 6 overlay tests now
+  exercise the real typed `WorldQuery` paths for `claims_for`, `get_claim`,
+  `claims_by_ids`, concept-link filtering, and condition solving instead of a
+  local query loop. The same slice centralized typed `Claim` to graph metadata
+  projection, wiring only the exact numeric payload fields listed in this
+  workstream into `ClaimNode.attributes`; synthetic overlay graph inputs now
+  carry typed `sample_size` evidence instead of loose `confidence`, and stale
+  `Claim.claim_id` assertions in `tests/test_world_query.py` now read
+  `Claim.id`. Searches for `_Phase6HypotheticalStore`, `.claim_id` in
+  `tests/test_world_query.py`, `claim["` in `tests/test_world_query.py`, and
+  `confidence=1.0` in `tests/test_world_query.py` returned zero hits.
+  `uv run pyright propstore` passed with 0 errors, and logged focused pytest
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-query-phase6-typed-store ...` passed with 8 tests and log
+  `logs\test-runs\world-query-phase6-typed-store-20260520-202952.log`.
