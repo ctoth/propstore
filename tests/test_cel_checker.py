@@ -560,7 +560,7 @@ class TestBuildCelRegistry:
 
     def test_store_projection_rejects_missing_kind(self):
         row = Concept(
-            concept_id="ps:concept:temperature",
+            id="ps:concept:temperature",
             canonical_name="temperature",
             kind_type=None,
             form=None,
