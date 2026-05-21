@@ -671,3 +671,11 @@ Recorded 2026-05-20.
   writes the corresponding source artifact payload once. Remaining queue:
   repair `tests/test_worldline.py` fake stores to return typed `Claim` objects,
   rerun the required logged pytest gate, then continue to parity.
+- Worldline typed-claim fixture repair: commit `52d5a2ff` updated
+  `tests/test_worldline.py` fake world and bound-world fixtures so
+  `ValueResult.claims`, `active_claims`, `claims_by_ids`, and `get_claim`
+  return typed `Claim` objects built at the test boundary. This deletes the
+  remaining worldline fake claim dictionaries exposed by the required gate
+  without adding a production coercion, compatibility adapter, or dict repair
+  path. The next required action is to rerun the `relations-charter` logged
+  pytest gate.
