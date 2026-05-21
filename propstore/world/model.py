@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, selectinload
 from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import FtsQuerySyntaxError, search_fts_index
 from quire.sqlalchemy_store import validate_sqlalchemy_store
@@ -29,7 +29,6 @@ from propstore.core.id_types import (
 )
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.labels import compile_environment_assumptions
-from propstore.core.micropublications import ActiveMicropublication
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.store_results import (
     WorldStoreStats,
@@ -50,7 +49,7 @@ from propstore.families.relations.declaration import (
     ConflictWitness,
     Stance,
 )
-from propstore.families.micropublications.declaration import select_all_micropublications
+from propstore.families.micropublications.declaration import Micropublication
 from propstore.families.concepts.declaration import (
     Concept,
     ConceptSearchQuerySyntaxError,
@@ -761,8 +760,16 @@ class WorldQuery(WorldStore):
                     )
             return list(derived.execute(statement).scalars())
 
-    def all_micropublications(self) -> list[ActiveMicropublication]:
-        return select_all_micropublications(self._conn)
+    def all_micropublications(self) -> list[Micropublication]:
+        schema = world_sqlalchemy_schema()
+        micropublication = schema.model("micropublication")
+        with self._derived_store.readonly_session(schema) as derived:
+            statement = (
+                select(micropublication)
+                .options(selectinload(micropublication.claim_links))
+                .order_by(micropublication.id)
+            )
+            return list(derived.execute(statement).scalars())
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
         schema = world_sqlalchemy_schema()
