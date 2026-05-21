@@ -35,7 +35,7 @@ from propstore.world.queries import (
     WorldStatusRequest,
     UnknownClaimError,
     UnknownConceptError,
-    WorldBindActiveReport,
+    WorldBindActivationReport,
     WorldBindConceptReport,
     WorldResolveError,
     WorldHypotheticalReport,

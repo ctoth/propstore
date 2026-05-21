@@ -17,7 +17,7 @@ from propstore.app.world import (
     UnknownClaimError,
     AmbiguousConceptError,
     UnknownConceptError,
-    WorldBindActiveReport,
+    WorldBindActivationReport,
     WorldBindConceptReport,
     world_algorithms as run_world_algorithms,
     world_bind as run_world_bind,
@@ -221,7 +221,7 @@ def world_bind(obj: dict, args: tuple[str, ...], fmt: str) -> None:
             )
         return
 
-    assert isinstance(report, WorldBindActiveReport)
+    assert isinstance(report, WorldBindActivationReport)
     emit(f"Active claims: {report.active_claim_count}")
     for claim in report.claims:
         emit(

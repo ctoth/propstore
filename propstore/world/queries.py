@@ -141,12 +141,12 @@ class WorldBindConceptReport(JsonReportMixin):
 
 
 @dataclass(frozen=True)
-class WorldBindActiveReport(JsonReportMixin):
+class WorldBindActivationReport(JsonReportMixin):
     active_claim_count: int
     claims: tuple[WorldBindClaimLine, ...]
 
 
-WorldBindReport = WorldBindConceptReport | WorldBindActiveReport
+WorldBindReport = WorldBindConceptReport | WorldBindActivationReport
 
 
 @dataclass(frozen=True)
@@ -508,7 +508,7 @@ def query_bound_world(
         )
 
     active_claims = bound.active_claims()
-    return WorldBindActiveReport(
+    return WorldBindActivationReport(
         active_claim_count=len(active_claims),
         claims=tuple(
             WorldBindClaimLine(
