@@ -974,7 +974,6 @@ class TestUnboundQueries:
     def test_similar_claims_returns_typed_hits(self, world, monkeypatch):
         import propstore.families.embeddings.declaration as embeddings
 
-        monkeypatch.setattr(embeddings, "load_vec_extension", lambda conn: None)
         monkeypatch.setattr(
             embeddings,
             "get_registered_models",
@@ -1011,7 +1010,6 @@ class TestUnboundQueries:
     def test_similar_concepts_returns_typed_hits(self, world, monkeypatch):
         import propstore.families.embeddings.declaration as embeddings
 
-        monkeypatch.setattr(embeddings, "load_vec_extension", lambda conn: None)
         monkeypatch.setattr(
             embeddings,
             "get_registered_models",
