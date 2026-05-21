@@ -375,6 +375,10 @@ Gate: no local path, workspace, or file URL Quire dependency.
   `f26d402e Use typed ASPIC fixture inputs`.
 - Propstore remediation bridge typed-fixture cleanup is committed as
   `1a2a2c6b Use typed remediation bridge fixtures`.
+- Propstore preference typed-claim cleanup is committed as
+  `eea33f7b Use typed preference claim fixtures`.
+- Propstore revision assertion cleanup is committed as
+  `565a8653 Include claim content in revision assertions`.
 - Passing focused gates:
   - `uv run pyright propstore`
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
@@ -385,6 +389,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 30 tests.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-remediation-bridge-typed-2 tests/remediation/phase_4_layers/test_T4_8_exception_defeats_post_preference.py tests/remediation/phase_5_bridge/test_T5_11_exception_sibling_survival.py tests/remediation/phase_5_bridge/test_T5_1_undermines_preference_sensitive.py tests/remediation/phase_5_bridge/test_T5_6_bridge_edge_domain_invariant.py tests/remediation/phase_5_bridge/test_T5_7_justification_unknown_premise.py tests/remediation/phase_5_bridge/test_T5_8_projection_typed_claim_identity.py tests/remediation/phase_5_bridge/test_T5_9_projection_premise_dependency_split.py`
     passed 7 tests.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-preference-typed-claims tests/test_preference.py tests/remediation/phase_3_ignorance/test_T3_3_preference_missing_metadata_vacuous.py`
+    passed 13 tests.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-revision-typed-claims-2 tests/test_revision_assertion_identity.py tests/test_revision_projection.py tests/test_revision_state.py`
+    passed 7 tests.
+  - `uv run pyright propstore` passed with 0 errors after the revision
+    assertion identity production change.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
