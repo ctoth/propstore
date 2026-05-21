@@ -1344,6 +1344,20 @@ Current binding queue:
   `powershell -File scripts/run_logged_pytest.ps1 -Label typed-claim-app-views
   tests/test_claim_views.py tests/test_concept_views.py
   tests/test_neighborhoods.py` passed with 21 tests.
+- Algorithm-stage row-model test cleanup: commit `be0581fd` removed the
+  `ActiveClaim` and `CLAIM_ROW_MODEL` dependency from
+  `tests/test_algorithm_stage_types.py`. The runtime assertion now targets
+  typed `ClaimAlgorithmPayload.algorithm_stage`, and that payload annotation
+  now carries `AlgorithmStage | None` instead of loose `str | None`; the
+  shared typed test builder also accepts `AlgorithmStage | None`. Focused
+  verification `uv run pyright
+  propstore/families/claims/declaration.py tests/test_algorithm_stage_types.py
+  tests/claim_model_helpers.py` passed with 0 errors, package gate
+  `uv run pyright propstore` passed with 0 errors, and logged focused pytest
+  `powershell -File scripts/run_logged_pytest.ps1 -Label algorithm-stage-typed-claim
+  tests/test_algorithm_stage_types.py` passed with 3 tests. Edited-file
+  searches for `propstore.core.active_claims` and `CLAIM_ROW_MODEL` returned
+  zero hits.
 - Normalizer deletion queue refresh: `_normalize_attrs` and similar
   broad attribute/payload repair helpers are explicitly in the Phase 10
   deletion queue when they construct or repair claim/runtime model shape
