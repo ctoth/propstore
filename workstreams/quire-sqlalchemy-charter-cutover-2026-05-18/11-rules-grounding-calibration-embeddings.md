@@ -392,6 +392,24 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   tests/remediation/phase_7_race_atomicity/test_T7_5c_source_status_like_escape.py`
   passed with 1 test; log:
   `logs/test-runs/t7-5c-sqlalchemy-session-20260521-100724.log`.
+- Test commit `c1e58dbe` migrated
+  `tests/remediation/phase_7_race_atomicity/test_T7_5d_promotion_blocked_id_collision.py`
+  from `connect_sqlite_store` to Quire SQLAlchemy `readonly_session` over
+  `world_sqlalchemy_schema()`.
+- The same test update removed the stale claim-row mirror assertion:
+  `compile_promotion_blocked_models` now returns diagnostics only, so the
+  current semantic coverage is that source-local promotion-blocked facts do
+  not create `claim_core` rows and duplicate branch diagnostics remain
+  preserved.
+- `rg -n -F -- "connect_sqlite_store"
+  tests/remediation/phase_7_race_atomicity/test_T7_5d_promotion_blocked_id_collision.py`
+  returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  t7-5d-sqlalchemy-session
+  tests/remediation/phase_7_race_atomicity/test_T7_5d_promotion_blocked_id_collision.py`
+  passed with 1 test; log:
+  `logs/test-runs/t7-5d-sqlalchemy-session-20260521-101058.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
