@@ -344,6 +344,14 @@ Gate: every remaining production hit appears in the Phase 2 inventory as
 `io-boundary`, `presentation`, or `semantic-owner`; every `delete` row is
 zero-hit.
 
+Execution record:
+
+- The committed Phase 2 inventory contains no `delete` rows ending in `Row`,
+  `Record`, or `DTO`.
+- `rg -n -- "\| .*?(Row|Record|DTO).*? \| `delete` \|" workstreams/helper-shaped-debt-inventory-2026-05-21.md`:
+  zero hits.
+- Phase 4 required no production edit.
+
 ## Phase 5: Final Gates
 
 Run:
