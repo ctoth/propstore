@@ -382,41 +382,39 @@ class TestCorpusCalibrationEvidenceModel:
 
 
 class TestCalibrationCountsInfrastructure:
-    """Tests for loading calibration counts from sidecar storage.
+    """Tests for typed calibration count data from sidecar storage."""
 
-    Sub-task 1b: categorical_to_opinion needs calibration_counts to produce
-    non-vacuous opinions, but there is no load_calibration_counts() function
-    and no calibration_counts table in the sidecar schema.
-
-    EXPECTED TO FAIL: load_calibration_counts does not exist (ImportError).
-    """
-
-    def test_categorical_to_opinion_with_loaded_counts(self):
+    def test_categorical_to_opinion_with_typed_counts(self, tmp_path):
         """When calibration_counts are loaded from a sidecar table,
         categorical_to_opinion produces non-vacuous opinions.
 
         Per Josang 2001 (p.20-21, Def 12): evidence maps to opinion with
         u = 2/(r+s+2). With 80/100 accuracy, u = 2/102 ~ 0.02.
         """
-        from propstore.families.calibration.declaration import load_calibration_counts
-
-        conn = sqlite3.connect(":memory:")
-        conn.execute("""
-            CREATE TABLE calibration_counts (
-                pass_number INTEGER NOT NULL,
-                category TEXT NOT NULL,
-                correct_count INTEGER NOT NULL,
-                total_count INTEGER NOT NULL,
-                PRIMARY KEY (pass_number, category)
-            )
-        """)
-        conn.execute(
-            "INSERT INTO calibration_counts VALUES (?, ?, ?, ?)",
-            (1, "strong", 80, 100),
+        from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+        from propstore.families.calibration.declaration import calibration_counts_by_key
+        from propstore.families.world_charters import (
+            CalibrationCount,
+            world_sqlalchemy_schema,
         )
-        conn.commit()
 
-        counts = load_calibration_counts(conn)
+        sidecar_path = tmp_path / "propstore.sqlite"
+        schema = world_sqlalchemy_schema()
+        create_sqlalchemy_store(sidecar_path, schema)
+        with writable_session(sidecar_path, schema) as derived:
+            derived.session.add(
+                CalibrationCount(
+                    pass_number=1,
+                    category="strong",
+                    correct_count=80,
+                    total_count=100,
+                )
+            )
+            derived.session.commit()
+
+        with readonly_session(sidecar_path, schema) as derived:
+            counts = calibration_counts_by_key(derived)
+
         op = categorical_to_opinion(
             "strong",
             1,
@@ -427,68 +425,27 @@ class TestCalibrationCountsInfrastructure:
         assert op.u < 0.5, (
             f"With 80/100 calibration data, uncertainty should be < 0.5, got {op.u}"
         )
-        conn.close()
 
-    def test_load_calibration_counts_empty_table(self):
+    def test_calibration_count_empty_table(self, tmp_path):
         """Empty calibration_counts table returns None (honest ignorance).
 
         Per Josang 2001 (p.8): when no data exists, the system must represent
         total ignorance, not fabricate confidence.
         """
-        from propstore.families.calibration.declaration import load_calibration_counts
+        from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session
+        from propstore.families.calibration.declaration import calibration_counts_by_key
+        from propstore.families.world_charters import world_sqlalchemy_schema
 
-        conn = sqlite3.connect(":memory:")
-        conn.execute("""
-            CREATE TABLE calibration_counts (
-                pass_number INTEGER NOT NULL,
-                category TEXT NOT NULL,
-                correct_count INTEGER NOT NULL,
-                total_count INTEGER NOT NULL,
-                PRIMARY KEY (pass_number, category)
-            )
-        """)
-        conn.commit()
+        sidecar_path = tmp_path / "propstore.sqlite"
+        schema = world_sqlalchemy_schema()
+        create_sqlalchemy_store(sidecar_path, schema)
 
-        result = load_calibration_counts(conn)
+        with readonly_session(sidecar_path, schema) as derived:
+            result = calibration_counts_by_key(derived)
+
         assert result is None, (
             "Empty calibration_counts table should return None (honest ignorance)"
         )
-        conn.close()
-
-    def test_load_calibration_counts_missing_table_returns_none(self):
-        """A missing calibration_counts table means absent data, not a hard error."""
-        from propstore.families.calibration.declaration import load_calibration_counts
-
-        conn = sqlite3.connect(":memory:")
-        result = load_calibration_counts(conn)
-        assert result is None
-        conn.close()
-
-    def test_load_calibration_counts_corruption_error_propagates(self):
-        """Non-schema OperationalErrors must surface."""
-        from propstore.families.calibration.declaration import load_calibration_counts
-
-        real_conn = sqlite3.connect(":memory:")
-        real_conn.execute(
-            """
-            CREATE TABLE calibration_counts (
-                pass_number INTEGER NOT NULL,
-                category TEXT NOT NULL,
-                correct_count INTEGER NOT NULL,
-                total_count INTEGER NOT NULL,
-                PRIMARY KEY (pass_number, category)
-            )
-            """
-        )
-
-        class _FailingConnection:
-            def execute(self, *_args, **_kwargs):
-                raise sqlite3.OperationalError("database disk image is malformed")
-
-        with pytest.raises(sqlite3.OperationalError, match="database disk image is malformed"):
-            load_calibration_counts(_FailingConnection())
-
-        real_conn.close()
 
 
 # ---------------------------------------------------------------------------

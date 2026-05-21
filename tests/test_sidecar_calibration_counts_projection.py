@@ -1,33 +1,44 @@
 from __future__ import annotations
 
-import sqlite3
+from pathlib import Path
 
-from propstore.families.calibration.declaration import load_calibration_counts
-from propstore.families.calibration.declaration import CALIBRATION_COUNTS_PROJECTION
+from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
+from propstore.families.calibration.declaration import calibration_counts_by_key
+from propstore.families.world_charters import CalibrationCount, world_sqlalchemy_schema
 
 
-def test_calibration_counts_uses_generated_ddl_and_reader_sql() -> None:
-    assert CALIBRATION_COUNTS_PROJECTION.insert_sql() == (
-        'INSERT INTO "calibration_counts" '
-        '("pass_number", "category", "correct_count", "total_count") '
-        "VALUES (:pass_number, :category, :correct_count, :total_count)"
-    )
-    assert CALIBRATION_COUNTS_PROJECTION.select_all_sql() == (
-        'SELECT "pass_number", "category", "correct_count", "total_count" '
-        'FROM "calibration_counts"'
-    )
+def test_calibration_counts_use_charter_model_and_typed_query(tmp_path: Path) -> None:
+    sidecar_path = tmp_path / "propstore.sqlite"
+    schema = world_sqlalchemy_schema()
+    create_sqlalchemy_store(sidecar_path, schema)
 
-    conn = sqlite3.connect(":memory:")
-    for statement in CALIBRATION_COUNTS_PROJECTION.ddl_statements():
-        conn.execute(statement)
-    conn.execute(
-        CALIBRATION_COUNTS_PROJECTION.insert_sql(),
-        {
-            "pass_number": 1,
-            "category": "strong",
-            "correct_count": 80,
-            "total_count": 100,
-        },
-    )
+    table = schema.table("calibration_counts")
+    assert set(table.c.keys()) == {
+        "pass_number",
+        "category",
+        "correct_count",
+        "total_count",
+    }
 
-    assert load_calibration_counts(conn) == {(1, "strong"): (80, 100)}
+    with writable_session(sidecar_path, schema) as derived:
+        derived.session.add(
+            CalibrationCount(
+                pass_number=1,
+                category="strong",
+                correct_count=80,
+                total_count=100,
+            )
+        )
+        derived.session.commit()
+
+    with readonly_session(sidecar_path, schema) as derived:
+        assert calibration_counts_by_key(derived) == {(1, "strong"): (80, 100)}
+
+
+def test_calibration_count_empty_table_returns_none(tmp_path: Path) -> None:
+    sidecar_path = tmp_path / "propstore.sqlite"
+    schema = world_sqlalchemy_schema()
+    create_sqlalchemy_store(sidecar_path, schema)
+
+    with readonly_session(sidecar_path, schema) as derived:
+        assert calibration_counts_by_key(derived) is None
