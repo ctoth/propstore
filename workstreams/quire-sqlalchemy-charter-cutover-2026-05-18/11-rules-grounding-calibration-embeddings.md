@@ -197,6 +197,36 @@ deletion.
 Slice 2 is complete. Continue with Slice 3: calibration charter and query
 cutover.
 
+2026-05-21 Slice 3 calibration execution update:
+
+- Production commit `6ca7d15a` deleted
+  `CALIBRATION_COUNTS_PROJECTION`, `CalibrationCountsProjectionRow`, and the
+  raw `sqlite3.Connection` loader from
+  `propstore/families/calibration/declaration.py`.
+- Calibration reads now use `calibration_counts_by_key(derived)` over a Quire
+  `DerivedSession` and typed `CalibrationCount` models.
+- `propstore/families/world_charters.py` now exposes the methods-only
+  `CalibrationCount` `FamilyModel` subclass for the `calibration_counts`
+  charter. Storage field shape remains only in charter metadata.
+- `uv run pyright propstore` passed with zero errors after the production
+  deletion.
+- Test commit `e63556a1` migrated
+  `tests/test_sidecar_calibration_counts_projection.py` and the calibration
+  infrastructure tests in `tests/test_calibrate.py` to charter-created
+  SQLAlchemy stores, Quire sessions, typed `CalibrationCount` inserts, and
+  `calibration_counts_by_key`.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  typed-calibration-counts tests/test_sidecar_calibration_counts_projection.py
+  tests/test_calibrate.py` passed with 35 tests; log:
+  `logs/test-runs/typed-calibration-counts-20260521-091159.log`.
+- Calibration old-path searches for `CALIBRATION_COUNTS_PROJECTION`,
+  `CalibrationCountsProjectionRow`, `load_calibration_counts`, and
+  `sqlite3.Connection` under the calibration family and tests returned zero
+  hits.
+
+Slice 3 is complete. Continue with Slice 4: embedding vector backend handoff
+to Quire APIs.
+
 ## Prerequisites
 
 Complete these cutover workstreams before this slice starts:
