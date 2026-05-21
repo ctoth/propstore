@@ -85,10 +85,31 @@ class _ATMSStore:
         for row in parameterizations or []:
             all_sources.extend(condition_sources_from_json(row.get("conditions_cel")))
         self._condition_registry = condition_registry_for_sources(all_sources)
-        self._claims = [
-            _claim_from_test_fixture(claim, condition_registry=self._condition_registry)
-            for claim in claims
-        ]
+        self._claims = []
+        for claim in claims:
+            conditions_cel = claim.get("conditions_cel")
+            conditions_ir = claim.get("conditions_ir") or condition_ir_json(
+                conditions_cel,
+                self._condition_registry,
+            )
+            self._claims.append(
+                claim_model(
+                    claim_id=str(claim["id"]),
+                    concept_id=str(claim["concept_id"]),
+                    value=claim.get("value"),
+                    conditions_cel=(
+                        None if conditions_cel is None else str(conditions_cel)
+                    ),
+                    conditions_ir=(
+                        None if conditions_ir is None else str(conditions_ir)
+                    ),
+                    context_id=(
+                        None
+                        if claim.get("context_id") is None
+                        else str(claim["context_id"])
+                    ),
+                )
+            )
         self._parameterizations = [
             _normalize_test_parameterization(
                 row,
@@ -157,28 +178,6 @@ class _ATMSStore:
 
     def get_concept(self, concept_id: str) -> dict | None:
         return {"id": concept_id, "canonical_name": concept_id}
-
-
-def _claim_from_test_fixture(
-    claim: dict,
-    *,
-    condition_registry,
-) -> Claim:
-    conditions_cel = claim.get("conditions_cel")
-    conditions_ir = claim.get("conditions_ir") or condition_ir_json(
-        conditions_cel,
-        condition_registry,
-    )
-    return claim_model(
-        claim_id=str(claim["id"]),
-        concept_id=str(claim["concept_id"]),
-        value=claim.get("value"),
-        conditions_cel=None if conditions_cel is None else str(conditions_cel),
-        conditions_ir=None if conditions_ir is None else str(conditions_ir),
-        context_id=(
-            None if claim.get("context_id") is None else str(claim["context_id"])
-        ),
-    )
 
 
 def _normalize_test_parameterization(
