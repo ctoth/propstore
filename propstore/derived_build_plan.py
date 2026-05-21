@@ -31,7 +31,7 @@ from propstore.families.forms.stages import (
 from propstore.families.claims.declaration import (
     ClaimWriteModels,
     RawIdQuarantineModels,
-    compile_authored_justification_sidecar_rows_with_diagnostics,
+    compile_authored_justification_models_with_diagnostics,
     compile_claim_models,
     compile_raw_id_quarantine_models,
 )
@@ -149,7 +149,7 @@ def compile_sidecar_build_plan(
         )
         stance_rows = authored_stance_rows + embedded_stance_rows
         justification_rows, justification_quarantine_diagnostics = (
-            compile_authored_justification_sidecar_rows_with_diagnostics(
+            compile_authored_justification_models_with_diagnostics(
                 justification_entries,
                 claim_index,
             )
