@@ -7,27 +7,26 @@ import yaml
 from propstore.families.claims.documents import ClaimDocument
 from tests.family_helpers import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage, to_algorithm_stage
-from propstore.core.active_claims import ActiveClaim
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
+from propstore.families.claims.declaration import ClaimAlgorithmPayload
 from propstore.families.documents.sources import SourceClaimDocument
+from tests.claim_model_helpers import claim_model
 
 
 def test_algorithm_stage_annotations_cover_runtime_path() -> None:
     assert get_type_hints(ClaimDocument)["stage"] == AlgorithmStage | None
     assert get_type_hints(SourceClaimDocument)["stage"] == AlgorithmStage | None
-    assert get_type_hints(ActiveClaim)["algorithm_stage"] == AlgorithmStage | None
+    assert get_type_hints(ClaimAlgorithmPayload)["algorithm_stage"] == AlgorithmStage | None
 
 
-def test_claim_row_coerces_algorithm_stage() -> None:
-    row = CLAIM_ROW_MODEL.from_row(
-        {
-            "id": "ps:claim:test",
-            "artifact_id": "ps:claim:test",
-            "algorithm_stage": "excitation",
-        }
+def test_typed_claim_carries_algorithm_stage() -> None:
+    stage = to_algorithm_stage("excitation")
+    claim = claim_model(
+        claim_id="ps:claim:test",
+        algorithm_stage=stage,
     )
 
-    assert row.algorithm_stage == to_algorithm_stage("excitation")
+    assert claim.algorithm_payload is not None
+    assert claim.algorithm_payload.algorithm_stage == stage
 
 
 def test_claim_file_stage_split_is_preserved(tmp_path) -> None:

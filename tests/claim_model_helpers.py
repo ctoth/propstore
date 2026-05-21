@@ -4,6 +4,7 @@ import json
 from collections.abc import Sequence
 from typing import cast
 
+from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import (
@@ -67,7 +68,7 @@ def claim_model(
     stage: str | None = None,
     promotion_status: str | None = None,
     algorithm_body: str | None = None,
-    algorithm_stage: str | None = None,
+    algorithm_stage: AlgorithmStage | None = None,
     variables_json: str | None = None,
 ) -> Claim:
     claim = cast(

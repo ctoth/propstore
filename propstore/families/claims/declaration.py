@@ -27,6 +27,7 @@ from propstore.conflict_detector import detect_conflicts, detect_transitive_conf
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.compiler.ir import ClaimCompilationBundle
+from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.conditions import (
     CheckedConditionSet,
@@ -320,7 +321,7 @@ class ClaimAlgorithmPayload:
     body: str | None
     canonical_ast: str | None
     variables_json: str | None
-    algorithm_stage: str | None
+    algorithm_stage: AlgorithmStage | None
     claim: Claim | None
 
 
