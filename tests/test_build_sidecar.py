@@ -5,7 +5,6 @@ populates them from concept YAML files, and builds the FTS5 index.
 """
 
 import sqlite3
-from sqlite3 import Connection
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -24,6 +23,7 @@ from propstore.families.documents.sources import (
 )
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.repository import Repository
 from propstore.provenance import ProvenanceStatus
 from propstore.families.diagnostics.authoring_lints import collect_authoring_lints
@@ -195,114 +195,6 @@ def _normalize_claim_concept_refs(payload: dict) -> dict:
         claim["version_id"] = compute_claim_version_id(claim)
 
     return normalized
-
-
-_CLAIM_SELECT_SQL = """
-    SELECT
-        core.id,
-        core.id AS artifact_id,
-        core.primary_logical_id,
-        core.logical_ids_json,
-        core.version_id,
-        core.seq,
-        core.type,
-        output_link.concept_id AS output_concept_id,
-        COALESCE(output_link.concept_id, target_link.concept_id, core.target_concept) AS value_concept_id,
-        num.value,
-        num.lower_bound,
-        num.upper_bound,
-        num.uncertainty,
-        num.uncertainty_type,
-        num.sample_size,
-        num.unit,
-        txt.conditions_cel,
-        txt.statement,
-        txt.expression,
-        txt.sympy_generated,
-        txt.sympy_error,
-        txt.name,
-        core.target_concept,
-        txt.measure,
-        txt.listener_population,
-        txt.methodology,
-        txt.notes,
-        txt.description,
-        txt.auto_summary,
-        alg.body,
-        alg.canonical_ast,
-        alg.variables_json,
-        alg.algorithm_stage,
-        core.source_paper,
-        core.provenance_page,
-        core.provenance_json,
-        num.value_si,
-        num.lower_bound_si,
-        num.upper_bound_si,
-        core.context_id
-    FROM claim_core AS core
-    LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
-    LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-    LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
-    LEFT JOIN claim_concept_link AS output_link
-        ON output_link.claim_id = core.id AND output_link.role = 'output'
-    LEFT JOIN claim_concept_link AS target_link
-        ON target_link.claim_id = core.id AND target_link.role = 'target'
-"""
-
-
-def _fetch_claim(conn: Connection, claim_id: str) -> sqlite3.Row | None:
-    conn.row_factory = sqlite3.Row
-    if ":" not in claim_id and not claim_id.startswith("ps:claim:"):
-        return conn.execute(
-            f"{_CLAIM_SELECT_SQL} WHERE core.primary_logical_id LIKE ?",
-            (f"%:{claim_id}",),
-        ).fetchone()
-    return conn.execute(
-        f"{_CLAIM_SELECT_SQL} WHERE core.id = ? OR core.primary_logical_id = ?",
-        (claim_id, claim_id),
-    ).fetchone()
-
-
-def _fetch_claim_rows(
-    conn: Connection,
-    where_sql: str = "",
-    params: tuple[object, ...] = (),
-) -> list[sqlite3.Row]:
-    conn.row_factory = sqlite3.Row
-    return conn.execute(f"{_CLAIM_SELECT_SQL} {where_sql}", params).fetchall()
-
-
-def _fetch_relation_edge_rows(
-    conn: Connection,
-    where_sql: str = "",
-    params: tuple[object, ...] = (),
-) -> list[sqlite3.Row]:
-    conn.row_factory = sqlite3.Row
-    return conn.execute(
-        """
-        SELECT
-            source_id AS claim_id,
-            target_id AS target_claim_id,
-            relation_type AS stance_type,
-            target_justification_id,
-            strength,
-            conditions_differ,
-            note,
-            resolution_method,
-            resolution_model,
-            embedding_model,
-            embedding_distance,
-            pass_number,
-            confidence,
-            opinion_belief,
-            opinion_disbelief,
-            opinion_uncertainty,
-            opinion_base_rate
-        FROM relation_edge
-        WHERE source_kind = 'claim' AND target_kind = 'claim'
-        """ + (f" {where_sql}" if where_sql else ""),
-        params,
-    ).fetchall()
 
 
 @pytest.fixture
@@ -670,13 +562,19 @@ class TestConceptTable:
     def test_concept_fields(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
-        assert row["canonical_name"] == "fundamental_frequency"
-        assert row["status"] == "accepted"
-        assert row["domain"] == "speech"
-        assert row["kind_type"] == "quantity"
-        assert "vocal fold" in row["definition"]
+        row = conn.execute(
+            """
+            SELECT canonical_name, status, domain, kind_type, definition
+            FROM concept
+            WHERE id=?
+            """,
+            (CONCEPT1_ID,),
+        ).fetchone()
+        assert row[0] == "fundamental_frequency"
+        assert row[1] == "accepted"
+        assert row[2] == "speech"
+        assert row[3] == "quantity"
+        assert "vocal fold" in row[4]
         conn.close()
 
     def test_proposed_concept_included(self, knowledge_reader, sidecar_path):
@@ -690,10 +588,9 @@ class TestConceptTable:
         """Concepts have non-empty content_hash."""
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
         row = conn.execute("SELECT content_hash FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
-        assert row["content_hash"] is not None
-        assert len(row["content_hash"]) == 16
+        assert row[0] is not None
+        assert len(row[0]) == 16
         conn.close()
 
     def test_concept_has_seq(self, knowledge_reader, sidecar_path):
@@ -763,13 +660,12 @@ class TestRelationshipTable:
     def test_relationship_fields(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM relationship WHERE source_id=?",
+            "SELECT type, target_id FROM relationship WHERE source_id=?",
             (CONCEPT1_ID,),
         ).fetchone()
-        assert row["type"] == "broader"
-        assert row["target_id"] == CONCEPT4_ID
+        assert row[0] == "broader"
+        assert row[1] == CONCEPT4_ID
         conn.close()
 
 
@@ -786,19 +682,19 @@ class TestParameterizationTable:
     def test_parameterization_fields(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM parameterization").fetchone()
-        assert CONCEPT5_ID in row["concept_ids"]
-        assert row["formula"] == "ra = ta / T0"
-        assert row["exactness"] == "exact"
+        row = conn.execute(
+            "SELECT concept_ids, formula, exactness FROM parameterization"
+        ).fetchone()
+        assert CONCEPT5_ID in row[0]
+        assert row[1] == "ra = ta / T0"
+        assert row[2] == "exact"
         conn.close()
 
     def test_parameterization_has_output_concept_id(self, knowledge_reader, sidecar_path):
         build_sidecar(knowledge_reader, sidecar_path)
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM parameterization").fetchone()
-        assert row["output_concept_id"] == CONCEPT5_ID
+        row = conn.execute("SELECT output_concept_id FROM parameterization").fetchone()
+        assert row[0] == CONCEPT5_ID
         conn.close()
 
 
@@ -1132,12 +1028,19 @@ class TestClaimTable:
     def test_claim_fields(self, sidecar_with_claims):
         """Claim fields populated correctly."""
         conn = sqlite3.connect(sidecar_with_claims)
-        row = _fetch_claim(conn, "claim1")
-        assert row["type"] == "parameter"
-        assert row["output_concept_id"] == CONCEPT1_ID
-        assert row["unit"] == "Hz"
-        assert row["source_paper"] == "test_paper_alpha"
-        assert row["provenance_page"] == 5
+        row = conn.execute(
+            """
+            SELECT core.type, output_link.concept_id, num.unit,
+                   core.source_paper, core.provenance_page
+            FROM claim_core AS core
+            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+            LEFT JOIN claim_concept_link AS output_link
+                ON output_link.claim_id = core.id AND output_link.role = 'output'
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:claim1",),
+        ).fetchone()
+        assert row == ("parameter", CONCEPT1_ID, "Hz", "test_paper_alpha", 5)
         conn.close()
 
     def test_claim_keeps_source_slug_separate_from_provenance_paper(
@@ -1195,24 +1098,40 @@ class TestClaimTable:
     def test_claim_has_version_id(self, sidecar_with_claims):
         """Claims have non-empty immutable version IDs."""
         conn = sqlite3.connect(sidecar_with_claims)
-        row = _fetch_claim(conn, "claim1")
-        assert row["version_id"] is not None
-        assert str(row["version_id"]).startswith("sha256:")
+        row = conn.execute(
+            "SELECT version_id FROM claim_core WHERE primary_logical_id LIKE ?",
+            ("%:claim1",),
+        ).fetchone()
+        assert row[0] is not None
+        assert str(row[0]).startswith("sha256:")
         conn.close()
 
     def test_claim_has_seq(self, sidecar_with_claims):
         """Claims have sequential numbering."""
         conn = sqlite3.connect(sidecar_with_claims)
-        seqs = [r["seq"] for r in _fetch_claim_rows(conn, "ORDER BY core.seq")]
+        seqs = [
+            row[0]
+            for row in conn.execute(
+                "SELECT seq FROM claim_core ORDER BY seq"
+            ).fetchall()
+        ]
         assert seqs == list(range(1, len(seqs) + 1))
         conn.close()
 
     def test_claim_has_auto_summary(self, sidecar_with_claims):
         """Parameter claims get auto_summary from description_generator."""
         conn = sqlite3.connect(sidecar_with_claims)
-        row = _fetch_claim(conn, "claim1")
-        assert row["auto_summary"] is not None
-        assert "fundamental_frequency" in row["auto_summary"]
+        row = conn.execute(
+            """
+            SELECT txt.auto_summary
+            FROM claim_core AS core
+            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:claim1",),
+        ).fetchone()
+        assert row[0] is not None
+        assert "fundamental_frequency" in row[0]
         conn.close()
 
     def test_missing_stances_dir_is_treated_as_no_stance_files(
@@ -1301,32 +1220,64 @@ class TestClaimTable:
     def test_claim_description_from_yaml(self, sidecar_with_claims):
         """description column is None when not in YAML (LLM-written field)."""
         conn = sqlite3.connect(sidecar_with_claims)
-        row = _fetch_claim(conn, "claim1")
-        assert row["description"] is None
+        row = conn.execute(
+            """
+            SELECT txt.description
+            FROM claim_core AS core
+            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:claim1",),
+        ).fetchone()
+        assert row[0] is None
         conn.close()
 
     def test_parameter_claim_has_concept(self, sidecar_with_claims):
         """Parameter claim has output_concept_id populated."""
         conn = sqlite3.connect(sidecar_with_claims)
-        rows = _fetch_claim_rows(conn, "WHERE core.type='parameter'")
+        rows = conn.execute(
+            """
+            SELECT core.id, output_link.concept_id
+            FROM claim_core AS core
+            LEFT JOIN claim_concept_link AS output_link
+                ON output_link.claim_id = core.id AND output_link.role = 'output'
+            WHERE core.type='parameter'
+            """
+        ).fetchall()
         for row in rows:
-            assert row["output_concept_id"] is not None, f"claim {row['id']} missing output_concept_id"
+            assert row[1] is not None, f"claim {row[0]} missing output_concept_id"
         conn.close()
 
     def test_observation_claim_has_statement(self, sidecar_with_claims):
         """Observation claim has statement populated."""
         conn = sqlite3.connect(sidecar_with_claims)
-        row = _fetch_claim(conn, "claim5")
-        assert row["type"] == "observation"
-        assert "logarithmic" in row["statement"]
+        row = conn.execute(
+            """
+            SELECT core.type, txt.statement
+            FROM claim_core AS core
+            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:claim5",),
+        ).fetchone()
+        assert row[0] == "observation"
+        assert "logarithmic" in row[1]
         conn.close()
 
     def test_equation_claim_has_expression(self, sidecar_with_claims):
         """Equation claim has expression populated."""
         conn = sqlite3.connect(sidecar_with_claims)
-        row = _fetch_claim(conn, "claim8")
-        assert row["type"] == "equation"
-        assert "log(Ps)" in row["expression"]
+        row = conn.execute(
+            """
+            SELECT core.type, txt.expression
+            FROM claim_core AS core
+            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:claim8",),
+        ).fetchone()
+        assert row[0] == "equation"
+        assert "log(Ps)" in row[1]
         conn.close()
 
     def test_equation_claim_preserves_sympy_error(self, concept_dir, knowledge_reader, sidecar_path):
@@ -1356,9 +1307,17 @@ class TestClaimTable:
         build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
-        row = _fetch_claim(conn, "claim1")
-        assert row["sympy_generated"] is None
-        assert row["sympy_error"] is not None
+        row = conn.execute(
+            """
+            SELECT txt.sympy_generated, txt.sympy_error
+            FROM claim_core AS core
+            LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:claim1",),
+        ).fetchone()
+        assert row[0] is None
+        assert row[1] is not None
         conn.close()
 
     def test_list_value_input_raises(self, concept_dir, knowledge_reader, sidecar_path):
@@ -1408,10 +1367,16 @@ class TestClaimTable:
         build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
-        row = _fetch_claim(conn, "claim1")
-        assert row["value"] is None
-        assert row["lower_bound"] == 100.0
-        assert row["upper_bound"] == 300.0
+        row = conn.execute(
+            """
+            SELECT num.value, num.lower_bound, num.upper_bound
+            FROM claim_core AS core
+            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:claim1",),
+        ).fetchone()
+        assert row == (None, 100.0, 300.0)
         conn.close()
 
     def test_no_claim_table_without_claims(self, knowledge_reader, sidecar_path):
@@ -1458,12 +1423,20 @@ class TestClaimStanceTable:
         conn = sqlite3.connect(sidecar_with_claims)
         claim1_id = make_claim_identity("claim1", namespace="test_paper_alpha")["artifact_id"]
         claim2_id = make_claim_identity("claim2", namespace="test_paper_alpha")["artifact_id"]
-        row = _fetch_relation_edge_rows(conn, "AND source_id=?", (claim2_id,))[0]
-        assert row["claim_id"] == claim2_id
-        assert row["target_claim_id"] == claim1_id
-        assert row["stance_type"] == "rebuts"
-        assert row["strength"] == "strong"
-        assert "conflicting value" in row["note"]
+        row = conn.execute(
+            """
+            SELECT source_id, target_id, relation_type, strength, note
+            FROM relation_edge
+            WHERE source_kind = 'claim' AND target_kind = 'claim'
+              AND source_id=?
+            """,
+            (claim2_id,),
+        ).fetchone()
+        assert row[0] == claim2_id
+        assert row[1] == claim1_id
+        assert row[2] == "rebuts"
+        assert row[3] == "strong"
+        assert "conflicting value" in row[4]
         conn.close()
 
     def test_raw_inline_stance_targets_are_quarantined_not_rejected(
@@ -1844,12 +1817,11 @@ class TestClaimStanceTable:
     def test_conflict_query_by_class(self, sidecar_with_claims):
         """Can query normalized conflict witness rows by warning class."""
         conn = sqlite3.connect(sidecar_with_claims)
-        conn.row_factory = sqlite3.Row
         rows = conn.execute(
-            "SELECT * FROM conflict_witness WHERE warning_class = 'CONFLICT'"
+            "SELECT warning_class FROM conflict_witness WHERE warning_class = 'CONFLICT'"
         ).fetchall()
         for row in rows:
-            assert row["warning_class"] == "CONFLICT"
+            assert row[0] == "CONFLICT"
         assert len(rows) >= 1
         conn.close()
 
@@ -1971,11 +1943,9 @@ class TestConceptFormMetadata:
     def test_concept_has_is_dimensionless_column(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
-        conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
-        assert "is_dimensionless" in row.keys()
-        conn.close()
+        assert "is_dimensionless" in {
+            column.name for column in world_sqlalchemy_schema().table("concept").columns
+        }
 
     def test_frequency_concept_not_dimensionless(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
@@ -1996,11 +1966,9 @@ class TestConceptFormMetadata:
     def test_concept_has_unit_symbol_column(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
-        conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM concept WHERE id=?", (CONCEPT1_ID,)).fetchone()
-        assert "unit_symbol" in row.keys()
-        conn.close()
+        assert "unit_symbol" in {
+            column.name for column in world_sqlalchemy_schema().table("concept").columns
+        }
 
     def test_frequency_concept_unit_symbol(self, concept_dir, knowledge_reader, sidecar_path):
         self._setup_forms(concept_dir)
@@ -2059,21 +2027,37 @@ class TestAlgorithmClaim:
     def test_algorithm_claim_stored(self, sidecar_with_algorithm):
         """Algorithm claim appears in sidecar with body, canonical_ast, algorithm_stage."""
         conn = sqlite3.connect(sidecar_with_algorithm)
-        row = _fetch_claim(conn, "algo_claim1")
+        row = conn.execute(
+            """
+            SELECT core.type, alg.body, alg.canonical_ast, alg.algorithm_stage
+            FROM claim_core AS core
+            LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:algo_claim1",),
+        ).fetchone()
         assert row is not None
-        assert row["type"] == "algorithm"
-        assert row["body"] is not None
-        assert "return x * 2" in row["body"]
-        assert row["canonical_ast"] is not None
-        assert row["algorithm_stage"] == "excitation"
+        assert row[0] == "algorithm"
+        assert row[1] is not None
+        assert "return x * 2" in row[1]
+        assert row[2] is not None
+        assert row[3] == "excitation"
         conn.close()
 
     def test_algorithm_canonical_ast_populated(self, sidecar_with_algorithm):
         """canonical_ast is non-empty for valid algorithm claims."""
         conn = sqlite3.connect(sidecar_with_algorithm)
-        row = _fetch_claim(conn, "algo_claim1")
-        assert row["canonical_ast"] is not None
-        assert len(row["canonical_ast"]) > 0
+        row = conn.execute(
+            """
+            SELECT alg.canonical_ast
+            FROM claim_core AS core
+            LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:algo_claim1",),
+        ).fetchone()
+        assert row[0] is not None
+        assert len(row[0]) > 0
         conn.close()
 
     def test_stage_index_exists(self, sidecar_with_algorithm):
@@ -2120,11 +2104,19 @@ class TestAlgorithmBindings:
         build_sidecar(knowledge_reader, sidecar_path, force=True)
 
         conn = sqlite3.connect(sidecar_path)
-        row = _fetch_claim(conn, "algo_bind_claim1")
+        row = conn.execute(
+            """
+            SELECT alg.canonical_ast
+            FROM claim_core AS core
+            LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:algo_bind_claim1",),
+        ).fetchone()
         conn.close()
 
         assert row is not None, "algorithm claim must be stored"
-        ast_text = row["canonical_ast"]
+        ast_text = row[0]
         assert ast_text is not None, "canonical_ast must not be None"
         expected = canonical_dump(
             "def compute(x):\n    return x * 2\n",
@@ -2225,13 +2217,12 @@ class TestFormAlgebraDimVerified:
         # The fixture forms have no dimensions — the entry must still appear
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
-        rows = conn.execute("SELECT * FROM form_algebra").fetchall()
+        rows = conn.execute("SELECT dim_verified FROM form_algebra").fetchall()
         conn.close()
         # concept5 has a parameterization_relationship → expect at least 1 row
         assert len(rows) >= 1, "form_algebra must not drop entries with missing dimensions"
         row = rows[0]
-        assert row["dim_verified"] == 0, "entry without dimensions should have dim_verified=0"
+        assert row[0] == 0, "entry without dimensions should have dim_verified=0"
 
     def test_form_algebra_dim_verified_true_when_dimensions_present(
         self, concept_dir, knowledge_reader, sidecar_path
@@ -2272,16 +2263,15 @@ class TestFormAlgebraDimVerified:
 
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         conn = sqlite3.connect(sidecar_path)
-        conn.row_factory = sqlite3.Row
         rows = conn.execute(
-            "SELECT * FROM form_algebra WHERE output_form='duration_ratio' "
+            "SELECT dim_verified FROM form_algebra WHERE output_form='duration_ratio' "
             "AND source_concept_id=?",
             (_concept_artifact("concept6"),)
         ).fetchall()
         conn.close()
         assert len(rows) >= 1, "form_algebra must contain entries for dimensioned forms"
         row = rows[0]
-        assert row["dim_verified"] == 1, "entry with valid dimensions should have dim_verified=1"
+        assert row[0] == 1, "entry with valid dimensions should have dim_verified=1"
 
 
 # ── value_si normalization ────────────────────────────────────────────
@@ -2353,11 +2343,19 @@ class TestClaimValueSI:
             },
         ])
         conn = sqlite3.connect(db)
-        row = _fetch_claim(conn, "si_claim1")
+        row = conn.execute(
+            """
+            SELECT num.value, num.unit, num.value_si
+            FROM claim_core AS core
+            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:si_claim1",),
+        ).fetchone()
         conn.close()
-        assert row["value"] == 0.2, "raw value preserved"
-        assert row["unit"] == "kHz", "raw unit preserved"
-        assert row["value_si"] == pytest.approx(200.0), "value_si = 0.2 * 1000"
+        assert row[0] == 0.2, "raw value preserved"
+        assert row[1] == "kHz", "raw unit preserved"
+        assert row[2] == pytest.approx(200.0), "value_si = 0.2 * 1000"
 
     def test_claim_value_si_canonical_unit(self, concept_dir, sidecar_path):
         """Claim with canonical unit Hz -> value_si = same as value."""
@@ -2372,9 +2370,17 @@ class TestClaimValueSI:
             },
         ])
         conn = sqlite3.connect(db)
-        row = _fetch_claim(conn, "si_claim2")
+        row = conn.execute(
+            """
+            SELECT num.value_si
+            FROM claim_core AS core
+            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:si_claim2",),
+        ).fetchone()
         conn.close()
-        assert row["value_si"] == pytest.approx(440.0), "canonical unit -> value_si == value"
+        assert row[0] == pytest.approx(440.0), "canonical unit -> value_si == value"
 
     def test_claim_value_si_no_unit(self, concept_dir, sidecar_path):
         """Claim with no unit field -> value_si = same as value."""
@@ -2388,9 +2394,17 @@ class TestClaimValueSI:
             },
         ])
         conn = sqlite3.connect(db)
-        row = _fetch_claim(conn, "si_claim3")
+        row = conn.execute(
+            """
+            SELECT num.value_si
+            FROM claim_core AS core
+            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:si_claim3",),
+        ).fetchone()
         conn.close()
-        assert row["value_si"] == pytest.approx(100.0), "no unit -> value_si == value"
+        assert row[0] == pytest.approx(100.0), "no unit -> value_si == value"
 
     def test_claim_bounds_si_normalized(self, concept_dir, sidecar_path):
         """lower_bound=0.1, upper_bound=0.3, unit=kHz -> _si = 100.0, 300.0."""
@@ -2406,12 +2420,21 @@ class TestClaimValueSI:
             },
         ])
         conn = sqlite3.connect(db)
-        row = _fetch_claim(conn, "si_claim4")
+        row = conn.execute(
+            """
+            SELECT num.lower_bound, num.upper_bound,
+                   num.lower_bound_si, num.upper_bound_si
+            FROM claim_core AS core
+            LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
+            WHERE core.primary_logical_id LIKE ?
+            """,
+            ("%:si_claim4",),
+        ).fetchone()
         conn.close()
-        assert row["lower_bound"] == 0.1, "raw lower_bound preserved"
-        assert row["upper_bound"] == 0.3, "raw upper_bound preserved"
-        assert row["lower_bound_si"] == pytest.approx(100.0), "lower_bound_si = 0.1 * 1000"
-        assert row["upper_bound_si"] == pytest.approx(300.0), "upper_bound_si = 0.3 * 1000"
+        assert row[0] == 0.1, "raw lower_bound preserved"
+        assert row[1] == 0.3, "raw upper_bound preserved"
+        assert row[2] == pytest.approx(100.0), "lower_bound_si = 0.1 * 1000"
+        assert row[3] == pytest.approx(300.0), "upper_bound_si = 0.3 * 1000"
 
 
 class TestEmbeddingSnapshotErrors:
