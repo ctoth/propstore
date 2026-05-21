@@ -1591,3 +1591,16 @@ Current binding queue:
   counted as a substantive Phase 10 reduction. After the rename, `rg -n -F --
   "ActiveClaim" propstore tests` returned zero hits and `uv run pyright
   propstore` passed with 0 errors.
+- Phase 10 gate fixture source-shape cleanup: commit `b4d81123` removed the
+  old flat `source.origin_type` / `source.origin_value` inserts from the
+  render-policy fixture paths and replaced them with one schema-backed test
+  helper that writes the current chartered `Source.origin` and `Source.trust`
+  value-object fields through Quire SQLAlchemy table metadata. The same slice
+  updated the render-policy assertions from the deleted `claim_id` row-field
+  spelling to typed `Claim.id`, without adding a compatibility property.
+  Searches for the exact old flat source insert strings in `tests` and
+  `propstore` returned zero hits. `uv run pyright propstore` passed with 0
+  errors, and logged focused pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label render-policy-source-charter
+  tests/test_render_policy_filtering.py` passed with 11 tests and log
+  `logs\test-runs\render-policy-source-charter-20260520-201119.log`.
