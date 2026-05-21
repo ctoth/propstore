@@ -567,6 +567,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-6`
     failed: 13 failed, 3586 passed, 4 skipped.
   - Log: `logs/test-runs/sqlalchemy-charter-full-6-20260521-154300.log`.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-7`
+    failed: 18 failed, 3581 passed, 4 skipped.
+  - Log: `logs/test-runs/sqlalchemy-charter-full-7-20260521-160942.log`.
   - Remaining failure clusters from full-5:
     - Claim-source FK enforcement is real and must remain. Repaired after
       full-5: claim compilation now writes `claim_core.source_slug` only for
@@ -619,6 +622,21 @@ Gate: no local path, workspace, or file URL Quire dependency.
     - Preference-import typed fixture drift is repaired after full-6.
       Sensitivity typed-claim access is repaired after full-6. Semantic repair
       typed fixture/display-id drift is repaired after full-6.
+  - Remaining failure clusters from full-7:
+    - ATMS semantic antecedent matching repair is incomplete: it assumes every
+      condition solver implements set equivalence, reparses replay queryables
+      against the current registry, and rejects future assumptions whose
+      concepts are intentionally outside the current bound environment.
+    - ATMS graph-only runtime acceptance regressed because the runtime-like
+      protocol no longer recognizes the graph replay runtime after adding the
+      semantic condition solver requirement.
+    - World extension typed claim rendering changed the ASPIC CLI text shape;
+      finish the current typed rendering update by aligning the remaining
+      structured projection assertions to the typed payload output.
+    - Revision projection now reaches the ATMS replay-queryable parser and
+      fails on source support assumptions outside the current registry; repair
+      ATMS matching at the typed condition/support boundary instead of adding a
+      revision compatibility path.
 
 Current full-gate repair queue, deletion-first:
 
