@@ -1479,3 +1479,32 @@ Current binding queue:
   and replacing the remaining test fixture mapping boundary
   `_claim_from_test_fixture` with already-typed fixture construction rather
   than generalizing it.
+- WorldQuery active-claim/row-model test cleanup: commit `e4cd97f2` removed
+  the remaining `propstore.core.active_claims` imports and
+  `ActiveClaim.from_row_mapping(...)` calls from `tests/test_world_query.py`,
+  removed that file's `CLAIM_ROW_MODEL` import, and changed direct resolution
+  helper regressions to construct typed `Claim` objects with the existing
+  Quire-backed `claim_model(...)` test builder. Source-join and overlay
+  assertions now read typed `Claim.source`, `Claim.numeric_payload`,
+  `Claim.value_concept_id`, and `Claim.conditions` directly instead of
+  re-coercing claims through the deleted row model. Searches for
+  `propstore.core.active_claims` and `CLAIM_ROW_MODEL` in
+  `tests/test_world_query.py` returned zero hits; the remaining `ActiveClaim`
+  hit in that file is the test class name `TestBindAndActiveClaims`, not the
+  deleted API. Logged focused pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label
+  world-query-typed-resolution-claims-direct
+  tests/test_world_query.py::TestConflictResolution::test_resolve_recency_tie_returns_conflicted
+  tests/test_world_query.py::TestConflictResolution::test_resolve_recency_tie_unique_best_still_wins
+  tests/test_world_query.py::TestConflictResolution::test_resolve_sample_size_tie_returns_conflicted
+  tests/test_world_query.py::TestConflictResolution::test_resolve_sample_size_tie_unique_best_still_wins
+  tests/test_world_query.py::TestConflictResolution::test_resolve_recency_tie_through_resolve_api
+  tests/test_world_query.py::TestConflictResolution::test_resolve_sample_size_tie_through_resolve_api`
+  passed with 6 tests and log
+  `logs\test-runs\world-query-typed-resolution-claims-direct-20260520-193256.log`.
+  Broader `tests/test_world_query.py` selections that need the `world`
+  fixture remain blocked before the edited assertions by the pre-existing
+  relation-edge build-plan/charter error
+  `ValueError: missing required field(s) for family 'relation_edge': id`;
+  that blocker belongs to the relations/build slice, not to restoring claim
+  row models.
