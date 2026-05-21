@@ -19,9 +19,10 @@ cutover phases.
 
 Final state:
 
-- Quire commit `f69c2f018c25c6aaca277af35976fd419ded39fe` is pinned in
+- Quire commit `62bd95c372b61d4b6fb5d456f296e55fa4568239` is pinned in
   Propstore and provides `FamilyModel` plus a proof test that charter fields,
-  generic construction, and methods-only subclass behavior compose.
+  generic construction, dynamic mapped-attribute typing, and methods-only
+  subclass behavior compose.
 - Every Propstore sidecar mapped model subclasses `FamilyModel`.
 - Propstore sidecar mapped model classes contain no storage field annotations,
   no constructor field lists, no `__init__(**values)` sinks, no `from_row_mapping`,
@@ -43,7 +44,7 @@ Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
 Before implementation:
 
 - confirm Propstore pins Quire to pushed commit
-  `f69c2f018c25c6aaca277af35976fd419ded39fe`;
+  `62bd95c372b61d4b6fb5d456f296e55fa4568239`;
 - confirm Quire proof gates passed:
   `uv run pyright` and
   `uv run pytest -vv tests/test_sqlalchemy_engine.py::test_family_model_subclass_uses_charter_fields_and_keeps_behavior`;
@@ -137,9 +138,13 @@ that owner workstream.
 ## Execution Log
 
 - 2026-05-21 Quire `FamilyModel` support was pushed at
-  `f69c2f018c25c6aaca277af35976fd419ded39fe`, Propstore was pinned to that
-  pushed commit, and `uv run scripts/check_workstream_order.py
-  workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md` passed.
+  `62bd95c372b61d4b6fb5d456f296e55fa4568239`, Propstore was pinned to that
+  pushed commit, and Quire `uv run pyright` plus
+  `uv run pytest -vv
+  tests/test_sqlalchemy_engine.py::test_family_model_subclass_uses_charter_fields_and_keeps_behavior`
+  passed. The proof covers generic construction, methods-only subclass
+  behavior, and direct dynamic mapped-attribute access without Propstore
+  field annotations.
 - Source slice complete: `Source` now subclasses `FamilyModel` and no longer
   defines a Propstore `__init__(**values)` constructor. `uv run pyright
   propstore` passed after the slice.
