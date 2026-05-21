@@ -1,30 +1,30 @@
 from __future__ import annotations
 
-import inspect
-from pathlib import Path
-
 from quire.documents import convert_document_value
 
+from propstore.families.claims.references import (
+    ImportedClaimReference,
+    imported_claim_reference_index,
+)
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.identity.micropubs import micropub_artifact_id
 from propstore.families.micropublications.declaration import (
-    MicropublicationProjectionRow,
-    MicropublicationSidecarRows,
-    create_micropublication_tables,
-    populate_micropublications,
+    compile_micropublication_models_with_diagnostics,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
-from quire.sqlalchemy_store import create_sqlalchemy_store
-from quire.derived_runtime import connect_sqlite_store
 
 
-def _micropub(page: int) -> MicropublicationDocument:
+def _micropub(
+    *,
+    page: int,
+    artifact_id: str = "ps:micropub:declared",
+    version_id: str = "declared-version",
+) -> MicropublicationDocument:
     return convert_document_value(
         {
-            "artifact_id": "ps:micropub:old",
-            "version_id": "old-version",
+            "artifact_id": artifact_id,
+            "version_id": version_id,
             "context": {"id": "ctx_alpha"},
-            "claims": ["ps:claim:alpha"],
+            "claims": ["claim-alpha"],
             "source": "tag:local@propstore,2026:source/demo",
             "evidence": [{"kind": "paper_page", "reference": f"demo:{page}"}],
             "provenance": {"paper": "demo", "page": page},
@@ -34,52 +34,49 @@ def _micropub(page: int) -> MicropublicationDocument:
     )
 
 
-def _row(document: MicropublicationDocument) -> MicropublicationProjectionRow:
-    return MicropublicationProjectionRow(
-        id=micropub_artifact_id(document),
-        context_id=document.context.id,
-        assumptions_json="[]",
-        evidence_json="[]",
-        stance=None,
-        provenance_json=None,
-        source_slug="demo",
+def _micropub_with_content_id(page: int) -> MicropublicationDocument:
+    document = _micropub(page=page)
+    return _micropub(page=page, artifact_id=micropub_artifact_id(document))
+
+
+def test_micropublication_identity_uses_canonical_payload_not_declared_ids() -> None:
+    base = _micropub(page=1, artifact_id="declared-a", version_id="version-a")
+    renamed = _micropub(page=1, artifact_id="declared-b", version_id="version-b")
+    changed = _micropub(page=2, artifact_id="declared-a", version_id="version-a")
+
+    assert micropub_artifact_id(base) == micropub_artifact_id(renamed)
+    assert micropub_artifact_id(base) != micropub_artifact_id(changed)
+
+
+def test_micropublication_compiler_dedupes_only_matching_payload_ids() -> None:
+    first = _micropub_with_content_id(page=1)
+    duplicate = _micropub_with_content_id(page=1)
+    changed = _micropub_with_content_id(page=2)
+    assert first.artifact_id == duplicate.artifact_id
+    assert first.artifact_id != changed.artifact_id
+
+    claim_index = imported_claim_reference_index(
+        (ImportedClaimReference("claim-alpha", "ps:claim:alpha"),)
+    )
+    (micropublications, claim_links), diagnostics = (
+        compile_micropublication_models_with_diagnostics(
+            (
+                ("demo/micropubs/first.yaml", first),
+                ("demo/micropubs/first-copy.yaml", duplicate),
+                ("demo/micropubs/changed.yaml", changed),
+            ),
+            claim_index,
+        )
     )
 
-
-def test_micropublication_dedupe_uses_wscm_payload_identity_language() -> None:
-    docstring = inspect.getdoc(populate_micropublications) or ""
-
-    assert "full canonical payload by WS-CM" in docstring
-    assert "two micropub files that carry the same id carry definitionally identical content" not in docstring
-
-
-def test_micropublication_sidecar_dedupe_keeps_distinct_payload_ids(
-    tmp_path: Path,
-) -> None:
-    first = _micropub(page=1)
-    changed = _micropub(page=2)
-    assert micropub_artifact_id(first) != micropub_artifact_id(changed)
-
-    sidecar_path = tmp_path / "propstore.sqlite"
-    create_sqlalchemy_store(sidecar_path, world_sqlalchemy_schema())
-    conn = connect_sqlite_store(sidecar_path)
-    try:
-        create_micropublication_tables(conn)
-        conn.execute("INSERT INTO context (id, name) VALUES (?, ?)", ("ctx_alpha", "alpha"))
-
-        populate_micropublications(
-            conn,
-            MicropublicationSidecarRows(
-                micropublication_rows=(_row(first), _row(first), _row(changed)),
-                claim_rows=(),
-            ),
-        )
-        conn.commit()
-        ids = {
-            row[0]
-            for row in conn.execute("SELECT id FROM micropublication").fetchall()
-        }
-    finally:
-        conn.close()
-
-    assert ids == {micropub_artifact_id(first), micropub_artifact_id(changed)}
+    assert diagnostics == ()
+    assert {micropublication.id for micropublication in micropublications} == {
+        first.artifact_id,
+        changed.artifact_id,
+    }
+    assert {
+        (link.micropublication_id, link.claim_id) for link in claim_links
+    } == {
+        (first.artifact_id, "ps:claim:alpha"),
+        (changed.artifact_id, "ps:claim:alpha"),
+    }
