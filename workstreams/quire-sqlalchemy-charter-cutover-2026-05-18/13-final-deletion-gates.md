@@ -74,6 +74,7 @@ Check these before starting final deletion work:
 | `06-forms-concepts-parameterizations.md` | Form, concept, parameterization, and concept declaration/query old paths are deleted and parity passed; concept sidecar runtime evidence belongs to `11-rules-grounding-calibration-embeddings.md`. |
 | `07-contexts-lifting.md` | Context/lifting projection paths are deleted and parity passed. |
 | `08-claims-active-claims.md` | Claim projection/storage/active-claim row paths are deleted and parity passed. |
+| `08a-typed-claim-graph-projection.md` | Typed claim-to-graph projection owner is complete and claim graph/source-assertion projection no longer uses duplicate row attributes. |
 | `09-relations-stances-conflicts.md` | Relation, stance, and conflict row-model paths are deleted and parity passed. |
 | `10-micropublications-justifications.md` | Micropub/justification projection paths are deleted and parity passed. |
 | `11-rules-grounding-calibration-embeddings.md` | Support-family projection/vector duplicates and claim/concept sidecar runtime old paths are deleted and parity passed. |

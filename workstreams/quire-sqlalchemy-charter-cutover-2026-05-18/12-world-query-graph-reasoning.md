@@ -90,7 +90,8 @@ Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
 `02-quire-sqlalchemy-engine.md`, `03-quire-fts-vector.md`,
 `04-propstore-build-orchestration.md`, `05-source-and-diagnostics.md`,
 `06-forms-concepts-parameterizations.md`, `07-contexts-lifting.md`,
-`08-claims-active-claims.md`, `09-relations-stances-conflicts.md`,
+`08-claims-active-claims.md`, `08a-typed-claim-graph-projection.md`,
+`09-relations-stances-conflicts.md`,
 `10-micropublications-justifications.md`,
 `11-rules-grounding-calibration-embeddings.md`.
 

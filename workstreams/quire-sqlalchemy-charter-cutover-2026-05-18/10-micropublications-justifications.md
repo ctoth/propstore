@@ -154,7 +154,8 @@ Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
 `02-quire-sqlalchemy-engine.md`, `03-quire-fts-vector.md`,
 `04-propstore-build-orchestration.md`, `05-source-and-diagnostics.md`,
 `06-forms-concepts-parameterizations.md`, `07-contexts-lifting.md`,
-`08-claims-active-claims.md`, `09-relations-stances-conflicts.md`.
+`08-claims-active-claims.md`, `08a-typed-claim-graph-projection.md`,
+`09-relations-stances-conflicts.md`.
 
 1. Mechanical order check and current-state inventory confirmation.
 2. Quire SQLAlchemy dependency and capability proof.
@@ -166,7 +167,8 @@ Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
 8. `06-forms-concepts-parameterizations.md`.
 9. `07-contexts-lifting.md`.
 10. `08-claims-active-claims.md`.
-11. `09-relations-stances-conflicts.md`.
+11. `08a-typed-claim-graph-projection.md`.
+12. `09-relations-stances-conflicts.md`.
 
 Before implementation:
 
