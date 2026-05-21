@@ -27,7 +27,7 @@ from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import ConflictRow, StanceRow
+from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.support_revision.history import TransitionJournal
 from propstore.support_revision.projection import snapshot_to_claim_ids
 from propstore.support_revision.state import RevisionScope
@@ -53,8 +53,8 @@ class _FixtureCommit:
 
     commit_sha: str
     claim_ids: frozenset[str]
-    stances: tuple[StanceRow, ...]
-    conflicts: tuple[ConflictRow, ...]
+    stances: tuple[Stance, ...]
+    conflicts: tuple[ConflictWitness, ...]
 
 
 class _ClaimLookupSpace(Protocol):
@@ -63,8 +63,8 @@ class _ClaimLookupSpace(Protocol):
 
 @runtime_checkable
 class _StanceConflictSpace(Protocol):
-    def all_claim_stances(self) -> list[StanceRow]: ...
-    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]: ...
+    def all_claim_stances(self) -> list[Stance]: ...
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]: ...
 
 
 @runtime_checkable
@@ -85,8 +85,8 @@ def register_fixture_commit(
     commit_sha: str,
     *,
     claim_ids: frozenset[str],
-    stances: tuple[StanceRow, ...] = (),
-    conflicts: tuple[ConflictRow, ...] = (),
+    stances: tuple[Stance, ...] = (),
+    conflicts: tuple[ConflictWitness, ...] = (),
 ) -> None:
     """Register a fixture commit for property/integration testing.
 
@@ -195,7 +195,7 @@ def _claim_view_from_space(
 def _stances_within_step(
     belief_space: _ClaimLookupSpace,
     claim_ids: frozenset[str],
-) -> tuple[StanceRow, ...]:
+) -> tuple[Stance, ...]:
     if not isinstance(belief_space, _StanceConflictSpace):
         return ()
     return tuple(
@@ -209,7 +209,7 @@ def _stances_within_step(
 def _conflicts_within_step(
     belief_space: _ClaimLookupSpace,
     claim_ids: frozenset[str],
-) -> tuple[ConflictRow, ...]:
+) -> tuple[ConflictWitness, ...]:
     if not isinstance(belief_space, _StanceConflictSpace):
         return ()
     return tuple(

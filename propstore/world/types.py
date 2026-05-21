@@ -44,7 +44,7 @@ from propstore.core.store_results import (
     ConceptSimilarityHit,
 )
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import ConflictRow, StanceRow
+from propstore.families.relations.declaration import ConflictWitness, Stance
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ActiveWorldGraph
@@ -720,8 +720,8 @@ class ClaimView:
     claims: Mapping[str, Claim]
     scope: RevisionScope
     bound: object | None = None
-    stances: tuple[StanceRow, ...] = field(default_factory=tuple)
-    conflicts: tuple[ConflictRow, ...] = field(default_factory=tuple)
+    stances: tuple[Stance, ...] = field(default_factory=tuple)
+    conflicts: tuple[ConflictWitness, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "claims", dict(self.claims))
@@ -1143,5 +1143,5 @@ class BeliefSpace(Protocol):
     ) -> DerivedResult: ...
     def resolved_value(self, concept_id: str) -> ResolvedResult: ...
     def is_determined(self, concept_id: str) -> bool: ...
-    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]: ...
-    def explain(self, claim_id: str) -> list[StanceRow]: ...
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]: ...
+    def explain(self, claim_id: str) -> list[Stance]: ...

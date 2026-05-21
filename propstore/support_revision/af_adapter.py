@@ -7,12 +7,9 @@ from typing import Any, Protocol, runtime_checkable
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import (
-    ConflictRow,
-    ConflictRowInput,
-    StanceRow,
-    StanceRowInput,
+    ConflictWitness,
+    Stance,
 )
-from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.support_revision.state import EpistemicState
 from propstore.core.labels import Label, SupportQuality
 from propstore.support_revision.state import is_assertion_atom, is_assumption_atom
@@ -31,12 +28,12 @@ class RevisionArgumentationView:
 
 @runtime_checkable
 class _StanceStore(Protocol):
-    def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]: ...
+    def stances_between(self, claim_ids: set[str]) -> Sequence[Stance]: ...
 
 
 @runtime_checkable
 class _ConflictStore(Protocol):
-    def conflicts(self) -> Sequence[ConflictRowInput]: ...
+    def conflicts(self) -> Sequence[ConflictWitness]: ...
 
 
 class RevisionArgumentationStore:
@@ -75,23 +72,21 @@ class RevisionArgumentationStore:
             if claim_id in requested
         }
 
-    def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         requested = self._active_claim_ids & {str(claim_id) for claim_id in claim_ids}
         if not isinstance(self._backing_store, _StanceStore):
             return []
-        result: list[StanceRow] = []
-        for row_input in self._backing_store.stances_between(set(requested)):
-            row = STANCE_ROW_MODEL.coerce(row_input)
+        result: list[Stance] = []
+        for row in self._backing_store.stances_between(set(requested)):
             if str(row.claim_id) in requested and str(row.target_claim_id) in requested:
                 result.append(row)
         return result
 
-    def conflicts(self) -> list[ConflictRow]:
+    def conflicts(self) -> list[ConflictWitness]:
         if not isinstance(self._backing_store, _ConflictStore):
             return []
-        result: list[ConflictRow] = []
-        for row_input in self._backing_store.conflicts():
-            row = CONFLICT_ROW_MODEL.coerce(row_input)
+        result: list[ConflictWitness] = []
+        for row in self._backing_store.conflicts():
             if (
                 str(row.claim_a_id) in self._active_claim_ids
                 and str(row.claim_b_id) in self._active_claim_ids

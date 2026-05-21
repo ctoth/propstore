@@ -26,7 +26,6 @@ from propstore.core.id_types import (
     to_claim_id,
     to_concept_id,
     to_context_id,
-    to_justification_id,
 )
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.labels import compile_environment_assumptions
@@ -47,15 +46,9 @@ from propstore.families.diagnostics.declaration import (
     build_diagnostics,
 )
 from propstore.families.relations.declaration import (
-    ConflictRow,
-    RelationshipRow,
-    StanceRow,
-    count_conflicts,
-    select_all_claim_stances,
-    select_all_relationships,
-    select_conflicts,
-    select_explanation_stances,
-    select_stances_between,
+    ConceptRelation,
+    ConflictWitness,
+    Stance,
 )
 from propstore.families.micropublications.declaration import select_all_micropublications
 from propstore.families.concepts.declaration import (
@@ -621,10 +614,11 @@ class WorldQuery(WorldStore):
         # view so the bridge tests can observe it.
         return _BoundView(bound=bound, restricted_to=restricted_to)
 
-    def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         if not claim_ids:
             return []
         schema = world_sqlalchemy_schema()
+        stance_model = schema.polymorphic_model("relation_edge", "claim")
         with self._derived_store.readonly_session(schema) as derived:
             resolved_ids = {
                 schema.resolve_reference_id(
@@ -635,10 +629,22 @@ class WorldQuery(WorldStore):
                 or claim_id
                 for claim_id in claim_ids
             }
-        return select_stances_between(self._conn, resolved_ids)
+            statement = (
+                select(stance_model)
+                .where(stance_model.source_id.in_(resolved_ids))
+                .where(stance_model.target_id.in_(resolved_ids))
+                .order_by(stance_model.source_id, stance_model.target_id, stance_model.relation_type)
+            )
+            return list(derived.execute(statement).scalars())
 
-    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
-        return select_conflicts(self._conn, concept_id)
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]:
+        schema = world_sqlalchemy_schema()
+        conflict = schema.model("conflict_witness")
+        with self._derived_store.readonly_session(schema) as derived:
+            statement = select(conflict).order_by(conflict.claim_a_id, conflict.claim_b_id)
+            if concept_id is not None:
+                statement = statement.where(conflict.concept_id == concept_id)
+            return list(derived.execute(statement).scalars())
 
     def all_concepts(self) -> list[Concept]:
         schema = world_sqlalchemy_schema()
@@ -652,11 +658,27 @@ class WorldQuery(WorldStore):
         with self._derived_store.readonly_session(schema) as derived:
             return list(derived.execute(select(parameterization)).scalars())
 
-    def all_relationships(self) -> list[RelationshipRow]:
-        return select_all_relationships(self._conn)
+    def all_relationships(self) -> list[ConceptRelation]:
+        schema = world_sqlalchemy_schema()
+        relation = schema.polymorphic_model("relation_edge", "concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            statement = select(relation).order_by(
+                relation.source_id,
+                relation.target_id,
+                relation.relation_type,
+            )
+            return list(derived.execute(statement).scalars())
 
-    def all_claim_stances(self) -> list[StanceRow]:
-        return select_all_claim_stances(self._conn)
+    def all_claim_stances(self) -> list[Stance]:
+        schema = world_sqlalchemy_schema()
+        stance = schema.polymorphic_model("relation_edge", "claim")
+        with self._derived_store.readonly_session(schema) as derived:
+            statement = select(stance).order_by(
+                stance.source_id,
+                stance.target_id,
+                stance.relation_type,
+            )
+            return list(derived.execute(statement).scalars())
 
     def all_authored_justifications(self) -> tuple[CanonicalJustification, ...]:
         return select_authored_justifications(self._conn)
@@ -692,7 +714,7 @@ class WorldQuery(WorldStore):
         self,
         focus_claim_id: str,
         policy: RenderPolicy,
-    ) -> list[StanceRow]:
+    ) -> list[Stance]:
         schema = world_sqlalchemy_schema()
         relation = schema.model("relation_edge")
         claim = schema.model("claim_core")
@@ -737,38 +759,7 @@ class WorldQuery(WorldStore):
                             claim_alias.promotion_status != "blocked",
                         )
                     )
-            rows = derived.execute(statement).scalars()
-            return [
-                StanceRow(
-                    claim_id=to_claim_id(row.source_id),
-                    target_claim_id=to_claim_id(row.target_id),
-                    stance_type=row.relation_type,
-                    target_justification_id=(
-                        None
-                        if row.target_justification_id is None
-                        else to_justification_id(row.target_justification_id)
-                    ),
-                    perspective_source_claim_id=(
-                        None
-                        if row.perspective_source_claim_id is None
-                        else to_claim_id(row.perspective_source_claim_id)
-                    ),
-                    strength=row.strength,
-                    conditions_differ=row.conditions_differ,
-                    note=row.note,
-                    resolution_method=row.resolution_method,
-                    resolution_model=row.resolution_model,
-                    embedding_model=row.embedding_model,
-                    embedding_distance=row.embedding_distance,
-                    pass_number=row.pass_number,
-                    confidence=row.confidence,
-                    opinion_belief=row.opinion_belief,
-                    opinion_disbelief=row.opinion_disbelief,
-                    opinion_uncertainty=row.opinion_uncertainty,
-                    opinion_base_rate=row.opinion_base_rate,
-                )
-                for row in rows
-            ]
+            return list(derived.execute(statement).scalars())
 
     def all_micropublications(self) -> list[ActiveMicropublication]:
         return select_all_micropublications(self._conn)
@@ -945,7 +936,12 @@ class WorldQuery(WorldStore):
             claims = int(
                 derived.execute(select(func.count()).select_from(claim)).scalar_one()
             )
-        conflicts = count_conflicts(self._conn)
+        schema = world_sqlalchemy_schema()
+        conflict = schema.model("conflict_witness")
+        with self._derived_store.readonly_session(schema) as derived:
+            conflicts = int(
+                derived.execute(select(func.count()).select_from(conflict)).scalar_one()
+            )
         return WorldStoreStats(
             concepts=int(concepts),
             claims=int(claims),
@@ -1032,9 +1028,30 @@ class WorldQuery(WorldStore):
 
     # ── Stance graph ─────────────────────────────────────────────────
 
-    def explain(self, claim_id: str) -> list[StanceRow]:
+    def explain(self, claim_id: str) -> list[Stance]:
         """Walk normalized claim relation edges breadth-first from claim_id."""
-        return select_explanation_stances(self._conn, claim_id)
+        schema = world_sqlalchemy_schema()
+        stance = schema.polymorphic_model("relation_edge", "claim")
+        result: list[Stance] = []
+        queue = [claim_id]
+        visited = {claim_id}
+        with self._derived_store.readonly_session(schema) as derived:
+            while queue:
+                current = queue.pop(0)
+                rows = list(
+                    derived.execute(
+                        select(stance)
+                        .where(stance.source_id == current)
+                        .order_by(stance.target_id, stance.relation_type)
+                    ).scalars()
+                )
+                for row in rows:
+                    result.append(row)
+                    target = str(row.target_claim_id)
+                    if target not in visited:
+                        visited.add(target)
+                        queue.append(target)
+        return result
 
     # ── Condition binding ────────────────────────────────────────────
 

@@ -48,7 +48,7 @@ from propstore.core.micropublications import (
     ActiveMicropublicationInput,
     coerce_active_micropublication,
 )
-from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness, ParameterizationEdge
+from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness as GraphConflictWitness, ParameterizationEdge
 from propstore.conflict_detector.models import coerce_conflict_class
 from propstore.propagation import (
     ParameterizationEvaluationStatus,
@@ -66,10 +66,8 @@ from propstore.core.labels import (
 )
 from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import (
-    ConflictRow,
-    ConflictRowInput,
+    ConflictWitness,
 )
-from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL
 from propstore.families.concepts.declaration import (
     Parameterization,
     ParameterizationInput,
@@ -134,7 +132,7 @@ class _ATMSRuntimeLike(Protocol):
     def active_claims(self) -> Callable[[], list[Claim]]: ...
 
     @property
-    def conflicts(self) -> Callable[[], list[ConflictRowInput]]: ...
+    def conflicts(self) -> Callable[[], list[ConflictWitness]]: ...
 
     @property
     def is_param_compatible(self) -> Callable[[Parameterization], bool]: ...
@@ -309,7 +307,7 @@ class _ATMSRuntime:
     all_parameterizations: Callable[[], list[ParameterizationInput]]
     all_micropublications: Callable[[], list[ActiveMicropublicationInput]]
     active_claims: Callable[[], list[Claim]]
-    conflicts: Callable[[], list[ConflictRowInput]]
+    conflicts: Callable[[], list[ConflictWitness]]
     is_param_compatible: Callable[[Parameterization], bool]
     condition_registry: Mapping[str, ConceptInfo]
     claim_support: Callable[[Claim], tuple[Label | None, SupportQuality]]
@@ -387,12 +385,17 @@ def _parameterization_edge_to_row(edge: ParameterizationEdge) -> Parameterizatio
     )
 
 
-def _conflict_witness_to_row(conflict: ConflictWitness) -> ConflictRow:
-    return ConflictRow(
+def _conflict_witness_to_model(conflict: GraphConflictWitness) -> ConflictWitness:
+    return ConflictWitness(
         claim_a_id=conflict.left_claim_id,
         claim_b_id=conflict.right_claim_id,
         warning_class=coerce_conflict_class(conflict.kind),
-        attributes=dict(conflict.details),
+        concept_id=dict(conflict.details).get("concept_id"),
+        conditions_a=dict(conflict.details).get("conditions_a"),
+        conditions_b=dict(conflict.details).get("conditions_b"),
+        value_a=dict(conflict.details).get("value_a"),
+        value_b=dict(conflict.details).get("value_b"),
+        derivation_chain=dict(conflict.details).get("derivation_chain"),
     )
 
 
@@ -489,10 +492,10 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
             if str(claim.id) in active_ids
         ]
 
-    def _conflicts() -> list[ConflictRowInput]:
+    def _conflicts() -> list[ConflictWitness]:
         active_ids = set(active_graph.active_claim_ids)
         return [
-            _conflict_witness_to_row(conflict)
+            _conflict_witness_to_model(conflict)
             for conflict in active_graph.compiled.conflicts
             if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
         ]
@@ -1587,8 +1590,7 @@ class ATMSEngine:
         provenance: dict[EnvironmentKey, list[ATMSNogoodProvenanceDetail]] = defaultdict(list)
         for environment, details in self._nogood_provenance.items():
             provenance[environment].extend(details)
-        for conflict_input in self._runtime.conflicts():
-            conflict = CONFLICT_ROW_MODEL.coerce(conflict_input)
+        for conflict in self._runtime.conflicts():
             claim_a = str(conflict.claim_a_id)
             claim_b = str(conflict.claim_b_id)
 
@@ -1605,7 +1607,11 @@ class ATMSEngine:
                         claim_a_id=claim_a,
                         claim_b_id=claim_b,
                         concept_id=conflict.concept_id,
-                        warning_class=conflict.warning_class,
+                        warning_class=(
+                            None
+                            if conflict.warning_class is None
+                            else coerce_conflict_class(conflict.warning_class)
+                        ),
                         environment_a=list(env_a.assumption_ids),
                         environment_b=list(env_b.assumption_ids),
                     ))

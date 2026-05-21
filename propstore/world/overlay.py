@@ -20,7 +20,7 @@ from propstore.core.environment import (
 )
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.graph_build import build_compiled_world_graph
-from propstore.core.id_types import ConceptId, to_claim_ids, to_concept_id
+from propstore.core.id_types import ConceptId, to_claim_id, to_claim_ids, to_concept_id
 from propstore.core.graph_types import (
     CompiledWorldGraph,
     ConflictWitness,
@@ -38,13 +38,10 @@ from propstore.families.claims.declaration import (
 )
 from propstore.families.claims.graph import claim_node_from_claim, synthetic_claim_to_claim
 from propstore.families.relations.declaration import (
-    ConflictRow,
-    ConflictRowInput,
-    RelationshipRowInput,
-    StanceRow,
-    StanceRowInput,
+    ConceptRelation,
+    ConflictWitness as RelationConflictWitness,
+    Stance,
 )
-from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import (
     Concept,
     Parameterization,
@@ -66,11 +63,11 @@ def _claim_pair(left_id: str, right_id: str) -> tuple[str, str]:
     return left, right
 
 
-def _conflict_witness_from_row(row: ConflictRow) -> ConflictWitness:
+def _conflict_witness_from_model(row: RelationConflictWitness) -> ConflictWitness:
     conflict = row
     return ConflictWitness(
-        left_claim_id=conflict.claim_a_id,
-        right_claim_id=conflict.claim_b_id,
+        left_claim_id=to_claim_id(conflict.claim_a_id),
+        right_claim_id=to_claim_id(conflict.claim_b_id),
         kind=(
             warning_class.value
             if isinstance(
@@ -170,8 +167,8 @@ class _GraphOverlayStore:
         base_store: WorldStore,
         *,
         claims: Sequence[Claim],
-        stances: list[StanceRow],
-        conflicts: list[ConflictRow],
+        stances: list[Stance],
+        conflicts: list[RelationConflictWitness],
         compiled: CompiledWorldGraph | None,
     ) -> None:
         self._base = base_store
@@ -242,7 +239,7 @@ class _GraphOverlayStore:
             if claim_id in claim_ids
         }
 
-    def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]:
+    def stances_between(self, claim_ids: set[str]) -> Sequence[Stance]:
         return [
             stance
             for stance in self._stances
@@ -250,16 +247,16 @@ class _GraphOverlayStore:
             and str(stance.target_claim_id) in claim_ids
         ]
 
-    def conflicts(self) -> Sequence[ConflictRowInput]:
+    def conflicts(self) -> Sequence[RelationConflictWitness]:
         return list(self._conflicts)
 
     def all_parameterizations(self) -> Sequence[ParameterizationInput]:
         return list(self._base.all_parameterizations())
 
-    def all_relationships(self) -> Sequence[RelationshipRowInput]:
+    def all_relationships(self) -> Sequence[ConceptRelation]:
         return list(self._base.all_relationships())
 
-    def all_claim_stances(self) -> Sequence[StanceRowInput]:
+    def all_claim_stances(self) -> Sequence[Stance]:
         return list(self._stances)
 
     def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]:
@@ -305,14 +302,14 @@ class _GraphOverlayStore:
     def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationInput]:
         return list(self._base.parameterizations_for(concept_id))
 
-    def explain(self, claim_id: str) -> list[StanceRow]:
+    def explain(self, claim_id: str) -> list[Stance]:
         if claim_id not in self._claims_by_id:
             return []
         active_ids = set(self._claims_by_id)
         return [
             stance
-            for stance_input in self._base.explain(claim_id)
-            if (stance := STANCE_ROW_MODEL.coerce(stance_input)).target_claim_id in active_ids
+            for stance in self._base.explain(claim_id)
+            if str(stance.target_claim_id) in active_ids
         ]
 
     def compiled_graph(self) -> CompiledWorldGraph:
@@ -437,7 +434,7 @@ class OverlayWorld(BeliefSpace):
         }
         overlay_stances = (
             [
-                STANCE_ROW_MODEL.coerce(stance)
+                stance
                 for stance in base._store.stances_between(overlay_claim_ids)
             ]
             if isinstance(base._store, StanceStore)
@@ -447,8 +444,8 @@ class OverlayWorld(BeliefSpace):
         overlay_conflicts = [
             conflict
             for conflict in (
-                CONFLICT_ROW_MODEL.coerce(conflict_input)
-                for conflict_input in base._store.conflicts()
+                conflict
+                for conflict in base._store.conflicts()
             )
             if conflict.claim_a_id in overlay_claim_ids
             and conflict.claim_b_id in overlay_claim_ids
@@ -473,7 +470,7 @@ class OverlayWorld(BeliefSpace):
                 claims=self._compiled_graph.claims,
                 relations=self._compiled_graph.relations,
                 parameterizations=self._compiled_graph.parameterizations,
-                conflicts=tuple(_conflict_witness_from_row(row) for row in overlay_conflicts),
+                conflicts=tuple(_conflict_witness_from_model(row) for row in overlay_conflicts),
             )
         self._overlay_store = _GraphOverlayStore(
             base._store,
@@ -532,10 +529,10 @@ class OverlayWorld(BeliefSpace):
     def is_determined(self, concept_id: str) -> bool:
         return self._overlay.is_determined(concept_id)
 
-    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
+    def conflicts(self, concept_id: str | None = None) -> list[RelationConflictWitness]:
         return self._overlay.conflicts(concept_id)
 
-    def explain(self, claim_id: str) -> list[StanceRow]:
+    def explain(self, claim_id: str) -> list[Stance]:
         return self._overlay.explain(claim_id)
 
     def get_claim(self, claim_id: str) -> Claim | None:
@@ -544,13 +541,13 @@ class OverlayWorld(BeliefSpace):
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
         return self._overlay_store.claims_by_ids(claim_ids)
 
-    def stances_between(self, claim_ids: set[str]) -> Sequence[StanceRowInput]:
+    def stances_between(self, claim_ids: set[str]) -> Sequence[Stance]:
         return self._overlay_store.stances_between(claim_ids)
 
-    def all_claim_stances(self) -> Sequence[StanceRowInput]:
+    def all_claim_stances(self) -> Sequence[Stance]:
         return self._overlay_store.all_claim_stances()
 
-    def recompute_conflicts(self) -> list[ConflictRow]:
+    def recompute_conflicts(self) -> list[RelationConflictWitness]:
         return _recomputed_conflicts(self._overlay_store, self.active_claims())
 
     def diff(self) -> dict[str, tuple[ValueResult, ValueResult]]:

@@ -18,10 +18,9 @@ from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore
 from propstore.core.id_types import ConceptId, to_claim_id, to_concept_id, to_context_id
 from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import (
-    ConflictRow,
-    StanceRow,
+    ConflictWitness,
+    Stance,
 )
-from propstore.families.relations.projection_model import CONFLICT_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import (
     Concept,
     Parameterization,
@@ -153,7 +152,7 @@ def _recomputed_conflicts(
     claims: list[Claim],
     *,
     precomputed_inputs: _ConflictInputs | None = None,
-) -> list[ConflictRow]:
+) -> list[ConflictWitness]:
     """Revalidate active conflicts against the live belief space.
 
     ``precomputed_inputs`` is an optional typed cache payload carrying the
@@ -199,18 +198,16 @@ def _recomputed_conflicts(
         lifting_system=lifting_system,
     )
     return [
-        ConflictRow(
+        ConflictWitness(
             concept_id=to_concept_id(record.concept_id),
             claim_a_id=to_claim_id(record.claim_a_id),
             claim_b_id=to_claim_id(record.claim_b_id),
             warning_class=record.warning_class,
-            attributes={
-                "conditions_a": record.conditions_a,
-                "conditions_b": record.conditions_b,
-                "value_a": record.value_a,
-                "value_b": record.value_b,
-                "derivation_chain": record.derivation_chain,
-            },
+            conditions_a=json.dumps(record.conditions_a),
+            conditions_b=json.dumps(record.conditions_b),
+            value_a=record.value_a,
+            value_b=record.value_b,
+            derivation_chain=record.derivation_chain,
         )
         for record in records
     ]
@@ -261,7 +258,7 @@ class BoundWorld(BeliefSpace):
                 self._binding_conds.append(assumption)
         self._context_id = environment.context_id
         self._lifting_system = lifting_system
-        self._conflicts_cache: dict[str | None, list[ConflictRow]] = {}
+        self._conflicts_cache: dict[str | None, list[ConflictWitness]] = {}
         # Typed per-instance memo of the concept + CEL registry used to
         # revalidate conflicts at render time. Built lazily on the first
         # `.conflicts()` call that misses `_conflicts_cache`. Safe to memoize
@@ -962,7 +959,7 @@ class BoundWorld(BeliefSpace):
             )
         return self._conflict_inputs_cache
 
-    def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
+    def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]:
         """Return active conflicts, revalidated against the current belief space."""
         resolved_concept_id = (
             self._store.resolve_concept(concept_id) or concept_id
@@ -977,11 +974,8 @@ class BoundWorld(BeliefSpace):
             return []
         active_ids = {str(claim.id) for claim in active_claims}
 
-        result: list[ConflictRow] = []
-        all_conflicts = [
-            CONFLICT_ROW_MODEL.coerce(conflict)
-            for conflict in self._store.conflicts()
-        ]
+        result: list[ConflictWitness] = []
+        all_conflicts = list(self._store.conflicts())
         for conflict in all_conflicts:
             if conflict.claim_a_id in active_ids and conflict.claim_b_id in active_ids:
                 if resolved_concept_id is None or conflict.concept_id == resolved_concept_id:
@@ -1008,16 +1002,15 @@ class BoundWorld(BeliefSpace):
         self._conflicts_cache[resolved_concept_id] = result
         return result
 
-    def explain(self, claim_id: str) -> list[StanceRow]:
+    def explain(self, claim_id: str) -> list[Stance]:
         """Stance walk filtered to active claims."""
         claim = self._store.get_claim(claim_id)
         if claim is None or not self.is_active(claim):
             return []
 
         full_chain = self._store.explain(claim_id)
-        result: list[StanceRow] = []
-        for stance_input in full_chain:
-            stance = STANCE_ROW_MODEL.coerce(stance_input)
+        result: list[Stance] = []
+        for stance in full_chain:
             target = self._store.get_claim(stance.target_claim_id)
             if target is not None and self.is_active(target):
                 result.append(stance)
