@@ -227,6 +227,37 @@ cutover.
 Slice 3 is complete. Continue with Slice 4: embedding vector backend handoff
 to Quire APIs.
 
+2026-05-21 Slice 4 embedding vector backend execution update:
+
+- Production commit `333ab15d` deleted `load_vec_extension`,
+  `_require_sqlite_vec`, `ensure_embedding_tables`,
+  `_SidecarEntityEmbeddingStore`, `SidecarClaimEmbeddingStore`, and
+  `SidecarConceptEmbeddingStore` from
+  `propstore/families/embeddings/declaration.py`.
+- Embedding workflows now use Quire `SqlAlchemyVecRegistry`,
+  `SqlAlchemyVecEntityStore`, and `SqlAlchemyVecSnapshotStore` through
+  Quire SQLAlchemy sessions and charter-declared vector caches.
+- `propstore/heuristic/embed.py` no longer takes sidecar store objects. It
+  operates on typed `EmbeddingEntity` values plus explicit vector-cache
+  operations, so the old store class handoff is not needed.
+- Concept embedding identity lookup now uses Quire family reference metadata:
+  `propstore/families/world_charters.py` declares `primary_logical_id` and
+  `canonical_name` as concept reference keys, and embedding lookup calls
+  Quire `require_reference_id` plus the family identity field.
+- `propstore/families/claims/sidecar_runtime.py` no longer imports the
+  deleted explicit vector-extension loader. Quire sessions load vector
+  support from schema vector-cache metadata.
+- `uv run pyright propstore` passed with zero errors after the production
+  deletion.
+- Production searches for `load_vec_extension`, `ensure_embedding_tables`,
+  `SidecarClaimEmbeddingStore`, `SidecarConceptEmbeddingStore`, and
+  `_SidecarEntityEmbeddingStore` across the edited production files returned
+  zero hits.
+
+Remaining Slice 4/Slice 5 work starts with test migration and then deletion of
+`SidecarClaimRelationStore`, `find_similar_claim_rows`, and
+`find_similar_concept_rows`.
+
 ## Prerequisites
 
 Complete these cutover workstreams before this slice starts:
