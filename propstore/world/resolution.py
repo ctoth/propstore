@@ -18,6 +18,7 @@ from propstore.core.id_types import ClaimId, to_claim_id, to_concept_id
 from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
+from propstore.families.claims.metadata import claim_metadata_value
 from propstore.world.assignment_selection_policy import resolve_assignment_selection_merge
 from propstore.world.types import (
     ArgumentationSemantics,
@@ -516,20 +517,20 @@ def _resolve_praf(
         pessimism_index = policy.pessimism_index
 
     if len(best_claims) > 1 and decision_criterion != "pignistic":
-        # Build a lookup from claim id to claim dict
-        claim_lookup: dict[str, _ResolutionClaimView] = {
-            str(c.id): c
-            for c in target_views
+        claim_lookup = {
+            claim_id: shared.claims_by_id[claim_id]
+            for claim_id in target_ids
+            if claim_id in shared.claims_by_id
         }
         decision_values: dict[str, float | None] = {}
         for cid in best_claims:
             claim = claim_lookup.get(cid)
             dv = apply_decision_criterion(
-                None if claim is None else claim.opinion_belief,
-                None if claim is None else claim.opinion_disbelief,
-                None if claim is None else claim.opinion_uncertainty,
-                None if claim is None else claim.opinion_base_rate,
-                None if claim is None else claim.confidence,
+                None if claim is None else claim_metadata_value(claim, "opinion_belief"),
+                None if claim is None else claim_metadata_value(claim, "opinion_disbelief"),
+                None if claim is None else claim_metadata_value(claim, "opinion_uncertainty"),
+                None if claim is None else claim_metadata_value(claim, "opinion_base_rate"),
+                None if claim is None else claim_metadata_value(claim, "confidence"),
                 criterion=decision_criterion,
                 pessimism_index=pessimism_index,
             )

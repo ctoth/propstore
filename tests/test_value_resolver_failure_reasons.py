@@ -16,12 +16,16 @@ import pytest
 from propstore.core.claim_types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
 from propstore.world.value_resolver import ClaimValueResolver, _claim_value_view
+from tests.typed_family_fixtures import claim_from_payload
 
 
 def _is_algorithm_claim(claim) -> bool:
     """True if this claim is an ALGORITHM claim — handles both dict inputs
     (pre-boundary) and typed Claim instances."""
     claim_type = getattr(claim, "claim_type", None)
+    if claim_type is not None:
+        return claim_type is ClaimType.ALGORITHM
+    claim_type = getattr(claim, "type", None)
     if claim_type is not None:
         return claim_type is ClaimType.ALGORITHM
     if isinstance(claim, dict):
@@ -57,6 +61,10 @@ def _make_resolver(
     )
 
 
+def _typed_active(active: list[dict]) -> list:
+    return [claim_from_payload(payload) for payload in active]
+
+
 # ---------------------------------------------------------------------------
 # Group 1: mixed direct + algorithm branch (_algorithm_matches_direct_value)
 # ---------------------------------------------------------------------------
@@ -83,7 +91,7 @@ def test_unparseable_algorithm_records_failure_reason():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.DETERMINED
     assert result.reason is ValueResultReason.ALGORITHM_UNPARSEABLE
@@ -108,7 +116,7 @@ def test_benign_inconclusive_algorithm_has_no_reason_annotation():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.CONFLICTED
     assert result.reason is None
@@ -130,7 +138,7 @@ def test_benign_missing_bindings_has_no_reason_annotation():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     # Unevaluable algorithm present → CONFLICTED (line 197) but benign —
     # no parse failure, so reason must stay None.
@@ -154,7 +162,7 @@ def test_successful_comparison_has_no_reason_annotation():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.DETERMINED
     assert result.reason is None
@@ -184,7 +192,7 @@ def test_unparseable_algorithm_only_records_failure_reason():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.CONFLICTED
     assert result.reason is ValueResultReason.ALGORITHM_UNPARSEABLE
@@ -208,7 +216,7 @@ def test_successful_algorithm_only_has_no_reason_annotation():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.DETERMINED
     assert result.reason is None
@@ -217,8 +225,8 @@ def test_successful_algorithm_only_has_no_reason_annotation():
 def test_runtime_error_from_algorithm_equivalence_propagates():
     resolver = _make_resolver()
     algo_claims = [
-        {"body": "x = 1", "id": "c1"},
-        {"body": "x = 2", "id": "c2"},
+        {"body": "x = 1", "id": "c1", "type": "algorithm"},
+        {"body": "x = 2", "id": "c2", "type": "algorithm"},
     ]
 
     with patch(
@@ -226,7 +234,10 @@ def test_runtime_error_from_algorithm_equivalence_propagates():
         side_effect=RuntimeError("boom"),
     ):
         with pytest.raises(RuntimeError, match="boom"):
-            resolver._all_algorithms_equivalent(algo_claims, known_values={})
+            resolver._all_algorithms_equivalent(
+                _typed_active(algo_claims),
+                known_values={},
+            )
 
 
 def test_ast_compare_none_equivalence_is_benign_inconclusive():
@@ -246,7 +257,7 @@ def test_ast_compare_none_equivalence_is_benign_inconclusive():
         return_value=_Comparison(),
     ):
         comparison = resolver._algorithm_matches_direct_value(
-            _claim_value_view(claim),
+            _claim_value_view(claim_from_payload(claim)),
             10.0,
         )
 

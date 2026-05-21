@@ -106,6 +106,10 @@ def _claim_graph_attributes(claim: Claim) -> tuple[tuple[str, Any], ...]:
             ("build_status", claim.build_status),
             ("stage", claim.stage),
             ("promotion_status", claim.promotion_status),
+            (
+                "confidence",
+                None if numeric_payload is None else numeric_payload.confidence,
+            ),
         )
         if value is not None
     )
@@ -194,6 +198,9 @@ def synthetic_claim_to_claim(
                 synthetic.sample_size
                 if synthetic.sample_size is not None
                 else (None if existing_numeric is None else existing_numeric.sample_size)
+            ),
+            "confidence": (
+                None if existing_numeric is None else existing_numeric.confidence
             ),
             "unit": None if existing_numeric is None else existing_numeric.unit,
             "value_si": None if existing_numeric is None else existing_numeric.value_si,

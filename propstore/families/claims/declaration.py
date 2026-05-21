@@ -373,6 +373,7 @@ def compile_claim_models(
                 "uncertainty": claim_doc.uncertainty,
                 "uncertainty_type": claim_doc.uncertainty_type,
                 "sample_size": claim_doc.sample_size,
+                "confidence": claim_doc.confidence,
                 "unit": claim_doc.unit,
                 "value_si": claim_doc.value,
                 "lower_bound_si": claim_doc.lower_bound,

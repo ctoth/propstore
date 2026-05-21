@@ -50,6 +50,7 @@ from propstore.structured_projection import (
     compute_structured_justified_arguments,
 )
 from propstore.world.types import ReasoningBackend
+from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
 def _claim(
@@ -58,20 +59,24 @@ def _claim(
     sample_size: int | None = None,
     uncertainty: float | None = None,
     confidence: float | None = None,
-) -> dict[str, object]:
-    claim: dict[str, object] = {
+    context_id: str | None = None,
+    concept_id: str | None = None,
+) -> object:
+    payload: dict[str, object] = {
         "id": claim_id,
-        "concept_id": f"concept_{claim_id}",
+        "concept_id": concept_id or f"concept_{claim_id}",
         "statement": f"Claim {claim_id}",
         "premise_kind": "ordinary",
     }
+    if context_id is not None:
+        payload["context_id"] = context_id
     if sample_size is not None:
-        claim["sample_size"] = sample_size
+        payload["sample_size"] = sample_size
     if uncertainty is not None:
-        claim["uncertainty"] = uncertainty
+        payload["uncertainty"] = uncertainty
     if confidence is not None:
-        claim["confidence"] = confidence
-    return claim
+        payload["confidence"] = confidence
+    return claim_from_payload(payload)
 
 
 def _reported(claim_id: str) -> CanonicalJustification:
@@ -100,12 +105,12 @@ def _support(
     )
 
 
-def _stance(source: str, target: str, stance_type: str) -> dict[str, str]:
-    return {
+def _stance(source: str, target: str, stance_type: str) -> object:
+    return stance_from_payload({
         "claim_id": source,
         "target_claim_id": target,
         "stance_type": stance_type,
-    }
+    })
 
 
 def test_stances_asymmetric_contrary_for_directional_relations() -> None:
@@ -243,14 +248,14 @@ def test_lifted_bridge_decision_projects_target_ist_argument() -> None:
     )
 
     compiled = compile_bridge_context(
-        [{**_claim("claim_alpha"), "context_id": "ctx_source"}],
+        [_claim("claim_alpha", context_id="ctx_source")],
         [_reported("claim_alpha")],
         [],
         bundle=GroundedRulesBundle.empty(),
         lifting_decisions=decisions,
     )
     csaf = build_bridge_csaf(
-        [{**_claim("claim_alpha"), "context_id": "ctx_source"}],
+        [_claim("claim_alpha", context_id="ctx_source")],
         [_reported("claim_alpha")],
         [],
         bundle=GroundedRulesBundle.empty(),
@@ -284,7 +289,7 @@ def test_blocked_lifting_decision_does_not_project_target_argument() -> None:
         IstProposition(context=source, proposition_id="claim_alpha")
     )
     csaf = build_bridge_csaf(
-        [{**_claim("claim_alpha"), "context_id": "ctx_source"}],
+        [_claim("claim_alpha", context_id="ctx_source")],
         [_reported("claim_alpha")],
         [],
         bundle=GroundedRulesBundle.empty(),
@@ -429,12 +434,12 @@ def test_arguments_against_includes_undermine_and_undercut_attackers() -> None:
         justifications,
         [
             _stance("anti_premise", "premise", "undermines"),
-            {
+            stance_from_payload({
                 "claim_id": "rule_attack",
                 "target_claim_id": "goal",
                 "stance_type": "undercuts",
                 "target_justification_id": "support:premise-to-goal",
-            },
+            }),
         ],
         bundle=GroundedRulesBundle.empty(),
     )
@@ -447,16 +452,8 @@ def test_arguments_against_includes_undermine_and_undercut_attackers() -> None:
 
 def test_claim_canonical_name_collision_does_not_collapse_aspic_literals() -> None:
     claims = [
-        {
-            **_claim("first"),
-            "concept_id": "shared_concept",
-            "canonical_name": "same canonical concept",
-        },
-        {
-            **_claim("second"),
-            "concept_id": "shared_concept",
-            "canonical_name": "same canonical concept",
-        },
+        _claim("first", concept_id="shared_concept"),
+        _claim("second", concept_id="shared_concept"),
     ]
     literals = claims_to_literals(claims)
 
@@ -484,27 +481,21 @@ def test_claim_canonical_name_collision_does_not_collapse_aspic_literals() -> No
 
 def _minimal_praf_shared_input() -> SharedAnalyzerInput:
     prior = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
+    claim_a = ClaimNode(
+        claim_id="claim_a",
+        claim_type="observation",
+        attributes={"source_prior_base_rate": prior},
+    )
     active_graph = WorldActivationGraph(
         compiled=CompiledWorldGraph(
-            claims=(
-                ClaimNode(
-                    claim_id="claim_a",
-                    claim_type="observation",
-                    attributes={"source_prior_base_rate": prior},
-                ),
-            )
+            claims=(claim_a,)
         ),
         active_claim_ids=("claim_a",),
     )
     return SharedAnalyzerInput(
         active_graph=active_graph,
         comparison="elitist",
-        claims_by_id={
-            "claim_a": {
-                "id": "claim_a",
-                "source_prior_base_rate": prior,
-            },
-        },
+        claims_by_id={"claim_a": claim_a},
         stance_rows=(),
         relations=ClaimGraphRelations(
             arguments=frozenset({"claim_a"}),

@@ -11,7 +11,7 @@ from typing import Any, Callable
 
 from ast_equiv import AlgorithmParseError, compare as ast_compare
 
-from propstore.core.claim_types import ClaimType
+from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Parameterization
@@ -79,7 +79,7 @@ def _claim_value_view(claim: Claim) -> _ClaimValueView:
     return _ClaimValueView(
         claim=claim,
         claim_id=str(claim.id),
-        claim_type=claim.type,
+        claim_type=coerce_claim_type(claim.type),
         value=_claim_value(claim),
         body=None if algorithm_payload is None else algorithm_payload.body,
     )

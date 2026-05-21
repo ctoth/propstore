@@ -16,12 +16,16 @@ from __future__ import annotations
 from propstore.core.claim_types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
 from propstore.world.value_resolver import ClaimValueResolver
+from tests.typed_family_fixtures import claim_from_payload
 
 
 def _is_algorithm_claim(claim) -> bool:
     """True if this claim is an ALGORITHM claim — handles both dict inputs
     (pre-boundary) and typed Claim instances."""
     claim_type = getattr(claim, "claim_type", None)
+    if claim_type is not None:
+        return claim_type is ClaimType.ALGORITHM
+    claim_type = getattr(claim, "type", None)
     if claim_type is not None:
         return claim_type is ClaimType.ALGORITHM
     if isinstance(claim, dict):
@@ -59,6 +63,10 @@ def _make_resolver(
     )
 
 
+def _typed_active(active: list[dict]) -> list:
+    return [claim_from_payload(payload) for payload in active]
+
+
 # ---------------------------------------------------------------------------
 # Commit 5 core behavior: abstention on consensus
 # ---------------------------------------------------------------------------
@@ -82,14 +90,14 @@ def test_unparseable_algo_abstains_when_direct_consensus_exists():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.DETERMINED
     assert result.reason is ValueResultReason.ALGORITHM_UNPARSEABLE
     # All three claims survive in the record — the algorithm is not dropped,
     # only absorbed as abstention.
     assert len(result.claims) == 3
-    claim_ids = {str(claim.claim_id) for claim in result.claims}
+    claim_ids = {str(claim.id) for claim in result.claims}
     assert claim_ids == {"direct_a", "direct_b", "algo_broken"}
 
 
@@ -112,7 +120,7 @@ def test_parseable_disagreeing_algorithm_still_conflicts_with_direct_consensus()
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.CONFLICTED
     assert result.reason is None
@@ -141,7 +149,7 @@ def test_all_algorithms_unparseable_with_direct_consensus_returns_determined():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.DETERMINED
     assert result.reason is ValueResultReason.ALGORITHM_UNPARSEABLE
@@ -173,7 +181,7 @@ def test_mixed_agreeing_and_unparseable_algorithms_with_direct_consensus():
         },
     ]
 
-    result = resolver.value_of_from_active(active, "target")
+    result = resolver.value_of_from_active(_typed_active(active), "target")
 
     assert result.status is ValueStatus.DETERMINED
     assert result.reason is ValueResultReason.ALGORITHM_UNPARSEABLE

@@ -10,7 +10,7 @@ from propstore.cli import cli
 from propstore.core.conditions import checked_condition_set_to_json
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
-from propstore.families.concepts.declaration import Concept
+from propstore.families.concepts.declaration import Concept, Parameterization
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.atms import BudgetExhausted
 from propstore.world import BoundWorld
@@ -135,13 +135,13 @@ class _ATMSStore:
             if _test_claim_value_concept_id(claim) == concept_id
         ]
 
-    def parameterizations_for(self, concept_id: str) -> list[dict]:
+    def parameterizations_for(self, concept_id: str) -> list[Parameterization]:
         return [
             row for row in self._parameterizations
-            if row.get("output_concept_id") == concept_id
+            if row.output_concept_id == concept_id
         ]
 
-    def all_parameterizations(self) -> list[dict]:
+    def all_parameterizations(self) -> list[Parameterization]:
         return list(self._parameterizations)
 
     def condition_solver(self):
@@ -195,14 +195,22 @@ def _normalize_test_parameterization(
     row: dict,
     *,
     condition_registry,
-) -> dict:
+) -> Parameterization:
     normalized = dict(row)
     if normalized.get("conditions_cel") and not normalized.get("conditions_ir"):
         normalized["conditions_ir"] = condition_ir_json(
             normalized.get("conditions_cel"),
             condition_registry,
         )
-    return normalized
+    return Parameterization(
+        output_concept_id=normalized["output_concept_id"],
+        concept_ids=normalized["concept_ids"],
+        formula=normalized.get("formula"),
+        sympy=normalized.get("sympy"),
+        exactness=normalized.get("exactness", "exact"),
+        conditions_cel=normalized.get("conditions_cel"),
+        conditions_ir=normalized.get("conditions_ir"),
+    )
 
 
 def _test_claim_value_concept_id(claim: Claim) -> str | None:

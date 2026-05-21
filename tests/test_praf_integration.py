@@ -9,8 +9,17 @@ from __future__ import annotations
 import pytest
 
 from argumentation.dung import ArgumentationFramework
+from propstore.core.graph_relation_types import coerce_graph_relation_type
+from propstore.core.graph_types import CompiledWorldGraph, RelationEdge
+from propstore.families.claims.declaration import Claim
+from propstore.families.relations.declaration import Stance
 from propstore.opinion import Opinion
 from propstore.stances import StanceType
+from tests.typed_family_fixtures import (
+    claim_from_payload,
+    claim_node_from_payload,
+    stance_from_payload,
+)
 
 SOURCE_PRIOR_05 = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
 
@@ -22,50 +31,90 @@ SOURCE_PRIOR_05 = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
 class _MockStore:
     """Minimal WorldStore mock for PrAF integration tests."""
 
-    def __init__(self, claims: list[dict], stances: list[dict]):
-        self._claims = {c["id"]: c for c in claims}
-        self._stances = stances
+    def __init__(self, claims: list[dict] | list[Claim], stances: list[dict] | list[Stance]):
+        claim_nodes = tuple(
+            claim_node_from_payload(claim)
+            for claim in claims
+            if isinstance(claim, dict)
+        )
+        typed_claims = tuple(
+            claim if isinstance(claim, Claim) else claim_from_payload(claim)
+            for claim in claims
+        )
+        typed_stances = [
+            stance if isinstance(stance, Stance) else stance_from_payload(stance)
+            for stance in stances
+        ]
+        self._claims = {str(c.id): c for c in typed_claims}
+        self._stances = typed_stances
+        self._claim_nodes = claim_nodes
 
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
+    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
         return {cid: self._claims[cid] for cid in claim_ids if cid in self._claims}
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
             s for s in self._stances
-            if s["claim_id"] in claim_ids and s["target_claim_id"] in claim_ids
+            if str(s.claim_id) in claim_ids and str(s.target_claim_id) in claim_ids
         ]
 
     def has_table(self, name: str) -> bool:
         return name == "relation_edge"
 
-    def claims_for(self, concept_id: str | None) -> list[dict]:
+    def claims_for(self, concept_id: str | None) -> list[Claim]:
         if concept_id is None:
             return list(self._claims.values())
-        return [c for c in self._claims.values() if c.get("concept_id") == concept_id]
+        return [c for c in self._claims.values() if c.target_concept == concept_id]
 
     def get_concept(self, concept_id: str) -> dict | None:
         return None
+
+    def compiled_graph(self) -> CompiledWorldGraph:
+        return CompiledWorldGraph(
+            claims=tuple(
+                node
+                for node in self._claim_nodes
+                if node is not None
+            ),
+            relations=tuple(
+                RelationEdge(
+                    source_id=str(stance.claim_id),
+                    target_id=str(stance.target_claim_id),
+                    relation_type=coerce_graph_relation_type(stance.stance_type),
+                    attributes=tuple(
+                        (key, value)
+                        for key, value in stance.attribute_mapping().items()
+                        if key not in {"claim_id", "target_claim_id", "stance_type"}
+                        and value is not None
+                    ),
+                )
+                for stance in self._stances
+            ),
+        )
 
 
 class _MockBeliefSpace:
     """Minimal BeliefSpace mock returning conflicted claims for a concept."""
 
-    def __init__(self, claims: list[dict]):
-        self._claims = claims
+    def __init__(self, claims: list[dict] | list[Claim]):
+        self._claims = [
+            claim if isinstance(claim, Claim) else claim_from_payload(claim)
+            for claim in claims
+        ]
 
     def value_of(self, concept_id: str):
         from propstore.world.types import ValueResult, ValueStatus
-        matching = [c for c in self._claims if c.get("concept_id") == concept_id]
+        matching = [c for c in self._claims if c.target_concept == concept_id]
         if len(matching) == 0:
             return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
         if len(matching) == 1:
             return ValueResult(concept_id=concept_id, status=ValueStatus.DETERMINED, claims=matching)
         return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=matching)
 
-    def active_claims(self, concept_id: str | None = None) -> list[dict]:
+    def active_claims(self, concept_id: str | None = None) -> list[Claim]:
         if concept_id is None:
             return list(self._claims)
-        return [c for c in self._claims if c.get("concept_id") == concept_id]
+        return [c for c in self._claims if c.target_concept == concept_id]
 
 
 # ---------------------------------------------------------------------------
