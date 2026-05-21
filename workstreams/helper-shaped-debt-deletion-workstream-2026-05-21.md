@@ -115,6 +115,22 @@ Gate:
 - broad helper-shaped output is captured in the Phase 0 execution record or a
   sibling inventory file committed before Phase 2 begins.
 
+### Phase 0 Execution Record
+
+Recorded 2026-05-21.
+
+- `git status --short --untracked-files=no` was clean before deletion.
+- `rg -n -F -- "from propstore.core.id_types import" propstore tests` found
+  the active import queue in core, families, world, worldline,
+  support-revision, app, ASPIC, provenance, and tests.
+- The required `to_*_id` searches confirmed live production/test callers for
+  every Phase 1 deletion target except that some hits are only definitions or
+  tests for the narrower IDs.
+- The broad helper-shaped scan found the expected remaining `coerce_*`,
+  `normalize_*`, `*Record`, `*Row`, adapter, and helper-looking surfaces. The
+  complete classification belongs to Phase 2 inventory after Phase 1 deletes
+  the known semantic-ID helper family.
+
 ## Phase 1: Delete Semantic ID Conversion Helpers
 
 Owned files:
