@@ -590,6 +590,16 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   form-algebra-no-row-factory tests/test_form_algebra.py` passed with 30
   tests; log:
   `logs/test-runs/form-algebra-no-row-factory-20260521-105302.log`.
+- Test commit `b6577af2` removed `row_factory` access from
+  `tests/test_opinion_schema.py` by selecting the explicit opinion columns and
+  asserting tuple positions.
+- `rg -n -F -- "row_factory" tests/test_opinion_schema.py` returned zero
+  hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  opinion-schema-no-row-factory tests/test_opinion_schema.py` passed with 8
+  tests; log:
+  `logs/test-runs/opinion-schema-no-row-factory-20260521-105604.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
