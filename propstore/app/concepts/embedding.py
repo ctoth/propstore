@@ -19,7 +19,6 @@ from .mutation import (
 from propstore.derived_build import materialize_world_sidecar
 from propstore.families.concepts.sidecar_runtime import (
     embed_concepts_for_request,
-    find_similar_concept_rows,
 )
 
 if TYPE_CHECKING:
@@ -66,14 +65,35 @@ def find_similar_concepts(
     if not derived_store.path.exists():
         raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
     try:
-        rows = find_similar_concept_rows(
-            derived_store,
-            concept_id=request.concept_id,
-            model=request.model,
-            top_k=request.top_k,
-            agree=request.agree,
-            disagree=request.disagree,
-        )
+        if request.agree:
+            from propstore.families.embeddings.declaration import (
+                find_similar_concepts_agree,
+            )
+
+            similarity_hits = find_similar_concepts_agree(
+                derived_store,
+                request.concept_id,
+                top_k=request.top_k,
+            )
+        elif request.disagree:
+            from propstore.families.embeddings.declaration import (
+                find_similar_concepts_disagree,
+            )
+
+            similarity_hits = find_similar_concepts_disagree(
+                derived_store,
+                request.concept_id,
+                top_k=request.top_k,
+            )
+        else:
+            from propstore.world import WorldQuery
+
+            with WorldQuery(derived_store=derived_store) as world:
+                similarity_hits = world.similar_concepts(
+                    request.concept_id,
+                    request.model,
+                    top_k=request.top_k,
+                )
     except LookupError as exc:
         raise ConceptEmbeddingModelError(
             "no embeddings found. Run 'pks concept embed' first."
@@ -84,11 +104,11 @@ def find_similar_concepts(
     return ConceptSimilarReport(
         hits=tuple(
             ConceptSimilarHit(
-                distance=float(row.get("distance", 0)),
-                concept_id=str(row.get("primary_logical_id") or row.get("id", "?")),
-                canonical_name=str(row.get("canonical_name", "")),
-                definition=str(row.get("definition") or ""),
+                distance=hit.distance,
+                concept_id=str(hit.primary_logical_id or hit.concept_id),
+                canonical_name=hit.canonical_name or "",
+                definition=hit.definition or "",
             )
-            for row in rows
+            for hit in similarity_hits
         )
     )

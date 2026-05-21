@@ -12,24 +12,10 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable, Sequence
-from typing import Protocol
+from typing import Any
 
+from propstore.core.store_results import ClaimSimilarityHit
 from propstore.heuristic.classify import classify_stance_async
-
-
-class ClaimRelationStore(Protocol):
-    def load_embedding_extension(self) -> None: ...
-    def get_registered_models(self) -> list[dict]: ...
-    def get_claim_text(self, claim_id: str) -> dict | None: ...
-    def get_claim_texts(self, claim_ids: Sequence[str]) -> dict[str, dict]: ...
-    def all_claim_ids(self) -> list[str]: ...
-    def find_similar(
-        self,
-        claim_id: str,
-        model_name: str,
-        *,
-        top_k: int,
-    ) -> list[dict]: ...
 
 
 def _run_async(coro):
@@ -90,40 +76,42 @@ def _shared_concept_ids_from_pair(claim_a: dict, claim_b: dict) -> list[str]:
 
 
 async def relate_claim_async(
-    store: ClaimRelationStore,
+    *,
     claim_id: str,
     model_name: str,
     embedding_model: str | None,
     top_k: int,
     semaphore: asyncio.Semaphore,
-) -> list[dict]:
+    registered_models: Callable[[], Sequence[dict[str, Any]]],
+    claim_text: Callable[[str], dict[str, Any] | None],
+    similar_claims: Callable[[str, str, int], Sequence[ClaimSimilarityHit]],
+) -> list[dict[str, Any]]:
     """Find similar claims and classify relationships concurrently.
 
     Single-pass bidirectional classification — each LLM call returns both A->B and B->A.
     """
-    store.load_embedding_extension()
-
     if embedding_model is None:
-        models = store.get_registered_models()
+        models = registered_models()
         if not models:
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
         embedding_model = str(models[0]["model_name"])
 
-    claim_a = store.get_claim_text(claim_id)
+    claim_a = claim_text(claim_id)
     if not claim_a:
         raise ValueError(f"Claim {claim_id} not found")
 
-    candidates = store.find_similar(claim_id, embedding_model, top_k=top_k)
+    candidates = similar_claims(claim_id, embedding_model, top_k)
 
     candidate_claims = []
     candidate_distances: dict[str, float] = {}
     for c in candidates:
-        claim_b = store.get_claim_text(c["id"])
+        candidate_id = str(c.claim_id)
+        claim_b = claim_text(candidate_id)
         if claim_b:
             # Carry concept_id from find_similar result for shared-concept check
-            claim_b["concept_id"] = c.get("concept_id")
+            claim_b["concept_id"] = c.concept_id
             candidate_claims.append(claim_b)
-            candidate_distances[c["id"]] = c.get("distance", 1.0)
+            candidate_distances[candidate_id] = c.distance
 
     tasks = [
         classify_stance_async(
@@ -145,71 +133,87 @@ async def relate_claim_async(
 
 
 def relate_claim(
-    store: ClaimRelationStore,
+    *,
     claim_id: str,
     model_name: str,
     embedding_model: str | None = None,
     top_k: int = 5,
-) -> list[dict]:
+    registered_models: Callable[[], Sequence[dict[str, Any]]],
+    claim_text: Callable[[str], dict[str, Any] | None],
+    similar_claims: Callable[[str, str, int], Sequence[ClaimSimilarityHit]],
+) -> list[dict[str, Any]]:
     """Find similar claims and classify relationships (sync entry point)."""
     sem = asyncio.Semaphore(10)
     return _run_async(
-        relate_claim_async(store, claim_id, model_name, embedding_model, top_k, sem)
+        relate_claim_async(
+            claim_id=claim_id,
+            model_name=model_name,
+            embedding_model=embedding_model,
+            top_k=top_k,
+            semaphore=sem,
+            registered_models=registered_models,
+            claim_text=claim_text,
+            similar_claims=similar_claims,
+        )
     )
 
 
 async def relate_all_async(
-    store: ClaimRelationStore,
+    *,
     model_name: str,
     embedding_model: str | None,
     top_k: int,
     concurrency: int,
     on_progress: Callable[[int, int], None] | None,
-) -> dict:
+    registered_models: Callable[[], Sequence[dict[str, Any]]],
+    all_claim_ids: Callable[[], Sequence[str]],
+    claim_texts: Callable[[Sequence[str]], dict[str, dict[str, Any]]],
+    similar_claims: Callable[[str, str, int], Sequence[ClaimSimilarityHit]],
+) -> dict[str, Any]:
     """Classify relationships for all claims with concurrent bidirectional LLM calls."""
-    store.load_embedding_extension()
-
     if embedding_model is None:
-        models = store.get_registered_models()
+        models = registered_models()
         if not models:
             raise ValueError("No embeddings found. Run 'pks claim embed' first.")
         embedding_model = str(models[0]["model_name"])
 
-    all_claim_ids = store.all_claim_ids()
-    total = len(all_claim_ids)
+    claim_ids = tuple(all_claim_ids())
+    total = len(claim_ids)
 
     # Bulk-fetch all claim texts upfront
-    text_cache = store.get_claim_texts(all_claim_ids)
+    text_cache = claim_texts(claim_ids)
 
     # Phase 1: Gather directed pairs from embeddings (fast, no LLM)
-    directed_pairs: list[tuple[dict, dict, float]] = []
+    directed_pairs: list[tuple[dict[str, Any], dict[str, Any], float]] = []
     candidate_ids_needed: set[str] = set()
-    raw_candidates: list[tuple[str, list[dict]]] = []
+    raw_candidates: list[tuple[str, Sequence[ClaimSimilarityHit]]] = []
     # Track concept_ids from find_similar for shared-concept checks
     concept_ids: dict[str, str | None] = {}
 
-    for claim_id in all_claim_ids:
+    for claim_id in claim_ids:
         if claim_id not in text_cache:
             continue
         try:
-            candidates = store.find_similar(claim_id, embedding_model, top_k=top_k)
+            candidates = similar_claims(claim_id, embedding_model, top_k)
         except ValueError:
             continue
         raw_candidates.append((claim_id, candidates))
         for c in candidates:
-            concept_ids[c["id"]] = c.get("concept_id")
-            if c["id"] not in text_cache:
-                candidate_ids_needed.add(c["id"])
+            candidate_id = str(c.claim_id)
+            concept_ids[candidate_id] = None if c.concept_id is None else str(c.concept_id)
+            if candidate_id not in text_cache:
+                candidate_ids_needed.add(candidate_id)
 
     if candidate_ids_needed:
-        text_cache.update(store.get_claim_texts(list(candidate_ids_needed)))
+        text_cache.update(claim_texts(tuple(candidate_ids_needed)))
 
     for claim_id, candidates in raw_candidates:
         claim_a = text_cache[claim_id]
         for c in candidates:
-            claim_b = text_cache.get(c["id"])
+            candidate_id = str(c.claim_id)
+            claim_b = text_cache.get(candidate_id)
             if claim_b:
-                directed_pairs.append((claim_a, claim_b, c.get("distance", 1.0)))
+                directed_pairs.append((claim_a, claim_b, c.distance))
 
     # Deduplicate mirror pairs
     raw_id_pairs = [(a["id"], b["id"], dist) for a, b, dist in directed_pairs]
@@ -286,14 +290,28 @@ async def relate_all_async(
 
 
 def relate_all(
-    store: ClaimRelationStore,
+    *,
     model_name: str,
     embedding_model: str | None = None,
     top_k: int = 5,
     concurrency: int = 20,
     on_progress: Callable[[int, int], None] | None = None,
-) -> dict:
+    registered_models: Callable[[], Sequence[dict[str, Any]]],
+    all_claim_ids: Callable[[], Sequence[str]],
+    claim_texts: Callable[[Sequence[str]], dict[str, dict[str, Any]]],
+    similar_claims: Callable[[str, str, int], Sequence[ClaimSimilarityHit]],
+) -> dict[str, Any]:
     """Classify relationships for all claims (sync entry point)."""
     return _run_async(
-        relate_all_async(store, model_name, embedding_model, top_k, concurrency, on_progress)
+        relate_all_async(
+            model_name=model_name,
+            embedding_model=embedding_model,
+            top_k=top_k,
+            concurrency=concurrency,
+            on_progress=on_progress,
+            registered_models=registered_models,
+            all_claim_ids=all_claim_ids,
+            claim_texts=claim_texts,
+            similar_claims=similar_claims,
+        )
     )

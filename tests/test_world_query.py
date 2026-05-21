@@ -983,14 +983,14 @@ class TestUnboundQueries:
             embeddings,
             "find_similar",
             lambda conn, claim_id, model_name, top_k=10: [
-                {
-                    "id": _claim_artifact("test_paper_alpha", "claim2"),
-                    "distance": 0.125,
-                    "auto_summary": "similar claim summary",
-                    "statement": "similar claim statement",
-                    "source_paper": "alpha",
-                    "concept_id": CONCEPT1_ID,
-                }
+                ClaimSimilarityHit(
+                    claim_id=_claim_artifact("test_paper_alpha", "claim2"),
+                    distance=0.125,
+                    auto_summary="similar claim summary",
+                    statement="similar claim statement",
+                    source_paper="alpha",
+                    concept_id=CONCEPT1_ID,
+                )
             ],
         )
 
@@ -1019,13 +1019,13 @@ class TestUnboundQueries:
             embeddings,
             "find_similar_concepts",
             lambda conn, concept_id, model_name, top_k=10: [
-                {
-                    "id": CONCEPT2_ID,
-                    "distance": 0.25,
-                    "primary_logical_id": "propstore:concept2",
-                    "canonical_name": "Frequency Response",
-                    "definition": "Frequency-domain response",
-                }
+                ConceptSimilarityHit(
+                    concept_id=CONCEPT2_ID,
+                    distance=0.25,
+                    primary_logical_id="propstore:concept2",
+                    canonical_name="Frequency Response",
+                    definition="Frequency-domain response",
+                )
             ],
         )
 

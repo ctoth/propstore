@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from quire.derived_store import DerivedStoreHandle
-from propstore.world import WorldQuery
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
 def embed_concepts_for_request(
@@ -29,8 +29,15 @@ def embed_concepts_for_request(
     reports: list[tuple[str, Any]] = []
     ids = None
     if concept_id:
-        resolved = WorldQuery(derived_store=derived_store).resolve_concept(concept_id)
-        if resolved is None:
+        schema = world_sqlalchemy_schema()
+        try:
+            with derived_store.readonly_session(schema) as derived:
+                resolved = schema.require_reference_id(
+                    derived.session,
+                    "concept",
+                    concept_id,
+                )
+        except KeyError:
             raise ValueError(f"Unknown concept: {concept_id}")
         ids = [resolved]
 
@@ -70,51 +77,3 @@ def embed_concepts_for_request(
         )
         reports.append((model, result))
     return reports
-
-
-def find_similar_concept_rows(
-    derived_store: DerivedStoreHandle,
-    *,
-    concept_id: str,
-    model: str | None,
-    top_k: int,
-    agree: bool = False,
-    disagree: bool = False,
-) -> list[dict[str, Any]]:
-    from propstore.families.embeddings.declaration import (
-        find_similar_concepts,
-        find_similar_concepts_agree,
-        find_similar_concepts_disagree,
-        get_registered_models,
-    )
-
-    resolved_id = WorldQuery(derived_store=derived_store).resolve_concept(concept_id)
-    if resolved_id is None:
-        raise ValueError(f"Unknown concept: {concept_id}")
-    if agree:
-        rows = find_similar_concepts_agree(
-            derived_store,
-            resolved_id,
-            top_k=top_k,
-        )
-    elif disagree:
-        rows = find_similar_concepts_disagree(
-            derived_store,
-            resolved_id,
-            top_k=top_k,
-        )
-    else:
-        selected_model = model
-        if selected_model is None:
-            models = get_registered_models(derived_store)
-            if not models:
-                raise LookupError("no embeddings found")
-            selected_model = str(models[0]["model_name"])
-        rows = find_similar_concepts(
-            derived_store,
-            resolved_id,
-            selected_model,
-            top_k=top_k,
-        )
-
-    return [dict(row) for row in rows]

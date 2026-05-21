@@ -819,15 +819,12 @@ class WorldQuery(WorldStore):
             model_name = models[0]["model_name"]
 
         assert model_name is not None  # narrowed above
-        return [
-            ClaimSimilarityHit.from_search_row(result)
-            for result in find_similar(
-                self._derived_store,
-                claim_id,
-                model_name,
-                top_k=top_k,
-            )
-        ]
+        return find_similar(
+            self._derived_store,
+            claim_id,
+            model_name,
+            top_k=top_k,
+        )
 
     def similar_concepts(
         self,
@@ -851,15 +848,12 @@ class WorldQuery(WorldStore):
             model_name = models[0]["model_name"]
 
         assert model_name is not None  # narrowed above
-        return [
-            ConceptSimilarityHit.from_search_row(result)
-            for result in find_similar_concepts(
-                self._derived_store,
-                concept_id,
-                model_name,
-                top_k=top_k,
-            )
-        ]
+        return find_similar_concepts(
+            self._derived_store,
+            concept_id,
+            model_name,
+            top_k=top_k,
+        )
 
     # ── Form algebra queries ────────────────────────────────────────
 

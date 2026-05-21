@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Mapping
 
 from propstore.families.claims.sidecar_runtime import (
     embed_claims_for_request,
-    find_similar_claim_rows,
     relate_all_from_sidecar,
     relate_claim_from_sidecar,
 )
@@ -496,14 +495,31 @@ def find_similar_claims(
 ) -> ClaimSimilarReport:
     sidecar = _require_sidecar(repo)
     try:
-        rows = find_similar_claim_rows(
-            sidecar,
-            claim_id=request.claim_id,
-            model=request.model,
-            top_k=request.top_k,
-            agree=request.agree,
-            disagree=request.disagree,
-        )
+        if request.agree:
+            from propstore.families.embeddings.declaration import find_similar_agree
+
+            similarity_hits = find_similar_agree(
+                sidecar,
+                request.claim_id,
+                top_k=request.top_k,
+            )
+        elif request.disagree:
+            from propstore.families.embeddings.declaration import find_similar_disagree
+
+            similarity_hits = find_similar_disagree(
+                sidecar,
+                request.claim_id,
+                top_k=request.top_k,
+            )
+        else:
+            from propstore.world import WorldQuery
+
+            with WorldQuery(derived_store=sidecar) as world:
+                similarity_hits = world.similar_claims(
+                    request.claim_id,
+                    request.model,
+                    top_k=request.top_k,
+                )
     except LookupError as exc:
         raise ClaimEmbeddingModelError(
             "no embeddings found. Run 'pks claim embed' first."
@@ -511,16 +527,16 @@ def find_similar_claims(
     except ValueError as exc:
         raise ClaimWorkflowError(str(exc)) from exc
 
-    hits = tuple(
+    report_hits = tuple(
         ClaimSimilarHit(
-            distance=float(row.get("distance", 0)),
-            claim_id=str(row.get("id", "?")),
-            summary=str(row.get("auto_summary") or row.get("statement") or ""),
-            source_paper=str(row.get("source_paper", "")),
+            distance=hit.distance,
+            claim_id=str(hit.claim_id),
+            summary=hit.auto_summary or hit.statement or "",
+            source_paper=hit.source_paper or "",
         )
-        for row in rows
+        for hit in similarity_hits
     )
-    return ClaimSimilarReport(hits=hits)
+    return ClaimSimilarReport(hits=report_hits)
 
 
 def relate_claims(

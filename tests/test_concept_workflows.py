@@ -7,9 +7,9 @@ import propstore.app.concepts.embedding as concepts_embedding_mod
 from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import create_sqlalchemy_store
 from sqlalchemy import select
+from propstore.core.store_results import ConceptSimilarityHit
 from propstore.derived_build import materialize_world_sidecar
-from propstore.families.concepts.declaration import Concept
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.world_charters import world_record, world_sqlalchemy_schema
 from propstore.app.concepts import (
     ConceptEmbedRequest,
     ConceptSearchRequest,
@@ -19,6 +19,7 @@ from propstore.app.concepts import (
     search_concepts,
 )
 from propstore.repository import Repository
+from propstore.world import WorldQuery
 from tests.family_helpers import materialized_world_store_path
 
 
@@ -47,16 +48,21 @@ def test_search_concepts_uses_quire_fts_session(
     )
     with handle.writable_session(schema) as derived:
         derived.add(
-            Concept(
-                "ps:concept:test",
-                canonical_name="concept a",
-                primary_logical_id="speech:concept-a",
-                status="accepted",
-                definition="definition text",
-                content_hash="hash-concept-a",
-                seq=1,
-                kind_type="quantity",
-                form="scalar",
+            world_record(
+                "concept",
+                {
+                    "id": "ps:concept:test",
+                    "canonical_name": "concept a",
+                    "primary_logical_id": "speech:concept-a",
+                    "logical_ids_json": "[]",
+                    "version_id": "",
+                    "status": "accepted",
+                    "definition": "definition text",
+                    "content_hash": "hash-concept-a",
+                    "seq": 1,
+                    "kind_type": "quantity",
+                    "form": "scalar",
+                },
             )
         )
         derived.commit()
@@ -146,39 +152,31 @@ def test_find_similar_concepts_resolves_id_uses_default_model_and_closes(
     repo = _repo_with_sidecar(tmp_path)
     captured: dict[str, object] = {}
 
-    def fake_find_similar_rows(
-        derived_store,
-        *,
+    def fake_similar_concepts(
+        self,
         concept_id,
-        model,
-        top_k,
-        agree,
-        disagree,
+        model_name=None,
+        top_k=10,
     ):
         captured.update(
             {
-                "sidecar_exists": derived_store.path.exists(),
+                "sidecar_exists": self._derived_store.path.exists(),
                 "concept_id": concept_id,
-                "model_name": model,
+                "model_name": model_name,
                 "top_k": top_k,
-                "agree": agree,
-                "disagree": disagree,
             }
         )
         return [
-            {
-                "distance": 0.25,
-                "primary_logical_id": "concept-b",
-                "canonical_name": "concept b",
-                "definition": "neighbor definition",
-            }
+            ConceptSimilarityHit(
+                distance=0.25,
+                concept_id="ps:concept:b",
+                primary_logical_id="concept-b",
+                canonical_name="concept b",
+                definition="neighbor definition",
+            )
         ]
 
-    monkeypatch.setattr(
-        concepts_embedding_mod,
-        "find_similar_concept_rows",
-        fake_find_similar_rows,
-    )
+    monkeypatch.setattr(WorldQuery, "similar_concepts", fake_similar_concepts)
 
     report = find_similar_concepts(
         repo,
@@ -194,8 +192,6 @@ def test_find_similar_concepts_resolves_id_uses_default_model_and_closes(
         "concept_id": "concept-a",
         "model_name": None,
         "top_k": 6,
-        "agree": False,
-        "disagree": False,
     }
     assert report.hits[0].concept_id == "concept-b"
     assert report.hits[0].canonical_name == "concept b"

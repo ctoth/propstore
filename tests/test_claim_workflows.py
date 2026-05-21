@@ -17,8 +17,10 @@ from propstore.app.claims import (
     find_similar_claims,
     relate_claims,
 )
+from propstore.core.store_results import ClaimSimilarityHit
 from propstore.proposals import stance_proposal_branch
 from propstore.repository import Repository
+from propstore.world import WorldQuery
 from tests.family_helpers import materialized_world_store_path
 
 
@@ -59,7 +61,7 @@ def test_embed_claim_embeddings_uses_claim_declaration_embedding_owner(
         batch_size,
         on_progress,
     ):
-        assert sidecar.exists()
+        assert sidecar.path.exists()
         calls.append((model, claim_id, embed_all, batch_size))
         if on_progress is not None:
             on_progress(model, 3, 5)
@@ -94,35 +96,30 @@ def test_find_similar_claims_uses_claim_declaration_similarity_owner(
     repo = _repo_with_sidecar(tmp_path)
     captured: dict[str, object] = {}
 
-    def fake_find_similar_rows(
-        sidecar,
-        *,
+    def fake_similar_claims(
+        self,
         claim_id,
-        model,
-        top_k,
-        agree,
-        disagree,
+        model_name=None,
+        top_k=10,
     ):
         captured.update(
             {
-                "sidecar_exists": sidecar.exists(),
+                "sidecar_exists": self._derived_store.path.exists(),
                 "claim_id": claim_id,
-                "model_name": model,
+                "model_name": model_name,
                 "top_k": top_k,
-                "agree": agree,
-                "disagree": disagree,
             }
         )
         return [
-            {
-                "distance": 0.125,
-                "id": "claim-b",
-                "auto_summary": "close semantic neighbor",
-                "source_paper": "paper-b",
-            }
+            ClaimSimilarityHit(
+                distance=0.125,
+                claim_id="claim-b",
+                auto_summary="close semantic neighbor",
+                source_paper="paper-b",
+            )
         ]
 
-    monkeypatch.setattr(claims_app, "find_similar_claim_rows", fake_find_similar_rows)
+    monkeypatch.setattr(WorldQuery, "similar_claims", fake_similar_claims)
 
     report = find_similar_claims(
         repo,
@@ -138,8 +135,6 @@ def test_find_similar_claims_uses_claim_declaration_similarity_owner(
         "claim_id": "claim-a",
         "model_name": None,
         "top_k": 7,
-        "agree": False,
-        "disagree": False,
     }
     assert report.hits[0].claim_id == "claim-b"
     assert report.hits[0].summary == "close semantic neighbor"

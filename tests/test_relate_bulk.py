@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 
 import pytest
 from quire.derived_store import DerivedStoreHandle
+from quire.sqlalchemy_store import create_sqlalchemy_store
 
-from propstore.families.claims.sidecar_runtime import SidecarClaimRelationStore
-from tests.sidecar_schema_helpers import build_world_projection_schema
+from propstore.core.claim_types import ClaimType
+from propstore.families.claims.sidecar_runtime import (
+    all_claim_ids,
+    claim_text_by_id,
+    claim_texts_by_id,
+)
+from propstore.families.world_charters import world_record, world_sqlalchemy_schema
 
 
 FIXTURE_CLAIMS = (
@@ -22,30 +27,10 @@ FIXTURE_CLAIMS = (
 
 
 @pytest.fixture
-def store(tmp_path: Path) -> SidecarClaimRelationStore:
+def handle(tmp_path: Path) -> DerivedStoreHandle:
     sqlite_path = tmp_path / "sidecar.sqlite"
-    conn = sqlite3.connect(sqlite_path)
-    conn.row_factory = sqlite3.Row
-    build_world_projection_schema(conn)
-    for claim_id, paper, summary, statement, expression in FIXTURE_CLAIMS:
-        conn.execute(
-            """
-            INSERT INTO claim_core (
-                id, primary_logical_id, logical_ids_json, version_id,
-                content_hash, seq, type, source_paper, provenance_page
-            ) VALUES (?, ?, '[]', '', '', 0, 'measurement', ?, 1)
-            """,
-            (claim_id, claim_id, paper),
-        )
-        conn.execute(
-            """
-            INSERT INTO claim_text_payload (
-                claim_id, auto_summary, statement, expression
-            ) VALUES (?, ?, ?, ?)
-            """,
-            (claim_id, summary, statement, expression),
-        )
-    conn.commit()
+    schema = world_sqlalchemy_schema()
+    create_sqlalchemy_store(sqlite_path, schema)
     handle = DerivedStoreHandle(
         projection_id="propstore.world.test",
         source_commit="test",
@@ -53,11 +38,44 @@ def store(tmp_path: Path) -> SidecarClaimRelationStore:
         cache_key="test",
         path=sqlite_path,
     )
-    return SidecarClaimRelationStore(conn, handle)
+    with handle.writable_session(schema) as derived:
+        for seq, (claim_id, paper, summary, statement, expression) in enumerate(
+            FIXTURE_CLAIMS
+        ):
+            derived.add(
+                world_record(
+                    "claim_core",
+                    {
+                        "id": claim_id,
+                        "primary_logical_id": claim_id,
+                        "logical_ids_json": "[]",
+                        "version_id": "",
+                        "content_hash": "",
+                        "seq": seq,
+                        "type": ClaimType.MEASUREMENT,
+                        "source_paper": paper,
+                        "provenance_page": 1,
+                        "premise_kind": "ordinary",
+                    },
+                )
+            )
+            derived.add(
+                world_record(
+                    "claim_text_payload",
+                    {
+                        "claim_id": claim_id,
+                        "statement": statement,
+                        "expression": expression,
+                        "auto_summary": summary,
+                    },
+                )
+            )
+        derived.commit()
+    return handle
 
 
-def test_bulk_fetch_returns_requested_claim_texts(store: SidecarClaimRelationStore) -> None:
-    result = store.get_claim_texts(("c1", "c3", "c5"))
+def test_bulk_fetch_returns_requested_claim_texts(handle: DerivedStoreHandle) -> None:
+    result = claim_texts_by_id(handle, ("c1", "c3", "c5"))
 
     assert set(result) == {"c1", "c3", "c5"}
     assert result["c1"]["text"] == "Summary of c1"
@@ -65,24 +83,24 @@ def test_bulk_fetch_returns_requested_claim_texts(store: SidecarClaimRelationSto
     assert result["c5"]["text"] == "c5"
 
 
-def test_bulk_fetch_skips_missing_ids(store: SidecarClaimRelationStore) -> None:
-    result = store.get_claim_texts(("c1", "missing", "c3"))
+def test_bulk_fetch_skips_missing_ids(handle: DerivedStoreHandle) -> None:
+    result = claim_texts_by_id(handle, ("c1", "missing", "c3"))
 
     assert set(result) == {"c1", "c3"}
 
 
-def test_single_fetch_matches_bulk_fetch(store: SidecarClaimRelationStore) -> None:
+def test_single_fetch_matches_bulk_fetch(handle: DerivedStoreHandle) -> None:
     ids = ("c1", "c2", "c4")
-    bulk = store.get_claim_texts(ids)
+    bulk = claim_texts_by_id(handle, ids)
 
     individual = {
         claim_id: fetched
         for claim_id in ids
-        if (fetched := store.get_claim_text(claim_id)) is not None
+        if (fetched := claim_text_by_id(handle, claim_id)) is not None
     }
 
     assert bulk == individual
 
 
-def test_all_claim_ids_uses_schema_query(store: SidecarClaimRelationStore) -> None:
-    assert store.all_claim_ids() == ["c1", "c2", "c3", "c4", "c5"]
+def test_all_claim_ids_uses_schema_query(handle: DerivedStoreHandle) -> None:
+    assert all_claim_ids(handle) == ("c1", "c2", "c3", "c4", "c5")

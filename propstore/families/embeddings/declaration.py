@@ -23,6 +23,8 @@ from propstore.core.embeddings import (
     claim_embedding_text,
     concept_embedding_text,
 )
+from propstore.core.id_types import to_claim_id, to_concept_id
+from propstore.core.store_results import ClaimSimilarityHit, ConceptSimilarityHit
 from propstore.heuristic.embed import (
     _embed_entities,
     _find_similar_agree_generic,
@@ -262,10 +264,10 @@ def _similar_vector_rows(
         )
 
 
-def _claim_similarity_rows(
+def _claim_similarity_hits(
     derived_store: DerivedStoreHandle,
     rows: Sequence[dict],
-) -> list[dict]:
+) -> list[ClaimSimilarityHit]:
     entity_ids = tuple(str(row["entity_id"]) for row in rows)
     if not entity_ids:
         return []
@@ -287,7 +289,7 @@ def _claim_similarity_rows(
         concepts_by_claim_id: dict[str, str] = {}
         for claim_id, concept_id in concept_rows:
             concepts_by_claim_id.setdefault(str(claim_id), str(concept_id))
-    enriched: list[dict] = []
+    enriched: list[ClaimSimilarityHit] = []
     for row in rows:
         claim_id = str(row["entity_id"])
         claim_model = claims.get(claim_id)
@@ -295,27 +297,26 @@ def _claim_similarity_rows(
             continue
         text_payload = claim_model.text_payload
         enriched.append(
-            {
-                "id": claim_id,
-                "distance": row["distance"],
-                "rowid": row["rowid"],
-                "auto_summary": (
-                    None if text_payload is None else text_payload.auto_summary
+            ClaimSimilarityHit(
+                claim_id=to_claim_id(claim_id),
+                distance=float(row["distance"]),
+                auto_summary=None if text_payload is None else text_payload.auto_summary,
+                statement=None if text_payload is None else text_payload.statement,
+                source_paper=claim_model.source_paper,
+                concept_id=(
+                    None
+                    if concepts_by_claim_id.get(claim_id) is None
+                    else to_concept_id(str(concepts_by_claim_id[claim_id]))
                 ),
-                "statement": (
-                    None if text_payload is None else text_payload.statement
-                ),
-                "source_paper": claim_model.source_paper,
-                "concept_id": concepts_by_claim_id.get(claim_id),
-            }
+            )
         )
     return enriched
 
 
-def _concept_similarity_rows(
+def _concept_similarity_hits(
     derived_store: DerivedStoreHandle,
     rows: Sequence[dict],
-) -> list[dict]:
+) -> list[ConceptSimilarityHit]:
     entity_ids = tuple(str(row["entity_id"]) for row in rows)
     if not entity_ids:
         return []
@@ -328,21 +329,20 @@ def _concept_similarity_rows(
                 select(concept).where(concept.id.in_(entity_ids))
             ).scalars()
         }
-    enriched: list[dict] = []
+    enriched: list[ConceptSimilarityHit] = []
     for row in rows:
         concept_id = str(row["entity_id"])
         concept_model = concepts.get(concept_id)
         if concept_model is None:
             continue
         enriched.append(
-            {
-                "id": concept_id,
-                "distance": row["distance"],
-                "rowid": row["rowid"],
-                "primary_logical_id": concept_model.primary_logical_id,
-                "canonical_name": concept_model.canonical_name,
-                "definition": concept_model.definition,
-            }
+            ConceptSimilarityHit(
+                concept_id=to_concept_id(concept_id),
+                distance=float(row["distance"]),
+                primary_logical_id=concept_model.primary_logical_id,
+                canonical_name=concept_model.canonical_name,
+                definition=concept_model.definition,
+            )
         )
     return enriched
 
@@ -438,7 +438,7 @@ def find_similar(
     claim_id: str,
     model_name: str,
     top_k: int = 10,
-) -> list[dict]:
+) -> list[ClaimSimilarityHit]:
     """Find top-k most similar claims by embedding distance."""
 
     rows = _find_similar_entities(
@@ -466,7 +466,7 @@ def find_similar(
         ),
         top_k=top_k,
     )
-    return _claim_similarity_rows(derived_store, rows)
+    return _claim_similarity_hits(derived_store, rows)
 
 
 def find_similar_concepts(
@@ -474,7 +474,7 @@ def find_similar_concepts(
     concept_id: str,
     model_name: str,
     top_k: int = 10,
-) -> list[dict]:
+) -> list[ConceptSimilarityHit]:
     """Find top-k most similar concepts by embedding distance."""
 
     rows = _find_similar_entities(
@@ -502,14 +502,14 @@ def find_similar_concepts(
         ),
         top_k=top_k,
     )
-    return _concept_similarity_rows(derived_store, rows)
+    return _concept_similarity_hits(derived_store, rows)
 
 
 def find_similar_agree(
     derived_store: DerivedStoreHandle,
     claim_id: str,
     top_k: int = 10,
-) -> list[dict]:
+) -> list[ClaimSimilarityHit]:
     """Claims similar under all stored models."""
 
     rows = _find_similar_agree_generic(
@@ -537,14 +537,14 @@ def find_similar_agree(
         ),
         top_k=top_k,
     )
-    return _claim_similarity_rows(derived_store, rows)
+    return _claim_similarity_hits(derived_store, rows)
 
 
 def find_similar_disagree(
     derived_store: DerivedStoreHandle,
     claim_id: str,
     top_k: int = 10,
-) -> list[dict]:
+) -> list[ClaimSimilarityHit]:
     """Claims similar under some stored models but not others."""
 
     rows = _find_similar_disagree_generic(
@@ -572,14 +572,14 @@ def find_similar_disagree(
         ),
         top_k=top_k,
     )
-    return _claim_similarity_rows(derived_store, rows)
+    return _claim_similarity_hits(derived_store, rows)
 
 
 def find_similar_concepts_agree(
     derived_store: DerivedStoreHandle,
     concept_id: str,
     top_k: int = 10,
-) -> list[dict]:
+) -> list[ConceptSimilarityHit]:
     """Concepts similar under all stored models."""
 
     rows = _find_similar_agree_generic(
@@ -607,14 +607,14 @@ def find_similar_concepts_agree(
         ),
         top_k=top_k,
     )
-    return _concept_similarity_rows(derived_store, rows)
+    return _concept_similarity_hits(derived_store, rows)
 
 
 def find_similar_concepts_disagree(
     derived_store: DerivedStoreHandle,
     concept_id: str,
     top_k: int = 10,
-) -> list[dict]:
+) -> list[ConceptSimilarityHit]:
     """Concepts similar under some stored models but not others."""
 
     rows = _find_similar_disagree_generic(
@@ -642,7 +642,7 @@ def find_similar_concepts_disagree(
         ),
         top_k=top_k,
     )
-    return _concept_similarity_rows(derived_store, rows)
+    return _concept_similarity_hits(derived_store, rows)
 
 
 def extract_embedding_snapshot_from_store(
