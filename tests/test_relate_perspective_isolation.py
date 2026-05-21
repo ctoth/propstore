@@ -1,41 +1,30 @@
 from __future__ import annotations
 
 import asyncio
-import sqlite3
-from sqlite3 import Connection
+from collections.abc import Sequence
 
 import pytest
 
 
-def _claim_db() -> Connection:
-    conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
-    conn.execute("CREATE TABLE claim_core (id TEXT PRIMARY KEY, source_paper TEXT)")
-    conn.execute(
-        "CREATE TABLE claim_text_payload (claim_id TEXT PRIMARY KEY, auto_summary TEXT, statement TEXT, expression TEXT)"
-    )
-    conn.executemany(
-        "INSERT INTO claim_core (id, source_paper) VALUES (?, ?)",
-        [("claim-a", "paper-a"), ("claim-b", "paper-b")],
-    )
-    conn.executemany(
-        "INSERT INTO claim_text_payload (claim_id, statement) VALUES (?, ?)",
-        [("claim-a", "A says alpha."), ("claim-b", "B says beta.")],
-    )
-    return conn
-
-
 def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
-    from propstore.families.claims.declaration import (
-        select_all_claim_ids,
-        select_claim_text,
-        select_claim_texts,
-    )
     from propstore.heuristic import relate
 
-    conn = _claim_db()
+    claim_texts = {
+        "claim-a": {
+            "id": "claim-a",
+            "source_paper": "paper-a",
+            "statement": "A says alpha.",
+            "text": "A says alpha.",
+        },
+        "claim-b": {
+            "id": "claim-b",
+            "source_paper": "paper-b",
+            "statement": "B says beta.",
+            "text": "B says beta.",
+        },
+    }
 
-    def find_similar(_conn: Connection, claim_id: str, _model_name: str, *, top_k: int) -> list[dict]:
+    def find_similar(claim_id: str, _model_name: str, *, top_k: int) -> list[dict]:
         if claim_id == "claim-a":
             return [{"id": "claim-b", "distance": 0.3}]
         if claim_id == "claim-b":
@@ -75,13 +64,17 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
             return [{"model_name": "embedder"}]
 
         def get_claim_text(self, claim_id: str) -> dict | None:
-            return select_claim_text(conn, claim_id)
+            return claim_texts.get(claim_id)
 
-        def get_claim_texts(self, claim_ids: list[str]) -> dict[str, dict]:
-            return select_claim_texts(conn, claim_ids)
+        def get_claim_texts(self, claim_ids: Sequence[str]) -> dict[str, dict]:
+            return {
+                claim_id: claim_texts[claim_id]
+                for claim_id in claim_ids
+                if claim_id in claim_texts
+            }
 
         def all_claim_ids(self) -> list[str]:
-            return select_all_claim_ids(conn)
+            return list(claim_texts)
 
         def find_similar(
             self,
@@ -90,7 +83,7 @@ def test_relate_perspective_isolation(monkeypatch: pytest.MonkeyPatch) -> None:
             *,
             top_k: int,
         ) -> list[dict]:
-            return find_similar(conn, claim_id, model_name, top_k=top_k)
+            return find_similar(claim_id, model_name, top_k=top_k)
 
     monkeypatch.setattr(relate, "classify_stance_async", classify_stance_async)
 

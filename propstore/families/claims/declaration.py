@@ -442,45 +442,6 @@ def _decode_justification_provenance(
     return ProvenanceRecord.from_json_payload(loaded)
 
 
-def select_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict[str, Any] | None:
-    rows = select_claim_texts(conn, [claim_id])
-    return rows.get(claim_id)
-
-
-def select_claim_texts(
-    conn: sqlite3.Connection,
-    claim_ids: Sequence[str],
-) -> dict[str, dict[str, Any]]:
-    if not claim_ids:
-        return {}
-    placeholders = ",".join("?" for _ in claim_ids)
-    rows = conn.execute(
-        f"""
-        SELECT core.id, txt.auto_summary, txt.statement, txt.expression, core.source_paper
-        FROM claim_core AS core
-        LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-        WHERE core.id IN ({placeholders})
-        """,
-        tuple(claim_ids),
-    ).fetchall()
-    result: dict[str, dict[str, Any]] = {}
-    for row in rows:
-        decoded = dict(row)
-        decoded["text"] = (
-            decoded.get("auto_summary")
-            or decoded.get("statement")
-            or decoded.get("expression")
-            or decoded["id"]
-        )
-        result[str(decoded["id"])] = decoded
-    return result
-
-
-def select_all_claim_ids(conn: sqlite3.Connection) -> list[str]:
-    rows = conn.execute("SELECT id FROM claim_core").fetchall()
-    return [str(row["id"]) for row in rows]
-
-
 def compile_claim_models(
     claim_bundle: ClaimCompilationBundle,
     concept_registry: dict,

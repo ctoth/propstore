@@ -1763,3 +1763,18 @@ Current binding queue:
   `select_source_promotion_claim_rows`. `rg -n -F -- "count_claims(" propstore
   tests` now hits only the unrelated app repository-overview helper name, not
   the deleted claim-family SQLite helper.
+- Raw claim-text selector cleanup: `select_claim_text`,
+  `select_claim_texts`, and `select_all_claim_ids` were deleted from
+  `propstore/families/claims/declaration.py`. The sidecar relate store now
+  fetches claim text and ids through Quire SQLAlchemy schema metadata and a
+  derived-store readonly session instead of calling claim-family raw SQLite
+  selectors. The old helper-specific tests were replaced with tests of the
+  schema-driven sidecar store behavior. Verification passed: focused pyright
+  on `propstore/families/claims/declaration.py`,
+  `propstore/families/claims/sidecar_runtime.py`,
+  `tests/test_relate_perspective_isolation.py`, and
+  `tests/test_relate_bulk.py`; logged pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label claim-text-sqlalchemy-relate
+  tests/test_relate_perspective_isolation.py tests/test_relate_bulk.py` with 5
+  tests in `logs\test-runs\claim-text-sqlalchemy-relate-20260520-220212.log`;
+  and zero-hit searches for `select_claim_text` and `select_all_claim_ids`.

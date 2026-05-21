@@ -7,12 +7,10 @@ import sqlite3
 from collections.abc import Callable, Sequence
 from typing import Any
 
+from sqlalchemy import select
+
 from quire.derived_store import DerivedStoreHandle
-from propstore.families.claims.declaration import (
-    select_all_claim_ids,
-    select_claim_text,
-    select_claim_texts,
-)
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
 def embed_claims_for_request(
@@ -120,13 +118,47 @@ class SidecarClaimRelationStore:
         return get_registered_models(self._derived_store)
 
     def get_claim_text(self, claim_id: str) -> dict[str, Any] | None:
-        return select_claim_text(self._conn, claim_id)
+        return self.get_claim_texts((claim_id,)).get(claim_id)
 
     def get_claim_texts(self, claim_ids: Sequence[str]) -> dict[str, dict[str, Any]]:
-        return select_claim_texts(self._conn, claim_ids)
+        if not claim_ids:
+            return {}
+        schema = world_sqlalchemy_schema()
+        claim = schema.table("claim_core")
+        text = schema.table("claim_text_payload")
+        statement = (
+            select(
+                claim.c.id,
+                text.c.auto_summary,
+                text.c.statement,
+                text.c.expression,
+                claim.c.source_paper,
+            )
+            .select_from(
+                claim.outerjoin(text, text.c.claim_id == claim.c.id)
+            )
+            .where(claim.c.id.in_(tuple(claim_ids)))
+        )
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = derived.execute(statement).mappings().all()
+        result: dict[str, dict[str, Any]] = {}
+        for row in rows:
+            decoded = dict(row)
+            decoded["text"] = (
+                decoded.get("auto_summary")
+                or decoded.get("statement")
+                or decoded.get("expression")
+                or decoded["id"]
+            )
+            result[str(decoded["id"])] = decoded
+        return result
 
     def all_claim_ids(self) -> list[str]:
-        return select_all_claim_ids(self._conn)
+        schema = world_sqlalchemy_schema()
+        claim = schema.table("claim_core")
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = derived.execute(select(claim.c.id)).all()
+        return [str(row[0]) for row in rows]
 
     def find_similar(
         self,

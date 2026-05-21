@@ -1,119 +1,88 @@
-"""Tests for select_claim_texts bulk claim text fetching.
-
-Verifies the bulk path is a faithful replacement for per-claim select_claim_text.
-"""
+"""Tests for schema-driven bulk claim text fetching in relate sidecar runtime."""
 
 from __future__ import annotations
 
 import sqlite3
+from pathlib import Path
 
 import pytest
-from hypothesis import given, settings, HealthCheck
-from hypothesis import strategies as st
+from quire.derived_store import DerivedStoreHandle
+
+from propstore.families.claims.sidecar_runtime import SidecarClaimRelationStore
+from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
-# ---------------------------------------------------------------------------
-# Fixture: in-memory DB with 5 claims
-# ---------------------------------------------------------------------------
-
-FIXTURE_CLAIMS = [
-    ("c1", "concept_a", "paper_x", "Summary of c1", "Statement c1", None),
-    ("c2", "concept_b", "paper_y", None, "Statement c2", "expr_c2"),
-    ("c3", "concept_a", "paper_z", "Summary of c3", None, None),
-    ("c4", None, "paper_x", None, None, "expr_c4"),
-    ("c5", "concept_c", "paper_y", None, None, None),  # no text at all — falls back to id
-]
-FIXTURE_IDS = [c[0] for c in FIXTURE_CLAIMS]
+FIXTURE_CLAIMS = (
+    ("c1", "paper_x", "Summary of c1", "Statement c1", None),
+    ("c2", "paper_y", None, "Statement c2", "expr_c2"),
+    ("c3", "paper_z", "Summary of c3", None, None),
+    ("c4", "paper_x", None, None, "expr_c4"),
+    ("c5", "paper_y", None, None, None),
+)
 
 
 @pytest.fixture
-def conn():
-    db = sqlite3.connect(":memory:")
-    db.row_factory = sqlite3.Row
-    db.executescript("""
-        CREATE TABLE claim_core (
-            id TEXT PRIMARY KEY,
-            concept_id TEXT,
-            source_paper TEXT NOT NULL DEFAULT 'test',
-            branch TEXT
-        );
-        CREATE TABLE claim_text_payload (
-            claim_id TEXT PRIMARY KEY,
-            auto_summary TEXT,
-            statement TEXT,
-            expression TEXT
-        );
-    """)
-    for cid, concept, paper, summary, stmt, expr in FIXTURE_CLAIMS:
-        db.execute(
-            "INSERT INTO claim_core (id, concept_id, source_paper) VALUES (?, ?, ?)",
-            (cid, concept, paper),
+def store(tmp_path: Path) -> SidecarClaimRelationStore:
+    sqlite_path = tmp_path / "sidecar.sqlite"
+    conn = sqlite3.connect(sqlite_path)
+    conn.row_factory = sqlite3.Row
+    build_world_projection_schema(conn)
+    for claim_id, paper, summary, statement, expression in FIXTURE_CLAIMS:
+        conn.execute(
+            """
+            INSERT INTO claim_core (
+                id, primary_logical_id, logical_ids_json, version_id,
+                content_hash, seq, type, source_paper, provenance_page
+            ) VALUES (?, ?, '[]', '', '', 0, 'measurement', ?, 1)
+            """,
+            (claim_id, claim_id, paper),
         )
-        db.execute(
-            "INSERT INTO claim_text_payload (claim_id, auto_summary, statement, expression) VALUES (?, ?, ?, ?)",
-            (cid, summary, stmt, expr),
+        conn.execute(
+            """
+            INSERT INTO claim_text_payload (
+                claim_id, auto_summary, statement, expression
+            ) VALUES (?, ?, ?, ?)
+            """,
+            (claim_id, summary, statement, expression),
         )
-    db.commit()
-    return db
+    conn.commit()
+    handle = DerivedStoreHandle(
+        projection_id="propstore.world.test",
+        source_commit="test",
+        content_hash="test",
+        cache_key="test",
+        path=sqlite_path,
+    )
+    return SidecarClaimRelationStore(conn, handle)
 
 
-# ---------------------------------------------------------------------------
-# Example tests
-# ---------------------------------------------------------------------------
+def test_bulk_fetch_returns_requested_claim_texts(store: SidecarClaimRelationStore) -> None:
+    result = store.get_claim_texts(("c1", "c3", "c5"))
 
-class TestBulkFetchReturnsAllRequested:
-    def test_fetch_three_of_five(self, conn):
-        from propstore.families.claims.declaration import select_claim_texts
-        result = select_claim_texts(conn, ["c1", "c3", "c5"])
-        assert set(result.keys()) == {"c1", "c3", "c5"}
-
-    def test_each_has_text_field(self, conn):
-        from propstore.families.claims.declaration import select_claim_texts
-        result = select_claim_texts(conn, ["c1", "c2", "c4", "c5"])
-        for cid, d in result.items():
-            assert "text" in d, f"claim {cid} missing 'text'"
-            assert d["text"], f"claim {cid} has empty 'text'"
+    assert set(result) == {"c1", "c3", "c5"}
+    assert result["c1"]["text"] == "Summary of c1"
+    assert result["c3"]["text"] == "Summary of c3"
+    assert result["c5"]["text"] == "c5"
 
 
-class TestBulkFetchMissingIdsSkipped:
-    def test_nonexistent_ids_absent(self, conn):
-        from propstore.families.claims.declaration import select_claim_texts
-        result = select_claim_texts(conn, ["c1", "nonexistent", "c3"])
-        assert "nonexistent" not in result
-        assert set(result.keys()) == {"c1", "c3"}
+def test_bulk_fetch_skips_missing_ids(store: SidecarClaimRelationStore) -> None:
+    result = store.get_claim_texts(("c1", "missing", "c3"))
+
+    assert set(result) == {"c1", "c3"}
 
 
-class TestBulkFetchEmptyList:
-    def test_empty_input_returns_empty(self, conn):
-        from propstore.families.claims.declaration import select_claim_texts
-        result = select_claim_texts(conn, [])
-        assert result == {}
+def test_single_fetch_matches_bulk_fetch(store: SidecarClaimRelationStore) -> None:
+    ids = ("c1", "c2", "c4")
+    bulk = store.get_claim_texts(ids)
+
+    individual = {
+        claim_id: fetched
+        for claim_id in ids
+        if (fetched := store.get_claim_text(claim_id)) is not None
+    }
+
+    assert bulk == individual
 
 
-# ---------------------------------------------------------------------------
-# Hypothesis: bulk fetch equivalence with per-claim fetch
-# ---------------------------------------------------------------------------
-
-class TestBulkFetchEquivalence:
-    """select_claim_texts returns identical data to per-claim select_claim_text."""
-
-    @pytest.mark.property
-    @given(ids=st.lists(st.sampled_from(FIXTURE_IDS), min_size=0, max_size=5, unique=True))
-    @settings(max_examples=50, suppress_health_check=[HealthCheck.function_scoped_fixture])
-    def test_bulk_matches_individual(self, conn, ids):
-        from propstore.families.claims.declaration import select_claim_text, select_claim_texts
-
-        bulk = select_claim_texts(conn, ids)
-        individual = {}
-        for cid in ids:
-            d = select_claim_text(conn, cid)
-            if d is not None:
-                individual[cid] = d
-
-        assert bulk.keys() == individual.keys()
-        for cid in bulk:
-            # Compare the fields that matter
-            for key in ("id", "text", "source_paper", "auto_summary", "statement", "expression"):
-                assert bulk[cid].get(key) == individual[cid].get(key), (
-                    f"Mismatch on {cid}.{key}: bulk={bulk[cid].get(key)!r} vs individual={individual[cid].get(key)!r}"
-                )
+def test_all_claim_ids_uses_schema_query(store: SidecarClaimRelationStore) -> None:
+    assert store.all_claim_ids() == ["c1", "c2", "c3", "c4", "c5"]
