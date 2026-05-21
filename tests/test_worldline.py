@@ -21,6 +21,7 @@ from hypothesis import strategies as st
 
 from quire.documents import decode_document_path
 from propstore.families.identity.concepts import derive_concept_artifact_id
+from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
 from propstore.core.claim_types import ClaimType
 from tests.claim_model_helpers import claim_model
@@ -574,7 +575,7 @@ class TestWorldlineRunner:
             },
         })
         result = run_worldline(wl, physics_world)
-        assert "g_earth" in result.dependencies.claims
+        assert "test:g_earth" in result.dependencies.claims
 
     def test_run_partial_results(self, physics_world):
         """Targets that can't be determined get status=underspecified."""
@@ -756,7 +757,7 @@ class TestWorldlineRunner:
         force = result.values["force"]
         assert force.status == "derived"
         assert abs(force.value - 98.07) < 0.1
-        assert "g_claim" in result.dependencies.claims
+        assert "test:g_claim" in result.dependencies.claims
         assert force.inputs_used[_concept_artifact("concept3")].source == "derived"
 
 
@@ -821,18 +822,18 @@ class TestWorldlineDependencyLiveness:
         class FakeWorld:
             def __init__(self, older_claim_date):
                 self._claims = {
-                    "claim_old": {
-                        "id": "claim_old",
-                        "value": 10.0,
-                        "provenance_json": f'{{"date": "{older_claim_date}"}}',
-                        "content_hash": f"old-{older_claim_date}",
-                    },
-                    "claim_new": {
-                        "id": "claim_new",
-                        "value": 20.0,
-                        "provenance_json": '{"date": "2025-01-01"}',
-                        "content_hash": "new-2025-01-01",
-                    },
+                    "claim_old": claim_model(
+                        "claim_old",
+                        concept_id="concept1",
+                        value=10.0,
+                        provenance_json={"date": older_claim_date},
+                    ),
+                    "claim_new": claim_model(
+                        "claim_new",
+                        concept_id="concept1",
+                        value=20.0,
+                        provenance_json={"date": "2025-01-01"},
+                    ),
                 }
 
             def bind(self, environment=None, *, policy=None, **conditions):
@@ -925,13 +926,15 @@ class TestWorldlineDependencyLiveness:
 
             def stances_between(self, claim_ids):
                 if {"claim_a", "claim_b"}.issubset(claim_ids):
-                    return [{
-                        "claim_id": "claim_b",
-                        "target_claim_id": "claim_a",
-                        "stance_type": self._stance_type,
-                        "confidence": 1.0,
-                        "note": f"{self._stance_type}-note",
-                    }]
+                    return [
+                        Stance(
+                            claim_id="claim_b",
+                            target_claim_id="claim_a",
+                            stance_type=self._stance_type,
+                            confidence=1.0,
+                            note=f"{self._stance_type}-note",
+                        )
+                    ]
                 return []
 
             def parameterizations_for(self, concept_id):
@@ -1131,8 +1134,8 @@ class TestSemanticCorePhase7Worldlines:
         )
 
         claims = {
-            "claim_a": {"id": "claim_a", "concept_id": "concept1", "value": 10.0, "content_hash": "hash-a"},
-            "claim_b": {"id": "claim_b", "concept_id": "concept1", "value": 20.0, "content_hash": "hash-b"},
+            "claim_a": claim_model("claim_a", concept_id="concept1", value=10.0),
+            "claim_b": claim_model("claim_b", concept_id="concept1", value=20.0),
         }
         compiled = CompiledWorldGraph(
             claims=(
