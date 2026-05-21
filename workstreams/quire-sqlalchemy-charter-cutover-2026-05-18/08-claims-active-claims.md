@@ -1453,3 +1453,29 @@ Current binding queue:
   deleted first and replaced only by typed boundary parsing, typed semantic
   owner behavior, or missing generic Quire capability; they must not be
   renamed, wrapped, or generalized into another Propstore normalizer.
+- ATMS typed-claim runtime cleanup: commit `52980851` removed the remaining
+  `ActiveClaim` / `coerce_active_claim` dependency from
+  `tests/test_atms_engine.py`, deleted the local `_normalize_test_claim`
+  row-repair helper, and made the ATMS test store return typed `Claim`
+  objects. The production graph builder now carries typed claim scalar values
+  from `Claim.numeric_payload.value` and typed checked conditions from
+  `Claim.checked_conditions` into `ClaimNode`; worldline claim target/input
+  capture reads typed claim payloads instead of stale `value_result.value`;
+  and support-revision assertion identity now includes a generic
+  `ConditionRef.from_sources(...)` condition identity rather than treating
+  every claim as unconditional. The duplicate merge-local `_condition_ref`
+  helper was deleted in favor of that generic `ConditionRef` API. Exact ATMS
+  support now matches authored condition sources directly and no longer
+  upgrades semantic compatibility or encoded-IR equality into exact support.
+  Logged focused pytest `powershell -File scripts/run_logged_pytest.ps1
+  -Label atms-engine-typed-claims tests/test_atms_engine.py` passed with
+  39 tests and log
+  `logs\test-runs\atms-engine-typed-claims-20260520-192636.log`.
+  Searches for `ActiveClaim`, `coerce_active_claim`,
+  `_normalize_test_claim`, stale `value_result.value`, and the duplicate
+  merge `_condition_ref` in the edited paths returned zero hits. Remaining
+  Phase 10 cleanup includes deleting broad normalizers such as
+  `propstore/core/justifications.py::_normalize_attrs` in their owning slice
+  and replacing the remaining test fixture mapping boundary
+  `_claim_from_test_fixture` with already-typed fixture construction rather
+  than generalizing it.
