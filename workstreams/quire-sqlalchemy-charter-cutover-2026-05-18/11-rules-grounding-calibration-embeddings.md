@@ -118,6 +118,34 @@ Diagnostics projection cleanup is owned by
 `BuildDiagnostic` service already existing for embedding restore diagnostics
 and does not re-own diagnostics table deletion.
 
+2026-05-21 execution update:
+
+- The prior 2026-05-20 "not started / blocked until Phase 10, Phase 11, and
+  Phase 12 are complete" audit note is superseded. `09-relations-stances-conflicts.md`,
+  `10-micropublications-justifications.md`, and
+  `10a-charter-generated-model-cleanup.md` have completed their prerequisite
+  gates.
+- `git status --short` has no tracked task-owned changes; unrelated untracked
+  diagnostic/local paths remain outside this workstream.
+- `uv run pyright propstore` passed with zero errors.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label support-family-prereq
+  tests/test_world_query.py tests/test_opinion_schema.py
+  tests/test_fixture_schema_parity.py
+  tests/test_required_schema_completeness.py` passed with 161 tests and 29
+  expected warnings; log:
+  `logs/test-runs/support-family-prereq-20260521-084854.log`.
+- The prerequisite `ProjectionTable(` search reports only the named rule and
+  calibration deletion targets in `propstore/families/rules/declaration.py`
+  and `propstore/families/calibration/declaration.py`.
+- The prerequisite `VecProjection` search under `propstore/families/embeddings`
+  and `tests` returned zero hits.
+- The prerequisite `sqlite3.Connection` search reports only the named raw
+  connection deletion/replacement targets in rules, calibration, and embedding
+  owner files.
+
+Implementation may start with Slice 1: grounding/rules charter and projection
+deletion.
+
 ## Prerequisites
 
 Complete these cutover workstreams before this slice starts:
