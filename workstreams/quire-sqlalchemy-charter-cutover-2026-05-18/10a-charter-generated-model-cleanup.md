@@ -143,6 +143,9 @@ that owner workstream.
 - Source slice complete: `Source` now subclasses `FamilyModel` and no longer
   defines a Propstore `__init__(**values)` constructor. `uv run pyright
   propstore` passed after the slice.
+- Forms slice complete: `Form` and `FormAlgebra` now subclass `FamilyModel`
+  and no longer define Propstore `__init__(**values)` constructors. `uv run
+  pyright propstore` passed after the slice.
 
 ## Completion Criteria
 
