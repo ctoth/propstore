@@ -624,3 +624,19 @@ Recorded 2026-05-20.
   production old helper names are gone; `tests/test_relate_opinions.py` still
   references `compile_authored_stance_sidecar_rows` and is the next old-path
   test repair queue.
+- Relation opinion test repair: commit `d28fee41` updated
+  `tests/test_relate_opinions.py` to assert authored stance opinion fields at
+  the typed `Stance` model boundary through
+  `compile_authored_stance_models_with_diagnostics`, deleting the raw in-memory
+  SQLite `claim_core`/`relation_edge` setup, `RELATION_EDGE_TABLE` import, and
+  `populate_stances` use from that test file. The same commit removed the
+  import-time cycle where `QuarantineDiagnostic` pulled in
+  `world_charters.BuildDiagnostic` before relation models finished loading.
+  Targeted pyright for
+  `propstore/families/diagnostics/declaration.py` and
+  `propstore/families/relations/declaration.py` passed with 0 errors. Focused
+  logged pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
+  relate-opinions tests/test_relate_opinions.py` passed with 21 tests and log
+  `logs\test-runs\relate-opinions-20260520-232747.log`. The next old-path
+  queue is the remaining Phase 11 search hits outside
+  `tests/test_relate_opinions.py`.
