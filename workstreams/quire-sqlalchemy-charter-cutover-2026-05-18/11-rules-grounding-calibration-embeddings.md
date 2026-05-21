@@ -325,9 +325,25 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   tests/test_structured_projection.py` passed with 43 tests; log:
   `logs/test-runs/from-mapping-fixture-cleanup-20260521-094741.log`.
 
-Slice 5 production migration and the Slice 6 `from_mapping` cleanup are
-complete. Continue with Slice 6: data parity, vector parity, remaining search
-gates, and completion gates.
+2026-05-21 Slice 6 concept vector projection cleanup update:
+
+- The required old-path search gates found remaining
+  `CONCEPT_EMBEDDING_STATUS_PROJECTION` and `CONCEPT_VEC_PROJECTION` in
+  `propstore/families/concepts/declaration.py`.
+- Production commit `f56d20e1` deleted those leftover concept-family vector
+  projection constants and the `quire.sqlite_vec_store` projection helper
+  import.
+- The concept embedding status table and concept vector cache are already
+  declared once in `propstore/families/world_charters.py` via the
+  `concept_embedding_status` charter and the `concept` charter's
+  `CharterVectorCache`.
+- `rg -n -F -- "CONCEPT_EMBEDDING_STATUS_PROJECTION" propstore tests` and
+  `rg -n -F -- "CONCEPT_VEC_PROJECTION" propstore tests` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the deletion.
+
+Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
+projection cleanups are complete. Continue with Slice 6: data parity, vector
+parity, remaining search gates, and completion gates.
 
 ## Prerequisites
 
