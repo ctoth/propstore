@@ -680,10 +680,41 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
 - `powershell -File scripts/run_logged_pytest.ps1 -Label
   no-load-vec-extension-tests ...` passed with 5 tests; log:
   `logs/test-runs/no-load-vec-extension-tests-20260521-112028.log`.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  derived-support-charter tests/test_world_query.py tests/test_opinion_schema.py
+  tests/test_fixture_schema_parity.py
+  tests/test_required_schema_completeness.py` passed with 161 tests and 29
+  expected warnings; log:
+  `logs/test-runs/derived-support-charter-20260521-112217.log`.
+- Harness commit `a7b1e022` updated
+  `scripts/compare_sqlalchemy_charter_parity.py` so required semantic vector
+  comparisons are emitted from the actual Quire vector table/status blocks
+  instead of by adding a Propstore vector shim or old helper path.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  parity-harness-semantic-vector-blocks
+  tests/test_sqlalchemy_charter_parity_harness.py` passed with 10 tests; log:
+  `logs/test-runs/parity-harness-semantic-vector-blocks-20260521-112613.log`.
+- The non-vector data parity command in this file's Data-Parity Gate passed at
+  `after_head_sha` `a7b1e022d4d20cd3f4a04290e9e6e8468bfdeaf5`; report:
+  `reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings.json`.
+- The vector parity command in this file's Data-Parity Gate passed at
+  `after_head_sha` `a7b1e022d4d20cd3f4a04290e9e6e8468bfdeaf5`; report:
+  `reports/sqlalchemy-charter-parity/rules-grounding-calibration-embeddings-vector.json`.
+  The report includes passing `claim-similarity`, `concept-similarity`,
+  `claim-agree-disagree`, `concept-agree-disagree`, and
+  `embedding-snapshot-restore` blocks with empty failure lists.
+- The full required old-path search gate set in this file was rerun and
+  returned zero hits for the deleted projection constants, row DTOs, raw
+  table/read helpers, embedding store helpers, raw claim/concept sidecar
+  connection paths, `VecProjection`, `ProjectionTable(`, `sqlite3.Connection`,
+  `row_factory`, `sqlite3.Row`, `load_vec_extension`, and
+  `from_mapping` under the required paths.
+- `uv run pyright propstore` passed with zero errors after the parity harness
+  commit, parity reruns, and final search gates.
 
-Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
-projection cleanups are complete. Continue with Slice 6: data parity, vector
-parity, remaining search gates, and completion gates.
+Slice 6 is complete. Phase 13 rules/grounding/calibration/embeddings is
+complete. Continue with Phase 14:
+`12-world-query-graph-reasoning.md`.
 
 ## Prerequisites
 
