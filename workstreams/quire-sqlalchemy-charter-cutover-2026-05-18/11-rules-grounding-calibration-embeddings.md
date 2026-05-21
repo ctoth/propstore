@@ -458,6 +458,25 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   tests/remediation/phase_7_race_atomicity/test_T7_5g_sidecar_build_duplicate_micropublication.py`
   passed with 1 test; log:
   `logs/test-runs/t7-5g-typed-micropublication-dedupe-20260521-102125.log`.
+- Test commit `840317a5` migrated
+  `tests/test_micropub_identity_dedupe_shape.py` from deleted
+  micropublication projection rows, raw table creation, and raw
+  `connect_sqlite_store` inspection to typed `MicropublicationDocument`
+  identity and `compile_micropublication_models_with_diagnostics`.
+- The migrated identity test verifies declared `artifact_id`/`version_id`
+  changes do not alter content identity, changed payload content does alter
+  identity, and the typed compiler dedupes only matching payload IDs.
+- `rg -n -F -- "connect_sqlite_store"
+  tests/test_micropub_identity_dedupe_shape.py`,
+  `rg -n -F -- "MicropublicationProjectionRow"
+  tests/test_micropub_identity_dedupe_shape.py`, and
+  `rg -n -F -- "populate_micropublications"
+  tests/test_micropub_identity_dedupe_shape.py` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  micropub-typed-dedupe-shape tests/test_micropub_identity_dedupe_shape.py`
+  passed with 2 tests; log:
+  `logs/test-runs/micropub-typed-dedupe-shape-20260521-102405.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
