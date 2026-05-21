@@ -37,8 +37,8 @@ def compile_micropublication_models_with_diagnostics(
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
 ) -> tuple[MicropublicationModelBatches, tuple[QuarantineDiagnostic, ...]]:
     valid_claim_ids = set(claim_index.ids())
-    micropublications: list[Micropublication] = []
-    claim_links: list[MicropublicationClaimLink] = []
+    micropublications: dict[str, Micropublication] = {}
+    claim_links: dict[tuple[str, str], MicropublicationClaimLink] = {}
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, micropub in sorted(micropub_entries, key=lambda item: item[0]):
@@ -74,7 +74,8 @@ def compile_micropublication_models_with_diagnostics(
             )
             continue
 
-        micropublications.append(
+        micropublications.setdefault(
+            micropub.artifact_id,
             Micropublication(
                 id=micropub.artifact_id,
                 context_id=str(micropub.context.id),
@@ -99,7 +100,8 @@ def compile_micropublication_models_with_diagnostics(
             )
         )
         for seq, claim_id in enumerate(resolved_claims, start=1):
-            claim_links.append(
+            claim_links.setdefault(
+                (micropub.artifact_id, claim_id),
                 MicropublicationClaimLink(
                     micropublication_id=micropub.artifact_id,
                     claim_id=claim_id,
@@ -108,6 +110,6 @@ def compile_micropublication_models_with_diagnostics(
             )
 
     return (
-        (tuple(micropublications), tuple(claim_links)),
+        (tuple(micropublications.values()), tuple(claim_links.values())),
         tuple(diagnostics),
     )
