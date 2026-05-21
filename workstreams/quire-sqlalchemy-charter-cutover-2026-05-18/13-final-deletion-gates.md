@@ -77,6 +77,7 @@ Check these before starting final deletion work:
 | `08a-typed-claim-graph-projection.md` | Typed claim-to-graph projection owner is complete and claim graph/source-assertion projection no longer uses duplicate row attributes. |
 | `09-relations-stances-conflicts.md` | Relation, stance, and conflict row-model paths are deleted and parity passed. |
 | `10-micropublications-justifications.md` | Micropub/justification projection paths are deleted and parity passed. |
+| `10a-charter-generated-model-cleanup.md` | Every Propstore mapped sidecar model is a methods-only `FamilyModel` subclass and duplicated mapped field declarations, constructors, placeholder records, and mapping repair APIs are deleted. |
 | `11-rules-grounding-calibration-embeddings.md` | Support-family projection/vector duplicates and claim/concept sidecar runtime old paths are deleted and parity passed. |
 | `12-world-query-graph-reasoning.md` | `WorldQuery`, graph, worldline, support-revision, and ASPIC callers use typed session/model APIs. |
 | `helper-ledger.md` | Every ledger row has a closure entry or is covered by the owning child workstream's closure report. |
