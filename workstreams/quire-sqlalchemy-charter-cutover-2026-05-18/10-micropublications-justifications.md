@@ -462,6 +462,33 @@ rg -n -F -- "from_mapping" propstore/core/justifications.py tests
 
 All searches are zero-hit gates outside notes, workstreams, docs, and reports.
 
+## Execution Log
+
+- 2026-05-21 Phase 12 preread confirmed parent phase requirements, inventory
+  ownership, and required order. `scripts/check_workstream_order.py` passes for
+  `00-index.md`.
+- Quire dependency check: Propstore pins Quire to remote SHA
+  `a506af4984f4a83d5e6d4752344a4bd59309492f`; no local path/file pin was found
+  in `pyproject.toml` or `uv.lock`.
+- Quire worktree check: `C:\Users\Q\code\quire` is on `master` with only
+  untracked unrelated notes/reports/prompts/out paths.
+- Current old production surfaces verified present:
+  `propstore/families/micropublications/declaration.py` still owns
+  `MICROPUBLICATION_PROJECTION`, `MICROPUBLICATION_CLAIM_PROJECTION`,
+  `MICROPUBLICATION_ROW_MODEL`, `MicropublicationProjectionRow`,
+  `MicropublicationClaimProjectionRow`, `MicropublicationSidecarRows`,
+  `compile_micropublication_sidecar_rows*`, `create_micropublication_tables`,
+  `populate_micropublications`, and `select_all_micropublications`;
+  `propstore/core/micropublications.py` still owns `_parse_string_tuple`,
+  `ActiveMicropublication`, `ActiveMicropublicationInput`, and
+  `coerce_active_micropublication`; `propstore/families/claims/projection_model.py`
+  contains only the residual justification projection helpers this phase owns.
+- Current target-model state verified insufficient: `world_charters.py` still
+  declares generic `JustificationRecord`, `MicropublicationRecord`, and
+  `MicropublicationClaimRecord` placeholders. This phase must replace those
+  names with the required typed `Justification`, `Micropublication`, and
+  `MicropublicationClaimLink` models and must not leave placeholder aliases.
+
 ## Completion Criteria
 
 This slice is complete only when:
