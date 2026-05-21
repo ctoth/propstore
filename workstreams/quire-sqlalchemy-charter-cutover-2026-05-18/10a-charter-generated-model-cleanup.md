@@ -19,9 +19,9 @@ cutover phases.
 
 Final state:
 
-- Quire commit `5a96245b2f3384db455707b2a36721d8f813924c` is pinned in
-  Propstore and provides the fieldless `FamilyModel` base plus a proof test
-  that charter fields and methods-only subclass behavior compose.
+- Quire commit `f69c2f018c25c6aaca277af35976fd419ded39fe` is pinned in
+  Propstore and provides `FamilyModel` plus a proof test that charter fields,
+  generic construction, and methods-only subclass behavior compose.
 - Every Propstore sidecar mapped model subclasses `FamilyModel`.
 - Propstore sidecar mapped model classes contain no storage field annotations,
   no constructor field lists, no `__init__(**values)` sinks, no `from_row_mapping`,
@@ -43,7 +43,7 @@ Required phase file prerequisites: `00-index.md`, `inventory-matrix.md`,
 Before implementation:
 
 - confirm Propstore pins Quire to pushed commit
-  `5a96245b2f3384db455707b2a36721d8f813924c`;
+  `f69c2f018c25c6aaca277af35976fd419ded39fe`;
 - confirm Quire proof gates passed:
   `uv run pyright` and
   `uv run pytest -vv tests/test_sqlalchemy_engine.py::test_family_model_subclass_uses_charter_fields_and_keeps_behavior`;
