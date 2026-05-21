@@ -65,7 +65,6 @@ def _insert_stance(conn: Connection, claim_id: str,
 def conn():
     """In-memory SQLite with schema."""
     c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
     create_argumentation_schema(c)
     return c
 
@@ -331,7 +330,6 @@ def active_stance_scenarios(draw):
 def _build_scenario_db(claim_ids, stances, sample_sizes):
     """Build an in-memory SQLite from generated scenario."""
     conn = sqlite3.connect(":memory:")
-    conn.row_factory = sqlite3.Row
     create_argumentation_schema(conn)
     for cid in claim_ids:
         _insert_claim(conn, cid, "concept", float(hash(cid) % 1000),
