@@ -439,6 +439,25 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   micropublication-specific sidecar adapters.
 - `uv run pyright propstore` passed with zero errors after the production
   change.
+- Test commit `c4a134f2` migrated
+  `tests/remediation/phase_7_race_atomicity/test_T7_5g_sidecar_build_duplicate_micropublication.py`
+  from deleted raw `populate_micropublications`/projection-row helpers to
+  `compile_micropublication_models_with_diagnostics` plus Quire SQLAlchemy
+  `writable_session` and `readonly_session` over `world_sqlalchemy_schema()`.
+- The migrated test persists the deduped typed `Micropublication` and
+  `MicropublicationClaimLink` batches and verifies one canonical row and one
+  `(micropublication_id, claim_id)` link survive duplicate source files.
+- `rg -n -F -- "connect_sqlite_store"
+  tests/remediation/phase_7_race_atomicity/test_T7_5g_sidecar_build_duplicate_micropublication.py`
+  and `rg -n -F -- "MicropublicationProjectionRow"
+  tests/remediation/phase_7_race_atomicity/test_T7_5g_sidecar_build_duplicate_micropublication.py`
+  returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  t7-5g-typed-micropublication-dedupe
+  tests/remediation/phase_7_race_atomicity/test_T7_5g_sidecar_build_duplicate_micropublication.py`
+  passed with 1 test; log:
+  `logs/test-runs/t7-5g-typed-micropublication-dedupe-20260521-102125.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
