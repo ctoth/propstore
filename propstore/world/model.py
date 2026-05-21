@@ -796,13 +796,15 @@ class WorldQuery(WorldStore):
     ) -> list[ClaimSimilarityHit]:
         """Find claims similar to the given claim by embedding distance.
 
-        Requires sqlite-vec extension and pre-computed embeddings.
+        Requires pre-computed embeddings.
         """
-        from propstore.families.embeddings.declaration import find_similar, get_registered_models, load_vec_extension
-        load_vec_extension(self._conn)
+        from propstore.families.embeddings.declaration import (
+            find_similar,
+            get_registered_models,
+        )
 
         if model_name is None:
-            models = get_registered_models(self._conn)
+            models = get_registered_models(self._derived_store)
             if not models:
                 return []
             model_name = models[0]["model_name"]
@@ -810,7 +812,12 @@ class WorldQuery(WorldStore):
         assert model_name is not None  # narrowed above
         return [
             ClaimSimilarityHit.from_row_mapping(result)
-            for result in find_similar(self._conn, claim_id, model_name, top_k=top_k)
+            for result in find_similar(
+                self._derived_store,
+                claim_id,
+                model_name,
+                top_k=top_k,
+            )
         ]
 
     def similar_concepts(
@@ -821,13 +828,15 @@ class WorldQuery(WorldStore):
     ) -> list[ConceptSimilarityHit]:
         """Find concepts similar to the given concept by embedding distance.
 
-        Requires sqlite-vec extension and pre-computed embeddings.
+        Requires pre-computed embeddings.
         """
-        from propstore.families.embeddings.declaration import find_similar_concepts, get_registered_models, load_vec_extension
-        load_vec_extension(self._conn)
+        from propstore.families.embeddings.declaration import (
+            find_similar_concepts,
+            get_registered_models,
+        )
 
         if model_name is None:
-            models = get_registered_models(self._conn)
+            models = get_registered_models(self._derived_store)
             if not models:
                 return []
             model_name = models[0]["model_name"]
@@ -836,10 +845,9 @@ class WorldQuery(WorldStore):
         return [
             ConceptSimilarityHit.from_row_mapping(result)
             for result in find_similar_concepts(
-                self._conn,
+                self._derived_store,
                 concept_id,
                 model_name,
-                derived_store=self._derived_store,
                 top_k=top_k,
             )
         ]
