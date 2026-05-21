@@ -410,6 +410,26 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   tests/remediation/phase_7_race_atomicity/test_T7_5d_promotion_blocked_id_collision.py`
   passed with 1 test; log:
   `logs/test-runs/t7-5d-sqlalchemy-session-20260521-101058.log`.
+- Test commit `cb7bee54` migrated
+  `tests/remediation/phase_7_race_atomicity/test_T7_5e_promotion_blocked_fk_payload.py`
+  from `connect_sqlite_store` to Quire SQLAlchemy `writable_session` and
+  `readonly_session` calls over `world_sqlalchemy_schema()`.
+- The same test update removed the obsolete blocked-claim mirror expectation.
+  Current coverage is that a source-local promotion-blocked fact records a
+  typed diagnostic while leaving an existing canonical `claim_core` row and
+  its payload, concept-link, and micropublication-link children untouched.
+- The SQLAlchemy migration also exposed and fixed an invalid old fixture: the
+  seeded optional `source_slug` FK is now `NULL` because this test does not
+  own source-family setup.
+- `rg -n -F -- "connect_sqlite_store"
+  tests/remediation/phase_7_race_atomicity/test_T7_5e_promotion_blocked_fk_payload.py`
+  returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  t7-5e-sqlalchemy-session
+  tests/remediation/phase_7_race_atomicity/test_T7_5e_promotion_blocked_fk_payload.py`
+  passed with 1 test; log:
+  `logs/test-runs/t7-5e-sqlalchemy-session-20260521-101358.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
