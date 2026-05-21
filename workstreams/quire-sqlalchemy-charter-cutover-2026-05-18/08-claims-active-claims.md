@@ -1358,6 +1358,28 @@ Current binding queue:
   tests/test_algorithm_stage_types.py` passed with 3 tests. Edited-file
   searches for `propstore.core.active_claims` and `CLAIM_ROW_MODEL` returned
   zero hits.
+- Support-revision typed-claim cleanup: commit `ce06e2b7` removed the
+  `ActiveClaim` dependency from
+  `tests/support_revision/revision_assertion_helpers.py`, renamed the stale
+  production API `situated_assertion_from_active_claim` to
+  `situated_assertion_from_claim` with no compatibility alias, and updated the
+  ATMS/support-revision callers. The shared revision test store in
+  `tests/test_revision_phase1.py` now stores typed `Claim` objects, direct
+  revision tests construct claims through the typed Quire-backed test builder,
+  and revision/AF assertions read typed `Claim.id` and
+  `Claim.numeric_payload.value` instead of row-model fields. Focused
+  verification `uv run pyright
+  propstore/support_revision/projection.py propstore/world/atms.py
+  tests/support_revision/revision_assertion_helpers.py
+  tests/test_revision_phase1.py tests/test_revision_bound_world.py
+  tests/test_revision_af_adapter.py tests/claim_model_helpers.py` passed with
+  0 errors, package gate `uv run pyright propstore` passed with 0 errors,
+  searches for `situated_assertion_from_active_claim` and edited-file
+  `propstore.core.active_claims` returned zero hits, and logged focused pytest
+  `powershell -File scripts/run_logged_pytest.ps1 -Label support-revision-typed-claim-helper
+  tests/test_revision_phase1.py tests/test_revision_entrenchment.py
+  tests/test_revision_af_adapter.py tests/test_revision_bound_world.py` passed
+  with 15 tests.
 - Normalizer deletion queue refresh: `_normalize_attrs` and similar
   broad attribute/payload repair helpers are explicitly in the Phase 10
   deletion queue when they construct or repair claim/runtime model shape
