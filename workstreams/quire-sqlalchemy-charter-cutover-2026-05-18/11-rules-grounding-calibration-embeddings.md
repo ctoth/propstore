@@ -600,6 +600,16 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   opinion-schema-no-row-factory tests/test_opinion_schema.py` passed with 8
   tests; log:
   `logs/test-runs/opinion-schema-no-row-factory-20260521-105604.log`.
+- Test commit `48315d65` deleted the obsolete
+  `test_claim_embed_closes_conn_on_error` raw sqlite connection-close test
+  from `tests/test_cli.py`; claim embedding no longer opens raw sqlite
+  connections or loads vector extensions through that old path.
+- `rg -n -F -- "row_factory" tests/test_cli.py` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the deletion.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  cli-embed-no-row-factory tests/test_cli.py::TestClaimEmbedProgress` passed
+  with 1 test; log:
+  `logs/test-runs/cli-embed-no-row-factory-20260521-105751.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
