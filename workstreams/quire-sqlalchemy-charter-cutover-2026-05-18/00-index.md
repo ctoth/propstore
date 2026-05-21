@@ -127,6 +127,7 @@ Sibling files:
 - `06-forms-concepts-parameterizations.md`: forms, concepts, aliases, relationships, and parameterizations.
 - `07-contexts-lifting.md`: context and lifting slice.
 - `08-claims-active-claims.md`: claim model, association objects, and active-claim runtime.
+- `08a-typed-claim-graph-projection.md`: typed claim-to-graph projection owner for persisted and synthetic claims.
 - `09-relations-stances-conflicts.md`: relations, stances, and conflicts slice.
 - `10-micropublications-justifications.md`: justifications and micropublications slice.
 - `11-rules-grounding-calibration-embeddings.md`: rules, grounding, calibration, embeddings, and vector runtimes.
@@ -148,7 +149,7 @@ Execute in this exact order:
 | 6. Source and diagnostics slice | `05-source-and-diagnostics.md` | Source projection rows/tables/helpers and diagnostic projection tables are deleted; parity passes. |
 | 7-8. Forms, concepts, and parameterizations slice | `06-forms-concepts-parameterizations.md` | Duplicate form facade and concept/form/parameterization projection surfaces are deleted; parity passes. |
 | 9. Context/lifting slice | `07-contexts-lifting.md` | Context/lifting projection surfaces are deleted and parity passes. |
-| 10. Claim model and association-object slice | `08-claims-active-claims.md` | Claim split row models/helpers and active-claim row coercion are deleted; claim parity passes. |
+| 10. Claim model and association-object slice | `08-claims-active-claims.md`, `08a-typed-claim-graph-projection.md` | Claim split row models/helpers, active-claim row coercion, and duplicate claim-to-graph field projection are deleted; claim parity passes. |
 | 11. Relations/stances/conflicts slice | `09-relations-stances-conflicts.md` | Relation/stance/conflict row models are deleted and parity passes. |
 | 12. Justifications and micropublications slice | `10-micropublications-justifications.md` | Micropublication/justification projection surfaces are deleted and parity passes. |
 | 13. Rules/grounding/calibration/embeddings slice | `11-rules-grounding-calibration-embeddings.md` | Support families use typed models and Quire vector APIs. |
