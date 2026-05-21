@@ -9,6 +9,9 @@ import pytest
 
 from argumentation.dung import ArgumentationFramework, grounded_extension, preferred_extensions
 from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabilisticAF
+from propstore.core.claim_types import ClaimType
+from propstore.core.graph_types import ClaimNode
+from propstore.core.id_types import to_claim_id
 from propstore.opinion import Opinion, from_probability as _from_probability
 from propstore.preference import claim_strength
 
@@ -24,6 +27,14 @@ def _probability(value: float | Opinion) -> float:
     if isinstance(value, Opinion):
         return value.expectation()
     return float(value)
+
+
+def _claim_with_metadata(**metadata: object) -> ClaimNode:
+    return ClaimNode(
+        claim_id=to_claim_id("test_claim"),
+        claim_type=ClaimType.OBSERVATION,
+        attributes=tuple((key, value) for key, value in metadata.items()),
+    )
 
 
 def ProbabilisticAF(
@@ -436,7 +447,7 @@ def test_p_arg_hook_default():
     """Bare claims are missing calibration, not certain existing arguments."""
     from propstore.praf import NoCalibration, p_arg_from_claim
 
-    claim = {"claim_id": "test", "concept": "foo"}
+    claim = _claim_with_metadata(concept="foo")
     result = p_arg_from_claim(claim)
     assert isinstance(result, NoCalibration)
     assert result.reason == "missing_claim_calibration"
@@ -447,13 +458,12 @@ def test_p_arg_from_claim_accepts_stated_opinion_columns():
     from propstore.praf import p_arg_from_claim
 
     result = p_arg_from_claim(
-        {
-            "claim_id": "test",
-            "opinion_belief": 0.6,
-            "opinion_disbelief": 0.1,
-            "opinion_uncertainty": 0.3,
-            "opinion_base_rate": 0.5,
-        }
+        _claim_with_metadata(
+            opinion_belief=0.6,
+            opinion_disbelief=0.1,
+            opinion_uncertainty=0.3,
+            opinion_base_rate=0.5,
+        )
     )
 
     assert isinstance(result, Opinion)
@@ -465,12 +475,11 @@ def test_p_arg_from_claim_requires_base_rate_for_opinion_columns():
     from propstore.praf import NoCalibration, p_arg_from_claim
 
     result = p_arg_from_claim(
-        {
-            "claim_id": "test",
-            "opinion_belief": 0.6,
-            "opinion_disbelief": 0.1,
-            "opinion_uncertainty": 0.3,
-        }
+        _claim_with_metadata(
+            opinion_belief=0.6,
+            opinion_disbelief=0.1,
+            opinion_uncertainty=0.3,
+        )
     )
 
     assert isinstance(result, NoCalibration)

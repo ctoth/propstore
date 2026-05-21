@@ -107,8 +107,8 @@ def test_shared_claim_graph_analyzer_uses_grounded_over_defeats_only() -> None:
         active_graph=None,  # type: ignore[arg-type]
         comparison="elitist",
         claims_by_id={
-            "c1": {"id": "c1"},
-            "c2": {"id": "c2"},
+            "c1": ClaimNode(claim_id="c1", claim_type="observation"),
+            "c2": ClaimNode(claim_id="c2", claim_type="observation"),
         },
         stance_rows=(),
         relations=None,  # type: ignore[arg-type]

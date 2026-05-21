@@ -208,7 +208,7 @@ def csaf_to_projection(
         if claim is None:
             strength = _grounded_argument_strength(argument)
         else:
-            vector = claim_strength({"artifact_id": claim.id})
+            vector = claim_strength(claim)
             strength = (
                 0.0
                 if vector.is_vacuous

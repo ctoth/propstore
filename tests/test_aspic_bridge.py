@@ -64,6 +64,8 @@ from propstore.aspic_bridge import (
     build_aspic_projection,
 )
 from propstore.core.literal_keys import claim_key
+from propstore.families.claims.declaration import Claim, ClaimNumericPayload
+from propstore.families.relations.declaration import Stance
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import (
     StructuredArgument,
@@ -87,21 +89,56 @@ def _make_claim(
     uncertainty: float | None = None,
     confidence: float | None = None,
     premise_kind: str = "ordinary",
-) -> dict:
-    """Build a claim dict matching propstore's active claim format."""
-    claim = {
-        "id": claim_id,
-        "concept_id": concept_id or f"concept_{claim_id}",
-        "statement": f"Claim {claim_id}",
-        "premise_kind": premise_kind,
-    }
+) -> Claim:
+    """Build a typed claim model matching propstore's active claim format."""
+    claim = Claim(
+        id=claim_id,
+        type="parameter",
+        target_concept=concept_id or f"concept_{claim_id}",
+        context_id=None,
+        premise_kind=premise_kind,
+    )
+    claim.concept_links = []
+    claim.source_assertions = []
+    claim.numeric_payload = ClaimNumericPayload(
+        claim_id=claim_id,
+        sample_size=sample_size,
+        uncertainty=uncertainty,
+    )
     if sample_size is not None:
-        claim["sample_size"] = sample_size
+        claim.sample_size = sample_size
     if uncertainty is not None:
-        claim["uncertainty"] = uncertainty
+        claim.uncertainty = uncertainty
     if confidence is not None:
-        claim["confidence"] = confidence
+        claim.confidence = confidence
     return claim
+
+
+def _claim_id(claim: Claim) -> str:
+    return str(claim.id)
+
+
+def _make_stance(source: str, target: str, stance_type: str) -> Stance:
+    return Stance(
+        source_kind="claim",
+        source_id=source,
+        relation_type=stance_type,
+        target_kind="claim",
+        target_id=target,
+        perspective_source_claim_id=source,
+    )
+
+
+def _stance_source_id(stance: Stance) -> str:
+    return str(stance.claim_id)
+
+
+def _stance_target_id(stance: Stance) -> str:
+    return str(stance.target_claim_id)
+
+
+def _stance_type(stance: Stance) -> str:
+    return str(stance.stance_type)
 
 
 def _make_justification(
@@ -201,11 +238,7 @@ def claim_graph(draw, min_claims=2, max_claims=5):
         source = draw(st.sampled_from(ids))
         target = draw(st.sampled_from([cid for cid in ids if cid != source]))
         stance_type = draw(st.sampled_from(["rebuts", "supersedes", "undermines"]))
-        stances.append({
-            "claim_id": source,
-            "target_claim_id": target,
-            "stance_type": stance_type,
-        })
+        stances.append(_make_stance(source, target, stance_type))
 
     return claims, justifications, stances
 
@@ -239,8 +272,9 @@ class TestClaimsToLiterals:
         claims, justifications, stances = graph
         literals = claims_to_literals(claims)
         for claim in claims:
-            assert claim_key(claim["id"]) in literals, (
-                f"Claim {claim['id']} has no literal"
+            claim_id = _claim_id(claim)
+            assert claim_key(claim_id) in literals, (
+                f"Claim {claim_id} has no literal"
             )
 
     @pytest.mark.property
@@ -385,18 +419,18 @@ class TestStancesToContrariness:
         _strict, defeasible = justifications_to_rules(justifications, literals)
         cfn = stances_to_contrariness(stances, literals, defeasible)
         directional_pairs = {
-            (stance["claim_id"], stance["target_claim_id"])
+            (_stance_source_id(stance), _stance_target_id(stance))
             for stance in stances
-            if stance["stance_type"] in {"supersedes", "undermines"}
+            if _stance_type(stance) in {"supersedes", "undermines"}
         }
         for stance in stances:
-            if stance["stance_type"] == "rebuts":
-                if (stance["target_claim_id"], stance["claim_id"]) in directional_pairs:
+            if _stance_type(stance) == "rebuts":
+                if (_stance_target_id(stance), _stance_source_id(stance)) in directional_pairs:
                     continue
-                tgt = literals[claim_key(stance["target_claim_id"])]
-                src = literals[claim_key(stance["claim_id"])]
+                tgt = literals[claim_key(_stance_target_id(stance))]
+                src = literals[claim_key(_stance_source_id(stance))]
                 assert cfn.is_contradictory(src, tgt), (
-                    f"{stance['stance_type']} {src}->{tgt} not contradictory"
+                    f"{_stance_type(stance)} {src}->{tgt} not contradictory"
                 )
                 assert cfn.is_contradictory(tgt, src), (
                     f"Contradictory not symmetric for {tgt}->{src}"
@@ -416,26 +450,26 @@ class TestStancesToContrariness:
         _strict, defeasible = justifications_to_rules(justifications, literals)
         cfn = stances_to_contrariness(stances, literals, defeasible)
         rebut_pairs = {
-            (stance["claim_id"], stance["target_claim_id"])
+            (_stance_source_id(stance), _stance_target_id(stance))
             for stance in stances
-            if stance["stance_type"] == "rebuts"
+            if _stance_type(stance) == "rebuts"
         }
         directional_pairs = {
-            (stance["claim_id"], stance["target_claim_id"])
+            (_stance_source_id(stance), _stance_target_id(stance))
             for stance in stances
-            if stance["stance_type"] in {"supersedes", "undermines"}
+            if _stance_type(stance) in {"supersedes", "undermines"}
         }
         for stance in stances:
-            if stance["stance_type"] == "supersedes":
-                if (stance["claim_id"], stance["target_claim_id"]) in rebut_pairs:
+            if _stance_type(stance) == "supersedes":
+                if (_stance_source_id(stance), _stance_target_id(stance)) in rebut_pairs:
                     continue
-                tgt = literals[claim_key(stance["target_claim_id"])]
-                src = literals[claim_key(stance["claim_id"])]
+                tgt = literals[claim_key(_stance_target_id(stance))]
+                src = literals[claim_key(_stance_source_id(stance))]
                 assert cfn.is_contrary(src, tgt), (
                     f"supersedes {src}->{tgt} not in contrariness"
                 )
                 assert not cfn.is_contradictory(src, tgt)
-                if (stance["target_claim_id"], stance["claim_id"]) not in directional_pairs:
+                if (_stance_target_id(stance), _stance_source_id(stance)) not in directional_pairs:
                     assert not cfn.is_contrary(tgt, src)
 
     @pytest.mark.property
@@ -505,12 +539,17 @@ class TestStancesToContrariness:
         _strict, defeasible = justifications_to_rules(justifications, literals)
 
         cfn = stances_to_contrariness(
-            [{
-                "claim_id": "attacker",
-                "target_claim_id": "target",
-                "stance_type": "undercuts",
-                "target_justification_id": "supports:support_a->target",
-            }],
+            [
+                Stance(
+                    source_kind="claim",
+                    source_id="attacker",
+                    relation_type="undercuts",
+                    target_kind="claim",
+                    target_id="target",
+                    target_justification_id="supports:support_a->target",
+                    perspective_source_claim_id="attacker",
+                )
+            ],
             literals,
             defeasible,
         )
@@ -554,11 +593,7 @@ class TestStancesToContrariness:
 
         with pytest.raises(ValueError, match="target_justification_id") as exc_info:
             stances_to_contrariness(
-                [{
-                    "claim_id": "attacker",
-                    "target_claim_id": "target",
-                    "stance_type": "undercuts",
-                }],
+                [_make_stance("attacker", "target", "undercuts")],
                 literals,
                 defeasible,
             )
@@ -589,11 +624,7 @@ class TestStancesToContrariness:
         _strict, defeasible = justifications_to_rules(justifications, literals)
 
         cfn = stances_to_contrariness(
-            [{
-                "claim_id": "attacker",
-                "target_claim_id": "target",
-                "stance_type": "undercuts",
-            }],
+            [_make_stance("attacker", "target", "undercuts")],
             literals,
             defeasible,
         )
@@ -634,10 +665,11 @@ class TestClaimsToKb:
         literals = claims_to_literals(claims)
         kb = claims_to_kb(claims, justifications, literals)
         for claim in claims:
-            lit = literals[claim_key(claim["id"])]
-            if claim.get("premise_kind") == "necessary":
+            claim_id = _claim_id(claim)
+            lit = literals[claim_key(claim_id)]
+            if claim.premise_kind == "necessary":
                 assert lit in kb.axioms, (
-                    f"Necessary claim {claim['id']} not in K_n"
+                    f"Necessary claim {claim_id} not in K_n"
                 )
 
     @pytest.mark.property
@@ -649,10 +681,11 @@ class TestClaimsToKb:
         literals = claims_to_literals(claims)
         kb = claims_to_kb(claims, justifications, literals)
         for claim in claims:
-            lit = literals[claim_key(claim["id"])]
-            if claim.get("premise_kind", "ordinary") == "ordinary":
+            claim_id = _claim_id(claim)
+            lit = literals[claim_key(claim_id)]
+            if claim.premise_kind == "ordinary":
                 assert lit in kb.premises, (
-                    f"Ordinary claim {claim['id']} not in K_p"
+                    f"Ordinary claim {claim_id} not in K_p"
                 )
 
     @pytest.mark.property
@@ -821,9 +854,10 @@ class TestBuildBridgeCsaf:
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         literals = claims_to_literals(claims)
         for claim in claims:
-            lit = literals[claim_key(claim["id"])]
+            claim_id = _claim_id(claim)
+            lit = literals[claim_key(claim_id)]
             assert lit in csaf.system.language, (
-                f"Claim {claim['id']} literal not in CSAF language"
+                f"Claim {claim_id} literal not in CSAF language"
             )
 
     @pytest.mark.property
@@ -1018,7 +1052,7 @@ class TestCsafToProjection:
         claims, justifications, stances = graph
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         projection = csaf_to_projection(csaf, claims)
-        claim_ids = {c["id"] for c in claims}
+        claim_ids = {_claim_id(claim) for claim in claims}
         for arg in projection.arguments:
             assert arg.projection.backend_atom_id
             if arg.claim_id is not None:
@@ -1041,7 +1075,7 @@ class TestCsafToProjection:
         assume(len(projection.framework.arguments) <= 12)
         # Use compute_structured_justified_arguments which handles hybrid AFs
         grounded = compute_structured_justified_arguments(projection, semantics="grounded")
-        claim_ids = {c["id"] for c in claims}
+        claim_ids = {_claim_id(claim) for claim in claims}
         for arg_id in grounded:
             if arg_id in projection.argument_to_claim_id:
                 cid = projection.argument_to_claim_id[arg_id]
@@ -1081,7 +1115,7 @@ class TestBridgeConcrete:
             _make_justification("reported:B", "B"),
         ]
         stances = [
-            {"claim_id": "A", "target_claim_id": "B", "stance_type": "rebuts"},
+            _make_stance("A", "B", "rebuts"),
         ]
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
@@ -1113,7 +1147,7 @@ class TestBridgeConcrete:
         ]
         stances = [
             # attacker tries to undercut the strict inference
-            {"claim_id": "attacker", "target_claim_id": "derived", "stance_type": "undercuts"},
+            _make_stance("attacker", "derived", "undercuts"),
         ]
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
@@ -1139,7 +1173,7 @@ class TestBridgeConcrete:
             _make_justification("reported:attacker", "attacker"),
         ]
         stances = [
-            {"claim_id": "attacker", "target_claim_id": "axiom", "stance_type": "undermines"},
+            _make_stance("attacker", "axiom", "undermines"),
         ]
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
@@ -1182,7 +1216,7 @@ class TestBridgeConcrete:
             ),
         ]
         stances = [
-            {"claim_id": "C", "target_claim_id": "B", "stance_type": "rebuts"},
+            _make_stance("C", "B", "rebuts"),
         ]
         csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
         grounded = grounded_extension(csaf.framework)
@@ -1232,17 +1266,18 @@ class _MiniStore:
     def __init__(
         self,
         *,
-        claims: list[dict],
-        stances: list[dict] | None = None,
+        claims: list[Claim],
+        stances: list[Stance] | None = None,
     ) -> None:
         self._claims = list(claims)
         self._stances = list(stances or [])
 
-    def stances_between(self, claim_ids: set[str]) -> list[dict]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
             stance
             for stance in self._stances
-            if stance["claim_id"] in claim_ids and stance["target_claim_id"] in claim_ids
+            if _stance_source_id(stance) in claim_ids
+            and _stance_target_id(stance) in claim_ids
         ]
 
     def has_table(self, name: str) -> bool:
@@ -1319,7 +1354,7 @@ class TestBuildAspicProjection:
         store = _MiniStore(
             claims=claims,
             stances=[
-                {"claim_id": "strong", "target_claim_id": "weak", "stance_type": "rebuts"},
+                _make_stance("strong", "weak", "rebuts"),
             ],
         )
         projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
@@ -1340,7 +1375,7 @@ class TestBuildAspicProjection:
         projection = build_aspic_projection(store, claims, bundle=GroundedRulesBundle.empty())
 
         for claim in claims:
-            cid = claim["id"]
+            cid = _claim_id(claim)
             assert cid in projection.claim_to_argument_ids, (
                 f"Claim {cid} missing from claim_to_argument_ids"
             )

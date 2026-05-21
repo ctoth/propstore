@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
 
 from argumentation.aspic import (
     ContrarinessFn,
@@ -180,7 +179,7 @@ def stances_to_contrariness(
         elif stance.stance_type in ("supersedes", "undermines"):
             authored_directional.add((src, tgt))
         elif stance.stance_type == "undercuts":
-            target_justification_id = stance.target_justification_id
+            target_justification_id = stance.attribute_value("target_justification_id")
             matching_rules = [
                 rule
                 for rule in defeasible_rules
@@ -377,8 +376,8 @@ def build_preference_config(
     )
 
 
-def _claim_metadata(claim: Claim) -> Mapping[str, Any]:
-    return {"artifact_id": claim.id}
+def _claim_metadata(claim: Claim) -> Claim:
+    return claim
 
 
 __all__ = [

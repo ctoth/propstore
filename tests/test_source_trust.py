@@ -10,6 +10,9 @@ from hypothesis import strategies as st
 from quire.documents import convert_document_value
 from sqlalchemy import select
 
+from propstore.core.claim_types import ClaimType
+from propstore.core.graph_types import ClaimNode
+from propstore.core.id_types import to_claim_id
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.world_charters import world_sqlalchemy_schema
@@ -28,9 +31,17 @@ def _prior_payload(a: float = 0.62) -> dict[str, float]:
     return {"b": 0.0, "d": 0.0, "u": 1.0, "a": a}
 
 
+def _claim_with_metadata(**metadata: object) -> ClaimNode:
+    return ClaimNode(
+        claim_id=to_claim_id("test_claim"),
+        claim_type=ClaimType.OBSERVATION,
+        attributes=tuple((key, value) for key, value in metadata.items()),
+    )
+
+
 def test_p_arg_from_claim_uses_prior_base_rate_when_no_claim_evidence() -> None:
     prior = _prior_payload(0.62)
-    opinion = p_arg_from_claim({"source_prior_base_rate": prior})
+    opinion = p_arg_from_claim(_claim_with_metadata(source_prior_base_rate=prior))
     assert isinstance(opinion, Opinion)
     assert opinion == Opinion(**prior)
     assert opinion.provenance is not None
@@ -38,11 +49,11 @@ def test_p_arg_from_claim_uses_prior_base_rate_when_no_claim_evidence() -> None:
 
 def test_p_arg_from_claim_builds_claim_evidence_opinion() -> None:
     opinion = p_arg_from_claim(
-        {
-            "source_prior_base_rate": _prior_payload(0.62),
-            "claim_probability": 0.8,
-            "effective_sample_size": 10,
-        }
+        _claim_with_metadata(
+            source_prior_base_rate=_prior_payload(0.62),
+            claim_probability=0.8,
+            effective_sample_size=10,
+        )
     )
     assert isinstance(opinion, Opinion)
     assert opinion == from_probability(0.8, 10, 0.62)
@@ -51,10 +62,7 @@ def test_p_arg_from_claim_builds_claim_evidence_opinion() -> None:
 
 def test_p_arg_from_claim_requires_prior_for_claim_evidence() -> None:
     result = p_arg_from_claim(
-        {
-            "claim_probability": 0.8,
-            "effective_sample_size": 10,
-        }
+        _claim_with_metadata(claim_probability=0.8, effective_sample_size=10)
     )
 
     assert isinstance(result, NoCalibration)
@@ -78,17 +86,17 @@ def test_initial_source_document_does_not_fabricate_default_prior(tmp_path: Path
 
 
 def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
-    claim = {
-        "source_prior_base_rate": _prior_payload(0.62),
-        "claim_probability": 0.8,
-        "effective_sample_size": 10,
-        "source_quality_opinion": {
+    claim = _claim_with_metadata(
+        source_prior_base_rate=_prior_payload(0.62),
+        claim_probability=0.8,
+        effective_sample_size=10,
+        source_quality_opinion={
             "b": 0.7,
             "d": 0.1,
             "u": 0.2,
             "a": 0.5,
         },
-    }
+    )
     expected_claim = from_probability(0.8, 10, 0.62)
     expected = discount(Opinion(0.7, 0.1, 0.2, 0.5), expected_claim)
     actual = p_arg_from_claim(claim)
@@ -98,8 +106,8 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
 
 
 def test_p_arg_from_claim_uses_source_trust_mapping() -> None:
-    claim = {
-        "source": {
+    claim = _claim_with_metadata(
+        source={
             "trust": {
                 "prior_base_rate": _prior_payload(0.62),
                 "quality": {
@@ -110,9 +118,9 @@ def test_p_arg_from_claim_uses_source_trust_mapping() -> None:
                 },
             },
         },
-        "claim_probability": 0.8,
-        "effective_sample_size": 10,
-    }
+        claim_probability=0.8,
+        effective_sample_size=10,
+    )
     expected_claim = from_probability(0.8, 10, 0.62)
     expected = discount(Opinion(0.7, 0.1, 0.2, 0.5), expected_claim)
     actual = p_arg_from_claim(claim)
@@ -127,7 +135,7 @@ def test_p_arg_from_claim_invalid_typed_input_propagates() -> None:
 
 
 def test_p_arg_from_claim_ignores_sample_size_without_calibration_payload() -> None:
-    result = p_arg_from_claim({"sample_size": 50})
+    result = p_arg_from_claim(_claim_with_metadata(sample_size=50))
     assert isinstance(result, NoCalibration)
     assert result.reason == "missing_claim_calibration"
 
@@ -145,11 +153,11 @@ def test_p_arg_from_claim_expectation_stays_in_unit_interval(
     n_eff: float,
 ) -> None:
     opinion = p_arg_from_claim(
-        {
-            "source_prior_base_rate": _prior_payload(prior),
-            "claim_probability": probability,
-            "effective_sample_size": n_eff,
-        }
+        _claim_with_metadata(
+            source_prior_base_rate=_prior_payload(prior),
+            claim_probability=probability,
+            effective_sample_size=n_eff,
+        )
     )
     assert isinstance(opinion, Opinion)
     assert 0.0 <= opinion.expectation() <= 1.0
@@ -158,10 +166,10 @@ def test_p_arg_from_claim_expectation_stays_in_unit_interval(
 def test_p_arg_from_claim_rejects_invalid_source_quality_shape() -> None:
     with pytest.raises(ValueError):
         p_arg_from_claim(
-            {
-                "source_prior_base_rate": _prior_payload(0.62),
-                "source_quality_opinion": {"b": 0.7},
-            }
+            _claim_with_metadata(
+                source_prior_base_rate=_prior_payload(0.62),
+                source_quality_opinion={"b": 0.7},
+            )
         )
 
 
@@ -402,7 +410,9 @@ def test_world_query_claim_source_does_not_fabricate_source_prior(tmp_path: Path
     assert claim is not None
     assert source.trust.prior_base_rate is None
     result = p_arg_from_claim(
-        {"source": {"trust": {"prior_base_rate": source.trust.prior_base_rate}}}
+        _claim_with_metadata(
+            source={"trust": {"prior_base_rate": source.trust.prior_base_rate}}
+        )
     )
     assert isinstance(result, NoCalibration)
     assert result.reason == "missing_claim_calibration"

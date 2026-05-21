@@ -149,26 +149,26 @@ def test_track_e_praf_analyzer_can_use_paper_td_package_strategy() -> None:
     from propstore.core.analyzers import analyze_praf
 
     claim_a = to_claim_id("claim_a")
+    claim_a_node = ClaimNode(
+        claim_id=claim_a,
+        claim_type=ClaimType.OBSERVATION,
+        source_assertion_ids=("ps:assertion:a",),
+        attributes=(
+            (
+                "source_prior_base_rate",
+                {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+            ),
+        ),
+    )
     shared = SharedAnalyzerInput(
         active_graph=WorldActivationGraph(
             compiled=CompiledWorldGraph(
-                claims=(
-                    ClaimNode(
-                        claim_id=claim_a,
-                        claim_type=ClaimType.OBSERVATION,
-                        source_assertion_ids=("ps:assertion:a",),
-                    ),
-                )
+                claims=(claim_a_node,)
             ),
             active_claim_ids=(claim_a,),
         ),
         comparison="elitist",
-        claims_by_id={
-            "claim_a": {
-                "id": "claim_a",
-                "source_prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
-            },
-        },
+        claims_by_id={"claim_a": claim_a_node},
         stance_rows=(),
         relations=ClaimGraphRelations(
             arguments=frozenset({"claim_a"}),

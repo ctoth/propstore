@@ -68,7 +68,7 @@ _REAL_CONFLICT_CLASSES = frozenset({"CONFLICT", "OVERLAP", "PARAM_CONFLICT"})
 class SharedAnalyzerInput:
     active_graph: WorldActivationGraph
     comparison: str
-    claims_by_id: dict[str, dict]
+    claims_by_id: dict[str, ClaimNode]
     stance_rows: tuple[dict, ...]
     relations: ClaimGraphRelations
     argumentation_framework: ArgumentationFramework
@@ -131,35 +131,6 @@ def _cayrol_derived_defeats(
     supports: set[tuple[str, str]],
 ) -> set[tuple[str, str]]:
     return set(_cayrol_derived_defeats_impl(frozenset(defeats), frozenset(supports)))
-
-
-def _claim_mapping_from_node(claim: ClaimNode) -> dict:
-    data = {
-        "id": claim.claim_id,
-        "value_concept_id": claim.value_concept_id,
-        "type": claim.claim_type,
-        "value": claim.scalar_value,
-        "context_id": claim.context_id,
-        "source_slug": claim.source_slug,
-        "source_paper": claim.source_paper,
-        "lower_bound": claim.lower_bound,
-        "upper_bound": claim.upper_bound,
-        "uncertainty": claim.uncertainty,
-        "uncertainty_type": claim.uncertainty_type,
-        "sample_size": claim.sample_size,
-        "unit": claim.unit,
-        "value_si": claim.value_si,
-        "lower_bound_si": claim.lower_bound_si,
-        "upper_bound_si": claim.upper_bound_si,
-    }
-    data = {key: value for key, value in data.items() if value is not None}
-    data.update(claim.attribute_mapping())
-    if claim.provenance is not None:
-        if claim.provenance.paper is not None:
-            data.setdefault("source_paper", claim.provenance.paper)
-        if claim.provenance.page is not None:
-            data.setdefault("provenance_page", claim.provenance.page)
-    return data
 
 
 def _row_identity_from_provenance(provenance: ProvenanceRecord | None) -> tuple[tuple[str, str], ...]:
@@ -290,12 +261,12 @@ def _active_claim_ids(active_graph: WorldActivationGraph) -> set[str]:
     return {str(claim_id) for claim_id in active_graph.active_claim_ids}
 
 
-def _graph_claim_rows(active_graph: WorldActivationGraph) -> dict[str, dict]:
+def _graph_claim_rows(active_graph: WorldActivationGraph) -> dict[str, ClaimNode]:
     active_ids = _active_claim_ids(active_graph)
     return {
-        claim.claim_id: _claim_mapping_from_node(claim)
+        str(claim.claim_id): claim
         for claim in active_graph.compiled.claims
-        if claim.claim_id in active_ids
+        if str(claim.claim_id) in active_ids
     }
 
 
@@ -324,7 +295,7 @@ def _collect_claim_graph_relations(
     active_graph: WorldActivationGraph,
     *,
     comparison: str,
-) -> tuple[dict[str, dict], tuple[dict, ...], ClaimGraphRelations]:
+) -> tuple[dict[str, ClaimNode], tuple[dict, ...], ClaimGraphRelations]:
     from propstore.praf import NoCalibration, p_relation_from_stance
 
     active_ids = _active_claim_ids(active_graph)
@@ -707,7 +678,15 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
     p_args = {}
     omitted_arguments = {}
     for claim_id in shared.argumentation_framework.arguments:
-        p_arg = p_arg_from_claim(shared.claims_by_id.get(claim_id, {"claim_id": claim_id}))
+        claim = shared.claims_by_id.get(claim_id)
+        if claim is None:
+            omitted_arguments[claim_id] = NoCalibration(
+                reason="missing_claim",
+                missing_fields=("claim",),
+            )
+            p_args[claim_id] = Opinion.vacuous(0.5)
+            continue
+        p_arg = p_arg_from_claim(claim)
         if isinstance(p_arg, NoCalibration):
             omitted_arguments[claim_id] = p_arg
             p_args[claim_id] = Opinion.vacuous(0.5, provenance=p_arg.provenance)
