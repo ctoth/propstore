@@ -4,10 +4,13 @@ import pytest
 import yaml
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
+from propstore.core.claim_types import ClaimType
 from tests.family_helpers import materialized_world_store_path
 from propstore.world import ResolutionStrategy, WorldQuery, resolve
+from propstore.world.queries import world_claim_display_id
 from propstore.world.value_resolver import ClaimValueResolver
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
+from tests.claim_model_helpers import claim_model
 
 
 def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> WorldQuery:
@@ -252,7 +255,10 @@ def test_argumentation_resolution_uses_whole_active_belief_space(argumentation_w
     )
 
     assert result.status == "resolved"
-    assert result.winning_claim_id == "target_a"
+    assert result.winning_claim_id is not None
+    winning_claim = argumentation_world.get_claim(result.winning_claim_id)
+    assert winning_claim is not None
+    assert world_claim_display_id(winning_claim) == "semantic_argumentation:target_a"
 
 
 def test_derived_value_checks_all_compatible_parameterizations(derivation_world):
@@ -270,19 +276,28 @@ def test_mixed_direct_and_multistatement_algorithm_uses_ast_equivalence():
         parameterizations_for=lambda cid: [],
         is_param_compatible=lambda conds: True,
         value_of=lambda cid: None,
-        extract_variable_concepts=lambda claim: ["input"] if claim.get("type") == "algorithm" else [],
+        extract_variable_concepts=lambda claim: [
+            str(variable.concept_id)
+            for variable in claim.variables
+            if variable.concept_id is not None
+        ],
         collect_known_values=lambda ids: {"input": 5.0},
-        extract_bindings=lambda claim: {"x": "input"},
+        extract_bindings=lambda claim: claim.variable_bindings(),
     )
 
     active = [
-        {"id": "direct", "type": "parameter", "value": 10.0},
-        {
-            "id": "algo",
-            "type": "algorithm",
-            "body": "def compute(x):\n    y = x * 2\n    return y\n",
-            "variables_json": '[{"name":"x","concept":"input"}]',
-        },
+        claim_model(
+            "direct",
+            claim_type=ClaimType.PARAMETER,
+            value=10.0,
+        ),
+        claim_model(
+            "algo",
+            claim_type=ClaimType.ALGORITHM,
+            value=None,
+            algorithm_body="def compute(x):\n    y = x * 2\n    return y\n",
+            variables_json='[{"name":"x","concept":"input"}]',
+        ),
     ]
 
     result = resolver.value_of_from_active(active, "target")

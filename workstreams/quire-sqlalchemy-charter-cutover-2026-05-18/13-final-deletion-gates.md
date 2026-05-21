@@ -527,6 +527,11 @@ Gate: no local path, workspace, or file URL Quire dependency.
     typed claim numeric payload instead of the deleted `claim.value` surface.
   - `uv run pyright propstore` passed with 0 errors after the sensitivity
     typed-claim repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-semantic-repairs-typed-2 tests/test_semantic_repairs.py::test_argumentation_resolution_uses_whole_active_belief_space tests/test_semantic_repairs.py::test_mixed_direct_and_multistatement_algorithm_uses_ast_equivalence`
+    passed 2 tests after the semantic repair tests were aligned to current
+    canonical/source-qualified display ids and typed `Claim` fixtures.
+  - `uv run pyright propstore` passed with 0 errors after the semantic repair
+    typed fixture update.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -594,8 +599,7 @@ Gate: no local path, workspace, or file URL Quire dependency.
       final settlement work after production semantics stop moving.
     - Preference-import typed fixture drift is repaired after full-6.
       Sensitivity typed-claim access is repaired after full-6. Semantic repair
-      failures are remaining dict-shaped fixture drift; convert them to typed
-      charter/domain objects instead of accepting dicts in production paths.
+      typed fixture/display-id drift is repaired after full-6.
 
 Current full-gate repair queue, deletion-first:
 
