@@ -33,6 +33,7 @@ from propstore.core.conditions import (
 )
 from propstore.core.justifications import Justification
 from propstore.core.relations import ClaimConceptLinkRole
+from propstore.dimensions import DimensionalForm, normalize_to_si
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
@@ -265,11 +266,52 @@ class PromotionBlockedModels:
 from propstore.families.world_charters import BuildDiagnostic, world_record
 
 
+def _numeric_si_value(
+    value: object,
+    *,
+    unit: object,
+    form_definition: DimensionalForm | None,
+) -> float | int | None:
+    if value is None:
+        return None
+    if not isinstance(value, int | float) or isinstance(value, bool):
+        return None
+    if form_definition is None:
+        return value
+    return normalize_to_si(
+        float(value),
+        None if unit is None else str(unit),
+        form_definition,
+    )
+
+
+def _claim_form_definition(
+    claim_doc: object,
+    concept_registry: Mapping[str, Mapping[str, Any]],
+    form_registry: Mapping[str, DimensionalForm] | None,
+) -> DimensionalForm | None:
+    if form_registry is None:
+        return None
+    concept_id = (
+        getattr(claim_doc, "output_concept", None)
+        or getattr(claim_doc, "target_concept", None)
+    )
+    if concept_id is None:
+        return None
+    concept_payload = concept_registry.get(str(concept_id))
+    if not isinstance(concept_payload, Mapping):
+        return None
+    form_name = concept_payload.get("form")
+    if not isinstance(form_name, str) or not form_name:
+        return None
+    return form_registry.get(form_name)
+
+
 def compile_claim_models(
     claim_bundle: ClaimCompilationBundle,
-    concept_registry: dict,
+    concept_registry: Mapping[str, Mapping[str, Any]],
     *,
-    form_registry: dict | None = None,
+    form_registry: Mapping[str, DimensionalForm] | None = None,
 ) -> ClaimWriteModels:
     claim_seq = 0
     claim_models: list[Claim] = []
@@ -366,6 +408,11 @@ def compile_claim_models(
                     )
                     emitted_version_conflicts.add(conflict_key)
                 continue
+            form_definition = _claim_form_definition(
+                claim_doc,
+                concept_registry,
+                form_registry,
+            )
             numeric_values = {
                 "claim_id": claim_id,
                 "value": claim_doc.value,
@@ -376,9 +423,21 @@ def compile_claim_models(
                 "sample_size": claim_doc.sample_size,
                 "confidence": claim_doc.confidence,
                 "unit": claim_doc.unit,
-                "value_si": claim_doc.value,
-                "lower_bound_si": claim_doc.lower_bound,
-                "upper_bound_si": claim_doc.upper_bound,
+                "value_si": _numeric_si_value(
+                    claim_doc.value,
+                    unit=claim_doc.unit,
+                    form_definition=form_definition,
+                ),
+                "lower_bound_si": _numeric_si_value(
+                    claim_doc.lower_bound,
+                    unit=claim_doc.unit,
+                    form_definition=form_definition,
+                ),
+                "upper_bound_si": _numeric_si_value(
+                    claim_doc.upper_bound,
+                    unit=claim_doc.unit,
+                    form_definition=form_definition,
+                ),
             }
             text_values = {
                 "claim_id": claim_id,
