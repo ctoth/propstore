@@ -1,129 +1,107 @@
-"""Regression test for Bug 6: UNIQUE violation in sidecar build when two
-micropublication files contribute the same ``micropublication.id``.
+"""Duplicate micropublication files dedupe on the typed charter path."""
 
-Reproduces the aspirin ``pks build`` crash (2026-04-23) surfaced after
-the Bug 5 fix shipped in v0.3.2: the aspirin repository has two McNeil
-micropublication files (the original and a ``--<hex>`` disambiguated
-copy) carrying overlapping ``id`` values. Because the micropub id is
-content-derived, identical ids mean identical micropub content — the
-build pass must dedupe instead of crashing with
-``sqlite3.IntegrityError: UNIQUE constraint failed: micropublication.id``.
-"""
 from __future__ import annotations
 
-from propstore.families.micropublications.declaration import (
-    MicropublicationProjectionRow,
-    populate_micropublications,
+from sqlalchemy import text
+
+from quire.documents import convert_document_value
+from quire.sqlalchemy_store import create_sqlalchemy_store
+
+from propstore.families.claims.references import (
+    ImportedClaimReference,
+    imported_claim_reference_index,
 )
-from quire.derived_runtime import connect_sqlite_store
-from propstore.families.micropublications.declaration import MicropublicationSidecarRows
-from tests.sidecar_schema_helpers import build_world_projection_schema
+from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import (
+    compile_micropublication_models_with_diagnostics,
+)
+from propstore.families.world_charters import world_sqlalchemy_schema
+from quire.sqlalchemy_store import readonly_session, writable_session
 
 
-def _make_micropub_values(
-    micropub_id: str,
-    context_id: str,
-    source_slug: str,
-) -> MicropublicationProjectionRow:
-    return MicropublicationProjectionRow(
-        id=micropub_id,
-        context_id=context_id,
-        assumptions_json="[]",
-        evidence_json="[]",
-        stance=None,
-        provenance_json=None,
-        source_slug=source_slug,
+def _micropub(shared_id: str) -> MicropublicationDocument:
+    return convert_document_value(
+        {
+            "artifact_id": shared_id,
+            "version_id": "shared-version",
+            "context": {"id": "ctx:default"},
+            "claims": ["claim-alpha"],
+            "source": "paper-alpha",
+            "evidence": [{"kind": "paper_page", "reference": "paper-alpha:1"}],
+            "provenance": {"paper": "paper-alpha", "page": 1},
+        },
+        MicropublicationDocument,
+        source="tests:micropub.yaml",
     )
 
 
-def test_populate_micropublications_tolerates_duplicate_ids(tmp_path):
+def _seed_claim_and_context(sidecar_path) -> None:
+    schema = world_sqlalchemy_schema()
+    with writable_session(sidecar_path, schema) as derived:
+        derived.session.execute(
+            text("INSERT INTO context (id, name) VALUES ('ctx:default', 'default')")
+        )
+        derived.session.execute(
+            text(
+                """
+                INSERT INTO claim_core (
+                    id, primary_logical_id, logical_ids_json, version_id,
+                    seq, type, source_paper, provenance_page, provenance_json,
+                    context_id, build_status, promotion_status
+                ) VALUES (
+                    'ps:claim:alpha', 'claim-alpha', '[]', 'claim-version',
+                    1, 'observation', 'paper-alpha', 1, NULL,
+                    'ctx:default', 'ingested', 'promoted'
+                )
+                """
+            )
+        )
+        derived.commit()
+
+
+def test_duplicate_micropublication_models_and_links_persist_once(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sqlite_store(sidecar_path)
-    try:
-        build_world_projection_schema(conn)
+    schema = world_sqlalchemy_schema()
+    create_sqlalchemy_store(sidecar_path, schema)
+    _seed_claim_and_context(sidecar_path)
 
-        # Minimum context row to satisfy the FK from micropublication.
-        conn.execute(
-            "INSERT INTO context (id, name) VALUES (?, ?)",
-            ("ctx:default", "default"),
-        )
+    shared_id = "ps:micropub:shared0001"
+    claim_index = imported_claim_reference_index(
+        (ImportedClaimReference("claim-alpha", "ps:claim:alpha"),)
+    )
+    batches, diagnostics = compile_micropublication_models_with_diagnostics(
+        (
+            ("paper-alpha/micropubs/shared.yaml", _micropub(shared_id)),
+            ("paper-alpha/micropubs/shared--copy.yaml", _micropub(shared_id)),
+        ),
+        claim_index,
+    )
 
-        # Two rows share the micropublication id. Simulates aspirin's
-        # two McNeil micropub files (suffixed + un-suffixed) that share
-        # artifact ids.
-        shared_id = "ps:micropub:shared0001"
-        rows = MicropublicationSidecarRows(
-            micropublication_rows=(
-                _make_micropub_values(
-                    shared_id,
-                    "ctx:default",
-                    "paper-alpha",
-                ),
-                _make_micropub_values(
-                    shared_id,
-                    "ctx:default",
-                    "paper-alpha-variant",
-                ),
-            ),
-            claim_rows=(),
-        )
+    micropublications, claim_links = batches
+    assert diagnostics == ()
+    assert len(micropublications) == 1
+    assert len(claim_links) == 1
 
-        populate_micropublications(conn, rows)
-        conn.commit()
+    with writable_session(sidecar_path, schema) as derived:
+        derived.add_all(micropublications)
+        derived.add_all(claim_links)
+        derived.commit()
 
-        micropub_rows = conn.execute(
-            "SELECT id FROM micropublication WHERE id = ?",
-            (shared_id,),
-        ).fetchall()
-    finally:
-        conn.close()
+    with readonly_session(sidecar_path, schema) as derived:
+        micropub_count = derived.session.execute(
+            text(
+                "SELECT COUNT(*) FROM micropublication WHERE id = 'ps:micropub:shared0001'"
+            )
+        ).scalar_one()
+        link_count = derived.session.execute(
+            text(
+                """
+                SELECT COUNT(*) FROM micropublication_claim
+                WHERE micropublication_id = 'ps:micropub:shared0001'
+                AND claim_id = 'ps:claim:alpha'
+                """
+            )
+        ).scalar_one()
 
-    # Duplicates collapse to a single row.
-    assert len(micropub_rows) == 1
-
-
-def test_populate_micropublications_tolerates_duplicate_claim_link_ids(
-    tmp_path,
-):
-    """Also dedupe (micropublication_id, claim_id) pairs from duplicate
-    micropub files so the second file's claim-link rows don't hit the
-    composite PK on ``micropublication_claim``.
-    """
-    sidecar_path = tmp_path / "propstore.sqlite"
-    conn = connect_sqlite_store(sidecar_path)
-    try:
-        build_world_projection_schema(conn)
-
-        conn.execute(
-            "INSERT INTO context (id, name) VALUES (?, ?)",
-            ("ctx:default", "default"),
-        )
-
-        shared_id = "ps:micropub:shared0002"
-        rows = MicropublicationSidecarRows(
-            micropublication_rows=(
-                _make_micropub_values(
-                    shared_id,
-                    "ctx:default",
-                    "paper-alpha",
-                ),
-                _make_micropub_values(
-                    shared_id,
-                    "ctx:default",
-                    "paper-alpha-variant",
-                ),
-            ),
-            claim_rows=(),
-        )
-
-        populate_micropublications(conn, rows)
-        conn.commit()
-
-        micropub_rows = conn.execute(
-            "SELECT id FROM micropublication WHERE id = ?",
-            (shared_id,),
-        ).fetchall()
-    finally:
-        conn.close()
-
-    assert len(micropub_rows) == 1
+    assert micropub_count == 1
+    assert link_count == 1
