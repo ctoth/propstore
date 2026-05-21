@@ -156,6 +156,7 @@ def _relation_ref(claim: Claim) -> RelationConceptRef:
 def _role_bindings(claim: Claim) -> RoleBindingSet:
     bindings = [
         RoleBinding("subject", _claim_subject(claim)),
+        RoleBinding("content", _claim_content(claim)),
     ]
     return RoleBindingSet(tuple(bindings))
 
@@ -168,6 +169,19 @@ def _claim_subject(claim: Claim) -> str:
     if claim.target_concept is not None:
         return str(claim.target_concept)
     return "ps:concept:unscoped"
+
+
+def _claim_content(claim: Claim) -> str:
+    payload = claim.to_source_claim_payload()
+    for key in (
+        "id",
+        "context",
+        "source_paper",
+        "provenance",
+        "conditions",
+    ):
+        payload.pop(key, None)
+    return _stable_value(payload)
 
 
 def _context_ref(

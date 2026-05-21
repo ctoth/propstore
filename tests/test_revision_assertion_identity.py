@@ -4,6 +4,7 @@ import json
 
 from propstore.support_revision.projection import project_belief_base
 from propstore.support_revision.state import AssertionAtom
+from tests.claim_model_helpers import claim_model
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 
@@ -11,24 +12,22 @@ def test_project_belief_base_collapses_duplicate_rows_by_situated_assertion_iden
     """AGM belief atoms are assertion-language sentences, not claim-row buckets."""
     store = _RevisionStore(
         claims=[
-            {
-                "id": "claim_first_source",
-                "concept_id": "concept_exact",
-                "type": "parameter",
-                "value": 1.0,
-                "conditions_cel": json.dumps(["x == 1"]),
-                "source_paper": "source-a",
-                "provenance_page": 1,
-            },
-            {
-                "id": "claim_second_source",
-                "concept_id": "concept_exact",
-                "type": "parameter",
-                "value": 1.0,
-                "conditions_cel": json.dumps(["x == 1"]),
-                "source_paper": "source-b",
-                "provenance_page": 9,
-            },
+            claim_model(
+                claim_id="claim_first_source",
+                concept_id="concept_exact",
+                value=1.0,
+                conditions_cel=json.dumps(["x == 1"]),
+                source_paper="source-a",
+                provenance_page=1,
+            ),
+            claim_model(
+                claim_id="claim_second_source",
+                concept_id="concept_exact",
+                value=1.0,
+                conditions_cel=json.dumps(["x == 1"]),
+                source_paper="source-b",
+                provenance_page=9,
+            ),
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
@@ -50,20 +49,18 @@ def test_project_belief_base_keeps_rival_values_as_distinct_situated_assertions(
     """Darwiche-Pearl iterated revision needs a sentence identity finer than target concept."""
     store = _RevisionStore(
         claims=[
-            {
-                "id": "claim_low",
-                "concept_id": "concept_exact",
-                "type": "parameter",
-                "value": 1.0,
-                "conditions_cel": json.dumps(["x == 1"]),
-            },
-            {
-                "id": "claim_high",
-                "concept_id": "concept_exact",
-                "type": "parameter",
-                "value": 2.0,
-                "conditions_cel": json.dumps(["x == 1"]),
-            },
+            claim_model(
+                claim_id="claim_low",
+                concept_id="concept_exact",
+                value=1.0,
+                conditions_cel=json.dumps(["x == 1"]),
+            ),
+            claim_model(
+                claim_id="claim_high",
+                concept_id="concept_exact",
+                value=2.0,
+                conditions_cel=json.dumps(["x == 1"]),
+            ),
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
