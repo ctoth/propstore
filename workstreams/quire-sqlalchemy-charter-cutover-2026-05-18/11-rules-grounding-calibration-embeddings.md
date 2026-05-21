@@ -610,6 +610,17 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   cli-embed-no-row-factory tests/test_cli.py::TestClaimEmbedProgress` passed
   with 1 test; log:
   `logs/test-runs/cli-embed-no-row-factory-20260521-105751.log`.
+- Test commit `963b9ddc` deleted the `NormalizedProjectionStore` dict-row
+  projection parity test from `tests/test_graph_build.py`; graph compilation
+  now requires typed `Claim` objects instead of raw storage dictionaries.
+- The same commit updated the remaining graph-build expectations to the
+  current typed charter path's namespaced claim IDs and string-valued storage
+  fields.
+- `rg -n -F -- "row_factory" tests/test_graph_build.py` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the cleanup.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  graph-build-typed-store tests/test_graph_build.py` passed with 5 tests; log:
+  `logs/test-runs/graph-build-typed-store-20260521-110123.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
