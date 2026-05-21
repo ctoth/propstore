@@ -579,6 +579,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-7`
     failed: 18 failed, 3581 passed, 4 skipped.
   - Log: `logs/test-runs/sqlalchemy-charter-full-7-20260521-160942.log`.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-8`
+    passed: 3599 passed, 4 skipped, 30 warnings.
+  - Log: `logs/test-runs/sqlalchemy-charter-full-8-20260521-162022.log`.
   - Remaining failure clusters from full-5:
     - Claim-source FK enforcement is real and must remain. Repaired after
       full-5: claim compilation now writes `claim_core.source_slug` only for
@@ -642,9 +645,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
       repaired after full-7 by aligning the remaining structured projection
       assertions to the typed payload output.
     - Revision projection now reaches the ATMS replay-queryable parser and
-      fails on source support assumptions outside the current registry; repair
-      ATMS matching at the typed condition/support boundary instead of adding a
-      revision compatibility path.
+      fails on source support assumptions outside the current registry; repaired
+      after full-7 by the ATMS typed condition/support-boundary matcher change
+      and confirmed by full-8.
 
 Current full-gate repair queue, deletion-first:
 
@@ -661,8 +664,8 @@ Current full-gate repair queue, deletion-first:
   read-only semantic properties; use charter fields and family semantic
   properties directly. The concept view fixture now uses `Concept.id` instead
   of `Concept.concept_id`.
-- Rerun the full Propstore gate and repair any remaining failures
-  deletion-first.
+- Full Propstore gate is passing after full-8; rerun only if a subsequent
+  source/config edit changes the gate surface.
 - Contract manifest failures are not deferrable; after charter-field changes,
   update the manifest/version evidence through the intended contract workflow,
   not by weakening the manifest test.
