@@ -555,3 +555,15 @@ Recorded 2026-05-20.
   fallout by making the runtime APIs return typed relation models directly.
   Adding new `coerce`, `normalize`, row-dict, adapter, alias, or compatibility
   helpers is explicitly out of bounds for this phase.
+- World/support runtime coercion deletion: commit `3b98068f` updated
+  support-revision and world runtime callers so stance/conflict APIs carry
+  typed `Stance`, `ConceptRelation`, and `ConflictWitness` objects directly.
+  `WorldQuery` relation, stance, conflict, policy, stats, and explanation
+  reads now use Quire SQLAlchemy session/model queries instead of relation
+  selector helpers or projection-model coercion. `BoundWorld`,
+  `OverlayWorld`, `ATMSEngine`, journal replay, and `ClaimView` now consume
+  typed relation models without `STANCE_ROW_MODEL.coerce` or
+  `CONFLICT_ROW_MODEL.coerce`. Targeted pyright for the edited runtime files
+  passed with 0 errors. Next required gate is package pyright, followed by
+  old-path searches and deletion of remaining raw selector helpers in the
+  relation owner.
