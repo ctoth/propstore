@@ -13,7 +13,6 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.core.id_types import ContextId, to_assumption_id, to_context_id
 from propstore.core.labels import AssumptionRef
-from propstore.core.micropublications import ActiveMicropublicationInput
 from propstore.core.store_results import (
     WorldStoreStats,
     ClaimSimilarityHit,
@@ -21,6 +20,7 @@ from propstore.core.store_results import (
     ConceptSimilarityHit,
 )
 from propstore.families.claims.declaration import Claim
+from propstore.families.micropublications.declaration import Micropublication
 from propstore.families.relations.declaration import (
     ConceptRelation,
     ConflictWitness,
@@ -176,7 +176,7 @@ class ParameterizationCatalogStore(Protocol):
 
 @runtime_checkable
 class MicropublicationCatalogStore(Protocol):
-    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]: ...
+    def all_micropublications(self) -> Sequence[Micropublication]: ...
 
 
 @runtime_checkable
@@ -203,7 +203,7 @@ class WorldStore(Protocol):
     def all_parameterizations(self) -> Sequence[ParameterizationInput]: ...
     def all_relationships(self) -> Sequence[ConceptRelation]: ...
     def all_claim_stances(self) -> Sequence[Stance]: ...
-    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]: ...
+    def all_micropublications(self) -> Sequence[Micropublication]: ...
     def concept_ids_for_group(self, group_id: int) -> set[str]: ...
     def search(self, query: str) -> list[ConceptSearchHit]: ...
     def similar_claims(
