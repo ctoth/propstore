@@ -2,7 +2,9 @@ from argumentation.aspic import conc
 
 from propstore.aspic_bridge import build_bridge_csaf
 from propstore.core.justifications import CanonicalJustification
+from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
+from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
 def _claim(
@@ -10,15 +12,17 @@ def _claim(
     *,
     confidence: float,
     sample_size: int,
-) -> dict[str, str | float | int]:
-    return {
-        "id": claim_id,
-        "concept_id": f"concept:{claim_id}",
-        "statement": claim_id,
-        "premise_kind": "ordinary",
-        "confidence": confidence,
-        "sample_size": sample_size,
-    }
+) -> Claim:
+    return claim_from_payload(
+        {
+            "id": claim_id,
+            "concept_id": f"concept:{claim_id}",
+            "statement": claim_id,
+            "premise_kind": "ordinary",
+            "confidence": confidence,
+            "sample_size": sample_size,
+        }
+    )
 
 
 def _reported(claim_id: str) -> CanonicalJustification:
@@ -46,11 +50,13 @@ def test_undermines_is_preference_sensitive() -> None:
         _reported("claim:weak-attacker"),
     ]
     stances = [
-        {
-            "claim_id": "claim:weak-attacker",
-            "target_claim_id": "claim:strong-target",
-            "stance_type": "undermines",
-        }
+        stance_from_payload(
+            {
+                "claim_id": "claim:weak-attacker",
+                "target_claim_id": "claim:strong-target",
+                "stance_type": "undermines",
+            }
+        )
     ]
 
     csaf = build_bridge_csaf(

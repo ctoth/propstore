@@ -4,6 +4,7 @@ from argumentation.aspic import Attack, GroundAtom, Literal, PremiseArg
 from propstore.aspic_bridge import build
 from propstore.core.justifications import CanonicalJustification
 from propstore.grounding.bundle import GroundedRulesBundle
+from tests.typed_family_fixtures import claim_from_payload
 
 
 def test_build_bridge_csaf_rejects_attack_outside_argument_domain(monkeypatch) -> None:
@@ -22,11 +23,13 @@ def test_build_bridge_csaf_rejects_attack_outside_argument_domain(monkeypatch) -
     with pytest.raises((AssertionError, KeyError), match="argument domain|outside"):
         build.build_bridge_csaf(
             [
-                {
-                    "id": "claim-a",
-                    "concept_id": "concept-a",
-                    "premise_kind": "ordinary",
-                }
+                claim_from_payload(
+                    {
+                        "id": "claim-a",
+                        "concept_id": "concept-a",
+                        "premise_kind": "ordinary",
+                    }
+                )
             ],
             [
                 CanonicalJustification(

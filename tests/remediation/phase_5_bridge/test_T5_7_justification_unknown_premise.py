@@ -2,16 +2,19 @@ import pytest
 
 from propstore.aspic_bridge import claims_to_literals, justifications_to_rules
 from propstore.core.justifications import CanonicalJustification
+from tests.typed_family_fixtures import claim_from_payload
 
 
 def test_justifications_to_rules_rejects_unknown_premise() -> None:
     literals = claims_to_literals(
         [
-            {
-                "id": "conclusion",
-                "concept_id": "concept-conclusion",
-                "premise_kind": "ordinary",
-            }
+            claim_from_payload(
+                {
+                    "id": "conclusion",
+                    "concept_id": "concept-conclusion",
+                    "premise_kind": "ordinary",
+                }
+            )
         ]
     )
 

@@ -1,14 +1,18 @@
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
 from propstore.core.justifications import CanonicalJustification
+from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
+from tests.typed_family_fixtures import claim_from_payload
 
 
-def _claim(claim_id: str) -> dict[str, object]:
-    return {
-        "id": claim_id,
-        "concept_id": f"concept_{claim_id}",
-        "premise_kind": "ordinary",
-    }
+def _claim(claim_id: str) -> Claim:
+    return claim_from_payload(
+        {
+            "id": claim_id,
+            "concept_id": f"concept_{claim_id}",
+            "premise_kind": "ordinary",
+        }
+    )
 
 
 def _justification(

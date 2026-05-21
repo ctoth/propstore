@@ -10,21 +10,25 @@ from propstore.defeasibility import (
     evaluate_contextual_claim,
 )
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.families.claims.declaration import Claim
 from propstore.provenance import (
     ProvenancePolynomial,
     SourceVariableId,
     SupportEvidence,
     SupportQuality,
 )
+from tests.typed_family_fixtures import claim_from_payload
 
 
-def _claim(claim_id: str) -> dict[str, str]:
-    return {
-        "id": claim_id,
-        "concept_id": f"concept:{claim_id}",
-        "statement": claim_id,
-        "premise_kind": "ordinary",
-    }
+def _claim(claim_id: str) -> Claim:
+    return claim_from_payload(
+        {
+            "id": claim_id,
+            "concept_id": f"concept:{claim_id}",
+            "statement": claim_id,
+            "premise_kind": "ordinary",
+        }
+    )
 
 
 def _reported(claim_id: str) -> CanonicalJustification:

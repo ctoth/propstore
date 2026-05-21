@@ -1,6 +1,7 @@
 from argumentation.aspic import GroundAtom
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
+from tests.typed_family_fixtures import claim_from_payload
 from tests.test_aspic_bridge_review_v2 import (
     _make_atom,
     _make_grounded_bundle,
@@ -25,11 +26,13 @@ def test_grounded_predicate_does_not_project_as_same_named_claim() -> None:
     projection = csaf_to_projection(
         csaf,
         [
-            {
-                "id": "fly",
-                "concept_id": "concept-fly",
-                "premise_kind": "ordinary",
-            }
+            claim_from_payload(
+                {
+                    "id": "fly",
+                    "concept_id": "concept-fly",
+                    "premise_kind": "ordinary",
+                }
+            )
         ],
     )
 
