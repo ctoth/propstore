@@ -660,6 +660,22 @@ Quire or family workstreams.
   `confidence` storage field from the current claim numeric payload charter and
   remove any graph/runtime dependency on that loose numeric-payload field, then
   rerun the affected claim/world gates and the Phase 14 behavior-parity command.
+- Commit `62c2e45b` completed that deletion-first fix:
+  `claim_numeric_payload.confidence` is no longer a charter storage field,
+  typed claim-to-graph projection no longer reads
+  `numeric_payload.confidence`, and stale test-store conversion helpers no
+  longer pass `confidence` into the typed claim numeric payload constructor.
+- Verification for `62c2e45b`: exact searches for
+  `numeric_payload.confidence` and `num.confidence` returned zero hits in the
+  searched production/test paths; focused pyright over the touched claim graph
+  and analyzer surfaces returned 0 errors; logged pytest
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  claim-confidence-deletion tests/test_core_analyzers.py
+  tests/test_world_query.py::TestWorldQuerySidecarPath
+  tests/test_world_query.py::TestUnboundQueries::test_get_claim
+  tests/test_world_query.py::TestUnboundQueries::test_stats`
+  returned `16 passed`; log:
+  `logs/test-runs/claim-confidence-deletion-20260521-124511.log`.
 
 ## Data-Parity Gate
 

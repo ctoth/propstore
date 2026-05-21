@@ -1697,6 +1697,16 @@ Current binding queue:
   `powershell -File scripts/run_logged_pytest.ps1 -Label
   world-query-phase6-typed-store ...` passed with 8 tests and log
   `logs\test-runs\world-query-phase6-typed-store-20260520-202952.log`.
+- Phase 14 behavior parity later exposed that `claim_numeric_payload` still
+  carried a loose `confidence` storage field even though this phase's
+  target state forbids carrying the old confidence row field into typed
+  claims. Commit `62c2e45b` deleted that residual field from the claim numeric
+  payload charter, removed the graph projection read from
+  `numeric_payload.confidence`, and updated stale test-store conversion
+  helpers to stop passing `confidence` into the typed numeric payload
+  constructor. Focused verification passed with exact stale-path searches,
+  focused pyright, and logged pytest
+  `logs/test-runs/claim-confidence-deletion-20260521-124511.log`.
 - Embedded-stance row ownership cleanup: claim compilation no longer returns
   embedded stance `ProjectionRow`s inside `ClaimWriteModels`. Embedded stance
   sidecar-row construction moved to the relation owner, and
