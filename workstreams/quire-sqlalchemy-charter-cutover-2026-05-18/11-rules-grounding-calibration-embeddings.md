@@ -430,6 +430,15 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   tests/remediation/phase_7_race_atomicity/test_T7_5e_promotion_blocked_fk_payload.py`
   passed with 1 test; log:
   `logs/test-runs/t7-5e-sqlalchemy-session-20260521-101358.log`.
+- Production commit `fab06221` updated
+  `compile_micropublication_models_with_diagnostics` to dedupe current typed
+  `Micropublication` models by `id` and typed `MicropublicationClaimLink`
+  models by the charter primary key `(micropublication_id, claim_id)`.
+- This keeps duplicate-micropublication behavior on the current typed family
+  API without restoring deleted projection rows, raw SQLite helpers, or
+  micropublication-specific sidecar adapters.
+- `uv run pyright propstore` passed with zero errors after the production
+  change.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
