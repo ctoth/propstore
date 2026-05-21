@@ -354,6 +354,10 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   `tests/test_sidecar_projection_fts_contract.py`, which tested Quire
   `FtsProjection` plus raw SQLite connection behavior instead of the
   Propstore typed charter FTS path.
+- Test deletion commit `07a7c634` removed
+  `tests/remediation/phase_7_race_atomicity/test_T7_5a_sqlite_wal_busy_timeout.py`,
+  which tested Quire raw SQLite WAL/busy-timeout mechanics instead of a
+  Propstore owner-layer workflow.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
