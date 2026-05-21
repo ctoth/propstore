@@ -389,7 +389,7 @@ def _conflict_witness_to_model(conflict: GraphConflictWitness) -> ConflictWitnes
     return ConflictWitness(
         claim_a_id=conflict.left_claim_id,
         claim_b_id=conflict.right_claim_id,
-        warning_class=coerce_conflict_class(conflict.kind),
+        warning_class=conflict.kind,
         concept_id=dict(conflict.details).get("concept_id"),
         conditions_a=dict(conflict.details).get("conditions_a"),
         conditions_b=dict(conflict.details).get("conditions_b"),

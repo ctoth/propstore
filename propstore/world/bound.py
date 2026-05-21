@@ -202,7 +202,7 @@ def _recomputed_conflicts(
             concept_id=to_concept_id(record.concept_id),
             claim_a_id=to_claim_id(record.claim_a_id),
             claim_b_id=to_claim_id(record.claim_b_id),
-            warning_class=record.warning_class,
+            warning_class=record.warning_class.value,
             conditions_a=json.dumps(record.conditions_a),
             conditions_b=json.dumps(record.conditions_b),
             value_a=record.value_a,

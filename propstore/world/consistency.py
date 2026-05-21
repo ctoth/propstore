@@ -51,11 +51,7 @@ def check_world_consistency(
         conflicts=tuple(
             WorldConsistencyConflictLine(
                 concept_id=str(conflict.concept_id),
-                warning_class=(
-                    conflict.warning_class.value
-                    if conflict.warning_class is not None
-                    else "?"
-                ),
+                warning_class=conflict.warning_class or "?",
                 claim_a_id=str(conflict.claim_a_id),
                 claim_b_id=str(conflict.claim_b_id),
             )
