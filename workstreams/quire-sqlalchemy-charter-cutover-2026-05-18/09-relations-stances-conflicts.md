@@ -68,6 +68,14 @@ Binding notes from the 2026-05-20 update:
   row carrier, storage-model constant, raw selector, or `sqlite3.Connection`
   relation query path remains in production. A passing type check before the
   old-path searches are zero-hit is only an intermediate repair signal.
+- Downstream `coerce` calls are not a valid repair for deleted relation row
+  models. Once IO has parsed an artifact or Quire has loaded a sidecar row, the
+  caller must already hold typed `Stance`, `ConceptRelation`, and
+  `ConflictWitness` instances. Remaining `STANCE_ROW_MODEL.coerce`,
+  `CONFLICT_ROW_MODEL.coerce`, relation-row `.coerce`, or replacement
+  "normalize/coerce" helpers in support-revision/world/runtime callers must be
+  deleted by fixing the owning query/session boundary or typed construction
+  site, not by adding a new coercion layer.
 
 Current old-surface findings from `rg` on 2026-05-20:
 
@@ -542,3 +550,8 @@ Recorded 2026-05-20.
   Remaining pyright/import queue is now concentrated in support-revision and
   world runtime callers, plus the relation-owner raw selector helpers and
   final old-path search gates.
+- Coercion correction: the next support-revision/world runtime slice must
+  delete the remaining `STANCE_ROW_MODEL.coerce` and `CONFLICT_ROW_MODEL.coerce`
+  fallout by making the runtime APIs return typed relation models directly.
+  Adding new `coerce`, `normalize`, row-dict, adapter, alias, or compatibility
+  helpers is explicitly out of bounds for this phase.
