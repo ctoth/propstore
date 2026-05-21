@@ -1392,6 +1392,20 @@ Current binding queue:
   focused pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
   resolution-helper-typed-claims tests/test_resolution_helpers.py` passed with
   13 tests.
+- Activation remediation typed-boundary cleanup: commit `1ef4de99` removed
+  the deleted `ActiveClaim` and `is_active_claim_active` paths from
+  `tests/remediation/phase_3_ignorance/test_T3_5_activation_unknown_cel.py`.
+  The regression now calls `is_claim_active` with an explicit typed
+  `CheckedConditionSet`, claim id, context id, and source artifact instead of
+  constructing a repaired active-claim row. Focused verification `uv run
+  pyright
+  tests/remediation/phase_3_ignorance/test_T3_5_activation_unknown_cel.py`
+  passed with 0 errors, searches for `ActiveClaim` and
+  `is_active_claim_active` in the edited file returned zero hits, and logged
+  focused pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
+  activation-unknown-cel-typed
+  tests/remediation/phase_3_ignorance/test_T3_5_activation_unknown_cel.py`
+  passed with 1 test.
 - Normalizer deletion queue refresh: `_normalize_attrs` and similar
   broad attribute/payload repair helpers are explicitly in the Phase 10
   deletion queue when they construct or repair claim/runtime model shape
