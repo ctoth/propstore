@@ -557,6 +557,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
     runtime/test solver implemented the current condition-solver contract.
   - `uv run pyright propstore` passed with 0 errors after the full-7 ATMS
     repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-structured-projection-typed-output tests/test_structured_projection.py::test_world_extensions_cli_accepts_aspic_backend tests/test_structured_projection.py::test_world_extensions_cli_ignores_unmapped_aspic_arguments`
+    passed 2 tests after the remaining ASPIC world-extension CLI assertions
+    were aligned to the current typed payload output.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -636,8 +639,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
       hard failure, and the graph-only runtime satisfies the condition-solver
       protocol.
     - World extension typed claim rendering changed the ASPIC CLI text shape;
-      finish the current typed rendering update by aligning the remaining
-      structured projection assertions to the typed payload output.
+      repaired after full-7 by aligning the remaining structured projection
+      assertions to the typed payload output.
     - Revision projection now reaches the ATMS replay-queryable parser and
       fails on source support assumptions outside the current registry; repair
       ATMS matching at the typed condition/support boundary instead of adding a
