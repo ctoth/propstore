@@ -5,15 +5,20 @@ Date: 2026-05-18
 ## Refactor Zen
 
 This workstream succeeds only if the refactor removes duplicate structure and
-makes the project smaller, clearer, and more beautiful. Field and schema shape
-is written once in Quire charters or in the exact Propstore semantic owner; do
-not restate it in helper families, casts, kwargs builders, row DTOs, projection
-models, or model-layer normalizers. After an IO boundary has parsed input, the
-type system carries meaning: no generic coercion, loose mapping repair, shim,
-adapter, alias, compatibility bridge, or old/new dual path is allowed. Delete
-the old production surface first; compiler, type, test, and search failures are
-the work queue. If a bridge feels necessary, stop and move parsing/validation
-to the owning boundary or add the missing Quire generic capability.
+makes the project smaller, clearer, and more beautiful. Storage/model field
+shape is written once in Quire charters. Propstore semantic owners may define
+semantic documents, validators, compiler behavior, and behavior-only domain
+methods, but they must not restate storage fields in hand-authored mapped
+classes, broad `__init__` signatures, row DTOs, kwargs builders, projection
+models, model-layer normalizers, or placeholder record classes. If a mapped
+Python object is needed, Quire must generate or provide it from charter
+metadata; Propstore must not carry a second field list beside the charter.
+After an IO boundary has parsed input, the type system carries meaning: no
+generic coercion, loose mapping repair, shim, adapter, alias, compatibility
+bridge, or old/new dual path is allowed. Delete the old production surface
+first; compiler, type, test, and search failures are the work queue. If a
+bridge or duplicate field list feels necessary, stop and add the missing Quire
+generic capability.
 
 This directory splits `workstreams/quire-sqlalchemy-charter-cutover-workstream-2026-05-18.md` into executable child workstreams. This file is the global control surface. Child workstreams must preserve this ordering and cannot weaken these rules.
 
@@ -26,6 +31,10 @@ Final state:
 - Quire owns generic typed Git artifact families, family charters, schema IR, Python-type-to-SQL mapping, SQLAlchemy table/mapping generation, sessions, derived SQLite lifecycle, schema catalog metadata, FKs, indexes, FTS/vector hooks, and generic query mechanics.
 - Propstore owns Propstore domain charters and semantic behavior: claims, concepts, sources, stances, justifications, contexts, forms, rules, micropublications, source-local authoring, promotion, world reasoning, semantic validators, and policy compilation.
 - Propstore has no handwritten projection-model layer, no `*Row` classes that duplicate domain models, no `ProjectionTable`/`ProjectionModel` usage, no manual optional-number/string/id coercer families, and no fake ORM.
+- Propstore has no hand-authored mapped storage classes that restate charter
+  fields. Quire owns generated mapped model classes or catalog construction
+  from `FamilyCharter` metadata; Propstore owns semantic behavior around those
+  generated types.
 - The queryable sidecar is a generated Quire derived store over Propstore charters. It can be deleted and rebuilt from Git artifacts.
 - Runtime data access uses Quire-opened SQLAlchemy sessions and Propstore domain model classes.
 
@@ -61,10 +70,16 @@ If any capability gate fails, fix Quire or the SQLAlchemy extension first. Do no
 - Do not move Propstore semantics into Quire.
 - Do not delete source-local authoring scope.
 - Do not replace Propstore projection models with `propstore.sidecar.models`, `models.py`, or any other parallel schema package.
+- Do not replace projection models with hand-authored charter-shaped ORM
+  classes in Propstore. Renaming a row model to a domain model while keeping a
+  duplicated field list is still the old path.
 - Do not use Pydantic or attrs as the core schema engine. The core schema engine is Quire charters plus SQLAlchemy imperative mapping.
 - Do not keep old and new projection systems in production at the same time.
 - Do not pin dependencies to local paths.
 - Do not preserve `ProjectionTable`, `ProjectionModel`, or `*Row` aliases for compatibility.
+- Do not hand-author mapped storage classes, placeholder `*Record` classes,
+  loose `__init__(**values)` sinks, or repeated constructor field lists for
+  fields already declared in Quire charters.
 - Do not hand-roll ORM behavior that SQLAlchemy already owns.
 
 ## Global Execution Rules
