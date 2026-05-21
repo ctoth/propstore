@@ -17,7 +17,8 @@ from propstore.core.labels import (
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.types import DerivedResult, Environment, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
-from tests.claim_model_helpers import claim_model_from_mapping
+from propstore.families.world_charters import world_record
+from tests.claim_model_helpers import claim_model_from_test_payload
 
 from tests.atms_helpers import (
     condition_registry_for_rows,
@@ -78,11 +79,17 @@ class _StubStore:
         ]
         self._condition_registry = condition_registry_for_rows(all_rows)
         self._claims = [
-            claim_model_from_mapping(row)
+            claim_model_from_test_payload(row)
             for row in rows_with_condition_ir(claims, self._condition_registry)
         ]
         self._parameterizations = {
-            concept_id: rows_with_condition_ir(rows, self._condition_registry)
+            concept_id: [
+                world_record(
+                    "parameterization",
+                    {**row, "output_concept_id": concept_id},
+                )
+                for row in rows_with_condition_ir(rows, self._condition_registry)
+            ]
             for concept_id, rows in parameterizations.items()
         }
         self._solver = ConditionSolver(self._condition_registry)
@@ -107,8 +114,23 @@ class _StubStore:
             | {"concept3"}
         )
         return [
-            {"id": concept_id, "canonical_name": concept_id, "form": "structural"}
-            for concept_id in concept_ids
+            world_record(
+                "concept",
+                {
+                    "id": concept_id,
+                    "primary_logical_id": concept_id,
+                    "logical_ids_json": "[]",
+                    "version_id": "",
+                    "content_hash": concept_id,
+                    "seq": index,
+                    "canonical_name": concept_id,
+                    "status": "accepted",
+                    "definition": concept_id,
+                    "kind_type": "quantity",
+                    "form": "structural",
+                },
+            )
+            for index, concept_id in enumerate(concept_ids)
         ]
 
     def explain(self, claim_id: str) -> list[Stance]:
@@ -119,7 +141,7 @@ class _StubStore:
 
     def get_concept(self, concept_id: str) -> dict | None:
         for concept in self.all_concepts():
-            if concept["id"] == concept_id:
+            if concept.id == concept_id:
                 return concept
         return None
 
@@ -355,7 +377,7 @@ def test_derived_value_combines_input_labels() -> None:
 
 
 def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
-    claim = claim_model_from_mapping({"id": "claim1", "concept_id": "concept1", "value": 42.0})
+    claim = claim_model_from_test_payload({"id": "claim1", "concept_id": "concept1", "value": 42.0})
 
     class FakeBound:
         def value_of(self, concept_id: str) -> ValueResult:

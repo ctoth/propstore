@@ -195,7 +195,7 @@ def claim_model(
     return claim
 
 
-def claim_model_from_mapping(row: Mapping[str, object]) -> Claim:
+def claim_model_from_test_payload(row: Mapping[str, object]) -> Claim:
     raw_links = row.get("concept_links")
     links: list[ClaimConceptLink] = []
     if isinstance(raw_links, Sequence) and not isinstance(raw_links, str):

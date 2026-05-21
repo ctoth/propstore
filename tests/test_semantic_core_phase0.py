@@ -6,8 +6,9 @@ from propstore.world import BoundWorld, Environment, OverlayWorld, RenderPolicy,
 from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import compile_environment_assumptions
 from propstore.families.relations.declaration import ConflictWitness, Stance
+from propstore.families.world_charters import world_record
 from tests.atms_helpers import condition_registry_for_rows, rows_with_condition_ir
-from tests.claim_model_helpers import claim_model_from_mapping
+from tests.claim_model_helpers import claim_model_from_test_payload
 
 
 class _Store:
@@ -36,11 +37,17 @@ class _Store:
         ]
         self._condition_registry = condition_registry_for_rows(all_rows)
         self._claims = [
-            claim_model_from_mapping(row)
+            claim_model_from_test_payload(row)
             for row in rows_with_condition_ir(claims, self._condition_registry)
         ]
         self._parameterizations = {
-            concept_id: rows_with_condition_ir(rows, self._condition_registry)
+            concept_id: [
+                world_record(
+                    "parameterization",
+                    {**row, "output_concept_id": concept_id},
+                )
+                for row in rows_with_condition_ir(rows, self._condition_registry)
+            ]
             for concept_id, rows in parameterizations.items()
         }
         self._solver = ConditionSolver(self._condition_registry)
@@ -84,13 +91,28 @@ class _Store:
             | {"concept3"}
         )
         return [
-            {"id": concept_id, "canonical_name": concept_id, "form": "structural"}
-            for concept_id in concept_ids
+            world_record(
+                "concept",
+                {
+                    "id": concept_id,
+                    "primary_logical_id": concept_id,
+                    "logical_ids_json": "[]",
+                    "version_id": "",
+                    "content_hash": concept_id,
+                    "seq": index,
+                    "canonical_name": concept_id,
+                    "status": "accepted",
+                    "definition": concept_id,
+                    "kind_type": "quantity",
+                    "form": "structural",
+                },
+            )
+            for index, concept_id in enumerate(concept_ids)
         ]
 
     def get_concept(self, concept_id: str) -> dict | None:
         for concept in self.all_concepts():
-            if concept["id"] == concept_id:
+            if concept.id == concept_id:
                 return concept
         return None
 

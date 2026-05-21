@@ -30,7 +30,7 @@ from tests.atms_helpers import (
     leaf_lifting_system,
     rows_with_condition_ir,
 )
-from tests.claim_model_helpers import claim_model_from_mapping
+from tests.claim_model_helpers import claim_model_from_test_payload
 
 _EMPTY_BUNDLE = GroundedRulesBundle.empty()
 
@@ -75,7 +75,7 @@ class _ProjectionStore:
     ) -> None:
         self._condition_registry = condition_registry_for_rows(claims)
         self._claims = [
-            claim_model_from_mapping(row)
+            claim_model_from_test_payload(row)
             for row in rows_with_condition_ir(claims, self._condition_registry)
         ]
         self._stances = [
@@ -1081,8 +1081,8 @@ def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(m
 
 
 def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
-    target_a = claim_model_from_mapping(_parameter_claim("target_a", "concept1", 1.0))
-    target_b = claim_model_from_mapping(_parameter_claim("target_b", "concept1", 2.0))
+    target_a = claim_model_from_test_payload(_parameter_claim("target_a", "concept1", 1.0))
+    target_b = claim_model_from_test_payload(_parameter_claim("target_b", "concept1", 2.0))
 
     class FakeRepo:
         pass
@@ -1168,8 +1168,8 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
 
 
 def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> None:
-    target_a = claim_model_from_mapping(_parameter_claim("target_a", "concept1", 1.0))
-    target_b = claim_model_from_mapping(_parameter_claim("target_b", "concept1", 2.0))
+    target_a = claim_model_from_test_payload(_parameter_claim("target_a", "concept1", 1.0))
+    target_b = claim_model_from_test_payload(_parameter_claim("target_b", "concept1", 2.0))
 
     class FakeRepo:
         pass
