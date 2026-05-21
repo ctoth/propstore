@@ -18,7 +18,7 @@ from quire.charters import (
     charter_catalog,
 )
 from quire.families import FamilyDefinition
-from quire.references import ForeignKeySpec
+from quire.references import ForeignKeySpec, ReferenceKey
 from quire.schema_catalog import SchemaCatalog
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.versions import VersionId
@@ -240,9 +240,15 @@ def _charter(
     fts_indexes: tuple[CharterFtsIndex, ...] = (),
     vector_caches: tuple[CharterVectorCache, ...] = (),
     relationships: tuple[CharterRelationship, ...] = (),
+    reference_keys: tuple[ReferenceKey, ...] = (),
 ) -> FamilyCharter:
     return FamilyCharter(
-        family=_world_family(name, model, identity_field),
+        family=_world_family(
+            name,
+            model,
+            identity_field,
+            reference_keys=reference_keys,
+        ),
         model=model,
         fields=fields,
         indexes=indexes,
@@ -253,7 +259,13 @@ def _charter(
     )
 
 
-def _world_family(name: str, model: type[Any], identity_field: str) -> FamilyDefinition[Any, Any, Any, Any]:
+def _world_family(
+    name: str,
+    model: type[Any],
+    identity_field: str,
+    *,
+    reference_keys: tuple[ReferenceKey, ...] = (),
+) -> FamilyDefinition[Any, Any, Any, Any]:
     return FamilyDefinition(
         key=name,
         name=name,
@@ -265,6 +277,7 @@ def _world_family(name: str, model: type[Any], identity_field: str) -> FamilyDef
             placement=FlatYamlPlacement(f".derived/{name}", str),
         ),
         identity_field=identity_field,
+        reference_keys=reference_keys,
     )
 
 
@@ -348,6 +361,11 @@ def _claim_core_charter() -> FamilyCharter:
         indexes=(CharterIndex("idx_claim_core_target", ("target_concept",)), CharterIndex("idx_claim_core_type", ("type",)),
                  CharterIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)), CharterIndex("idx_claim_core_build_status", ("build_status",)),
                  CharterIndex("idx_claim_core_stage", ("stage",)), CharterIndex("idx_claim_core_promotion_status", ("promotion_status",))),
+        reference_keys=(
+            ReferenceKey.field("primary_logical_id"),
+            ReferenceKey.field("logical_ids[].value"),
+            ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+        ),
         fts_indexes=(CharterFtsIndex("claim_fts", "claim_id", ("statement", "conditions", "expression"), source_query=_CLAIM_FTS_SOURCE_QUERY),),
         vector_caches=(CharterVectorCache(
             "claim_embeddings",

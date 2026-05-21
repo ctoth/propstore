@@ -119,11 +119,11 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
             wm = None
         if wm is not None:
             try:
-                resolved = wm.resolve_claim(claim_ref)
+                resolved_claim = wm.get_claim(claim_ref)
             finally:
                 wm.close()
-            if isinstance(resolved, str):
-                claim_id = resolved
+            if resolved_claim is not None:
+                claim_id = str(resolved_claim.id)
 
     if claim_id not in claims_by_id:
         raise ValueError(f"Unknown claim reference: {claim_ref}")

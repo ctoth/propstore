@@ -40,10 +40,8 @@ from propstore.core.store_results import (
 )
 from propstore.families.claims.declaration import (
     Claim,
-    build_claim_logical_id_index,
     count_authored_justifications,
     count_claims,
-    resolve_claim_id,
     select_authored_justifications,
 )
 from propstore.families.diagnostics.declaration import (
@@ -168,7 +166,6 @@ class WorldQuery(WorldStore):
         self._lifting_system_loaded = False
         self._compiled_graph_cache = None
         self._active_graph_cache: dict[str, Any] = {}
-        self._claim_logical_id_index: dict[str, str] | None = None
         self._concept_logical_id_index: dict[str, str] | None = None
         self._validate_schema()
 
@@ -311,10 +308,17 @@ class WorldQuery(WorldStore):
         }
 
     def get_claim(self, claim_id: str) -> Claim | None:
-        resolved_claim_id = self.resolve_claim(claim_id) or claim_id
         schema = world_sqlalchemy_schema()
         claim = schema.model("claim_core")
         with self._derived_store.readonly_session(schema) as derived:
+            resolved_claim_id = (
+                schema.resolve_reference_id(
+                    derived.session,
+                    "claim_core",
+                    claim_id,
+                )
+                or claim_id
+            )
             return derived.execute(
                 select(claim).where(claim.id == resolved_claim_id)
             ).scalar_one_or_none()
@@ -333,47 +337,38 @@ class WorldQuery(WorldStore):
 
         if table not in ("claim_core", "concept"):
             raise ValueError(f"unsupported logical-id table: {table}")
-        if table == "concept":
-            index: dict[str, str] = {}
-            schema = world_sqlalchemy_schema()
-            concept = schema.model("concept")
-            with self._derived_store.readonly_session(schema) as derived:
-                rows = derived.execute(
-                    select(
-                        concept.id,
-                        concept.primary_logical_id,
-                        concept.logical_ids_json,
-                    )
+        index: dict[str, str] = {}
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = derived.execute(
+                select(
+                    concept.id,
+                    concept.primary_logical_id,
+                    concept.logical_ids_json,
                 )
-                for artifact_id, primary_logical_id, logical_ids_json in rows:
-                    artifact_id_text = str(artifact_id)
-                    if isinstance(primary_logical_id, str) and primary_logical_id:
-                        index.setdefault(primary_logical_id, artifact_id_text)
-                    if not isinstance(logical_ids_json, str) or not logical_ids_json:
-                        continue
-                    try:
-                        logical_ids = json.loads(logical_ids_json)
-                    except json.JSONDecodeError:
-                        continue
-                    if not isinstance(logical_ids, list):
-                        continue
-                    for entry in logical_ids:
-                        if not isinstance(entry, dict):
-                            continue
-                        namespace = entry.get("namespace")
-                        value = entry.get("value")
-                        if isinstance(namespace, str) and isinstance(value, str):
-                            index.setdefault(f"{namespace}:{value}", artifact_id_text)
-                            index.setdefault(value, artifact_id_text)
-            return index
-        return build_claim_logical_id_index(self._conn)
-
-    def _get_claim_logical_id_index(self) -> dict[str, str]:
-        if self._claim_logical_id_index is None:
-            self._claim_logical_id_index = self._build_logical_id_index(
-                "claim_core"
             )
-        return self._claim_logical_id_index
+            for artifact_id, primary_logical_id, logical_ids_json in rows:
+                artifact_id_text = str(artifact_id)
+                if isinstance(primary_logical_id, str) and primary_logical_id:
+                    index.setdefault(primary_logical_id, artifact_id_text)
+                if not isinstance(logical_ids_json, str) or not logical_ids_json:
+                    continue
+                try:
+                    logical_ids = json.loads(logical_ids_json)
+                except json.JSONDecodeError:
+                    continue
+                if not isinstance(logical_ids, list):
+                    continue
+                for entry in logical_ids:
+                    if not isinstance(entry, dict):
+                        continue
+                    namespace = entry.get("namespace")
+                    value = entry.get("value")
+                    if isinstance(namespace, str) and isinstance(value, str):
+                        index.setdefault(f"{namespace}:{value}", artifact_id_text)
+                        index.setdefault(value, artifact_id_text)
+        return index
 
     def _get_concept_logical_id_index(self) -> dict[str, str]:
         if self._concept_logical_id_index is None:
@@ -381,14 +376,6 @@ class WorldQuery(WorldStore):
                 "concept"
             )
         return self._concept_logical_id_index
-
-    def resolve_claim(self, name: str) -> str | None:
-        """Resolve a claim by artifact ID or logical ID."""
-        return resolve_claim_id(
-            self._conn,
-            name,
-            logical_id_index=self._get_claim_logical_id_index(),
-        )
 
     def resolve_alias(self, alias: str) -> str | None:
         schema = world_sqlalchemy_schema()
@@ -570,13 +557,18 @@ class WorldQuery(WorldStore):
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
         if not claim_ids:
             return {}
-        resolved_ids = {
-            self.resolve_claim(claim_id) or claim_id
-            for claim_id in claim_ids
-        }
         schema = world_sqlalchemy_schema()
         claim = schema.model("claim_core")
         with self._derived_store.readonly_session(schema) as derived:
+            resolved_ids = {
+                schema.resolve_reference_id(
+                    derived.session,
+                    "claim_core",
+                    claim_id,
+                )
+                or claim_id
+                for claim_id in claim_ids
+            }
             rows = derived.execute(
                 select(claim).where(claim.id.in_(resolved_ids))
             ).scalars()
@@ -634,10 +626,17 @@ class WorldQuery(WorldStore):
     def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
         if not claim_ids:
             return []
-        resolved_ids = {
-            self.resolve_claim(claim_id) or claim_id
-            for claim_id in claim_ids
-        }
+        schema = world_sqlalchemy_schema()
+        with self._derived_store.readonly_session(schema) as derived:
+            resolved_ids = {
+                schema.resolve_reference_id(
+                    derived.session,
+                    "claim_core",
+                    claim_id,
+                )
+                or claim_id
+                for claim_id in claim_ids
+            }
         return select_stances_between(self._conn, resolved_ids)
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictRow]:
@@ -670,10 +669,17 @@ class WorldQuery(WorldStore):
     ) -> tuple[CanonicalJustification, ...]:
         if not claim_ids:
             return ()
-        resolved_ids = {
-            self.resolve_claim(claim_id) or claim_id
-            for claim_id in claim_ids
-        }
+        schema = world_sqlalchemy_schema()
+        with self._derived_store.readonly_session(schema) as derived:
+            resolved_ids = {
+                schema.resolve_reference_id(
+                    derived.session,
+                    "claim_core",
+                    claim_id,
+                )
+                or claim_id
+                for claim_id in claim_ids
+            }
         return tuple(
             justification
             for justification in self.all_authored_justifications()
@@ -694,32 +700,45 @@ class WorldQuery(WorldStore):
         claim = schema.model("claim_core")
         source_claim = aliased(claim)
         target_claim = aliased(claim)
-        statement = (
-            select(relation)
-            .join(source_claim, relation.source_id == source_claim.id)
-            .join(target_claim, relation.target_id == target_claim.id)
-            .where(relation.source_kind == "claim")
-            .where(relation.target_kind == "claim")
-            .where(or_(relation.source_id == focus_claim_id, relation.target_id == focus_claim_id))
-        )
-        for claim_alias in (source_claim, target_claim):
-            if not policy.include_drafts:
-                statement = statement.where(
-                    or_(claim_alias.stage.is_(None), claim_alias.stage != "draft")
-                )
-            if not policy.include_blocked:
-                statement = statement.where(
-                    or_(
-                        claim_alias.build_status.is_(None),
-                        claim_alias.build_status != "blocked",
-                    )
-                ).where(
-                    or_(
-                        claim_alias.promotion_status.is_(None),
-                        claim_alias.promotion_status != "blocked",
-                    )
-                )
         with self._derived_store.readonly_session(schema) as derived:
+            resolved_focus_claim_id = (
+                schema.resolve_reference_id(
+                    derived.session,
+                    "claim_core",
+                    focus_claim_id,
+                )
+                or focus_claim_id
+            )
+            statement = (
+                select(relation)
+                .join(source_claim, relation.source_id == source_claim.id)
+                .join(target_claim, relation.target_id == target_claim.id)
+                .where(relation.source_kind == "claim")
+                .where(relation.target_kind == "claim")
+                .where(
+                    or_(
+                        relation.source_id == resolved_focus_claim_id,
+                        relation.target_id == resolved_focus_claim_id,
+                    )
+                )
+            )
+            for claim_alias in (source_claim, target_claim):
+                if not policy.include_drafts:
+                    statement = statement.where(
+                        or_(claim_alias.stage.is_(None), claim_alias.stage != "draft")
+                    )
+                if not policy.include_blocked:
+                    statement = statement.where(
+                        or_(
+                            claim_alias.build_status.is_(None),
+                            claim_alias.build_status != "blocked",
+                        )
+                    ).where(
+                        or_(
+                            claim_alias.promotion_status.is_(None),
+                            claim_alias.promotion_status != "blocked",
+                        )
+                    )
             rows = derived.execute(statement).scalars()
             return [
                 StanceRow(

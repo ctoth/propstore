@@ -64,14 +64,12 @@ def compute_claim_graph_justified_claims(
         ReasoningBackend.CLAIM_GRAPH,
         semantics,
     )
-    canonical_active_ids = {
-        store.resolve_claim(claim_id) or claim_id
-        for claim_id in active_claim_ids
-    }
-    display_ids_by_canonical = {
-        (store.resolve_claim(claim_id) or claim_id): claim_id
-        for claim_id in active_claim_ids
-    }
+    display_ids_by_canonical: dict[str, str] = {}
+    for claim_id in active_claim_ids:
+        claim = store.get_claim(claim_id)
+        canonical_id = str(claim.id) if claim is not None else claim_id
+        display_ids_by_canonical[canonical_id] = claim_id
+    canonical_active_ids = set(display_ids_by_canonical)
     result = analyze_claim_graph(
         shared_analyzer_input_from_store(
             store,

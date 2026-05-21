@@ -422,14 +422,16 @@ class _GraphOverlayStore:
         return None
 
     def get_claim(self, claim_id: str) -> Claim | None:
-        resolved_claim_id = self.resolve_claim(claim_id) or claim_id
-        return self._claims_by_id.get(resolved_claim_id)
-
-    def resolve_claim(self, name: str) -> str | None:
-        resolver = getattr(self._base, "resolve_claim", None)
-        if callable(resolver):
-            return cast(Callable[[str], str | None], resolver)(name)
-        return None
+        claim = self._claims_by_id.get(claim_id)
+        if claim is not None:
+            return claim
+        base_get_claim = getattr(self._base, "get_claim", None)
+        if not callable(base_get_claim):
+            return None
+        base_claim = cast(Callable[[str], Claim | None], base_get_claim)(claim_id)
+        if base_claim is None:
+            return None
+        return self._claims_by_id.get(str(base_claim.id))
 
     def resolve_alias(self, alias: str) -> str | None:
         resolver = getattr(self._base, "resolve_alias", None)
@@ -772,9 +774,6 @@ class OverlayWorld(BeliefSpace):
 
     def get_claim(self, claim_id: str) -> Claim | None:
         return self._overlay_store.get_claim(claim_id)
-
-    def resolve_claim(self, name: str) -> str | None:
-        return self._overlay_store.resolve_claim(name)
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
         return self._overlay_store.claims_by_ids(claim_ids)

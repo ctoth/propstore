@@ -673,7 +673,7 @@ def diff_hypothetical_world(
         for spec in request.add_claims
     ]
     resolved_remove = [
-        world.resolve_claim(claim_id) or claim_id
+        str(claim.id) if (claim := world.get_claim(claim_id)) is not None else claim_id
         for claim_id in request.remove_claim_ids
     ]
     overlay = OverlayWorld(

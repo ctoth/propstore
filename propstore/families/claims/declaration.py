@@ -113,6 +113,20 @@ class Claim:
         )
 
     @property
+    def logical_ids(self) -> tuple[Mapping[str, object], ...]:
+        if not self.logical_ids_json:
+            return ()
+        loaded = json.loads(self.logical_ids_json)
+        if not isinstance(loaded, list):
+            raise ValueError("claim logical_ids_json must decode to a list")
+        entries: list[Mapping[str, object]] = []
+        for entry in loaded:
+            if not isinstance(entry, Mapping):
+                raise ValueError("claim logical_ids_json entries must be mappings")
+            entries.append(entry)
+        return tuple(entries)
+
+    @property
     def output_concept_id(self) -> str | None:
         concept_ids = self.concept_ids_for_role(ClaimConceptLinkRole.OUTPUT)
         return concept_ids[0] if concept_ids else None
@@ -358,59 +372,6 @@ from propstore.families.claims.projection_model import (  # noqa: E402
 from propstore.families.world_charters import BuildDiagnostic, world_record
 
 
-def build_claim_logical_id_index(conn: sqlite3.Connection) -> dict[str, str]:
-    index: dict[str, str] = {}
-    rows = conn.execute(
-        "SELECT id, primary_logical_id, logical_ids_json FROM claim_core"
-    ).fetchall()
-    for row in rows:
-        artifact_id = row["id"]
-        primary_logical_id = row["primary_logical_id"]
-        if isinstance(primary_logical_id, str) and primary_logical_id:
-            index.setdefault(primary_logical_id, artifact_id)
-        logical_ids_json = row["logical_ids_json"]
-        if not isinstance(logical_ids_json, str) or not logical_ids_json:
-            continue
-        try:
-            logical_ids = json.loads(logical_ids_json)
-        except json.JSONDecodeError:
-            continue
-        if not isinstance(logical_ids, list):
-            continue
-        for entry in logical_ids:
-            if not isinstance(entry, dict):
-                continue
-            namespace = entry.get("namespace")
-            value = entry.get("value")
-            if isinstance(namespace, str) and isinstance(value, str):
-                index.setdefault(f"{namespace}:{value}", artifact_id)
-                index.setdefault(value, artifact_id)
-    return index
-
-
-def resolve_claim_id(
-    conn: sqlite3.Connection,
-    name: str,
-    *,
-    logical_id_index: Mapping[str, str] | None = None,
-) -> str | None:
-    row = conn.execute(
-        "SELECT id FROM claim_core WHERE id = ?",
-        (name,),
-    ).fetchone()
-    if row is not None:
-        return str(row["id"])
-
-    row = conn.execute(
-        "SELECT id FROM claim_core WHERE primary_logical_id = ?",
-        (name,),
-    ).fetchone()
-    if row is not None:
-        return str(row["id"])
-
-    return None if logical_id_index is None else logical_id_index.get(name)
-
-
 def count_claims(conn: sqlite3.Connection) -> int:
     return int(conn.execute("SELECT COUNT(*) FROM claim_core").fetchone()[0])
 
@@ -511,16 +472,6 @@ def has_claim_core_table(conn: sqlite3.Connection) -> bool:
 
 def delete_claim_core_row(conn: sqlite3.Connection, claim_id: str) -> None:
     conn.execute("DELETE FROM claim_core WHERE id = ?", (claim_id,))
-
-
-def resolve_claim_embedding_entity(conn: sqlite3.Connection, entity_id: str) -> tuple[str, int]:
-    row = conn.execute(
-        "SELECT id, seq FROM claim_core WHERE id = ?",
-        (entity_id,),
-    ).fetchone()
-    if row is None:
-        raise ValueError(f"Claim {entity_id} not found")
-    return str(row["id"]), int(row["seq"])
 
 
 def select_claim_text(conn: sqlite3.Connection, claim_id: str) -> dict[str, Any] | None:
