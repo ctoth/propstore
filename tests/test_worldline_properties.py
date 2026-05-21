@@ -179,7 +179,7 @@ class TestSoundness:
                       overrides={"mass": 10.0})
 
         assert result.values["force"].status == "derived"
-        assert "g_earth" in result.dependencies.claims
+        assert "test:g_earth" in result.dependencies.claims
 
         # Now remove g_earth and try again
         bound = property_world.bind(location="earth")
@@ -198,7 +198,7 @@ class TestSoundness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert "temp_room" not in result.dependencies.claims, (
+        assert "test:temp_room" not in result.dependencies.claims, (
             "temp_room is a spurious dependency of force"
         )
 
@@ -209,7 +209,7 @@ class TestSoundness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert "dist_100" not in result.dependencies.claims, (
+        assert "test:dist_100" not in result.dependencies.claims, (
             "dist_100 is a spurious dependency of force"
         )
 
@@ -220,7 +220,7 @@ class TestSoundness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert "g_moon" not in result.dependencies.claims, (
+        assert "test:g_moon" not in result.dependencies.claims, (
             "g_moon should not appear in Earth-bound force dependencies"
         )
 
@@ -248,7 +248,7 @@ class TestCompleteness:
                       bindings={"location": "earth"},
                       overrides={"mass": 10.0})
 
-        assert "g_earth" in result.dependencies.claims
+        assert "test:g_earth" in result.dependencies.claims
 
         # Verify the derived value actually used g_earth's value (9.807)
         force_val = result.values["force"].value
@@ -645,10 +645,10 @@ class TestBindingIsolation:
 
         if location == "earth":
             expected_g = 9.807
-            wrong_claim = "g_moon"
+            wrong_claim = "test:g_moon"
         else:
             expected_g = 1.625
-            wrong_claim = "g_earth"
+            wrong_claim = "test:g_earth"
 
         expected_force = mass_val * expected_g
         assert abs(force.value - expected_force) < 1e-6 * (1 + abs(expected_force)), (

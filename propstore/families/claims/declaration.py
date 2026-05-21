@@ -278,6 +278,8 @@ def _numeric_si_value(
         return None
     if form_definition is None:
         return value
+    if form_definition.unit_symbol is None:
+        return value
     return normalize_to_si(
         float(value),
         None if unit is None else str(unit),
