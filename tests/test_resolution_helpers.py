@@ -2,22 +2,34 @@ from __future__ import annotations
 
 import importlib
 from types import SimpleNamespace
+from typing import cast
 
 import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.core.active_claims import ActiveClaim
+from propstore.cel_types import to_cel_expr
+from propstore.core.id_types import to_concept_id
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from argumentation.dung import ArgumentationFramework
+from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,
     _resolve_structured_argumentation,
     resolve,
 )
-from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy, ValueResult
+from propstore.world.types import (
+    BeliefSpace,
+    ReasoningBackend,
+    RenderPolicy,
+    ResolutionStrategy,
+    ValueResult,
+    ValueStatus,
+    WorldStore,
+)
 from propstore.world.types import IntegrityConstraint, IntegrityConstraintKind
+from tests.claim_model_helpers import claim_model
 
 
 def test_assignment_selection_policy_adapter_surface_exists() -> None:
@@ -32,33 +44,19 @@ def test_assignment_selection_old_solver_module_is_deleted() -> None:
         importlib.import_module("propstore.world." + "assignment_selection_merge")
 
 
-def _claim_mapping(
+def _claim(
     claim_id: str,
     *,
     concept_id: str = "concept1",
     value: float = 1.0,
     branch: str | None = None,
-) -> dict:
-    data = {
-        "id": claim_id,
-        "concept_id": concept_id,
-        "concept_links": [
-            {
-                "claim_id": claim_id,
-                "concept_id": concept_id,
-                "role": "output",
-                "ordinal": 0,
-            }
-        ],
-        "value": value,
-    }
-    if branch is not None:
-        data["branch"] = branch
-    return data
+) -> Claim:
+    return claim_model(claim_id, concept_id=concept_id, value=value, branch=branch)
 
 
-def _active_claim(claim_id: str, *, concept_id: str = "concept1", value: float = 1.0) -> ActiveClaim:
-    return ActiveClaim.from_row_mapping(_claim_mapping(claim_id, concept_id=concept_id, value=value))
+def _claim_concept_id(claim: Claim) -> str | None:
+    concept_id = claim.value_concept_id
+    return None if concept_id is None else str(concept_id)
 
 
 class _World:
@@ -76,23 +74,23 @@ class _View:
 class _AspicView:
     def __init__(self) -> None:
         self._claims = [
-            _claim_mapping("claim_a", concept_id="concept1", value=1.0),
-            _claim_mapping("claim_b", concept_id="concept1", value=2.0),
+            _claim("claim_a", concept_id="concept1", value=1.0),
+            _claim("claim_b", concept_id="concept1", value=2.0),
         ]
 
     def value_of(self, concept_id: str):
         return ValueResult(
-            concept_id=concept_id,
-            status="conflicted",
+            concept_id=to_concept_id(concept_id),
+            status=ValueStatus.CONFLICTED,
             claims=list(self._claims),
         )
 
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+        return [claim for claim in self._claims if _claim_concept_id(claim) == concept_id]
 
-    def claim_support(self, claim: dict):
+    def claim_support(self, claim: Claim):
         return None, None
 
 
@@ -142,67 +140,67 @@ class _GlobalAssignmentSelectionWorld:
 class _GlobalAssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
-            _claim_mapping("claim_ax", concept_id="concept1", value=1.0, branch="a"),
-            _claim_mapping("claim_ay", concept_id="concept2", value=0.0, branch="a"),
-            _claim_mapping("claim_bx", concept_id="concept1", value=1.0, branch="b"),
-            _claim_mapping("claim_by", concept_id="concept2", value=1.0, branch="b"),
-            _claim_mapping("claim_cx", concept_id="concept1", value=0.0, branch="c"),
-            _claim_mapping("claim_cy", concept_id="concept2", value=0.0, branch="c"),
+            _claim("claim_ax", concept_id="concept1", value=1.0, branch="a"),
+            _claim("claim_ay", concept_id="concept2", value=0.0, branch="a"),
+            _claim("claim_bx", concept_id="concept1", value=1.0, branch="b"),
+            _claim("claim_by", concept_id="concept2", value=1.0, branch="b"),
+            _claim("claim_cx", concept_id="concept1", value=0.0, branch="c"),
+            _claim("claim_cy", concept_id="concept2", value=0.0, branch="c"),
         ]
 
     def value_of(self, concept_id: str):
         return ValueResult(
-            concept_id=concept_id,
-            status="conflicted",
-            claims=[claim for claim in self._claims if claim["concept_id"] == concept_id],
+            concept_id=to_concept_id(concept_id),
+            status=ValueStatus.CONFLICTED,
+            claims=[claim for claim in self._claims if _claim_concept_id(claim) == concept_id],
         )
 
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+        return [claim for claim in self._claims if _claim_concept_id(claim) == concept_id]
 
 
 class _DuplicateSourceAssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
-            _claim_mapping("claim_a1", concept_id="concept1", value=10.0, branch="a"),
-            _claim_mapping("claim_a2", concept_id="concept1", value=11.0, branch="a"),
-            _claim_mapping("claim_b1", concept_id="concept1", value=12.0, branch="b"),
+            _claim("claim_a1", concept_id="concept1", value=10.0, branch="a"),
+            _claim("claim_a2", concept_id="concept1", value=11.0, branch="a"),
+            _claim("claim_b1", concept_id="concept1", value=12.0, branch="b"),
         ]
 
     def value_of(self, concept_id: str):
         return ValueResult(
-            concept_id=concept_id,
-            status="conflicted",
-            claims=[claim for claim in self._claims if claim["concept_id"] == concept_id],
+            concept_id=to_concept_id(concept_id),
+            status=ValueStatus.CONFLICTED,
+            claims=[claim for claim in self._claims if _claim_concept_id(claim) == concept_id],
         )
 
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+        return [claim for claim in self._claims if _claim_concept_id(claim) == concept_id]
 
 
 class _AssignmentSelectionView:
     def __init__(self) -> None:
         self._claims = [
-            _claim_mapping("claim_a", concept_id="concept1", value=50.0),
-            _claim_mapping("claim_b", concept_id="concept1", value=10.0),
-            _claim_mapping("claim_c", concept_id="concept1", value=5.0),
+            _claim("claim_a", concept_id="concept1", value=50.0),
+            _claim("claim_b", concept_id="concept1", value=10.0),
+            _claim("claim_c", concept_id="concept1", value=5.0),
         ]
 
     def value_of(self, concept_id: str):
         return ValueResult(
-            concept_id=concept_id,
-            status="conflicted",
+            concept_id=to_concept_id(concept_id),
+            status=ValueStatus.CONFLICTED,
             claims=list(self._claims),
         )
 
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if claim["concept_id"] == concept_id]
+        return [claim for claim in self._claims if _claim_concept_id(claim) == concept_id]
 
 
 def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> None:
@@ -228,9 +226,9 @@ def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> 
     )
 
     winner, reason = _resolve_claim_graph_argumentation(
-        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
-        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
-        _World(),
+        [_claim("claim_a"), _claim("claim_b", value=2.0)],
+        [_claim("claim_a"), _claim("claim_b", value=2.0)],
+        cast(WorldStore, _World()),
         semantics="preferred",
     )
 
@@ -253,9 +251,9 @@ def test_claim_graph_resolution_distinguishes_no_stable_extension(monkeypatch) -
     )
 
     winner, reason = _resolve_claim_graph_argumentation(
-        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
-        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
-        _World(),
+        [_claim("claim_a"), _claim("claim_b", value=2.0)],
+        [_claim("claim_a"), _claim("claim_b", value=2.0)],
+        cast(WorldStore, _World()),
         semantics="stable",
     )
 
@@ -284,10 +282,10 @@ def test_structured_resolution_distinguishes_skeptical_failure(monkeypatch) -> N
     )
 
     winner, reason = _resolve_structured_argumentation(
-        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
-        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
-        _View(),
-        _World(),
+        [_claim("claim_a"), _claim("claim_b", value=2.0)],
+        [_claim("claim_a"), _claim("claim_b", value=2.0)],
+        cast(BeliefSpace, _View()),
+        cast(WorldStore, _World()),
         semantics="preferred",
     )
 
@@ -322,10 +320,10 @@ def test_aspic_resolution_threads_link_to_build_aspic_projection(monkeypatch) ->
     )
 
     result = resolve(
-        _AspicView(),
+        cast(BeliefSpace, _AspicView()),
         "concept1",
         strategy=ResolutionStrategy.ARGUMENTATION,
-        world=_World(),
+        world=cast(WorldStore, _World()),
         reasoning_backend=ReasoningBackend.ASPIC,
         policy=RenderPolicy(
             strategy=ResolutionStrategy.ARGUMENTATION,
@@ -376,10 +374,10 @@ def test_aspic_resolution_property_threads_selected_preference_config(
         )
 
         result = resolve(
-            _AspicView(),
+            cast(BeliefSpace, _AspicView()),
             "concept1",
             strategy=ResolutionStrategy.ARGUMENTATION,
-            world=_World(),
+            world=cast(WorldStore, _World()),
             reasoning_backend=ReasoningBackend.ASPIC,
             policy=RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
@@ -420,10 +418,10 @@ def test_structured_resolution_grounded_respects_attack_conflict_freeness(monkey
     )
 
     winner, reason = _resolve_structured_argumentation(
-        [_active_claim("claim_a")],
-        [_active_claim("claim_a"), _active_claim("claim_b", value=2.0)],
-        _View(),
-        _World(),
+        [_claim("claim_a")],
+        [_claim("claim_a"), _claim("claim_b", value=2.0)],
+        cast(BeliefSpace, _View()),
+        cast(WorldStore, _World()),
         semantics="grounded",
     )
 
@@ -433,10 +431,10 @@ def test_structured_resolution_grounded_respects_attack_conflict_freeness(monkey
 
 def test_assignment_selection_resolution_filters_with_range_mu() -> None:
     result = resolve(
-        _AssignmentSelectionView(),
+        cast(BeliefSpace, _AssignmentSelectionView()),
         "concept1",
         strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
-        world=_AssignmentSelectionWorld(lower=0.0, upper=20.0),
+        world=cast(WorldStore, _AssignmentSelectionWorld(lower=0.0, upper=20.0)),
         policy=RenderPolicy(strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE),
     )
 
@@ -447,10 +445,10 @@ def test_assignment_selection_resolution_filters_with_range_mu() -> None:
 
 def test_assignment_selection_resolution_reports_no_admissible_assignments() -> None:
     result = resolve(
-        _AssignmentSelectionView(),
+        cast(BeliefSpace, _AssignmentSelectionView()),
         "concept1",
         strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
-        world=_AssignmentSelectionWorld(lower=0.0, upper=4.0),
+        world=cast(WorldStore, _AssignmentSelectionWorld(lower=0.0, upper=4.0)),
         policy=RenderPolicy(strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE),
     )
 
@@ -460,17 +458,17 @@ def test_assignment_selection_resolution_reports_no_admissible_assignments() -> 
 
 def test_global_assignment_selection_resolution_reads_target_from_global_assignment() -> None:
     result = resolve(
-        _GlobalAssignmentSelectionView(),
+        cast(BeliefSpace, _GlobalAssignmentSelectionView()),
         "concept1",
         strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
-        world=_GlobalAssignmentSelectionWorld(),
+        world=cast(WorldStore, _GlobalAssignmentSelectionWorld()),
         policy=RenderPolicy(
             strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
             integrity_constraints=(
                 IntegrityConstraint(
                     kind=IntegrityConstraintKind.CEL,
                     concept_ids=("concept1", "concept2"),
-                    cel="x + y <= 0",
+                    cel=to_cel_expr("x + y <= 0"),
                 ),
             ),
         ),
@@ -483,10 +481,10 @@ def test_global_assignment_selection_resolution_reads_target_from_global_assignm
 
 def test_global_assignment_selection_branch_filter_changes_sources_not_projection_logic() -> None:
     result = resolve(
-        _GlobalAssignmentSelectionView(),
+        cast(BeliefSpace, _GlobalAssignmentSelectionView()),
         "concept1",
         strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
-        world=_GlobalAssignmentSelectionWorld(),
+        world=cast(WorldStore, _GlobalAssignmentSelectionWorld()),
         policy=RenderPolicy(
             strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
             branch_filter=("a", "b"),
@@ -494,7 +492,7 @@ def test_global_assignment_selection_branch_filter_changes_sources_not_projectio
                 IntegrityConstraint(
                     kind=IntegrityConstraintKind.CEL,
                     concept_ids=("concept1", "concept2"),
-                    cel="x + y <= 0",
+                    cel=to_cel_expr("x + y <= 0"),
                 ),
             ),
         ),
@@ -506,10 +504,10 @@ def test_global_assignment_selection_branch_filter_changes_sources_not_projectio
 
 def test_global_assignment_selection_reports_duplicate_claims_per_source_explicitly() -> None:
     result = resolve(
-        _DuplicateSourceAssignmentSelectionView(),
+        cast(BeliefSpace, _DuplicateSourceAssignmentSelectionView()),
         "concept1",
         strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE,
-        world=_AssignmentSelectionWorld(lower=0.0, upper=20.0),
+        world=cast(WorldStore, _AssignmentSelectionWorld(lower=0.0, upper=20.0)),
         policy=RenderPolicy(strategy=ResolutionStrategy.ASSIGNMENT_SELECTION_MERGE),
     )
 
