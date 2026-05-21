@@ -40,6 +40,7 @@ from propstore.families.claims.references import (
 from propstore.families.claims.documents import claim_type_contract_for
 from propstore.families.claims.stages import (
     ClaimAlgorithmVariable,
+    claim_algorithm_canonical_ast,
     claim_algorithm_variable_payload,
     PromotionBlockedClaimFact,
     RawIdQuarantineRecord,
@@ -402,7 +403,10 @@ def compile_claim_models(
             algorithm_values = {
                 "claim_id": claim_id,
                 "body": claim_doc.body,
-                "canonical_ast": None,
+                "canonical_ast": claim_algorithm_canonical_ast(
+                    claim_doc.body,
+                    claim_doc.variables,
+                ),
                 "variables_json": (
                     json.dumps([
                         variable.to_payload()

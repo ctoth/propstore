@@ -8,10 +8,13 @@ from dataclasses import dataclass, field, fields
 from enum import StrEnum
 from typing import Any
 
+from ast_equiv import canonical_dump
+
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.id_types import ConceptId
+from propstore.families.claims.documents import VariableBindingDocument
 
 class ClaimStage(StrEnum):
     AUTHORED = "claim.authored"
@@ -110,6 +113,27 @@ def parse_claim_algorithm_variables(
             variables.append(_claim_algorithm_variable_from_payload(entry))
         return tuple(variables)
     return ()
+
+
+def claim_algorithm_canonical_ast(
+    body: str | None,
+    variables: Sequence[ClaimAlgorithmVariable | VariableBindingDocument],
+) -> str | None:
+    if body is None:
+        return None
+    bindings: dict[str, str] = {}
+    for variable in variables:
+        concept_id = (
+            variable.concept_id
+            if isinstance(variable, ClaimAlgorithmVariable)
+            else variable.concept
+        )
+        if concept_id is None:
+            continue
+        name = variable.name or variable.symbol
+        if name:
+            bindings[name] = str(concept_id)
+    return canonical_dump(body, bindings)
 
 
 @dataclass(frozen=True)
