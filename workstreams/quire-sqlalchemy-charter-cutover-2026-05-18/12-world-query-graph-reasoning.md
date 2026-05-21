@@ -616,6 +616,21 @@ Implementation starts only after session, relationship, query, catalog, FTS,
 vector, JSON, and association-object capabilities are complete in their owning
 Quire or family workstreams.
 
+2026-05-21 final old-path search gate update:
+
+- The required Phase 14 searches returned zero hits for
+  `sqlite3.Connection`, `row_factory`, `connect_sqlite_store`,
+  `ProjectionRow`, `ProjectionModel`, `from_mapping`, `_claim_rows`,
+  `ActiveClaimInput`, `ActiveMicropublicationInput`, `ActiveClaimResolver`,
+  `ActiveWorldGraph`, `WorldBindActiveReport`, `claim_row_query_plan`,
+  `claim_stance_policy_query_plan`, `Unsupported sidecar schema`,
+  `ProjectionSchemaError`, `validate_derived_store_schema`,
+  `schema.validate_connection`, and `Rebuild with 'pks build'` under the
+  exact required Phase 14 search paths.
+- No wrapper, adapter, alias, compatibility bridge, renamed old helper, or
+  duplicate constructor was added to close these gates.
+- Continue with the Phase 14 data-parity and behavior-parity commands.
+
 ## Data-Parity Gate
 
 This gate includes the behavior-vector comparisons required by this phase.
