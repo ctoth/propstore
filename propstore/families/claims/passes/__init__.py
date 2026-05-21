@@ -8,7 +8,10 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.documents import (
+    ClaimDocument,
+    StanceDocument as ClaimStanceDocument,
+)
 from propstore.core.conditions import check_condition_ir
 from propstore.core.conditions.checked import CheckedCondition, checked_condition_set
 from quire.documents import convert_document_value
@@ -154,7 +157,16 @@ def _bind_claim(
                 rewritten_stances.append(updated)
                 continue
             updated["target"] = target_ref.resolved_id or target_ref.raw_text
-            semantic_stances.append(SemanticStance(data=updated, target_ref=target_ref))
+            semantic_stances.append(
+                SemanticStance(
+                    document=convert_document_value(
+                        updated,
+                        ClaimStanceDocument,
+                        source=filename,
+                    ),
+                    target_ref=target_ref,
+                )
+            )
             rewritten_stances.append(updated)
         resolved_claim["stances"] = rewritten_stances
 

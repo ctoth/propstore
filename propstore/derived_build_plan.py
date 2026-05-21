@@ -43,9 +43,9 @@ from propstore.families.micropublications.declaration import (
     compile_micropublication_sidecar_rows_with_diagnostics,
 )
 from propstore.families.relations.declaration import (
-    compile_authored_stance_sidecar_rows_with_diagnostics,
-    compile_claim_embedded_stance_sidecar_rows_with_diagnostics,
-    compile_conflict_sidecar_rows,
+    compile_authored_stance_models_with_diagnostics,
+    compile_claim_embedded_stance_models_for_claims_with_diagnostics,
+    compile_conflict_witness_models,
 )
 from propstore.families.sources.declaration import (
     compile_source_models,
@@ -125,20 +125,20 @@ def compile_sidecar_build_plan(
             if repository_checked_bundle.context_files
             else None
         )
-        conflict_rows = compile_conflict_sidecar_rows(
+        conflict_rows = compile_conflict_witness_models(
             list(normalized_claim_files),
             repository_checked_bundle.concept_registry,
             dict(repository_checked_bundle.compilation_context.cel_registry),
             lifting_system=lifting_system,
         )
         authored_stance_rows, stance_quarantine_diagnostics = (
-            compile_authored_stance_sidecar_rows_with_diagnostics(
+            compile_authored_stance_models_with_diagnostics(
                 stance_entries,
                 claim_index,
             )
         )
         embedded_stance_rows, embedded_stance_quarantine_diagnostics = (
-            compile_claim_embedded_stance_sidecar_rows_with_diagnostics(
+            compile_claim_embedded_stance_models_for_claims_with_diagnostics(
                 (
                     semantic_claim
                     for semantic_file in checked_claims.bundle.semantic_files

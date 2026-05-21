@@ -9,7 +9,10 @@ from quire.references import ReferenceResolution as ResolvedReference
 
 from propstore.claims import ClaimFileEntry
 from propstore.core.conditions.checked import CheckedConditionSet
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.documents import (
+    ClaimDocument,
+    StanceDocument as ClaimStanceDocument,
+)
 from propstore.semantic_passes.types import PassDiagnostic
 
 
@@ -17,7 +20,7 @@ from propstore.semantic_passes.types import PassDiagnostic
 class SemanticStance:
     """Semantic view of a claim stance after binding."""
 
-    data: dict[str, Any]
+    document: ClaimStanceDocument
     target_ref: ResolvedReference
 
 
