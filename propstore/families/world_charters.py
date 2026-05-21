@@ -158,7 +158,7 @@ def world_charter_catalog() -> SchemaCatalog:
             _f("conditions_cel"), _f("note"),
             indexes=(CharterIndex("idx_rel_source", ("source_id",)), CharterIndex("idx_rel_target", ("target_id",)))),
         _charter("relation_edge", RelationEdgeRecord, "id",
-            _i("id", primary_key=True, nullable=False), _f("source_kind", nullable=False), _f("source_id", nullable=False),
+            _i("id", primary_key=True, nullable=False, generated=True), _f("source_kind", nullable=False), _f("source_id", nullable=False),
             _f("relation_type", nullable=False), _f("target_kind", nullable=False), _f("target_id", nullable=False),
             _f("perspective_source_claim_id"), _f("target_justification_id"), _f("conditions_cel"), _f("strength"),
             _f("conditions_differ"), _f("note"), _f("resolution_method"), _f("resolution_model"), _f("embedding_model"),
@@ -204,7 +204,7 @@ def world_charter_catalog() -> SchemaCatalog:
         _claim_payload_charters()[0], _claim_payload_charters()[1], _claim_payload_charters()[2],
         _claim_source_assertion_charter(),
         _charter("conflict_witness", ConflictWitnessRecord, "id",
-            _i("id", primary_key=True, nullable=False), _f("claim_a_id", nullable=False), _f("claim_b_id", nullable=False),
+            _i("id", primary_key=True, nullable=False, generated=True), _f("claim_a_id", nullable=False), _f("claim_b_id", nullable=False),
             _f("concept_id", nullable=False), _f("warning_class", nullable=False), _f("conditions_a"), _f("conditions_b"),
             _f("value_a"), _f("value_b"), _f("derivation_chain"), indexes=(CharterIndex("idx_conflict_witness_concept", ("concept_id",)),)),
         _charter("grounded_fact", GroundedFactRecord, "predicate", _f("predicate", primary_key=True, nullable=False), _f("arguments", primary_key=True, nullable=False), _f("section", primary_key=True, nullable=False)),
@@ -285,8 +285,22 @@ def _f(name: str, *, nullable: bool = True, primary_key: bool = False, default_s
     return CharterField(name, str, nullable=nullable and not primary_key, primary_key=primary_key, default_sql=default_sql)
 
 
-def _i(name: str, *, nullable: bool = True, primary_key: bool = False, default_sql: str | None = None) -> CharterField:
-    return CharterField(name, int, nullable=nullable and not primary_key, primary_key=primary_key, default_sql=default_sql)
+def _i(
+    name: str,
+    *,
+    nullable: bool = True,
+    primary_key: bool = False,
+    default_sql: str | None = None,
+    generated: bool = False,
+) -> CharterField:
+    return CharterField(
+        name,
+        int,
+        nullable=nullable and not primary_key,
+        primary_key=primary_key,
+        default_sql=default_sql,
+        generated=generated,
+    )
 
 
 def _r(name: str, *, nullable: bool = True) -> CharterField:
