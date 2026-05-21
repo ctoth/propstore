@@ -134,6 +134,16 @@ The gates are zero-hit gates outside notes, workstreams, docs, and reports
 unless a hit is a non-mapped authored document boundary explicitly named in
 that owner workstream.
 
+## Execution Log
+
+- 2026-05-21 Quire `FamilyModel` support was pushed at
+  `f69c2f018c25c6aaca277af35976fd419ded39fe`, Propstore was pinned to that
+  pushed commit, and `uv run scripts/check_workstream_order.py
+  workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md` passed.
+- Source slice complete: `Source` now subclasses `FamilyModel` and no longer
+  defines a Propstore `__init__(**values)` constructor. `uv run pyright
+  propstore` passed after the slice.
+
 ## Completion Criteria
 
 This cleanup is complete only when:
