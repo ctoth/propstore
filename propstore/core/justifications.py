@@ -48,18 +48,6 @@ class Justification(FamilyModel):
         )
 
 
-def _normalize_attrs(
-    value: Mapping[str, Any] | tuple[tuple[str, Any], ...] | None,
-) -> tuple[tuple[str, Any], ...]:
-    if value is None:
-        return ()
-    if isinstance(value, Mapping):
-        items = value.items()
-    else:
-        items = value
-    return tuple(sorted((str(key), item) for key, item in items))
-
-
 @dataclass(frozen=True, order=True)
 class CanonicalJustification:
     justification_id: str
@@ -72,7 +60,7 @@ class CanonicalJustification:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "premise_claim_ids", tuple(str(item) for item in self.premise_claim_ids))
-        object.__setattr__(self, "attributes", _normalize_attrs(self.attributes))
+        object.__setattr__(self, "attributes", tuple(self.attributes))
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -93,6 +81,12 @@ class CanonicalJustification:
         from propstore.core.graph_types import ProvenanceRecord
 
         provenance_data = data.get("provenance")
+        raw_attributes = data.get("attributes")
+        attributes = (
+            tuple(sorted((str(key), item) for key, item in raw_attributes.items()))
+            if isinstance(raw_attributes, Mapping)
+            else ()
+        )
         return cls(
             justification_id=str(data["justification_id"]),
             conclusion_claim_id=str(data["conclusion_claim_id"]),
@@ -104,7 +98,7 @@ class CanonicalJustification:
                 if provenance_data is None
                 else ProvenanceRecord.from_json_payload(provenance_data)
             ),
-            attributes=data.get("attributes") or (),
+            attributes=attributes,
         )
 
 
