@@ -15,6 +15,7 @@ from propstore.core.conditions.registry import KindType
 from propstore.dimensions import verify_form_algebra_dimensions
 from propstore.families.forms.documents import FormDocument
 from propstore.propagation import rewrite_parameterization_symbols
+from quire.charters import FamilyModel
 from quire.documents import decode_document_path
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 
@@ -50,16 +51,12 @@ class FormDefinition:
     max: float | None = None
 
 
-class Form:
-    def __init__(self, **values: object) -> None:
-        for key, value in values.items():
-            setattr(self, key, value)
+class Form(FamilyModel):
+    pass
 
 
-class FormAlgebra:
-    def __init__(self, **values: object) -> None:
-        for key, value in values.items():
-            setattr(self, key, value)
+class FormAlgebra(FamilyModel):
+    pass
 
 
 @dataclass(frozen=True)
