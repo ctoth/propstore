@@ -991,7 +991,7 @@ class WorldQuery(WorldStore):
         lifting_system: LiftingSystem | None = None,
     ):
         from propstore.core.activation import activate_compiled_world_graph
-        from propstore.core.graph_types import ActiveWorldGraph
+        from propstore.core.graph_types import WorldActivationGraph
 
         resolved_lifting_system = lifting_system or self._load_lifting_system()
         cache_key = json.dumps(environment.to_dict(), sort_keys=True)
@@ -1003,7 +1003,7 @@ class WorldQuery(WorldStore):
                 lifting_system=resolved_lifting_system,
             )
         cached = self._active_graph_cache[cache_key]
-        return ActiveWorldGraph.from_dict(cached.to_dict())
+        return WorldActivationGraph.from_dict(cached.to_dict())
 
     def _group_members(self, concept_id: str) -> list[str]:
         """Get all concept_ids in the same parameterization group."""

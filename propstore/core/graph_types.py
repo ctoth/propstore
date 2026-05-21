@@ -621,7 +621,7 @@ class GraphDelta:
 
 
 @dataclass(frozen=True)
-class ActiveWorldGraph:
+class WorldActivationGraph:
     compiled: CompiledWorldGraph
     environment: Environment = field(default_factory=Environment)
     active_claim_ids: tuple[ClaimId, ...] = ()
@@ -648,7 +648,7 @@ class ActiveWorldGraph:
         }
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any]) -> ActiveWorldGraph:
+    def from_dict(cls, data: Mapping[str, Any]) -> WorldActivationGraph:
         return cls(
             compiled=CompiledWorldGraph.from_dict(
                 _optional_mapping(data.get("compiled"), "compiled")

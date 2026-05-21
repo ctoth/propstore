@@ -9,7 +9,7 @@ from collections.abc import Mapping, Sequence
 from argumentation.aspic import CSAF, Literal, PremiseArg, conc, prem, sub, top_rule
 from argumentation.dung import ArgumentationFramework
 from propstore.core.environment import StanceStore
-from propstore.core.graph_types import ActiveWorldGraph
+from propstore.core.graph_types import WorldActivationGraph
 from propstore.core.labels import Label, SupportMetadata, SupportQuality
 from propstore.core.literal_keys import IstLiteralKey
 from propstore.core.relations import ClaimConceptLinkRole
@@ -321,7 +321,7 @@ def build_aspic_projection(
     support_metadata: SupportMetadata | None = None,
     comparison: str = "elitist",
     link: str = "last",
-    active_graph: ActiveWorldGraph | None = None,
+    active_graph: WorldActivationGraph | None = None,
 ) -> StructuredProjection:
     """Build a ``StructuredProjection`` via the ASPIC bridge."""
 

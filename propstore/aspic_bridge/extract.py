@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from propstore.core.environment import AuthoredJustificationStore, StanceStore
-from propstore.core.graph_types import ActiveWorldGraph
+from propstore.core.graph_types import WorldActivationGraph
 from propstore.core.justifications import (
     CanonicalJustification,
     claim_justifications_from_active_graph,
@@ -17,7 +17,7 @@ def _extract_stance_rows(
     store: StanceStore,
     active_by_id: dict[str, Claim],
     *,
-    active_graph: ActiveWorldGraph | None,
+    active_graph: WorldActivationGraph | None,
 ) -> list[Stance]:
     """Extract stance rows from either the active graph or the stance store."""
 
@@ -51,7 +51,7 @@ def _extract_justifications(
     active_by_id: dict[str, Claim],
     stance_rows: list[Stance],
     *,
-    active_graph: ActiveWorldGraph | None,
+    active_graph: WorldActivationGraph | None,
 ) -> list[CanonicalJustification]:
     """Extract canonical justifications for the active claim scope."""
 

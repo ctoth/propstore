@@ -14,7 +14,7 @@ from propstore.families.claims.declaration import Claim
 from propstore.world.types import GroundingBundleStore, normalize_reasoning_backend
 
 if TYPE_CHECKING:
-    from propstore.core.graph_types import ActiveWorldGraph
+    from propstore.core.graph_types import WorldActivationGraph
     from propstore.core.labels import Label, SupportQuality
     from propstore.world import WorldQuery
 
@@ -404,7 +404,7 @@ def _support_metadata_for(
     return support_metadata
 
 
-def _active_graph_for(bound: object) -> ActiveWorldGraph | None:
+def _active_graph_for(bound: object) -> WorldActivationGraph | None:
     from propstore.world.types import HasActiveGraph
 
     if isinstance(bound, HasActiveGraph):

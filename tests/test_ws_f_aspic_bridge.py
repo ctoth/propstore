@@ -40,7 +40,7 @@ from propstore.context_lifting import (
 )
 from propstore.core.analyzers import SharedAnalyzerInput, analyze_praf
 from propstore.core.assertions import ContextReference
-from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
+from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import claim_key
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -484,7 +484,7 @@ def test_claim_canonical_name_collision_does_not_collapse_aspic_literals() -> No
 
 def _minimal_praf_shared_input() -> SharedAnalyzerInput:
     prior = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
-    active_graph = ActiveWorldGraph(
+    active_graph = WorldActivationGraph(
         compiled=CompiledWorldGraph(
             claims=(
                 ClaimNode(

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 from quire.charters import FamilyModel
 
 if TYPE_CHECKING:
-    from propstore.core.graph_types import ActiveWorldGraph, ProvenanceRecord
+    from propstore.core.graph_types import WorldActivationGraph, ProvenanceRecord
 
 
 class Justification(FamilyModel):
@@ -109,7 +109,7 @@ class CanonicalJustification:
 
 
 def claim_justifications_from_active_graph(
-    active_graph: ActiveWorldGraph,
+    active_graph: WorldActivationGraph,
 ) -> tuple[CanonicalJustification, ...]:
     active_ids = set(active_graph.active_claim_ids)
     claim_nodes = {

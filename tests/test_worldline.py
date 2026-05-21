@@ -1134,7 +1134,7 @@ class TestWorldlineDependencyLiveness:
 class TestSemanticCorePhase7Worldlines:
     def _graph_only_world(self):
         from propstore.core.graph_types import (
-            ActiveWorldGraph,
+            WorldActivationGraph,
             ClaimNode,
             CompiledWorldGraph,
             RelationEdge,
@@ -1170,7 +1170,7 @@ class TestSemanticCorePhase7Worldlines:
                 ),
             ),
         )
-        active_graph = ActiveWorldGraph(
+        active_graph = WorldActivationGraph(
             compiled=compiled,
             environment=Environment(),
             active_claim_ids=("claim_a", "claim_b"),

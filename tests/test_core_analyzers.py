@@ -6,7 +6,7 @@ from sqlite3 import Connection
 import pytest
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
-from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph, RelationEdge
+from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph, RelationEdge
 from argumentation.probabilistic import compute_probabilistic_acceptance
 from tests.conftest import create_argumentation_schema, insert_claim, insert_conflict, insert_stance
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
@@ -213,7 +213,7 @@ def test_shared_praf_analyzer_matches_current_acceptance() -> None:
             ),
         ),
     )
-    active_graph = ActiveWorldGraph(
+    active_graph = WorldActivationGraph(
         compiled=compiled,
         active_claim_ids=("c1", "c2"),
     )
@@ -268,11 +268,11 @@ def test_shared_projection_is_independent_of_active_claim_id_order() -> None:
             RelationEdge(source_id="c2", target_id="c1", relation_type="rebuts"),
         ),
     )
-    forward = ActiveWorldGraph(
+    forward = WorldActivationGraph(
         compiled=compiled,
         active_claim_ids=("c1", "c2"),
     )
-    reverse = ActiveWorldGraph(
+    reverse = WorldActivationGraph(
         compiled=compiled,
         active_claim_ids=("c2", "c1"),
     )

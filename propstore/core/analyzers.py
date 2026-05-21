@@ -12,7 +12,7 @@ from propstore.conflict_detector import ConflictClass
 from propstore.core.graph_relation_types import coerce_graph_relation_type
 from propstore.core.id_types import ClaimId, to_claim_id, to_claim_ids
 from propstore.core.graph_types import (
-    ActiveWorldGraph,
+    WorldActivationGraph,
     ClaimNode,
     CompiledWorldGraph,
     ConflictWitness as GraphConflictWitness,
@@ -66,7 +66,7 @@ _REAL_CONFLICT_CLASSES = frozenset({"CONFLICT", "OVERLAP", "PARAM_CONFLICT"})
 
 @dataclass(frozen=True)
 class SharedAnalyzerInput:
-    active_graph: ActiveWorldGraph
+    active_graph: WorldActivationGraph
     comparison: str
     claims_by_id: dict[str, dict]
     stance_rows: tuple[dict, ...]
@@ -271,14 +271,14 @@ def _minimal_compiled_graph(
 def _active_graph_from_store(
     store: WorldStore,
     active_claim_ids: set[str],
-) -> ActiveWorldGraph:
+) -> WorldActivationGraph:
     if isinstance(store, CompiledGraphStore):
         compiled = store.compiled_graph()
     else:
         compiled = _minimal_compiled_graph(store, active_claim_ids)
     all_claim_ids = {claim.claim_id for claim in compiled.claims}
     active_ids = set(to_claim_ids(active_claim_ids))
-    return ActiveWorldGraph(
+    return WorldActivationGraph(
         compiled=compiled,
         environment=Environment(),
         active_claim_ids=tuple(active_ids),
@@ -286,11 +286,11 @@ def _active_graph_from_store(
     )
 
 
-def _active_claim_ids(active_graph: ActiveWorldGraph) -> set[str]:
+def _active_claim_ids(active_graph: WorldActivationGraph) -> set[str]:
     return {str(claim_id) for claim_id in active_graph.active_claim_ids}
 
 
-def _graph_claim_rows(active_graph: ActiveWorldGraph) -> dict[str, dict]:
+def _graph_claim_rows(active_graph: WorldActivationGraph) -> dict[str, dict]:
     active_ids = _active_claim_ids(active_graph)
     return {
         claim.claim_id: _claim_mapping_from_node(claim)
@@ -299,7 +299,7 @@ def _graph_claim_rows(active_graph: ActiveWorldGraph) -> dict[str, dict]:
     }
 
 
-def _graph_stance_rows(active_graph: ActiveWorldGraph) -> list[dict]:
+def _graph_stance_rows(active_graph: WorldActivationGraph) -> list[dict]:
     active_ids = _active_claim_ids(active_graph)
     return [
         _stance_row_from_edge(edge)
@@ -310,7 +310,7 @@ def _graph_stance_rows(active_graph: ActiveWorldGraph) -> list[dict]:
     ]
 
 
-def _graph_conflict_rows(active_graph: ActiveWorldGraph) -> list[dict]:
+def _graph_conflict_rows(active_graph: WorldActivationGraph) -> list[dict]:
     active_ids = _active_claim_ids(active_graph)
     return [
         _conflict_row_from_witness(conflict)
@@ -321,7 +321,7 @@ def _graph_conflict_rows(active_graph: ActiveWorldGraph) -> list[dict]:
 
 
 def _collect_claim_graph_relations(
-    active_graph: ActiveWorldGraph,
+    active_graph: WorldActivationGraph,
     *,
     comparison: str,
 ) -> tuple[dict[str, dict], tuple[dict, ...], ClaimGraphRelations]:
@@ -474,7 +474,7 @@ def _collect_claim_graph_relations(
 
 
 def shared_analyzer_input_from_active_graph(
-    active_graph: ActiveWorldGraph,
+    active_graph: WorldActivationGraph,
     *,
     comparison: str = "elitist",
 ) -> SharedAnalyzerInput:

@@ -47,7 +47,7 @@ from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import ConflictWitness, Stance
 
 if TYPE_CHECKING:
-    from propstore.core.graph_types import ActiveWorldGraph
+    from propstore.core.graph_types import WorldActivationGraph
     from propstore.grounding.bundle import GroundedRulesBundle
     from propstore.support_revision.state import RevisionScope
 
@@ -1122,7 +1122,7 @@ class HasATMSEngine(Protocol):
 
 @runtime_checkable
 class HasActiveGraph(Protocol):
-    _active_graph: ActiveWorldGraph | None
+    _active_graph: WorldActivationGraph | None
 
 
 @runtime_checkable

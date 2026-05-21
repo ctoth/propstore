@@ -284,7 +284,7 @@ def test_graph_delta_preserves_concepts_and_removes_dangling_relations_and_confl
 
 
 def test_active_world_graph_roundtrip_is_stable() -> None:
-    from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
+    from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 
     compiled = CompiledWorldGraph(
         claims=(
@@ -296,14 +296,14 @@ def test_active_world_graph_roundtrip_is_stable() -> None:
             ),
         ),
     )
-    active = ActiveWorldGraph(
+    active = WorldActivationGraph(
         compiled=compiled,
         environment=Environment(bindings={"task": "speech"}, context_id="ctx_demo"),
         active_claim_ids=("claim_a",),
         inactive_claim_ids=(),
     )
 
-    restored = ActiveWorldGraph.from_dict(active.to_dict())
+    restored = WorldActivationGraph.from_dict(active.to_dict())
 
     assert restored == active
 

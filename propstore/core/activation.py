@@ -12,7 +12,7 @@ from propstore.core.conditions.registry import with_standard_synthetic_bindings
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
 from propstore.core.id_types import ClaimId
-from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
+from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
 from propstore.core.labels import binding_condition_to_cel
 
@@ -227,7 +227,7 @@ def activate_compiled_world_graph(
     environment: Environment,
     solver: ConditionSolver,
     lifting_system: LiftingSystem | None = None,
-) -> ActiveWorldGraph:
+) -> WorldActivationGraph:
     active_claim_ids: list[ClaimId] = []
     inactive_claim_ids: list[ClaimId] = []
 
@@ -250,7 +250,7 @@ def activate_compiled_world_graph(
         else:
             inactive_claim_ids.append(claim.claim_id)
 
-    return ActiveWorldGraph(
+    return WorldActivationGraph(
         compiled=compiled,
         environment=environment,
         active_claim_ids=tuple(active_claim_ids),

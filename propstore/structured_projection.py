@@ -19,7 +19,7 @@ from argumentation.dung import (
     stable_extensions,
 )
 
-from propstore.core.graph_types import ActiveWorldGraph
+from propstore.core.graph_types import WorldActivationGraph
 from propstore.core.labels import Label, SupportQuality
 from propstore.core.reasoning import (
     ArgumentationSemantics,
@@ -118,7 +118,7 @@ def lift_projected_argument(argument: StructuredArgument) -> LiftedProjectionRes
 
 
 def claim_source_assertion_ids_from_active_graph(
-    active_graph: ActiveWorldGraph,
+    active_graph: WorldActivationGraph,
 ) -> dict[str, tuple[str, ...]]:
     active_claim_ids = set(active_graph.active_claim_ids)
     mapping: dict[str, tuple[str, ...]] = {}

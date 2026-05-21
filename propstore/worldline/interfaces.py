@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from propstore.core.environment import WorldStore, Environment
-from propstore.core.graph_types import ActiveWorldGraph
+from propstore.core.graph_types import WorldActivationGraph
 from propstore.world.types import BeliefSpace, RenderPolicy
 
 if TYPE_CHECKING:
@@ -32,7 +32,7 @@ class HasLiftingSystem(Protocol):
 
 @runtime_checkable
 class HasActiveGraph(Protocol):
-    _active_graph: ActiveWorldGraph | None
+    _active_graph: WorldActivationGraph | None
 
 
 class WorldlineStore(WorldStore, Protocol):

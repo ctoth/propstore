@@ -2,7 +2,7 @@ import pytest
 
 from propstore.core.claim_values import ClaimProvenance
 from propstore.core.environment import Environment
-from propstore.core.graph_types import ActiveWorldGraph
+from propstore.core.graph_types import WorldActivationGraph
 from propstore.support_revision.explanation_types import RevisionExplanation
 from propstore.support_revision.snapshot_types import (
     EpistemicStateSnapshot,
@@ -32,7 +32,7 @@ def test_environment_rejects_malformed_bindings():
 
 def test_active_world_graph_rejects_malformed_compiled_graph():
     with pytest.raises(ValueError, match="compiled"):
-        ActiveWorldGraph.from_dict({"compiled": []})
+        WorldActivationGraph.from_dict({"compiled": []})
 
 
 def test_render_policy_rejects_malformed_map_fields():

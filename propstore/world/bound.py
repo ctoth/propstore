@@ -73,7 +73,7 @@ from propstore.support_revision.realization import realize_formal_decision
 from propstore.support_revision.state import AssumptionAtom, AssertionAtom
 
 if TYPE_CHECKING:
-    from propstore.core.graph_types import ActiveWorldGraph
+    from propstore.core.graph_types import WorldActivationGraph
     from propstore.context_lifting import LiftingSystem
     from propstore.world.atms import ATMSEngine
 
@@ -199,7 +199,7 @@ class BoundWorld(BeliefSpace):
         *,
         environment: Environment | None = None,
         policy: RenderPolicy | None = None,
-        active_graph: ActiveWorldGraph | None = None,
+        active_graph: WorldActivationGraph | None = None,
     ) -> None:
         self._store = world
         if environment is None:

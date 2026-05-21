@@ -43,7 +43,7 @@ from propstore.core.id_types import (
     to_context_id,
     to_queryable_ids,
 )
-from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, ConflictWitness as GraphConflictWitness, ParameterizationEdge
+from propstore.core.graph_types import WorldActivationGraph, ClaimNode, ConflictWitness as GraphConflictWitness, ParameterizationEdge
 from propstore.conflict_detector.models import coerce_conflict_class
 from propstore.propagation import (
     ParameterizationEvaluationStatus,
@@ -115,7 +115,7 @@ class _ATMSRuntimeLike(Protocol):
     def environment(self) -> Environment: ...
 
     @property
-    def active_graph(self) -> ActiveWorldGraph: ...
+    def active_graph(self) -> WorldActivationGraph: ...
 
     @property
     def all_parameterizations(self) -> Callable[[], list[Parameterization]]: ...
@@ -148,7 +148,7 @@ class _ATMSRuntimeLike(Protocol):
 @runtime_checkable
 class _ATMSBoundLike(Protocol):
     _environment: Environment
-    _active_graph: ActiveWorldGraph | None
+    _active_graph: WorldActivationGraph | None
     _store: WorldStore
     _lifting_system: LiftingSystem | None
     _policy: Any
@@ -298,7 +298,7 @@ class ATMSJustification:
 @dataclass(frozen=True)
 class _ATMSRuntime:
     environment: Environment
-    active_graph: ActiveWorldGraph
+    active_graph: WorldActivationGraph
     all_parameterizations: Callable[[], list[Parameterization]]
     all_micropublications: Callable[[], list[Micropublication]]
     active_claims: Callable[[], list[Claim]]
@@ -314,7 +314,7 @@ class _ATMSRuntime:
         return self.environment
 
     @property
-    def _active_graph(self) -> ActiveWorldGraph:
+    def _active_graph(self) -> WorldActivationGraph:
         return self.active_graph
 
 
