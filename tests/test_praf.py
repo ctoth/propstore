@@ -13,7 +13,7 @@ from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import to_claim_id
 from propstore.opinion import Opinion, from_probability as _from_probability
-from propstore.preference import claim_strength
+from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
 _TEST_BASE_RATE = 0.5
@@ -565,35 +565,23 @@ def test_build_praf_from_store():
 
     store = MagicMock()
     store.claims_by_ids.return_value = {
-        "c1": {"id": "c1", "concept_id": "x", "type": "parameter"},
-        "c2": {"id": "c2", "concept_id": "x", "type": "parameter"},
+        "c1": claim_from_payload({"id": "c1", "concept_id": "x", "type": "parameter"}),
+        "c2": claim_from_payload({"id": "c2", "concept_id": "x", "type": "parameter"}),
     }
     store.stances_between.return_value = [
-        {
+        stance_from_payload({
             "claim_id": "c1",
             "target_claim_id": "c2",
-            "stance_type": "rebuts",
+            "stance_type": "undercuts",
             "confidence": 0.9,
             "opinion_belief": 0.8,
             "opinion_disbelief": 0.05,
             "opinion_uncertainty": 0.15,
             "opinion_base_rate": 0.5,
-        },
+        }),
     ]
 
-    # build_praf needs preference filtering — mock to bypass
-    # The stance is "rebuts" which is preference-filtered
-    # We need defeat_holds to return True
-    from unittest.mock import patch
-
-    with patch("propstore.core.analyzers.defeat_holds", return_value=True), \
-         patch(
-             "propstore.core.analyzers.claim_strength",
-             return_value=claim_strength(
-                 {"sample_size": 1, "uncertainty": 0.5, "confidence": 0.5}
-             ),
-         ):
-        praf = build_praf(store, {"c1", "c2"})
+    praf = build_praf(store, {"c1", "c2"})
 
     assert isinstance(praf, PropstorePrAF)
     # Bare active claims stay in the PrAF topology and are surfaced as
@@ -601,8 +589,8 @@ def test_build_praf_from_store():
     assert praf.framework.arguments == frozenset({"c1", "c2"})
     assert set(praf.omitted_arguments) == {"c1", "c2"}
 
-    # There should be a defeat with Opinion-based P_D
-    assert len(praf.p_defeats) >= 0  # may have defeats depending on preference
+    assert praf.framework.defeats == frozenset({("c1", "c2")})
+    assert praf.p_defeats[("c1", "c2")] == Opinion(0.8, 0.05, 0.15, 0.5)
 
 
 def test_build_praf_omits_uncalibrated_relation_from_probability_envelope():
