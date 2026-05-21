@@ -42,6 +42,14 @@ Binding notes from the 2026-05-20 update:
 
 - Do not replace relation row lookup helpers with per-family identity lookup
   wrappers, convenience methods, or renamed helper-shaped APIs.
+- Do not add standalone Propstore relation model classes and call that the
+  cutover. `Stance`, `ConceptRelation`, and `ConflictWitness` are only valid
+  final-state models when they are registered through the existing Propstore
+  world family charter infrastructure in
+  `propstore/families/world_charters.py`, backed by Quire catalog metadata and
+  SQLAlchemy mappings. Plain classes in
+  `propstore/families/relations/declaration.py` that are not chartered family
+  models are just another duplicate model layer and are forbidden.
 - Relation, stance, and conflict references must use generic Quire family
   reference/FK lookup and generic Quire main-model access. If a needed lookup
   capability is missing, add it in Quire; do not add a Propstore relation-only
@@ -187,7 +195,15 @@ Declare these Propstore domain models through the Quire charter system:
 
 Model requirements:
 
+- the model classes may live in the relation semantic owner, but the mapping
+  source of truth is the existing Propstore world charter in
+  `propstore/families/world_charters.py`;
 - `relation_edge` is mapped explicitly with SQLAlchemy polymorphic mapping;
+- `Stance` and `ConceptRelation` are declared on the `relation_edge` charter
+  through Quire `CharterPolymorphicModel` metadata; do not create a parallel
+  relation registry, local mapper, row DTO, or unchartered model layer;
+- `ConflictWitness` is the model registered for the `conflict_witness` charter,
+  not a separate wrapper around `ConflictWitnessRecord`;
 - stance source, target, kind, polarity, and resolution fields are typed model
   fields or typed value objects;
 - condition-difference serialization uses the relation/stance model JSON
@@ -486,3 +502,11 @@ Recorded 2026-05-20.
   `uv run pyright` with 0 errors and `uv run pytest -vv` with 368 passed.
   Propstore `pyproject.toml` and `uv.lock` are pinned to that pushed Git SHA,
   not a local path.
+- Propstore implementation correction: relation model cleanup must use that
+  Quire polymorphic family infrastructure directly. The next Propstore slice
+  must first update `propstore/families/world_charters.py` so the existing
+  `relation_edge` charter maps the base relation edge plus `Stance` and
+  `ConceptRelation` subclasses, and so the `conflict_witness` charter maps the
+  final `ConflictWitness` model. Adding model-looking classes in the relation
+  declaration file without charter registration is explicitly not a valid
+  Phase 11 repair.
