@@ -6,18 +6,15 @@ import json
 from collections.abc import Iterable, Sequence
 from typing import Any
 
+from quire.charters import FamilyModel
 from quire.references import FamilyReferenceIndex
 
 from propstore.claims import ClaimFileEntry
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
-from propstore.core.concept_relationship_types import ConceptRelationshipType
 from propstore.core.id_types import (
     ClaimId,
-    ConceptId,
-    JustificationId,
     to_claim_id,
-    to_concept_id,
     to_justification_id,
 )
 from propstore.compiler.ir import SemanticClaim
@@ -29,56 +26,7 @@ from propstore.stances import StanceType, coerce_stance_type
 from propstore.stances import VALID_STANCE_TYPES
 
 
-class RelationEdge:
-    def __init__(
-        self,
-        *,
-        source_kind: str,
-        source_id: str,
-        relation_type: object,
-        target_kind: str,
-        target_id: str,
-        id: int | None = None,
-        perspective_source_claim_id: str | None = None,
-        target_justification_id: str | None = None,
-        conditions_cel: str | None = None,
-        strength: str | None = None,
-        conditions_differ: str | None = None,
-        note: str | None = None,
-        resolution_method: str | None = None,
-        resolution_model: str | None = None,
-        embedding_model: str | None = None,
-        embedding_distance: float | None = None,
-        pass_number: int | None = None,
-        confidence: float | None = None,
-        opinion_belief: float | None = None,
-        opinion_disbelief: float | None = None,
-        opinion_uncertainty: float | None = None,
-        opinion_base_rate: float | None = None,
-    ) -> None:
-        self.id = id
-        self.source_kind = source_kind
-        self.source_id = source_id
-        self.relation_type = str(relation_type)
-        self.target_kind = target_kind
-        self.target_id = target_id
-        self.perspective_source_claim_id = perspective_source_claim_id
-        self.target_justification_id = target_justification_id
-        self.conditions_cel = conditions_cel
-        self.strength = strength
-        self.conditions_differ = conditions_differ
-        self.note = note
-        self.resolution_method = resolution_method
-        self.resolution_model = resolution_model
-        self.embedding_model = embedding_model
-        self.embedding_distance = embedding_distance
-        self.pass_number = pass_number
-        self.confidence = confidence
-        self.opinion_belief = opinion_belief
-        self.opinion_disbelief = opinion_disbelief
-        self.opinion_uncertainty = opinion_uncertainty
-        self.opinion_base_rate = opinion_base_rate
-
+class RelationEdge(FamilyModel):
     def attribute_mapping(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         for key in (
@@ -109,95 +57,10 @@ class RelationEdge:
 
 
 class ConceptRelation(RelationEdge):
-    def __init__(
-        self,
-        source_id: ConceptId | str,
-        relation_type: ConceptRelationshipType | str,
-        target_id: ConceptId | str,
-        *,
-        id: int | None = None,
-        conditions_cel: str | None = None,
-        note: str | None = None,
-    ) -> None:
-        super().__init__(
-            id=id,
-            source_kind="concept",
-            source_id=str(source_id),
-            relation_type=relation_type,
-            target_kind="concept",
-            target_id=str(target_id),
-            conditions_cel=conditions_cel,
-            note=note,
-        )
+    pass
 
 
 class Stance(RelationEdge):
-    def __init__(
-        self,
-        claim_id: ClaimId | str,
-        target_claim_id: ClaimId | str,
-        stance_type: StanceType | str,
-        *,
-        id: int | None = None,
-        target_justification_id: JustificationId | str | None = None,
-        perspective_source_claim_id: ClaimId | str | None = None,
-        strength: str | None = None,
-        conditions_differ: str | None = None,
-        note: str | None = None,
-        resolution_method: str | None = None,
-        resolution_model: str | None = None,
-        embedding_model: str | None = None,
-        embedding_distance: float | None = None,
-        pass_number: int | None = None,
-        confidence: float | None = None,
-        opinion_belief: float | None = None,
-        opinion_disbelief: float | None = None,
-        opinion_uncertainty: float | None = None,
-        opinion_base_rate: float | None = None,
-        resolution: ResolutionDocument | None = None,
-    ) -> None:
-        if resolution is not None:
-            resolution_method = resolution.method
-            resolution_model = resolution.model
-            embedding_model = resolution.embedding_model
-            embedding_distance = (
-                None
-                if resolution.embedding_distance is None
-                else float(resolution.embedding_distance)
-            )
-            pass_number = resolution.pass_number
-            confidence = (
-                None if resolution.confidence is None else float(resolution.confidence)
-            )
-            if resolution.opinion is not None:
-                opinion_belief = float(resolution.opinion.b)
-                opinion_disbelief = float(resolution.opinion.d)
-                opinion_uncertainty = float(resolution.opinion.u)
-                opinion_base_rate = float(resolution.opinion.a)
-        super().__init__(
-            id=id,
-            source_kind="claim",
-            source_id=str(claim_id),
-            relation_type=stance_type,
-            target_kind="claim",
-            target_id=str(target_claim_id),
-            target_justification_id=None if target_justification_id is None else str(target_justification_id),
-            perspective_source_claim_id=None if perspective_source_claim_id is None else str(perspective_source_claim_id),
-            strength=strength,
-            conditions_differ=conditions_differ,
-            note=note,
-            resolution_method=resolution_method,
-            resolution_model=resolution_model,
-            embedding_model=embedding_model,
-            embedding_distance=embedding_distance,
-            pass_number=pass_number,
-            confidence=confidence,
-            opinion_belief=opinion_belief,
-            opinion_disbelief=opinion_disbelief,
-            opinion_uncertainty=opinion_uncertainty,
-            opinion_base_rate=opinion_base_rate,
-        )
-
     @property
     def claim_id(self) -> ClaimId:
         return to_claim_id(self.source_id)
@@ -214,34 +77,7 @@ class Stance(RelationEdge):
         return stance_type
 
 
-class ConflictWitness:
-    def __init__(
-        self,
-        claim_a_id: ClaimId | str,
-        claim_b_id: ClaimId | str,
-        *,
-        id: int | None = None,
-        concept_id: ConceptId | str | None = None,
-        warning_class: str | None = None,
-        conflict_class: str | None = None,
-        conditions_a: str | None = None,
-        conditions_b: str | None = None,
-        value_a: Any = None,
-        value_b: Any = None,
-        derivation_chain: str | None = None,
-    ) -> None:
-        self.id = id
-        self.claim_a_id = str(claim_a_id)
-        self.claim_b_id = str(claim_b_id)
-        self.concept_id = None if concept_id is None else str(concept_id)
-        self.warning_class = None if warning_class is None else str(warning_class)
-        self.conflict_class = None if conflict_class is None else str(conflict_class)
-        self.conditions_a = conditions_a
-        self.conditions_b = conditions_b
-        self.value_a = value_a
-        self.value_b = value_b
-        self.derivation_chain = derivation_chain
-
+class ConflictWitness(FamilyModel):
     def attribute_mapping(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         for key in ("conditions_a", "conditions_b", "value_a", "value_b", "derivation_chain"):
@@ -251,10 +87,29 @@ class ConflictWitness:
         return data
 
 
-RelationEdgeInput = RelationEdge
-StanceInput = Stance
-ConceptRelationInput = ConceptRelation
-ConflictWitnessInput = ConflictWitness
+def _resolution_attributes(resolution: ResolutionDocument | None) -> dict[str, object]:
+    if resolution is None:
+        return {}
+    attributes: dict[str, object] = {
+        "resolution_method": resolution.method,
+        "resolution_model": resolution.model,
+        "embedding_model": resolution.embedding_model,
+        "embedding_distance": (
+            None
+            if resolution.embedding_distance is None
+            else float(resolution.embedding_distance)
+        ),
+        "pass_number": resolution.pass_number,
+        "confidence": None if resolution.confidence is None else float(resolution.confidence),
+    }
+    if resolution.opinion is not None:
+        attributes.update(
+            opinion_belief=float(resolution.opinion.b),
+            opinion_disbelief=float(resolution.opinion.d),
+            opinion_uncertainty=float(resolution.opinion.u),
+            opinion_base_rate=float(resolution.opinion.a),
+        )
+    return {key: value for key, value in attributes.items() if value is not None}
 
 
 def compile_claim_embedded_stance_models_with_diagnostics(
@@ -306,9 +161,11 @@ def compile_claim_embedded_stance_models_with_diagnostics(
             continue
         models.append(
             Stance(
-                claim_id=str(claim_id),
-                target_claim_id=str(target_claim_id),
-                stance_type=stance_type,
+                source_kind="claim",
+                source_id=str(claim_id),
+                relation_type=str(stance_type),
+                target_kind="claim",
+                target_id=str(target_claim_id),
                 target_justification_id=(
                     None
                     if stance.target_justification_id is None
@@ -317,8 +174,8 @@ def compile_claim_embedded_stance_models_with_diagnostics(
                 strength=stance.strength,
                 conditions_differ=stance.conditions_differ,
                 note=stance.note,
-                resolution=stance.resolution,
                 perspective_source_claim_id=str(claim_id),
+                **_resolution_attributes(stance.resolution),
             )
         )
     return tuple(models), tuple(diagnostics)
@@ -364,9 +221,9 @@ def compile_conflict_witness_models(
     )
     return tuple(
         ConflictWitness(
-            concept_id=record.concept_id,
-            claim_a_id=record.claim_a_id,
-            claim_b_id=record.claim_b_id,
+            concept_id=str(record.concept_id),
+            claim_a_id=str(record.claim_a_id),
+            claim_b_id=str(record.claim_b_id),
             warning_class=record.warning_class.value,
             conditions_a=json.dumps(record.conditions_a),
             conditions_b=json.dumps(record.conditions_b),
@@ -437,9 +294,11 @@ def compile_authored_stance_models_with_diagnostics(
             or source_claim
         )
         stance_model = Stance(
-            claim_id=str(source_claim),
-            target_claim_id=str(target),
-            stance_type=stance_type,
+            source_kind="claim",
+            source_id=str(source_claim),
+            relation_type=str(stance_type),
+            target_kind="claim",
+            target_id=str(target),
             target_justification_id=(
                 None
                 if stance.target_justification_id is None
@@ -448,8 +307,8 @@ def compile_authored_stance_models_with_diagnostics(
             strength=stance.strength,
             conditions_differ=stance.conditions_differ,
             note=stance.note,
-            resolution=stance.resolution,
             perspective_source_claim_id=str(perspective_source_claim),
+            **_resolution_attributes(stance.resolution),
         )
         models.append(stance_model)
     return tuple(models), tuple(diagnostics)

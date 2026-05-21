@@ -154,9 +154,11 @@ def test_p_heavy_2_heavy_surfaces_stances_minimal_does_not() -> None:
     commit_sha = "b" * 40
     extra_row = space.add_claim("c2")
     fake_stance = Stance(
-        claim_id=_claim_id("c1"),
-        target_claim_id=to_claim_id(extra_row.id),
-        stance_type=StanceType.SUPPORTS,
+        source_kind="claim",
+        source_id=str(_claim_id("c1")),
+        relation_type=str(StanceType.SUPPORTS),
+        target_kind="claim",
+        target_id=str(to_claim_id(extra_row.id)),
     )
     fake_conflict = ConflictWitness(
         claim_a_id=_claim_id("c1"),
@@ -188,9 +190,11 @@ def test_p_heavy_2b_unregistered_commit_derives_typed_rows_from_world_query_surf
     )
     base_space = synthetic_belief_space_with(atom)
     stance = Stance(
-        claim_id=_claim_id("c1"),
-        target_claim_id=_claim_id("c2"),
-        stance_type=StanceType.REBUTS,
+        source_kind="claim",
+        source_id=str(_claim_id("c1")),
+        relation_type=str(StanceType.REBUTS),
+        target_kind="claim",
+        target_id=str(_claim_id("c2")),
     )
     conflict = ConflictWitness(
         claim_a_id=_claim_id("c1"),
@@ -221,9 +225,11 @@ def test_p_heavy_2c_unregistered_commit_uses_historical_query_surface() -> None:
     )
     base_space = synthetic_belief_space_with(atom)
     stance = Stance(
-        claim_id=_claim_id("c1"),
-        target_claim_id=_claim_id("c2"),
-        stance_type=StanceType.SUPPORTS,
+        source_kind="claim",
+        source_id=str(_claim_id("c1")),
+        relation_type=str(StanceType.SUPPORTS),
+        target_kind="claim",
+        target_id=str(_claim_id("c2")),
     )
     conflict = ConflictWitness(
         claim_a_id=_claim_id("c1"),

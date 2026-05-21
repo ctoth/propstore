@@ -22,14 +22,18 @@ class _JustificationStore:
         self._claim_models = [claim_model_from_mapping(claim) for claim in self._claims]
         self._stances = [
             Stance(
-                claim_id="claim_a",
-                target_claim_id="claim_b",
-                stance_type="supports",
+                source_kind="claim",
+                source_id="claim_a",
+                relation_type="supports",
+                target_kind="claim",
+                target_id="claim_b",
             ),
             Stance(
-                claim_id="claim_b",
-                target_claim_id="claim_c",
-                stance_type="explains",
+                source_kind="claim",
+                source_id="claim_b",
+                relation_type="explains",
+                target_kind="claim",
+                target_id="claim_c",
             ),
         ]
 

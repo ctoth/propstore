@@ -34,9 +34,11 @@ def _extract_stance_rows(
                 continue
             rows.append(
                 Stance(
-                    claim_id=relation.source_id,
-                    target_claim_id=relation.target_id,
-                    stance_type=relation.relation_type,
+                    source_kind="claim",
+                    source_id=relation.source_id,
+                    relation_type=relation.relation_type,
+                    target_kind="claim",
+                    target_id=relation.target_id,
                 )
             )
         return rows

@@ -105,9 +105,11 @@ def _claim(claim_id: str, *, concept_id: str = "concept1") -> Claim:
 
 def _stance(source: str, stance_type: str, target: str) -> Stance:
     return Stance(
-        claim_id=source,
-        target_claim_id=target,
-        stance_type=stance_type,
+        source_kind="claim",
+        source_id=source,
+        relation_type=stance_type,
+        target_kind="claim",
+        target_id=target,
     )
 
 

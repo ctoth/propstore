@@ -132,8 +132,10 @@ def compile_concept_sidecar_rows(
             )
             relation_edge_rows.append(
                 ConceptRelation(
+                    source_kind="concept",
                     source_id=concept_id,
-                    relation_type=relationship.relationship_type,
+                    relation_type=str(relationship.relationship_type),
+                    target_kind="concept",
                     target_id=target_id,
                     conditions_cel=conditions_json,
                     note=relationship.note,

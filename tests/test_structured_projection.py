@@ -77,9 +77,11 @@ class _ProjectionStore:
             stance
             if isinstance(stance, Stance)
             else Stance(
-                claim_id=stance["claim_id"],
-                target_claim_id=stance["target_claim_id"],
-                stance_type=stance["stance_type"],
+                source_kind="claim",
+                source_id=stance["claim_id"],
+                relation_type=stance["stance_type"],
+                target_kind="claim",
+                target_id=stance["target_claim_id"],
                 target_justification_id=stance.get("target_justification_id"),
             )
             for stance in (stances or [])

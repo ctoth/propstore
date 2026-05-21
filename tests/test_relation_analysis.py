@@ -9,16 +9,20 @@ class _TypedStanceStore:
     def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
             Stance(
-                claim_id="claim:a",
-                target_claim_id="claim:b",
-                stance_type=StanceType.SUPERSEDES,
+                source_kind="claim",
+                source_id="claim:a",
+                relation_type=str(StanceType.SUPERSEDES),
+                target_kind="claim",
+                target_id="claim:b",
                 resolution_model="demo-model",
                 opinion_uncertainty=0.25,
             ),
             Stance(
-                claim_id="claim:c",
-                target_claim_id="claim:d",
-                stance_type=StanceType.SUPPORTS,
+                source_kind="claim",
+                source_id="claim:c",
+                relation_type=str(StanceType.SUPPORTS),
+                target_kind="claim",
+                target_id="claim:d",
                 opinion_uncertainty=1.0,
             ),
         ]

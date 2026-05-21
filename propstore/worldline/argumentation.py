@@ -347,9 +347,11 @@ def active_stance_dependencies(
                 continue
             stance_rows.append(
                 Stance(
-                    claim_id=edge.source_id,
-                    target_claim_id=edge.target_id,
-                    stance_type=edge.relation_type,
+                    source_kind="claim",
+                    source_id=edge.source_id,
+                    relation_type=edge.relation_type,
+                    target_kind="claim",
+                    target_id=edge.target_id,
                 )
             )
         return sorted(_stance_dependency_key(row) for row in stance_rows)

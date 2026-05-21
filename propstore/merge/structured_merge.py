@@ -132,10 +132,14 @@ def _stance_row_from_mapping(
         return None
 
     return Stance(
-        claim_id=source_claim_id,
-        target_claim_id=to_claim_id(target),
-        stance_type=coerced_stance_type,
-        target_justification_id=target_justification_id,
+        source_kind="claim",
+        source_id=str(source_claim_id),
+        relation_type=str(coerced_stance_type),
+        target_kind="claim",
+        target_id=str(to_claim_id(target)),
+        target_justification_id=(
+            None if target_justification_id is None else str(target_justification_id)
+        ),
         strength=_optional_string(stance.get("strength")),
         conditions_differ=_optional_string(stance.get("conditions_differ")),
         note=_optional_string(stance.get("note")),

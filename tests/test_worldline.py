@@ -928,9 +928,11 @@ class TestWorldlineDependencyLiveness:
                 if {"claim_a", "claim_b"}.issubset(claim_ids):
                     return [
                         Stance(
-                            claim_id="claim_b",
-                            target_claim_id="claim_a",
-                            stance_type=self._stance_type,
+                            source_kind="claim",
+                            source_id="claim_b",
+                            relation_type=self._stance_type,
+                            target_kind="claim",
+                            target_id="claim_a",
                             confidence=1.0,
                             note=f"{self._stance_type}-note",
                         )

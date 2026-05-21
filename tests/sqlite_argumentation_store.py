@@ -80,9 +80,11 @@ class SQLiteArgumentationStore:
         ).fetchall()
         return [
             Stance(
-                claim_id=row["claim_id"],
-                target_claim_id=row["target_claim_id"],
-                stance_type=row["stance_type"],
+                source_kind="claim",
+                source_id=row["claim_id"],
+                relation_type=row["stance_type"],
+                target_kind="claim",
+                target_id=row["target_claim_id"],
                 target_justification_id=row["target_justification_id"],
                 strength=row["strength"],
                 conditions_differ=row["conditions_differ"],
