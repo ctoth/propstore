@@ -1541,3 +1541,27 @@ Current binding queue:
   atms-claim-fixture-helper-deletion tests/test_atms_engine.py` passed with
   39 tests and log
   `logs\test-runs\atms-claim-fixture-helper-deletion-20260520-194625.log`.
+- Claim concept-link row-helper deletion: commit `0cf4ebad` deleted
+  `prepare_claim_concept_link_rows`, `_iter_claim_concept_link_values`, and
+  `_claim_concept_link_values_for_declaration` from
+  `propstore/families/claims/storage.py`. `compile_claim_models` now builds
+  `ClaimConceptLink` association objects directly from typed `ClaimDocument`
+  fields and the existing claim type contract metadata, then attaches each
+  object to `claim.concept_links`; it does not round-trip the typed claim
+  through a payload dictionary or tuple row helper. The same slice deleted
+  stale tests for the already-removed `prepare_claim_insert_row` and
+  `extract_numeric_claim_fields` helpers instead of restoring those row/coercer
+  APIs. `rg -n -F -- "prepare_claim_concept_link_rows" propstore tests`,
+  `_iter_claim_concept_link_values`, `_claim_concept_link_values_for_declaration`,
+  `prepare_claim_insert_row`, and `extract_numeric_claim_fields` returned zero
+  hits, and `uv run pyright propstore` passed with 0 errors. Logged focused
+  pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
+  claim-concept-link-helper-deletion-reachable tests/test_claim_compiler.py
+  tests/test_claim_notes.py::TestClaimNotesSidecar::test_world_query_get_claim_returns_notes
+  tests/test_source_trust.py::test_p_arg_from_claim_uses_source_trust_mapping`
+  passed with 6 tests and log
+  `logs\test-runs\claim-concept-link-helper-deletion-reachable-20260520-195422.log`.
+  The broader normalized sidecar storage selection remains blocked before the
+  edited claim assertions by the Phase 11 relation-edge charter mismatch
+  `ValueError: missing required field(s) for family 'relation_edge': id`; that
+  is not a reason to restore claim row helpers.
