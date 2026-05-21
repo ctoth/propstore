@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from sqlalchemy import text
+
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.repository import Repository
-from quire.derived_runtime import connect_sqlite_store
 from propstore.families.registry import SOURCE_BRANCH, SourceRef
 from propstore.source.status import inspect_source_status
+from quire.sqlalchemy_store import writable_session
 from tests.family_helpers import materialized_world_store
 
 
@@ -14,54 +17,63 @@ def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     assert alien_branch != target_branch
 
     handle = materialized_world_store(repo, force=True)
-    conn = connect_sqlite_store(handle.path)
-    try:
-        conn.execute(
-            """
+    schema = world_sqlalchemy_schema()
+    with writable_session(handle.path, schema) as derived:
+        derived.session.execute(
+            text(
+                """
             INSERT INTO claim_core (
                 id, primary_logical_id, logical_ids_json, version_id,
                 content_hash, seq, type, source_paper, provenance_page,
                 premise_kind, branch, build_status, promotion_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (
+                :claim_id, :primary_logical_id, :logical_ids_json, :version_id,
+                :content_hash, :seq, :type, :source_paper, :provenance_page,
+                :premise_kind, :branch, :build_status, :promotion_status
+            )
             """,
-            (
-                "claim-1",
-                "",
-                "[]",
-                "",
-                "",
-                0,
-                "promotion_blocked",
-                "paper-a",
-                0,
-                "ordinary",
-                target_branch,
-                "ingested",
-                "blocked",
             ),
+            {
+                "claim_id": "claim-1",
+                "primary_logical_id": "",
+                "logical_ids_json": "[]",
+                "version_id": "",
+                "content_hash": "",
+                "seq": 0,
+                "type": "promotion_blocked",
+                "source_paper": "paper-a",
+                "provenance_page": 0,
+                "premise_kind": "ordinary",
+                "branch": target_branch,
+                "build_status": "ingested",
+                "promotion_status": "blocked",
+            },
         )
-        conn.execute(
-            """
+        derived.session.execute(
+            text(
+                """
             INSERT INTO build_diagnostics (
                 claim_id, source_kind, source_ref, diagnostic_kind,
                 severity, blocking, message, file, detail_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (
+                :claim_id, :source_kind, :source_ref, :diagnostic_kind,
+                :severity, :blocking, :message, :file, :detail_json
+            )
             """,
-            (
-                None,
-                "claim",
-                f"{alien_branch}:claim-1",
-                "promotion_blocked",
-                "error",
-                1,
-                "alien branch diagnostic",
-                None,
-                None,
             ),
+            {
+                "claim_id": None,
+                "source_kind": "claim",
+                "source_ref": f"{alien_branch}:claim-1",
+                "diagnostic_kind": "promotion_blocked",
+                "severity": "error",
+                "blocking": 1,
+                "message": "alien branch diagnostic",
+                "file": None,
+                "detail_json": None,
+            },
         )
-        conn.commit()
-    finally:
-        conn.close()
+        derived.session.commit()
 
     report = inspect_source_status(handle, "foo_bar")
 
