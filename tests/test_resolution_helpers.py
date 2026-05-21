@@ -13,6 +13,7 @@ from propstore.core.id_types import to_concept_id
 from propstore.core.results import AnalyzerResult, ClaimProjection, ExtensionResult
 from argumentation.dung import ArgumentationFramework
 from propstore.families.claims.declaration import Claim
+from propstore.families.concepts.declaration import Concept
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.resolution import (
     _resolve_claim_graph_argumentation,
@@ -96,45 +97,47 @@ class _AspicView:
 
 class _AssignmentSelectionWorld:
     def __init__(self, *, lower: float, upper: float) -> None:
-        self._concept = {
-            "id": "concept1",
-            "canonical_name": "concept1",
-            "form": "quantity",
-            "form_parameters": None,
-            "range_min": lower,
-            "range_max": upper,
-        }
+        self._concept = Concept(
+            id="concept1",
+            canonical_name="concept1",
+            form="quantity",
+            form_parameters=None,
+            kind_type="quantity",
+            range_min=lower,
+            range_max=upper,
+        )
 
-    def get_concept(self, concept_id: str) -> dict | None:
+    def get_concept(self, concept_id: str) -> Concept | None:
         if concept_id != "concept1":
             return None
-        return dict(self._concept)
+        return self._concept
 
 
 class _GlobalAssignmentSelectionWorld:
     def __init__(self) -> None:
         self._concepts = {
-            "concept1": {
-                "id": "concept1",
-                "canonical_name": "x",
-                "form": "quantity",
-                "form_parameters": None,
-                "range_min": None,
-                "range_max": None,
-            },
-            "concept2": {
-                "id": "concept2",
-                "canonical_name": "y",
-                "form": "quantity",
-                "form_parameters": None,
-                "range_min": None,
-                "range_max": None,
-            },
+            "concept1": Concept(
+                id="concept1",
+                canonical_name="x",
+                form="quantity",
+                form_parameters=None,
+                kind_type="quantity",
+                range_min=None,
+                range_max=None,
+            ),
+            "concept2": Concept(
+                id="concept2",
+                canonical_name="y",
+                form="quantity",
+                form_parameters=None,
+                kind_type="quantity",
+                range_min=None,
+                range_max=None,
+            ),
         }
 
-    def get_concept(self, concept_id: str) -> dict | None:
-        concept = self._concepts.get(concept_id)
-        return None if concept is None else dict(concept)
+    def get_concept(self, concept_id: str) -> Concept | None:
+        return self._concepts.get(concept_id)
 
 
 class _GlobalAssignmentSelectionView:
