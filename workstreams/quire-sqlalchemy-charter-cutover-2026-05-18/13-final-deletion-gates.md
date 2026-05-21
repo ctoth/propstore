@@ -544,6 +544,13 @@ Gate: no local path, workspace, or file URL Quire dependency.
     source-qualified winner display id.
   - `uv run pyright propstore` passed with 0 errors after the reasoning demo
     display repair.
+  - `uv run pks contract-manifest --write` regenerated
+    `propstore/_resources/contract_manifests/semantic-contracts.yaml` after
+    bumping changed family, semantic-FK, and registry contract versions.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-contract-manifest-2 tests/test_contract_manifest.py::test_checked_in_contract_manifest_is_current tests/test_contract_manifest.py::test_contract_manifest_changes_require_version_bumps_against_head`
+    passed 2 tests after the manifest regeneration/version bump workflow.
+  - `uv run pyright propstore` passed with 0 errors after the contract
+    manifest update.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -606,8 +613,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
     - Sidecar cache-key input is repaired after full-6: the generated-schema
       identity now comes from the Quire SQLAlchemy schema catalog hash and is
       included in the content hash inputs.
-    - Contract manifest snapshot and version-bump gates still fail and remain
-      final settlement work after production semantics stop moving.
+    - Contract manifest snapshot and version-bump gates are repaired after
+      full-6 through the `pks contract-manifest --write` workflow and explicit
+      contract version bumps.
     - Preference-import typed fixture drift is repaired after full-6.
       Sensitivity typed-claim access is repaired after full-6. Semantic repair
       typed fixture/display-id drift is repaired after full-6.
