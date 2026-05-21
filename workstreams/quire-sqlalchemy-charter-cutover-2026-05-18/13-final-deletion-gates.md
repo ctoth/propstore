@@ -151,7 +151,7 @@ Repository: `C:\Users\Q\code\propstore`.
 - [ ] Delete row classes that duplicate domain models.
 - [ ] Delete manual select/count/insert/decode/attached-row helpers that are
   generic DB plumbing.
-- [ ] Delete manual field coercers now owned by the charter engine.
+- [x] Delete manual field coercers now owned by the charter engine.
 - [ ] Confirm remaining IO boundary constructors use names such as
   `from_yaml_payload`, `from_json_payload`, or `from_row_mapping`.
 - [ ] Confirm `from_mapping` is absent from core, families, world, worldline,
@@ -170,6 +170,24 @@ Repository: `C:\Users\Q\code\propstore`.
   argumentation semantics, revision semantics, or authored-document identity.
 - [ ] After semantic behavior is moved to its owner, delete the original
   helper-shaped production path.
+
+### Phase 16 Execution Record
+
+Recorded 2026-05-21.
+
+- Commit `a53b7457` (`Delete optional coercer helpers`) deleted the remaining
+  `_optional_string`, `_optional_int`, `_optional_float`,
+  `_optional_float_input`, `_optional_numeric`, and `_claim_optional_float`
+  search-gate hits in `propstore` and `tests`.
+- The kept parsing logic is located at actual payload/YAML boundaries:
+  `from_json_payload` constructors, merge-claim provenance extraction, and the
+  defeasible conformance YAML test loader. No replacement helper family was
+  added.
+- The same commit made relation model comparison behavior-only and based on
+  public mapped attributes, and made relation attribute extraction tolerant of
+  absent optional charter fields without adding fields outside the charter.
+- Verification: `uv run pyright propstore` passed with 0 errors; logged pytest
+  `phase16-coercer-20260521-131326.log` passed with 20 tests.
 
 ### Propstore Search Gates
 
