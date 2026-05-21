@@ -1380,6 +1380,18 @@ Current binding queue:
   tests/test_revision_phase1.py tests/test_revision_entrenchment.py
   tests/test_revision_af_adapter.py tests/test_revision_bound_world.py` passed
   with 15 tests.
+- Resolution-helper typed-claim cleanup: commit `41293098` removed
+  `ActiveClaim.from_row_mapping` and dict-shaped claim rows from
+  `tests/test_resolution_helpers.py`. The resolution helper tests now build
+  typed `Claim` objects through the Quire-backed test model helper, filter by
+  typed claim concept relationships, use typed `ValueStatus` and CEL values,
+  and keep only explicit test casts for partial fake protocol objects. Focused
+  verification `uv run pyright tests/test_resolution_helpers.py` passed with
+  0 errors, searches for `ActiveClaim`, `propstore.core.active_claims`, and
+  dict claim indexing in the edited file returned zero hits, and logged
+  focused pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
+  resolution-helper-typed-claims tests/test_resolution_helpers.py` passed with
+  13 tests.
 - Normalizer deletion queue refresh: `_normalize_attrs` and similar
   broad attribute/payload repair helpers are explicitly in the Phase 10
   deletion queue when they construct or repair claim/runtime model shape
