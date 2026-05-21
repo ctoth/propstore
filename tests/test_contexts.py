@@ -357,13 +357,14 @@ class TestContextSidecar:
             ),
         ]
         compiled = compile_context_models(contexts)
+        context_rows, assumption_rows, lifting_rule_rows, _ = compiled
         sidecar_path = tmp_path / "propstore.sqlite"
         create_sqlalchemy_store(sidecar_path, schema)
 
         with writable_session(sidecar_path, schema) as session:
-            session.add_all(compiled.contexts)
-            session.add_all(compiled.assumptions)
-            session.add_all(compiled.lifting_rules)
+            session.add_all(context_rows)
+            session.add_all(assumption_rows)
+            session.add_all(lifting_rule_rows)
             session.commit()
 
         context_model = schema.model("context")

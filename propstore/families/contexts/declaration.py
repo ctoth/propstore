@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
 from collections.abc import Mapping, Sequence
 
 from sqlalchemy import select
+from quire.charters import FamilyModel
 from quire.derived_store import DerivedStoreHandle
 
 from propstore.context_lifting import (
@@ -27,68 +27,19 @@ from propstore.families.contexts.stages import (
 )
 
 
-class Context:
-    def __init__(
-        self,
-        id: str,
-        name: str,
-        description: str | None = None,
-        parameters_json: str | None = None,
-        perspective: str | None = None,
-    ) -> None:
-        self.id = id
-        self.name = name
-        self.description = description
-        self.parameters_json = parameters_json
-        self.perspective = perspective
+class Context(FamilyModel):
+    pass
 
 
-class ContextAssumption:
-    def __init__(self, context_id: str, assumption_cel: str, seq: int) -> None:
-        self.context_id = context_id
-        self.assumption_cel = assumption_cel
-        self.seq = seq
+class ContextAssumption(FamilyModel):
+    pass
 
 
-class ContextLiftingRule:
-    def __init__(
-        self,
-        id: str,
-        source_context_id: str,
-        target_context_id: str,
-        conditions_cel: str | None = None,
-        mode: str = LiftingMode.BRIDGE.value,
-        justification: str | None = None,
-    ) -> None:
-        self.id = id
-        self.source_context_id = source_context_id
-        self.target_context_id = target_context_id
-        self.conditions_cel = conditions_cel
-        self.mode = mode
-        self.justification = justification
+class ContextLiftingRule(FamilyModel):
+    pass
 
 
-class ContextLiftingMaterialization:
-    def __init__(
-        self,
-        rule_id: str,
-        source_context_id: str,
-        target_context_id: str,
-        proposition_id: str,
-        status: str,
-        provenance_json: str,
-        id: int | None = None,
-        exception_id: str | None = None,
-    ) -> None:
-        self.id = id
-        self.rule_id = rule_id
-        self.source_context_id = source_context_id
-        self.target_context_id = target_context_id
-        self.proposition_id = proposition_id
-        self.status = status
-        self.exception_id = exception_id
-        self.provenance_json = provenance_json
-
+class ContextLiftingMaterialization(FamilyModel):
     @property
     def provenance(self) -> dict[str, object]:
         loaded = json.loads(self.provenance_json)
@@ -97,31 +48,32 @@ class ContextLiftingMaterialization:
         return dict(loaded)
 
 
-@dataclass(frozen=True)
-class ContextWriteModels:
-    contexts: tuple[Context, ...]
-    assumptions: tuple[ContextAssumption, ...]
-    lifting_rules: tuple[ContextLiftingRule, ...]
-    lifting_materializations: tuple[ContextLiftingMaterialization, ...]
+ContextModelBatches = tuple[
+    tuple[Context, ...],
+    tuple[ContextAssumption, ...],
+    tuple[ContextLiftingRule, ...],
+    tuple[ContextLiftingMaterialization, ...],
+]
 
 
 def filter_invalid_context_lifting_models(
-    models: ContextWriteModels,
-) -> ContextWriteModels:
+    models: ContextModelBatches,
+) -> ContextModelBatches:
+    contexts, assumptions, lifting_rules, lifting_materializations = models
     context_ids = {
         context.id
-        for context in models.contexts
+        for context in contexts
     }
-    return ContextWriteModels(
-        contexts=models.contexts,
-        assumptions=models.assumptions,
-        lifting_rules=tuple(
+    return (
+        contexts,
+        assumptions,
+        tuple(
             rule
-            for rule in models.lifting_rules
+            for rule in lifting_rules
             if rule.source_context_id in context_ids
             and rule.target_context_id in context_ids
         ),
-        lifting_materializations=models.lifting_materializations,
+        lifting_materializations,
     )
 
 
@@ -129,7 +81,7 @@ def compile_context_models(
     contexts: Sequence[LoadedContext],
     *,
     authored_ist_assertions: Sequence[IstProposition] = (),
-) -> ContextWriteModels:
+) -> ContextModelBatches:
     context_models: list[Context] = []
     assumption_models: list[ContextAssumption] = []
     lifting_rule_models: list[ContextLiftingRule] = []
@@ -191,11 +143,11 @@ def compile_context_models(
             decisions
         )
 
-    return ContextWriteModels(
-        contexts=tuple(context_models),
-        assumptions=tuple(assumption_models),
-        lifting_rules=tuple(lifting_rule_models),
-        lifting_materializations=tuple(materialization_models),
+    return (
+        tuple(context_models),
+        tuple(assumption_models),
+        tuple(lifting_rule_models),
+        tuple(materialization_models),
     )
 
 

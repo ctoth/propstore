@@ -16,6 +16,7 @@ from propstore.families.concepts.declaration import (
 )
 from propstore.families.contexts.stages import LoadedContext, loaded_contexts_to_lifting_system
 from propstore.families.contexts.declaration import (
+    ContextModelBatches,
     compile_context_models,
     filter_invalid_context_lifting_models,
 )
@@ -205,14 +206,15 @@ def _batch(table_name: str, rows: Iterable[object] | None) -> WorldWriteBatch:
     return WorldWriteBatch(table_name=table_name, objects=world_records(table_name, rows))
 
 
-def _context_batches(rows: object) -> tuple[WorldWriteBatch, ...]:
+def _context_batches(rows: ContextModelBatches) -> tuple[WorldWriteBatch, ...]:
+    contexts, assumptions, lifting_rules, lifting_materializations = rows
     return (
-        _batch("context", getattr(rows, "contexts")),
-        _batch("context_assumption", getattr(rows, "assumptions")),
-        _batch("context_lifting_rule", getattr(rows, "lifting_rules")),
+        _batch("context", contexts),
+        _batch("context_assumption", assumptions),
+        _batch("context_lifting_rule", lifting_rules),
         _batch(
             "context_lifting_materialization",
-            getattr(rows, "lifting_materializations"),
+            lifting_materializations,
         ),
     )
 

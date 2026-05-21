@@ -295,7 +295,7 @@ def test_context_sidecar_compiler_materializes_authored_ist_assertions() -> None
         ),
     )
 
-    materialization_rows = models.lifting_materializations
+    _, _, _, materialization_rows = models
     assert len(materialization_rows) == 1
     row = materialization_rows[0]
     assert (
