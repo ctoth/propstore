@@ -362,6 +362,18 @@ workstream. Production hits outside those targets block implementation.
 - Continue with rerunning the full Phase 14 `world-charter` behavior gate,
   final search gates, data parity, and behavior parity.
 
+2026-05-21 Phase 14 behavior gate update:
+
+- `uv run pyright propstore` passed with zero errors before the behavior gate.
+- Rerun
+  `powershell -File scripts/run_logged_pytest.ps1 -Label world-charter
+  tests/test_world_query.py tests/test_worldline.py tests/test_graph_export.py
+  tests/test_worldline_ic_merge_properties.py` passed with 221 tests and 29
+  expected warnings; log:
+  `logs/test-runs/world-charter-20260521-122540.log`.
+- Continue with final old-path search gates, data parity, and behavior parity
+  for Phase 14.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
