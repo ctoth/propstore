@@ -187,7 +187,8 @@ def bind_world(
 
 
 def resolve_world_target(world: WorldQuery, target: str) -> str:
-    return world.resolve_concept(target) or target
+    concept = world.get_concept(target)
+    return str(concept.id) if concept is not None else target
 
 
 def world_status(

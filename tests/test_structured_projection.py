@@ -940,11 +940,8 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
             bindings = dict(environment.bindings) if environment is not None else dict(conditions)
             return _make_bound(self, bindings=bindings)
 
-        def resolve_concept(self, name: str) -> str | None:
-            return "concept1" if name == "target" else None
-
         def get_concept(self, concept_id: str) -> Concept | None:
-            if concept_id == "concept1":
+            if concept_id in {"concept1", "target"}:
                 return _concept_model("concept1", "target")
             return None
 
@@ -1013,11 +1010,8 @@ def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(m
             bindings = dict(environment.bindings) if environment is not None else dict(conditions)
             return _make_bound(self, bindings=bindings)
 
-        def resolve_concept(self, name: str) -> str | None:
-            return "concept1" if name == "target" else None
-
         def get_concept(self, concept_id: str) -> Concept | None:
-            if concept_id == "concept1":
+            if concept_id in {"concept1", "target"}:
                 return _concept_model("concept1", "target")
             return None
 

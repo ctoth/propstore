@@ -8,6 +8,7 @@ from propstore.context_lifting import (
     LiftingSystem,
 )
 from propstore.core.assertions import ContextReference
+from propstore.families.concepts.declaration import Concept
 from propstore.world.types import Environment
 from propstore.world.bound import BoundWorld
 from propstore.worldline import WorldlineDefinition, WorldlineInputs, run_worldline
@@ -77,12 +78,9 @@ def test_ws_j_worldline_dependencies_include_blocked_lifting_exception() -> None
                 lifting_system=lifting_system,
             )
 
-        def resolve_concept(self, name):
-            return "concept:target" if name == "target" else None
-
         def get_concept(self, concept_id):
-            if concept_id == "concept:target":
-                return {"id": "concept:target", "canonical_name": "target"}
+            if concept_id in {"concept:target", "target"}:
+                return Concept(id="concept:target", canonical_name="target")
             return None
 
         def get_claim(self, claim_id):

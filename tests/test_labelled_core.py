@@ -15,6 +15,7 @@ from propstore.core.labels import (
     merge_labels,
 )
 from propstore.families.relations.declaration import ConflictWitness, Stance
+from propstore.families.concepts.declaration import Concept
 from propstore.world.types import DerivedResult, Environment, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
 from propstore.families.world_charters import world_record
@@ -403,12 +404,9 @@ def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
         def bind(self, environment=None, *, policy=None, **conditions):
             return FakeBound()
 
-        def resolve_concept(self, name: str) -> str | None:
-            return "concept1" if name == "target" else None
-
-        def get_concept(self, concept_id: str) -> dict | None:
-            if concept_id == "concept1":
-                return {"id": "concept1", "canonical_name": "target"}
+        def get_concept(self, concept_id: str) -> Concept | None:
+            if concept_id in {"concept1", "target"}:
+                return Concept(id="concept1", canonical_name="target")
             return None
 
         def get_claim(self, claim_id: str):

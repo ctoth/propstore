@@ -708,25 +708,9 @@ class TestWorldlineRunner:
                 context_id = environment.context_id if environment is not None else None
                 return FakeBound(context_id)
 
-            def resolve_alias(self, name):
-                return None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
-                    return _concept_model(concept_id)
-                return None
-
-            def resolve_concept(self, name):
-                """Resolve canonical name or alias to concept ID."""
-                resolved = self.resolve_alias(name)
-                if resolved:
-                    return resolved
-                concept = self.get_concept(name)
-                if concept:
-                    return name
-                # Resolve by canonical name
-                if name == "target":
-                    return "concept1"
+                if concept_id in {"concept1", "target"}:
+                    return _concept_model("concept1")
                 return None
 
             def get_claim(self, claim_id):
@@ -845,12 +829,9 @@ class TestWorldlineDependencyLiveness:
                 claims = [self._claims["claim_old"], self._claims["claim_new"]]
                 return FakeBound(claims)
 
-            def resolve_concept(self, name):
-                return "concept1" if name == "target" else None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
-                    return _concept_model(concept_id)
+                if concept_id in {"concept1", "target"}:
+                    return _concept_model("concept1")
                 return None
 
             def get_claim(self, claim_id):
@@ -912,12 +893,9 @@ class TestWorldlineDependencyLiveness:
                 claims = [self._claims["claim_a"], self._claims["claim_b"]]
                 return FakeBound(claims)
 
-            def resolve_concept(self, name):
-                return "concept1" if name == "target" else None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
-                    return _concept_model(concept_id)
+                if concept_id in {"concept1", "target"}:
+                    return _concept_model("concept1")
                 return None
 
             def get_claim(self, claim_id):
@@ -1043,12 +1021,9 @@ class TestWorldlineDependencyLiveness:
                 context_id = environment.context_id if environment is not None else None
                 return FakeBound(context_id, self._active)
 
-            def resolve_concept(self, name):
-                return "concept1" if name == "target" else None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
-                    return _concept_model(concept_id)
+                if concept_id in {"concept1", "target"}:
+                    return _concept_model("concept1")
                 return None
 
             def get_claim(self, claim_id):
@@ -1106,11 +1081,8 @@ class TestWorldlineDependencyLiveness:
             def bind(self, environment=None, *, policy=None, **conditions):
                 return MinimalBound()
 
-            def resolve_concept(self, name):
-                return "concept1" if name == "target" else None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
+                if concept_id in {"concept1", "target"}:
                     return _concept_model("concept1")
                 return None
 
@@ -1206,11 +1178,8 @@ class TestSemanticCorePhase7Worldlines:
                 order = ["claim_a", "claim_b"] if self._bind_calls % 2 else ["claim_b", "claim_a"]
                 return _Bound(order)
 
-            def resolve_concept(self, name):
-                return "concept1" if name == "target" else None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
+                if concept_id in {"concept1", "target"}:
                     return _concept_model("concept1")
                 return None
 
@@ -1410,11 +1379,8 @@ class TestSemanticCorePhase7Worldlines:
             def bind(self, environment=None, *, policy=None, **conditions):
                 return _Bound()
 
-            def resolve_concept(self, name):
-                return "concept1" if name == "target" else None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
+                if concept_id in {"concept1", "target"}:
                     return _concept_model("concept1")
                 return None
 
@@ -1585,11 +1551,8 @@ class TestWorldlineFailureModes:
             def bind(self, environment=None, *, policy=None, **conditions):
                 return FakeBound()
 
-            def resolve_concept(self, name):
-                return "concept1" if name == "target" else None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
+                if concept_id in {"concept1", "target"}:
                     return _concept_model("concept1")
                 return None
 
@@ -1630,11 +1593,8 @@ class TestWorldlineFailureModes:
             def bind(self, environment=None, *, policy=None, **conditions):
                 return FakeBound()
 
-            def resolve_concept(self, name):
-                return "concept1" if name == "target" else None
-
             def get_concept(self, concept_id):
-                if concept_id == "concept1":
+                if concept_id in {"concept1", "target"}:
                     return _concept_model("concept1")
                 return None
 
@@ -1677,13 +1637,8 @@ class TestSilentExceptionLogging:
             def bind(self, env, policy=None):
                 return self
 
-            def resolve_concept(self, name):
-                if name == "target":
-                    return "concept1"
-                return None
-
             def get_concept(self, cid):
-                if cid == "concept1":
+                if cid in {"concept1", "target"}:
                     return _concept_model("concept1")
                 return None
 
@@ -1742,13 +1697,8 @@ class TestSilentExceptionLogging:
             def bind(self, env, policy=None):
                 return self
 
-            def resolve_concept(self, name):
-                if name == "target":
-                    return "concept1"
-                return None
-
             def get_concept(self, cid):
-                if cid == "concept1":
+                if cid in {"concept1", "target"}:
                     return _concept_model("concept1")
                 return None
 

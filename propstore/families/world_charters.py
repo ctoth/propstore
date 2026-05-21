@@ -138,7 +138,12 @@ def world_charter_catalog() -> SchemaCatalog:
             _f("form", nullable=False), _f("form_parameters"), _r("range_min"), _r("range_max"),
             _i("is_dimensionless", nullable=False, default_sql="0"), _f("unit_symbol"), _f("created_date"),
             _f("last_modified"), indexes=(CharterIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
-            reference_keys=(ReferenceKey.field("primary_logical_id"), ReferenceKey.field("canonical_name")),
+            reference_keys=(
+                ReferenceKey.field("primary_logical_id"),
+                ReferenceKey.field("logical_ids[].value"),
+                ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+                ReferenceKey.field("canonical_name"),
+            ),
             fts_indexes=(CharterFtsIndex("concept_fts", "concept_id", ("canonical_name", "aliases", "definition", "conditions"), source_query=_CONCEPT_FTS_SOURCE_QUERY),),
             vector_caches=(CharterVectorCache(
                 "concept_embeddings",
@@ -149,7 +154,8 @@ def world_charter_catalog() -> SchemaCatalog:
                 status_table="concept_embedding_status",
             ),)),
         _charter("alias", ConceptAlias, "concept_id", _f("concept_id", nullable=False), _f("alias_name", nullable=False), _f("source", nullable=False),
-            indexes=(CharterIndex("idx_alias_name", ("alias_name",)), CharterIndex("idx_alias_concept", ("concept_id",)))),
+            indexes=(CharterIndex("idx_alias_name", ("alias_name",)), CharterIndex("idx_alias_concept", ("concept_id",))),
+            reference_keys=(ReferenceKey.field("alias_name"),)),
         _charter("parameterization", Parameterization, "output_concept_id",
             _f("output_concept_id", nullable=False), _f("concept_ids", nullable=False), _f("formula", nullable=False),
             _f("sympy"), _f("exactness", nullable=False), _f("conditions_cel"), _f("conditions_ir")),

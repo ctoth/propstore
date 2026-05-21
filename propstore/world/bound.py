@@ -916,10 +916,11 @@ class BoundWorld(BeliefSpace):
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]:
         """Return active conflicts, revalidated against the current belief space."""
+        concept = None if concept_id is None else self._store.get_concept(concept_id)
         resolved_concept_id = (
-            self._store.resolve_concept(concept_id) or concept_id
-            if concept_id is not None and hasattr(self._store, "resolve_concept")
-            else concept_id
+            None
+            if concept_id is None
+            else str(concept.id) if concept is not None else concept_id
         )
         if resolved_concept_id in self._conflicts_cache:
             return self._conflicts_cache[resolved_concept_id]
@@ -989,12 +990,11 @@ class BoundWorld(BeliefSpace):
     ) -> Mapping[str, float | str | None] | None:
         if override_values is None:
             return None
-        if not hasattr(self._store, "resolve_concept"):
-            return dict(override_values)
 
         normalized: dict[str, float | str | None] = {}
         for key, value in override_values.items():
-            resolved_key = self._store.resolve_concept(key) or key
+            concept = self._store.get_concept(key)
+            resolved_key = str(concept.id) if concept is not None else key
             normalized[resolved_key] = value
         return normalized
 

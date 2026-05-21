@@ -190,25 +190,14 @@ class _GraphOverlayStore:
             return None
         return self._claims_by_id.get(str(base_claim.id))
 
-    def resolve_alias(self, alias: str) -> str | None:
-        resolver = getattr(self._base, "resolve_alias", None)
-        if callable(resolver):
-            return cast(Callable[[str], str | None], resolver)(alias)
-        return None
-
-    def resolve_concept(self, name: str) -> str | None:
-        resolver = getattr(self._base, "resolve_concept", None)
-        if callable(resolver):
-            return cast(Callable[[str], str | None], resolver)(name)
-        return None
-
     def all_concepts(self) -> Sequence[Concept]:
         return list(self._base.all_concepts())
 
     def claims_for(self, concept_id: str | None) -> list[Claim]:
         if concept_id is None:
             return list(self._claims)
-        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
+        concept = self.get_concept(concept_id)
+        resolved_concept_id = str(concept.id) if concept is not None else concept_id
         return [
             claim
             for claim in self._claims
@@ -331,7 +320,6 @@ class OverlayWorld(BeliefSpace):
         add: list[SyntheticClaim] | None = None,
     ) -> None:
         self._base = base
-        concept_resolver = getattr(base._store, "resolve_concept", None)
 
         def store_claim_id(claim_id: str) -> str:
             claim = base._store.get_claim(claim_id)
@@ -346,13 +334,10 @@ class OverlayWorld(BeliefSpace):
             return store_claim_id(claim_id)
 
         def resolve_synthetic_concept_id(concept_id: ConceptId) -> ConceptId:
-            if not callable(concept_resolver):
+            concept = base._store.get_concept(str(concept_id))
+            if concept is None:
                 return concept_id
-            resolved = (
-                cast(Callable[[str], str | None], concept_resolver)(str(concept_id))
-                or concept_id
-            )
-            return to_concept_id(resolved)
+            return to_concept_id(str(concept.id))
 
         self._synthetics = [
             replace(

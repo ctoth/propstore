@@ -8,6 +8,7 @@ from propstore.core.id_types import to_context_id
 from propstore.world import BoundWorld, Environment, ReasoningBackend, RenderPolicy
 from propstore.core.conditions import ConditionSolver
 from propstore.families.claims.declaration import Claim
+from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.support_revision.state import AssertionAtom
 from tests.atms_helpers import (
@@ -81,14 +82,11 @@ class _RevisionStore:
     def stances_between(self, claim_ids: set[str]) -> list[dict]:
         return []
 
-    def resolve_concept(self, name: str) -> str | None:
+    def get_concept(self, concept_id: str) -> Concept | None:
         for claim in self._claims:
-            if claim.output_concept_id == name or claim.target_concept == name:
-                return name
+            if claim.output_concept_id == concept_id or claim.target_concept == concept_id:
+                return Concept(id=concept_id, canonical_name=concept_id)
         return None
-
-    def get_concept(self, concept_id: str) -> dict | None:
-        return {"id": concept_id, "canonical_name": concept_id}
 
 
 def _make_bound(

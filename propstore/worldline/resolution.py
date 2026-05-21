@@ -49,11 +49,6 @@ def concept_name(world: WorldStore, concept_id: ConceptId | str) -> str:
     )
 
 
-def resolve_concept_name(world: WorldStore, name: str) -> ConceptId | None:
-    resolved = world.resolve_concept(name)
-    return None if resolved is None else to_concept_id(resolved)
-
-
 def display_claim_id(world: WorldStore, claim_id: str | None) -> str | None:
     if claim_id is None:
         return None

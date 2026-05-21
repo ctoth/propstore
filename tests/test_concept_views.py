@@ -39,17 +39,6 @@ class _World:
         self.claims = {str(claim.id): claim for claim in claims}
         self.visible_ids = set(self.claims) if visible_ids is None else set(visible_ids)
 
-    def resolve_concept(self, name: str) -> str | None:
-        if self.concept is None:
-            return None
-        if name in {
-            str(self.concept.concept_id),
-            self.concept.canonical_name,
-            self.concept.primary_logical_id,
-        }:
-            return str(self.concept.concept_id)
-        return None
-
     def get_concept(self, concept_id: str) -> Concept | None:
         if self.concept is None:
             return None
@@ -64,7 +53,8 @@ class _World:
     def claims_for(self, concept_id: str) -> list[Claim]:
         if self.concept is None:
             return []
-        resolved = self.resolve_concept(concept_id) or concept_id
+        concept = self.get_concept(concept_id)
+        resolved = str(concept.concept_id) if concept is not None else concept_id
         return [
             claim
             for claim in self.claims.values()
@@ -74,7 +64,8 @@ class _World:
     def claims_related_to_concept(self, concept_id: str) -> list[Claim]:
         if self.concept is None:
             return []
-        resolved = self.resolve_concept(concept_id) or concept_id
+        concept = self.get_concept(concept_id)
+        resolved = str(concept.concept_id) if concept is not None else concept_id
         return [
             claim
             for claim in self.claims.values()
@@ -93,7 +84,8 @@ class _World:
     ) -> list[Claim]:
         if concept_id is None:
             return []
-        resolved = self.resolve_concept(concept_id) or concept_id
+        concept = self.get_concept(concept_id)
+        resolved = str(concept.concept_id) if concept is not None else concept_id
         return [
             claim
             for claim_id, claim in self.claims.items()

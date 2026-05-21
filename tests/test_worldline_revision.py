@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
+from propstore.families.concepts.declaration import Concept
 from propstore.support_revision.history import EpistemicSnapshot
 from propstore.support_revision.iterated import epistemic_state_payload, make_epistemic_state
 from propstore.support_revision.state import RevisionScope
@@ -149,6 +150,11 @@ class _RevisionWorld:
     def bind(self, environment=None, *, policy=None, **conditions):
         return self._bound
 
+    def get_concept(self, concept_id: str) -> Concept | None:
+        if concept_id in {"concept:target", "target"}:
+            return Concept(id="concept:target", canonical_name="target")
+        return None
+
 
 def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
     from propstore.support_revision.explain import build_revision_explanation
@@ -169,7 +175,6 @@ def test_run_worldline_captures_one_shot_revision_payload(monkeypatch) -> None:
         one_shot_explanation=build_revision_explanation(one_shot_result, entrenchment=entrenchment),
     )
 
-    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),
@@ -235,7 +240,6 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
         iterated_explanation=build_revision_explanation(iterated_result[0], entrenchment=entrenchment),
     )
 
-    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),
@@ -290,7 +294,6 @@ def test_run_worldline_revision_merge_point_refusal_is_explicit(monkeypatch) -> 
         merge_error=ValueError("iterated revision is undefined at a merge point; use an explicit merge path"),
     )
 
-    monkeypatch.setattr("propstore.worldline.runner._resolve_concept_name", lambda *args, **kwargs: "concept:target")
     monkeypatch.setattr(
         "propstore.worldline.runner._resolve_target",
         lambda *args, **kwargs: WorldlineTargetValue(status="determined", value=1.0),

@@ -2033,7 +2033,9 @@ class TestWorldOwnerReports:
     ) -> None:
         repo = Repository.find(freq_workspace)
         with WorldQuery(repo) as wm:
-            expected_concept_id = wm.resolve_concept("speech:fundamental_frequency")
+            expected_concept = wm.get_concept("speech:fundamental_frequency")
+            assert expected_concept is not None
+            expected_concept_id = str(expected_concept.id)
             report = derive_world_value(
                 wm,
                 WorldDeriveRequest(
@@ -2181,7 +2183,9 @@ class TestWorldOwnerReports:
     ) -> None:
         repo = Repository.find(freq_workspace)
         with WorldQuery(repo) as wm:
-            expected_concept_id = wm.resolve_concept("speech:fundamental_frequency")
+            expected_concept = wm.get_concept("speech:fundamental_frequency")
+            assert expected_concept is not None
+            expected_concept_id = str(expected_concept.id)
             report = query_sensitivity(
                 wm,
                 SensitivityRequest(

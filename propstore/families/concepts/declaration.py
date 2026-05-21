@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
@@ -203,6 +204,20 @@ class Concept(FamilyModel):
     @property
     def concept_id(self) -> ConceptId:
         return to_concept_id(cast(str, getattr(self, "id")))
+
+    @property
+    def logical_ids(self) -> tuple[Mapping[str, object], ...]:
+        if not self.logical_ids_json:
+            return ()
+        loaded = json.loads(self.logical_ids_json)
+        if not isinstance(loaded, list):
+            raise ValueError("concept logical_ids_json must decode to a list")
+        entries: list[Mapping[str, object]] = []
+        for entry in loaded:
+            if not isinstance(entry, Mapping):
+                raise ValueError("concept logical_ids_json entries must be mappings")
+            entries.append(entry)
+        return tuple(entries)
 
     def parsed_logical_ids(self) -> list[dict[str, Any]]:
         logical_ids_json = cast(str | None, getattr(self, "logical_ids_json", None))

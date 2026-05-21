@@ -210,9 +210,8 @@ def list_claim_views(
     _ = repository_view_label(request.repository_view)
     policy = build_render_policy(request.render_policy)
     with open_app_world_model(repo) as world:
-        concept_filter = _resolve_concept_filter(world, request.concept)
         claims = sorted(
-            world.claims_with_policy(concept_filter, policy),
+            world.claims_with_policy(request.concept, policy),
             key=_claim_sort_key,
         )
         entries = tuple(
@@ -230,9 +229,8 @@ def search_claim_views(
     policy = build_render_policy(request.render_policy)
     query = request.query.casefold()
     with open_app_world_model(repo) as world:
-        concept_filter = _resolve_concept_filter(world, request.concept)
         matches: list[ClaimSummaryEntry] = []
-        for claim in sorted(world.claims_with_policy(concept_filter, policy), key=_claim_sort_key):
+        for claim in sorted(world.claims_with_policy(request.concept, policy), key=_claim_sort_key):
             concept = _claim_focus_concept(claim, world)
             if not _claim_matches_query(claim, concept, query, world):
                 continue
@@ -589,12 +587,6 @@ def _claim_linked_concept_labels(claim, world) -> tuple[str, ...]:
         seen.add(label)
         labels.append(label)
     return tuple(labels)
-
-
-def _resolve_concept_filter(world, concept: str | None) -> str | None:
-    if concept is None:
-        return None
-    return world.resolve_concept(concept) or concept
 
 
 def _claim_matches_query(claim, concept, query: str, world) -> bool:

@@ -363,7 +363,8 @@ def _format_value_with_si(
 
 
 def resolve_world_target(world: WorldQuery, target: str) -> str:
-    return world.resolve_concept(target) or target
+    concept = world.get_concept(target)
+    return str(concept.id) if concept is not None else target
 
 
 def _fts_phrase(value: str) -> str:
@@ -388,9 +389,9 @@ def _resolve_world_query_target(
     world: WorldQuery,
     target: str,
 ) -> tuple[str, str | None]:
-    resolved = world.resolve_concept(target)
-    if resolved is not None:
-        return resolved, None
+    concept = world.get_concept(target)
+    if concept is not None:
+        return str(concept.id), None
 
     try:
         hits = world.search(_fts_phrase(target))

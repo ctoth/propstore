@@ -510,12 +510,15 @@ class TestSensitivityNonlinear:
 
     def test_sensitivity_nonlinear(self, nonlinear_world):
         bound = nonlinear_world.bind()
-        input_a_id = nonlinear_world.resolve_concept("test:input_a")
-        input_b_id = nonlinear_world.resolve_concept("test:input_b")
-        output_id = nonlinear_world.resolve_concept("test:output_nl")
-        assert input_a_id is not None
-        assert input_b_id is not None
-        assert output_id is not None
+        input_a = nonlinear_world.get_concept("test:input_a")
+        input_b = nonlinear_world.get_concept("test:input_b")
+        output = nonlinear_world.get_concept("test:output_nl")
+        assert input_a is not None
+        assert input_b is not None
+        assert output is not None
+        input_a_id = str(input_a.id)
+        input_b_id = str(input_b.id)
+        output_id = str(output.id)
         result = analyze_sensitivity(
             nonlinear_world,
             output_id,

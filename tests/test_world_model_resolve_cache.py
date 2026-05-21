@@ -1,13 +1,4 @@
-"""Regression tests for WorldQuery family reference lookup.
-
-The WorldQuery fallback branches used to issue a fresh full-table
-``SELECT id, logical_ids_json FROM <table>`` on every miss, JSON-decoding
-every row in Python. WorldQuery is immutable per open sidecar, so the
-logical-id → artifact-id mapping can be built once on first miss and
-reused thereafter. The concept tests still exercise that memoization by
-counting SQL ``execute`` calls across repeated fallback lookups. Claim tests
-exercise generic Quire family reference lookup through ``WorldQuery.get_claim``.
-"""
+"""Regression tests for WorldQuery generic family reference lookup."""
 
 from __future__ import annotations
 
@@ -15,11 +6,9 @@ import json
 import sqlite3
 from sqlite3 import Connection
 from pathlib import Path
-from typing import Any
 
 import pytest
 
-from propstore.world.model import WorldQuery
 from tests.sidecar_schema_helpers import build_world_projection_schema
 from tests.family_helpers import world_query_from_sqlite_path
 
@@ -123,28 +112,6 @@ def _build_concept_sidecar(tmp_path: Path, n_rows: int) -> Path:
     return sidecar
 
 
-class _CountingConnection:
-    """Pass-through proxy around a ``Connection``.
-
-    ``Connection.execute`` is a C-level attribute and cannot be
-    reassigned on the instance. Instead the whole connection is wrapped
-    and ``world._conn`` is repointed at the proxy — all
-    ``self._conn.execute(...)`` calls inside ``WorldQuery`` route through
-    ``__getattr__`` → the wrapped ``execute`` method on this proxy.
-    """
-
-    def __init__(self, conn: Connection) -> None:
-        self._conn = conn
-        self.count = 0
-
-    def execute(self, sql: str, *args: Any, **kwargs: Any) -> sqlite3.Cursor:
-        self.count += 1
-        return self._conn.execute(sql, *args, **kwargs)
-
-    def __getattr__(self, name: str) -> Any:
-        return getattr(self._conn, name)
-
-
 # ── claim reference lookup ────────────────────────────────────────────
 
 
@@ -173,55 +140,30 @@ def test_get_claim_resolves_bare_logical_id_value(tmp_path):
         world.close()
 
 
-# ── resolve_concept ──────────────────────────────────────────────────
+# ── concept reference lookup ──────────────────────────────────────────
 
 
-def test_resolve_concept_logical_id_lookup_does_not_scale_with_n(tmp_path):
+def test_get_concept_resolves_namespaced_logical_id(tmp_path):
     sidecar = _build_concept_sidecar(tmp_path, n_rows=200)
 
     world = world_query_from_sqlite_path(sidecar)
     try:
-        counter = _CountingConnection(world._conn)
-        world._conn = counter  # type: ignore[assignment]
-
-        # First miss: cache builds.
-        assert world.resolve_concept("test:concept_missing") is None
-        n_first_miss = counter.count
-        assert n_first_miss >= 1
-
-        # Second miss: must not rescan the full concept table. The
-        # fallback is followed by a canonical-name SELECT on cache miss,
-        # so the legitimate execute budget is alias + id + primary_id +
-        # canonical_name = up to 4 statements.
-        assert world.resolve_concept("test:concept_still_missing") is None
-        n_second_miss = counter.count - n_first_miss
-        assert n_second_miss < 5, (
-            f"second concept miss issued {n_second_miss} execute calls; "
-            "cache should have made the fallback a dict lookup"
-        )
-
-        # Existing logical id: dict hit, returns the right concept id.
-        before_hit = counter.count
-        resolved = world.resolve_concept("test:concept_42")
-        assert resolved == "concept_42"
-        hit_delta = counter.count - before_hit
-        assert hit_delta < 5
+        assert world.get_concept("test:concept_missing") is None
+        resolved = world.get_concept("test:concept_42")
+        assert resolved is not None
+        assert resolved.id == "concept_42"
     finally:
         world.close()
 
 
-def test_resolve_concept_canonical_name_path_still_reachable(tmp_path):
+def test_get_concept_canonical_name_path_still_reachable(tmp_path):
     sidecar = _build_concept_sidecar(tmp_path, n_rows=20)
 
     world = world_query_from_sqlite_path(sidecar)
     try:
-        # Force the cache to populate via a miss first.
-        assert world.resolve_concept("test:concept_missing") is None
-
-        # canonical_name lookup must still work after the cache is
-        # populated — the fallback short-circuit must not swallow the
-        # tail SELECT.
-        resolved = world.resolve_concept("canonical_concept_7")
-        assert resolved == "concept_7"
+        assert world.get_concept("test:concept_missing") is None
+        resolved = world.get_concept("canonical_concept_7")
+        assert resolved is not None
+        assert resolved.id == "concept_7"
     finally:
         world.close()

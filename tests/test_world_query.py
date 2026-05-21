@@ -683,12 +683,16 @@ class TestUnboundQueries:
         assert claim.source.origin.value == "10.1000/example"
         wm.close()
 
-    def test_resolve_alias(self, world):
-        assert world.resolve_alias("F0") == CONCEPT1_ID
-        assert world.resolve_alias("Ps") == CONCEPT2_ID
+    def test_get_concept_resolves_alias(self, world):
+        concept_one = world.get_concept("F0")
+        concept_two = world.get_concept("Ps")
+        assert concept_one is not None
+        assert concept_two is not None
+        assert str(concept_one.id) == CONCEPT1_ID
+        assert str(concept_two.id) == CONCEPT2_ID
 
-    def test_resolve_alias_missing(self, world):
-        assert world.resolve_alias("nonexistent") is None
+    def test_get_concept_alias_missing(self, world):
+        assert world.get_concept("nonexistent") is None
 
     def test_claims_for(self, world):
         claims = world.claims_for("fundamental_frequency")

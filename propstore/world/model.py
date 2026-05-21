@@ -150,7 +150,6 @@ class WorldQuery(WorldStore):
         self._lifting_system_loaded = False
         self._compiled_graph_cache = None
         self._active_graph_cache: dict[str, Any] = {}
-        self._logical_id_indexes: dict[str, dict[str, str]] = {}
         self._validate_schema()
 
     def __enter__(self) -> WorldQuery:
@@ -259,16 +258,14 @@ class WorldQuery(WorldStore):
         schema = world_sqlalchemy_schema()
         concept_model = schema.model("concept")
         with self._derived_store.readonly_session(schema) as derived:
+            resolved_concept_id = (
+                schema.resolve_reference_id(derived.session, "concept", concept_id)
+                or schema.resolve_reference_id(derived.session, "alias", concept_id)
+                or concept_id
+            )
             concept = derived.execute(
-                select(concept_model).where(concept_model.id == concept_id)
+                select(concept_model).where(concept_model.id == resolved_concept_id)
             ).scalar_one_or_none()
-            if concept is None:
-                resolved = self.resolve_concept(concept_id)
-                if resolved is None or resolved == concept_id:
-                    return None
-                concept = derived.execute(
-                    select(concept_model).where(concept_model.id == resolved)
-                ).scalar_one_or_none()
         if concept is None:
             return None
         return concept
@@ -295,104 +292,18 @@ class WorldQuery(WorldStore):
                     "claim_core",
                     claim_id,
                 )
-                or self._get_logical_id_index("claim_core").get(claim_id)
                 or claim_id
             )
             return derived.execute(
                 select(claim).where(claim.id == resolved_claim_id)
             ).scalar_one_or_none()
 
-    def _build_logical_id_index(self, table: str) -> dict[str, str]:
-        """Return a ``name → artifact_id`` map for one of ``claim_core``/``concept``.
-
-        Both composite ``"namespace:value"`` keys AND bare ``"value"``
-        keys populate the same map so the cache covers every form the
-        pre-memoized fallback already supported. A single query plus a
-        Python pass replaces per-miss full-table scans. WorldQuery is
-        immutable per open sidecar (all rows live under a read-only
-        connection, cleared only by ``close()``), so the index is safe
-        to build once and reuse for the lifetime of the instance.
-        """
-
-        if table not in ("claim_core", "concept"):
-            raise ValueError(f"unsupported logical-id table: {table}")
-        index: dict[str, str] = {}
-        schema = world_sqlalchemy_schema()
-        model = schema.model(table)
-        with self._derived_store.readonly_session(schema) as derived:
-            rows = derived.execute(
-                select(
-                    model.id,
-                    model.primary_logical_id,
-                    model.logical_ids_json,
-                )
-            )
-            for artifact_id, primary_logical_id, logical_ids_json in rows:
-                artifact_id_text = str(artifact_id)
-                if isinstance(primary_logical_id, str) and primary_logical_id:
-                    index.setdefault(primary_logical_id, artifact_id_text)
-                if not isinstance(logical_ids_json, str) or not logical_ids_json:
-                    continue
-                try:
-                    logical_ids = json.loads(logical_ids_json)
-                except json.JSONDecodeError:
-                    continue
-                if not isinstance(logical_ids, list):
-                    continue
-                for entry in logical_ids:
-                    if not isinstance(entry, dict):
-                        continue
-                    namespace = entry.get("namespace")
-                    value = entry.get("value")
-                    if isinstance(namespace, str) and isinstance(value, str):
-                        index.setdefault(f"{namespace}:{value}", artifact_id_text)
-                        index.setdefault(value, artifact_id_text)
-        return index
-
-    def _get_logical_id_index(self, table: str) -> dict[str, str]:
-        if table not in self._logical_id_indexes:
-            self._logical_id_indexes[table] = self._build_logical_id_index(table)
-        return self._logical_id_indexes[table]
-
-    def resolve_alias(self, alias: str) -> str | None:
-        schema = world_sqlalchemy_schema()
-        alias_model = schema.model("alias")
-        with self._derived_store.readonly_session(schema) as derived:
-            row = derived.execute(
-                select(alias_model.concept_id).where(alias_model.alias_name == alias)
-            ).first()
-            return None if row is None else str(row[0])
-
-    def resolve_concept(self, name: str) -> str | None:
-        """Resolve a concept by alias, artifact ID, logical ID, or canonical name."""
-        resolved = self.resolve_alias(name)
-        if resolved:
-            return resolved
-
-        schema = world_sqlalchemy_schema()
-        concept = schema.model("concept")
-        with self._derived_store.readonly_session(schema) as derived:
-            for field_name in ("id", "primary_logical_id"):
-                row = derived.execute(
-                    select(concept.id).where(getattr(concept, field_name) == name)
-                ).first()
-                if row is not None:
-                    return str(row[0])
-
-            cached = self._get_logical_id_index("concept").get(name)
-            if cached is not None:
-                return cached
-
-            row = derived.execute(
-                select(concept.id).where(concept.canonical_name == name)
-            ).first()
-            return None if row is None else str(row[0])
-
     def claims_for(self, concept_id: str | None) -> list[Claim]:
+        concept = None if concept_id is None else self.get_concept(concept_id)
         resolved_concept_id = (
             None
             if concept_id is None
-            else self.resolve_concept(concept_id) or concept_id
+            else str(concept.id) if concept is not None else concept_id
         )
         schema = world_sqlalchemy_schema()
         claim = schema.model("claim_core")
@@ -409,10 +320,11 @@ class WorldQuery(WorldStore):
             return list(derived.execute(statement).scalars())
 
     def claims_related_to_concept(self, concept_id: str | None) -> list[Claim]:
+        concept = None if concept_id is None else self.get_concept(concept_id)
         resolved_concept_id = (
             None
             if concept_id is None
-            else self.resolve_concept(concept_id) or concept_id
+            else str(concept.id) if concept is not None else concept_id
         )
         schema = world_sqlalchemy_schema()
         claim = schema.model("claim_core")
@@ -485,10 +397,11 @@ class WorldQuery(WorldStore):
         stay out of the default view but remain queryable through opt-in
         flags.
         """
+        concept = None if concept_id is None else self.get_concept(concept_id)
         resolved_concept_id = (
             None
             if concept_id is None
-            else self.resolve_concept(concept_id) or concept_id
+            else str(concept.id) if concept is not None else concept_id
         )
         schema = world_sqlalchemy_schema()
         claim = schema.model("claim_core")
@@ -957,7 +870,8 @@ class WorldQuery(WorldStore):
 
     def _parameterizations_for(self, concept_id: str) -> list[Parameterization]:
         """Get parameterization rows where output_concept_id matches."""
-        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
+        concept = self.get_concept(concept_id)
+        resolved_concept_id = str(concept.id) if concept is not None else concept_id
         schema = world_sqlalchemy_schema()
         parameterization = schema.model("parameterization")
         with self._derived_store.readonly_session(schema) as derived:
@@ -1007,7 +921,8 @@ class WorldQuery(WorldStore):
 
     def _group_members(self, concept_id: str) -> list[str]:
         """Get all concept_ids in the same parameterization group."""
-        resolved_concept_id = self.resolve_concept(concept_id) or concept_id
+        concept = self.get_concept(concept_id)
+        resolved_concept_id = str(concept.id) if concept is not None else concept_id
         schema = world_sqlalchemy_schema()
         parameterization_group = schema.model("parameterization_group")
         with self._derived_store.readonly_session(schema) as derived:

@@ -147,18 +147,19 @@ def build_concept_view(repo: Repository, request: ConceptViewRequest) -> Concept
     repository_state = repository_view_label(request.repository_view)
     policy = build_render_policy(request.render_policy)
     with open_app_world_model(repo) as world:
-        resolved_concept_id = world.resolve_concept(request.concept_id_or_name)
         concept_row = world.get_concept(request.concept_id_or_name)
         if concept_row is None:
             raise ConceptViewUnknownConceptError(request.concept_id_or_name)
         concept_id = str(concept_row.concept_id)
-        concept_entry = _resolve_concept_entry(
-            repo,
+        concept_entry = None
+        for candidate in (
             request.concept_id_or_name,
-            resolved_concept_id=resolved_concept_id,
-            concept_id=concept_id,
-            canonical_name=concept_row.canonical_name,
-        )
+            concept_id,
+            concept_row.canonical_name,
+        ):
+            concept_entry = _find_concept_entry(repo, candidate)
+            if concept_entry is not None:
+                break
 
         visible_claims = tuple(world.claims_with_policy(concept_id, policy))
         all_claims = (
@@ -195,23 +196,6 @@ def build_concept_view(repo: Repository, request: ConceptViewRequest) -> Concept
         provenance_summary=_provenance_summary(visible_claims),
         related_claim_links=_related_claim_links(concept_id, visible_claims),
     )
-
-
-def _resolve_concept_entry(
-    repo: Repository,
-    handle: str,
-    *,
-    resolved_concept_id: str | None,
-    concept_id: str,
-    canonical_name: str,
-):
-    for candidate in (handle, resolved_concept_id, concept_id, canonical_name):
-        if candidate is None:
-            continue
-        concept_entry = _find_concept_entry(repo, candidate)
-        if concept_entry is not None:
-            return concept_entry
-    return None
 
 
 def _concept_form(concept_row, concept_entry, visible_claims) -> ConceptViewForm:

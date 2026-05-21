@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import pytest
 
+from propstore.families.concepts.declaration import Concept
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
 
@@ -43,7 +44,7 @@ class FakeWorld:
     """Minimal WorldQuery stub with two conflicting claims and stances.
 
     Provides the interface that worldline.run_worldline() requires:
-    bind, resolve_concept, get_concept, get_claim, has_table, stances_between.
+    bind, get_concept, get_claim, has_table, stances_between.
     """
 
     def __init__(self):
@@ -72,12 +73,9 @@ class FakeWorld:
         claims = [self._claims["claim_a"], self._claims["claim_b"]]
         return FakeBound(claims)
 
-    def resolve_concept(self, name):
-        return "concept1" if name == "target" else None
-
     def get_concept(self, concept_id):
-        if concept_id == "concept1":
-            return {"id": concept_id, "canonical_name": "target"}
+        if concept_id in {"concept1", "target"}:
+            return Concept(id="concept1", canonical_name="target")
         return None
 
     def get_claim(self, claim_id):

@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from propstore.world import Environment
+from propstore.families.concepts.declaration import Concept
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
 from propstore.worldline import (
     WorldlineDefinition,
@@ -73,11 +74,12 @@ class _FakeWorld:
 
     _bound: _FakeBound | None = None
 
-    def resolve_concept(self, name: str) -> str | None:
-        return f"concept:{name}"
-
-    def get_concept(self, cid: str) -> dict | None:
-        return {"canonical_name": cid.replace("concept:", "")}
+    def get_concept(self, cid: str) -> Concept | None:
+        concept_id = cid if cid.startswith("concept:") else f"concept:{cid}"
+        return Concept(
+            id=concept_id,
+            canonical_name=concept_id.removeprefix("concept:"),
+        )
 
     def has_table(self, name: str) -> bool:
         return name == "relation_edge"
@@ -147,7 +149,6 @@ class TestSensitivityErrorVisibility:
         world._bound = fake_bound
 
         with (
-            patch("propstore.worldline.runner._resolve_concept_name", return_value="concept:output_qty"),
             patch("propstore.worldline.runner._resolve_target", return_value=derived_entry),
             patch(
                 "propstore.sensitivity.analyze_sensitivity",
@@ -195,7 +196,6 @@ class TestArgumentationErrorVisibility:
         world._bound = fake_bound
 
         with (
-            patch("propstore.worldline.runner._resolve_concept_name", return_value="concept:output_qty"),
             patch(
                 "propstore.worldline.runner._resolve_target",
                 return_value=WorldlineTargetValue(

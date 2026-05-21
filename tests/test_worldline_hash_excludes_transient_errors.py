@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from propstore.world import Environment
+from propstore.families.concepts.declaration import Concept
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
 from propstore.worldline import WorldlineDefinition, WorldlineInputs, run_worldline
 from propstore.worldline.result_types import WorldlineTargetValue
@@ -16,11 +17,12 @@ class _FakeWorld:
     def bind(self, environment, *, policy=None):
         return self._bound or _FakeBound()
 
-    def resolve_concept(self, name):
-        return f"concept:{name}"
-
     def get_concept(self, concept_id):
-        return {"id": concept_id, "canonical_name": str(concept_id).removeprefix("concept:")}
+        resolved_id = concept_id if str(concept_id).startswith("concept:") else f"concept:{concept_id}"
+        return Concept(
+            id=resolved_id,
+            canonical_name=str(resolved_id).removeprefix("concept:"),
+        )
 
     def has_table(self, name):
         return name == "relation_edge"
@@ -65,7 +67,6 @@ def _run_argumentation_failure(message: str):
     world._bound = fake_bound
 
     with (
-        patch("propstore.worldline.runner._resolve_concept_name", return_value="concept:target"),
         patch(
             "propstore.worldline.runner._resolve_target",
             return_value=WorldlineTargetValue(

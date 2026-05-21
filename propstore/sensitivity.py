@@ -82,7 +82,8 @@ def query_sensitivity(
     world: Any,
     request: SensitivityRequest,
 ) -> SensitivityReport:
-    resolved = world.resolve_concept(request.concept_id) or request.concept_id
+    concept = world.get_concept(request.concept_id)
+    resolved = str(concept.id) if concept is not None else request.concept_id
     bound = world.bind(Environment(bindings=dict(request.bindings)))
     return SensitivityReport(
         concept_id=resolved,
@@ -118,13 +119,10 @@ def analyze_sensitivity(
     from sympy import Equality, Symbol, diff as sym_diff
 
     requested_concept_id = to_concept_id(concept_id)
-    resolver = getattr(world, "resolve_concept", None)
-    resolved_concept_id = (
-        resolver(str(requested_concept_id))
-        if callable(resolver)
-        else None
+    concept = world.get_concept(str(requested_concept_id))
+    lookup_concept_id = to_concept_id(
+        str(concept.id) if concept is not None else str(requested_concept_id)
     )
-    lookup_concept_id = to_concept_id(resolved_concept_id or str(requested_concept_id))
 
     params = list(world.parameterizations_for(str(lookup_concept_id)))
     if not params:
@@ -147,12 +145,10 @@ def analyze_sensitivity(
     input_ids = json.loads(param.concept_ids)
     effective_inputs: list[ConceptId] = []
     for input_id in input_ids:
-        resolved_input_id = (
-            resolver(str(input_id))
-            if callable(resolver)
-            else None
+        input_concept = world.get_concept(str(input_id))
+        canonical_input_id = to_concept_id(
+            str(input_concept.id) if input_concept is not None else str(input_id)
         )
-        canonical_input_id = to_concept_id(resolved_input_id or str(input_id))
         if canonical_input_id != lookup_concept_id:
             effective_inputs.append(canonical_input_id)
 
@@ -232,12 +228,11 @@ def analyze_sensitivity(
     resolved_overrides: dict[ConceptId, float] = {}
     if override_values:
         for key, value in override_values.items():
+            override_concept = world.get_concept(str(key))
             resolved_key = (
-                resolver(str(key))
-                if callable(resolver)
-                else None
+                str(override_concept.id) if override_concept is not None else str(key)
             )
-            resolved_overrides[to_concept_id(resolved_key or str(key))] = float(value)
+            resolved_overrides[to_concept_id(resolved_key)] = float(value)
 
     input_values: dict[ConceptId, float] = {}
     for iid in effective_inputs:

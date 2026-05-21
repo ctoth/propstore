@@ -10,6 +10,7 @@ from propstore.cli import cli
 from propstore.core.conditions import checked_condition_set_to_json
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
+from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.atms import BudgetExhausted
 from propstore.world import BoundWorld
@@ -181,14 +182,13 @@ class _ATMSStore:
     def all_micropublications(self) -> list[dict]:
         return list(self._micropublications)
 
-    def resolve_concept(self, name: str) -> str | None:
+    def get_concept(self, concept_id: str) -> Concept | None:
+        if concept_id.startswith("concept"):
+            return Concept(id=concept_id, canonical_name=concept_id)
         for claim in self._claims:
-            if _test_claim_value_concept_id(claim) == name:
-                return name
-        return name if name.startswith("concept") else None
-
-    def get_concept(self, concept_id: str) -> dict | None:
-        return {"id": concept_id, "canonical_name": concept_id}
+            if _test_claim_value_concept_id(claim) == concept_id:
+                return Concept(id=concept_id, canonical_name=concept_id)
+        return None
 
 
 def _normalize_test_parameterization(
@@ -1019,12 +1019,9 @@ def test_worldline_policy_accepts_atms_backend_and_capture_uses_atms_state() -> 
                 policy=policy,
             )
 
-        def resolve_concept(self, name: str) -> str | None:
-            return "concept1" if name == "target" else None
-
-        def get_concept(self, concept_id: str) -> dict | None:
-            if concept_id == "concept1":
-                return {"id": concept_id, "canonical_name": "target"}
+        def get_concept(self, concept_id: str) -> Concept | None:
+            if concept_id in {"concept1", "target"}:
+                return Concept(id="concept1", canonical_name="target")
             return None
 
     worldline = WorldlineDefinition.from_dict({
@@ -1730,12 +1727,9 @@ def test_atms_worldline_future_capture_is_opt_in() -> None:
                 policy=policy,
             )
 
-        def resolve_concept(self, name: str) -> str | None:
-            return "concept2" if name == "target" else None
-
-        def get_concept(self, concept_id: str) -> dict | None:
-            if concept_id == "concept2":
-                return {"id": concept_id, "canonical_name": "target"}
+        def get_concept(self, concept_id: str) -> Concept | None:
+            if concept_id in {"concept2", "target"}:
+                return Concept(id="concept2", canonical_name="target")
             return None
 
         def has_table(self, name: str) -> bool:

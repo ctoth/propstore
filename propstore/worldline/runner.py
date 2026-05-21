@@ -27,7 +27,6 @@ from propstore.worldline.resolution import (
     concept_name as _concept_name,
     display_claim_id as _display_claim_id,
     pre_resolve_conflicts as _pre_resolve_conflicts,
-    resolve_concept_name as _resolve_concept_name,
     resolve_target as _resolve_target,
 )
 from propstore.worldline.revision_capture import capture_revision_state
@@ -53,9 +52,9 @@ def run_worldline(
 
     override_concept_ids: dict[ConceptId, float | str] = {}
     for name, value in overrides.items():
-        concept_id = _resolve_concept_name(world, name)
-        if concept_id is not None:
-            override_concept_ids[concept_id] = value
+        concept = world.get_concept(name)
+        if concept is not None:
+            override_concept_ids[to_concept_id(str(concept.id))] = value
 
     trace = ResolutionTrace()
     for key, value in bindings.items():
@@ -65,9 +64,9 @@ def run_worldline(
 
     target_map: dict[str, ConceptId] = {}
     for target in definition.targets:
-        concept_id = _resolve_concept_name(world, target)
-        if concept_id is not None:
-            target_map[target] = concept_id
+        concept = world.get_concept(target)
+        if concept is not None:
+            target_map[target] = to_concept_id(str(concept.id))
 
     resolution_context = ResolutionContext(
         query_world=bound,

@@ -70,12 +70,6 @@ class _World:
             if any(str(link.concept_id) == concept_id for link in claim.concept_links)
         ]
 
-    def resolve_concept(self, name: str) -> str | None:
-        for concept in self.concepts.values():
-            if name in {str(concept.concept_id), concept.canonical_name}:
-                return str(concept.concept_id)
-        return None
-
 
 @contextmanager
 def _open_world(world: _World) -> Iterator[_World]:

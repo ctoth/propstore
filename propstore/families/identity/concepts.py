@@ -150,36 +150,6 @@ def concept_reference_keys(data: dict[str, Any], *, raw_id: str | None = None) -
     return reference_keys
 
 
-def resolve_concept_reference(
-    concept_ref: str | None,
-    concept_registry: dict[str, Any],
-) -> str | None:
-    if not concept_ref:
-        return concept_ref
-
-    direct = concept_registry.get(concept_ref)
-    if isinstance(direct, dict):
-        resolved = direct.get("_storage_id") or direct.get("artifact_id") or direct.get("id")
-        if isinstance(resolved, str) and resolved:
-            return resolved
-
-    seen_ids: set[str] = set()
-    for concept in concept_registry.values():
-        if not isinstance(concept, dict):
-            continue
-        concept_id = concept.get("_storage_id") or concept.get("artifact_id") or concept.get("id")
-        if not isinstance(concept_id, str) or not concept_id or concept_id in seen_ids:
-            continue
-        seen_ids.add(concept_id)
-        raw_id = concept.get("id")
-        if not isinstance(raw_id, str):
-            raw_id = None
-        if concept_ref in concept_reference_keys(concept, raw_id=raw_id):
-            return concept_id
-
-    return concept_ref
-
-
 def _drop_fields(payload: dict[str, Any], fields: tuple[str, ...]) -> None:
     for field in fields:
         payload.pop(field, None)
