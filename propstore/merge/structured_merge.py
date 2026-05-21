@@ -11,7 +11,7 @@ from quire.documents import LoadedDocument
 from propstore.core.id_types import ClaimId, JustificationId, to_claim_id, to_justification_id
 from propstore.compiler.ir import ClaimCompilationBundle, SemanticClaim, SemanticClaimFile
 from propstore.families.claims.declaration import Claim, compile_claim_models
-from propstore.families.relations.declaration import StanceRow
+from propstore.families.relations.declaration import Stance
 from propstore.stances import coerce_stance_type
 from argumentation.dung import ArgumentationFramework
 from propstore.aspic_bridge import build_aspic_projection
@@ -41,7 +41,7 @@ class BranchStructuredSummary:
     relation_surface: dict[str, str]
     lossiness: tuple[str, ...]
     active_claims: tuple[MergeClaim, ...]
-    stance_rows: tuple[StanceRow, ...]
+    stance_rows: tuple[Stance, ...]
     projection: StructuredProjection
 
 
@@ -117,43 +117,39 @@ def argumentation_evidence_from_projection(
 def _stance_row_from_mapping(
     source_claim_id: ClaimId,
     stance: Mapping[str, Any],
-) -> StanceRow | None:
+) -> Stance | None:
     target = _optional_string(stance.get("target"))
     stance_type = _optional_string(stance.get("type"))
     if target is None or stance_type is None:
         return None
 
-    attributes: dict[str, Any] = {}
     target_justification_id: JustificationId | None = None
-    for key, value in stance.items():
-        if key in {"target", "type"} or value is None:
-            continue
-        if key == "target_justification_id":
-            target_justification_id = to_justification_id(value)
-            continue
-        attributes[str(key)] = value
+    if stance.get("target_justification_id") is not None:
+        target_justification_id = to_justification_id(stance["target_justification_id"])
 
     coerced_stance_type = coerce_stance_type(stance_type)
     if coerced_stance_type is None:
         return None
 
-    return StanceRow(
+    return Stance(
         claim_id=source_claim_id,
         target_claim_id=to_claim_id(target),
         stance_type=coerced_stance_type,
         target_justification_id=target_justification_id,
-        attributes=attributes,
+        strength=_optional_string(stance.get("strength")),
+        conditions_differ=_optional_string(stance.get("conditions_differ")),
+        note=_optional_string(stance.get("note")),
     )
 
 
 class _BranchSnapshotStore:
-    def __init__(self, repo, commit: str | None, stance_rows: list[StanceRow]) -> None:
+    def __init__(self, repo, commit: str | None, stance_rows: list[Stance]) -> None:
         self._repo = repo
         self._commit = commit
         self._stance_rows = list(stance_rows)
         self._grounding_bundle = None
 
-    def stances_between(self, claim_ids: set[str]) -> list[StanceRow]:
+    def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         return [
             row
             for row in self._stance_rows
@@ -205,7 +201,7 @@ def _summary_claim_provenance(active_claims: list[MergeClaim]) -> dict[str, dict
 
 def _summary_content_signature(
     active_claims: list[MergeClaim],
-    stance_rows: list[StanceRow],
+    stance_rows: list[Stance],
 ) -> str:
     claims_payload = []
     for claim in active_claims:
@@ -222,7 +218,7 @@ def _summary_content_signature(
             "target_justification_id": (
                 None if row.target_justification_id is None else str(row.target_justification_id)
             ),
-            "attributes": _normalize_for_signature(dict(row.attributes)),
+            "attributes": _normalize_for_signature(row.attribute_mapping()),
         }
         for row in stance_rows
     ]
@@ -265,8 +261,8 @@ def _summary_lossiness() -> tuple[str, ...]:
 
 def _canonical_stance_rows(
     active_claims: list[MergeClaim],
-    stance_rows: list[StanceRow],
-) -> list[StanceRow]:
+    stance_rows: list[Stance],
+) -> list[Stance]:
     in_scope_claim_ids = {
         to_claim_id(claim.artifact_id)
         for claim in active_claims
@@ -282,7 +278,7 @@ def _canonical_stance_rows(
             str(row.target_claim_id),
             row.stance_type,
             "" if row.target_justification_id is None else str(row.target_justification_id),
-            json.dumps(_normalize_for_signature(dict(row.attributes)), sort_keys=True),
+            json.dumps(_normalize_for_signature(row.attribute_mapping()), sort_keys=True),
         )
     )
     return canonical_rows
@@ -336,8 +332,8 @@ def _compiled_branch_claims(active_claims: list[MergeClaim]) -> tuple[Claim, ...
     return compile_claim_models(bundle, concept_registry={}).claims
 
 
-def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[StanceRow]:
-    rows: list[StanceRow] = []
+def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[Stance]:
+    rows: list[Stance] = []
     for claim in active_claims:
         for stance in claim.document.stances:
             row = _stance_row_from_mapping(to_claim_id(claim.artifact_id), stance.to_payload())
@@ -346,8 +342,8 @@ def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[StanceRow]:
     return rows
 
 
-def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[StanceRow]:
-    rows: list[StanceRow] = []
+def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[Stance]:
+    rows: list[Stance] = []
     for handle in snapshot.repo.families.stances.iter_handles(commit=commit):
         data = handle.document
         source_claim = _optional_string(data.source_claim)

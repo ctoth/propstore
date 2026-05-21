@@ -13,8 +13,6 @@ from typing import TYPE_CHECKING, Any, Mapping
 from propstore.core.environment import Environment
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import RelationshipRow, StanceRow
-from propstore.families.relations.projection_model import RELATIONSHIP_ROW_MODEL, STANCE_ROW_MODEL
 from propstore.families.concepts.declaration import Concept, Parameterization
 from propstore.world import WorldStore, BeliefSpace
 
@@ -255,8 +253,7 @@ def build_knowledge_graph(
             ))
 
     # ---- 4. Relationship edges ----
-    for row_input in world.all_relationships():
-        row = RELATIONSHIP_ROW_MODEL.coerce(row_input)
+    for row in world.all_relationships():
         src = row.source_id
         tgt = row.target_id
         if src not in node_ids or tgt not in node_ids:
@@ -269,8 +266,7 @@ def build_knowledge_graph(
         ))
 
     # ---- 5. Stance edges ----
-    for row_input in world.all_claim_stances():
-        row = STANCE_ROW_MODEL.coerce(row_input)
+    for row in world.all_claim_stances():
         cid = _display_claim_id_from_store(world, row.claim_id)
         tid = _display_claim_id_from_store(world, row.target_claim_id)
         if cid not in node_ids or tid not in node_ids:

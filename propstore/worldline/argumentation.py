@@ -7,8 +7,7 @@ from propstore.core.id_types import ClaimId, to_claim_id
 from propstore.core.labels import Label, SupportQuality
 from propstore.families.claims.declaration import Claim
 from propstore.reporting import json_ready
-from propstore.families.relations.declaration import StanceRow
-from propstore.families.relations.projection_model import STANCE_ROW_MODEL
+from propstore.families.relations.declaration import Stance
 from propstore.core.environment import StanceStore
 from propstore.world.types import (
     ClaimSupportView,
@@ -308,8 +307,17 @@ def _capture_praf(
     )
 
 
-def _stance_dependency_key(row: StanceRow) -> str:
-    return rfc8785.dumps(json_ready(STANCE_ROW_MODEL.to_row(row))).decode("utf-8")
+def _stance_dependency_key(row: Stance) -> str:
+    return rfc8785.dumps(
+        json_ready(
+            {
+                "claim_id": str(row.claim_id),
+                "target_claim_id": str(row.target_claim_id),
+                "stance_type": row.stance_type,
+                **row.attribute_mapping(),
+            }
+        )
+    ).decode("utf-8")
 
 
 def active_stance_dependencies(
@@ -328,7 +336,7 @@ def active_stance_dependencies(
     }
 
     if active_graph is not None:
-        stance_rows: list[StanceRow] = []
+        stance_rows: list[Stance] = []
         for edge in active_graph.compiled.relations:
             if edge.relation_type not in graph_relation_types:
                 continue
@@ -338,20 +346,17 @@ def active_stance_dependencies(
             ):
                 continue
             stance_rows.append(
-                STANCE_ROW_MODEL.from_row(
-                    {
-                        "claim_id": edge.source_id,
-                        "target_claim_id": edge.target_id,
-                        "stance_type": edge.relation_type,
-                        **dict(edge.attributes),
-                    }
+                Stance(
+                    claim_id=edge.source_id,
+                    target_claim_id=edge.target_id,
+                    stance_type=edge.relation_type,
                 )
             )
         return sorted(_stance_dependency_key(row) for row in stance_rows)
 
     if isinstance(world, StanceStore):
         return sorted(
-            _stance_dependency_key(STANCE_ROW_MODEL.coerce(row))
+            _stance_dependency_key(row)
             for row in world.stances_between({str(claim_id) for claim_id in active_ids})
         )
     return []

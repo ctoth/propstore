@@ -36,14 +36,7 @@ from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
 from propstore.families.claims.graph import claim_node_from_claim
 from propstore.families.relations.declaration import (
-    ConflictRow,
-    RelationshipRow,
-    StanceRow,
-)
-from propstore.families.relations.projection_model import (
-    CONFLICT_ROW_MODEL,
-    RELATIONSHIP_ROW_MODEL,
-    STANCE_ROW_MODEL,
+    Stance,
 )
 from propstore.families.concepts.declaration import (
     Concept,
@@ -188,37 +181,21 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
     for row in claim_rows:
         if not isinstance(row, Claim):
             raise TypeError("claims_for() must return typed Claim objects")
-    relationship_rows = (
-        [
-            RELATIONSHIP_ROW_MODEL.coerce(row)
-            for row in store.all_relationships()
-        ]
-        if isinstance(store, RelationshipCatalogStore)
-        else []
-    )
+    relationship_rows = list(store.all_relationships()) if isinstance(store, RelationshipCatalogStore) else []
     parameterization_rows = [
         Parameterization.coerce(row)
         for row in store.all_parameterizations()
     ]
-    conflict_rows = [
-        CONFLICT_ROW_MODEL.coerce(row)
-        for row in store.conflicts()
-    ]
+    conflict_rows = list(store.conflicts())
 
     if isinstance(store, ClaimStanceInventoryStore):
-        claim_stance_rows = [
-            STANCE_ROW_MODEL.coerce(row)
-            for row in store.all_claim_stances()
-        ]
+        claim_stance_rows = list(store.all_claim_stances())
     elif isinstance(store, StanceStore):
         claim_ids = {
             str(row.id)
             for row in claim_rows
         }
-        claim_stance_rows = [
-            STANCE_ROW_MODEL.coerce(row)
-            for row in store.stances_between(claim_ids)
-        ]
+        claim_stance_rows = list(store.stances_between(claim_ids))
     else:
         raise TypeError(
             "build_compiled_world_graph requires all_claim_stances() or stances_between()"
@@ -259,14 +236,24 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                 RelationEdge(
                     source_id=row.source_id,
                     target_id=row.target_id,
-                    relation_type=coerce_graph_relation_type(row.relation_type.value),
+                    relation_type=coerce_graph_relation_type(row.relation_type),
                     provenance=_row_provenance(
-                        RELATIONSHIP_ROW_MODEL.to_row(row),
+                        {
+                            "source_id": row.source_id,
+                            "target_id": row.target_id,
+                            "relation_type": row.relation_type,
+                            **row.attribute_mapping(),
+                        },
                         source_table="relationship",
                         source_id=f"{row.source_id}->{row.target_id}:{row.relation_type}",
                     ),
                     attributes=_relation_attributes(
-                        RELATIONSHIP_ROW_MODEL.to_row(row),
+                        {
+                            "source_id": row.source_id,
+                            "target_id": row.target_id,
+                            "relation_type": row.relation_type,
+                            **row.attribute_mapping(),
+                        },
                         known={"source_id", "target_id", "relation_type"},
                     ),
                 )
@@ -296,7 +283,12 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     ),
                     relation_type=coerce_graph_relation_type(stance.stance_type.value),
                     provenance=_row_provenance(
-                        STANCE_ROW_MODEL.to_row(stance),
+                        {
+                            "claim_id": str(stance.claim_id),
+                            "target_claim_id": str(stance.target_claim_id),
+                            "stance_type": stance.stance_type,
+                            **stance.attribute_mapping(),
+                        },
                         source_table="relation_edge",
                         source_id=(
                             f"{claim_display_ids.get(str(stance.claim_id), (_display_claim_id(store, str(stance.claim_id)) if prefer_logical_claim_ids else str(stance.claim_id)))}->"
