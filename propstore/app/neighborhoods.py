@@ -233,7 +233,7 @@ def _moves(
             state=provenance_state,
             sentence=(
                 "The claim has provenance."
-                if claim.provenance is not None
+                if has_provenance
                 else "The claim provenance is unknown."
             ),
         ),

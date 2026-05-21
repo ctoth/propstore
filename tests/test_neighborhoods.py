@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -18,27 +17,28 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     RepositoryViewUnsupportedStateError,
 )
-from propstore.core.active_claims import ActiveClaim
-from propstore.core.claim_values import ClaimProvenance
+from propstore.core.claim_types import ClaimType
+from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import StanceRow
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
+from tests.claim_model_helpers import claim_model
 
 
 class _World:
     def __init__(
         self,
         *,
-        claims: tuple[ActiveClaim, ...],
+        claims: tuple[Claim, ...],
         stances: tuple[StanceRow, ...] = (),
         visible_ids: tuple[str, ...] | None = None,
     ) -> None:
-        self.claims = {str(claim.claim_id): claim for claim in claims}
+        self.claims = {str(claim.id): claim for claim in claims}
         self.stances = stances
         self.visible_ids = set(self.claims) if visible_ids is None else set(visible_ids)
 
-    def get_claim(self, claim_id: str) -> ActiveClaim | None:
+    def get_claim(self, claim_id: str) -> Claim | None:
         return self.claims.get(claim_id)
 
     def get_concept(self, concept_id: str) -> Concept | None:
@@ -51,7 +51,7 @@ class _World:
         self,
         concept_id: str | None,
         policy: RenderPolicy,
-    ) -> list[ActiveClaim]:
+    ) -> list[Claim]:
         rows = [
             claim
             for claim_id, claim in self.claims.items()
@@ -92,22 +92,14 @@ def _repo() -> Repository:
     return cast(Repository, object())
 
 
-def _claim(claim_id: str, *, concept_id: str = "concept1") -> ActiveClaim:
-    return ActiveClaim(
-        claim_id=claim_id,
-        artifact_id=claim_id,
-        claim_type="parameter",
-        concept_links=(
-            SimpleNamespace(
-                claim_id=claim_id,
-                concept_id=concept_id,
-                role="output",
-                ordinal=0,
-                binding_name=None,
-            ),
-        ),
+def _claim(claim_id: str, *, concept_id: str = "concept1") -> Claim:
+    return claim_model(
+        claim_id,
+        claim_type=ClaimType.PARAMETER,
+        concept_id=concept_id,
         value=1.0,
-        provenance=ClaimProvenance(paper="paper1"),
+        source_paper="paper1",
+        provenance_page=1,
     )
 
 

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -18,12 +17,14 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     RepositoryViewUnsupportedStateError,
 )
-from propstore.core.active_claims import ActiveClaim
-from propstore.core.claim_values import ClaimProvenance, ClaimSource
+from propstore.core.claim_types import ClaimType
+from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim, ClaimConceptLink
 from propstore.families.concepts.declaration import Concept
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
+from tests.claim_model_helpers import claim_concept_link, claim_model
 
 
 class _World:
@@ -31,11 +32,11 @@ class _World:
         self,
         *,
         concept: Concept | None = None,
-        claims: tuple[ActiveClaim, ...] = (),
+        claims: tuple[Claim, ...] = (),
         visible_ids: tuple[str, ...] | None = None,
     ) -> None:
         self.concept = concept
-        self.claims = {str(claim.claim_id): claim for claim in claims}
+        self.claims = {str(claim.id): claim for claim in claims}
         self.visible_ids = set(self.claims) if visible_ids is None else set(visible_ids)
 
     def resolve_concept(self, name: str) -> str | None:
@@ -60,7 +61,7 @@ class _World:
             return self.concept
         return None
 
-    def claims_for(self, concept_id: str) -> list[ActiveClaim]:
+    def claims_for(self, concept_id: str) -> list[Claim]:
         if self.concept is None:
             return []
         resolved = self.resolve_concept(concept_id) or concept_id
@@ -70,7 +71,7 @@ class _World:
             if str(claim.value_concept_id or "") == resolved
         ]
 
-    def claims_related_to_concept(self, concept_id: str) -> list[ActiveClaim]:
+    def claims_related_to_concept(self, concept_id: str) -> list[Claim]:
         if self.concept is None:
             return []
         resolved = self.resolve_concept(concept_id) or concept_id
@@ -89,7 +90,7 @@ class _World:
         self,
         concept_id: str | None,
         policy: RenderPolicy,
-    ) -> list[ActiveClaim]:
+    ) -> list[Claim]:
         if concept_id is None:
             return []
         resolved = self.resolve_concept(concept_id) or concept_id
@@ -132,40 +133,50 @@ def _claim_link(
     *,
     claim_id: str,
     concept_id: str,
-    role: str,
+    role: ClaimConceptLinkRole,
     ordinal: int = 0,
-):
-    return SimpleNamespace(
+    ) -> ClaimConceptLink:
+    return claim_concept_link(
         claim_id=claim_id,
         concept_id=concept_id,
         role=role,
         ordinal=ordinal,
-        binding_name=None,
     )
 
 
-def _claim(claim_id: str, **overrides) -> ActiveClaim:
-    values = {
-        "claim_id": claim_id,
-        "artifact_id": claim_id,
-        "claim_type": "parameter",
-        "concept_links": (
+def _claim(
+    claim_id: str,
+    *,
+    claim_type: ClaimType = ClaimType.PARAMETER,
+    concept_links: tuple[ClaimConceptLink, ...] | None = None,
+    value: float | None = 100.0,
+    unit: str | None = "Hz",
+    uncertainty: float | None = 2.0,
+    sample_size: int | None = 12,
+    conditions_cel: str | None = None,
+    statement: str | None = None,
+) -> Claim:
+    if concept_links is None:
+        concept_links = (
             _claim_link(
                 claim_id=claim_id,
                 concept_id="concept1",
-                role="output",
+                role=ClaimConceptLinkRole.OUTPUT,
             ),
-        ),
-        "value": 100.0,
-        "unit": "Hz",
-        "uncertainty": 2.0,
-        "sample_size": 12,
-        "conditions_cel": None,
-        "source": ClaimSource(source_id="paper1", slug="paper1"),
-        "provenance": ClaimProvenance(paper="paper1", page=3),
-    }
-    values.update(overrides)
-    return ActiveClaim(**values)
+        )
+    return claim_model(
+        claim_id,
+        claim_type=claim_type,
+        concept_links=concept_links,
+        value=value,
+        unit=unit,
+        uncertainty=uncertainty,
+        sample_size=sample_size,
+        conditions_cel=conditions_cel,
+        statement=statement,
+        source_paper="paper1",
+        provenance_page=3,
+    )
 
 
 def _concept_entry() -> LoadedConcept:
@@ -196,7 +207,7 @@ def test_build_concept_view_returns_typed_report(
         concept=_concept(),
         claims=(
             _claim("claim-visible-a"),
-            _claim("claim-visible-b", claim_type="measurement", value=101.5),
+            _claim("claim-visible-b", claim_type=ClaimType.MEASUREMENT, value=101.5),
             _claim("claim-blocked", value=98.0),
         ),
         visible_ids=("claim-visible-a", "claim-visible-b"),
@@ -263,12 +274,12 @@ def test_build_concept_view_counts_about_links_as_related_claims(
         claims=(
             _claim(
                 "claim-about-only",
-                claim_type="observation",
+                claim_type=ClaimType.OBSERVATION,
                 concept_links=(
                     _claim_link(
                         claim_id="claim-about-only",
                         concept_id="concept1",
-                        role="about",
+                        role=ClaimConceptLinkRole.ABOUT,
                     ),
                 ),
                 value=None,

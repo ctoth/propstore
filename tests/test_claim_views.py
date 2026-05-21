@@ -3,7 +3,6 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 import json
-from types import SimpleNamespace
 from typing import cast
 
 import pytest
@@ -20,20 +19,21 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     RepositoryViewUnsupportedStateError,
 )
-from propstore.core.active_claims import ActiveClaim
-from propstore.core.claim_values import ClaimProvenance, ClaimSource
+from propstore.core.claim_types import ClaimType
 from propstore.core.relations import ClaimConceptLinkRole
+from propstore.families.claims.declaration import Claim, ClaimConceptLink
 from propstore.families.concepts.declaration import Concept
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
+from tests.claim_model_helpers import claim_concept_link, claim_model
 
 
 class _World:
     def __init__(
         self,
         *,
-        claim: ActiveClaim | None = None,
-        claims: tuple[ActiveClaim, ...] = (),
+        claim: Claim | None = None,
+        claims: tuple[Claim, ...] = (),
         concept: Concept | None = None,
         concepts: tuple[Concept, ...] = (),
         visible: bool = True,
@@ -41,14 +41,14 @@ class _World:
         claim_rows = list(claims)
         if claim is not None:
             claim_rows.append(claim)
-        self.claims = {str(item.claim_id): item for item in claim_rows}
+        self.claims = {str(item.id): item for item in claim_rows}
         concept_rows = list(concepts)
         if concept is not None:
             concept_rows.append(concept)
         self.concepts = {str(item.concept_id): item for item in concept_rows}
         self.visible = visible
 
-    def get_claim(self, claim_id: str) -> ActiveClaim | None:
+    def get_claim(self, claim_id: str) -> Claim | None:
         return self.claims.get(claim_id)
 
     def get_concept(self, concept_id: str) -> Concept | None:
@@ -58,7 +58,7 @@ class _World:
         self,
         concept_id: str | None,
         policy: RenderPolicy,
-    ) -> list[ActiveClaim]:
+    ) -> list[Claim]:
         if not self.visible:
             return []
         claims = list(self.claims.values())
@@ -90,43 +90,42 @@ def _claim_link(
     *,
     claim_id: str,
     concept_id: str,
-    role: ClaimConceptLinkRole | str,
+    role: ClaimConceptLinkRole,
     ordinal: int = 0,
-):
-    return SimpleNamespace(
+    ) -> ClaimConceptLink:
+    return claim_concept_link(
         claim_id=claim_id,
         concept_id=concept_id,
         role=role,
         ordinal=ordinal,
-        binding_name=None,
     )
 
 
-def _claim(**overrides) -> ActiveClaim:
-    values = {
-        "claim_id": "claim1",
-        "artifact_id": "claim1",
-        "claim_type": "parameter",
-        "concept_links": (
-            _claim_link(
-                claim_id="claim1",
-                concept_id="concept1",
-                role=ClaimConceptLinkRole.OUTPUT,
-                ordinal=0,
-            ),
-        ),
-        "value": 12.5,
-        "unit": "Hz",
-        "value_si": 12.5,
-        "uncertainty": 0.2,
-        "sample_size": 30,
-        "source": ClaimSource(source_id="paper1", slug="paper1"),
-        "provenance": ClaimProvenance(paper="paper1", page=4),
-    }
-    values.update(overrides)
-    if "concept_links" not in overrides:
-        claim_id = str(values["claim_id"])
-        values["concept_links"] = (
+def _claim(
+    claim_id: str = "claim1",
+    *,
+    claim_type: ClaimType = ClaimType.PARAMETER,
+    concept_links: tuple[ClaimConceptLink, ...] | None = None,
+    value: float | None = 12.5,
+    lower_bound: float | None = None,
+    upper_bound: float | None = None,
+    unit: str | None = "Hz",
+    value_si: float | None = 12.5,
+    uncertainty: float | None = 0.2,
+    sample_size: int | None = 30,
+    conditions_cel: str | None = None,
+    source_slug: str | None = "paper1",
+    source_paper: str = "paper1",
+    provenance_page: int = 4,
+    provenance_json: dict[str, object] | None = None,
+    statement: str | None = None,
+    expression: str | None = None,
+    variables_json: str | None = None,
+    build_status: str = "ingested",
+    stage: str | None = None,
+) -> Claim:
+    if concept_links is None:
+        concept_links = (
             _claim_link(
                 claim_id=claim_id,
                 concept_id="concept1",
@@ -134,7 +133,28 @@ def _claim(**overrides) -> ActiveClaim:
                 ordinal=0,
             ),
         )
-    return ActiveClaim(**values)
+    return claim_model(
+        claim_id,
+        claim_type=claim_type,
+        concept_links=concept_links,
+        value=value,
+        lower_bound=lower_bound,
+        upper_bound=upper_bound,
+        unit=unit,
+        value_si=value_si,
+        uncertainty=uncertainty,
+        sample_size=sample_size,
+        conditions_cel=conditions_cel,
+        source_slug=source_slug,
+        source_paper=source_paper,
+        provenance_page=provenance_page,
+        provenance_json=provenance_json,
+        statement=statement,
+        expression=expression,
+        variables_json=variables_json,
+        stage=stage,
+        build_status=build_status,
+    )
 
 
 def _concept() -> Concept:
@@ -178,7 +198,7 @@ def test_build_claim_view_speaks_absence_literals(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     claim = _claim(
-        claim_type="mechanism",
+        claim_type=ClaimType.MECHANISM,
         concept_links=(
             _claim_link(
                 claim_id="claim1",
@@ -192,8 +212,9 @@ def test_build_claim_view_speaks_absence_literals(
         value_si=None,
         uncertainty=None,
         sample_size=None,
-        source=None,
-        provenance=None,
+        source_slug=None,
+        source_paper="",
+        provenance_page=0,
     )
     world = _World(claim=claim, concept=None)
     monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
@@ -210,7 +231,7 @@ def test_build_claim_view_speaks_absence_literals(
 def test_build_claim_view_reports_policy_blocked_claim(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    claim = _claim(attributes={"stage": "draft"})
+    claim = _claim(stage="draft")
     world = _World(claim=claim, concept=_concept(), visible=False)
     monkeypatch.setattr(claim_views, "open_app_world_model", lambda repo: _open_world(world))
 
@@ -250,8 +271,8 @@ def test_list_claim_views_projects_visible_claim_rows(
 ) -> None:
     world = _World(
         claims=(
-            _claim(claim_id="claim2", artifact_id="claim2"),
-            _claim(claim_id="claim1", artifact_id="claim1"),
+            _claim(claim_id="claim2"),
+            _claim(claim_id="claim1"),
         ),
         concept=_concept(),
     )
@@ -273,8 +294,7 @@ def test_list_claim_views_renders_statement_claim_summaries(
         claims=(
             _claim(
                 claim_id="claim_obs",
-                artifact_id="claim_obs",
-                claim_type="observation",
+                claim_type=ClaimType.OBSERVATION,
                 concept_links=(
                     _claim_link(
                         claim_id="claim_obs",
@@ -314,7 +334,6 @@ def test_list_claim_views_renders_interval_only_parameters(
         claims=(
             _claim(
                 claim_id="claim_interval",
-                artifact_id="claim_interval",
                 value=None,
                 lower_bound=0.76,
                 upper_bound=1.26,
@@ -338,8 +357,7 @@ def test_list_claim_views_renders_equation_variable_concepts_and_expression(
         claims=(
             _claim(
                 claim_id="claim_eq",
-                artifact_id="claim_eq",
-                claim_type="equation",
+                claim_type=ClaimType.EQUATION,
                 concept_links=(),
                 value=None,
                 unit=None,
@@ -368,8 +386,8 @@ def test_search_claim_views_filters_by_query_and_concept(
 ) -> None:
     world = _World(
         claims=(
-            _claim(claim_id="claim1", artifact_id="claim1", statement="fundamental frequency rises"),
-            _claim(claim_id="claim2", artifact_id="claim2", statement="another measurement"),
+            _claim(claim_id="claim1", statement="fundamental frequency rises"),
+            _claim(claim_id="claim2", statement="another measurement"),
         ),
         concept=_concept(),
     )
@@ -394,8 +412,7 @@ def test_search_claim_views_matches_linked_concept_labels(
         claims=(
             _claim(
                 claim_id="claim_obs",
-                artifact_id="claim_obs",
-                claim_type="observation",
+                claim_type=ClaimType.OBSERVATION,
                 concept_links=(
                     _claim_link(
                         claim_id="claim_obs",

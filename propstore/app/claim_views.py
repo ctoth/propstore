@@ -363,13 +363,13 @@ def _claim_condition(claim) -> ClaimViewCondition:
 
 
 def _claim_provenance(claim) -> ClaimViewProvenance:
-    source_slug = claim.source_slug
-    source_id = claim.source_slug
+    source_slug = claim.source_slug or None
+    source_id = source_slug
     source_kind = None
     origin_type = None
     origin_value = None
-    paper = claim.source_paper
-    page = claim.provenance_page
+    paper = claim.source_paper or None
+    page = claim.provenance_page if claim.provenance_page > 0 else None
     if source_slug is None and source_id is None and paper is None and page is None:
         state: ClaimViewState = "missing"
         sentence = "Provenance is missing."
