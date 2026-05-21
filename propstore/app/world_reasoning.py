@@ -289,16 +289,18 @@ def _claim_lines(
             concept = world.get_concept(concept_id)
             if concept is not None:
                 concept_name = concept.canonical_name
+        numeric_payload = claim.numeric_payload
+        text_payload = claim.text_payload
         lines.append(
             WorldExtensionsClaimLine(
                 claim_id=str(claim.id),
                 claim_type=str(claim.type or "unknown"),
                 concept_id=concept_id,
                 concept_name=concept_name,
-                value=None,
-                expression=None,
-                statement=None,
-                description=None,
+                value=None if numeric_payload is None else numeric_payload.value,
+                expression=None if text_payload is None else text_payload.expression,
+                statement=None if text_payload is None else text_payload.statement,
+                description=None if text_payload is None else text_payload.description,
             )
         )
     return tuple(lines)

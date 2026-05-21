@@ -538,6 +538,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     `Claim` construction.
   - `uv run pyright propstore` passed with 0 errors after the argumentation
     preference repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-reasoning-demo-display tests/test_reasoning_demo_cli.py::test_reasoning_demo_build_and_world_extensions tests/test_reasoning_demo_cli.py::test_reasoning_demo_worldline_run_and_show`
+    passed 2 tests after world extension claim lines were wired to current
+    typed claim payloads and the demo assertion was aligned to the
+    source-qualified winner display id.
+  - `uv run pyright propstore` passed with 0 errors after the reasoning demo
+    display repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -594,10 +600,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
     - ATMS exact antecedent lookup is repaired after full-6: equality
       assumptions now match through checked-condition semantic equivalence
       instead of raw CEL text comparison.
-    - Reasoning demo CLI assertions still expect source-local handles/text in
-      places where runtime output now exposes canonical ids or grouped accepted
-      claim output; update the demo surface or test through the owner-layer
-      display contract, not by adding source-handle fallbacks.
+    - Reasoning demo CLI display is repaired after full-6: world extensions
+      now render typed claim payload values, and worldline assertions use the
+      source-qualified winner display id.
     - Sidecar cache-key input is repaired after full-6: the generated-schema
       identity now comes from the Quire SQLAlchemy schema catalog hash and is
       included in the content hash inputs.

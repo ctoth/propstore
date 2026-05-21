@@ -141,5 +141,5 @@ def test_reasoning_demo_worldline_run_and_show(tmp_path) -> None:
 
     assert show_result.exit_code == 0, show_result.output
     assert "flight_score: 1.0 (resolved, resolved)" in show_result.output
-    assert "[winner: claim_can_fly]" in show_result.output
+    assert "[winner: reasoning_demo:claim_can_fly]" in show_result.output
     assert "Defeated claims:" in show_result.output
