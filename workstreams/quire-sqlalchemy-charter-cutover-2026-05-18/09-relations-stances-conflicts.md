@@ -712,3 +712,14 @@ Recorded 2026-05-20.
   `count_conflicts` returned zero matches in the required `propstore` and
   `tests` scopes. The next required Phase 11 gate is the relations
   data-parity command.
+- Relations data-parity gate passed: `uv run
+  scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before
+  reports/sqlalchemy-charter-parity/relations-stances-conflicts/before.sqlite
+  --build-after sqlalchemy-charter --after
+  reports/sqlalchemy-charter-parity/relations-stances-conflicts/after.sqlite
+  --owner relations-stances-conflicts --workstream
+  workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/09-relations-stances-conflicts.md
+  --out reports/sqlalchemy-charter-parity/relations-stances-conflicts.json`
+  exited 0. The report has no failures; row counts, key sets, diagnostics,
+  FTS, vector checks, and table schema checks all report `pass`. Phase 11 is
+  complete.
