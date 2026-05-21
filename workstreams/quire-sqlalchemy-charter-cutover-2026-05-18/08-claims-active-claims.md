@@ -1565,3 +1565,23 @@ Current binding queue:
   edited claim assertions by the Phase 11 relation-edge charter mismatch
   `ValueError: missing required field(s) for family 'relation_edge': id`; that
   is not a reason to restore claim row helpers.
+- Claim storage helper module deletion: commit `017f694a` deleted
+  `propstore/families/claims/storage.py`. The claim-owned concept-link tuple
+  row helper had already been deleted; the remaining embedded-stance validation
+  and opinion extraction was moved to the relation owner as
+  `compile_claim_embedded_stance_rows_with_diagnostics` so the claim family no
+  longer owns a loose `dict | SemanticClaim` storage/normalizer module. The
+  moved relation function is not a Phase 10 compatibility path and does not
+  reintroduce claim row models; Phase 11 owns deleting its remaining
+  projection-row output when `Stance` replaces relation row writes. `rg -n -F
+  -- "propstore.families.claims.storage" propstore tests`,
+  `extract_deferred_stance_rows_with_diagnostics`, and
+  `coerce_stance_resolution` returned zero hits. `normalize_conditions_differ`
+  now hits only the old relation projection model, which is a Phase 11
+  deletion target. `uv run pyright propstore` passed with 0 errors, and logged
+  focused pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
+  claim-storage-helper-deletion
+  tests/test_claim_compiler.py::test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stances
+  tests/test_claim_notes.py::TestClaimNotesSidecar::test_world_query_get_claim_returns_notes
+  tests/test_relate_opinions.py` passed with 23 tests and log
+  `logs\test-runs\claim-storage-helper-deletion-20260520-195829.log`.

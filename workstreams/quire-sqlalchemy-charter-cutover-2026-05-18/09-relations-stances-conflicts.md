@@ -113,6 +113,17 @@ Current audit update on 2026-05-20:
   conditions, concept links, payloads, and source assertions from typed
   `Claim` objects and relationships. Do not reintroduce row-shaped claim
   fields such as `claim_id`, `claim_type`, `statement`, or `artifact_id`.
+- Phase 10 handoff update: commit `017f694a` deleted
+  `propstore/families/claims/storage.py` and moved embedded claim-stance
+  validation/opinion extraction into this relation owner as
+  `compile_claim_embedded_stance_rows_with_diagnostics`. This is a handoff,
+  not a final relation implementation: the function still returns row tuples
+  consumed by `StanceRow`/`RELATION_EDGE_TABLE`, so Phase 11 must delete that
+  row-output path along with `compile_authored_stance_sidecar_rows*`,
+  `StanceRow`, `CLAIM_STANCE_STORAGE_MODEL`, and the rest of the relation
+  projection vocabulary. Do not copy that function into another helper,
+  wrapper, or compatibility layer; replace it with typed `Stance` model
+  construction and Quire session writes.
 
 ## Prerequisites
 
