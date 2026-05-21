@@ -147,6 +147,7 @@ def claim_artifact_commit_payloads(
     normalized, _ = normalize_claim_file_payload(batch_payload)
     source_path = repo.root / source
     payloads: dict[str, bytes] = {}
+    source_names: set[str] = set()
     for loaded in claim_batch_files_from_payload(
         filename=source_path.name,
         source_path=source_path,
@@ -154,6 +155,7 @@ def claim_artifact_commit_payloads(
         knowledge_root=repo.root,
     ):
         claim = loaded.document
+        source_names.add(claim_file_source_paper(loaded))
         artifact_id = claim.artifact_id
         if artifact_id is None:
             raise ValueError(f"{source}: normalized claim is missing artifact_id")
@@ -161,6 +163,23 @@ def claim_artifact_commit_payloads(
         artifact_path = repo.families.claims.address(ref).require_path()
         payloads[artifact_path] = (
             repo.families.claims.render(claim) + "\n"
+        ).encode("utf-8")
+    for source_name in sorted(source_names):
+        ref = CanonicalSourceRef(source_name)
+        source_artifact_path = repo.families.sources.address(ref).require_path()
+        if (repo.root / source_artifact_path).exists() or source_artifact_path in payloads:
+            continue
+        source_doc = SourceDocument(
+            id=source_name,
+            kind=SourceKind.ACADEMIC_PAPER,
+            origin=SourceOriginDocument(
+                type=SourceOriginType.MANUAL,
+                value="fixture",
+            ),
+            trust=SourceTrustDocument(status=ProvenanceStatus.STATED),
+        )
+        payloads[source_artifact_path] = (
+            repo.families.sources.render(source_doc) + "\n"
         ).encode("utf-8")
     return payloads
 
