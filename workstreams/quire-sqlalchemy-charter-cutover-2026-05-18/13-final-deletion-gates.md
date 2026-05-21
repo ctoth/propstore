@@ -551,6 +551,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 2 tests after the manifest regeneration/version bump workflow.
   - `uv run pyright propstore` passed with 0 errors after the contract
     manifest update.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-atms-full7-repair tests/test_atms_engine.py::test_atms_supported_claims_are_subset_of_active_claims_and_ignore_semantic_overlap tests/test_atms_engine.py::test_atms_node_status_partition_and_support_quality_honesty tests/test_atms_engine.py::test_atms_preserves_nogood_pruned_vs_semantic_only_out_and_provenance tests/test_atms_engine.py::test_phase8_graph_runtime_matches_boundworld_for_labels_and_nogoods tests/test_atms_engine.py::test_phase8_graph_runtime_replays_future_status_and_interventions_without_boundworld_introspection tests/test_atms_engine.py::test_atms_future_queryables_can_be_insufficient tests/test_atms_engine.py::test_atms_bounded_stability_and_relevance_are_honest_for_claims_and_concepts tests/test_atms_engine.py::test_atms_claim_interventions_and_next_queries_are_minimal tests/test_atms_engine.py::test_atms_concept_interventions_use_replayed_value_statuses tests/test_atms_engine.py::test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_limit tests/test_atms_engine.py::test_atms_cli_surfaces_future_analysis tests/test_atms_engine.py::test_atms_cli_surfaces_interventions_and_next_queries tests/test_atms_unbounded_stability_api.py::test_ws_i_unbounded_stability_finds_witness_beyond_old_default_budget tests/test_atms_unbounded_stability_api.py::test_ws_i_budget_exhaustion_is_loud_and_counted tests/test_atms_unbounded_stability_api.py::test_ws_i_budgeted_stability_is_monotone_when_a_verdict_is_reached tests/test_revision_projection.py::test_project_belief_base_filters_assumptions_to_projected_claim_support`
+    passed 16 tests after ATMS antecedent matching stopped treating
+    out-of-registry unrelated assumptions as hard failures and the graph-only
+    runtime/test solver implemented the current condition-solver contract.
+  - `uv run pyright propstore` passed with 0 errors after the full-7 ATMS
+    repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -623,13 +629,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
       Sensitivity typed-claim access is repaired after full-6. Semantic repair
       typed fixture/display-id drift is repaired after full-6.
   - Remaining failure clusters from full-7:
-    - ATMS semantic antecedent matching repair is incomplete: it assumes every
-      condition solver implements set equivalence, reparses replay queryables
-      against the current registry, and rejects future assumptions whose
-      concepts are intentionally outside the current bound environment.
-    - ATMS graph-only runtime acceptance regressed because the runtime-like
-      protocol no longer recognizes the graph replay runtime after adding the
-      semantic condition solver requirement.
+    - ATMS semantic antecedent matching repair is completed after full-7: exact
+      CEL source matches still match directly, semantically equivalent checked
+      conditions match through the condition solver, unrelated assumptions
+      outside the active condition registry do not produce exact support or a
+      hard failure, and the graph-only runtime satisfies the condition-solver
+      protocol.
     - World extension typed claim rendering changed the ASPIC CLI text shape;
       finish the current typed rendering update by aligning the remaining
       structured projection assertions to the typed payload output.
