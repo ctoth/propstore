@@ -41,6 +41,7 @@ from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from tests.conftest import make_compilation_context
+from tests.claim_model_helpers import claim_model
 from tests.family_helpers import world_query_from_sqlite_path
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
@@ -390,7 +391,7 @@ class TestContextSidecar:
 
 class TestBoundWorldContextLifting:
     class _Store:
-        def __init__(self, claims: list[dict]) -> None:
+        def __init__(self, claims) -> None:
             from propstore.core.conditions.solver import ConditionSolver
 
             self._claims = claims
@@ -400,7 +401,7 @@ class TestBoundWorldContextLifting:
             return [
                 claim
                 for claim in self._claims
-                if concept_id is None or claim.get("concept_id") == concept_id
+                if concept_id is None or claim.value_concept_id == concept_id
             ]
 
         def condition_solver(self):
@@ -408,10 +409,10 @@ class TestBoundWorldContextLifting:
 
     def test_bound_world_uses_explicit_lifting_visibility(self) -> None:
         claims = [
-            {"id": "claim_root", "concept_id": "c1", "context_id": "ctx_root"},
-            {"id": "claim_child", "concept_id": "c1", "context_id": "ctx_child"},
-            {"id": "claim_other", "concept_id": "c1", "context_id": "ctx_other"},
-            {"id": "claim_unscoped", "concept_id": "c1", "context_id": None},
+            claim_model(claim_id="claim_root", concept_id="c1", context_id="ctx_root"),
+            claim_model(claim_id="claim_child", concept_id="c1", context_id="ctx_child"),
+            claim_model(claim_id="claim_other", concept_id="c1", context_id="ctx_other"),
+            claim_model(claim_id="claim_unscoped", concept_id="c1", context_id=None),
         ]
         system = LiftingSystem(
             contexts=(
@@ -433,7 +434,7 @@ class TestBoundWorldContextLifting:
             lifting_system=system,
         )
 
-        assert {str(claim.claim_id) for claim in bound.active_claims("c1")} == {
+        assert {str(claim.id) for claim in bound.active_claims("c1")} == {
             "claim_root",
             "claim_child",
             "claim_unscoped",
@@ -441,8 +442,8 @@ class TestBoundWorldContextLifting:
 
     def test_bound_world_without_lifting_rule_does_not_see_parent_by_name(self) -> None:
         claims = [
-            {"id": "claim_root", "concept_id": "c1", "context_id": "ctx_root"},
-            {"id": "claim_child", "concept_id": "c1", "context_id": "ctx_child"},
+            claim_model(claim_id="claim_root", concept_id="c1", context_id="ctx_root"),
+            claim_model(claim_id="claim_child", concept_id="c1", context_id="ctx_child"),
         ]
         system = LiftingSystem(
             contexts=(ContextReference("ctx_root"), ContextReference("ctx_child")),
@@ -453,7 +454,7 @@ class TestBoundWorldContextLifting:
             lifting_system=system,
         )
 
-        assert {str(claim.claim_id) for claim in bound.active_claims("c1")} == {"claim_child"}
+        assert {str(claim.id) for claim in bound.active_claims("c1")} == {"claim_child"}
 
 
 class TestWorldQueryContextLifting:
@@ -483,7 +484,7 @@ class TestWorldQueryContextLifting:
         wm = world_query_from_sqlite_path(sidecar)
         try:
             bound = wm.bind(Environment(context_id="ctx_child"))
-            assert {str(claim.claim_id) for claim in bound.active_claims("c1")} == {
+            assert {str(claim.id) for claim in bound.active_claims("c1")} == {
                 "claim_root",
                 "claim_child",
             }

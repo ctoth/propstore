@@ -30,6 +30,7 @@ from propstore.core.conditions.solver import (
     Z3TranslationError,
 )
 from propstore.core.conditions.registry import ConceptInfo, KindType
+from tests.claim_model_helpers import claim_model
 
 
 class _ConditionSolver:
@@ -184,15 +185,23 @@ def test_bound_world_projection_honors_local_lifting_exception() -> None:
         def __init__(self) -> None:
             self._solver = ConditionSolver({})
             self._claims = [
-                {"id": "claim_alpha", "concept_id": "c1", "context_id": "ctx_source"},
-                {"id": "claim_local", "concept_id": "c1", "context_id": "ctx_target"},
+                claim_model(
+                    claim_id="claim_alpha",
+                    concept_id="c1",
+                    context_id="ctx_source",
+                ),
+                claim_model(
+                    claim_id="claim_local",
+                    concept_id="c1",
+                    context_id="ctx_target",
+                ),
             ]
 
         def claims_for(self, concept_id):
             return [
                 claim
                 for claim in self._claims
-                if concept_id is None or claim.get("concept_id") == concept_id
+                if concept_id is None or claim.value_concept_id == concept_id
             ]
 
         def condition_solver(self):
@@ -223,7 +232,7 @@ def test_bound_world_projection_honors_local_lifting_exception() -> None:
         lifting_system=system,
     )
 
-    assert {str(claim.claim_id) for claim in bound.active_claims("c1")} == {
+    assert {str(claim.id) for claim in bound.active_claims("c1")} == {
         "claim_local",
     }
 

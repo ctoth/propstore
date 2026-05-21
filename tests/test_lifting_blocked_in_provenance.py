@@ -13,6 +13,7 @@ from propstore.world.types import Environment
 from propstore.world.bound import BoundWorld
 from propstore.worldline import WorldlineDefinition, WorldlineInputs, run_worldline
 from propstore.worldline.result_types import WorldlineDependencies
+from tests.claim_model_helpers import claim_model
 
 
 def test_ws_j_worldline_dependencies_roundtrip_lifting_provenance() -> None:
@@ -56,18 +57,18 @@ def test_ws_j_worldline_dependencies_include_blocked_lifting_exception() -> None
 
             self._solver = ConditionSolver({})
             self._claims = {
-                "claim_alpha": {
-                    "id": "claim_alpha",
-                    "concept_id": "concept:target",
-                    "value": 12.0,
-                    "context_id": "ctx_source",
-                },
-                "claim_local": {
-                    "id": "claim_local",
-                    "concept_id": "concept:target",
-                    "value": 42.0,
-                    "context_id": "ctx_target",
-                },
+                "claim_alpha": claim_model(
+                    claim_id="claim_alpha",
+                    concept_id="concept:target",
+                    value=12.0,
+                    context_id="ctx_source",
+                ),
+                "claim_local": claim_model(
+                    claim_id="claim_local",
+                    concept_id="concept:target",
+                    value=42.0,
+                    context_id="ctx_target",
+                ),
             }
 
         def bind(self, environment=None, *, policy=None, **conditions):
@@ -90,7 +91,7 @@ def test_ws_j_worldline_dependencies_include_blocked_lifting_exception() -> None
             return [
                 claim
                 for claim in self._claims.values()
-                if concept_id is None or claim.get("concept_id") == concept_id
+                if concept_id is None or claim.value_concept_id == concept_id
             ]
 
         def condition_solver(self):

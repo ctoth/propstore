@@ -9,9 +9,15 @@ from __future__ import annotations
 
 import pytest
 
+from propstore.core.graph_types import CompiledWorldGraph, WorldActivationGraph
 from propstore.families.concepts.declaration import Concept
 from propstore.world.types import DerivedResult, ValueResult
 from propstore.worldline import WorldlineDefinition, run_worldline
+from tests.typed_family_fixtures import (
+    claim_from_payload,
+    claim_node_from_payload,
+    stance_from_payload,
+)
 
 SOURCE_PRIOR_05 = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
 
@@ -22,9 +28,10 @@ SOURCE_PRIOR_05 = {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5}
 class FakeBound:
     """Minimal BoundWorld stub for PRAF worldline tests."""
 
-    def __init__(self, claims):
+    def __init__(self, claims, active_graph):
         self._claims = claims
         self._bindings = {}
+        self._active_graph = active_graph
 
     def value_of(self, concept_id):
         return ValueResult(
@@ -48,30 +55,42 @@ class FakeWorld:
     """
 
     def __init__(self):
-        self._claims = {
-            "claim_a": {
+        claim_payloads = (
+            {
                 "id": "claim_a",
-                "concept": "concept1",
+                "concept_id": "concept1",
                 "value": 10.0,
-                "content_hash": "hash-a",
+                "confidence": 1.0,
+                "sample_size": 10,
                 "claim_probability": 1.0,
                 "effective_sample_size": 10,
                 "source_prior_base_rate": SOURCE_PRIOR_05,
             },
-            "claim_b": {
+            {
                 "id": "claim_b",
-                "concept": "concept1",
+                "concept_id": "concept1",
                 "value": 20.0,
-                "content_hash": "hash-b",
+                "confidence": 1.0,
+                "sample_size": 10,
                 "claim_probability": 1.0,
                 "effective_sample_size": 10,
                 "source_prior_base_rate": SOURCE_PRIOR_05,
             },
+        )
+        self._claims = {
+            str(payload["id"]): claim_from_payload(payload)
+            for payload in claim_payloads
         }
+        self._active_graph = WorldActivationGraph(
+            compiled=CompiledWorldGraph(
+                claims=tuple(claim_node_from_payload(payload) for payload in claim_payloads),
+            ),
+            active_claim_ids=("claim_a", "claim_b"),
+        )
 
     def bind(self, environment=None, *, policy=None, **conditions):
         claims = [self._claims["claim_a"], self._claims["claim_b"]]
-        return FakeBound(claims)
+        return FakeBound(claims, self._active_graph)
 
     def get_concept(self, concept_id):
         if concept_id in {"concept1", "target"}:
@@ -94,14 +113,16 @@ class FakeWorld:
     def stances_between(self, claim_ids):
         if {"claim_a", "claim_b"}.issubset(claim_ids):
             return [
-                {
-                    "claim_id": "claim_b",
-                    "target_claim_id": "claim_a",
-                    "stance_type": "rebuts",
-                    "confidence": 0.8,
-                    "opinion_base_rate": 0.5,
-                    "note": "rebuts-note",
-                },
+                stance_from_payload(
+                    {
+                        "claim_id": "claim_b",
+                        "target_claim_id": "claim_a",
+                        "stance_type": "rebuts",
+                        "confidence": 0.8,
+                        "opinion_base_rate": 0.5,
+                        "note": "rebuts-note",
+                    }
+                ),
             ]
         return []
 
