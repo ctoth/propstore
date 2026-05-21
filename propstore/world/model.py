@@ -816,7 +816,7 @@ class WorldQuery(WorldStore):
 
         assert model_name is not None  # narrowed above
         return [
-            ClaimSimilarityHit.from_row_mapping(result)
+            ClaimSimilarityHit.from_search_row(result)
             for result in find_similar(
                 self._derived_store,
                 claim_id,
@@ -848,7 +848,7 @@ class WorldQuery(WorldStore):
 
         assert model_name is not None  # narrowed above
         return [
-            ConceptSimilarityHit.from_row_mapping(result)
+            ConceptSimilarityHit.from_search_row(result)
             for result in find_similar_concepts(
                 self._derived_store,
                 concept_id,
