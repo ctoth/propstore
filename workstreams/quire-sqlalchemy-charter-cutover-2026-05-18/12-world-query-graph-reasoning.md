@@ -285,6 +285,19 @@ workstream. Production hits outside those targets block implementation.
   naming, generic `from_mapping` constructors, typed bound/overlay/ATMS graph
   migration, support-revision, ASPIC, and final parity/search gates.
 
+2026-05-21 active-input/value-resolver gate update:
+
+- `rg -n -F -- "ActiveClaimInput" propstore tests`,
+  `rg -n -F -- "ActiveMicropublicationInput" propstore tests`, and
+  `rg -n -F -- "ActiveClaimResolver" propstore tests` returned zero hits.
+- The current value resolver surface is already `ClaimValueResolver` in
+  `propstore/world/value_resolver.py`, with production users in
+  `propstore/world/bound.py` and typed value-resolver tests. No rename,
+  wrapper, alias, or compatibility layer is required or allowed here.
+- Continue with the remaining Phase 14 targets: generic `from_mapping`
+  constructors, typed bound/overlay/ATMS graph migration, support-revision,
+  ASPIC, and final parity/search gates.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
