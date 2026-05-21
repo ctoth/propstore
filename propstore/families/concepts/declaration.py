@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import json
 from quire.charters import FamilyModel
-from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
 
 from propstore.core.conditions import (
     check_condition_ir,
@@ -287,16 +286,6 @@ class Parameterization(FamilyModel):
 
 class ParameterizationGroup(FamilyModel):
     pass
-
-
-CONCEPT_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
-    name="concept_embedding_status",
-    entity_id_column="concept_id",
-    index_name="idx_concept_embedding_status_model_identity",
-)
-
-
-CONCEPT_VEC_PROJECTION = rowid_vec_projection("concept_vec_{model_identity_hash}")
 
 
 class ConceptSearchQuerySyntaxError(ValueError):
