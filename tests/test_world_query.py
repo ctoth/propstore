@@ -14,19 +14,11 @@ import sqlite3
 import pytest
 import yaml
 
+from sqlalchemy import create_engine, insert
+
 from propstore.core.claim_types import ClaimType
 from propstore.conflict_detector import ConflictClass
-from propstore.core.conditions import (
-    ConditionSolver,
-    check_condition_ir,
-    checked_condition_set,
-    checked_condition_set_to_json,
-)
-from propstore.core.conditions.registry import (
-    ConceptInfo,
-    KindType,
-    with_standard_synthetic_bindings,
-)
+from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import (
@@ -50,7 +42,8 @@ from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.stances import StanceType
 from tests.conftest import make_claim_identity, write_test_context
-from tests.sidecar_schema_helpers import build_world_projection_schema
+from tests.sidecar_schema_helpers import build_world_projection_schema, insert_minimal_source
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.world import (
     WorldStore,
     BeliefSpace,
@@ -97,7 +90,7 @@ CONCEPT7_ID = _concept_artifact("concept7")
 
 
 def _runtime_claim_id(claim) -> str:
-    return str(claim.claim_id)
+    return str(claim.id)
 
 
 def _runtime_claim_ids(claims) -> list[str]:
@@ -704,7 +697,7 @@ class TestUnboundQueries:
 
     def test_claims_for(self, world):
         claims = world.claims_for("fundamental_frequency")
-        ids = {str(c.claim_id) for c in claims}
+        ids = {str(c.id) for c in claims}
         assert ids == {
             _claim_artifact("test_paper_alpha", "claim1"),
             _claim_artifact("test_paper_alpha", "claim2"),
@@ -768,7 +761,7 @@ class TestUnboundQueries:
 
         wm = WorldQuery(repo)
         try:
-            assert [str(claim.claim_id) for claim in wm.claims_for("fundamental_frequency")] == [
+            assert [str(claim.id) for claim in wm.claims_for("fundamental_frequency")] == [
                 make_claim_identity("claim1", namespace="paper")["artifact_id"]
             ]
             assert wm.bind().value_of("fundamental_frequency").status == "determined"
@@ -825,7 +818,7 @@ class TestUnboundQueries:
 
         wm = WorldQuery(repo)
         try:
-            assert [str(claim.claim_id) for claim in wm.claims_for("F0")] == [
+            assert [str(claim.id) for claim in wm.claims_for("F0")] == [
                 make_claim_identity("claim1", namespace="paper")["artifact_id"]
             ]
             assert wm.bind().value_of("F0").status == "determined"
@@ -862,7 +855,7 @@ class TestUnboundQueries:
         wm = world_query_from_sqlite_path(sidecar)
         try:
             claims = wm.claims_for("concept2")
-            assert [str(claim.claim_id) for claim in claims] == ["measurement1"]
+            assert [str(claim.id) for claim in claims] == ["measurement1"]
 
             active = wm.bind().active_claims("concept2")
             assert _runtime_claim_ids(active) == ["measurement1"]
@@ -899,7 +892,7 @@ class TestUnboundQueries:
         wm = world_query_from_sqlite_path(sidecar)
         try:
             claims = wm.claims_with_policy("concept2", RenderPolicy())
-            assert [str(claim.claim_id) for claim in claims] == ["observation1"]
+            assert [str(claim.id) for claim in claims] == ["observation1"]
         finally:
             wm.close()
 
@@ -933,7 +926,7 @@ class TestUnboundQueries:
         wm = world_query_from_sqlite_path(sidecar)
         try:
             claims = wm.claims_related_to_concept("concept2")
-            assert [str(claim.claim_id) for claim in claims] == ["observation1"]
+            assert [str(claim.id) for claim in claims] == ["observation1"]
         finally:
             wm.close()
 
@@ -966,8 +959,8 @@ class TestUnboundQueries:
 
         wm = world_query_from_sqlite_path(sidecar)
         try:
-            assert [str(claim.claim_id) for claim in wm.claims_for("concept2")] == ["measurement1"]
-            assert [str(claim.claim_id) for claim in wm.claims_for("concept2")] == ["measurement1"]
+            assert [str(claim.id) for claim in wm.claims_for("concept2")] == ["measurement1"]
+            assert [str(claim.id) for claim in wm.claims_for("concept2")] == ["measurement1"]
         finally:
             wm.close()
 
@@ -1161,7 +1154,7 @@ class TestValueOf:
         assert isinstance(result, ValueResult)
         assert result.status == "determined"
         assert len(result.claims) == 1
-        assert str(result.claims[0].claim_id) == _claim_artifact("test_paper_alpha", "claim3")
+        assert str(result.claims[0].id) == _claim_artifact("test_paper_alpha", "claim3")
 
     def test_speech_conflicted(self, world):
         bound = world.bind(task="speech")
@@ -1861,7 +1854,7 @@ class TestHypothesisProperties:
             assert _claim_artifact("test_paper_alpha", "claim5") in active_ids, f"claim5 not active under {binding}"
 
     def test_partitioning(self, world):
-        all_claims = {str(c.claim_id) for c in world.claims_for(None)}
+        all_claims = {str(c.id) for c in world.claims_for(None)}
         for binding in [{}, {"task": "speech"}, {"task": "singing"}, {"task": "whisper"}]:
             bound = world.bind(**binding)
             active = _runtime_claim_id_set(bound.active_claims())
@@ -2863,90 +2856,104 @@ class TestOverlayWorldATMS:
             assert "downgraded ATMS backend to claim_graph" not in result.reason
 
 
-class _Phase6HypotheticalStore:
-    def __init__(self) -> None:
-        self._condition_registry = with_standard_synthetic_bindings(
-            {
-                "concept_x": ConceptInfo(
-                    id="concept_x",
-                    canonical_name="concept_x",
-                    kind=KindType.QUANTITY,
-                )
-            }
-        )
-        self._condition_solver = ConditionSolver(self._condition_registry)
-        condition_set = checked_condition_set(
-            [check_condition_ir("mode == 'speech'", self._condition_registry)]
-        )
-        self._claims = [
-            {
-                "id": "claim_a",
-                "type": "parameter",
-                "concept_links": [
-                    {"claim_id": "claim_a", "concept_id": "concept_x", "role": "output"}
-                ],
-                "value": 10.0,
-                "sample_size": 50,
-                "confidence": 1.0,
-                "conditions_cel": json.dumps(["mode == 'speech'"]),
-                "conditions_ir": json.dumps(
-                    checked_condition_set_to_json(condition_set),
-                    sort_keys=True,
-                ),
-            },
-        ]
-
-    def claims_for(self, concept_id: str | None) -> list[dict]:
-        if concept_id is None:
-            return list(self._claims)
-        return [
-            claim
-            for claim in self._claims
-            if any(link["concept_id"] == concept_id for link in claim["concept_links"])
-        ]
-
-    def get_claim(self, claim_id: str) -> dict | None:
-        return next((claim for claim in self._claims if claim["id"] == claim_id), None)
-
-    def claims_by_ids(self, claim_ids: set[str]) -> dict[str, dict]:
-        return {
-            claim["id"]: dict(claim)
-            for claim in self._claims
-            if claim["id"] in claim_ids
-        }
-
-    def stances_between(self, claim_ids: set[str]) -> list[StanceRowInput]:
-        return []
-
-    def conflicts(self) -> list[ConflictRowInput]:
-        return []
-
-    def parameterizations_for(self, concept_id: str) -> list[dict]:
-        return []
-
-    def condition_solver(self) -> ConditionSolver:
-        return self._condition_solver
-
-    def explain(self, claim_id: str) -> list[StanceRowInput]:
-        return []
-
-    def has_table(self, name: str) -> bool:
-        return name == "relation_edge"
-
-    def all_concepts(self) -> list[dict]:
-        return [
-            {
-                "id": "concept_x",
-                "canonical_name": "concept_x",
-                "form": "quantity",
-                "kind_type": "quantity",
-            }
-        ]
-
-
-def _phase6_bound_world(policy: RenderPolicy) -> BoundWorld:
-    return BoundWorld(
-        _Phase6HypotheticalStore(),
+def _phase6_bound_world(tmp_path, policy: RenderPolicy) -> BoundWorld:
+    sidecar_path = tmp_path / "phase6-hypothetical.sqlite"
+    conn = sqlite3.connect(sidecar_path)
+    try:
+        build_world_projection_schema(conn)
+        insert_minimal_source(conn, slug="paper1", source_id="paper1")
+        schema = world_sqlalchemy_schema()
+        engine = create_engine("sqlite://", creator=lambda: conn)
+        with engine.begin() as sql_conn:
+            sql_conn.execute(
+                insert(schema.table("concept")),
+                {
+                    "id": "concept_x",
+                    "primary_logical_id": "concept_x",
+                    "logical_ids_json": "[]",
+                    "version_id": "",
+                    "content_hash": "hash_concept_x",
+                    "seq": 0,
+                    "canonical_name": "concept_x",
+                    "status": "active",
+                    "definition": "Phase 6 overlay fixture concept.",
+                    "kind_type": "quantity",
+                    "form": "scalar",
+                    "form_parameters": "{}",
+                },
+            )
+            sql_conn.execute(
+                insert(schema.table("claim_core")),
+                {
+                    "id": "claim_a",
+                    "primary_logical_id": "claim_a",
+                    "logical_ids_json": "[]",
+                    "version_id": "",
+                    "content_hash": "hash_claim_a",
+                    "seq": 0,
+                    "type": ClaimType.PARAMETER,
+                    "target_concept": None,
+                    "source_slug": "paper1",
+                    "source_paper": "paper1",
+                    "provenance_page": 1,
+                    "provenance_json": None,
+                    "context_id": None,
+                    "premise_kind": "ordinary",
+                    "branch": None,
+                    "build_status": "ingested",
+                    "stage": None,
+                    "promotion_status": None,
+                },
+            )
+            sql_conn.execute(
+                insert(schema.table("claim_concept_link")),
+                {
+                    "claim_id": "claim_a",
+                    "concept_id": "concept_x",
+                    "role": ClaimConceptLinkRole.OUTPUT,
+                    "ordinal": 0,
+                    "binding_name": None,
+                },
+            )
+            sql_conn.execute(
+                insert(schema.table("claim_numeric_payload")),
+                {
+                    "claim_id": "claim_a",
+                    "value": 10.0,
+                    "lower_bound": None,
+                    "upper_bound": None,
+                    "uncertainty": None,
+                    "uncertainty_type": None,
+                    "sample_size": 100,
+                    "unit": None,
+                    "value_si": None,
+                    "lower_bound_si": None,
+                    "upper_bound_si": None,
+                },
+            )
+            sql_conn.execute(
+                insert(schema.table("claim_text_payload")),
+                {
+                    "claim_id": "claim_a",
+                    "conditions_cel": None,
+                    "conditions_ir": None,
+                    "statement": None,
+                    "expression": None,
+                    "sympy_generated": None,
+                    "sympy_error": None,
+                    "name": None,
+                    "measure": None,
+                    "listener_population": None,
+                    "methodology": None,
+                    "notes": None,
+                    "description": None,
+                    "auto_summary": None,
+                },
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    return world_query_from_sqlite_path(sidecar_path).bind(
         environment=Environment(bindings={"mode": "speech"}),
         policy=policy,
     )
@@ -2987,12 +2994,14 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         assert hypo._active_graph == bound._active_graph
         assert hypo.value_of("concept1") == bound.value_of("concept1")
 
-    def test_claim_graph_overlay_uses_delta_backed_conflicts(self):
+    def test_claim_graph_overlay_uses_delta_backed_conflicts(self, tmp_path):
         bound = _phase6_bound_world(
+            tmp_path,
             RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
                 reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
                 semantics="grounded",
+                comparison="democratic",
             )
         )
         hypo = OverlayWorld(
@@ -3004,7 +3013,6 @@ class TestSemanticCorePhase6HypotheticalDeltas:
                     value=20.0,
                     conditions=["mode == 'speech'"],
                     sample_size=50,
-                    confidence=1.0,
                 ),
             ],
         )
@@ -3016,8 +3024,9 @@ class TestSemanticCorePhase6HypotheticalDeltas:
         assert result.winning_claim_id == "claim_a"
         assert result.reason == "sole survivor in grounded extension"
 
-    def test_praf_overlay_keeps_delta_conflicts_unresolved_without_priors(self):
+    def test_praf_overlay_keeps_delta_conflicts_unresolved_without_priors(self, tmp_path):
         bound = _phase6_bound_world(
+            tmp_path,
             RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
                 reasoning_backend=ReasoningBackend.PRAF,
@@ -3034,7 +3043,6 @@ class TestSemanticCorePhase6HypotheticalDeltas:
                     value=20.0,
                     conditions=["mode == 'speech'"],
                     sample_size=50,
-                    confidence=1.0,
                 ),
             ],
         )

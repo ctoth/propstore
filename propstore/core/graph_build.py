@@ -97,7 +97,13 @@ def _concept_attributes(row: Mapping[str, Any]) -> tuple[tuple[str, Any], ...]:
     )
 
 
-def _claim_attributes(row: Claim) -> tuple[tuple[str, Any], ...]:
+def claim_scalar_value_from_claim(claim: Claim) -> float | None:
+    numeric_payload = claim.numeric_payload
+    return None if numeric_payload is None else numeric_payload.value
+
+
+def claim_node_attributes_from_claim(row: Claim) -> tuple[tuple[str, Any], ...]:
+    numeric_payload = row.numeric_payload
     return tuple(
         (key, value)
         for key, value in (
@@ -116,9 +122,43 @@ def _claim_attributes(row: Claim) -> tuple[tuple[str, Any], ...]:
             ("build_status", row.build_status),
             ("stage", row.stage),
             ("promotion_status", row.promotion_status),
+            (
+                "lower_bound",
+                None if numeric_payload is None else numeric_payload.lower_bound,
+            ),
+            (
+                "upper_bound",
+                None if numeric_payload is None else numeric_payload.upper_bound,
+            ),
+            (
+                "uncertainty",
+                None if numeric_payload is None else numeric_payload.uncertainty,
+            ),
+            (
+                "uncertainty_type",
+                None if numeric_payload is None else numeric_payload.uncertainty_type,
+            ),
+            (
+                "sample_size",
+                None if numeric_payload is None else numeric_payload.sample_size,
+            ),
+            ("unit", None if numeric_payload is None else numeric_payload.unit),
+            ("value_si", None if numeric_payload is None else numeric_payload.value_si),
+            (
+                "lower_bound_si",
+                None if numeric_payload is None else numeric_payload.lower_bound_si,
+            ),
+            (
+                "upper_bound_si",
+                None if numeric_payload is None else numeric_payload.upper_bound_si,
+            ),
         )
         if value is not None
     )
+
+
+def _claim_attributes(row: Claim) -> tuple[tuple[str, Any], ...]:
+    return claim_node_attributes_from_claim(row)
 
 
 def _display_claim_id_from_row(row: Claim) -> str:
@@ -206,11 +246,6 @@ def _claim_value_concept_id(claim: Claim) -> ConceptId | None:
     return None
 
 
-def _claim_scalar_value(claim: Claim) -> float | None:
-    numeric_payload = claim.numeric_payload
-    return None if numeric_payload is None else numeric_payload.value
-
-
 def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) -> CompiledWorldGraph:
     if not isinstance(store, ConceptCatalogStore):
         raise TypeError("build_compiled_world_graph requires all_concepts()")
@@ -292,7 +327,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     claim_id=to_claim_id(claim_display_ids[str(row.id)]),
                     claim_type=(row.type or ClaimType.UNKNOWN),
                     value_concept_id=_claim_value_concept_id(row),
-                    scalar_value=_claim_scalar_value(row),
+                    scalar_value=claim_scalar_value_from_claim(row),
                     checked_conditions=row.checked_conditions,
                     provenance=_row_provenance(
                         row,

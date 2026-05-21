@@ -193,10 +193,10 @@ def _claim_node_for_synthetic(
         attributes["conditions_cel"] = json.dumps(synthetic.conditions)
     else:
         attributes.pop("conditions_cel", None)
-    if synthetic.confidence is not None:
-        attributes["confidence"] = synthetic.confidence
+    if synthetic.sample_size is not None:
+        attributes["sample_size"] = synthetic.sample_size
     else:
-        attributes.pop("confidence", None)
+        attributes.pop("sample_size", None)
     checked_conditions = _synthetic_checked_conditions(
         synthetic,
         cel_registry=cel_registry,

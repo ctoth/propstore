@@ -11,6 +11,10 @@ from argumentation.bipolar import (
 from propstore.conflict_detector import ConflictClass
 from propstore.core.claim_types import ClaimType, coerce_claim_type
 from propstore.core.graph_relation_types import coerce_graph_relation_type
+from propstore.core.graph_build import (
+    claim_node_attributes_from_claim,
+    claim_scalar_value_from_claim,
+)
 from propstore.core.id_types import ClaimId, to_claim_id, to_claim_ids, to_concept_id
 from propstore.core.graph_types import (
     ActiveWorldGraph,
@@ -204,29 +208,12 @@ def _claim_value_concept_id(claim: Claim):
 
 
 def _claim_node_from_row(row: Claim) -> ClaimNode:
-    attributes = tuple(
-        (key, value)
-        for key, value in (
-            ("primary_logical_id", row.primary_logical_id),
-            ("version_id", row.version_id),
-            ("source_slug", row.source_slug),
-            ("source_paper", row.source_paper),
-            ("provenance_json", row.provenance_json),
-            ("context_id", row.context_id),
-            ("premise_kind", row.premise_kind),
-            ("branch", row.branch),
-            ("build_status", row.build_status),
-            ("stage", row.stage),
-            ("promotion_status", row.promotion_status),
-        )
-        if value is not None
-    )
     return ClaimNode(
         claim_id=to_claim_id(row.id),
         claim_type=coerce_claim_type(row.type or "unknown") or ClaimType.UNKNOWN,
         value_concept_id=_claim_value_concept_id(row),
-        scalar_value=None,
-        attributes=attributes,
+        scalar_value=claim_scalar_value_from_claim(row),
+        attributes=claim_node_attributes_from_claim(row),
     )
 
 
@@ -396,7 +383,7 @@ def _collect_claim_graph_relations(
                     {
                         "claim_id": source_id,
                         "target_claim_id": target_id,
-                        "stance_type": "rebuts",
+                        "stance_type": coerce_graph_relation_type("rebuts"),
                     }
                 )
             continue
@@ -405,7 +392,7 @@ def _collect_claim_graph_relations(
                 {
                     "claim_id": source_id,
                     "target_claim_id": target_id,
-                    "stance_type": "rebuts",
+                    "stance_type": coerce_graph_relation_type("rebuts"),
                 }
             )
 
