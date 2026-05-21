@@ -146,6 +146,36 @@ and does not re-own diagnostics table deletion.
 Implementation may start with Slice 1: grounding/rules charter and projection
 deletion.
 
+2026-05-21 Slice 1 execution update:
+
+- Production commit `6d195be1` deleted the rule `ProjectionTable` constants,
+  grounded projection row DTOs, raw grounded table creation helper, and raw
+  grounded read/write helpers from `propstore/families/rules/declaration.py`.
+  Grounded persistence now constructs typed `GroundedFact`,
+  `GroundedFactEmptyPredicate`, and `GroundedBundleInput` models and writes
+  them through a Quire `DerivedSession`.
+- `propstore/world/model.py` now opens a Quire read-only SQLAlchemy session
+  for `WorldQuery.grounding_bundle()` and loads the typed grounded bundle
+  through the rule owner API. The old raw connection bundle read path is gone.
+- Test commit `7c44207a` migrated the grounding rule persistence tests from
+  raw in-memory SQLite/projection helpers to charter-created SQLAlchemy stores,
+  typed sessions, `persist_grounded_bundle`, `load_grounded_sections`, and
+  `load_grounded_bundle`.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  typed-grounded-rules tests/test_sidecar_grounded_facts.py
+  tests/test_grounded_bundle_round_trip.py
+  tests/test_ws7_grounding_completion.py` passed with 16 tests; log:
+  `logs/test-runs/typed-grounded-rules-20260521-090429.log`.
+- Grounding helper old-path searches for `GroundedFactProjectionRow`,
+  `GroundedFactEmptyPredicateProjectionRow`,
+  `GroundedBundleInputProjectionRow`, `create_grounded_fact_table`,
+  `populate_grounded_facts`, `_persist_bundle_inputs`,
+  `_read_bundle_inputs`, `read_grounded_facts`, and
+  `read_grounded_bundle` returned zero hits under `propstore` and `tests`.
+
+Slice 1 may continue to the remaining required package gate and then Slice 2:
+grounding caller migration.
+
 ## Prerequisites
 
 Complete these cutover workstreams before this slice starts:
