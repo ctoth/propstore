@@ -168,7 +168,7 @@ projection rather than normalizing around it.
   claim logical ids such as `algo_claim3` before computing semantic and graph
   removals.
 - Required repair: remove the nonexistent/private `_store.resolve_claim`
-  expectation from overlay construction. Claim lookup by id, primary logical
-  id, and logical id belongs to the generic world query surface backed by the
-  typed `claim_core` table, not to an overlay shim or claim-specific string
-  rewrite in `OverlayWorld`.
+  expectation from overlay construction. Overlay removal must use declared
+  typed store access (`get_claim`) and the existing generic logical-id table
+  index. Do not add `def resolve_claim`, a claim-specific lookup wrapper, or
+  an overlay string-rewrite shim.

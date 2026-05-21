@@ -1342,7 +1342,8 @@ class TestOverlayWorld:
         ])
         vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "determined"
-        assert vr.claims[0].value == 200.0
+        assert vr.claims[0].numeric_payload is not None
+        assert vr.claims[0].numeric_payload.value == 200.0
 
     def test_creates_conflict(self, world):
         """Add claim with different value → conflicted."""
@@ -1404,7 +1405,8 @@ class TestOverlayWorld:
         # value_of should see the synthetic claim
         vr = hypo.value_of(CONCEPT1_ID)
         assert vr.status == "determined"
-        assert vr.claims[0].value == 500.0
+        assert vr.claims[0].numeric_payload is not None
+        assert vr.claims[0].numeric_payload.value == 500.0
         # collect_known_values MUST also see the synthetic value
         known = hypo.collect_known_values([CONCEPT1_ID])
         assert known == {CONCEPT1_ID: 500.0}, (

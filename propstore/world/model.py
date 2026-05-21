@@ -166,7 +166,7 @@ class WorldQuery(WorldStore):
         self._lifting_system_loaded = False
         self._compiled_graph_cache = None
         self._active_graph_cache: dict[str, Any] = {}
-        self._concept_logical_id_index: dict[str, str] | None = None
+        self._logical_id_indexes: dict[str, dict[str, str]] = {}
         self._validate_schema()
 
     def __enter__(self) -> WorldQuery:
@@ -317,6 +317,7 @@ class WorldQuery(WorldStore):
                     "claim_core",
                     claim_id,
                 )
+                or self._get_logical_id_index("claim_core").get(claim_id)
                 or claim_id
             )
             return derived.execute(
@@ -339,13 +340,13 @@ class WorldQuery(WorldStore):
             raise ValueError(f"unsupported logical-id table: {table}")
         index: dict[str, str] = {}
         schema = world_sqlalchemy_schema()
-        concept = schema.model("concept")
+        model = schema.model(table)
         with self._derived_store.readonly_session(schema) as derived:
             rows = derived.execute(
                 select(
-                    concept.id,
-                    concept.primary_logical_id,
-                    concept.logical_ids_json,
+                    model.id,
+                    model.primary_logical_id,
+                    model.logical_ids_json,
                 )
             )
             for artifact_id, primary_logical_id, logical_ids_json in rows:
@@ -370,12 +371,10 @@ class WorldQuery(WorldStore):
                         index.setdefault(value, artifact_id_text)
         return index
 
-    def _get_concept_logical_id_index(self) -> dict[str, str]:
-        if self._concept_logical_id_index is None:
-            self._concept_logical_id_index = self._build_logical_id_index(
-                "concept"
-            )
-        return self._concept_logical_id_index
+    def _get_logical_id_index(self, table: str) -> dict[str, str]:
+        if table not in self._logical_id_indexes:
+            self._logical_id_indexes[table] = self._build_logical_id_index(table)
+        return self._logical_id_indexes[table]
 
     def resolve_alias(self, alias: str) -> str | None:
         schema = world_sqlalchemy_schema()
@@ -402,7 +401,7 @@ class WorldQuery(WorldStore):
                 if row is not None:
                     return str(row[0])
 
-            cached = self._get_concept_logical_id_index().get(name)
+            cached = self._get_logical_id_index("concept").get(name)
             if cached is not None:
                 return cached
 

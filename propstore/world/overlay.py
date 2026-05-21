@@ -351,19 +351,19 @@ class OverlayWorld(BeliefSpace):
         add: list[SyntheticClaim] | None = None,
     ) -> None:
         self._base = base
-        claim_resolver = getattr(base._store, "resolve_claim", None)
         concept_resolver = getattr(base._store, "resolve_concept", None)
+
+        def store_claim_id(claim_id: str) -> str:
+            claim = base._store.get_claim(claim_id)
+            return str(claim.id) if claim is not None else claim_id
+
         self._removed_ids = {
-            cast(Callable[[str], str | None], claim_resolver)(claim_id) or claim_id
-            if callable(claim_resolver)
-            else claim_id
+            store_claim_id(claim_id)
             for claim_id in (remove or [])
         }
 
         def resolve_synthetic_claim_id(claim_id: str) -> str:
-            if not callable(claim_resolver):
-                return claim_id
-            return cast(Callable[[str], str | None], claim_resolver)(claim_id) or claim_id
+            return store_claim_id(claim_id)
 
         def resolve_synthetic_concept_id(concept_id: ConceptId) -> ConceptId:
             if not callable(concept_resolver):
