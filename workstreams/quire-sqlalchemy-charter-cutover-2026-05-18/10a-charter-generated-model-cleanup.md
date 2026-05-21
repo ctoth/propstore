@@ -157,6 +157,12 @@ that owner workstream.
   `from_row_mapping`, `coerce`, `to_row_mapping`, `ConceptInput`, and
   `ParameterizationInput`, then updated callers to consume typed models
   directly. `uv run pyright propstore` passed after the slice.
+- Context slice complete: `Context`, `ContextAssumption`,
+  `ContextLiftingRule`, and `ContextLiftingMaterialization` now subclass
+  `FamilyModel` with methods only. Deleted constructor field lists and the
+  `ContextWriteModels` typed-batch carrier, then updated build/test callers
+  to consume positional typed batches. `uv run pyright propstore` passed
+  after the slice.
 
 ## Completion Criteria
 
