@@ -420,13 +420,16 @@ class TestBoundGraph:
 class TestGroupScoping:
     def test_group_scoping(self, world):
         """group_id filters to concepts in that group only."""
-        # Find which group_id contains concept5
-        row = world._conn.execute(
-            "SELECT group_id FROM parameterization_group WHERE concept_id = ?",
-            (_concept_artifact("concept5"),),
-        ).fetchone()
-        assert row is not None, "concept5 should be in a parameterization group"
-        gid = row["group_id"]
+        concept5 = _concept_artifact("concept5")
+        gid = next(
+            (
+                group_id
+                for group_id in range(len(world.all_concepts()))
+                if concept5 in world.concept_ids_for_group(group_id)
+            ),
+            None,
+        )
+        assert gid is not None, "concept5 should be in a parameterization group"
 
         graph = build_knowledge_graph(world, group_id=gid)
         concept_nodes = [n for n in graph.nodes if n.node_type == "concept"]

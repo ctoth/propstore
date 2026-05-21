@@ -340,6 +340,28 @@ workstream. Production hits outside those targets block implementation.
   migration, SCM/intervention/resolution, support-revision, ASPIC, and final
   parity/search gates.
 
+2026-05-21 graph export raw-connection test cleanup update:
+
+- The Phase 14 `world-charter` gate initially failed
+  `tests/test_graph_export.py::TestGroupScoping::test_group_scoping` because
+  the test reached into deleted `WorldQuery._conn` to query
+  `parameterization_group`.
+- The test now uses typed world APIs, scanning `world.concept_ids_for_group()`
+  across the current typed concept count from `world.all_concepts()` to locate
+  the group containing `concept5`. No raw connection, SQL string, helper
+  wrapper, or compatibility surface was added.
+- `rg -n -F -- "._conn" propstore tests/test_graph_export.py` returned zero
+  hits.
+- `uv run pyright propstore` passed with zero errors.
+- Focused gate
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  graph-export-group-scope
+  tests/test_graph_export.py::TestGroupScoping::test_group_scoping` passed
+  with 1 test; log:
+  `logs/test-runs/graph-export-group-scope-20260521-122442.log`.
+- Continue with rerunning the full Phase 14 `world-charter` behavior gate,
+  final search gates, data parity, and behavior parity.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
