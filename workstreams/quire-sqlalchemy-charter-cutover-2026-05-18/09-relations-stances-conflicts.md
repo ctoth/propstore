@@ -523,3 +523,13 @@ Recorded 2026-05-20.
   in the relation owner, update named callers importing the deleted projection
   model, run package pyright, then continue through the old-path and parity
   gates.
+- First caller fallout repair: commit `c567f152` updated ASPIC bridge callers
+  and core store/analyzer protocols to use typed `Stance`, `ConceptRelation`,
+  and `ConflictWitness` models directly instead of deleted
+  `StanceRowInput`/`ConflictRowInput`/`RelationshipRowInput` types or
+  relation projection-model coercers. Targeted pyright for
+  `propstore/aspic_bridge/{extract,translate,build,query}.py`,
+  `propstore/core/environment.py`, and `propstore/core/analyzers.py` passed
+  with 0 errors. Remaining caller queue still includes graph/export,
+  relation-analysis, support-revision, world, and worldline imports plus the
+  raw selector helpers in the relation owner.
