@@ -243,7 +243,7 @@ def _resolve_claim_graph_argumentation(
 
 def _resolve_structured_argumentation(
     target_claims: Sequence[_ResolutionClaimView | Claim],
-    active_claim_rows: list[Claim],
+    active_claims: list[Claim],
     view: BeliefSpace,
     world: WorldStore,
     *,
@@ -261,14 +261,14 @@ def _resolve_structured_argumentation(
 
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     if isinstance(view, ClaimSupportView):
-        for claim in active_claim_rows:
+        for claim in active_claims:
             claim_id = _claim_id(claim)
             support_metadata[claim_id] = view.claim_support(claim)
 
     if not isinstance(world, GroundingBundleStore):
         return None, "ASPIC backend requires a grounded bundle-capable store"
 
-    active_ids = {str(_claim_id(claim)) for claim in active_claim_rows}
+    active_ids = {str(_claim_id(claim)) for claim in active_claims}
     active_graph = view._active_graph if isinstance(view, HasActiveGraph) else None
     bundle = world.grounding_bundle()
     if active_graph is None:
@@ -300,7 +300,7 @@ def _resolve_structured_argumentation(
 
     projection = build_aspic_projection(
         world,
-        active_claim_rows,
+        active_claims,
         bundle=bundle,
         support_metadata=support_metadata,
         comparison=comparison,
@@ -352,7 +352,7 @@ def _resolve_structured_argumentation(
 
 def _resolve_aspic_argumentation(
     target_claims: Sequence[_ResolutionClaimView | Claim],
-    active_claim_rows: list[Claim],
+    active_claims: list[Claim],
     view: BeliefSpace,
     world: WorldStore,
     *,
@@ -363,7 +363,7 @@ def _resolve_aspic_argumentation(
     """Resolve via the canonical ASPIC+ backend."""
     return _resolve_structured_argumentation(
         target_claims,
-        active_claim_rows,
+        active_claims,
         view,
         world,
         semantics=semantics,
@@ -651,8 +651,8 @@ def resolve(
     # Conflicted — apply strategy
     active = vr.claims
     active_views = tuple(_resolution_claim_view(claim) for claim in active)
-    active_claim_rows = list(view.active_claims())
-    active_claim_views = tuple(_resolution_claim_view(claim) for claim in active_claim_rows)
+    active_claims = list(view.active_claims())
+    active_claim_views = tuple(_resolution_claim_view(claim) for claim in active_claims)
     winner_id: str | None = None
     reason: str | None = None
     _acceptance_probs: dict[str, float] | None = None
@@ -691,7 +691,7 @@ def resolve(
             )
         winner_id, reason = resolve_assignment_selection_merge(
             active,
-            active_claim_rows,
+            active_claims,
             concept_id,
             world=world,
             policy=policy,
@@ -716,7 +716,7 @@ def resolve(
         elif reasoning_backend == ReasoningBackend.ASPIC:
             winner_id, reason = _resolve_aspic_argumentation(
                 active_views,
-                active_claim_rows,
+                active_claims,
                 view,
                 world,
                 semantics=semantics,

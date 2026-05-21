@@ -38,14 +38,17 @@ class _World:
         concepts: tuple[Concept, ...] = (),
         visible: bool = True,
     ) -> None:
-        claim_rows = list(claims)
+        claim_items = list(claims)
         if claim is not None:
-            claim_rows.append(claim)
-        self.claims = {str(item.id): item for item in claim_rows}
-        concept_rows = list(concepts)
+            claim_items.append(claim)
+        self.claims = {str(item.id): item for item in claim_items}
+        concept_items = list(concepts)
         if concept is not None:
-            concept_rows.append(concept)
-        self.concepts = {str(item.concept_id): item for item in concept_rows}
+            concept_items.append(concept)
+        self.concepts: dict[str, Concept] = {}
+        for item in concept_items:
+            self.concepts[str(item.concept_id)] = item
+            self.concepts[str(item.canonical_name)] = item
         self.visible = visible
 
     def get_claim(self, claim_id: str) -> Claim | None:
@@ -64,6 +67,9 @@ class _World:
         claims = list(self.claims.values())
         if concept_id is None:
             return claims
+        concept = self.get_concept(concept_id)
+        if concept is not None:
+            concept_id = str(concept.concept_id)
         return [
             claim
             for claim in claims
@@ -153,7 +159,7 @@ def _claim(
 
 def _concept() -> Concept:
     return Concept(
-        concept_id="concept1",
+        id="concept1",
         canonical_name="fundamental_frequency",
         form="frequency",
     )
@@ -161,7 +167,7 @@ def _concept() -> Concept:
 
 def _concept2() -> Concept:
     return Concept(
-        concept_id="concept2",
+        id="concept2",
         canonical_name="subglottal_pressure",
         form="pressure",
     )
@@ -260,7 +266,7 @@ def test_build_claim_view_reports_unknown_claim(
         build_claim_view(_repo(), ClaimViewRequest(claim_id="missing"))
 
 
-def test_list_claim_views_projects_visible_claim_rows(
+def test_list_claim_views_projects_visible_claims(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     world = _World(

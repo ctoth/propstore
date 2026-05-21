@@ -111,13 +111,13 @@ def _concept_integrity_constraints(
     return tuple(constraints)
 
 
-def _filtered_assignment_selection_claim_rows(
-    active_claim_rows: Sequence[Claim],
+def _filtered_assignment_selection_claims(
+    active_claims: Sequence[Claim],
     policy: RenderPolicy | None,
 ) -> list[Claim]:
     branch_filter = None if policy is None else policy.branch_filter
     filtered: list[Claim] = []
-    for claim in active_claim_rows:
+    for claim in active_claims:
         value = _claim_value(claim)
         if value is None:
             continue
@@ -289,7 +289,7 @@ def _compile_integrity_constraint(constraint: IntegrityConstraint) -> Constraint
 
 
 def build_assignment_selection_problem(
-    active_claim_rows: Sequence[Claim],
+    active_claims: Sequence[Claim],
     target_concept_id: str,
     *,
     world: WorldStore,
@@ -308,13 +308,13 @@ def build_assignment_selection_problem(
     )
     concept_ids = {
         _claim_concept_id(claim)
-        for claim in active_claim_rows
+        for claim in active_claims
     }
     concept_ids.add(target_concept_id)
     concept_ids.update(_integrity_constraint_concept_ids(explicit_constraints))
 
     grouped: dict[str, dict[str, Claim]] = {}
-    for claim in active_claim_rows:
+    for claim in active_claims:
         claim_id = _claim_id(claim)
         concept_id = _claim_concept_id(claim)
         branch = claim.branch
@@ -362,8 +362,8 @@ def build_assignment_selection_problem(
 
 
 def resolve_assignment_selection_merge(
-    target_claim_rows: Sequence[Claim],
-    active_claim_rows: Sequence[Claim],
+    target_claims: Sequence[Claim],
+    active_claims: Sequence[Claim],
     concept_id: str,
     *,
     world: WorldStore,
@@ -372,12 +372,12 @@ def resolve_assignment_selection_merge(
     if world is None:
         return None, "assignment_selection_merge strategy requires an explicit artifact store"
 
-    filtered_rows = _filtered_assignment_selection_claim_rows(active_claim_rows, policy)
-    if not filtered_rows:
+    filtered_claims = _filtered_assignment_selection_claims(active_claims, policy)
+    if not filtered_claims:
         return None, "no assignment-selection merge sources after branch filter"
     try:
         problem = build_assignment_selection_problem(
-            filtered_rows,
+            filtered_claims,
             concept_id,
             world=world,
             policy=policy,
@@ -399,7 +399,7 @@ def resolve_assignment_selection_merge(
     winning_value = next(iter(target_values))
     matching_claims = [
         claim
-        for claim in target_claim_rows
+        for claim in target_claims
         if _claim_value(claim) == winning_value
     ]
     if len(matching_claims) != 1:

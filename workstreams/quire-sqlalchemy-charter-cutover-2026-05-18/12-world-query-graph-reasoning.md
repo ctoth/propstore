@@ -314,6 +314,32 @@ workstream. Production hits outside those targets block implementation.
   migration, graph/analyzer/export migration, SCM/intervention/resolution,
   support-revision, ASPIC, and final parity/search gates.
 
+2026-05-21 `_claim_rows` terminology and typed-fixture cleanup update:
+
+- Deleted the remaining required-gate `_claim_rows` hits from typed world
+  paths by renaming typed `Claim` variables and helpers in
+  `propstore/world/overlay.py`, `propstore/world/resolution.py`, and
+  `propstore/world/assignment_selection_policy.py`. No row DTO, coercer, or
+  wrapper was added.
+- Updated the claim-view fake world to construct `Concept` with the
+  charter-owned `id` field, index concepts by typed id and canonical name, and
+  lower external concept references to the typed concept id before filtering.
+- Updated the revision fake store to return typed `Concept` objects from
+  `all_concepts()` instead of dict payloads so graph build continues to
+  consume typed model objects.
+- Cleaned the remediation/test names that matched the exact `_claim_rows`
+  gate without changing their raw SQLite boundary assertions.
+- `rg -n -F -- "_claim_rows" propstore/world tests` returned zero hits.
+- `uv run pyright propstore` passed with zero errors.
+- Focused gate
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  claim-row-name-cleanup tests/test_worldline.py tests/test_claim_views.py
+  tests/test_revision_af_adapter.py` passed with 66 tests; log:
+  `logs/test-runs/claim-row-name-cleanup-20260521-122130.log`.
+- Continue with the remaining Phase 14 targets: graph/analyzer/export
+  migration, SCM/intervention/resolution, support-revision, ASPIC, and final
+  parity/search gates.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |

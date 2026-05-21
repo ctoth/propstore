@@ -349,15 +349,15 @@ class OverlayWorld(BeliefSpace):
         ]
 
         cel_registry = base._store.condition_solver().registry
-        base_claim_rows = list(base._store.claims_for(None))
-        base_claim_rows_by_id = {
+        base_claims = list(base._store.claims_for(None))
+        base_claims_by_id = {
             str(claim.id): claim
-            for claim in base_claim_rows
+            for claim in base_claims
         }
         synthetic_claims_by_id = {
             synthetic.id: synthetic_claim_to_claim(
                 synthetic,
-                existing_claim=base_claim_rows_by_id.get(synthetic.id),
+                existing_claim=base_claims_by_id.get(synthetic.id),
                 cel_registry=cel_registry,
             )
             for synthetic in self._synthetics
@@ -380,7 +380,7 @@ class OverlayWorld(BeliefSpace):
         synthetics_by_id = {synthetic.id: synthetic for synthetic in self._synthetics}
 
         overlay_claims: list[Claim] = []
-        for claim in base_claim_rows:
+        for claim in base_claims:
             claim_id = str(claim.id)
             replacement = synthetics_by_id.get(claim_id)
             if claim_id in self._removed_ids and replacement is None:

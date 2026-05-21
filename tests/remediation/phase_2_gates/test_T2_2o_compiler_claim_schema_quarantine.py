@@ -86,7 +86,7 @@ def test_build_repository_claim_schema_error_quarantines_not_raises(
 
     conn = sqlite3.connect(sidecar_path)
     try:
-        valid_claim_rows = conn.execute(
+        valid_claim_records = conn.execute(
             "SELECT id FROM claim_core WHERE id = ?",
             (valid_claim_id,),
         ).fetchall()
@@ -100,7 +100,7 @@ def test_build_repository_claim_schema_error_quarantines_not_raises(
     finally:
         conn.close()
 
-    assert valid_claim_rows == [(valid_claim_id,)]
+    assert valid_claim_records == [(valid_claim_id,)]
     assert diagnostic_rows
     assert diagnostic_rows[0][:5] == (
         "claim",

@@ -62,7 +62,7 @@ class _RevisionStore:
     def conflicts(self) -> list[ConflictWitness]:
         return []
 
-    def all_concepts(self) -> list[dict]:
+    def all_concepts(self) -> list[Concept]:
         concept_ids = sorted(
             {
                 concept_id
@@ -71,7 +71,10 @@ class _RevisionStore:
                 if concept_id is not None
             }
         )
-        return [{"id": concept_id, "canonical_name": concept_id} for concept_id in concept_ids]
+        return [
+            Concept(id=concept_id, canonical_name=concept_id)
+            for concept_id in concept_ids
+        ]
 
     def explain(self, claim_id: str) -> list[Stance]:
         return []
