@@ -237,6 +237,21 @@ rg -n "candidate|maybe|if appropriate|later cleanup|decide later|TBD|TODO" works
 
 Gate result must be zero-hit.
 
+Execution record:
+
+- Created and committed
+  `workstreams/helper-shaped-debt-inventory-2026-05-21.md`.
+- The inventory classifies the current broad production scan into `delete`,
+  `io-boundary`, `presentation`, `semantic-owner`, and `quire-needed`.
+- `rg -n -i -- "candidate|maybe|TBD|TODO|if appropriate|may remain|unless justified|later cleanup|decide later" workstreams/helper-shaped-debt-inventory-2026-05-21.md`:
+  zero hits.
+- Phase 3 deletion queue from the inventory:
+  `propstore/core/justifications.py:_normalize_attrs`,
+  `propstore/conflict_detector/models.py:coerce_conflict_class`,
+  `propstore/support_revision/state.py:coerce_assumption_ref`.
+- Non-coercer deletion queue:
+  `propstore/world/overlay.py:_ParameterizationCatalogAdapter`.
+
 ## Phase 3: Delete Generic Coercers And Normalizers
 
 Owned surfaces: every Phase 2 `delete` row whose name starts with
