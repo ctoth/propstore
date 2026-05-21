@@ -539,6 +539,18 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   tests/remediation/phase_2_gates/test_T2_2m_compiler_context_lifting_quarantine.py`
   passed with 1 test; log:
   `logs/test-runs/t2-2m-sqlalchemy-session-20260521-104112.log`.
+- Test commit `6be3fd8e` removed the `row_factory` assignment from
+  `tests/test_core_analyzers.py` and deleted the `_StoreWithSourcePrior`
+  dict-mutating wrapper. The PrAF analyzer test now builds typed
+  `ActiveWorldGraph`, `ClaimNode`, and `RelationEdge` inputs directly.
+- `rg -n -F -- "row_factory" tests/test_core_analyzers.py` and
+  `rg -n -F -- "_StoreWithSourcePrior" tests/test_core_analyzers.py`
+  returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  core-analyzers-typed-graph tests/test_core_analyzers.py` passed with 7
+  tests; log:
+  `logs/test-runs/core-analyzers-typed-graph-20260521-104547.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
