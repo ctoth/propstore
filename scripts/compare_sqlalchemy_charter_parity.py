@@ -326,9 +326,10 @@ def _compare_snapshots(
         before_table = before_tables.get(table)
         after_table = after_tables.get(table)
         table_comparison = _compare_table(table, before_table, after_table)
+        report_table = before_table if before_table is not None else after_table
         tables[table] = {
-            "columns": None if before_table is None else before_table["columns"],
-            "primary_key": None if before_table is None else before_table["primary_key"],
+            "columns": None if report_table is None else report_table["columns"],
+            "primary_key": None if report_table is None else report_table["primary_key"],
             "status": table_comparison["status"],
         }
         row_counts[table] = {
@@ -365,6 +366,9 @@ def _compare_table(
 ) -> dict[str, Any]:
     failures: list[str] = []
     if before is None:
+        assert after is not None
+        if after["row_count"] == 0:
+            return _comparison_block(name, "pass", 0, 0, (), (), (), failures)
         failures.append(f"extra table {name}")
         return _comparison_block(name, "fail", 0, after["row_count"], (), after["keys"], (), failures)
     if after is None:

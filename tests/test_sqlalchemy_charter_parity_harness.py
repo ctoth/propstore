@@ -55,6 +55,37 @@ def test_parity_harness_fails_missing_key(tmp_path: Path) -> None:
     assert report["failures"]
 
 
+def test_parity_harness_allows_extra_empty_table(tmp_path: Path) -> None:
+    before = tmp_path / "before.sqlite"
+    after = tmp_path / "after.sqlite"
+    out = tmp_path / "report.json"
+    _fixture_db(before)
+    _fixture_db(after, extra_table=True)
+    _baseline(before)
+
+    code = main(_args(tmp_path, before, after, out))
+
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert code == 0
+    assert report["tables"]["extra_empty"]["status"] == "pass"
+    assert report["tables"]["extra_empty"]["columns"] == ["id"]
+
+
+def test_parity_harness_rejects_extra_populated_table(tmp_path: Path) -> None:
+    before = tmp_path / "before.sqlite"
+    after = tmp_path / "after.sqlite"
+    out = tmp_path / "report.json"
+    _fixture_db(before)
+    _fixture_db(after, extra_table=True, populate_extra=True)
+    _baseline(before)
+
+    code = main(_args(tmp_path, before, after, out))
+
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert code == 1
+    assert "extra table extra_empty" in report["failures"]
+
+
 def test_parity_harness_requires_vector_blocks(tmp_path: Path) -> None:
     before = tmp_path / "before.sqlite"
     after = tmp_path / "after.sqlite"
@@ -167,6 +198,8 @@ def _fixture_db(
     *,
     include_second: bool = True,
     schema_hash: str | None = None,
+    extra_table: bool = False,
+    populate_extra: bool = False,
 ) -> None:
     conn = sqlite3.connect(path)
     try:
@@ -180,6 +213,10 @@ def _fixture_db(
         conn.execute("INSERT INTO behavior_claim_lookup VALUES ('a', 'alpha')")
         if include_second:
             conn.execute("INSERT INTO entity VALUES ('b', 'beta')")
+        if extra_table:
+            conn.execute("CREATE TABLE extra_empty (id TEXT PRIMARY KEY)")
+            if populate_extra:
+                conn.execute("INSERT INTO extra_empty VALUES ('extra')")
         if schema_hash is not None:
             conn.execute(
                 """
