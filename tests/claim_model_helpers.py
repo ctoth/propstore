@@ -56,6 +56,7 @@ def claim_model(
     uncertainty: float | None = None,
     uncertainty_type: str | None = None,
     sample_size: int | None = None,
+    confidence: float | None = None,
     conditions_cel: str | None = None,
     conditions_ir: str | None = None,
     statement: str | None = None,
@@ -125,6 +126,7 @@ def claim_model(
                 "uncertainty": uncertainty,
                 "uncertainty_type": uncertainty_type,
                 "sample_size": sample_size,
+                "confidence": confidence,
                 "unit": unit,
                 "value_si": value_si,
                 "lower_bound_si": None,
@@ -230,6 +232,9 @@ def claim_model_from_test_payload(row: Mapping[str, object]) -> Claim:
         ),
         uncertainty=(
             None if row.get("uncertainty") is None else float(row["uncertainty"])
+        ),
+        confidence=(
+            None if row.get("confidence") is None else float(row["confidence"])
         ),
         uncertainty_type=(
             None

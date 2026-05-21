@@ -39,6 +39,7 @@ class SQLiteArgumentationStore:
                 num.value,
                 num.sample_size,
                 num.uncertainty,
+                num.confidence,
                 num.uncertainty_type,
                 num.unit,
                 txt.conditions_cel,

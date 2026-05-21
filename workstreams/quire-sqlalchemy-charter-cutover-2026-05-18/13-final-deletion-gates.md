@@ -532,6 +532,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     canonical/source-qualified display ids and typed `Claim` fixtures.
   - `uv run pyright propstore` passed with 0 errors after the semantic repair
     typed fixture update.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-argumentation-preference tests/test_argumentation_integration.py::TestBuildAF::test_rebut_blocked_when_weaker tests/test_argumentation_integration.py::TestBuildAF::test_rebut_succeeds_when_stronger tests/test_argumentation_integration.py::TestComputeJustified::test_grounded tests/test_render_time_filtering.py::TestVacuousSurvivesAFConstruction::test_vacuous_stance_does_not_win_resolution`
+    passed 4 tests after the SQLite argumentation test adapter preserved the
+    current typed claim numeric-payload confidence field through
+    `Claim` construction.
+  - `uv run pyright propstore` passed with 0 errors after the argumentation
+    preference repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -583,8 +589,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
       the production deletion and update the gate to assert absence.
   - Remaining failure clusters from full-6:
     - Argumentation preference/grounded behavior and vacuous stance handling
-      still let weak or vacuous attacks defeat stronger claims; fix the typed
-      argumentation relation/preference path, not a render-time shim.
+      are repaired after full-6 by preserving typed claim confidence metadata
+      through the test adapter instead of adding a render-time shim.
     - ATMS exact antecedent lookup is repaired after full-6: equality
       assumptions now match through checked-condition semantic equivalence
       instead of raw CEL text comparison.
