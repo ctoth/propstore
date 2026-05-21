@@ -379,6 +379,10 @@ Gate: no local path, workspace, or file URL Quire dependency.
   `eea33f7b Use typed preference claim fixtures`.
 - Propstore revision assertion cleanup is committed as
   `565a8653 Include claim content in revision assertions`.
+- Propstore context/worldline typed fixture cleanup is committed as
+  `d22a0066 Use typed context worldline fixtures`.
+- Propstore web/concept charter fixture cleanup is committed as
+  `7c5b3b4f Align web concept fixtures with charters`.
 - Passing focused gates:
   - `uv run pyright propstore`
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
@@ -395,6 +399,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 7 tests.
   - `uv run pyright propstore` passed with 0 errors after the revision
     assertion identity production change.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-context-worldline-typed tests/test_context_lifting_ws5.py::test_bound_world_projection_honors_local_lifting_exception tests/test_contexts.py::TestBoundWorldContextLifting tests/test_contexts.py::TestWorldQueryContextLifting::test_world_query_bind_loads_lifting_rules_from_sidecar tests/test_worldline_praf.py tests/test_lifting_blocked_in_provenance.py::test_ws_j_worldline_dependencies_include_blocked_lifting_exception`
+    passed 7 tests.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-web-demo-source-charter-3 tests/test_web_demo_fixture.py::test_web_demo_fixture_exercises_first_surface_states tests/test_concept_views.py`
+    passed 6 tests.
+  - `uv run pyright propstore` passed with 0 errors after the concept-view
+    production change.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -407,12 +417,14 @@ Current full-gate repair queue, deletion-first:
   fixtures. Do not add dict fallback acceptance to production ASPIC, revision,
   worldline, or context-lifting APIs. Direct ASPIC/IST callers and remediation
   bridge callers from the 2026-05-21 focused slices are converted and passing.
-- Repair source/web demo fixture drift by using current source charter fields;
-  do not add old source columns such as `origin_type` back as compatibility
-  columns.
-- Repair canonical typed-model construction in tests that set read-only
-  semantic properties such as `Concept.concept_id`; use charter fields and
-  family semantic properties directly.
+- Continue repairing any remaining source/web fixture drift by using current
+  charter fields; do not add old source columns such as `origin_type` back as
+  compatibility columns. The first web demo fixture now writes the current
+  source charter shape.
+- Continue repairing canonical typed-model construction in tests that set
+  read-only semantic properties; use charter fields and family semantic
+  properties directly. The concept view fixture now uses `Concept.id` instead
+  of `Concept.concept_id`.
 - Repair remaining typed payload projection gaps found by full suite:
   algorithm canonical AST, SI-normalized numeric payloads, PrAF uncalibrated
   argument fixtures, ATMS/context lifting typed claim surfaces, and worldline
