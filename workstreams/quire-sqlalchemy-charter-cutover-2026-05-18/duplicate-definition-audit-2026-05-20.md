@@ -263,6 +263,26 @@ Quire still has old projection machinery by design until the final deletion
 phase, but the duplicate DTO/factory mistake under review is in the Propstore
 family cutover work, not in the new Quire charter engine commits.
 
+## 2026-05-21 Quire Model Capability Update
+
+Quire now has the concrete pattern required to delete Propstore hand-authored
+mapped storage classes:
+
+- Quire commit `5a96245b2f3384db455707b2a36721d8f813924c` is pushed.
+- Propstore pins that pushed commit in `pyproject.toml` and `uv.lock`.
+- Quire exposes fieldless `FamilyModel`.
+- Quire proof test
+  `tests/test_sqlalchemy_engine.py::test_family_model_subclass_uses_charter_fields_and_keeps_behavior`
+  proves a `FamilyModel` subclass can define methods only while
+  `FamilyCharter.fields` supplies storage shape and SQLAlchemy/Quire
+  construction supplies mapped attributes.
+- `uv run pyright` passed in Quire after that proof.
+
+Required Propstore consequence: every mapped sidecar model class becomes a
+methods-only `FamilyModel` subclass. Storage field annotations, constructor
+field lists, broad `__init__(**values)` constructors, placeholder `*Record`
+classes, and mapping repair APIs are old paths and must be deleted.
+
 ## Mechanical Gates Required Before Resuming Implementation
 
 Before Phase 10 execution resumes, add or run a guard that fails on these
@@ -303,12 +323,14 @@ the active workstream explicitly marks a true IO boundary and names the owner.
 5. Add or use Quire generic family main-model/reference lookup, then delete
    per-family lookup wrappers and call sites instead of rebuilding them as
    thin convenience methods.
-6. Replace loose `**values` mapped-model constructors in source, forms,
-   contexts, world placeholder records, and claims with a single
-   charter-derived construction path.
+6. Execute `10a-charter-generated-model-cleanup.md`: convert every mapped
+   sidecar model to a methods-only `FamilyModel` subclass and delete storage
+   field annotations, constructor field lists, broad `__init__(**values)`
+   constructors, placeholder `*Record` classes, and mapping repair APIs.
 7. Replace per-family build-plan table routing with Quire catalog/session
    routing when the current family gates reach that owner boundary.
 
 No future code slice should be considered executable if it adds a new DTO,
-payload factory, mapping repair path, broad kwargs constructor, or table-routing
-helper as a replacement for a deleted projection surface.
+payload factory, mapping repair path, broad kwargs constructor, hand-authored
+mapped storage field, placeholder record class, or table-routing helper as a
+replacement for a deleted projection surface.
