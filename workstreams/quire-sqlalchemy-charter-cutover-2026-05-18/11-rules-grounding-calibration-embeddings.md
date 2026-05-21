@@ -253,10 +253,23 @@ to Quire APIs.
   `SidecarClaimEmbeddingStore`, `SidecarConceptEmbeddingStore`, and
   `_SidecarEntityEmbeddingStore` across the edited production files returned
   zero hits.
+- Test commit `7333badd` migrated embedding vector tests to the Quire
+  SQLAlchemy/vector path:
+  `tests/test_embed_operational_error.py` now exercises explicit typed
+  `EmbeddingEntity` plus callback operations instead of old store protocol
+  objects; `tests/test_no_embedding_key_collision.py` now creates the
+  charter-backed SQLAlchemy store and typed `EmbeddingModel` rows directly;
+  `tests/test_world_query.py` no longer monkeypatches the deleted explicit
+  vector-extension loader.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  embedding-vector-handoff tests/test_embed_operational_error.py
+  tests/test_no_embedding_key_collision.py tests/test_world_query.py` passed
+  with 156 tests and 29 expected warnings; log:
+  `logs/test-runs/embedding-vector-handoff-20260521-092929.log`.
 
-Remaining Slice 4/Slice 5 work starts with test migration and then deletion of
-`SidecarClaimRelationStore`, `find_similar_claim_rows`, and
-`find_similar_concept_rows`.
+Slice 4 is complete. Continue with Slice 5: claim and concept embedding
+runtime migration, starting with deletion of `SidecarClaimRelationStore`,
+`find_similar_claim_rows`, and `find_similar_concept_rows`.
 
 ## Prerequisites
 
