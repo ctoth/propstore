@@ -169,6 +169,15 @@ that owner workstream.
   Deleted storage field annotations and broad constructors; relationship
   assignment is carried by Quire `FamilyModel` support, not Propstore field
   redeclarations. `uv run pyright propstore` passed after the slice.
+- Relations slice complete: `RelationEdge`, `Stance`, `ConceptRelation`, and
+  `ConflictWitness` now subclass `FamilyModel` with methods only. Deleted
+  relation constructor field lists and `*Input` aliases, then updated
+  production and test callers to construct relation models through charter
+  fields. `uv run pyright propstore` passed after the slice. A broader
+  focused logged test run failed during collection on the pre-existing
+  `claims.declaration`/`core.justifications`/`core.graph_types` import cycle;
+  that cycle remains in scope for the upcoming justification cleanup and final
+  gates, not as a kept relation constructor path.
 
 ## Completion Criteria
 
