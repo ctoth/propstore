@@ -1274,3 +1274,10 @@ Current binding queue:
   directly to the Quire SQLAlchemy vector-cache backed embedding APIs. Focused
   verification `uv run pyright propstore/families/concepts/sidecar_runtime.py`
   passed with 0 errors.
+- WorldQuery embedding runtime cleanup: commit `3a5470dc` removed
+  `load_vec_extension`, raw connection model lookup, and connection-shaped
+  `find_similar*` calls from `WorldQuery.similar_claims` and
+  `WorldQuery.similar_concepts`. Both methods now pass
+  `self._derived_store` directly into the Quire SQLAlchemy vector-cache backed
+  embedding APIs. Focused verification `uv run pyright propstore/world/model.py`
+  passed with 0 errors.
