@@ -83,6 +83,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     before_snapshot = _snapshot_sqlite(before)
     after_snapshot = _snapshot_sqlite(after)
     comparison = _compare_snapshots(before_snapshot, after_snapshot)
+    _add_required_vector_blocks(
+        comparison,
+        required_vectors=tuple(args.require_vector or ()),
+    )
     failures.extend(comparison.pop("failures"))
     failures.extend(
         _required_block_failures(
@@ -449,6 +453,75 @@ def _required_block_failures(
     for name in required_behaviors:
         failures.extend(_require_block(comparison["behaviors"], "behavior", name))
     return failures
+
+
+def _add_required_vector_blocks(
+    comparison: dict[str, Any],
+    *,
+    required_vectors: tuple[str, ...],
+) -> None:
+    blocks = comparison["vectors"]
+    existing = {str(block["name"]): block for block in blocks}
+    for name in required_vectors:
+        if name in existing:
+            continue
+        dependencies = _semantic_vector_dependencies(name, existing)
+        if not dependencies:
+            continue
+        failures = [
+            failure
+            for dependency in dependencies
+            for failure in dependency["failures"]
+        ]
+        status = "pass" if not failures else "fail"
+        blocks.append(
+            _comparison_block(
+                name,
+                status,
+                sum(int(dependency["before_count"]) for dependency in dependencies),
+                sum(int(dependency["after_count"]) for dependency in dependencies),
+                tuple(
+                    key
+                    for dependency in dependencies
+                    for key in dependency["missing_keys"]
+                ),
+                tuple(
+                    key
+                    for dependency in dependencies
+                    for key in dependency["extra_keys"]
+                ),
+                tuple(
+                    key
+                    for dependency in dependencies
+                    for key in dependency["changed_values"]
+                ),
+                failures,
+            )
+        )
+
+
+def _semantic_vector_dependencies(
+    name: str,
+    existing: dict[str, dict[str, Any]],
+) -> tuple[dict[str, Any], ...]:
+    if name == "embedding-snapshot-restore":
+        dependency_names = (
+            "embedding_model",
+            "embedding_status",
+            "concept_embedding_status",
+        )
+    elif name.startswith("claim-"):
+        dependency_names = ("embedding_model", "embedding_status")
+    elif name.startswith("concept-"):
+        dependency_names = ("embedding_model", "concept_embedding_status")
+    else:
+        return ()
+    dependencies = tuple(
+        existing[dependency_name]
+        for dependency_name in dependency_names
+        if dependency_name in existing
+    )
+    return dependencies if len(dependencies) == len(dependency_names) else ()
 
 
 def _require_block(blocks: list[dict[str, Any]], block_kind: str, name: str) -> list[str]:

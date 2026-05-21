@@ -109,6 +109,45 @@ def test_parity_harness_requires_vector_blocks(tmp_path: Path) -> None:
     assert "missing passing vector comparison block" in report["failures"][0]
 
 
+def test_parity_harness_emits_required_semantic_vector_blocks(tmp_path: Path) -> None:
+    before = tmp_path / "before.sqlite"
+    after = tmp_path / "after.sqlite"
+    out = tmp_path / "report.json"
+    _fixture_db(before)
+    _fixture_db(after)
+    _vector_tables(before)
+    _vector_tables(after)
+    _baseline(before)
+
+    code = main(
+        _args(tmp_path, before, after, out)
+        + [
+            "--require-vector",
+            "claim-similarity",
+            "--require-vector",
+            "concept-similarity",
+            "--require-vector",
+            "claim-agree-disagree",
+            "--require-vector",
+            "concept-agree-disagree",
+            "--require-vector",
+            "embedding-snapshot-restore",
+        ]
+    )
+
+    report = json.loads(out.read_text(encoding="utf-8"))
+    vector_names = {block["name"] for block in report["vectors"]}
+    assert code == 0
+    assert report["failures"] == []
+    assert vector_names >= {
+        "claim-similarity",
+        "concept-similarity",
+        "claim-agree-disagree",
+        "concept-agree-disagree",
+        "embedding-snapshot-restore",
+    }
+
+
 def test_parity_harness_requires_behavior_blocks(tmp_path: Path) -> None:
     before = tmp_path / "before.sqlite"
     after = tmp_path / "after.sqlite"
@@ -246,3 +285,37 @@ def _baseline(before: Path, *, semantic_input_hash: str = "") -> None:
         ),
         encoding="utf-8",
     )
+
+
+def _vector_tables(path: Path) -> None:
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE embedding_model (
+                model_identity_hash TEXT PRIMARY KEY,
+                provider TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE embedding_status (
+                model_identity_hash TEXT NOT NULL,
+                claim_id TEXT NOT NULL,
+                PRIMARY KEY (model_identity_hash, claim_id)
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE concept_embedding_status (
+                model_identity_hash TEXT NOT NULL,
+                concept_id TEXT NOT NULL,
+                PRIMARY KEY (model_identity_hash, concept_id)
+            )
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
