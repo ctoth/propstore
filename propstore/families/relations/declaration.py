@@ -24,6 +24,7 @@ from propstore.core.id_types import (
     to_concept_id,
     to_justification_id,
 )
+from propstore.compiler.ir import SemanticClaim
 from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.diagnostics.declaration import QuarantineDiagnostic
 from propstore.families.documents.stances import StanceDocument
@@ -168,6 +169,104 @@ def _optional_numeric(value: object, *, field: str) -> float | None:
     return float(value)
 
 
+def _stance_resolution_payload(
+    resolution: object,
+    owner: str,
+) -> dict[str, object]:
+    if resolution is None:
+        return {}
+    if not isinstance(resolution, dict):
+        raise ValueError(f"{owner} resolution must be a mapping")
+    return resolution
+
+
+def _resolution_opinion_columns(
+    resolution: dict[str, object],
+) -> tuple[object, object, object, object]:
+    opinion = resolution.get("opinion")
+    if opinion is None:
+        return None, None, None, None
+    if not isinstance(opinion, dict):
+        raise ValueError("resolution opinion must be a mapping")
+    return (
+        opinion.get("b"),
+        opinion.get("d"),
+        opinion.get("u"),
+        opinion.get("a"),
+    )
+
+
+def compile_claim_embedded_stance_rows_with_diagnostics(
+    claim: SemanticClaim,
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
+) -> tuple[list[tuple], tuple[QuarantineDiagnostic, ...]]:
+    claim_id = claim.artifact_id or claim.resolved_claim.artifact_id or claim.resolved_claim.id
+    rows: list[tuple] = []
+    diagnostics: list[QuarantineDiagnostic] = []
+    valid_claim_ids = set(claim_index.ids())
+    for stance in claim.stances:
+        stance_type = stance.data.get("type")
+        target_claim_id = stance.target_ref.resolved_id or stance.target_ref.raw_text
+        if not target_claim_id or not stance_type:
+            continue
+        if stance_type not in VALID_STANCE_TYPES:
+            message = (
+                f"claim '{claim_id}' uses unrecognized stance type "
+                f"'{stance_type}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=str(claim_id or target_claim_id),
+                    kind="stance",
+                    diagnostic_kind="stance_validation",
+                    message=message,
+                    file=claim.filename,
+                )
+            )
+            continue
+        if target_claim_id not in valid_claim_ids:
+            message = (
+                f"claim '{claim_id}' references nonexistent target claim "
+                f"'{target_claim_id}'"
+            )
+            diagnostics.append(
+                QuarantineDiagnostic(
+                    artifact_id=str(target_claim_id),
+                    kind="stance",
+                    diagnostic_kind="stance_validation",
+                    message=message,
+                    file=claim.filename,
+                )
+            )
+            continue
+        resolution = _stance_resolution_payload(
+            stance.data.get("resolution"),
+            f"claim '{claim_id}' stance targeting '{target_claim_id}'",
+        )
+        opinion_columns = _resolution_opinion_columns(resolution)
+        rows.append((
+            claim_id,
+            target_claim_id,
+            stance_type,
+            stance.data.get("target_justification_id"),
+            stance.data.get("strength"),
+            stance.data.get("conditions_differ"),
+            stance.data.get("note"),
+            resolution.get("method"),
+            resolution.get("model"),
+            resolution.get("embedding_model"),
+            resolution.get("embedding_distance"),
+            resolution.get("pass_number"),
+            resolution.get("confidence"),
+            opinion_columns[0],
+            opinion_columns[1],
+            opinion_columns[2],
+            opinion_columns[3],
+            claim_id,
+        ))
+    return rows, tuple(diagnostics)
+
+
 from propstore.families.relations.projection_model import (  # noqa: E402
     CLAIM_STANCE_DISCRIMINATORS,
     CLAIM_STANCE_QUERY_PLAN,
@@ -255,16 +354,11 @@ def compile_authored_stance_sidecar_rows_with_diagnostics(
                 f"'{stance_type}'"
             )
 
-        from propstore.families.claims.storage import (
-            coerce_stance_resolution,
-            resolution_opinion_columns,
-        )
-
-        resolution = coerce_stance_resolution(
+        resolution = _stance_resolution_payload(
             stance_payload.get("resolution"),
             f"stance artifact {filename}",
         )
-        opinion_columns = resolution_opinion_columns(resolution)
+        opinion_columns = _resolution_opinion_columns(resolution)
         perspective_source_claim = (
             claim_index.resolve_id(
                 stance.perspective_source_claim_id or stance.source_claim

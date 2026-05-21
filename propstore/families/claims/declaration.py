@@ -44,9 +44,6 @@ from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
 )
-from propstore.families.claims.storage import (
-    extract_deferred_stance_rows_with_diagnostics,
-)
 from propstore.families.claims.documents import claim_type_contract_for
 from propstore.families.claims.stages import (
     ClaimAlgorithmVariable,
@@ -66,6 +63,7 @@ from propstore.families.relations.declaration import (
     CONFLICT_WITNESS_TABLE,
     RELATION_EDGE_TABLE,
     StanceRow,
+    compile_claim_embedded_stance_rows_with_diagnostics,
 )
 from propstore.stances import coerce_stance_type
 
@@ -771,7 +769,7 @@ def compile_claim_models(
                         claim_model.concept_links.append(link)
                         claim_links.append(link)
             deferred_stance_rows, deferred_stance_diagnostics = (
-                extract_deferred_stance_rows_with_diagnostics(
+                compile_claim_embedded_stance_rows_with_diagnostics(
                     semantic_claim,
                     claim_index,
                 )
