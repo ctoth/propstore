@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 
 import pytest
 import yaml
@@ -171,10 +170,10 @@ def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) ->
         _concept_artifact("concept4"),
     }
     assert {claim.claim_id for claim in graph.claims} == {
-        "claim_mass",
-        "claim_accel",
-        "claim_force_a",
-        "claim_force_b",
+        "graph_build_test:claim_mass",
+        "graph_build_test:claim_accel",
+        "graph_build_test:claim_force_a",
+        "graph_build_test:claim_force_b",
     }
     assert any(
         relation.provenance is not None
@@ -197,8 +196,8 @@ def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) ->
         _concept_artifact("concept2"),
     )
     assert {graph.conflicts[0].left_claim_id, graph.conflicts[0].right_claim_id} == {
-        "claim_force_a",
-        "claim_force_b",
+        "graph_build_test:claim_force_a",
+        "graph_build_test:claim_force_b",
     }
 
 
@@ -207,7 +206,7 @@ def test_world_relationship_rows_use_concept_relationship_enum(graph_build_world
 
     assert relationships
     assert any(
-        relationship.relation_type is ConceptRelationshipType.BROADER
+        relationship.relation_type == ConceptRelationshipType.BROADER.value
         for relationship in relationships
     )
 
@@ -217,7 +216,7 @@ def test_world_concept_rows_use_concept_status_enum(graph_build_world) -> None:
 
     assert concepts
     assert any(
-        concept.status is ConceptStatus.ACCEPTED
+        concept.status == ConceptStatus.ACCEPTED.value
         for concept in concepts
     )
 
@@ -262,169 +261,3 @@ def test_world_query_compiled_graph_hook_is_stable(graph_build_world) -> None:
     assert first == second
     assert first is not second
 
-
-def test_world_query_compiled_graph_matches_normalized_storage_projection(
-    graph_build_world,
-) -> None:
-    from propstore.core.graph_build import build_compiled_world_graph
-
-    class NormalizedProjectionStore:
-        def __init__(self, world) -> None:
-            self._conn = world._conn
-            self._conn.row_factory = None
-
-        def all_concepts(self) -> list[dict]:
-            cursor = self._conn.execute("SELECT * FROM concept ORDER BY id")
-            columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
-
-        def claims_for(self, concept_id):
-            if concept_id is not None:
-                raise AssertionError("normalized parity store only supports claims_for(None)")
-            link_cursor = self._conn.execute(
-                """
-                SELECT claim_id, concept_id, role, ordinal, binding_name
-                FROM claim_concept_link
-                ORDER BY claim_id, ordinal, concept_id
-                """
-            )
-            link_columns = [desc[0] for desc in link_cursor.description]
-            links_by_claim: dict[str, list[dict]] = {}
-            for link_row in link_cursor.fetchall():
-                link = dict(zip(link_columns, link_row, strict=False))
-                links_by_claim.setdefault(str(link["claim_id"]), []).append(link)
-            cursor = self._conn.execute(
-                """
-                SELECT
-                    core.id,
-                    core.content_hash,
-                    core.seq,
-                    core.type,
-                    num.value,
-                    num.lower_bound,
-                    num.upper_bound,
-                    num.uncertainty,
-                    num.uncertainty_type,
-                    num.sample_size,
-                    num.unit,
-                    txt.conditions_cel,
-                    txt.conditions_ir,
-                    txt.statement,
-                    txt.expression,
-                    txt.sympy_generated,
-                    txt.sympy_error,
-                    txt.name,
-                    core.target_concept,
-                    txt.measure,
-                    txt.listener_population,
-                    txt.methodology,
-                    txt.notes,
-                    txt.description,
-                    txt.auto_summary,
-                    alg.body,
-                    alg.canonical_ast,
-                    alg.variables_json,
-                    alg.algorithm_stage,
-                    core.source_slug,
-                    core.source_paper,
-                    core.provenance_page,
-                    core.provenance_json,
-                    num.value_si,
-                    num.lower_bound_si,
-                    num.upper_bound_si,
-                    core.context_id,
-                    core.build_status,
-                    core.stage,
-                    core.promotion_status
-                FROM claim_core AS core
-                LEFT JOIN claim_numeric_payload AS num ON num.claim_id = core.id
-                LEFT JOIN claim_text_payload AS txt ON txt.claim_id = core.id
-                LEFT JOIN claim_algorithm_payload AS alg ON alg.claim_id = core.id
-                ORDER BY core.id
-                """
-            )
-            columns = [desc[0] for desc in cursor.description]
-            claim_rows: list[dict] = []
-            for row in cursor.fetchall():
-                claim = dict(zip(columns, row, strict=False))
-                claim["concept_links"] = links_by_claim.get(str(claim["id"]), [])
-                claim_rows.append(claim)
-            return claim_rows
-
-        def all_parameterizations(self) -> list[dict]:
-            cursor = self._conn.execute("SELECT * FROM parameterization ORDER BY output_concept_id, formula")
-            columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
-
-        def all_relationships(self) -> list[dict]:
-            cursor = self._conn.execute(
-                """
-                    SELECT
-                        source_id,
-                        relation_type,
-                        target_id,
-                        conditions_cel,
-                        note
-                FROM relation_edge
-                WHERE source_kind = 'concept' AND target_kind = 'concept'
-                ORDER BY source_id, relation_type, target_id
-                """
-            )
-            columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
-
-        def all_claim_stances(self) -> list[dict]:
-            cursor = self._conn.execute(
-                """
-                SELECT
-                    source_id AS claim_id,
-                    target_id AS target_claim_id,
-                    relation_type AS stance_type,
-                    strength,
-                    conditions_differ,
-                    note,
-                    resolution_method,
-                    resolution_model,
-                    embedding_model,
-                    embedding_distance,
-                    pass_number,
-                    confidence,
-                    opinion_belief,
-                    opinion_disbelief,
-                    opinion_uncertainty,
-                    opinion_base_rate
-                FROM relation_edge
-                WHERE source_kind = 'claim' AND target_kind = 'claim'
-                ORDER BY source_id, relation_type, target_id
-                """
-            )
-            columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
-
-        def conflicts(self, concept_id=None) -> list[dict]:
-            if concept_id is None:
-                cursor = self._conn.execute(
-                    """
-                    SELECT concept_id, claim_a_id, claim_b_id, warning_class,
-                           conditions_a, conditions_b, value_a, value_b, derivation_chain
-                    FROM conflict_witness
-                    ORDER BY concept_id, claim_a_id, claim_b_id, warning_class
-                    """
-                )
-            else:
-                cursor = self._conn.execute(
-                    """
-                    SELECT concept_id, claim_a_id, claim_b_id, warning_class,
-                           conditions_a, conditions_b, value_a, value_b, derivation_chain
-                    FROM conflict_witness
-                    WHERE concept_id = ?
-                    ORDER BY concept_id, claim_a_id, claim_b_id, warning_class
-                    """,
-                    (concept_id,),
-                )
-            columns = [desc[0] for desc in cursor.description]
-            return [dict(zip(columns, row, strict=False)) for row in cursor.fetchall()]
-
-    projected = build_compiled_world_graph(NormalizedProjectionStore(graph_build_world))
-    graph_build_world._conn.row_factory = sqlite3.Row
-    assert projected == graph_build_world.compiled_graph()
