@@ -47,6 +47,7 @@ class AssertionAtom:
     atom_id: str
     assertion: SituatedAssertion
     source_claims: tuple[Claim, ...] = field(default_factory=tuple)
+    source_claim_ids: tuple[str, ...] = field(default_factory=tuple)
     label: Label | None = None
 
     def __post_init__(self) -> None:
@@ -54,9 +55,18 @@ class AssertionAtom:
             raise TypeError("assertion atom requires a SituatedAssertion")
         assertion_id = self.assertion.assertion_id
         object.__setattr__(self, "atom_id", str(assertion_id))
+        claim_ids = tuple(str(claim_id) for claim_id in self.source_claim_ids)
         for claim in self.source_claims:
             if not isinstance(claim, Claim):
                 raise TypeError("AssertionAtom.source_claims must contain typed Claim objects")
+        source_claim_ids = tuple(str(claim.id) for claim in self.source_claims)
+        if claim_ids and source_claim_ids and claim_ids != source_claim_ids:
+            raise ValueError("AssertionAtom source_claim_ids must match source_claims")
+        object.__setattr__(
+            self,
+            "source_claim_ids",
+            source_claim_ids if source_claim_ids else claim_ids,
+        )
 
     @property
     def assertion_id(self) -> AssertionId:

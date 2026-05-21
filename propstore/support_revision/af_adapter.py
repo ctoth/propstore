@@ -111,6 +111,7 @@ def project_epistemic_state_argumentation_view(
 ) -> RevisionArgumentationView:
     """Project an epistemic state into the current argumentation input surfaces."""
     accepted_set = set(state.accepted_atom_ids)
+    active_claim_ids: set[str] = set()
     active_claims: list[Claim] = []
     support_metadata: dict[str, tuple[Label | None, SupportQuality]] = {}
     unmapped_atom_ids: list[str] = []
@@ -124,8 +125,9 @@ def project_epistemic_state_argumentation_view(
             continue
         if not is_assertion_atom(atom):
             continue
-        if not atom.source_claims:
+        if not atom.source_claim_ids:
             unmapped_atom_ids.append(atom.atom_id)
+        active_claim_ids.update(atom.source_claim_ids)
         for claim in atom.source_claims:
             claim_id = str(claim.id)
             active_claims.append(claim)
@@ -142,7 +144,7 @@ def project_epistemic_state_argumentation_view(
     overlay = RevisionArgumentationStore(backing_store, tuple(active_claims))
     return RevisionArgumentationView(
         store=overlay,
-        active_claim_ids=frozenset(overlay._claims_by_id),
+        active_claim_ids=frozenset(active_claim_ids),
         active_claims=tuple(active_claims),
         support_metadata=support_metadata,
         unmapped_atom_ids=tuple(sorted(unmapped_atom_ids)),

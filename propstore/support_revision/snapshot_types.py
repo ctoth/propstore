@@ -132,9 +132,14 @@ def _belief_atom_from_json_payload(data: Mapping[str, Any]) -> BeliefAtom:
             raise ValueError(
                 "Assertion atom snapshot source_claims must not embed claim mappings"
             )
+        source_claim_ids = tuple(
+            str(claim_id)
+            for claim_id in (payload_data.get("source_claim_ids") or ())
+        )
         return AssertionAtom(
             atom_id=atom_id,
             assertion=AssertionCanonicalRecord.from_payload(assertion_payload).to_assertion(),
+            source_claim_ids=source_claim_ids,
             label=label,
         )
     if kind == "assumption":
@@ -148,7 +153,7 @@ def _belief_atom_to_dict(atom: BeliefAtom) -> dict[str, Any]:
     if isinstance(atom, AssertionAtom):
         payload = {
             "assertion": AssertionCanonicalRecord.from_assertion(atom.assertion).to_payload(),
-            "source_claim_ids": [claim.id for claim in atom.source_claims],
+            "source_claim_ids": list(atom.source_claim_ids),
         }
         kind = "assertion"
     else:

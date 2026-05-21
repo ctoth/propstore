@@ -597,7 +597,7 @@ def _assertion_provenance(state_payload: Mapping[str, Any]) -> dict[str, Any]:
         payload = atom.get("payload")
         if not isinstance(payload, Mapping):
             continue
-        provenance[str(atom.get("atom_id"))] = _to_plain_data(payload.get("source_claims") or ())
+        provenance[str(atom.get("atom_id"))] = _to_plain_data(payload.get("source_claim_ids") or ())
     return provenance
 
 
@@ -673,7 +673,7 @@ def _set_atom_provenance(state_payload: dict[str, Any], atom_id: str, value: Any
             continue
         updated_atom = dict(atom)
         payload = dict(updated_atom.get("payload") or {})
-        payload["source_claims"] = [] if value is None else value
+        payload["source_claim_ids"] = [] if value is None else value
         updated_atom["payload"] = payload
         atoms.append(updated_atom)
     base["atoms"] = atoms

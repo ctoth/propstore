@@ -8,12 +8,13 @@ from dataclasses import replace
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.core.active_claims import ActiveClaim
+from propstore.core.claim_types import ClaimType
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.support_revision.state import BeliefBase, EpistemicState
+from tests.claim_model_helpers import claim_model
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_iterated import _history_sensitive_base
 
@@ -152,16 +153,22 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
         if atom.atom_id != legacy_id:
             changed_atoms.append(atom)
             continue
-        source_claim = ActiveClaim.from_row_mapping(
-            {
-                "id": "claim_legacy_updated",
-                "type": "parameter",
-                "value": "legacy",
-                "concept_id": "concept_legacy",
-                "source_paper": "paper:updated",
-            }
+        source_claim = claim_model(
+            claim_id="claim_legacy_updated",
+            claim_type=ClaimType.PARAMETER,
+            concept_id="concept_legacy",
+            value=None,
+            statement="legacy",
+            source_slug="paper:updated",
+            source_paper="paper:updated",
         )
-        changed_atoms.append(replace(atom, source_claims=(source_claim,)))
+        changed_atoms.append(
+            replace(
+                atom,
+                source_claims=(source_claim,),
+                source_claim_ids=(str(source_claim.id),),
+            )
+        )
     changed_base = replace(
         state.base,
         atoms=tuple(changed_atoms),
