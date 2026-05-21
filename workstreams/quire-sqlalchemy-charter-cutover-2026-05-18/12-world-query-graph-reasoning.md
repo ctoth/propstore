@@ -126,6 +126,32 @@ Implementation starts after the searches report only old
 world/query/graph/reasoning paths named as deletion targets in this
 workstream. Production hits outside those targets block implementation.
 
+2026-05-21 prerequisite execution update:
+
+- Current repo state before Phase 14 implementation: branch `master`; no
+  tracked task-owned changes; unrelated untracked local/diagnostic paths remain
+  outside this workstream.
+- `uv run pyright propstore` passed with zero errors before Phase 14
+  implementation.
+- Initial `powershell -File scripts/run_logged_pytest.ps1 -Label world-prereq
+  tests/test_world_query.py tests/test_worldline.py tests/test_graph_export.py
+  tests/test_worldline_ic_merge_properties.py` failed 5 worldline tests after
+  216 passed; log: `logs/test-runs/world-prereq-20260521-113240.log`.
+- The failures were not a production compatibility reason to loosen
+  `concept_name`; they were stale fake-world fixtures returning concept dicts
+  where the current worldline path requires typed `Concept` model objects.
+- Test commit `3f666826` updated `tests/test_worldline.py` fake worlds to
+  return typed `Concept` fixtures instead of dict payloads.
+- Focused repair gate
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-typed-concept-fixtures ...` passed the five previously failing
+  tests; log:
+  `logs/test-runs/worldline-typed-concept-fixtures-20260521-113536.log`.
+- `uv run pyright propstore` passed with zero errors after the fixture repair.
+- Remaining prerequisite work before implementation: rerun the full
+  `world-prereq` logged test command and the three prerequisite old-path
+  searches in this section.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
