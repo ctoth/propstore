@@ -57,7 +57,6 @@ def _insert_stance(conn, claim_id, target, stype, confidence=0.9, model=None,
 @pytest.fixture
 def conn():
     c = sqlite3.connect(":memory:")
-    c.row_factory = sqlite3.Row
     create_argumentation_schema(c)
     return c
 
