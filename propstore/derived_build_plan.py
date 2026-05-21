@@ -103,6 +103,8 @@ def compile_sidecar_build_plan(
     justification_rows: tuple[object, ...] = ()
     quarantine_diagnostics: tuple[QuarantineDiagnostic, ...] = ()
     claim_index = build_claim_file_reference_index(())
+    source_models = compile_source_models(tuple(source_entries))
+    source_slugs = frozenset(str(source.slug) for source in source_models)
 
     if repository_checked_bundle.normalized_claim_files is not None:
         checked_claims = repository_checked_bundle.claim_checked_bundle
@@ -114,6 +116,7 @@ def compile_sidecar_build_plan(
             checked_claims.bundle,
             repository_checked_bundle.concept_registry,
             form_registry=repository_checked_bundle.form_registry,
+            source_slugs=source_slugs,
         )
         quarantine_diagnostics = claim_rows.quarantine_diagnostics
         raw_id_quarantine_rows = compile_raw_id_quarantine_models(
@@ -178,7 +181,7 @@ def compile_sidecar_build_plan(
     if drop_invalid_context_lifting_rows:
         context_models = filter_invalid_context_lifting_models(context_models)
     batches = (
-        _batch("source", compile_source_models(source_entries)),
+        _batch("source", source_models),
         *_concept_batches(
             compile_concept_sidecar_rows(
                 repository_checked_bundle.concepts,

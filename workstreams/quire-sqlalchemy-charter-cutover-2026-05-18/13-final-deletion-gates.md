@@ -483,6 +483,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     claim compilation owner path.
   - `uv run pyright propstore` passed with 0 errors after the claim text
     payload derivation repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-claim-source-fk tests/test_cli.py::TestWorldQuerySIValues::test_world_query_shows_si_value tests/test_cli.py::TestClaimShow::test_claim_search_exists tests/test_cli.py::TestWorldOwnerReports::test_owner_explain_reports_claim_without_stances tests/test_world_query.py::TestUnboundQueries::test_get_claim_joins_source_by_source_slug tests/test_source_trust.py::test_world_query_claim_source_does_not_fabricate_source_prior`
+    passed 5 tests after claim compilation stopped fabricating `source_slug`
+    references for source labels with no compiled `source` family row, while
+    preserving the real source relationship when a source row exists.
+  - `uv run pyright propstore` passed with 0 errors after the claim-source FK
+    repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -497,12 +503,10 @@ Gate: no local path, workspace, or file URL Quire dependency.
     failed: 26 failed, 3518 passed, 4 skipped, 55 errors.
   - Log: `logs/test-runs/sqlalchemy-charter-full-5-20260521-152733.log`.
   - Remaining failure clusters from full-5:
-    - Claim-source FK enforcement is real and must remain: claim compilation
-      currently writes `claim_core.source_slug` for source labels that have no
-      corresponding `source` charter row in minimal test workspaces. Fix the
-      claim/source owner path so `source_slug` is only a family reference to an
-      existing `source` row, while `source_paper` remains provenance/display
-      metadata.
+    - Claim-source FK enforcement is real and must remain. Repaired after
+      full-5: claim compilation now writes `claim_core.source_slug` only for
+      source labels with a corresponding `source` charter row, while
+      `source_paper` remains provenance/display metadata.
     - Conflict query boundary: non-catalog stores must not require catalog
       concept lookup before the cheap active-claim/conflict pass-through path.
     - Source promotion blocked-row projection: blocked source-local claims are

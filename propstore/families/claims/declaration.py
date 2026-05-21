@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -316,6 +316,7 @@ def compile_claim_models(
     concept_registry: Mapping[str, Mapping[str, Any]],
     *,
     form_registry: Mapping[str, DimensionalForm] | None = None,
+    source_slugs: Collection[str] = (),
 ) -> ClaimWriteModels:
     claim_seq = 0
     claim_models: list[Claim] = []
@@ -357,6 +358,11 @@ def compile_claim_models(
                 logical_id.to_payload()
                 for logical_id in claim_doc.logical_ids
             ]
+            source_slug = (
+                semantic_claim.source_paper
+                if semantic_claim.source_paper in source_slugs
+                else None
+            )
             claim_values: dict[str, object] = {
                 "id": semantic_claim.artifact_id or claim_doc.artifact_id,
                 "primary_logical_id": claim_doc.primary_logical_id or "",
@@ -365,7 +371,7 @@ def compile_claim_models(
                 "seq": claim_seq,
                 "type": claim_doc.type,
                 "target_concept": claim_doc.target_concept,
-                "source_slug": semantic_claim.source_paper,
+                "source_slug": source_slug,
                 "source_paper": (
                     semantic_claim.source_paper
                     if provenance is None or provenance.paper is None
