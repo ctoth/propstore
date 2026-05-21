@@ -157,3 +157,18 @@ projection rather than normalizing around it.
   tests/test_world_query.py::TestConflictResolution::test_resolve_sample_size`
   passed with 8 tests and log
   `logs\test-runs\typed-claim-graph-projection-20260520-211640.log`.
+- Phase 10 broad gate failed on 2026-05-20:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  claim-charter-phase10-gate tests/test_world_query.py
+  tests/test_resolution_helpers.py tests/test_render_policy_filtering.py`
+  produced 4 failures and 169 passes in
+  `logs\test-runs\claim-charter-phase10-gate-20260520-211829.log`.
+  Two failures are stale test assertions against the deleted `Claim.value`
+  surface. Two failures show `OverlayWorld(remove=[...])` does not resolve
+  claim logical ids such as `algo_claim3` before computing semantic and graph
+  removals.
+- Required repair: remove the nonexistent/private `_store.resolve_claim`
+  expectation from overlay construction. Claim lookup by id, primary logical
+  id, and logical id belongs to the generic world query surface backed by the
+  typed `claim_core` table, not to an overlay shim or claim-specific string
+  rewrite in `OverlayWorld`.
