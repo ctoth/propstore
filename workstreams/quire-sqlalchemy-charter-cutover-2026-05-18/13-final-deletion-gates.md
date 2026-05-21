@@ -603,6 +603,10 @@ Gate: no local path, workspace, or file URL Quire dependency.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-8`
     passed: 3599 passed, 4 skipped, 30 warnings.
   - Log: `logs/test-runs/sqlalchemy-charter-full-8-20260521-162022.log`.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-9`
+    passed on the current tree after deleting the stale projection baseline
+    script: 3599 passed, 4 skipped, 30 warnings.
+  - Log: `logs/test-runs/sqlalchemy-charter-full-9-20260521-163309.log`.
   - Remaining failure clusters from full-5:
     - Claim-source FK enforcement is real and must remain. Repaired after
       full-5: claim compilation now writes `claim_core.source_slug` only for
@@ -672,7 +676,7 @@ Gate: no local path, workspace, or file URL Quire dependency.
 
 Current full-gate repair queue, deletion-first:
 
-- No remaining full-gate repair queue is open after full-8.
+- No remaining full-gate repair queue is open after full-9.
 - No remaining final old-path search gate is open after the 2026-05-21 final
   search pass.
 - Contract manifest gates are current after the
