@@ -358,6 +358,24 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   `tests/remediation/phase_7_race_atomicity/test_T7_5a_sqlite_wal_busy_timeout.py`,
   which tested Quire raw SQLite WAL/busy-timeout mechanics instead of a
   Propstore owner-layer workflow.
+- Test/production commit `79b01c0d` migrated
+  `tests/remediation/phase_7_race_atomicity/test_T7_5b_promotion_diagnostic_scope.py`
+  from `connect_sqlite_store` to Quire SQLAlchemy `writable_session` and
+  `readonly_session` calls over `world_sqlalchemy_schema()`.
+- The same commit fixed `_flush_promotion_blocked_claims` in
+  `propstore/derived_build.py` so stale promotion-blocked diagnostics are
+  deleted from typed diagnostic payload claim IDs even when the current
+  promotion-blocked claim row batch is empty.
+- `rg -n -F -- "connect_sqlite_store"
+  tests/remediation/phase_7_race_atomicity/test_T7_5b_promotion_diagnostic_scope.py
+  propstore/derived_build.py` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration and
+  production diagnostic cleanup.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  t7-5b-sqlalchemy-session
+  tests/remediation/phase_7_race_atomicity/test_T7_5b_promotion_diagnostic_scope.py`
+  passed with 1 test; log:
+  `logs/test-runs/t7-5b-sqlalchemy-session-20260521-100327.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
