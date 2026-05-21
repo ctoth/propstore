@@ -222,6 +222,27 @@ workstream. Production hits outside those targets block implementation.
 - Continue Slice 2 with the remaining world query helper and resolver-wrapper
   deletion work.
 
+2026-05-21 activation graph rename update:
+
+- Commit `a933a8cc` used `scripts/rope_rename.py` to rename
+  `ActiveWorldGraph` to `WorldActivationGraph` across production and tests.
+- Rope initially rewrote line endings in `tests/test_praf.py` and
+  `tests/test_worldline.py`; those two files were restored path-locally and
+  patched with only the minimal symbol changes before commit.
+- The old `ActiveWorldGraph` spelling search returned zero hits under
+  `propstore` and `tests` after the rename.
+- `uv run pyright propstore` passed with zero errors after the rename.
+- Focused gate
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-activation-graph-rename
+  tests/test_core_graph_types.py::test_active_world_graph_roundtrip_is_stable
+  tests/test_core_analyzers.py::test_shared_projection_is_independent_of_active_claim_id_order
+  tests/test_mapping_boundary_failures.py::test_active_world_graph_rejects_malformed_compiled_graph`
+  passed with 3 tests; log:
+  `logs/test-runs/world-activation-graph-rename-20260521-115206.log`.
+- Continue with the remaining resolver-wrapper, active-input, and
+  `from_mapping` deletion targets.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
