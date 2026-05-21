@@ -688,3 +688,12 @@ Recorded 2026-05-20.
   materialization drops typed algorithm claim payload fields, and chain target
   resolution still assumes non-derived results expose a direct `.value` field
   instead of reading typed `ValueResult` claims.
+- Worldline typed payload repair: commit `20fb24c4` updated
+  `propstore/worldline/resolution.py` so `WorldlineTargetValue`
+  materialization reads statement, expression, name, algorithm body,
+  canonical AST, and variables from typed `Claim` payload relationships, and
+  chain target resolution reads typed `ValueResult` claims instead of
+  assuming a row-like `.value` field. Targeted pyright
+  `uv run pyright propstore/worldline/resolution.py` passed with 0 errors.
+  The next required actions are package pyright and the `relations-charter`
+  logged pytest gate.
