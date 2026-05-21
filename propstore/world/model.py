@@ -295,7 +295,9 @@ class WorldQuery(WorldStore):
                 or claim_id
             )
             return derived.execute(
-                select(claim).where(claim.id == resolved_claim_id)
+                select(claim)
+                .options(selectinload(claim.source))
+                .where(claim.id == resolved_claim_id)
             ).scalar_one_or_none()
 
     def claims_for(self, concept_id: str | None) -> list[Claim]:

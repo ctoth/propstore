@@ -409,7 +409,7 @@ def _claim_core_charter() -> FamilyCharter:
         _f("logical_ids_json", nullable=False, default_sql="'[]'"), _f("version_id", nullable=False, default_sql="''"),
         _f("content_hash", nullable=False, default_sql="''"), _i("seq", nullable=False), CharterField("type", ClaimType, nullable=False),
         _f("target_concept"),
-        _f("source_slug"),
+        CharterField("source_slug", str, foreign_key=_fk("claim_source", "claim_core", "source_slug", "source", target_field="slug", required=False)),
         _f("source_paper", nullable=False), _i("provenance_page", nullable=False),
         _f("provenance_json"), _f("context_id"), _f("premise_kind", nullable=False, default_sql="'ordinary'"),
         _f("branch"), _f("build_status", nullable=False, default_sql="'ingested'"), _f("stage"), _f("promotion_status"),
@@ -437,6 +437,11 @@ def _claim_core_charter() -> FamilyCharter:
             back_populates="claim",
             association_object=True,
             order_by=("ordinal",),
+        ), CharterRelationship(
+            "source",
+            target_family="source",
+            foreign_key="source_slug",
+            uselist=False,
         ), CharterRelationship(
             "numeric_payload",
             target_family="claim_numeric_payload",
