@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import pytest
 
+from quire.documents import DocumentSchemaError, convert_document
+
+from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.forms.documents import FormDocument
 from propstore.families.registry import ConceptFileRef, FormRef
-from quire.documents import DocumentSchemaError
 from propstore.families.concepts.stages import concept_document_to_payload, parse_concept_record_document
 from propstore.repository import Repository
 
@@ -104,8 +106,9 @@ def test_concept_document_round_trips_phase3_sense_semantics(tmp_path) -> None:
         }
     }
 
-    document = repo.families.concepts.coerce(
+    document = convert_document(
         payload,
+        ConceptDocument,
         source="concepts/measurement.yaml",
     )
 
@@ -141,8 +144,9 @@ def test_phase3_qualia_reference_requires_provenance(tmp_path) -> None:
     }
 
     with pytest.raises(DocumentSchemaError, match="provenance"):
-        repo.families.concepts.coerce(
+        convert_document(
             payload,
+            ConceptDocument,
             source="concepts/instrument.yaml",
         )
 
@@ -163,8 +167,9 @@ def test_phase3_proto_role_entailment_rejects_out_of_range_grade(tmp_path) -> No
     }
 
     with pytest.raises(DocumentSchemaError, match=r"\[0, 1\]"):
-        repo.families.concepts.coerce(
+        convert_document(
             payload,
+            ConceptDocument,
             source="concepts/bad-role.yaml",
         )
 
@@ -173,13 +178,14 @@ def test_concept_document_rejects_flat_pre_lemon_shape(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
 
     with pytest.raises(DocumentSchemaError):
-        repo.families.concepts.coerce(
+        convert_document(
             {
                 "canonical_name": "temperature",
                 "status": "accepted",
                 "definition": "A thermal state quantity.",
                 "form": "temperature",
             },
+            ConceptDocument,
             source="concepts/temperature.yaml",
         )
 
@@ -192,8 +198,9 @@ def test_concept_document_round_trips_lemon_entry_and_reference(tmp_path) -> Non
         message="Write temperature form",
     )
     ref = ConceptFileRef("temperature")
-    document = repo.families.concepts.coerce(
+    document = convert_document(
         _lemon_concept_payload(),
+        ConceptDocument,
         source="concepts/temperature.yaml",
     )
 
@@ -211,8 +218,9 @@ def test_concept_document_round_trips_lemon_entry_and_reference(tmp_path) -> Non
 
 def test_lemon_concept_document_projects_record_at_boundary(tmp_path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    document = repo.families.concepts.coerce(
+    document = convert_document(
         _lemon_concept_payload(),
+        ConceptDocument,
         source="concepts/temperature.yaml",
     )
 

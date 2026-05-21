@@ -30,11 +30,13 @@ from pathlib import Path
 import pytest
 import yaml
 from click.testing import CliRunner
+from quire.documents import convert_document
 
 from propstore.cli import cli
 from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
 from propstore.core.claim_types import ClaimType
+from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import (
     ClaimDocument,
     ClaimLogicalIdDocument,
@@ -43,11 +45,22 @@ from propstore.families.claims.documents import (
 )
 from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
 from propstore.families.documents.sources import (
+    SourceDocument,
     SourceJustificationDocument,
+    SourceOriginDocument,
+    SourceTrustDocument,
 )
+from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.justifications import stamp_justification_artifact_id
 from propstore.families.identity.stances import stamp_stance_artifact_id
-from propstore.families.registry import ClaimRef, ContextRef, JustificationRef, StanceRef
+from propstore.families.registry import (
+    CanonicalSourceRef,
+    ClaimRef,
+    ContextRef,
+    JustificationRef,
+    StanceRef,
+)
+from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
 from propstore.derived_build import materialize_world_sidecar
 from propstore.stances import StanceType
@@ -224,10 +237,24 @@ def _seed_lifecycle_rows(workspace: Path, concept_aid: str) -> None:
 
 
 def _seed_authored_reasoning(repo: Repository, concept_aid: str) -> None:
+    source_ref = CanonicalSourceRef("fixture_paper")
+    repo.families.sources.save(
+        source_ref,
+        SourceDocument(
+            id=source_ref.name,
+            kind=SourceKind.ACADEMIC_PAPER,
+            origin=SourceOriginDocument(
+                type=SourceOriginType.MANUAL,
+                value="fixture",
+            ),
+            trust=SourceTrustDocument(status=ProvenanceStatus.STATED),
+        ),
+        message="Seed world status source",
+    )
     context_ref = ContextRef("ctx_fixture")
     repo.families.contexts.save(
         context_ref,
-        ContextDocument(id=str(context_ref), name="Fixture context"),
+        ContextDocument(id=context_ref.name, name="Fixture context"),
         message="Seed world status context",
     )
     for claim_id in ("claim_fixture_final", "claim_fixture_draft"):
@@ -245,7 +272,7 @@ def _seed_authored_reasoning(repo: Repository, concept_aid: str) -> None:
                 unit="Hz",
                 provenance=ProvenanceDocument(paper="fixture_paper", page=1),
                 source=ClaimSourceDocument(paper="fixture_paper"),
-                context=ContextReferenceDocument(id=str(context_ref)),
+                context=ContextReferenceDocument(id=context_ref.name),
                 statement=claim_id,
             ),
             message="Seed world status claims",
@@ -300,8 +327,9 @@ def _seed_authored_reasoning(repo: Repository, concept_aid: str) -> None:
     justification_ref = JustificationRef(str(justification_payload["artifact_code"]))
     repo.families.justifications.save(
         justification_ref,
-        repo.families.justifications.coerce(
+        convert_document(
             justification_payload,
+            SourceJustificationDocument,
             source=repo.families.justifications.address(justification_ref).require_path(),
         ),
         message="Seed world status justifications",
@@ -317,8 +345,9 @@ def _seed_authored_reasoning(repo: Repository, concept_aid: str) -> None:
     stance_ref = StanceRef(str(stance_payload["artifact_code"]))
     repo.families.stances.save(
         stance_ref,
-        repo.families.stances.coerce(
+        convert_document(
             stance_payload,
+            StanceDocument,
             source=repo.families.stances.address(stance_ref).require_path(),
         ),
         message="Seed world status stances",

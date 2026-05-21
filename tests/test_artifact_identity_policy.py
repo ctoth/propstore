@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from quire.documents import convert_document
+
+from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.forms.documents import FormDocument
 from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
@@ -36,13 +39,14 @@ def test_concept_family_save_applies_identity_normalization_on_write(tmp_path) -
         message="Seed structural form",
     )
     ref = ConceptFileRef("demo")
-    document = repo.families.concepts.coerce(
+    document = convert_document(
         normalize_canonical_concept_payload({
             "canonical_name": "demo",
             "status": "accepted",
             "definition": "Demo concept.",
             "form": "structural",
         }),
+        ConceptDocument,
         source="concepts/demo.yaml",
     )
 
