@@ -1252,3 +1252,18 @@ Current binding queue:
   vector/status access through charter/session/vector APIs or a Quire generic
   capability, not restoring `CLAIM_EMBEDDING_*`, `CLAIM_VEC_PROJECTION`, or
   `select_claim_embedding_rows`.
+- Quire dynamic vector-cache capability: Phase 10 embedding cleanup returned
+  to the Quire FTS/vector owner because the SQLAlchemy vector cache required
+  fixed charter dimensions while Propstore embedding model dimensions are
+  registered at runtime. Quire commit `2888fa2`
+  (`2888fa21a12f579ada14ce3c212b1ef0dedec3e2`) adds model-dimensioned vector
+  caches, passed focused vector tests, passed full Quire gates, and was
+  pushed to `origin/master`. Propstore commit `2b8970c4` pins Quire to that
+  pushed SHA with refreshed `uv.lock` and no local path dependency. The
+  remaining embedding cleanup is now executable: delete the imports of
+  `CLAIM_EMBEDDING_JOIN_COLUMNS`, `CLAIM_EMBEDDING_JOIN_SOURCE`,
+  `CLAIM_EMBEDDING_STATUS_PROJECTION`, `CLAIM_VEC_PROJECTION`, and
+  `select_claim_embedding_rows`; declare claim/concept vector cache intent in
+  the world charters; and move claim/concept embedding stores to Quire
+  SQLAlchemy vector-cache APIs and typed session model queries. Do not keep
+  the retained sqlite projection API as a Propstore fallback.
