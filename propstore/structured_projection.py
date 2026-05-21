@@ -125,10 +125,8 @@ def claim_source_assertion_ids_from_active_graph(
     for claim in active_graph.compiled.claims:
         if claim.claim_id not in active_claim_ids:
             continue
-        raw = claim.attribute_value("source_assertion_ids")
-        assertion_ids = _coerce_source_assertion_ids(raw)
-        if assertion_ids:
-            mapping[str(claim.claim_id)] = assertion_ids
+        if claim.source_assertion_ids:
+            mapping[str(claim.claim_id)] = claim.source_assertion_ids
     return mapping
 
 
@@ -161,14 +159,6 @@ def lift_analyzer_result_projection(
 
 def _sorted_unique(values: Sequence[str]) -> tuple[str, ...]:
     return tuple(sorted(dict.fromkeys(str(value) for value in values)))
-
-
-def _coerce_source_assertion_ids(raw: object) -> tuple[str, ...]:
-    if isinstance(raw, str):
-        return (raw,)
-    if isinstance(raw, Sequence) and not isinstance(raw, str | bytes):
-        return _sorted_unique(tuple(str(value) for value in raw))
-    return ()
 
 
 def _assertion_ids_for_claims(

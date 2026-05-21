@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from propstore.core.claim_types import ClaimType
 from propstore.core.conditions import (
@@ -24,7 +24,9 @@ from propstore.families.claims.declaration import (
     ClaimTextPayload,
 )
 from propstore.families.world_charters import world_record
-from propstore.world.types import SyntheticClaim
+
+if TYPE_CHECKING:
+    from propstore.world.types import SyntheticClaim
 
 
 def claim_node_from_claim(
@@ -62,6 +64,9 @@ def claim_node_from_claim(
         ),
         checked_conditions=claim.checked_conditions,
         provenance=_claim_provenance(claim, source_id=claim_id or claim.id),
+        source_assertion_ids=tuple(
+            assertion.source_assertion_id for assertion in claim.source_assertions
+        ),
         attributes=_claim_graph_attributes(claim),
     )
 

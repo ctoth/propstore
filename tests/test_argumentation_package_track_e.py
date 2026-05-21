@@ -12,7 +12,9 @@ from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.dung import ArgumentationFramework
 
 from propstore.core.analyzers import SharedAnalyzerInput
+from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import ActiveWorldGraph, ClaimNode, CompiledWorldGraph
+from propstore.core.id_types import to_claim_id
 from propstore.core.results import AnalyzerResult, ClaimProjection
 from propstore.merge.structured_merge import argumentation_evidence_from_projection
 from propstore.probabilistic_relations import ClaimGraphRelations
@@ -80,22 +82,24 @@ def test_track_e_package_semantics_are_exposed_by_propstore() -> None:
 
 
 def test_track_e_projection_lift_preserves_situated_assertion_ids() -> None:
+    claim_a = to_claim_id("claim_a")
+    claim_b = to_claim_id("claim_b")
     active_graph = ActiveWorldGraph(
         compiled=CompiledWorldGraph(
             claims=(
                 ClaimNode(
-                    claim_id="claim_a",
-                    claim_type="observation",
-                    attributes={"source_assertion_ids": ("ps:assertion:a",)},
+                    claim_id=claim_a,
+                    claim_type=ClaimType.OBSERVATION,
+                    source_assertion_ids=("ps:assertion:a",),
                 ),
                 ClaimNode(
-                    claim_id="claim_b",
-                    claim_type="observation",
-                    attributes={"source_assertion_ids": ("ps:assertion:b",)},
+                    claim_id=claim_b,
+                    claim_type=ClaimType.OBSERVATION,
+                    source_assertion_ids=("ps:assertion:b",),
                 ),
             )
         ),
-        active_claim_ids=("claim_a", "claim_b"),
+        active_claim_ids=(claim_a, claim_b),
     )
     result = AnalyzerResult(
         backend="praf",
@@ -144,18 +148,19 @@ def test_track_e_core_analyzer_reports_optional_aspic_backend_absence() -> None:
 def test_track_e_praf_analyzer_can_use_paper_td_package_strategy() -> None:
     from propstore.core.analyzers import analyze_praf
 
+    claim_a = to_claim_id("claim_a")
     shared = SharedAnalyzerInput(
         active_graph=ActiveWorldGraph(
             compiled=CompiledWorldGraph(
                 claims=(
                     ClaimNode(
-                        claim_id="claim_a",
-                        claim_type="observation",
-                        attributes={"source_assertion_ids": ("ps:assertion:a",)},
+                        claim_id=claim_a,
+                        claim_type=ClaimType.OBSERVATION,
+                        source_assertion_ids=("ps:assertion:a",),
                     ),
                 )
             ),
-            active_claim_ids=("claim_a",),
+            active_claim_ids=(claim_a,),
         ),
         comparison="elitist",
         claims_by_id={

@@ -11,6 +11,7 @@ from propstore.structured_projection import (
     ProjectionLossWitness,
     lift_projected_argument,
 )
+from tests.claim_model_helpers import claim_model
 from tests.test_aspic_bridge_review_v2 import (
     _make_atom,
     _make_grounded_bundle,
@@ -21,15 +22,13 @@ from tests.test_aspic_bridge_review_v2 import (
 
 def test_aspic_projection_arguments_expose_typed_source_projection_records() -> None:
     source_id = "ps:assertion:source-a"
+    claim = claim_model(
+        "claim-a",
+        concept_id="concept-a",
+        source_assertion_ids=(source_id,),
+    )
     csaf = build_bridge_csaf(
-        [
-            {
-                "id": "claim-a",
-                "concept_id": "concept-a",
-                "premise_kind": "ordinary",
-                "source_assertion_ids": [source_id],
-            }
-        ],
+        [claim],
         [
             CanonicalJustification(
                 justification_id="reported:claim-a",
@@ -43,14 +42,7 @@ def test_aspic_projection_arguments_expose_typed_source_projection_records() -> 
 
     projection = csaf_to_projection(
         csaf,
-        [
-            {
-                "id": "claim-a",
-                "concept_id": "concept-a",
-                "premise_kind": "ordinary",
-                "source_assertion_ids": [source_id],
-            }
-        ],
+        [claim],
     )
 
     projected = projection.arguments[0]

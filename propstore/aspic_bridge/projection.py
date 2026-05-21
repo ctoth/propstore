@@ -58,11 +58,13 @@ def _projection_backend_atom_id(literal: Literal) -> str:
 
 def _projection_atom_for_literal(
     literal: Literal,
+    *,
+    source_assertion_ids: Sequence[str] = (),
 ) -> ProjectionAtom:
     backend_atom_id = _projection_backend_atom_id(literal)
-    source_assertion_ids: tuple[str, ...] = ()
+    assertion_ids = tuple(sorted(dict.fromkeys(str(value) for value in source_assertion_ids)))
     loss = None
-    if not source_assertion_ids:
+    if not assertion_ids:
         loss = ProjectionLossWitness(
             backend="aspic",
             kind="missing_source_assertion",
@@ -73,20 +75,20 @@ def _projection_atom_for_literal(
             backend_atom_id=backend_atom_id,
         )
     provenance = None
-    if source_assertion_ids:
+    if assertion_ids:
         frame_digest = hashlib.sha256(backend_atom_id.encode("utf-8")).hexdigest()
         provenance = ProjectionFrameProvenanceRecord(
             frame_id=f"urn:propstore:projection:aspic:{frame_digest}",
             backend="aspic",
             projected_at="projection-boundary-v2",
-            source_assertion_ids=source_assertion_ids,
+            source_assertion_ids=assertion_ids,
         )
     return ProjectionAtom(
         backend="aspic",
         backend_atom=literal.atom,
         backend_atom_id=backend_atom_id,
         negated=literal.negated,
-        source_assertion_ids=source_assertion_ids,
+        source_assertion_ids=assertion_ids,
         provenance=provenance,
         loss=loss,
     )
@@ -112,6 +114,13 @@ def _claim_conclusion_concept_id(claim: Claim) -> str | None:
     if claim.target_concept is not None:
         return str(claim.target_concept)
     return None
+
+
+def _claim_source_assertion_ids(claim: Claim) -> tuple[str, ...]:
+    return tuple(
+        assertion.source_assertion_id
+        for assertion in sorted(claim.source_assertions, key=lambda item: item.ordinal)
+    )
 
 
 def _direct_premise_literals(argument) -> tuple[Literal, ...]:
@@ -235,7 +244,12 @@ def csaf_to_projection(
 
         projected = StructuredArgument(
             arg_id=arg_id,
-            projection=_projection_atom_for_literal(conclusion),
+            projection=_projection_atom_for_literal(
+                conclusion,
+                source_assertion_ids=(
+                    () if claim is None else _claim_source_assertion_ids(claim)
+                ),
+            ),
             claim_id=claim_id,
             conclusion_concept_id=(
                 None if claim is None else _claim_conclusion_concept_id(claim)

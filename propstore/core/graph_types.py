@@ -274,10 +274,16 @@ class ClaimNode:
     )
     provenance: ProvenanceRecord | None = None
     label: Label | None = field(default=None, compare=False)
+    source_assertion_ids: tuple[str, ...] = ()
     attributes: tuple[tuple[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
+        object.__setattr__(
+            self,
+            "source_assertion_ids",
+            tuple(sorted(dict.fromkeys(str(value) for value in self.source_assertion_ids))),
+        )
         object.__setattr__(self, "attributes", _normalize_pairs(self.attributes))
 
     def attribute_mapping(self) -> dict[str, Any]:
@@ -321,6 +327,8 @@ class ClaimNode:
             data["provenance"] = self.provenance.to_dict()
         if self.label is not None:
             data["label"] = label_to_dict(self.label)
+        if self.source_assertion_ids:
+            data["source_assertion_ids"] = list(self.source_assertion_ids)
         if self.attributes:
             data["attributes"] = dict(self.attributes)
         return data
@@ -362,6 +370,9 @@ class ClaimNode:
                 else ProvenanceRecord.from_json_payload(provenance_data)
             ),
             label=label_from_dict(data.get("label")),
+            source_assertion_ids=tuple(
+                str(value) for value in data.get("source_assertion_ids") or ()
+            ),
             attributes=data.get("attributes") or (),
         )
 

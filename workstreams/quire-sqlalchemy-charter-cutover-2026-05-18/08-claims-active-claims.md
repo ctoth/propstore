@@ -1728,3 +1728,22 @@ Current binding queue:
   owner hits. The remaining `ProjectionRow` hits in
   `propstore/families/claims/declaration.py` are the authored-justification
   residual explicitly owned by Phase 12.
+- Typed source-assertion graph projection: the forbidden production lookup
+  `claim.attribute_value("source_assertion_ids")` was deleted from
+  `propstore/structured_projection.py`. `ClaimNode` now has a typed
+  `source_assertion_ids` field, `claim_node_from_claim` populates it from the
+  typed `Claim.source_assertions` relationship, and ASPIC projection atoms read
+  source assertion ids from typed claims instead of empty/default projection
+  state or graph attributes. The focused test helpers now build typed
+  `ClaimSourceAssertion` objects through the current charter model. Verification
+  passed: focused pyright on `propstore/core/graph_types.py`,
+  `propstore/families/claims/graph.py`, `propstore/structured_projection.py`,
+  `propstore/aspic_bridge/projection.py`, `tests/claim_model_helpers.py`,
+  `tests/test_argumentation_package_track_e.py`, and
+  `tests/test_projection_boundary_ws6.py`; logged pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label claim-source-assertion-typed-graph
+  tests/test_argumentation_package_track_e.py tests/test_projection_boundary_ws6.py`
+  with 7 tests in
+  `logs\test-runs\claim-source-assertion-typed-graph-20260520-215256.log`;
+  and zero-hit searches for `attribute_value("source_assertion_ids")`,
+  `attributes={"source_assertion_ids"`, and `_coerce_source_assertion_ids`.

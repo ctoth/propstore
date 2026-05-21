@@ -12,6 +12,7 @@ from propstore.families.claims.declaration import (
     ClaimAlgorithmPayload,
     ClaimConceptLink,
     ClaimNumericPayload,
+    ClaimSourceAssertion,
     ClaimTextPayload,
 )
 from propstore.families.world_charters import world_record
@@ -71,6 +72,7 @@ def claim_model(
     algorithm_body: str | None = None,
     algorithm_stage: AlgorithmStage | None = None,
     variables_json: str | None = None,
+    source_assertion_ids: Sequence[str] = (),
 ) -> Claim:
     claim = cast(
         Claim,
@@ -173,5 +175,21 @@ def claim_model(
     )
     algorithm_payload.claim = claim
     claim.algorithm_payload = algorithm_payload
-    claim.source_assertions = []
+    source_assertions = [
+        cast(
+            ClaimSourceAssertion,
+            world_record(
+                "claim_source_assertion",
+                {
+                    "claim_id": claim_id,
+                    "source_assertion_id": source_assertion_id,
+                    "ordinal": ordinal,
+                },
+            ),
+        )
+        for ordinal, source_assertion_id in enumerate(source_assertion_ids)
+    ]
+    for source_assertion in source_assertions:
+        source_assertion.claim = claim
+    claim.source_assertions = source_assertions
     return claim
