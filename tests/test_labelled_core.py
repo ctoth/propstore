@@ -110,9 +110,6 @@ class _StubStore:
     def get_claim(self, claim_id: str) -> dict | None:
         return next((claim for claim in self._claims if claim["id"] == claim_id), None)
 
-    def resolve_claim(self, claim_id: str) -> str | None:
-        return claim_id if self.get_claim(claim_id) is not None else None
-
     def get_concept(self, concept_id: str) -> dict | None:
         for concept in self.all_concepts():
             if concept["id"] == concept_id:

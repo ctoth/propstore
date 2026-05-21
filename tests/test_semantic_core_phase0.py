@@ -74,9 +74,6 @@ class _Store:
     def get_claim(self, claim_id: str) -> dict | None:
         return next((claim for claim in self._claims if claim["id"] == claim_id), None)
 
-    def resolve_claim(self, claim_id: str) -> str | None:
-        return claim_id if self.get_claim(claim_id) is not None else None
-
     def all_concepts(self) -> list[dict]:
         concept_ids = sorted({claim["concept_id"] for claim in self._claims} | {"concept3"})
         return [

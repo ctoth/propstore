@@ -1276,10 +1276,12 @@ class TestClaimTable:
             justifications = world.justifications_for_claim_scope(
                 {"claim1", "claim4", "claim5"}
             )
-            expected_claim_ids = {
-                claim_id: world.resolve_claim(claim_id) or claim_id
-                for claim_id in ("claim1", "claim4", "claim5")
-            }
+            expected_claim_ids: dict[str, str] = {}
+            for claim_id in ("claim1", "claim4", "claim5"):
+                claim = world.get_claim(claim_id)
+                expected_claim_ids[claim_id] = (
+                    str(claim.id) if claim is not None else claim_id
+                )
         finally:
             world.close()
 

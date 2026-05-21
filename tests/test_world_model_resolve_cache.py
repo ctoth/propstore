@@ -1,11 +1,12 @@
-"""Regression tests for resolve_claim / resolve_concept fallback memoization.
+"""Regression tests for WorldQuery family reference lookup.
 
 The WorldQuery fallback branches used to issue a fresh full-table
 ``SELECT id, logical_ids_json FROM <table>`` on every miss, JSON-decoding
 every row in Python. WorldQuery is immutable per open sidecar, so the
 logical-id → artifact-id mapping can be built once on first miss and
-reused thereafter. These tests exercise that memoization by counting
-SQL ``execute`` calls across repeated fallback lookups.
+reused thereafter. The concept tests still exercise that memoization by
+counting SQL ``execute`` calls across repeated fallback lookups. Claim tests
+exercise generic Quire family reference lookup through ``WorldQuery.get_claim``.
 """
 
 from __future__ import annotations
@@ -144,60 +145,30 @@ class _CountingConnection:
         return getattr(self._conn, name)
 
 
-# ── resolve_claim ────────────────────────────────────────────────────
+# ── claim reference lookup ────────────────────────────────────────────
 
 
-def test_resolve_claim_logical_id_lookup_does_not_scale_with_n(tmp_path):
+def test_get_claim_resolves_namespaced_logical_id(tmp_path):
     sidecar = _build_claim_sidecar(tmp_path, n_rows=200)
 
     world = world_query_from_sqlite_path(sidecar)
     try:
-        counter = _CountingConnection(world._conn)
-        world._conn = counter  # type: ignore[assignment]
-
-        # First miss: must reach the fallback, which builds the cache.
-        assert world.resolve_claim("test:claim_missing") is None
-        n_first_miss = counter.count
-        assert n_first_miss >= 1  # at least one SELECT landed
-
-        # Second miss: cache is populated — must not rescan.
-        assert world.resolve_claim("test:claim_still_missing") is None
-        n_second_miss = counter.count - n_first_miss
-
-        # Allow the two primary_id / primary_logical_id SELECTs (fast,
-        # scoped), but the full-table logical-id scan must NOT repeat.
-        assert n_second_miss < 3, (
-            f"second miss issued {n_second_miss} execute calls; "
-            "cache should have made the fallback a dict lookup"
-        )
-
-        # Existing logical id via the cache: also cheap, and returns the
-        # right artifact id.
-        before_hit = counter.count
-        resolved = world.resolve_claim("test:claim_42")
-        assert resolved == "claim_42"
-        hit_delta = counter.count - before_hit
-        assert hit_delta < 3
+        assert world.get_claim("test:claim_missing") is None
+        resolved = world.get_claim("test:claim_42")
+        assert resolved is not None
+        assert resolved.id == "claim_42"
     finally:
         world.close()
 
 
-def test_resolve_claim_cached_lookup_handles_bare_value_key(tmp_path):
+def test_get_claim_resolves_bare_logical_id_value(tmp_path):
     sidecar = _build_claim_sidecar(tmp_path, n_rows=50)
 
     world = world_query_from_sqlite_path(sidecar)
     try:
-        # Prime the cache via a miss.
-        assert world.resolve_claim("test:claim_missing") is None
-
-        counter = _CountingConnection(world._conn)
-        world._conn = counter  # type: ignore[assignment]
-
-        # Bare ``value`` (not ``namespace:value``) must also be served
-        # by the cache per the existing fallback contract.
-        resolved = world.resolve_claim("claim_17")
-        assert resolved == "claim_17"
-        assert counter.count < 3
+        resolved = world.get_claim("claim_17")
+        assert resolved is not None
+        assert resolved.id == "claim_17"
     finally:
         world.close()
 
