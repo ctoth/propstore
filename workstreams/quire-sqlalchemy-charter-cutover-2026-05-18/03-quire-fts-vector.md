@@ -470,3 +470,25 @@ Forbidden Propstore replacements:
 - do not hard-code vector table dimensions or table names in Propstore;
 - do not keep claim/concept vector access on the retained sqlite projection
   API once the generic Quire cache covers the needed behavior.
+
+Completed repair:
+
+- Quire commit `2888fa2` (`2888fa21a12f579ada14ce3c212b1ef0dedec3e2`) adds
+  model-dimensioned vector caches by making `CharterVectorCache.dimensions`
+  and `SchemaVectorCache.dimensions` optional, teaching
+  `SqlAlchemyVecEntityStore.prepare_model` to accept the model dimensions for
+  such caches, and resolving vector table names from the registered
+  `embedding_model` row.
+- Quire focused proof gate passed:
+  `uv run pytest -vv tests/test_sqlalchemy_engine.py::test_vector_cache_create_insert_search_snapshot_and_restore tests/test_sqlalchemy_engine.py::test_vector_cache_can_use_model_registered_dimensions`
+  with 2 passed.
+- Quire full gates passed: `uv run pyright` with 0 errors and
+  `uv run pytest -vv` with 366 passed in 278.61s.
+- The commit was fast-forwarded to Quire `master` and pushed to
+  `origin/master`.
+- Propstore commit `2b8970c4` pins Quire to the pushed SHA
+  `2888fa21a12f579ada14ce3c212b1ef0dedec3e2`; `uv lock` refreshed
+  `uv.lock`, and local-path Quire dependency searches returned zero hits.
+
+Phase 10 claim embedding cleanup may now delete the deleted claim embedding
+projection imports by using Quire SQLAlchemy vector cache APIs directly.
