@@ -409,6 +409,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
   - Log: `logs/test-runs/sqlalchemy-charter-full-2-20260521-135558.log`.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-3`
+    failed: 58 failed, 3541 passed, 4 skipped.
+  - Log: `logs/test-runs/sqlalchemy-charter-full-3-20260521-143149.log`.
 
 Current full-gate repair queue, deletion-first:
 
@@ -426,9 +429,13 @@ Current full-gate repair queue, deletion-first:
   properties directly. The concept view fixture now uses `Concept.id` instead
   of `Concept.concept_id`.
 - Repair remaining typed payload projection gaps found by full suite:
-  algorithm canonical AST, SI-normalized numeric payloads, PrAF uncalibrated
-  argument fixtures, ATMS/context lifting typed claim surfaces, and worldline
+  algorithm canonical AST, SI-normalized numeric payloads, PrAF store
+  fixtures, review-regression dict claim fixtures, resolution-helper concept
+  fixtures, web revision JSON serialization of typed claims, and worldline
   dependency identity expectations.
+- Repair the remaining explicit typed-model fixture construction failure in
+  `tests/test_cel_checker.py::TestBuildCelRegistry::test_store_projection_rejects_missing_kind`;
+  use `Concept.id`, not `Concept.concept_id`.
 - Contract manifest failures are not deferrable; after charter-field changes,
   update the manifest/version evidence through the intended contract workflow,
   not by weakening the manifest test.
