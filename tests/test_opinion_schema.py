@@ -188,14 +188,17 @@ class TestOpinionSchemaColumns:
             opinion_uncertainty=0.2, opinion_base_rate=0.5,
         )
 
-        # Use row_factory to get dict-like access
-        conn.row_factory = sqlite3.Row
         row = conn.execute(
-            "SELECT * FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
+            """
+            SELECT opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate
+            FROM relation_edge
+            WHERE source_kind='claim' AND source_id = 'c1'
+            """
         ).fetchone()
 
-        assert row["opinion_belief"] is not None
-        assert abs(row["opinion_belief"] - 0.7) < 1e-9
-        assert abs(row["opinion_disbelief"] - 0.1) < 1e-9
-        assert abs(row["opinion_uncertainty"] - 0.2) < 1e-9
-        assert abs(row["opinion_base_rate"] - 0.5) < 1e-9
+        assert row is not None
+        assert row[0] is not None
+        assert abs(row[0] - 0.7) < 1e-9
+        assert abs(row[1] - 0.1) < 1e-9
+        assert abs(row[2] - 0.2) < 1e-9
+        assert abs(row[3] - 0.5) < 1e-9
