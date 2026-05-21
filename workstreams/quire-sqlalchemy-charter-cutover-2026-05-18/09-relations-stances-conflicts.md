@@ -656,3 +656,18 @@ Recorded 2026-05-20.
   storage-model constants, row-model constants, `_optional_numeric`,
   authored stance sidecar-row compiler names, raw selector helpers, and
   `count_conflicts` is now zero-hit in `propstore` and `tests`.
+- Required gate fallout: `uv run pyright propstore` passed with 0 errors, but
+  the required logged pytest gate `powershell -File
+  scripts/run_logged_pytest.ps1 -Label relations-charter
+  tests/test_graph_export.py tests/test_world_query.py tests/test_worldline.py`
+  failed with 10 failures and 11 errors in
+  `logs\test-runs\relations-charter-20260520-234452.log`. The gate exposed two
+  typed-boundary issues: worldline fake stores still returned claim
+  dictionaries where the typed runtime now requires `Claim` objects, and
+  claim-artifact fixtures authored claims with `source_slug='test'` without
+  authoring the matching canonical `source` artifact required by the
+  SQLAlchemy FK. Commit `8d8a4c78` fixed the generic test fixture authoring
+  boundary in `tests/family_helpers.py` so `claim_artifact_commit_payloads`
+  writes the corresponding source artifact payload once. Remaining queue:
+  repair `tests/test_worldline.py` fake stores to return typed `Claim` objects,
+  rerun the required logged pytest gate, then continue to parity.
