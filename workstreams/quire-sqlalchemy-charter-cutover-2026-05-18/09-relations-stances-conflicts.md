@@ -679,3 +679,12 @@ Recorded 2026-05-20.
   without adding a production coercion, compatibility adapter, or dict repair
   path. The next required action is to rerun the `relations-charter` logged
   pytest gate.
+- Remaining worldline typed-fixture repair: commit `0676d254` updated the
+  remaining graph-projection, recency-liveness, and argumentation-liveness
+  worldline test doubles so they return typed `Claim` and `Stance` objects
+  instead of dictionaries. Dependency expectations now use the typed logical
+  IDs produced by the claim model boundary. The required gate still exposed
+  two production worldline issues to repair next: `WorldlineTargetValue`
+  materialization drops typed algorithm claim payload fields, and chain target
+  resolution still assumes non-derived results expose a direct `.value` field
+  instead of reading typed `ValueResult` claims.
