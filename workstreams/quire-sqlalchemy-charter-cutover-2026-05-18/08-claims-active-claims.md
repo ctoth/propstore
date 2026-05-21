@@ -1292,3 +1292,21 @@ Current binding queue:
   `a4afca74`. The next Phase 10 queue is old-path search/deletion for
   claim-specific lookup wrappers and test fixtures that still construct
   deleted active-claim/row-model surfaces.
+- Claim lookup wrapper deletion: commit `4d5d15fe` deleted
+  `propstore/families/claims/declaration.py::resolve_claim_id`,
+  `build_claim_logical_id_index`, `resolve_claim_embedding_entity`,
+  `WorldQuery.resolve_claim`, overlay `resolve_claim` forwarding wrappers, and
+  production caller use of `.resolve_claim(...)`. Claim reference lookup now
+  uses Quire generic family reference metadata declared on the claim charter
+  and `SqlAlchemySchema.resolve_reference_id(...)` inside typed sessions.
+  Focused verification `uv run pyright
+  propstore/families/claims/declaration.py
+  propstore/families/world_charters.py propstore/world/model.py
+  propstore/artifact_verification.py propstore/claim_graph.py
+  propstore/world/queries.py propstore/world/overlay.py
+  propstore/core/environment.py` passed with 0 errors. `rg -n -F --
+  "resolve_claim_id" propstore tests` returned zero hits. Refreshed
+  `.resolve_claim(` and `def resolve_claim` searches now have no production
+  hits; remaining hits are test fixtures and tests that must be moved to
+  `world.get_claim(...)` and generic Quire reference lookup, not restored
+  resolver APIs.
