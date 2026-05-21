@@ -26,7 +26,6 @@ from propstore.core.graph_types import (
     ConflictWitness,
     GraphDelta,
 )
-from propstore.core.micropublications import ActiveMicropublicationInput
 from propstore.core.store_results import (
     WorldStoreStats,
     ClaimSimilarityHit,
@@ -37,6 +36,7 @@ from propstore.families.claims.declaration import (
     Claim,
 )
 from propstore.families.claims.graph import claim_node_from_claim, synthetic_claim_to_claim
+from propstore.families.micropublications.declaration import Micropublication
 from propstore.families.relations.declaration import (
     ConceptRelation,
     ConflictWitness as RelationConflictWitness,
@@ -259,7 +259,7 @@ class _GraphOverlayStore:
     def all_claim_stances(self) -> Sequence[Stance]:
         return list(self._stances)
 
-    def all_micropublications(self) -> Sequence[ActiveMicropublicationInput]:
+    def all_micropublications(self) -> Sequence[Micropublication]:
         return list(self._base.all_micropublications())
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
