@@ -383,6 +383,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
   `d22a0066 Use typed context worldline fixtures`.
 - Propstore web/concept charter fixture cleanup is committed as
   `7c5b3b4f Align web concept fixtures with charters`.
+- Propstore CEL checker concept-id fixture cleanup is committed as
+  `0ae57cc9 Use concept id field in CEL fixture`.
+- Propstore resolution-helper typed concept fixture cleanup is committed as
+  `642b85e7 Use typed resolution concept fixtures`.
+- Propstore review-regression typed fixture cleanup is committed as
+  `656147a7 Use typed review regression fixtures`.
 - Passing focused gates:
   - `uv run pyright propstore`
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
@@ -405,6 +411,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 6 tests.
   - `uv run pyright propstore` passed with 0 errors after the concept-view
     production change.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-cel-concept-id tests/test_cel_checker.py::TestBuildCelRegistry::test_store_projection_rejects_missing_kind`
+    passed 1 test.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-resolution-typed-concepts tests/test_resolution_helpers.py`
+    passed 5 tests.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-review-regression-typed-2 tests/test_review_regressions.py`
+    passed 6 tests.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -429,13 +441,9 @@ Current full-gate repair queue, deletion-first:
   properties directly. The concept view fixture now uses `Concept.id` instead
   of `Concept.concept_id`.
 - Repair remaining typed payload projection gaps found by full suite:
-  algorithm canonical AST, SI-normalized numeric payloads, PrAF store
-  fixtures, review-regression dict claim fixtures, resolution-helper concept
-  fixtures, web revision JSON serialization of typed claims, and worldline
-  dependency identity expectations.
-- Repair the remaining explicit typed-model fixture construction failure in
-  `tests/test_cel_checker.py::TestBuildCelRegistry::test_store_projection_rejects_missing_kind`;
-  use `Concept.id`, not `Concept.concept_id`.
+  algorithm canonical AST, SI-normalized numeric payloads, PrAF store fixtures,
+  web revision JSON serialization of typed claims, and worldline dependency
+  identity expectations.
 - Contract manifest failures are not deferrable; after charter-field changes,
   update the manifest/version evidence through the intended contract workflow,
   not by weakening the manifest test.
