@@ -578,3 +578,8 @@ Recorded 2026-05-20.
   0 errors. Next required gate remains package pyright, followed by old-path
   searches and deletion of remaining raw selector helpers in the relation
   owner.
+- Package pyright gate after typed runtime repairs: `uv run pyright propstore`
+  passed with 0 errors after commits `3b98068f` and `4bc77c36`. This is not
+  phase completion because the required old-path searches and parity gate have
+  not passed; the next execution queue is the Phase 11 search gates, starting
+  with remaining relation owner helper/select/count surfaces.
