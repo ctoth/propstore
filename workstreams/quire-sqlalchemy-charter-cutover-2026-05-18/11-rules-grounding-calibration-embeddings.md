@@ -509,6 +509,21 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   preference/grounded assertions after the row-factory deletion; the row
   conversion crash is gone and 20 of 22 tests passed. Log:
   `logs/test-runs/argumentation-integration-no-row-factory-20260521-103433.log`.
+- Test commit `690a6a6c` migrated
+  `tests/remediation/phase_2_gates/test_T2_2l_compiler_context_validation_quarantine.py`
+  from raw `sqlite3.Row` readback to Quire SQLAlchemy `readonly_session` over
+  `world_sqlalchemy_schema()`.
+- `rg -n -F -- "row_factory"
+  tests/remediation/phase_2_gates/test_T2_2l_compiler_context_validation_quarantine.py`
+  and `rg -n -F -- "sqlite3"
+  tests/remediation/phase_2_gates/test_T2_2l_compiler_context_validation_quarantine.py`
+  returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  t2-2l-sqlalchemy-session
+  tests/remediation/phase_2_gates/test_T2_2l_compiler_context_validation_quarantine.py`
+  passed with 1 test; log:
+  `logs/test-runs/t2-2l-sqlalchemy-session-20260521-103837.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
