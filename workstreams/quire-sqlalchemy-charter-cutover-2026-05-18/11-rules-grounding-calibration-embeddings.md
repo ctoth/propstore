@@ -172,9 +172,30 @@ deletion.
   `populate_grounded_facts`, `_persist_bundle_inputs`,
   `_read_bundle_inputs`, `read_grounded_facts`, and
   `read_grounded_bundle` returned zero hits under `propstore` and `tests`.
+- `uv run pyright propstore` passed with zero errors after the grounded-rule
+  production and test migration.
 
-Slice 1 may continue to the remaining required package gate and then Slice 2:
-grounding caller migration.
+2026-05-21 Slice 2 caller migration update:
+
+- Caller inventory found no deleted raw grounded persistence helper imports in
+  `propstore/grounding`, `propstore/app`, `propstore/world`,
+  `propstore/fragility_contributors.py`, or the grounding tests.
+- `propstore/world/model.py` is already migrated by commit `6d195be1` and
+  reads persisted grounded bundles through a Quire read-only SQLAlchemy
+  session plus typed rule owner API.
+- `propstore/grounding/inspection.py`, `propstore/grounding/loading.py`,
+  `propstore/app/grounding.py`, `propstore/fragility_contributors.py`, and
+  `propstore/merge/structured_merge.py` do not consume the deleted rule
+  persistence helpers; they either build semantic runtime bundles from
+  repository authoring or consume already-typed bundle objects.
+- Searches for `create_grounded_fact_table`, `populate_grounded_facts`,
+  `read_grounded_facts`, and `read_grounded_bundle` across the grounding,
+  app, world, fragility, and test caller surfaces returned zero hits.
+- `sqlite3.Connection` returned zero hits under `propstore/families/rules`,
+  `propstore/grounding`, and `tests`.
+
+Slice 2 is complete. Continue with Slice 3: calibration charter and query
+cutover.
 
 ## Prerequisites
 
