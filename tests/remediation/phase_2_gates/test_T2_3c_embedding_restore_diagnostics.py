@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-import sqlite3
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
+from quire.sqlalchemy_store import readonly_session
+from sqlalchemy import text
 import yaml
 
 from propstore.repository import Repository
 from propstore.derived_build import export_sidecar as build_sidecar
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
 @pytest.mark.parametrize(
@@ -44,29 +46,27 @@ def test_embedding_restore_failures_write_diagnostics(
     )
 
     with (
-        patch("propstore.families.embeddings.declaration.load_vec_extension", MagicMock()),
         patch(
-            "propstore.families.embeddings.declaration.extract_embeddings",
+            "propstore.derived_build.extract_embedding_snapshot_from_store",
             MagicMock(return_value=snapshot),
         ),
         patch(
-            "propstore.families.embeddings.declaration.restore_embeddings",
+            "propstore.derived_build._restore_embedding_snapshot",
             MagicMock(side_effect=exc),
         ),
     ):
         assert build_sidecar(repo, sidecar_path, force=True) is True
 
-    conn = sqlite3.connect(sidecar_path)
-    try:
-        rows = conn.execute(
-            """
+    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        rows = derived.session.execute(
+            text(
+                """
             SELECT diagnostic_kind, severity, blocking, source_kind, source_ref, message
             FROM build_diagnostics
             WHERE diagnostic_kind = 'embedding_restore'
             """
+            )
         ).fetchall()
-    finally:
-        conn.close()
 
     assert rows == [
         (

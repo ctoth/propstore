@@ -1266,24 +1266,21 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
 
 def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     """claim relate must commit proposal artifacts to proposal/stances, not master."""
-    import sqlite3
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
     from propstore.proposals import stance_proposal_branch
     from tests.family_helpers import materialized_world_store_path
-    import propstore.families.embeddings.declaration as embedding_decl
-    import propstore.heuristic.relate as relate_mod
+    import propstore.app.claims as claims_app
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
     materialized_world_store_path(repo, force=True)
 
-    monkeypatch.setattr(embedding_decl, "load_vec_extension", lambda conn: None)
     monkeypatch.setattr(
-        relate_mod,
-        "relate_claim",
-        lambda conn, claim_id, model_name, embedding_model, top_k, second_pass_threshold=0.75: [{
+        claims_app,
+        "relate_claim_from_sidecar",
+        lambda sidecar, claim_id, model_name, embedding_model, top_k: [{
             "target": "claim_b",
             "type": "supports",
             "strength": "strong",

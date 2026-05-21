@@ -5,8 +5,7 @@ from pathlib import Path
 from propstore.app.claims import ClaimRelateRequest, relate_claims
 from propstore.proposals import commit_stance_proposals, stance_proposal_branch
 from propstore.repository import Repository
-import propstore.families.embeddings.declaration as embedding_decl
-import propstore.heuristic.relate as relate_mod
+import propstore.app.claims as claims_app
 from tests.family_helpers import materialized_world_store_path
 
 
@@ -28,11 +27,10 @@ def test_relate_claims_all_delegates_empty_proposals_to_owner_layer(
     materialized_world_store_path(repo, force=True)
     calls: list[dict[str, list[dict]]] = []
 
-    monkeypatch.setattr(embedding_decl, "load_vec_extension", lambda conn: None)
     monkeypatch.setattr(
-        relate_mod,
-        "relate_all",
-        lambda conn, model_name, embedding_model, top_k, *, concurrency, on_progress: {
+        claims_app,
+        "relate_all_from_sidecar",
+        lambda sidecar, model_name, embedding_model, top_k, *, concurrency, on_progress: {
             "stances_by_claim": {},
             "claims_processed": 4,
             "stances_found": 0,
