@@ -560,6 +560,27 @@ Gate: no local path, workspace, or file URL Quire dependency.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-structured-projection-typed-output tests/test_structured_projection.py::test_world_extensions_cli_accepts_aspic_backend tests/test_structured_projection.py::test_world_extensions_cli_ignores_unmapped_aspic_arguments`
     passed 2 tests after the remaining ASPIC world-extension CLI assertions
     were aligned to the current typed payload output.
+  - `scripts/render_sidecar_ddl_baseline.py` was deleted after final import
+    checks found it still imported deleted Quire projection primitives and the
+    deleted Propstore projection catalog.
+  - Final Propstore old-path searches from the `Propstore Search Gates` block
+    were rerun in `propstore` and `tests`. Projection primitives, schema
+    validation wrappers, row-model names, codec names, helper/coercer names,
+    active-object names, sidecar helper names, generic `from_mapping`, and
+    per-family lookup-wrapper names were all zero-hit.
+  - Additional deleted-Quire-import searches for `quire.projections` and
+    `quire.projection_mapping` were zero-hit in `propstore`, `tests`, and
+    `scripts`, except `scripts/typed_metadata_inventory.py` retains the
+    historical string only as inventory classification logic.
+  - Dependency searches for `quire @ file`, `quire @ ..`, `quire @ C:`,
+    `path =`, `workspace = true`, `file://`, and the local Quire checkout path
+    were zero-hit in the dependency files. `[tool.uv.sources]` exists and
+    pins Quire to pushed Git commit
+    `ac05ff5e66d8a744ec0be9406f8912c81dfaa6bd`.
+  - `uv run scripts/check_workstream_order.py workstreams\quire-sqlalchemy-charter-cutover-2026-05-18\00-index.md`
+    passed with `workstream order ok`.
+  - `uv run pyright propstore` passed with 0 errors after the stale projection
+    baseline script deletion.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -651,63 +672,51 @@ Gate: no local path, workspace, or file URL Quire dependency.
 
 Current full-gate repair queue, deletion-first:
 
-- Replace remaining dict-shaped context/worldline test fixtures with typed
-  `Claim`, `Stance`, `CanonicalJustification`, and typed compiled-graph
-  fixtures. Do not add dict fallback acceptance to production ASPIC, revision,
-  worldline, or context-lifting APIs. Direct ASPIC/IST callers and remediation
-  bridge callers from the 2026-05-21 focused slices are converted and passing.
-- Continue repairing any remaining source/web fixture drift by using current
-  charter fields; do not add old source columns such as `origin_type` back as
-  compatibility columns. The first web demo fixture now writes the current
-  source charter shape.
-- Continue repairing canonical typed-model construction in tests that set
-  read-only semantic properties; use charter fields and family semantic
-  properties directly. The concept view fixture now uses `Concept.id` instead
-  of `Concept.concept_id`.
-- Full Propstore gate is passing after full-8; rerun only if a subsequent
-  source/config edit changes the gate surface.
-- Contract manifest failures are not deferrable; after charter-field changes,
-  update the manifest/version evidence through the intended contract workflow,
-  not by weakening the manifest test.
+- No remaining full-gate repair queue is open after full-8.
+- No remaining final old-path search gate is open after the 2026-05-21 final
+  search pass.
+- Contract manifest gates are current after the
+  `pks contract-manifest --write` workflow and explicit contract version
+  bumps.
 
 ## Completion Checklist
 
 The cutover is complete only when every item is checked:
 
-- [ ] Quire has a SQLAlchemy-backed charter/schema engine.
-- [ ] Quire derived-store handles open read-only SQLAlchemy sessions.
-- [ ] Quire schema catalogs describe the derived store from the same charters
+- [x] Quire has a SQLAlchemy-backed charter/schema engine.
+- [x] Quire derived-store handles open read-only SQLAlchemy sessions.
+- [x] Quire schema catalogs describe the derived store from the same charters
   that generated the mappings.
-- [ ] Quire charters compose with existing `ArtifactFamily`, document-store,
+- [x] Quire charters compose with existing `ArtifactFamily`, document-store,
   placement, and reference/FK APIs.
-- [ ] Quire projection modules and projection public exports are deleted.
-- [ ] Propstore supplies domain charters for every sidecar family.
-- [ ] `propstore/derived_build.py` and `propstore/derived_build_plan.py` use
+- [x] Quire projection modules and projection public exports are deleted.
+- [x] Propstore supplies domain charters for every sidecar family.
+- [x] `propstore/derived_build.py` and `propstore/derived_build_plan.py` use
   Quire writable sessions and charter catalogs.
-- [ ] Propstore no longer imports Quire projection primitives.
-- [ ] Propstore has no family `projection_model.py` files.
-- [ ] Propstore has no duplicate `*Row` model layer for domain objects.
-- [ ] `claim.concept_links` is the primary relationship.
-- [ ] `ClaimConceptLink` owns role, ordinal, and binding metadata.
-- [ ] Micropublication claim links, aliases, parameterizations, context
+- [x] Propstore no longer imports Quire projection primitives.
+- [x] Propstore has no family `projection_model.py` files.
+- [x] Propstore has no duplicate `*Row` model layer for domain objects.
+- [x] `claim.concept_links` is the primary relationship.
+- [x] `ClaimConceptLink` owns role, ordinal, and binding metadata.
+- [x] Micropublication claim links, aliases, parameterizations, context
   lifting records, stances, and conflicts are typed models or association
   objects.
-- [ ] Source-local and canonical states are explicit charter/lifecycle states.
-- [ ] Manual helper/coercer families listed in the search gates are deleted.
-- [ ] Remaining IO boundary constructors use boundary-specific names and do
+- [x] Source-local and canonical states are explicit charter/lifecycle states.
+- [x] Manual helper/coercer families listed in the search gates are deleted.
+- [x] Remaining IO boundary constructors use boundary-specific names and do
   not use the generic `from_mapping` name.
-- [ ] No PascalCase `Active*` production/report/model type remains.
-- [ ] `WorldQuery` uses Quire sessions and typed model queries.
-- [ ] `WorldQuery` has no projection-schema validation wrapper and does not
+- [x] No PascalCase `Active*` production/report/model type remains.
+- [x] `WorldQuery` uses Quire sessions and typed model queries.
+- [x] `WorldQuery` has no projection-schema validation wrapper and does not
   rewrite Quire schema/catalog validation failures into old sidecar-schema
   messages.
-- [ ] Every row in `inventory-matrix.md` has a final delete, move, replace, or
+- [x] Every row in `inventory-matrix.md` has a final delete, move, replace, or
   keep-as-semantic-owner outcome in a commit message or final closure report.
-- [ ] Every family cutover has a passing data-parity gate for row counts, key
+- [x] Every family cutover has a passing data-parity gate for row counts, key
   sets, the exact owner-layer query/API results named in the child workstream,
   and every FTS, vector, and diagnostic comparison explicitly listed in the
   child workstream.
-- [ ] App/CLI/web surfaces call owner-layer APIs.
-- [ ] Quire and Propstore full gates pass.
-- [ ] Propstore is pinned to a pushed Quire commit or tag, never a local
+- [x] App/CLI/web surfaces call owner-layer APIs.
+- [x] Quire and Propstore full gates pass.
+- [x] Propstore is pinned to a pushed Quire commit or tag, never a local
   checkout.

@@ -42,6 +42,21 @@ Current audit status from 2026-05-20:
   sidecar-schema validation wording, and generic `from_mapping` must remain
   zero-hit; do not reintroduce them while closing other helper rows.
 
+Final closure status from 2026-05-21:
+
+- The Phase 16 and Phase 17 execution records in `13-final-deletion-gates.md`
+  close the ledger rows through deletion, typed model/session replacement,
+  behavior moves to semantic owners, or boundary-specific constructors.
+- The final Propstore old-path search gates were rerun from
+  `C:\Users\Q\code\propstore` and were zero-hit in `propstore` and `tests` for
+  projection primitives, row-model names, deleted helper/coercer names,
+  active-object names, sidecar helper names, lookup-wrapper names, generic
+  `from_mapping`, and old schema-validation wording.
+- The remaining kept helpers are boundary or semantic-owner code only: payload
+  serialization, diagnostic/report construction, grounding bundle assembly,
+  concept/form/domain semantics, revision/argumentation/world reasoning, and
+  embedding workflow reports. They do not carry DB row/projection coupling.
+
 ## Action Vocabulary
 
 - `delete`: remove the helper because Quire charter/SQLAlchemy machinery owns
@@ -71,13 +86,13 @@ Current audit status from 2026-05-20:
 
 ## Closure Checklist
 
-- [ ] Every helper row below has a closure entry in the owning child workstream
+- [x] Every helper row below has a closure entry in the owning child workstream
   report or commit message.
-- [ ] Every `delete` row is absent from production code by its search gate.
-- [ ] Every `replace` row has typed model, session, or exact API callers.
-- [ ] Every `move` row has the named target module/function and no old helper-shaped
+- [x] Every `delete` row is absent from production code by its search gate.
+- [x] Every `replace` row has typed model, session, or exact API callers.
+- [x] Every `move` row has the named target module/function and no old helper-shaped
   production path.
-- [ ] Every `keep-boundary` row has no DB row/projection coupling.
+- [x] Every `keep-boundary` row has no DB row/projection coupling.
 
 ## Source Helpers
 
