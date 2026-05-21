@@ -1310,3 +1310,21 @@ Current binding queue:
   hits; remaining hits are test fixtures and tests that must be moved to
   `world.get_claim(...)` and generic Quire reference lookup, not restored
   resolver APIs.
+- Claim resolver test-surface deletion: commit `0312ac62` removed all
+  remaining test definitions and calls of `resolve_claim`, converted the claim
+  reference regression tests to `WorldQuery.get_claim(...)` over Quire generic
+  family reference metadata, and changed the authored-justification test
+  expectation to resolve ids by loading typed claims. `rg -n -F --
+  "def resolve_claim" propstore tests`, `rg -n -F -- ".resolve_claim("
+  propstore tests`, and `rg -n -F -- "resolve_claim_id" propstore tests`
+  now return zero hits. `uv run pyright propstore` passed with 0 errors.
+  Logged focused pytest `powershell -File scripts/run_logged_pytest.ps1
+  -Label claim-reference-lookup
+  tests/test_world_model_resolve_cache.py::test_get_claim_resolves_namespaced_logical_id
+  tests/test_world_model_resolve_cache.py::test_get_claim_resolves_bare_logical_id_value`
+  passed with 2 tests. A broader edited-test run also showed the existing
+  sidecar build path now fails before the changed authored-justification
+  assertion with `ValueError: missing required field(s) for family
+  'relation_edge': id`; that is a relation-edge build-plan/charter mismatch
+  to address in the owning relation/build phase, not a reason to restore
+  claim resolver wrappers.
