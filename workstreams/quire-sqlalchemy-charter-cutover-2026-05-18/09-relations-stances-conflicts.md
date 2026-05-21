@@ -451,3 +451,21 @@ Recorded 2026-05-20.
   tests/test_world_query.py::TestAlgorithmWorldQuery::test_algorithm_value_of_single`
   passed with 2 tests and log
   `logs\test-runs\generated-relation-id-20260520-203640.log`.
+- Deletion-first projection model removal: commit `2abd51c7` deleted
+  `propstore/families/relations/projection_model.py` outright. The immediate
+  `uv run pyright propstore` fallout was 15 errors, all caused by deleted
+  projection-model imports or symbols in
+  `propstore/aspic_bridge/extract.py`,
+  `propstore/aspic_bridge/translate.py`,
+  `propstore/core/analyzers.py`,
+  `propstore/core/graph_build.py`,
+  `propstore/families/concepts/declaration.py`,
+  `propstore/families/relations/declaration.py`,
+  `propstore/graph_export.py`, `propstore/relation_analysis.py`,
+  `propstore/support_revision/af_adapter.py`, `propstore/world/atms.py`,
+  `propstore/world/bound.py`, `propstore/world/overlay.py`, and
+  `propstore/worldline/argumentation.py`. The repair queue is to replace those
+  callers with typed `Stance`, `ConceptRelation`/`ConceptRelationship`, and
+  `ConflictWitness`/`ConflictWitnessRecord` model access through Quire
+  sessions and relation owners, not to restore a projection-model module,
+  constants, row DTOs, coercers, or compatibility aliases.
