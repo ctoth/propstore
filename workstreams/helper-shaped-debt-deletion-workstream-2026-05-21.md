@@ -311,6 +311,14 @@ Required final state:
   catalog synthesis;
 - search for `_ParameterizationCatalogAdapter` is zero-hit.
 
+Execution record:
+
+- Deleted `propstore/world/overlay.py:_ParameterizationCatalogAdapter`.
+- Moved lookup-backed parameterization catalog collection into
+  `propstore/core/graph_build.py:build_compiled_world_graph`.
+- `rg -n -F -- "_ParameterizationCatalogAdapter" propstore tests`: zero hits.
+- `uv run pyright propstore`: passed with `0 errors, 0 warnings, 0 informations`.
+
 ## Phase 4: Delete Row/Record/DTO Shape Carriers
 
 Owned surfaces: every Phase 2 `delete` row ending in `Row`, `Record`, or `DTO`.
