@@ -1158,7 +1158,8 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
     assert result.exit_code == 0
     assert "Backend: aspic" in result.output
     assert "Accepted (1 claims):" in result.output
-    assert "target_a (parameter)" in result.output
+    assert "parameter (1):" in result.output
+    assert "target_a: target = 1.0" in result.output
 
 
 def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> None:
@@ -1239,8 +1240,9 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
 
     assert result.exit_code == 0
     assert "Accepted (1 claims):" in result.output
-    assert "target_a (parameter)" in result.output
-    assert "target_b (parameter)" in result.output
+    assert "parameter (1):" in result.output
+    assert "target_a: target = 1.0" in result.output
+    assert "target_b: target = 2.0" in result.output
 
 
 def test_world_extensions_cli_rejects_structured_projection_backend_name() -> None:
