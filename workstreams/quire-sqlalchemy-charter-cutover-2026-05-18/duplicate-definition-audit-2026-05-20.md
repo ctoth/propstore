@@ -284,6 +284,40 @@ methods-only `FamilyModel` subclass. Storage field annotations, constructor
 field lists, broad `__init__(**values)` constructors, placeholder `*Record`
 classes, and mapping repair APIs are old paths and must be deleted.
 
+## 2026-05-21 Propstore Methods-Only Model Closure
+
+The `10a-charter-generated-model-cleanup.md` child workstream is complete.
+Every Propstore mapped sidecar model touched by the SQLAlchemy charter cutover
+now subclasses Quire `FamilyModel` without hand-authored storage fields,
+constructor field lists, broad `__init__(**values)` sinks, placeholder record
+classes, `from_row_mapping`, production `.coerce(` callers, `Input =` aliases,
+or `to_row_mapping` repair paths.
+
+This is a hard rule, not a naming rule: renaming a DTO, row class, record
+class, constructor helper, coercion helper, mapping helper, or compatibility
+adapter is not a cleanup. The storage field surface belongs only in Quire
+charter metadata. Propstore model classes may keep behavior-only methods that
+read already-loaded mapped attributes, and IO boundaries may call explicit
+document conversion for declared document types; they must not restate the
+mapped storage shape.
+
+10a completion gates passed:
+
+```powershell
+uv run pyright propstore
+powershell -File scripts/run_logged_pytest.ps1 -Label charter-generated-model-cleanup tests/test_world_query.py tests/test_graph_export.py
+rg -n -F -- "__init__(self, **values" propstore/families propstore/core propstore/world tests
+rg -n -F -- "from_row_mapping" propstore/families propstore/core propstore/world tests
+rg -n -F -- ".coerce(" propstore/families propstore/core propstore/world tests
+rg -n -F -- "Input = " propstore/families propstore/core propstore/world tests
+rg -n -F -- "to_row_mapping" propstore/families propstore/core propstore/world tests
+rg -n -F -- "class WorldModel" propstore tests
+rg -n -- "class .*Record\(" propstore/families/world_charters.py propstore tests
+```
+
+The logged pytest run passed with 159 tests and 29 expected warnings at
+`logs/test-runs/charter-generated-model-cleanup-20260521-020528.log`.
+
 ## Mechanical Gates Required Before Resuming Implementation
 
 Before Phase 10 execution resumes, add or run a guard that fails on these
