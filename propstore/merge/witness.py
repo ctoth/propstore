@@ -17,12 +17,18 @@ class ProvenanceWitness:
     @classmethod
     def from_merge_claim(cls, claim: MergeClaim) -> ProvenanceWitness:
         provenance = claim.provenance_payload()
+        paper = provenance.get("paper")
         page = provenance.get("page")
+        branch_origin = provenance.get("branch_origin")
         return cls(
             source_artifact_id=claim.artifact_id,
-            source_paper=_optional_string(provenance.get("paper")),
+            source_paper=paper if isinstance(paper, str) and paper else None,
             source_page=page if isinstance(page, int) else None,
-            branch_origin=_optional_string(provenance.get("branch_origin")),
+            branch_origin=(
+                branch_origin
+                if isinstance(branch_origin, str) and branch_origin
+                else None
+            ),
         )
 
     def to_payload(self) -> dict[str, Any]:
@@ -36,9 +42,3 @@ class ProvenanceWitness:
         if self.rule_chain:
             payload["rule_chain"] = list(self.rule_chain)
         return payload
-
-
-def _optional_string(value: object) -> str | None:
-    if isinstance(value, str) and value:
-        return value
-    return None

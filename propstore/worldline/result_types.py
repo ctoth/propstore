@@ -33,18 +33,6 @@ def _nested_mapping_items(value: Any, *, field: str) -> dict[str, Mapping[str, A
     return items
 
 
-def _optional_float(value: Any) -> float | None:
-    if value is None:
-        return None
-    return float(value)
-
-
-def _optional_int(value: Any) -> int | None:
-    if value is None:
-        return None
-    return int(value)
-
-
 def _json_native(value: Any) -> Any:
     if value is None or isinstance(value, (str, int, float, bool)):
         return value
@@ -373,10 +361,16 @@ class WorldlineSensitivityEntry:
 
     @classmethod
     def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineSensitivityEntry:
+        raw_elasticity = data.get("elasticity")
+        raw_partial_derivative = data.get("partial_derivative")
         return cls(
             input_name=str(data.get("input") or ""),
-            elasticity=_optional_float(data.get("elasticity")),
-            partial_derivative=_optional_float(data.get("partial_derivative")),
+            elasticity=None if raw_elasticity is None else float(raw_elasticity),
+            partial_derivative=(
+                None
+                if raw_partial_derivative is None
+                else float(raw_partial_derivative)
+            ),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -548,6 +542,8 @@ class WorldlineArgumentationState:
             field="witness_futures",
         )
         why_out = _optional_mapping(data.get("why_out"), field="why_out")
+        raw_samples = data.get("samples")
+        raw_confidence_interval_half = data.get("confidence_interval_half")
         return cls(
             backend=None if data.get("backend") is None else str(data.get("backend")),
             status=None if data.get("status") is None else str(data.get("status")),
@@ -569,8 +565,12 @@ class WorldlineArgumentationState:
             strategy_used=(
                 None if data.get("strategy_used") is None else str(data.get("strategy_used"))
             ),
-            samples=_optional_int(data.get("samples")),
-            confidence_interval_half=_optional_float(data.get("confidence_interval_half")),
+            samples=None if raw_samples is None else int(raw_samples),
+            confidence_interval_half=(
+                None
+                if raw_confidence_interval_half is None
+                else float(raw_confidence_interval_half)
+            ),
             semantics=None if data.get("semantics") is None else str(data.get("semantics")),
             supported=tuple(str(item) for item in data.get("supported") or ()),
             nogoods=tuple(

@@ -85,7 +85,10 @@ def _load_resource_cases(resource_path: str) -> list[SuiteCase]:
     if not isinstance(raw, dict):
         raise AssertionError(f"Conformance resource {resource_path} must be a mapping")
     if "tests" in raw:
-        base_source = _optional_string(raw.get("source")) or resource_path
+        raw_source = raw.get("source")
+        if raw_source is not None and not isinstance(raw_source, str):
+            raise AssertionError("source must be an optional string")
+        base_source = raw_source or resource_path
         base_tags = _string_list(raw.get("tags", []))
         entries = raw.get("tests")
         if not isinstance(entries, list):
@@ -130,7 +133,13 @@ def _case_from_json_payload(
             )
             for policy_name, expectation in policy_map.items()
         }
-    case_source = _optional_string(data.get("source")) or source
+    raw_source = data.get("source")
+    if raw_source is not None and not isinstance(raw_source, str):
+        raise AssertionError(f"{path}.source must be an optional string")
+    case_source = raw_source or source
+    raw_skip = data.get("skip")
+    if raw_skip is not None and not isinstance(raw_skip, str):
+        raise AssertionError(f"{path}.skip must be an optional string")
     case_tags = [*tags, *_string_list(data.get("tags", []))]
     return SuiteCase(
         name=_required_string(data, "name", path),
@@ -140,7 +149,7 @@ def _case_from_json_payload(
         theory=theory,
         expect=expect,
         expect_per_policy=expect_per_policy,
-        skip=_optional_string(data.get("skip")),
+        skip=raw_skip,
     )
 
 
@@ -227,14 +236,6 @@ def _required_string(data: dict[object, object], key: str, path: str) -> str:
     value = data.get(key)
     if not isinstance(value, str):
         raise AssertionError(f"{path}.{key} must be a string")
-    return value
-
-
-def _optional_string(value: object) -> str | None:
-    if value is None:
-        return None
-    if not isinstance(value, str):
-        raise AssertionError("Expected optional string")
     return value
 
 

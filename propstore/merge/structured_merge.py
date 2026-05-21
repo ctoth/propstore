@@ -45,12 +45,6 @@ class BranchStructuredSummary:
     projection: StructuredProjection
 
 
-def _optional_string(value: object) -> str | None:
-    if isinstance(value, str) and value:
-        return value
-    return None
-
-
 def _normalize_for_signature(value: Any) -> Any:
     if isinstance(value, dict):
         return {
@@ -118,8 +112,14 @@ def _stance_row_from_mapping(
     source_claim_id: ClaimId,
     stance: Mapping[str, Any],
 ) -> Stance | None:
-    target = _optional_string(stance.get("target"))
-    stance_type = _optional_string(stance.get("type"))
+    raw_target = stance.get("target")
+    raw_stance_type = stance.get("type")
+    target = raw_target if isinstance(raw_target, str) and raw_target else None
+    stance_type = (
+        raw_stance_type
+        if isinstance(raw_stance_type, str) and raw_stance_type
+        else None
+    )
     if target is None or stance_type is None:
         return None
 
@@ -140,9 +140,24 @@ def _stance_row_from_mapping(
         target_justification_id=(
             None if target_justification_id is None else str(target_justification_id)
         ),
-        strength=_optional_string(stance.get("strength")),
-        conditions_differ=_optional_string(stance.get("conditions_differ")),
-        note=_optional_string(stance.get("note")),
+        strength=(
+            stance["strength"]
+            if isinstance(stance.get("strength"), str) and stance["strength"]
+            else None
+        ),
+        conditions_differ=(
+            stance["conditions_differ"]
+            if (
+                isinstance(stance.get("conditions_differ"), str)
+                and stance["conditions_differ"]
+            )
+            else None
+        ),
+        note=(
+            stance["note"]
+            if isinstance(stance.get("note"), str) and stance["note"]
+            else None
+        ),
     )
 
 
@@ -350,7 +365,11 @@ def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[
     rows: list[Stance] = []
     for handle in snapshot.repo.families.stances.iter_handles(commit=commit):
         data = handle.document
-        source_claim = _optional_string(data.source_claim)
+        source_claim = (
+            data.source_claim
+            if isinstance(data.source_claim, str) and data.source_claim
+            else None
+        )
         if source_claim is None:
             continue
         row = _stance_row_from_mapping(to_claim_id(source_claim), data.to_payload())

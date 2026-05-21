@@ -27,6 +27,12 @@ from propstore.stances import VALID_STANCE_TYPES
 
 
 class RelationEdge(FamilyModel):
+    def __eq__(self, other: object) -> bool:
+        return (
+            type(self) is type(other)
+            and _public_model_attrs(self) == _public_model_attrs(other)
+        )
+
     def attribute_mapping(self) -> dict[str, Any]:
         data: dict[str, Any] = {}
         for key in (
@@ -47,13 +53,21 @@ class RelationEdge(FamilyModel):
             "opinion_uncertainty",
             "opinion_base_rate",
         ):
-            value = getattr(self, key)
+            value = getattr(self, key, None)
             if value is not None:
                 data[key] = value
         return data
 
     def attribute_value(self, key: str) -> Any:
         return getattr(self, key, None)
+
+
+def _public_model_attrs(model: object) -> dict[str, Any]:
+    return {
+        key: value
+        for key, value in vars(model).items()
+        if not key.startswith("_")
+    }
 
 
 class ConceptRelation(RelationEdge):
