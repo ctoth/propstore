@@ -268,14 +268,15 @@ family cutover work, not in the new Quire charter engine commits.
 Quire now has the concrete pattern required to delete Propstore hand-authored
 mapped storage classes:
 
-- Quire commit `5a96245b2f3384db455707b2a36721d8f813924c` is pushed.
+- Quire commit `f69c2f018c25c6aaca277af35976fd419ded39fe` is pushed.
 - Propstore pins that pushed commit in `pyproject.toml` and `uv.lock`.
-- Quire exposes fieldless `FamilyModel`.
+- Quire exposes `FamilyModel` for methods-only mapped classes.
 - Quire proof test
   `tests/test_sqlalchemy_engine.py::test_family_model_subclass_uses_charter_fields_and_keeps_behavior`
   proves a `FamilyModel` subclass can define methods only while
   `FamilyCharter.fields` supplies storage shape and SQLAlchemy/Quire
-  construction supplies mapped attributes.
+  construction supplies mapped attributes, including construction before the
+  SQLAlchemy schema is built.
 - `uv run pyright` passed in Quire after that proof.
 
 Required Propstore consequence: every mapped sidecar model class becomes a
