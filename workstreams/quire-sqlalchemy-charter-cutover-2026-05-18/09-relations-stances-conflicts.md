@@ -705,3 +705,10 @@ Recorded 2026-05-20.
   `logs\test-runs\relations-charter-20260520-235932.log`. The next required
   Phase 11 queue is to rerun the old-path search gates and then the
   relations data-parity gate.
+- Required old-path searches passed after the gate repair: all Phase 11
+  `rg -n -F` searches for the deleted relation projection import path, row
+  classes, storage-model constants, row-model constants, `_optional_numeric`,
+  authored stance sidecar-row compiler names, raw selector helper names, and
+  `count_conflicts` returned zero matches in the required `propstore` and
+  `tests` scopes. The next required Phase 11 gate is the relations
+  data-parity command.
