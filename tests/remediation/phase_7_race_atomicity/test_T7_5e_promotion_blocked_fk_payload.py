@@ -1,12 +1,9 @@
-"""Regression test for Bug 4: FK violation when mirroring a blocked
-claim whose ``claim_core`` row already has payload child rows.
+"""Regression test for promotion-blocked diagnostics with existing claim payloads.
 
-The materialized promotion-blocked population path replaces the
-``claim_core`` row for the blocked id. If the existing ``claim_core`` row has any child row in
-``claim_numeric_payload``, ``claim_text_payload``,
-``claim_algorithm_payload``, or ``micropublication_claim`` (all of which
-FK to ``claim_core(id)``), the builder must delete those children before
-replacing the parent row.
+Promotion-blocked source-local facts no longer mirror blocked claim rows into
+``claim_core``. If an existing canonical ``claim_core`` row has child payload
+rows, the promotion-blocked flush must leave that canonical row and its
+children in place while recording the blocking diagnostic.
 
 Reproduces the Belch_2008 crash from the aspirin stance-backfill retry
 session (2026-04-23): a claim was ingested in a sibling branch (so its
@@ -15,6 +12,8 @@ blocked.
 """
 from __future__ import annotations
 
+from sqlalchemy import text
+
 from propstore.families.claims.declaration import (
     compile_promotion_blocked_models,
 )
@@ -22,7 +21,8 @@ from propstore.families.claims.stages import (
     PromotionBlockedClaimFact,
     PromotionBlockedReason,
 )
-from quire.derived_runtime import connect_sqlite_store
+from propstore.families.world_charters import world_sqlalchemy_schema
+from quire.sqlalchemy_store import readonly_session, writable_session
 from tests.remediation.phase_7_race_atomicity.promotion_blocked_helpers import (
     create_world_store,
     flush_promotion_blocked,
@@ -34,13 +34,14 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
 ):
     sidecar_path = tmp_path / "propstore.sqlite"
     create_world_store(sidecar_path)
-    conn = connect_sqlite_store(sidecar_path)
-    try:
+    schema = world_sqlalchemy_schema()
+    with writable_session(sidecar_path, schema) as derived:
         # Seed a claim_core row as a sibling branch would have produced
         # it, with all three payload child tables populated. This is
         # exactly the shape that typed claim write batches produce.
-        conn.execute(
-            """
+        derived.session.execute(
+            text(
+                """
             INSERT INTO claim_core (
                 id, primary_logical_id, logical_ids_json, version_id, seq,
                 type, target_concept, source_slug,
@@ -48,29 +49,37 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
                 branch, build_status, stage, promotion_status
             ) VALUES (
                 'claim-shared', '', '[]', '', 1,
-                'observation', NULL, 'paper-alpha',
+                'observation', NULL, NULL,
                 'paper-alpha', 0, NULL, NULL,
                 'source/alpha', 'ingested', NULL, 'promoted'
             )
             """
+            )
         )
-        conn.execute(
-            "INSERT INTO claim_numeric_payload (claim_id, value) "
-            "VALUES ('claim-shared', 1.0)"
+        derived.session.execute(
+            text(
+                "INSERT INTO claim_numeric_payload (claim_id, value) "
+                "VALUES ('claim-shared', 1.0)"
+            )
         )
-        conn.execute(
-            "INSERT INTO claim_text_payload (claim_id, statement) "
-            "VALUES ('claim-shared', 'shared claim statement')"
+        derived.session.execute(
+            text(
+                "INSERT INTO claim_text_payload (claim_id, statement) "
+                "VALUES ('claim-shared', 'shared claim statement')"
+            )
         )
-        conn.execute(
-            "INSERT INTO claim_algorithm_payload (claim_id) "
-            "VALUES ('claim-shared')"
+        derived.session.execute(
+            text(
+                "INSERT INTO claim_algorithm_payload (claim_id) "
+                "VALUES ('claim-shared')"
+            )
         )
         # ``claim_concept_link`` also FKs to claim_core(id). The real
         # Unknown_2009 promotion crash hit this child table after the
         # payload-specific cleanup had already landed.
-        conn.execute(
-            """
+        derived.session.execute(
+            text(
+                """
             INSERT INTO concept (
                 id, content_hash, seq, canonical_name, status,
                 definition, kind_type, form
@@ -79,33 +88,38 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
                 'alpha concept', 'quantity', 'count'
             )
             """
+            )
         )
-        conn.execute(
-            "INSERT INTO claim_concept_link "
-            "(claim_id, concept_id, role, ordinal) "
-            "VALUES ('claim-shared', 'concept-alpha', 'target', 0)"
+        derived.session.execute(
+            text(
+                "INSERT INTO claim_concept_link "
+                "(claim_id, concept_id, role, ordinal) "
+                "VALUES ('claim-shared', 'concept-alpha', 'target', 0)"
+            )
         )
         # Seed a micropublication_claim child too — that table also FKs
         # to claim_core(id). We need a context row first so the
         # micropublication.context_id FK is satisfied.
-        conn.execute(
-            "INSERT INTO context (id, name) VALUES ('ctx-alpha', 'alpha')"
+        derived.session.execute(
+            text("INSERT INTO context (id, name) VALUES ('ctx-alpha', 'alpha')")
         )
-        conn.execute(
-            """
+        derived.session.execute(
+            text(
+                """
             INSERT INTO micropublication (
                 id, context_id, assumptions_json, evidence_json
             ) VALUES ('mp-alpha', 'ctx-alpha', '[]', '[]')
             """
+            )
         )
-        conn.execute(
-            "INSERT INTO micropublication_claim "
-            "(micropublication_id, claim_id, seq) "
-            "VALUES ('mp-alpha', 'claim-shared', 0)"
+        derived.session.execute(
+            text(
+                "INSERT INTO micropublication_claim "
+                "(micropublication_id, claim_id, seq) "
+                "VALUES ('mp-alpha', 'claim-shared', 0)"
+            )
         )
-        conn.commit()
-    finally:
-        conn.close()
+        derived.session.commit()
 
     # Belch_2008 (here ``source/beta``) needs to mirror this claim as
     # blocked. Prior behavior crashes with a FOREIGN KEY violation.
@@ -127,28 +141,51 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
     )
     flush_promotion_blocked(sidecar_path, rows)
 
-    conn = connect_sqlite_store(sidecar_path)
-    try:
-        core_rows = conn.execute(
-            "SELECT id, branch, promotion_status FROM claim_core "
-            "WHERE id = ?",
-            ("claim-shared",),
-        ).fetchall()
-        diag_rows = conn.execute(
+    with readonly_session(sidecar_path, schema) as derived:
+        core_rows = derived.session.execute(
+            text(
+                """
+            SELECT id, branch, promotion_status FROM claim_core
+            WHERE id = :claim_id
             """
+            ),
+            {"claim_id": "claim-shared"},
+        ).all()
+        child_counts = {
+            table_name: derived.session.execute(
+                text(f"SELECT COUNT(*) FROM {table_name} WHERE claim_id = :claim_id"),
+                {"claim_id": "claim-shared"},
+            ).scalar_one()
+            for table_name in (
+                "claim_numeric_payload",
+                "claim_text_payload",
+                "claim_algorithm_payload",
+                "claim_concept_link",
+                "micropublication_claim",
+            )
+        }
+        diag_rows = derived.session.execute(
+            text(
+                """
             SELECT source_ref, message
             FROM build_diagnostics
-            WHERE claim_id = ? AND diagnostic_kind = 'promotion_blocked'
+            WHERE claim_id = :claim_id AND diagnostic_kind = 'promotion_blocked'
             """,
-            ("claim-shared",),
-        ).fetchall()
-    finally:
-        conn.close()
+            ),
+            {"claim_id": "claim-shared"},
+        ).all()
 
-    # The mirror row won — the blocked-status row overwrites the prior
-    # promoted row (id is PK). Diagnostic is recorded.
+    # Source-local blocked facts stay diagnostics-only; the canonical
+    # promoted row and its children are not rewritten.
     assert len(core_rows) == 1, core_rows
-    assert core_rows[0][2] == "blocked"
+    assert core_rows[0][2] == "promoted"
+    assert child_counts == {
+        "claim_numeric_payload": 1,
+        "claim_text_payload": 1,
+        "claim_algorithm_payload": 1,
+        "claim_concept_link": 1,
+        "micropublication_claim": 1,
+    }
     assert diag_rows == [
         ("source/beta:claim-shared", "unresolved in beta"),
     ]
