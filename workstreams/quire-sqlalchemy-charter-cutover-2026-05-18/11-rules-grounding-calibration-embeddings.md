@@ -341,6 +341,16 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   `rg -n -F -- "CONCEPT_VEC_PROJECTION" propstore tests` returned zero hits.
 - `uv run pyright propstore` passed with zero errors after the deletion.
 
+2026-05-21 Slice 6 raw-connection test cleanup update:
+
+- The required `connect_sqlite_store` search gate exposed Propstore tests that
+  still owned Quire raw SQLite connection contracts or old raw-sidecar
+  setup/inspection paths.
+- Test deletion commit `aa504c4e` removed
+  `tests/test_sidecar_sqlite_runtime_contract.py`, which tested Quire raw
+  SQLite connection/WAL publication behavior instead of Propstore semantic
+  owner behavior.
+
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
 parity, remaining search gates, and completion gates.
