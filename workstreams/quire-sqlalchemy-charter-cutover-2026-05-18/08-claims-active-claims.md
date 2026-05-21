@@ -1406,6 +1406,28 @@ Current binding queue:
   activation-unknown-cel-typed
   tests/remediation/phase_3_ignorance/test_T3_5_activation_unknown_cel.py`
   passed with 1 test.
+- Epistemic-history typed source-claim cleanup: commit `8793bca5` removed
+  `ActiveClaim.from_row_mapping` from `tests/test_epistemic_history.py` and
+  made support-revision snapshots carry `AssertionAtom.source_claim_ids`
+  explicitly instead of embedding claim mappings or reconstructing fake claim
+  objects. Semantic diff provenance now reads and writes canonical
+  `source_claim_ids`, realization uses the typed id field, and the
+  argumentation view reports active claim ids from typed source ids while
+  keeping the overlay store limited to actual loaded `Claim` objects.
+  Focused verification `uv run pyright
+  propstore/support_revision/state.py
+  propstore/support_revision/snapshot_types.py
+  propstore/support_revision/history.py
+  propstore/support_revision/realization.py
+  propstore/support_revision/af_adapter.py tests/test_epistemic_history.py
+  tests/test_revision_argumentation_views.py` passed with 0 errors. Searches
+  for `ActiveClaim` and `propstore.core.active_claims` in the edited files
+  returned zero hits, and the literal stale `payload["source_claims"]` search
+  in support-revision history/snapshot code returned zero hits. Logged focused
+  pytest `powershell -File scripts/run_logged_pytest.ps1 -Label
+  epistemic-history-typed-claims tests/test_epistemic_history.py
+  tests/test_revision_argumentation_views.py` passed with 11 tests and log
+  `logs\test-runs\epistemic-history-typed-claims-20260520-190714.log`.
 - Normalizer deletion queue refresh: `_normalize_attrs` and similar
   broad attribute/payload repair helpers are explicitly in the Phase 10
   deletion queue when they construct or repair claim/runtime model shape
