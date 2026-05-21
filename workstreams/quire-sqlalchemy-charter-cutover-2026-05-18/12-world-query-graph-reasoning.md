@@ -148,9 +148,19 @@ workstream. Production hits outside those targets block implementation.
   tests; log:
   `logs/test-runs/worldline-typed-concept-fixtures-20260521-113536.log`.
 - `uv run pyright propstore` passed with zero errors after the fixture repair.
-- Remaining prerequisite work before implementation: rerun the full
-  `world-prereq` logged test command and the three prerequisite old-path
-  searches in this section.
+- Rerun `powershell -File scripts/run_logged_pytest.ps1 -Label world-prereq
+  tests/test_world_query.py tests/test_worldline.py tests/test_graph_export.py
+  tests/test_worldline_ic_merge_properties.py` passed with 221 tests and 29
+  expected warnings; log:
+  `logs/test-runs/world-prereq-20260521-113729.log`.
+- Prerequisite `ProjectionTable(` and `ProjectionModel` searches returned zero
+  hits under the required paths.
+- Prerequisite `sqlite3.Connection` search returned only the remaining
+  family-selector old-path deletion targets
+  `propstore/families/claims/declaration.py::select_authored_justifications`
+  and `count_authored_justifications`.
+- Phase 14 implementation may start with Slice 1:
+  `WorldQuery` session cutover.
 
 ## Inventory Rows
 
