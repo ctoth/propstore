@@ -397,6 +397,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
   `12c9436f Populate algorithm canonical AST`.
 - Propstore SI numeric normalization cleanup is committed as
   `520eae85 Normalize claim numeric SI values`.
+- Propstore worldline dependency identity cleanup is committed as
+  `ceb995ac Use canonical worldline dependency ids`.
 - Passing focused gates:
   - `uv run pyright propstore`
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
@@ -439,6 +441,12 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 7 tests.
   - `uv run pyright propstore` passed with 0 errors after the SI normalization
     production change.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-worldline-dependency-ids-2 tests/test_worldline_properties.py::TestSoundness::test_force_dependency_on_g_earth_is_necessary tests/test_worldline_properties.py::TestCompleteness::test_changing_g_earth_changes_force tests/test_worldline_properties.py::TestBindingIsolation::test_binding_isolation`
+    passed 3 tests.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-si-normalized-values-2 tests/test_build_sidecar.py::TestClaimValueSI tests/test_cli.py::TestClaimShow::test_owner_build_claim_view_reports_si_value tests/test_cli.py::TestClaimShow::test_claim_show_displays_si_values tests/test_cli.py::TestClaimShow::test_claim_show_json_uses_report_shape`
+    passed 7 tests after the no-canonical-unit correction.
+  - `uv run pyright propstore` passed with 0 errors after the canonical
+    dependency id and no-canonical-unit correction.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -462,8 +470,8 @@ Current full-gate repair queue, deletion-first:
   read-only semantic properties; use charter fields and family semantic
   properties directly. The concept view fixture now uses `Concept.id` instead
   of `Concept.concept_id`.
-- Repair remaining typed payload projection gaps found by full suite:
-  worldline dependency identity expectations.
+- Rerun the full Propstore gate and repair any remaining failures
+  deletion-first.
 - Contract manifest failures are not deferrable; after charter-field changes,
   update the manifest/version evidence through the intended contract workflow,
   not by weakening the manifest test.
