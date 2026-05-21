@@ -178,6 +178,11 @@ that owner workstream.
   `claims.declaration`/`core.justifications`/`core.graph_types` import cycle;
   that cycle remains in scope for the upcoming justification cleanup and final
   gates, not as a kept relation constructor path.
+- Micropublication slice complete: `Micropublication` and
+  `MicropublicationClaimLink` now subclass `FamilyModel` with methods only.
+  Deleted storage field annotations, constructor field lists, and the
+  `MicropublicationWriteModels` batch-carrier DTO; build planning now consumes
+  typed positional batches. `uv run pyright propstore` passed after the slice.
 
 ## Completion Criteria
 
