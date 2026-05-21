@@ -7,7 +7,6 @@ from typing import Any, TypeGuard
 
 from quire import canonical_json_bytes
 
-from propstore.cel_types import to_cel_expr
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import (
     AssertionId,
@@ -22,20 +21,6 @@ from propstore.support_revision.explanation_types import (
     coerce_revision_atom_detail,
 )
 from propstore.families.claims.declaration import Claim
-
-
-def coerce_assumption_ref(payload: AssumptionRef | Mapping[str, Any]) -> AssumptionRef:
-    if isinstance(payload, AssumptionRef):
-        return payload
-    assumption_id = payload.get("assumption_id") or payload.get("id")
-    if assumption_id is None:
-        raise ValueError("Assumption atom requires 'assumption_id' or 'id'")
-    return AssumptionRef(
-        assumption_id=AssumptionId(assumption_id),
-        cel=to_cel_expr(str(payload.get("cel") or "")),
-        kind=str(payload.get("kind") or ""),
-        source=str(payload.get("source") or ""),
-    )
 
 
 @dataclass(frozen=True)
@@ -80,7 +65,8 @@ class AssumptionAtom:
     label: Label | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "assumption", coerce_assumption_ref(self.assumption))
+        if not isinstance(self.assumption, AssumptionRef):
+            raise TypeError("assumption atom requires an AssumptionRef")
 
 
 BeliefAtom = AssertionAtom | AssumptionAtom

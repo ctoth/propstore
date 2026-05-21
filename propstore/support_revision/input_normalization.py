@@ -3,12 +3,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from propstore.cel_types import to_cel_expr
+from propstore.core.id_types import AssumptionId
+from propstore.core.labels import AssumptionRef
 from propstore.support_revision.state import (
     AssumptionAtom,
     AssertionAtom,
     BeliefAtom,
     BeliefBase,
-    coerce_assumption_ref,
     is_assertion_atom,
     is_assumption_atom,
 )
@@ -43,7 +45,15 @@ def normalize_revision_input(
         if not assumption_id:
             raise ValueError("Assumption revision input requires 'assumption_id' or 'id'")
         atom_id = str(revision_input.get("atom_id") or f"assumption:{assumption_id}")
-        return AssumptionAtom(atom_id=atom_id, assumption=coerce_assumption_ref(revision_input))
+        return AssumptionAtom(
+            atom_id=atom_id,
+            assumption=AssumptionRef(
+                assumption_id=AssumptionId(assumption_id),
+                cel=to_cel_expr(str(revision_input.get("cel") or "")),
+                kind=str(revision_input.get("kind") or ""),
+                source=str(revision_input.get("source") or ""),
+            ),
+        )
 
     raise ValueError("Assertion revision input requires an AssertionAtom")
 
