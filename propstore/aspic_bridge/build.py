@@ -28,7 +28,7 @@ from propstore.context_lifting import LiftingDecision
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import StanceRowInput
+from propstore.families.relations.declaration import Stance
 from argumentation.dung import ArgumentationFramework
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.gunray_complement import GUNRAY_COMPLEMENT_ENCODER
@@ -100,7 +100,7 @@ def _build_language(
 def compile_bridge_context(
     active_claims: Sequence[Claim],
     justifications: list[CanonicalJustification],
-    stances: Sequence[StanceRowInput],
+    stances: Sequence[Stance],
     *,
     bundle: GroundedRulesBundle,
     lifting_decisions: Sequence[LiftingDecision] = (),
@@ -264,7 +264,7 @@ def _filter_preference_sensitive_stance_defeats(
 def build_bridge_csaf(
     active_claims: Sequence[Claim],
     justifications: list[CanonicalJustification],
-    stances: Sequence[StanceRowInput],
+    stances: Sequence[Stance],
     *,
     bundle: GroundedRulesBundle,
     lifting_decisions: Sequence[LiftingDecision] = (),

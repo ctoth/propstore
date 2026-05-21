@@ -22,8 +22,7 @@ from propstore.core.literal_keys import (
     claim_key,
 )
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import StanceRow, StanceRowInput
-from propstore.families.relations.projection_model import STANCE_ROW_MODEL
+from propstore.families.relations.declaration import Stance
 from argumentation.preference import strict_partial_order_closure
 
 from propstore.preference import MetadataStrengthVector, metadata_strength_vector
@@ -142,7 +141,7 @@ def justifications_to_rules(
 
 
 def stances_to_contrariness(
-    stances: Sequence[StanceRowInput],
+    stances: Sequence[Stance],
     literals: dict[LiteralKey, Literal],
     defeasible_rules: frozenset[Rule],
     *,
@@ -165,8 +164,7 @@ def stances_to_contrariness(
     authored_rebuts: set[tuple[Literal, Literal]] = set()
     authored_directional: set[tuple[Literal, Literal]] = set()
 
-    for stance_input in stances:
-        stance = STANCE_ROW_MODEL.coerce(stance_input)
+    for stance in stances:
         src_key = _literal_key_for_proposition(stance.claim_id, literals)
         tgt_key = _literal_key_for_proposition(stance.target_claim_id, literals)
         if src_key not in literals or tgt_key not in literals:
@@ -240,12 +238,11 @@ def stances_to_contrariness(
 
 
 def preference_sensitive_stance_pairs(
-    stances: Sequence[StanceRowInput],
+    stances: Sequence[Stance],
     literals: dict[LiteralKey, Literal],
 ) -> frozenset[tuple[Literal, Literal]]:
     pairs: set[tuple[Literal, Literal]] = set()
-    for stance_input in stances:
-        stance = STANCE_ROW_MODEL.coerce(stance_input)
+    for stance in stances:
         if stance.stance_type not in ("supersedes", "undermines"):
             continue
         src_key = _literal_key_for_proposition(stance.claim_id, literals)

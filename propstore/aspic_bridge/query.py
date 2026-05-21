@@ -20,7 +20,7 @@ from argumentation.aspic import (
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import IstLiteralKey, LiteralKey, claim_key, ground_key
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import StanceRowInput
+from propstore.families.relations.declaration import Stance
 from propstore.grounding.bundle import GroundedRulesBundle
 
 from .build import (
@@ -70,7 +70,7 @@ def query_claim(
     claim_id: str | GroundAtom | LiteralKey,
     active_claims: Sequence[Claim],
     justifications: list[CanonicalJustification],
-    stances: Sequence[StanceRowInput],
+    stances: Sequence[Stance],
     *,
     bundle: GroundedRulesBundle,
     comparison: str = "elitist",

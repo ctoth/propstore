@@ -10,8 +10,7 @@ from propstore.core.justifications import (
 )
 from propstore.core.relation_types import ATTACK_TYPES, SUPPORT_TYPES
 from propstore.families.claims.declaration import Claim
-from propstore.families.relations.declaration import StanceRow
-from propstore.families.relations.projection_model import STANCE_ROW_MODEL
+from propstore.families.relations.declaration import Stance
 
 
 def _extract_stance_rows(
@@ -19,12 +18,12 @@ def _extract_stance_rows(
     active_by_id: dict[str, Claim],
     *,
     active_graph: ActiveWorldGraph | None,
-) -> list[StanceRow]:
+) -> list[Stance]:
     """Extract stance rows from either the active graph or the stance store."""
 
     if active_graph is not None:
         active_ids = set(active_graph.active_claim_ids)
-        rows: list[StanceRow] = []
+        rows: list[Stance] = []
         for relation in active_graph.compiled.relations:
             if relation.source_id not in active_ids or relation.target_id not in active_ids:
                 continue
@@ -34,27 +33,21 @@ def _extract_stance_rows(
             ):
                 continue
             rows.append(
-                STANCE_ROW_MODEL.from_row(
-                    {
-                        "claim_id": relation.source_id,
-                        "target_claim_id": relation.target_id,
-                        "stance_type": relation.relation_type,
-                        **dict(relation.attributes),
-                    }
+                Stance(
+                    claim_id=relation.source_id,
+                    target_claim_id=relation.target_id,
+                    stance_type=relation.relation_type,
                 )
             )
         return rows
 
-    return [
-        STANCE_ROW_MODEL.coerce(row)
-        for row in store.stances_between(set(active_by_id))
-    ]
+    return list(store.stances_between(set(active_by_id)))
 
 
 def _extract_justifications(
     store: StanceStore,
     active_by_id: dict[str, Claim],
-    stance_rows: list[StanceRow],
+    stance_rows: list[Stance],
     *,
     active_graph: ActiveWorldGraph | None,
 ) -> list[CanonicalJustification]:
@@ -98,7 +91,7 @@ def _extract_justifications(
                 conclusion_claim_id=row.target_claim_id,
                 premise_claim_ids=(row.claim_id,),
                 rule_kind=row.stance_type,
-                attributes=tuple(row.attributes.items()),
+                attributes=tuple(row.attribute_mapping().items()),
             )
         )
     return sorted(justifications)
