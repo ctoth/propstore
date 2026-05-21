@@ -191,6 +191,12 @@ that owner workstream.
   the slice. The follow-up focused logged test run collected and ran; 35 tests
   passed and 4 failed on old dict-shaped concept fakes that must be updated to
   typed concept models before final gates.
+- World-charter support slice complete: deleted `WorldModel` and the
+  placeholder `*Record` model names in `world_charters.py`. Support tables now
+  use explicit methods-only `FamilyModel` subclasses such as `WorldMeta`,
+  `GroundedFact`, `GroundedBundleInput`, and embedding/calibration status
+  models; production builders were updated to those typed model names. `uv run
+  pyright propstore` passed after the slice.
 
 ## Completion Criteria
 
