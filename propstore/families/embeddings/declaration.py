@@ -10,19 +10,15 @@ from pathlib import Path
 from typing import ClassVar
 
 from quire.derived_store import DerivedStoreHandle
-from quire.derived_runtime import connect_sqlite_store
 from sqlalchemy import or_, select
+from quire.sqlalchemy_store import readonly_session
 from quire.sqlite_vec_store import (
-    EMBEDDING_MODEL_PROJECTION,
     RestoreReport,
-    SqliteVecEntityStore,
-    SqliteVecRegistry,
-    SqliteVecSnapshotStore,
+    SqlAlchemyVecEntityStore,
+    SqlAlchemyVecRegistry,
+    SqlAlchemyVecSnapshotStore,
     VecEntitySnapshot,
-    VecEntityStoreSpec,
     VecSnapshot,
-    ensure_embedding_tables as ensure_quire_embedding_tables,
-    is_missing_table_error,
 )
 
 from propstore.core.embeddings import (
@@ -36,40 +32,7 @@ from propstore.heuristic.embed import (
     _find_similar_disagree_generic,
     _find_similar_entities,
 )
-from propstore.families.claims.declaration import (
-    CLAIM_EMBEDDING_JOIN_COLUMNS,
-    CLAIM_EMBEDDING_JOIN_SOURCE,
-    CLAIM_EMBEDDING_STATUS_PROJECTION,
-    CLAIM_VEC_PROJECTION,
-    resolve_claim_embedding_entity,
-    select_claim_embedding_rows,
-)
-from propstore.families.concepts.declaration import (
-    CONCEPT_EMBEDDING_STATUS_PROJECTION,
-    CONCEPT_VEC_PROJECTION,
-)
 from propstore.families.world_charters import world_sqlalchemy_schema
-
-
-CLAIM_VEC_SPEC = VecEntityStoreSpec(
-    name="claim",
-    status_projection=CLAIM_EMBEDDING_STATUS_PROJECTION,
-    status_id_column="claim_id",
-    vector_projection=CLAIM_VEC_PROJECTION,
-    source_table="claim_core",
-)
-
-
-CONCEPT_VEC_SPEC = VecEntityStoreSpec(
-    name="concept",
-    status_projection=CONCEPT_EMBEDDING_STATUS_PROJECTION,
-    status_id_column="concept_id",
-    vector_projection=CONCEPT_VEC_PROJECTION,
-    source_table="concept",
-)
-
-
-EMBEDDING_SPECS = (CLAIM_VEC_SPEC, CONCEPT_VEC_SPEC)
 
 
 def _require_sqlite_vec():
@@ -99,11 +62,11 @@ class EmbeddingSnapshot:
     @classmethod
     def from_vec_snapshot(cls, snapshot: VecSnapshot) -> "EmbeddingSnapshot":
         claim_snapshot = snapshot.entities.get(
-            CLAIM_VEC_SPEC.name,
+            "claim_embeddings",
             VecEntitySnapshot(statuses=[], vectors={}),
         )
         concept_snapshot = snapshot.entities.get(
-            CONCEPT_VEC_SPEC.name,
+            "concept_embeddings",
             VecEntitySnapshot(statuses=[], vectors={}),
         )
         return cls(
@@ -118,11 +81,11 @@ class EmbeddingSnapshot:
         return VecSnapshot(
             models=self.models,
             entities={
-                CLAIM_VEC_SPEC.name: VecEntitySnapshot(
+                "claim_embeddings": VecEntitySnapshot(
                     statuses=self.claim_statuses,
                     vectors=self.claim_vectors,
                 ),
-                CONCEPT_VEC_SPEC.name: VecEntitySnapshot(
+                "concept_embeddings": VecEntitySnapshot(
                     statuses=self.concept_statuses,
                     vectors=self.concept_vectors,
                 ),
@@ -137,32 +100,27 @@ class EmbeddingSnapshotReport:
     concept_vector_count: int
 
 
-def ensure_embedding_tables(conn: sqlite3.Connection) -> None:
-    ensure_quire_embedding_tables(conn, EMBEDDING_SPECS)
-
-
-class SidecarEmbeddingRegistry:
-    def __init__(self, conn: sqlite3.Connection) -> None:
-        self._registry = SqliteVecRegistry(conn)
-
-    def get_registered_models(self) -> list[dict]:
-        return self._registry.get_registered_models()
+def ensure_embedding_tables(_conn: sqlite3.Connection) -> None:
+    return None
 
 
 class _SidecarEntityEmbeddingStore:
-    spec: ClassVar[VecEntityStoreSpec]
-    join_source: ClassVar[str]
-    join_columns: ClassVar[str]
+    cache_name: ClassVar[str]
 
-    def __init__(self, conn: sqlite3.Connection) -> None:
-        self._conn = conn
-        self._vectors = SqliteVecEntityStore(conn, self.spec)
+    def __init__(self, derived_store: DerivedStoreHandle) -> None:
+        self._derived_store = derived_store
 
     def ensure_storage(self) -> None:
-        ensure_embedding_tables(self._conn)
+        return None
 
     def existing_content_hashes(self, model_identity) -> dict[str, str]:
-        return self._vectors.existing_content_hashes(model_identity)
+        schema = world_sqlalchemy_schema()
+        cache = schema.vector_cache(self.cache_name)
+        with self._derived_store.readonly_session(schema) as derived:
+            return SqlAlchemyVecEntityStore(
+                derived.session.connection(),
+                cache,
+            ).existing_content_hashes(model_identity)
 
     def prepare_model(
         self,
@@ -170,7 +128,18 @@ class _SidecarEntityEmbeddingStore:
         dimensions: int,
         created_at: str,
     ) -> None:
-        self._vectors.prepare_model(model_identity, dimensions, created_at)
+        schema = world_sqlalchemy_schema()
+        cache = schema.vector_cache(self.cache_name)
+        with self._derived_store.writable_session(schema) as derived:
+            SqlAlchemyVecEntityStore(
+                derived.session.connection(),
+                cache,
+            ).prepare_model(
+                model_identity,
+                created_at,
+                dimensions=dimensions,
+            )
+            derived.commit()
 
     def save_embedding(
         self,
@@ -179,21 +148,34 @@ class _SidecarEntityEmbeddingStore:
         vector_blob: bytes,
         embedded_at: str,
     ) -> None:
-        self._vectors.save_embedding(
-            model_identity=model_identity,
-            entity_id=entity.entity_id,
-            seq=entity.seq,
-            content_hash=entity.content_hash,
-            vector_blob=vector_blob,
-            embedded_at=embedded_at,
-        )
+        schema = world_sqlalchemy_schema()
+        cache = schema.vector_cache(self.cache_name)
+        with self._derived_store.writable_session(schema) as derived:
+            SqlAlchemyVecEntityStore(
+                derived.session.connection(),
+                cache,
+            ).save_embedding(
+                model_identity=model_identity,
+                entity_id=entity.entity_id,
+                seq=entity.seq,
+                content_hash=entity.content_hash,
+                vector_blob=vector_blob,
+                embedded_at=embedded_at,
+            )
+            derived.commit()
 
     def vector_for(
         self,
         model_identity,
         seq: int,
     ) -> bytes | None:
-        return self._vectors.vector_for(model_identity, seq)
+        schema = world_sqlalchemy_schema()
+        cache = schema.vector_cache(self.cache_name)
+        with self._derived_store.readonly_session(schema) as derived:
+            return SqlAlchemyVecEntityStore(
+                derived.session.connection(),
+                cache,
+            ).vector_for(model_identity, seq)
 
     def similar_entities(
         self,
@@ -201,50 +183,111 @@ class _SidecarEntityEmbeddingStore:
         query_vector: bytes,
         k: int,
     ) -> list[dict]:
-        return self._vectors.similar_entities(
-            model_identity=model_identity,
-            query_vector=query_vector,
-            k=k,
-            join_source=self.join_source,
-            join_columns=self.join_columns,
-        )
+        schema = world_sqlalchemy_schema()
+        cache = schema.vector_cache(self.cache_name)
+        with self._derived_store.readonly_session(schema) as derived:
+            rows = SqlAlchemyVecEntityStore(
+                derived.session.connection(),
+                cache,
+            ).similar_entities(
+                model_identity=model_identity,
+                query_vector=query_vector,
+                k=k,
+            )
+        return self._similarity_rows(rows)
+
+    def _similarity_rows(self, rows: list[dict]) -> list[dict]:
+        return rows
 
 
 class SidecarClaimEmbeddingStore(_SidecarEntityEmbeddingStore):
-    spec = CLAIM_VEC_SPEC
-    join_source = CLAIM_EMBEDDING_JOIN_SOURCE
-    join_columns = CLAIM_EMBEDDING_JOIN_COLUMNS
+    cache_name = "claim_embeddings"
 
     def load_entities(
         self,
         entity_ids: Sequence[str] | None = None,
     ) -> list[EmbeddingEntity]:
+        schema = world_sqlalchemy_schema()
+        claim = schema.model("claim_core")
         entities: list[EmbeddingEntity] = []
-        for claim in select_claim_embedding_rows(self._conn, entity_ids):
-            if claim.seq is None:
-                raise ValueError(f"Claim {claim.claim_id} has no sidecar sequence")
+        with self._derived_store.readonly_session(schema) as derived:
+            stmt = select(claim)
+            if entity_ids:
+                stmt = stmt.where(claim.id.in_(tuple(entity_ids)))
+            claims = list(derived.execute(stmt).scalars())
+        for claim_model in claims:
+            if claim_model.seq is None:
+                raise ValueError(f"Claim {claim_model.id} has no sidecar sequence")
             entities.append(
                 EmbeddingEntity(
-                    entity_id=str(claim.claim_id),
-                    seq=claim.seq,
-                    content_hash=str(claim.content_hash),
-                    text=claim_embedding_text(claim),
+                    entity_id=str(claim_model.id),
+                    seq=int(claim_model.seq),
+                    content_hash=str(claim_model.content_hash),
+                    text=claim_embedding_text(claim_model),
                 )
             )
         return entities
 
     def resolve_entity(self, entity_id: str) -> tuple[str, int]:
-        return resolve_claim_embedding_entity(self._conn, entity_id)
+        schema = world_sqlalchemy_schema()
+        claim = schema.model("claim_core")
+        with self._derived_store.readonly_session(schema) as derived:
+            row = derived.execute(
+                select(claim.id, claim.seq).where(claim.id == entity_id)
+            ).first()
+        if row is None:
+            raise ValueError(f"Claim {entity_id} not found")
+        return str(row[0]), int(row[1])
+
+    def _similarity_rows(self, rows: list[dict]) -> list[dict]:
+        entity_ids = tuple(str(row["entity_id"]) for row in rows)
+        if not entity_ids:
+            return []
+        schema = world_sqlalchemy_schema()
+        claim = schema.model("claim_core")
+        concept_link = schema.model("claim_concept_link")
+        with self._derived_store.readonly_session(schema) as derived:
+            claims = {
+                model.id: model
+                for model in derived.execute(
+                    select(claim).where(claim.id.in_(entity_ids))
+                ).scalars()
+            }
+            concept_rows = derived.execute(
+                select(concept_link.claim_id, concept_link.concept_id).where(
+                    concept_link.claim_id.in_(entity_ids)
+                )
+            )
+            concepts_by_claim_id: dict[str, str] = {}
+            for claim_id, concept_id in concept_rows:
+                concepts_by_claim_id.setdefault(str(claim_id), str(concept_id))
+        enriched: list[dict] = []
+        for row in rows:
+            claim_id = str(row["entity_id"])
+            claim_model = claims.get(claim_id)
+            if claim_model is None:
+                continue
+            text_payload = claim_model.text_payload
+            enriched.append(
+                {
+                    "id": claim_id,
+                    "distance": row["distance"],
+                    "rowid": row["rowid"],
+                    "auto_summary": (
+                        None if text_payload is None else text_payload.auto_summary
+                    ),
+                    "statement": (
+                        None if text_payload is None else text_payload.statement
+                    ),
+                    "source_paper": claim_model.source_paper,
+                    "concept_id": concepts_by_claim_id.get(claim_id),
+                }
+            )
+        return enriched
 
 
 class SidecarConceptEmbeddingStore(_SidecarEntityEmbeddingStore):
-    spec = CONCEPT_VEC_SPEC
-    join_source = "concept"
-    join_columns = "c.id, c.primary_logical_id, c.canonical_name, c.definition"
-
-    def __init__(self, conn: sqlite3.Connection, derived_store: DerivedStoreHandle) -> None:
-        super().__init__(conn)
-        self._derived_store = derived_store
+    cache_name = "concept_embeddings"
 
     def load_entities(
         self,
@@ -276,7 +319,7 @@ class SidecarConceptEmbeddingStore(_SidecarEntityEmbeddingStore):
         for concept_model in concepts:
             entities.append(
                 EmbeddingEntity(
-                    entity_id=str(concept_model.concept_id),
+                    entity_id=str(concept_model.id),
                     seq=int(concept_model.seq),
                     content_hash=str(concept_model.content_hash),
                     text=concept_embedding_text(
@@ -300,32 +343,48 @@ class SidecarConceptEmbeddingStore(_SidecarEntityEmbeddingStore):
             raise ValueError(f"Concept {entity_id} not found")
         return str(row[0]), int(row[1])
 
+    def _similarity_rows(self, rows: list[dict]) -> list[dict]:
+        entity_ids = tuple(str(row["entity_id"]) for row in rows)
+        if not entity_ids:
+            return []
+        schema = world_sqlalchemy_schema()
+        concept = schema.model("concept")
+        with self._derived_store.readonly_session(schema) as derived:
+            concepts = {
+                model.id: model
+                for model in derived.execute(
+                    select(concept).where(concept.id.in_(entity_ids))
+                ).scalars()
+            }
+        enriched: list[dict] = []
+        for row in rows:
+            concept_id = str(row["entity_id"])
+            concept_model = concepts.get(concept_id)
+            if concept_model is None:
+                continue
+            enriched.append(
+                {
+                    "id": concept_id,
+                    "distance": row["distance"],
+                    "rowid": row["rowid"],
+                    "primary_logical_id": concept_model.primary_logical_id,
+                    "canonical_name": concept_model.canonical_name,
+                    "definition": concept_model.definition,
+                }
+            )
+        return enriched
 
-class SidecarEmbeddingSnapshotStore:
-    def __init__(self, conn: sqlite3.Connection) -> None:
-        self._snapshots = SqliteVecSnapshotStore(conn, EMBEDDING_SPECS)
 
-    def extract(self) -> EmbeddingSnapshot | None:
-        snapshot = self._snapshots.extract()
-        if snapshot is None:
-            return None
-        return EmbeddingSnapshot.from_vec_snapshot(snapshot)
-
-    def restore(self, snapshot: EmbeddingSnapshot) -> RestoreReport:
-        return self._snapshots.restore(snapshot.to_vec_snapshot())
-
-
-_is_missing_table_error = is_missing_table_error
-
-
-def get_registered_models(conn: sqlite3.Connection) -> list[dict]:
+def get_registered_models(derived_store: DerivedStoreHandle) -> list[dict]:
     """Return all registered embedding models."""
 
-    return SidecarEmbeddingRegistry(conn).get_registered_models()
+    schema = world_sqlalchemy_schema()
+    with derived_store.readonly_session(schema) as derived:
+        return SqlAlchemyVecRegistry(derived.session.connection()).get_registered_models()
 
 
 def embed_claims(
-    conn: sqlite3.Connection,
+    derived_store: DerivedStoreHandle,
     model_name: str,
     claim_ids: list[str] | None = None,
     batch_size: int = 64,
@@ -334,7 +393,7 @@ def embed_claims(
     """Generate and store embeddings for claims."""
 
     return _embed_entities(
-        SidecarClaimEmbeddingStore(conn),
+        SidecarClaimEmbeddingStore(derived_store),
         model_name,
         claim_ids,
         batch_size,
@@ -343,10 +402,8 @@ def embed_claims(
 
 
 def embed_concepts(
-    conn: sqlite3.Connection,
-    model_name: str,
-    *,
     derived_store: DerivedStoreHandle,
+    model_name: str,
     concept_ids: list[str] | None = None,
     batch_size: int = 64,
     on_progress: Callable[[int, int], None] | None = None,
@@ -354,7 +411,7 @@ def embed_concepts(
     """Generate and store embeddings for concepts."""
 
     return _embed_entities(
-        SidecarConceptEmbeddingStore(conn, derived_store),
+        SidecarConceptEmbeddingStore(derived_store),
         model_name,
         concept_ids,
         batch_size,
@@ -363,7 +420,7 @@ def embed_concepts(
 
 
 def find_similar(
-    conn: sqlite3.Connection,
+    derived_store: DerivedStoreHandle,
     claim_id: str,
     model_name: str,
     top_k: int = 10,
@@ -371,7 +428,7 @@ def find_similar(
     """Find top-k most similar claims by embedding distance."""
 
     return _find_similar_entities(
-        SidecarClaimEmbeddingStore(conn),
+        SidecarClaimEmbeddingStore(derived_store),
         claim_id,
         model_name,
         top_k,
@@ -379,17 +436,15 @@ def find_similar(
 
 
 def find_similar_concepts(
-    conn: sqlite3.Connection,
+    derived_store: DerivedStoreHandle,
     concept_id: str,
     model_name: str,
-    *,
-    derived_store: DerivedStoreHandle,
     top_k: int = 10,
 ) -> list[dict]:
     """Find top-k most similar concepts by embedding distance."""
 
     return _find_similar_entities(
-        SidecarConceptEmbeddingStore(conn, derived_store),
+        SidecarConceptEmbeddingStore(derived_store),
         concept_id,
         model_name,
         top_k,
@@ -397,73 +452,63 @@ def find_similar_concepts(
 
 
 def find_similar_agree(
-    conn: sqlite3.Connection,
+    derived_store: DerivedStoreHandle,
     claim_id: str,
     top_k: int = 10,
 ) -> list[dict]:
     """Claims similar under all stored models."""
 
     return _find_similar_agree_generic(
-        SidecarClaimEmbeddingStore(conn),
+        SidecarClaimEmbeddingStore(derived_store),
         claim_id,
-        get_registered_models(conn),
+        get_registered_models(derived_store),
         top_k,
     )
 
 
 def find_similar_disagree(
-    conn: sqlite3.Connection,
+    derived_store: DerivedStoreHandle,
     claim_id: str,
     top_k: int = 10,
 ) -> list[dict]:
     """Claims similar under some stored models but not others."""
 
     return _find_similar_disagree_generic(
-        SidecarClaimEmbeddingStore(conn),
+        SidecarClaimEmbeddingStore(derived_store),
         claim_id,
-        get_registered_models(conn),
+        get_registered_models(derived_store),
         top_k,
     )
 
 
 def find_similar_concepts_agree(
-    conn: sqlite3.Connection,
-    concept_id: str,
-    *,
     derived_store: DerivedStoreHandle,
+    concept_id: str,
     top_k: int = 10,
 ) -> list[dict]:
     """Concepts similar under all stored models."""
 
     return _find_similar_agree_generic(
-        SidecarConceptEmbeddingStore(conn, derived_store),
+        SidecarConceptEmbeddingStore(derived_store),
         concept_id,
-        get_registered_models(conn),
+        get_registered_models(derived_store),
         top_k,
     )
 
 
 def find_similar_concepts_disagree(
-    conn: sqlite3.Connection,
-    concept_id: str,
-    *,
     derived_store: DerivedStoreHandle,
+    concept_id: str,
     top_k: int = 10,
 ) -> list[dict]:
     """Concepts similar under some stored models but not others."""
 
     return _find_similar_disagree_generic(
-        SidecarConceptEmbeddingStore(conn, derived_store),
+        SidecarConceptEmbeddingStore(derived_store),
         concept_id,
-        get_registered_models(conn),
+        get_registered_models(derived_store),
         top_k,
     )
-
-
-def extract_embeddings(conn: sqlite3.Connection) -> EmbeddingSnapshot | None:
-    """Extract all embedding data before sidecar rebuild."""
-
-    return SidecarEmbeddingSnapshotStore(conn).extract()
 
 
 def extract_embedding_snapshot_from_store(
@@ -473,50 +518,31 @@ def extract_embedding_snapshot_from_store(
 ) -> EmbeddingSnapshot | None:
     if not sidecar.exists():
         return None
-    snapshot_conn = None
     try:
-        snapshot_conn = connect_sqlite_store(sidecar)
-        snapshot_conn.row_factory = sqlite3.Row
-        load_vec_extension(snapshot_conn)
-        snapshot = extract_embeddings(snapshot_conn)
+        schema = world_sqlalchemy_schema()
+        with readonly_session(sidecar, schema) as derived:
+            snapshot = SqlAlchemyVecSnapshotStore(
+                derived.session.connection(),
+                tuple(schema.vector_caches.values()),
+            ).extract()
         if snapshot is None:
             return None
+        embedding_snapshot = EmbeddingSnapshot.from_vec_snapshot(snapshot)
         if on_snapshot is not None:
             on_snapshot(
                 EmbeddingSnapshotReport(
-                    model_count=len(snapshot.models),
+                    model_count=len(embedding_snapshot.models),
                     claim_vector_count=sum(
-                        len(vectors) for vectors in snapshot.claim_vectors.values()
+                        len(vectors)
+                        for vectors in embedding_snapshot.claim_vectors.values()
                     ),
                     concept_vector_count=sum(
-                        len(vectors) for vectors in snapshot.concept_vectors.values()
+                        len(vectors)
+                        for vectors in embedding_snapshot.concept_vectors.values()
                     ),
                 )
             )
-        return snapshot
+        return embedding_snapshot
     except ImportError:
         return None
-    finally:
-        if snapshot_conn is not None:
-            snapshot_conn.close()
 
-
-def restore_embeddings(
-    conn: sqlite3.Connection,
-    snapshot: EmbeddingSnapshot,
-) -> RestoreReport:
-    """Restore embeddings after sidecar rebuild."""
-
-    return SidecarEmbeddingSnapshotStore(conn).restore(snapshot)
-
-
-def restore_embedding_snapshot(
-    conn: sqlite3.Connection,
-    snapshot: EmbeddingSnapshot,
-) -> RestoreReport:
-    conn.row_factory = sqlite3.Row
-    try:
-        load_vec_extension(conn)
-        return restore_embeddings(conn, snapshot)
-    finally:
-        conn.row_factory = None
