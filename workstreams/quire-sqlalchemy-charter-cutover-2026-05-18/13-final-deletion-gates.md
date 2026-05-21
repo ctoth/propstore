@@ -363,6 +363,47 @@ rg -n -F -- "workspace = true" pyproject.toml
 
 Gate: no local path, workspace, or file URL Quire dependency.
 
+### 2026-05-21 Phase 17 Evidence
+
+- Quire projection deletion is complete and pushed at
+  `f43dd1be83fd0c0b52a06104c79d1550bdf5f3a6`; Propstore dependency files
+  are updated to that commit but not yet closed because Propstore full gates
+  still fail.
+- Propstore focused typed-family regression slice is committed as
+  `8a187282 Carry typed fixtures through claim metadata`.
+- Passing focused gates:
+  - `uv run pyright propstore`
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
+    passed 53 tests across value resolver, PrAF, ATMS, and WS-F ASPIC.
+- Full Propstore gate:
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
+    failed: 125 failed, 3474 passed, 4 skipped.
+  - Log: `logs/test-runs/sqlalchemy-charter-full-2-20260521-135558.log`.
+
+Current full-gate repair queue, deletion-first:
+
+- Replace remaining dict-shaped ASPIC/IST/defeasibility/context/worldline
+  test fixtures with typed `Claim`, `Stance`, `CanonicalJustification`, and
+  typed compiled-graph fixtures. Do not add dict fallback acceptance to
+  production ASPIC, revision, worldline, or context-lifting APIs.
+- Fix Quire public surface before the dependency pin can close:
+  `tests/test_quire_public_api.py::test_propstore_quire_imports_are_public`
+  proves installed Quire does not publicly export the charter/schema symbols
+  Propstore imports.
+- Repair source/web demo fixture drift by using current source charter fields;
+  do not add old source columns such as `origin_type` back as compatibility
+  columns.
+- Repair canonical typed-model construction in tests that set read-only
+  semantic properties such as `Concept.concept_id`; use charter fields and
+  family semantic properties directly.
+- Repair remaining typed payload projection gaps found by full suite:
+  algorithm canonical AST, SI-normalized numeric payloads, PrAF uncalibrated
+  argument fixtures, ATMS/context lifting typed claim surfaces, and worldline
+  dependency identity expectations.
+- Contract manifest failures are not deferrable; after charter-field changes,
+  update the manifest/version evidence through the intended contract workflow,
+  not by weakening the manifest test.
+
 ## Completion Checklist
 
 The cutover is complete only when every item is checked:
