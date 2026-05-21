@@ -110,7 +110,7 @@ def _repo() -> Repository:
 
 def _concept() -> Concept:
     return Concept(
-        concept_id="concept1",
+        id="concept1",
         canonical_name="fundamental_frequency",
         status="accepted",
         definition="Primary oscillation rate.",

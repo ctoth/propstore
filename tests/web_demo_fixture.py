@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from sqlite3 import Connection
 from dataclasses import dataclass
@@ -43,10 +44,22 @@ def _seed_rows(conn: Connection) -> None:
     conn.execute(
         """
         INSERT INTO source (
-            slug, source_id, kind, origin_type, origin_value, prior_base_rate
-        ) VALUES (?, ?, ?, ?, ?, ?)
+            slug, source_id, kind, origin, trust, quality, derived_from, artifact_code
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        ("demo_source", "demo_source", "academic_paper", "manual", "web demo fixture", 0.5),
+        (
+            "demo_source",
+            "demo_source",
+            "academic_paper",
+            json.dumps({"type": "manual", "value": "web demo fixture"}),
+            json.dumps({
+                "status": "stated",
+                "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+            }),
+            None,
+            None,
+            None,
+        ),
     )
     conn.execute(
         """

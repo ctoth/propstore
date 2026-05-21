@@ -226,7 +226,7 @@ def _concept_status(concept_row, all_claims, visible_claims) -> ConceptViewStatu
     total_claim_count = len(all_claims)
     visible_claim_count = len(visible_claims)
     blocked_claim_count = total_claim_count - visible_claim_count
-    concept_status = None if concept_row.status is None else concept_row.status.value
+    concept_status = None if concept_row.status is None else str(concept_row.status)
     if total_claim_count == 0:
         return ConceptViewStatus(
             state="missing",
