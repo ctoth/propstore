@@ -581,6 +581,15 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   render-time-typed-confidence tests/test_render_time_filtering.py` passed
   with 14 tests; log:
   `logs/test-runs/render-time-typed-confidence-20260521-105106.log`.
+- Test commit `edecbeed` removed the remaining `row_factory` setup from
+  `tests/test_form_algebra.py` by selecting `dim_verified` directly and using
+  tuple access for the assertion.
+- `rg -n -F -- "row_factory" tests/test_form_algebra.py` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the migration.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  form-algebra-no-row-factory tests/test_form_algebra.py` passed with 30
+  tests; log:
+  `logs/test-runs/form-algebra-no-row-factory-20260521-105302.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
