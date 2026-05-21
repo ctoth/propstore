@@ -116,6 +116,7 @@ def world_sidecar_hash_inputs(
         "source_revision": source_revision,
         "source_branch_tips": source_branch_tips,
         "sidecar_schema_version": PROPSTORE_WORLD_SCHEMA_VERSION,
+        "generated_schema_version": schema.catalog_hash,
         "schema_catalog_hash": schema.catalog_hash,
         "passes": _semantic_pass_versions(),
         "family_contract_versions": _family_contract_versions(),
@@ -159,6 +160,7 @@ def world_sidecar_hash(
         extra_inputs={
             "source_revision": inputs["source_revision"],
             "source_branch_tips": inputs["source_branch_tips"],
+            "generated_schema_version": inputs["generated_schema_version"],
             "schema_catalog_hash": inputs["schema_catalog_hash"],
             "passes": inputs["passes"],
             "family_contract_versions": inputs["family_contract_versions"],

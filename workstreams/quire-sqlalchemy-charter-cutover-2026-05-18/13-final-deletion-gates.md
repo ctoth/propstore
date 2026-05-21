@@ -512,6 +512,11 @@ Gate: no local path, workspace, or file URL Quire dependency.
     checked-condition solver for semantic equivalence instead of raw CEL text.
   - `uv run pyright propstore` passed with 0 errors after the ATMS
     semantic-equality repair.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-sidecar-cache-key tests/test_codex5_sidecar_cache_derived_invalidation.py::test_sidecar_cache_key_document_contains_derived_inputs tests/test_codex5_sidecar_cache_derived_invalidation.py::test_world_sidecar_hash_changes_on_manual_cache_bust`
+    passed 2 tests after the sidecar cache-key document and content hash were
+    wired to the Quire-generated schema catalog identity.
+  - `uv run pyright propstore` passed with 0 errors after the sidecar cache-key
+    repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -572,7 +577,9 @@ Gate: no local path, workspace, or file URL Quire dependency.
       places where runtime output now exposes canonical ids or grouped accepted
       claim output; update the demo surface or test through the owner-layer
       display contract, not by adding source-handle fallbacks.
-    - Sidecar cache-key input still lacks the derived schema version key.
+    - Sidecar cache-key input is repaired after full-6: the generated-schema
+      identity now comes from the Quire SQLAlchemy schema catalog hash and is
+      included in the content hash inputs.
     - Contract manifest snapshot and version-bump gates still fail and remain
       final settlement work after production semantics stop moving.
     - Semantic repair, sensitivity, and preference-import failures are
