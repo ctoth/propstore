@@ -568,6 +568,19 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   field definition for `claim_numeric_payload`, carry it through typed claim
   test construction and claim graph projection, and then rerun the render-time
   focused test. Do not add a compatibility wrapper or row/dict repair path.
+- Production/test-support commit `31c73f29` added `confidence` to the single
+  `claim_numeric_payload` charter field definition, carried typed numeric
+  claim confidence into claim graph attributes, and taught
+  `claim_model_from_test_payload` to preserve the typed value.
+- `rg -n -F -- "row_factory" tests/test_render_time_filtering.py
+  propstore/families/claims/graph.py tests/claim_model_helpers.py
+  propstore/families/world_charters.py` returned zero hits.
+- `uv run pyright propstore` passed with zero errors after the typed
+  confidence repair.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  render-time-typed-confidence tests/test_render_time_filtering.py` passed
+  with 14 tests; log:
+  `logs/test-runs/render-time-typed-confidence-20260521-105106.log`.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
