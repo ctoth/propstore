@@ -20,6 +20,7 @@ from argumentation.dung import ArgumentationFramework, complete_extensions
 from propstore.world.bound import BoundWorld
 from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import Label, compile_environment_assumptions
+from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.resolution import resolve
 from propstore.world.types import Environment, ReasoningBackend, ResolutionStrategy
@@ -57,6 +58,10 @@ def _output_concept_id(claim) -> str | None:
         if link.get("role") == "output":
             return link.get("concept_id")
     return claim.get("concept_id")
+
+
+def _concept_model(concept_id: str, canonical_name: str) -> Concept:
+    return Concept(id=concept_id, canonical_name=canonical_name)
 
 
 class _ProjectionStore:
@@ -938,9 +943,9 @@ def test_structured_worldline_argumentation_capture_uses_structured_backend(monk
         def resolve_concept(self, name: str) -> str | None:
             return "concept1" if name == "target" else None
 
-        def get_concept(self, concept_id: str) -> dict | None:
+        def get_concept(self, concept_id: str) -> Concept | None:
             if concept_id == "concept1":
-                return {"id": "concept1", "canonical_name": "target"}
+                return _concept_model("concept1", "target")
             return None
 
     world = StructuredWorld(
@@ -1011,9 +1016,9 @@ def test_structured_worldline_argumentation_capture_ignores_unmapped_arguments(m
         def resolve_concept(self, name: str) -> str | None:
             return "concept1" if name == "target" else None
 
-        def get_concept(self, concept_id: str) -> dict | None:
+        def get_concept(self, concept_id: str) -> Concept | None:
             if concept_id == "concept1":
-                return {"id": "concept1", "canonical_name": "target"}
+                return _concept_model("concept1", "target")
             return None
 
     world = StructuredWorld(
@@ -1096,9 +1101,9 @@ def test_world_extensions_cli_accepts_aspic_backend(monkeypatch) -> None:
         def bind(self, environment=None, **conditions):
             return FakeBound()
 
-        def get_concept(self, concept_id: str) -> dict | None:
+        def get_concept(self, concept_id: str) -> Concept | None:
             if concept_id == "concept1":
-                return {"id": "concept1", "canonical_name": "target"}
+                return _concept_model("concept1", "target")
             return None
 
         def stances_between(self, claim_ids: set[str]) -> list[dict]:
@@ -1183,9 +1188,9 @@ def test_world_extensions_cli_ignores_unmapped_aspic_arguments(monkeypatch) -> N
         def bind(self, environment=None, **conditions):
             return FakeBound()
 
-        def get_concept(self, concept_id: str) -> dict | None:
+        def get_concept(self, concept_id: str) -> Concept | None:
             if concept_id == "concept1":
-                return {"id": "concept1", "canonical_name": "target"}
+                return _concept_model("concept1", "target")
             return None
 
         def stances_between(self, claim_ids: set[str]) -> list[dict]:
