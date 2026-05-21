@@ -551,6 +551,23 @@ runtime migration, starting with deletion of `SidecarClaimRelationStore`,
   core-analyzers-typed-graph tests/test_core_analyzers.py` passed with 7
   tests; log:
   `logs/test-runs/core-analyzers-typed-graph-20260521-104547.log`.
+- Test commit `9470b889` removed the `row_factory` assignment from
+  `tests/test_render_time_filtering.py`.
+- `rg -n -F -- "row_factory" tests/test_render_time_filtering.py` returned
+  zero hits, and `uv run pyright propstore` passed with zero errors after the
+  deletion.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label
+  render-time-no-row-factory tests/test_render_time_filtering.py` still failed
+  `TestVacuousSurvivesAFConstruction.test_vacuous_stance_does_not_win_resolution`
+  after 13 of 14 tests passed; log:
+  `logs/test-runs/render-time-no-row-factory-20260521-104744.log`.
+- The failure exposed a typed-field gap: the old SQLite test schema and
+  document model include numeric claim `confidence`, but the current
+  `claim_numeric_payload` charter and typed claim-to-graph projection do not
+  carry it. The next repair slice must put `confidence` in the single charter
+  field definition for `claim_numeric_payload`, carry it through typed claim
+  test construction and claim graph projection, and then rerun the render-time
+  focused test. Do not add a compatibility wrapper or row/dict repair path.
 
 Slice 5 production migration and the Slice 6 `from_mapping` and concept vector
 projection cleanups are complete. Continue with Slice 6: data parity, vector
