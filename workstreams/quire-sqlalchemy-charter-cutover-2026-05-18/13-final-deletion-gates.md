@@ -142,33 +142,33 @@ Repository: `C:\Users\Q\code\propstore`.
 
 ### Deletion Checklist
 
-- [ ] Verify `propstore/families/claims/projection_model.py` is absent after
+- [x] Verify `propstore/families/claims/projection_model.py` is absent after
   Phase 10 deletes the justification residual.
-- [ ] Delete `propstore/families/concepts/projection_model.py`.
-- [ ] Delete `propstore/families/relations/projection_model.py`.
-- [ ] Delete `propstore/families/projection_catalog.py`.
-- [ ] Delete embedded projection declarations in family declaration modules.
-- [ ] Delete row classes that duplicate domain models.
-- [ ] Delete manual select/count/insert/decode/attached-row helpers that are
+- [x] Delete `propstore/families/concepts/projection_model.py`.
+- [x] Delete `propstore/families/relations/projection_model.py`.
+- [x] Delete `propstore/families/projection_catalog.py`.
+- [x] Delete embedded projection declarations in family declaration modules.
+- [x] Delete row classes that duplicate domain models.
+- [x] Delete manual select/count/insert/decode/attached-row helpers that are
   generic DB plumbing.
 - [x] Delete manual field coercers now owned by the charter engine.
-- [ ] Confirm remaining IO boundary constructors use names such as
+- [x] Confirm remaining IO boundary constructors use names such as
   `from_yaml_payload`, `from_json_payload`, or `from_row_mapping`.
-- [ ] Confirm `from_mapping` is absent from core, families, world, worldline,
+- [x] Confirm `from_mapping` is absent from core, families, world, worldline,
   support-revision, and tests.
-- [ ] Confirm no PascalCase `Active*` production type remains. Activation
+- [x] Confirm no PascalCase `Active*` production type remains. Activation
   state names use `Activation`, `Activated`, or domain-specific report names.
 
 ### Helper Deletion Predicate
 
-- [ ] Delete helpers whose body is table-shaped `SELECT`, `COUNT`, `INSERT`,
+- [x] Delete helpers whose body is table-shaped `SELECT`, `COUNT`, `INSERT`,
   `DELETE`, row attachment, row coercion, or projection-model wrapping with no
   Propstore semantic policy.
-- [ ] Preserve semantic behavior that owns concept-id precedence, alias
+- [x] Preserve semantic behavior that owns concept-id precedence, alias
   resolution, source-local lowering, quarantine/blocked policy, form/unit
   validation, visibility/render policy, context/lifting semantics,
   argumentation semantics, revision semantics, or authored-document identity.
-- [ ] After semantic behavior is moved to its owner, delete the original
+- [x] After semantic behavior is moved to its owner, delete the original
   helper-shaped production path.
 
 ### Phase 16 Execution Record
@@ -188,6 +188,20 @@ Recorded 2026-05-21.
   absent optional charter fields without adding fields outside the charter.
 - Verification: `uv run pyright propstore` passed with 0 errors; logged pytest
   `phase16-coercer-20260521-131326.log` passed with 20 tests.
+- Final Phase 16 projection/model/helper/coercer/schema-validation/active-object
+  search gates were zero-hit in `propstore` and `tests`, except the broad
+  classification searches below.
+- Narrow forbidden lookup-wrapper searches were zero-hit:
+  `def resolve_claim`, `def resolve_concept`, `def resolve_alias`,
+  `.resolve_claim(`, `.resolve_concept(`, `.resolve_alias(`,
+  `resolve_claim_id`, `resolve_concept_id`, and `resolve_concept_alias`.
+- Remaining broad `resolve_claim` hits are semantic world/worldline resolution
+  behavior: target/input value resolution and claim-graph argumentation
+  adjudication. They are not family identity lookup wrappers.
+- Remaining broad `resolve_concept` hits are description rendering behavior:
+  concept-id-to-display-name formatting inside `description_generator.py`.
+  They are not generic family reference lookup wrappers.
+- `resolve_alias` and `main_model` are zero-hit.
 
 ### Propstore Search Gates
 
