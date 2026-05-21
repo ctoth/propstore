@@ -283,6 +283,63 @@ from propstore.families.relations.projection_model import (  # noqa: E402
 )
 
 
+def compile_claim_embedded_stance_sidecar_rows_with_diagnostics(
+    claims: Iterable[SemanticClaim],
+    claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
+) -> tuple[tuple[ProjectionRow, ...], tuple[QuarantineDiagnostic, ...]]:
+    rows: list[ProjectionRow] = []
+    diagnostics: list[QuarantineDiagnostic] = []
+    for claim in claims:
+        embedded_rows, embedded_diagnostics = (
+            compile_claim_embedded_stance_rows_with_diagnostics(
+                claim,
+                claim_index,
+            )
+        )
+        rows.extend(_claim_embedded_stance_projection_row(values) for values in embedded_rows)
+        diagnostics.extend(embedded_diagnostics)
+    return tuple(rows), tuple(diagnostics)
+
+
+def _claim_embedded_stance_projection_row(values: tuple) -> ProjectionRow:
+    stance_type = coerce_stance_type(values[2])
+    if stance_type is None:
+        raise ValueError("deferred stance row requires a stance type")
+    stance = StanceRow(
+        claim_id=to_claim_id(values[0]),
+        target_claim_id=to_claim_id(values[1]),
+        stance_type=stance_type,
+        target_justification_id=(
+            None if values[3] is None else to_justification_id(values[3])
+        ),
+        strength=None if values[4] is None else str(values[4]),
+        conditions_differ=(
+            None
+            if values[5] is None
+            else str(json.dumps(values[5]) if isinstance(values[5], list) else values[5])
+        ),
+        note=None if values[6] is None else str(values[6]),
+        resolution_method=None if values[7] is None else str(values[7]),
+        resolution_model=None if values[8] is None else str(values[8]),
+        embedding_model=None if values[9] is None else str(values[9]),
+        embedding_distance=None if values[10] is None else float(values[10]),
+        pass_number=None if values[11] is None else int(values[11]),
+        confidence=None if values[12] is None else float(values[12]),
+        opinion_belief=None if values[13] is None else float(values[13]),
+        opinion_disbelief=None if values[14] is None else float(values[14]),
+        opinion_uncertainty=None if values[15] is None else float(values[15]),
+        opinion_base_rate=None if values[16] is None else float(values[16]),
+        perspective_source_claim_id=(
+            None if values[17] is None else to_claim_id(values[17])
+        ),
+    )
+    row_values: dict[str, object] = {}
+    for discriminator in CLAIM_STANCE_DISCRIMINATORS:
+        row_values.update(discriminator.row_values())
+    row_values.update(CLAIM_STANCE_STORAGE_MODEL.to_row(stance))
+    return RELATION_EDGE_TABLE.row(**row_values)
+
+
 def compile_authored_stance_sidecar_rows(
     stance_entries: Iterable[tuple[str, StanceDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],

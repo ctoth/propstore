@@ -1675,3 +1675,22 @@ Current binding queue:
   `powershell -File scripts/run_logged_pytest.ps1 -Label
   world-query-phase6-typed-store ...` passed with 8 tests and log
   `logs\test-runs\world-query-phase6-typed-store-20260520-202952.log`.
+- Embedded-stance row ownership cleanup: claim compilation no longer returns
+  embedded stance `ProjectionRow`s inside `ClaimWriteModels`. Embedded stance
+  sidecar-row construction moved to the relation owner, and
+  `derived_build_plan.py` now batches authored and embedded stance relation
+  rows together outside the claim write model. This removes the claim-family
+  `stance_rows` row carrier without changing relation-edge persistence.
+  Verification passed: `uv run pyright propstore`, focused pyright on
+  `propstore/families/claims/declaration.py`,
+  `propstore/families/relations/declaration.py`, and
+  `propstore/derived_build_plan.py`, and logged pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label claim-embedded-stance-owner
+  tests/test_claim_compiler.py::test_compile_claim_files_preserves_binding_provenance_for_concepts_and_stances
+  tests/test_build_sidecar.py::TestClaimStanceTable::test_claim_stance_rows_persisted
+  tests/test_relate_opinions.py` with 23 tests in
+  `logs\test-runs\claim-embedded-stance-owner-20260520-213846.log`.
+  `rg -n -F -- "stance_rows" propstore/families/claims/declaration.py`
+  returned no hits. The remaining `ProjectionRow` hits in
+  `propstore/families/claims/declaration.py` are authored justification,
+  conflict, and populate helpers still in the Phase 10/Phase 11 deletion queue.

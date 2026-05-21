@@ -45,6 +45,7 @@ from propstore.families.micropublications.declaration import (
 )
 from propstore.families.relations.declaration import (
     compile_authored_stance_sidecar_rows_with_diagnostics,
+    compile_claim_embedded_stance_sidecar_rows_with_diagnostics,
 )
 from propstore.families.sources.declaration import (
     compile_source_models,
@@ -130,12 +131,23 @@ def compile_sidecar_build_plan(
             dict(repository_checked_bundle.compilation_context.cel_registry),
             lifting_system=lifting_system,
         )
-        stance_rows, stance_quarantine_diagnostics = (
+        authored_stance_rows, stance_quarantine_diagnostics = (
             compile_authored_stance_sidecar_rows_with_diagnostics(
                 stance_entries,
                 claim_index,
             )
         )
+        embedded_stance_rows, embedded_stance_quarantine_diagnostics = (
+            compile_claim_embedded_stance_sidecar_rows_with_diagnostics(
+                (
+                    semantic_claim
+                    for semantic_file in checked_claims.bundle.semantic_files
+                    for semantic_claim in semantic_file.claims
+                ),
+                claim_index,
+            )
+        )
+        stance_rows = authored_stance_rows + embedded_stance_rows
         justification_rows, justification_quarantine_diagnostics = (
             compile_authored_justification_sidecar_rows_with_diagnostics(
                 justification_entries,
@@ -145,6 +157,7 @@ def compile_sidecar_build_plan(
         quarantine_diagnostics = (
             quarantine_diagnostics
             + stance_quarantine_diagnostics
+            + embedded_stance_quarantine_diagnostics
             + justification_quarantine_diagnostics
         )
 
@@ -227,7 +240,6 @@ def _claim_batches(rows: ClaimWriteModels | None) -> tuple[WorldWriteBatch, ...]
         _batch("claim_algorithm_payload", rows.algorithm_payloads),
         _batch("claim_source_assertion", rows.source_assertions),
         _batch("claim_concept_link", rows.concept_links),
-        _batch("relation_edge", rows.stance_rows),
     )
 
 
