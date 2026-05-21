@@ -12,8 +12,10 @@ from propstore.core.conditions.registry import ConceptInfo
 from propstore.core.environment import (
     WorldStore,
     ClaimCatalogStore,
+    ClaimStanceInventoryStore,
     CompiledGraphStore,
     ConceptCatalogStore,
+    ConflictStore,
     ParameterizationCatalogStore,
     ParameterizationLookupStore,
     StanceStore,
@@ -96,56 +98,18 @@ def _compiled_graph_for_bound(base: BoundWorld) -> CompiledWorldGraph | None:
     if (
         isinstance(base._store, ConceptCatalogStore)
         and isinstance(base._store, ClaimCatalogStore)
-        and isinstance(base._store, ParameterizationLookupStore)
-        and isinstance(base._store, StanceStore)
-    ):
-        return build_compiled_world_graph(
-            _ParameterizationCatalogAdapter(base._store)
+        and isinstance(base._store, ConflictStore)
+        and (
+            isinstance(base._store, ParameterizationCatalogStore)
+            or isinstance(base._store, ParameterizationLookupStore)
         )
-    if (
-        isinstance(base._store, ConceptCatalogStore)
-        and isinstance(base._store, ClaimCatalogStore)
-        and isinstance(base._store, ParameterizationCatalogStore)
+        and (
+            isinstance(base._store, ClaimStanceInventoryStore)
+            or isinstance(base._store, StanceStore)
+        )
     ):
         return build_compiled_world_graph(base._store)
     return None
-
-
-@dataclass(frozen=True)
-class _ParameterizationCatalogAdapter:
-    base: WorldStore
-
-    def all_concepts(self):
-        return list(self.base.all_concepts())
-
-    def claims_for(self, concept_id: str | None):
-        return list(self.base.claims_for(concept_id))
-
-    def conflicts(self):
-        return list(self.base.conflicts())
-
-    def stances_between(self, claim_ids: set[str]):
-        return list(self.base.stances_between(claim_ids))
-
-    def all_parameterizations(self) -> list[Parameterization]:
-        seen: set[tuple[object, ...]] = set()
-        rows: list[Parameterization] = []
-        for concept in self.base.all_concepts():
-            concept_id = str(concept.concept_id)
-            for row in self.base.parameterizations_for(concept_id):
-                row_key = (
-                    row.output_concept_id,
-                    row.concept_ids,
-                    row.formula,
-                    row.sympy,
-                    row.exactness,
-                    row.conditions_cel,
-                )
-                if row_key in seen:
-                    continue
-                seen.add(row_key)
-                rows.append(row)
-        return rows
 
 
 class _GraphOverlayStore:

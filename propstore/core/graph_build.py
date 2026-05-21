@@ -15,6 +15,7 @@ from propstore.core.environment import (
     ConceptCatalogStore,
     ConflictStore,
     ParameterizationCatalogStore,
+    ParameterizationLookupStore,
     RelationshipCatalogStore,
     StanceStore,
 )
@@ -167,8 +168,8 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         raise TypeError("build_compiled_world_graph requires all_concepts()")
     if not isinstance(store, ClaimCatalogStore):
         raise TypeError("build_compiled_world_graph requires claims_for()")
-    if not isinstance(store, ParameterizationCatalogStore):
-        raise TypeError("build_compiled_world_graph requires all_parameterizations()")
+    if not isinstance(store, ParameterizationCatalogStore) and not isinstance(store, ParameterizationLookupStore):
+        raise TypeError("build_compiled_world_graph requires all_parameterizations() or parameterizations_for()")
     if not isinstance(store, ConflictStore):
         raise TypeError("build_compiled_world_graph requires conflicts()")
 
@@ -178,7 +179,25 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
         if not isinstance(row, Claim):
             raise TypeError("claims_for() must return typed Claim objects")
     relationship_rows = list(store.all_relationships()) if isinstance(store, RelationshipCatalogStore) else []
-    parameterization_rows = list(store.all_parameterizations())
+    if isinstance(store, ParameterizationCatalogStore):
+        parameterization_rows = list(store.all_parameterizations())
+    else:
+        seen_parameterizations: set[tuple[object, ...]] = set()
+        parameterization_rows = []
+        for concept in concept_rows:
+            for row in store.parameterizations_for(str(concept.concept_id)):
+                row_key = (
+                    row.output_concept_id,
+                    row.concept_ids,
+                    row.formula,
+                    row.sympy,
+                    row.exactness,
+                    row.conditions_cel,
+                )
+                if row_key in seen_parameterizations:
+                    continue
+                seen_parameterizations.add(row_key)
+                parameterization_rows.append(row)
     conflict_rows = list(store.conflicts())
 
     if isinstance(store, ClaimStanceInventoryStore):
