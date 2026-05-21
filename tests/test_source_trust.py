@@ -8,10 +8,11 @@ from click.testing import CliRunner
 from hypothesis import given, settings
 from hypothesis import strategies as st
 from quire.documents import convert_document_value
+from sqlalchemy import select
 
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import ClaimDocument
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.families.registry import ClaimRef
 from propstore.opinion import Opinion, discount, from_probability
 from propstore.praf import NoCalibration, p_arg_from_claim
@@ -96,22 +97,22 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
     assert actual.provenance is not None
 
 
-def test_p_arg_from_claim_accepts_typed_claim_rows() -> None:
-    claim = CLAIM_ROW_MODEL.from_row(
-        {
-            "id": "claim-1",
-            "artifact_id": "claim-1",
-            "source_prior_base_rate": _prior_payload(0.62),
-            "source_quality_opinion": {
-                "b": 0.7,
-                "d": 0.1,
-                "u": 0.2,
-                "a": 0.5,
+def test_p_arg_from_claim_uses_source_trust_mapping() -> None:
+    claim = {
+        "source": {
+            "trust": {
+                "prior_base_rate": _prior_payload(0.62),
+                "quality": {
+                    "b": 0.7,
+                    "d": 0.1,
+                    "u": 0.2,
+                    "a": 0.5,
+                },
             },
-            "claim_probability": 0.8,
-            "effective_sample_size": 10,
-        }
-    )
+        },
+        "claim_probability": 0.8,
+        "effective_sample_size": 10,
+    }
     expected_claim = from_probability(0.8, 10, 0.62)
     expected = discount(Opinion(0.7, 0.1, 0.2, 0.5), expected_claim)
     actual = p_arg_from_claim(claim)
@@ -290,7 +291,7 @@ def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_p
     assert "derived_from" not in source_doc["trust"]
 
 
-def test_world_query_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) -> None:
+def test_world_query_claim_source_does_not_fabricate_source_prior(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
     repo.git.commit_batch(
         adds={
@@ -377,7 +378,8 @@ def test_world_query_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) ->
         ["-C", str(repo.root), "source", "add-claim", "demo", "--batch", str(claims_file)],
     ).exit_code == 0
     assert runner.invoke(cli, ["-C", str(repo.root), "source", "finalize", "demo"]).exit_code == 0
-    assert runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"]).exit_code == 0
+    promote_result = runner.invoke(cli, ["-C", str(repo.root), "source", "promote", "demo"])
+    assert promote_result.exit_code == 0, promote_result.output
 
     materialized_world_store_path(
         repo,
@@ -388,12 +390,19 @@ def test_world_query_claim_rows_do_not_fabricate_source_prior(tmp_path: Path) ->
     wm = WorldQuery(repo)
     try:
         claim = wm.get_claim(claim_id)
+        schema = world_sqlalchemy_schema()
+        source_model = schema.model("source")
+        with wm._derived_store.readonly_session(schema) as derived:
+            source = derived.execute(
+                select(source_model).where(source_model.slug == "demo")
+            ).scalar_one()
     finally:
         wm.close()
 
     assert claim is not None
-    claim_data = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim)))
-    assert "prior_base_rate" not in claim_data["source"].get("trust", {})
-    result = p_arg_from_claim(claim_data)
+    assert source.trust.prior_base_rate is None
+    result = p_arg_from_claim(
+        {"source": {"trust": {"prior_base_rate": source.trust.prior_base_rate}}}
+    )
     assert isinstance(result, NoCalibration)
     assert result.reason == "missing_claim_calibration"

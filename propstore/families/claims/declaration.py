@@ -691,6 +691,7 @@ def compile_claim_models(
             claim_model.numeric_payload = numeric_payload
             claim_model.text_payload = text_payload
             claim_model.algorithm_payload = algorithm_payload
+            claim_model.concept_links = []
             claim_model.source_assertions = [source_assertion]
             numeric_payload.claim = claim_model
             text_payload.claim = claim_model
@@ -710,15 +711,16 @@ def compile_claim_models(
                 if link_key in seen_claim_link_keys:
                     continue
                 seen_claim_link_keys.add(link_key)
-                claim_links.append(
-                    ClaimConceptLink(
-                        claim_id=values[0],
-                        concept_id=values[1],
-                        role=role,
-                        ordinal=values[3],
-                        binding_name=values[4],
-                    )
+                link = ClaimConceptLink(
+                    claim_id=values[0],
+                    concept_id=values[1],
+                    role=role,
+                    ordinal=values[3],
+                    binding_name=values[4],
                 )
+                link.claim = claim_model
+                claim_model.concept_links.append(link)
+                claim_links.append(link)
             deferred_stance_rows, deferred_stance_diagnostics = (
                 extract_deferred_stance_rows_with_diagnostics(
                     semantic_claim,

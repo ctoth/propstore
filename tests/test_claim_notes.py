@@ -13,7 +13,6 @@ import yaml
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.families.claims.declaration import CLAIM_ROW_MODEL
 from tests.family_helpers import build_sidecar
 from tests.family_helpers import load_claim_files
 from tests.family_helpers import world_query_from_sqlite_path
@@ -253,9 +252,8 @@ class TestClaimNotesSidecar:
         wm = world_query_from_sqlite_path(sidecar_path)
         claim = wm.get_claim(make_claim_identity("claim1", namespace="wm_notes_paper")["artifact_id"])
         assert claim is not None
-        claim_data = dict(CLAIM_ROW_MODEL.to_mapping(CLAIM_ROW_MODEL.coerce(claim)))
-        assert "notes" in claim_data, f"notes not in claim dict, keys: {list(claim_data.keys())}"
-        assert claim_data["notes"] == "WorldQuery test note"
+        assert claim.text_payload is not None
+        assert claim.text_payload.notes == "WorldQuery test note"
         wm.close()
 
 
