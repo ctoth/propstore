@@ -39,8 +39,8 @@ from propstore.families.diagnostics.declaration import (
     QuarantineDiagnostic,
 )
 from propstore.families.micropublications.declaration import (
-    MicropublicationSidecarRows,
-    compile_micropublication_sidecar_rows_with_diagnostics,
+    MicropublicationWriteModels,
+    compile_micropublication_models_with_diagnostics,
 )
 from propstore.families.relations.declaration import (
     compile_authored_stance_models_with_diagnostics,
@@ -161,8 +161,8 @@ def compile_sidecar_build_plan(
             + justification_quarantine_diagnostics
         )
 
-    micropublication_rows, micropublication_quarantine_diagnostics = (
-        compile_micropublication_sidecar_rows_with_diagnostics(
+    micropublication_models, micropublication_quarantine_diagnostics = (
+        compile_micropublication_models_with_diagnostics(
             micropub_entries,
             claim_index,
         )
@@ -189,7 +189,7 @@ def compile_sidecar_build_plan(
         *_claim_batches(claim_rows),
         *_raw_id_quarantine_batches(raw_id_quarantine_rows),
         _batch("conflict_witness", conflict_rows),
-        *_micropublication_batches(micropublication_rows),
+        *_micropublication_batches(micropublication_models),
         _batch("relation_edge", stance_rows),
         _batch("justification", justification_rows),
     )
@@ -253,9 +253,9 @@ def _raw_id_quarantine_batches(
 
 
 def _micropublication_batches(
-    rows: MicropublicationSidecarRows,
+    rows: MicropublicationWriteModels,
 ) -> tuple[WorldWriteBatch, ...]:
     return (
-        _batch("micropublication", rows.micropublication_rows),
-        _batch("micropublication_claim", rows.claim_rows),
+        _batch("micropublication", rows.micropublications),
+        _batch("micropublication_claim", rows.claim_links),
     )
