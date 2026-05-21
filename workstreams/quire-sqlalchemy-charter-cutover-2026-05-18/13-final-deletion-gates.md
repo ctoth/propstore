@@ -458,6 +458,13 @@ Gate: no local path, workspace, or file URL Quire dependency.
     the direct dimension API import from `propstore.families.forms.stages`.
   - `uv run pyright propstore` passed with 0 errors after the forms-stage
     dimension API import cleanup.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-source-blocked-rows-2 tests/remediation/phase_2_gates/test_T2_2r_source_promote_ambiguous_concept_quarantine.py tests/remediation/phase_2_gates/test_T2_2s_source_promote_unresolved_concept_quarantine.py tests/test_source_promotion_alignment.py::test_promote_source_branch_materializes_blocked_rows_from_source_state tests/test_promote_atomicity.py::test_promote_returns_in_memory_blocked_diagnostics_after_committed_mirror tests/test_cli_source_status.py::test_source_status_report_lists_blocked_promotion_rows tests/test_cli_source_status.py::test_source_status_lists_blocked_promotion_rows tests/remediation/phase_7_race_atomicity/test_T7_5b_promotion_diagnostic_scope.py tests/remediation/phase_7_race_atomicity/test_T7_5d_promotion_blocked_id_collision.py tests/remediation/phase_7_race_atomicity/test_T7_5e_promotion_blocked_fk_payload.py`
+    passed 9 tests after `PromotionBlockedClaimFact` carried the real
+    `ClaimType`, `compile_promotion_blocked_models` emitted blocked `Claim`
+    models, and the flush path preserved existing non-blocked canonical claim
+    rows.
+  - `uv run pyright propstore` passed with 0 errors after the source promotion
+    blocked-row projection repair.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.

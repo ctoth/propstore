@@ -48,6 +48,7 @@ from propstore.families.concepts.stages import (
 )
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.claims.references import resolve_first_claim_reference_id
+from propstore.core.claim_types import ClaimType
 from propstore.families.contexts.stages import parse_context_record_document
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.justifications import JustificationDocument
@@ -773,6 +774,7 @@ def collect_source_promotion_blocked_facts(
         facts.append(
             PromotionBlockedClaimFact(
                 artifact_id=artifact_id,
+                claim_type=ClaimType(str(claim.type)),
                 source_branch=source_branch,
                 source_paper=source_paper,
                 raw_id=raw_id,

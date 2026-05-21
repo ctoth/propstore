@@ -31,7 +31,7 @@ from quire.sqlalchemy_store import (
     populate_fts_index,
 )
 from quire.sqlite_vec_store import SqlAlchemyVecSnapshotStore
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
@@ -630,8 +630,22 @@ def _flush_promotion_blocked_claims(
         str(getattr(row, "id")): row
         for row in world_records("claim_core", rows.claims)
     }
-    claim_objects = tuple(claim_objects_by_id.values())
     diagnostic_objects = world_records("build_diagnostics", rows.diagnostics)
+    if claim_objects_by_id:
+        claim_core = derived.schema.tables["claim_core"]
+        existing_rows = derived.session.execute(
+            select(claim_core.c.id, claim_core.c.promotion_status).where(
+                claim_core.c.id.in_(tuple(claim_objects_by_id))
+            )
+        ).all()
+        preserved_claim_ids = {
+            str(row.id)
+            for row in existing_rows
+            if row.promotion_status != "blocked"
+        }
+        for claim_id in preserved_claim_ids:
+            claim_objects_by_id.pop(claim_id, None)
+    claim_objects = tuple(claim_objects_by_id.values())
     if not claim_objects and not diagnostic_objects:
         return
     claim_ids = tuple(str(getattr(row, "id")) for row in claim_objects)

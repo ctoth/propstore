@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from propstore.core.claim_types import ClaimType
 from propstore.families.claims.declaration import (
     PromotionBlockedModels,
     compile_promotion_blocked_models,
@@ -76,6 +77,7 @@ def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path
         (
             PromotionBlockedClaimFact(
                 artifact_id="claim-1",
+                claim_type=ClaimType.OBSERVATION,
                 source_branch="source/a",
                 source_paper="paper-a",
                 raw_id="local-claim",
@@ -92,6 +94,7 @@ def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path
         (
             PromotionBlockedClaimFact(
                 artifact_id="claim-1",
+                claim_type=ClaimType.OBSERVATION,
                 source_branch="source/b",
                 source_paper="paper-b",
                 raw_id="local-claim",

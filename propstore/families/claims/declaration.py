@@ -710,7 +710,24 @@ def compile_raw_id_quarantine_models(
 def compile_promotion_blocked_models(
     facts: Sequence[PromotionBlockedClaimFact],
 ) -> PromotionBlockedModels:
+    claims = tuple(
+        Claim(
+            id=fact.artifact_id,
+            type=fact.claim_type,
+            source_paper=fact.source_paper,
+            provenance_page=0,
+            primary_logical_id=fact.raw_id,
+            logical_ids_json="[]",
+            version_id="",
+            seq=seq,
+            branch=fact.source_branch,
+            build_status="blocked",
+            stage="source.promotion",
+            promotion_status="blocked",
+        )
+        for seq, fact in enumerate(facts)
+    )
     return PromotionBlockedModels(
-        claims=(),
+        claims=claims,
         diagnostics=compile_promotion_blocked_diagnostics(facts),
     )

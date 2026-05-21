@@ -13,6 +13,7 @@ from ast_equiv import canonical_dump
 from propstore.claims import ClaimFileEntry
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCompilationBundle
+from propstore.core.claim_types import ClaimType
 from propstore.core.id_types import ConceptId
 from propstore.families.claims.documents import VariableBindingDocument
 
@@ -172,6 +173,7 @@ class PromotionBlockedReason:
 @dataclass(frozen=True)
 class PromotionBlockedClaimFact:
     artifact_id: str
+    claim_type: ClaimType
     source_branch: str
     source_paper: str
     raw_id: str

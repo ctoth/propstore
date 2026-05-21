@@ -1,9 +1,9 @@
 """Regression test for promotion-blocked diagnostics with existing claim payloads.
 
-Promotion-blocked source-local facts no longer mirror blocked claim rows into
-``claim_core``. If an existing canonical ``claim_core`` row has child payload
-rows, the promotion-blocked flush must leave that canonical row and its
-children in place while recording the blocking diagnostic.
+Promotion-blocked source-local facts mirror blocked claim rows into
+``claim_core`` unless an existing canonical ``claim_core`` row already owns the
+claim id. In that case, the promotion-blocked flush must leave that canonical
+row and its children in place while recording the blocking diagnostic.
 
 Reproduces the Belch_2008 crash from the aspirin stance-backfill retry
 session (2026-04-23): a claim was ingested in a sibling branch (so its
@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from sqlalchemy import text
 
+from propstore.core.claim_types import ClaimType
 from propstore.families.claims.declaration import (
     compile_promotion_blocked_models,
 )
@@ -127,6 +128,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
         (
             PromotionBlockedClaimFact(
                 artifact_id="claim-shared",
+                claim_type=ClaimType.OBSERVATION,
                 source_branch="source/beta",
                 source_paper="paper-beta",
                 raw_id="local-claim",
@@ -175,8 +177,8 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
             {"claim_id": "claim-shared"},
         ).all()
 
-    # Source-local blocked facts stay diagnostics-only; the canonical
-    # promoted row and its children are not rewritten.
+    # The canonical promoted row and its children are not rewritten by the
+    # blocked mirror for the same claim id.
     assert len(core_rows) == 1, core_rows
     assert core_rows[0][2] == "promoted"
     assert child_counts == {

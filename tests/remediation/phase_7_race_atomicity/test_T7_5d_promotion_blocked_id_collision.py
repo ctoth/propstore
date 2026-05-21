@@ -1,9 +1,8 @@
 """Regression test for duplicate promotion-blocked diagnostics.
 
-Promotion-blocked source-local facts no longer mirror blocked claim rows into
-``claim_core``. The materialized store still must preserve a diagnostic for
-each source branch when the same blocked artifact id appears in more than one
-branch.
+Promotion-blocked source-local facts mirror a blocked row into ``claim_core``.
+The materialized store still must preserve a diagnostic for each source branch
+when the same blocked artifact id appears in more than one branch.
 
 The aspirin stance-backfill session (2026-04-23) stacked 15 tangled
 re-promote commits because of this — the git commit landed before the
@@ -13,6 +12,7 @@ from __future__ import annotations
 
 from sqlalchemy import text
 
+from propstore.core.claim_types import ClaimType
 from propstore.families.claims.declaration import (
     PromotionBlockedModels,
     compile_promotion_blocked_models,
@@ -39,6 +39,7 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
         (
             PromotionBlockedClaimFact(
                 artifact_id="claim-dup",
+                claim_type=ClaimType.OBSERVATION,
                 source_branch="source/alpha",
                 source_paper="paper-alpha",
                 raw_id="local-claim",
@@ -55,6 +56,7 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
         (
             PromotionBlockedClaimFact(
                 artifact_id="claim-dup",
+                claim_type=ClaimType.OBSERVATION,
                 source_branch="source/beta",
                 source_paper="paper-beta",
                 raw_id="local-claim",
@@ -98,9 +100,9 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
             {"claim_id": "claim-dup"},
         ).all()
 
-    # Source-local blocked facts stay diagnostics-only, and both source
-    # branches' diagnostic rows are preserved side-by-side.
-    assert core_rows == []
+    # ``claim_core.id`` is the claim identity, so duplicate source-local facts
+    # share one blocked row while preserving both branch diagnostics.
+    assert core_rows == [("claim-dup", "source/beta", "blocked")]
     assert diag_rows == [
         ("source/alpha:claim-dup", "unresolved in alpha"),
         ("source/beta:claim-dup", "unresolved in beta"),
