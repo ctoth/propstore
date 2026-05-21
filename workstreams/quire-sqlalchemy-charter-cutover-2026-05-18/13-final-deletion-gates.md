@@ -454,6 +454,28 @@ Gate: no local path, workspace, or file URL Quire dependency.
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-3`
     failed: 58 failed, 3541 passed, 4 skipped.
   - Log: `logs/test-runs/sqlalchemy-charter-full-3-20260521-143149.log`.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-4`
+    failed: 35 failed, 3564 passed, 4 skipped.
+  - Log: `logs/test-runs/sqlalchemy-charter-full-4-20260521-145951.log`.
+  - Remaining failure clusters from full-4:
+    - Conflict query boundary: non-catalog stores must not require catalog
+      concept lookup before the cheap active-claim/conflict pass-through path.
+    - Source promotion blocked-row projection: blocked source-local claims are
+      still omitted from `claim_core` promotion-status rows.
+    - Source/source-slug and source status display paths still read fields no
+      longer present on the current source charter shape.
+    - Typed fixture drift remains in ATMS, PrAF, semantic repair, fragility,
+      sensitivity, micropublication, and preference import tests; fix fixtures
+      to build charter/domain objects, not production dict fallbacks.
+    - Argumentation/vacuous stance behavior must reject vacuous attackers at
+      the typed relation boundary, not via compatibility wrappers.
+    - Demo and worldline tests still assert source-local handles where current
+      runtime surfaces expose canonical claim ids.
+    - Sidecar cache-key schema fields and contract manifest snapshots must be
+      regenerated/versioned through the intended contract workflow after
+      production semantics settle.
+    - Deleted `propstore/form_utils.py` test assumes the old file exists; keep
+      the production deletion and update the gate to assert absence.
 
 Current full-gate repair queue, deletion-first:
 
