@@ -102,43 +102,17 @@ class _ConflictInputs:
 def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, ConceptInfo]]:
     registry: dict[str, dict] = {}
     rows = []
-    for concept_input in world.all_concepts():
-        concept = Concept.coerce(concept_input)
+    for concept in world.all_concepts():
         rows.append(concept)
-        cdata = dict(concept.to_row_mapping())
+        cdata = concept.conflict_detector_payload()
         cid = str(concept.concept_id)
-        if concept.form_parameters is not None:
-            try:
-                cdata["form_parameters"] = json.loads(concept.form_parameters)
-            except json.JSONDecodeError:
-                cdata["form_parameters"] = {}
         params = world.parameterizations_for(cid)
         if params:
             cdata["parameterization_relationships"] = []
-            for param_input in params:
-                param = (
-                    param_input
-                    if isinstance(param_input, Parameterization)
-                    else Parameterization.from_row_mapping(
-                        {
-                            **dict(param_input),
-                            "output_concept_id": dict(param_input).get(
-                                "output_concept_id",
-                                cid,
-                            ),
-                        }
-                    )
+            for param in params:
+                cdata["parameterization_relationships"].append(
+                    param.conflict_detector_payload()
                 )
-                cdata["parameterization_relationships"].append({
-                    "inputs": json.loads(param.concept_ids),
-                    "sympy": param.sympy,
-                    "exactness": param.exactness,
-                    "conditions": (
-                        json.loads(param.conditions_cel)
-                        if param.conditions_cel
-                        else []
-                    ),
-                })
         registry[cid] = cdata
     if isinstance(world, ConditionSolverStore):
         cel_registry = dict(world.condition_solver().registry)
@@ -268,22 +242,9 @@ class BoundWorld(BeliefSpace):
         # _GraphOverlayStore and rely on getting a fresh cache.
         self._conflict_inputs_cache: _ConflictInputs | None = None
         self._resolver = ClaimValueResolver(
-            parameterizations_for=lambda concept_id: [
-                (
-                    row
-                    if isinstance(row, Parameterization)
-                    else Parameterization.from_row_mapping(
-                        {
-                            **dict(row),
-                            "output_concept_id": dict(row).get(
-                                "output_concept_id",
-                                concept_id,
-                            ),
-                        }
-                    )
-                )
-                for row in self._store.parameterizations_for(concept_id)
-            ],
+            parameterizations_for=lambda concept_id: list(
+                self._store.parameterizations_for(str(concept_id))
+            ),
             is_param_compatible=self.is_parameterization_compatible,
             value_of=self.value_of,
             extract_variable_concepts=self.extract_variable_concepts,
@@ -393,22 +354,16 @@ class BoundWorld(BeliefSpace):
 
     def _concept_symbol_candidates(self, concept_id: ConceptId | str) -> list[str]:
         candidates: list[str] = []
-        concept_input = self._store.get_concept(str(concept_id))
-        concept = (
-            None
-            if concept_input is None
-            else dict(Concept.coerce(concept_input).to_row_mapping())
-        )
-        if concept is None:
-            for entry in self._store.all_concepts():
-                row = Concept.coerce(entry)
+        concept_row = self._store.get_concept(str(concept_id))
+        if concept_row is None:
+            for row in self._store.all_concepts():
                 if (
                     str(row.concept_id) == str(concept_id)
                     or row.canonical_name == str(concept_id)
                 ):
-                    concept = dict(row.to_row_mapping())
+                    concept_row = row
                     break
-        if concept is None:
+        if concept_row is None:
             return candidates
 
         seen: set[str] = set()
@@ -421,8 +376,8 @@ class BoundWorld(BeliefSpace):
             seen.add(candidate)
             candidates.append(candidate)
 
-        add(concept.get("canonical_name"))
-        logical_ids = concept.get("logical_ids")
+        add(concept_row.canonical_name)
+        logical_ids = concept_row.parsed_logical_ids()
         if isinstance(logical_ids, list):
             for entry in logical_ids:
                 if not isinstance(entry, dict):

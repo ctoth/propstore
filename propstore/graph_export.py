@@ -174,8 +174,7 @@ def build_knowledge_graph(
 
     # ---- 1. Concept nodes ----
     concept_rows = world.all_concepts()
-    for row_input in concept_rows:
-        row = Concept.coerce(row_input)
+    for row in concept_rows:
         cid = str(row.concept_id)
         if allowed_concept_ids is not None and cid not in allowed_concept_ids:
             continue
@@ -233,8 +232,7 @@ def build_knowledge_graph(
         node_ids.add(claim_id)
 
     # ---- 3. Parameterization edges ----
-    for row_input in world.all_parameterizations():
-        row = Parameterization.coerce(row_input)
+    for row in world.all_parameterizations():
         output_id = str(row.output_concept_id)
         if output_id not in node_ids:
             continue

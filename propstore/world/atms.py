@@ -66,7 +66,6 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.concepts.declaration import (
     Parameterization,
-    ParameterizationInput,
 )
 from propstore.support_revision.projection import situated_assertion_from_claim
 from propstore.world.types import (
@@ -119,7 +118,7 @@ class _ATMSRuntimeLike(Protocol):
     def active_graph(self) -> ActiveWorldGraph: ...
 
     @property
-    def all_parameterizations(self) -> Callable[[], list[ParameterizationInput]]: ...
+    def all_parameterizations(self) -> Callable[[], list[Parameterization]]: ...
 
     @property
     def all_micropublications(self) -> Callable[[], list[Micropublication]]: ...
@@ -300,7 +299,7 @@ class ATMSJustification:
 class _ATMSRuntime:
     environment: Environment
     active_graph: ActiveWorldGraph
-    all_parameterizations: Callable[[], list[ParameterizationInput]]
+    all_parameterizations: Callable[[], list[Parameterization]]
     all_micropublications: Callable[[], list[Micropublication]]
     active_claims: Callable[[], list[Claim]]
     conflicts: Callable[[], list[ConflictWitness]]
@@ -496,7 +495,7 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
             if conflict.left_claim_id in active_ids and conflict.right_claim_id in active_ids
         ]
 
-    def _all_parameterizations() -> list[ParameterizationInput]:
+    def _all_parameterizations() -> list[Parameterization]:
         return [
             _parameterization_edge_to_row(edge)
             for edge in active_graph.compiled.parameterizations
@@ -1485,8 +1484,7 @@ class ATMSEngine:
         added = False
         provider_ids_by_concept = self._provider_node_ids_by_concept()
 
-        for index, param_input in enumerate(self._all_parameterizations):
-            param = Parameterization.coerce(param_input)
+        for index, param in enumerate(self._all_parameterizations):
             if not self._runtime.is_param_compatible(param):
                 continue
 
@@ -1672,9 +1670,8 @@ class ATMSEngine:
             for concept_id, node_ids in providers.items()
         }
 
-    def _sorted_parameterizations(self) -> list[ParameterizationInput]:
-        def sort_key(row: ParameterizationInput) -> tuple[str, str, str]:
-            parameterization = Parameterization.coerce(row)
+    def _sorted_parameterizations(self) -> list[Parameterization]:
+        def sort_key(parameterization: Parameterization) -> tuple[str, str, str]:
             return (
                 str(parameterization.output_concept_id),
                 parameterization.formula or "",

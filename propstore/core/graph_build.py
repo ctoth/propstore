@@ -173,19 +173,13 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
     if not isinstance(store, ConflictStore):
         raise TypeError("build_compiled_world_graph requires conflicts()")
 
-    concept_rows = [
-        Concept.coerce(row)
-        for row in store.all_concepts()
-    ]
+    concept_rows = list(store.all_concepts())
     claim_rows = list(store.claims_for(None))
     for row in claim_rows:
         if not isinstance(row, Claim):
             raise TypeError("claims_for() must return typed Claim objects")
     relationship_rows = list(store.all_relationships()) if isinstance(store, RelationshipCatalogStore) else []
-    parameterization_rows = [
-        Parameterization.coerce(row)
-        for row in store.all_parameterizations()
-    ]
+    parameterization_rows = list(store.all_parameterizations())
     conflict_rows = list(store.conflicts())
 
     if isinstance(store, ClaimStanceInventoryStore):
@@ -208,7 +202,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
             status=row.status,
             form=row.form,
             kind_type=row.kind_type,
-            attributes=_concept_attributes(row.to_row_mapping()),
+            attributes=tuple(row.attribute_mapping().items()),
         )
         for row in concept_rows
     )
@@ -320,7 +314,6 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                     ),
                     provenance=_row_provenance(
                         {
-                            **parameterization.attributes,
                             "output_concept_id": parameterization.output_concept_id,
                             "concept_ids": parameterization.concept_ids,
                             "formula": parameterization.formula,

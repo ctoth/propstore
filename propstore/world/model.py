@@ -274,17 +274,7 @@ class WorldQuery(WorldStore):
                 ).scalar_one_or_none()
         if concept is None:
             return None
-        data = dict(concept.to_row_mapping())
-        logical_ids_json = data.get("logical_ids_json")
-        if isinstance(logical_ids_json, str) and logical_ids_json:
-            try:
-                data["logical_ids"] = json.loads(logical_ids_json)
-            except json.JSONDecodeError:
-                data["logical_ids"] = []
-        else:
-            data["logical_ids"] = []
-        data["logical_id"] = data.get("primary_logical_id")
-        return Concept.from_row_mapping(data)
+        return concept
 
     def concept_name(self, concept_id: str) -> str | None:
         """Return the canonical name for a concept, or None if not found."""

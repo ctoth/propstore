@@ -72,26 +72,15 @@ def _check_transitive_consistency(
         for handle in repo.families.claims.iter_handles()
     ]
     concept_registry: dict[str, dict] = {}
-    for concept_input in world.all_concepts():
-        concept_data = dict(Concept.coerce(concept_input).to_row_mapping())
+    for concept in world.all_concepts():
+        concept_data = concept.conflict_detector_payload()
         concept_id = str(concept_data["id"])
         param_rows = world.parameterizations_for(concept_id)
         if param_rows:
             concept_data["parameterization_relationships"] = []
             for param_row in param_rows:
-                parameterization = Parameterization.coerce(param_row)
-                param_data = dict(parameterization.to_row_mapping())
                 concept_data["parameterization_relationships"].append(
-                    {
-                        "inputs": json.loads(parameterization.concept_ids),
-                        "sympy": param_data.get("sympy"),
-                        "exactness": param_data.get("exactness"),
-                        "conditions": (
-                            json.loads(parameterization.conditions_cel)
-                            if parameterization.conditions_cel
-                            else []
-                        ),
-                    }
+                    param_row.conflict_detector_payload()
                 )
         concept_registry[concept_id] = concept_data
 

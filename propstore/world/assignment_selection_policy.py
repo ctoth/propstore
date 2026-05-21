@@ -22,7 +22,7 @@ from propstore.core.conditions.registry import ConceptInfo, scope_condition_regi
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ClaimId
 from propstore.families.claims.declaration import Claim
-from propstore.families.concepts.declaration import Concept, ConceptInput
+from propstore.families.concepts.declaration import Concept
 from propstore.world.types import (
     IntegrityConstraint,
     IntegrityConstraintKind,
@@ -54,10 +54,10 @@ def _claim_concept_id(claim: Claim) -> str:
     return concept_id
 
 
-def _normalized_form_parameters(concept: ConceptInput | None) -> Mapping[str, object]:
+def _normalized_form_parameters(concept: Concept | None) -> Mapping[str, object]:
     if concept is None:
         return {}
-    raw = Concept.coerce(concept).form_parameters
+    raw = concept.form_parameters
     if isinstance(raw, Mapping):
         return raw
     if isinstance(raw, str):
@@ -77,12 +77,10 @@ def _concept_integrity_constraints(
     concept = world.get_concept(concept_id)
     if concept is None:
         return tuple()
-    concept_row = Concept.coerce(concept)
-    concept_data = concept_row.to_row_mapping()
 
     constraints: list[IntegrityConstraint] = []
-    lower = concept_data.get("range_min")
-    upper = concept_data.get("range_max")
+    lower = concept.range_min
+    upper = concept.range_max
     if lower is not None or upper is not None:
         constraints.append(
             IntegrityConstraint(
@@ -94,7 +92,7 @@ def _concept_integrity_constraints(
         )
 
     form_parameters = _normalized_form_parameters(concept)
-    if concept_row.form == "category":
+    if concept.form == "category":
         values = form_parameters.get("values")
         extensible = form_parameters.get("extensible", True)
         if isinstance(values, list | tuple) and not extensible:
@@ -147,7 +145,7 @@ def _cel_registry_for_concepts(
     concept_ids: Sequence[str],
 ) -> dict[str, ConceptInfo]:
     rows = [
-        Concept.coerce(concept)
+        concept
         for concept_id in concept_ids
         if (concept := world.get_concept(concept_id)) is not None
     ]

@@ -586,7 +586,7 @@ class TestUnboundQueries:
     def test_get_concept(self, world):
         c = world.get_concept("fundamental_frequency")
         assert c is not None
-        assert Concept.coerce(c).canonical_name == "fundamental_frequency"
+        assert c.canonical_name == "fundamental_frequency"
 
     def test_get_concept_missing(self, world):
         assert world.get_concept("nonexistent") is None

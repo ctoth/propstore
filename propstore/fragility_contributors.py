@@ -136,8 +136,7 @@ def _parameterizations_to_queryables(
     bound: FragilityWorld,
 ) -> tuple[QueryableAssumption, ...]:
     queryables: list[str | QueryableAssumption] = []
-    for parameterization_input in bound._store.all_parameterizations():
-        parameterization = Parameterization.coerce(parameterization_input)
+    for parameterization in bound._store.all_parameterizations():
         if not parameterization.conditions_cel:
             continue
         decoded = json.loads(parameterization.conditions_cel)
@@ -153,7 +152,7 @@ def _parameterizations_to_queryables(
 def derive_scored_concepts(bound: FragilityWorld) -> list[str]:
     try:
         concepts: set[str] = {
-            str(Parameterization.coerce(row).output_concept_id)
+            str(row.output_concept_id)
             for row in bound._store.all_parameterizations()
         }
         for claim in bound.active_claims():
@@ -286,8 +285,7 @@ def collect_missing_measurement_interventions(
     downstream_by_input: dict[str, set[str]] = {}
     parameterizations_by_input: dict[str, set[str]] = {}
 
-    for parameterization_input in bound._store.all_parameterizations():
-        parameterization = Parameterization.coerce(parameterization_input)
+    for parameterization in bound._store.all_parameterizations():
         output_concept_id = str(parameterization.output_concept_id)
         if concept_ids and output_concept_id not in set(concept_ids):
             continue

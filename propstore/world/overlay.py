@@ -45,9 +45,7 @@ from propstore.families.relations.declaration import (
 from propstore.families.concepts.declaration import (
     Concept,
     Parameterization,
-    ParameterizationInput,
 )
-from propstore.families.concepts.declaration import ConceptInput
 from propstore.world.bound import BoundWorld, _recomputed_conflicts
 from propstore.world.types import (
     BeliefSpace,
@@ -129,22 +127,9 @@ class _ParameterizationCatalogAdapter:
     def all_parameterizations(self) -> list[Parameterization]:
         seen: set[tuple[object, ...]] = set()
         rows: list[Parameterization] = []
-        for concept_input in self.base.all_concepts():
-            concept_id = str(Concept.coerce(concept_input).concept_id)
-            for row_input in self.base.parameterizations_for(concept_id):
-                row = (
-                    row_input
-                    if isinstance(row_input, Parameterization)
-                    else Parameterization.from_row_mapping(
-                        {
-                            **dict(row_input),
-                            "output_concept_id": dict(row_input).get(
-                                "output_concept_id",
-                                concept_id,
-                            ),
-                        }
-                    )
-                )
+        for concept in self.base.all_concepts():
+            concept_id = str(concept.concept_id)
+            for row in self.base.parameterizations_for(concept_id):
                 row_key = (
                     row.output_concept_id,
                     row.concept_ids,
@@ -152,7 +137,6 @@ class _ParameterizationCatalogAdapter:
                     row.sympy,
                     row.exactness,
                     row.conditions_cel,
-                    tuple(sorted(row.attributes.items())),
                 )
                 if row_key in seen:
                     continue
@@ -181,16 +165,15 @@ class _GraphOverlayStore:
     def __getattr__(self, name: str) -> Any:
         return getattr(self._base, name)
 
-    def get_concept(self, concept_id: str) -> ConceptInput | None:
+    def get_concept(self, concept_id: str) -> Concept | None:
         getter = getattr(self._base, "get_concept", None)
         if callable(getter):
-            concept = cast(Callable[[str], ConceptInput | None], getter)(concept_id)
+            concept = cast(Callable[[str], Concept | None], getter)(concept_id)
             if concept is not None:
                 return concept
         if not hasattr(self._base, "all_concepts"):
             return None
-        for concept_input in self._base.all_concepts():
-            concept = Concept.coerce(concept_input)
+        for concept in self._base.all_concepts():
             if str(concept.concept_id) == concept_id or concept.canonical_name == concept_id:
                 return concept
         return None
@@ -219,7 +202,7 @@ class _GraphOverlayStore:
             return cast(Callable[[str], str | None], resolver)(name)
         return None
 
-    def all_concepts(self) -> Sequence[ConceptInput]:
+    def all_concepts(self) -> Sequence[Concept]:
         return list(self._base.all_concepts())
 
     def claims_for(self, concept_id: str | None) -> list[Claim]:
@@ -250,7 +233,7 @@ class _GraphOverlayStore:
     def conflicts(self) -> Sequence[RelationConflictWitness]:
         return list(self._conflicts)
 
-    def all_parameterizations(self) -> Sequence[ParameterizationInput]:
+    def all_parameterizations(self) -> Sequence[Parameterization]:
         return list(self._base.all_parameterizations())
 
     def all_relationships(self) -> Sequence[ConceptRelation]:
@@ -299,7 +282,7 @@ class _GraphOverlayStore:
     def stats(self) -> WorldStoreStats:
         return self._base.stats()
 
-    def parameterizations_for(self, concept_id: str) -> Sequence[ParameterizationInput]:
+    def parameterizations_for(self, concept_id: str) -> Sequence[Parameterization]:
         return list(self._base.parameterizations_for(concept_id))
 
     def explain(self, claim_id: str) -> list[Stance]:

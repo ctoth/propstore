@@ -288,7 +288,7 @@ def _claim_lines(
         if concept_id:
             concept = world.get_concept(concept_id)
             if concept is not None:
-                concept_name = Concept.coerce(concept).canonical_name
+                concept_name = concept.canonical_name
         lines.append(
             WorldExtensionsClaimLine(
                 claim_id=str(claim.id),

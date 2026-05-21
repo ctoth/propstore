@@ -354,9 +354,7 @@ def _format_value_with_si(
             if concept_id is not None:
                 concept = world.get_concept(concept_id)
                 if concept is not None:
-                    canonical_unit = str(
-                        Concept.coerce(concept).unit_symbol or ""
-                    )
+                    canonical_unit = str(concept.unit_symbol or "")
         si_label = f"{value_si} {canonical_unit}".rstrip()
         return f"value={value} {unit} (SI: {si_label})"
     if isinstance(unit, str):
@@ -379,11 +377,10 @@ def _concept_resolution_candidate(
     concept = world.get_concept(concept_id)
     if concept is None:
         return None
-    row = Concept.coerce(concept)
     return WorldConceptResolutionCandidate(
         concept_id=concept_id,
         display_id=world_concept_display_id(world, concept_id),
-        canonical_name=row.canonical_name,
+        canonical_name=concept.canonical_name,
     )
 
 
@@ -417,11 +414,10 @@ def world_concept_display_id(world: WorldQuery, concept_id: str) -> str:
     concept = world.get_concept(concept_id)
     if concept is None:
         return concept_id
-    row = Concept.coerce(concept)
-    logical_id = row.primary_logical_id
+    logical_id = concept.primary_logical_id
     if isinstance(logical_id, str) and logical_id:
         return logical_id
-    return str(row.concept_id or concept_id)
+    return str(concept.concept_id or concept_id)
 
 
 def world_claim_display_id(claim: Claim) -> str:
@@ -437,7 +433,7 @@ def _world_chain_concept_line(
 ) -> WorldChainConceptLine:
     concept = world.get_concept(concept_id)
     canonical_name = (
-        Concept.coerce(concept).canonical_name
+        concept.canonical_name
         if concept is not None
         else None
     )
@@ -456,7 +452,6 @@ def query_world_concept(
     if concept is None:
         raise UnknownConceptError(request.target)
 
-    concept_row = Concept.coerce(concept)
     claims = tuple(
         WorldClaimLine(
             display_id=world_claim_display_id(claim),
@@ -479,7 +474,7 @@ def query_world_concept(
         for row in world.build_diagnostics(request.policy)
     )
     return WorldConceptQueryReport(
-        canonical_name=concept_row.canonical_name,
+        canonical_name=concept.canonical_name,
         concept_display_id=world_concept_display_id(world, resolved),
         claims=claims,
         diagnostics=diagnostics,

@@ -126,10 +126,9 @@ def analyze_sensitivity(
     )
     lookup_concept_id = to_concept_id(resolved_concept_id or str(requested_concept_id))
 
-    raw_params = world.parameterizations_for(str(lookup_concept_id))
-    if not raw_params:
+    params = list(world.parameterizations_for(str(lookup_concept_id)))
+    if not params:
         return None
-    params = [Parameterization.coerce(param) for param in raw_params]
 
     # Find first compatible parameterization
     param = None

@@ -2,22 +2,19 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
-from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import json
+from quire.charters import FamilyModel
 from quire.sqlite_vec_store import embedding_status_projection, rowid_vec_projection
 
-from propstore.core.concept_status import ConceptStatus, coerce_concept_status
 from propstore.core.conditions import (
     check_condition_ir,
     checked_condition_set,
     checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
-from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import ConceptId, to_concept_id
 from propstore.families.forms.stages import (
     Form,
@@ -201,131 +198,23 @@ def compile_concept_sidecar_rows(
     )
 
 
-class Concept:
-    attributes: Mapping[str, Any] = MappingProxyType({})
-
-    def __init__(
-        self,
-        concept_id: ConceptId | str | None = None,
-        canonical_name: str = "",
-        *,
-        id: str | None = None,
-        status: ConceptStatus | str | None = None,
-        definition: str | None = None,
-        kind_type: str | None = None,
-        form: str | None = None,
-        domain: str | None = None,
-        form_parameters: str | None = None,
-        primary_logical_id: str | None = None,
-        logical_ids_json: str | None = None,
-        version_id: str | None = None,
-        content_hash: str | None = None,
-        seq: int | None = None,
-        range_min: float | None = None,
-        range_max: float | None = None,
-        is_dimensionless: int | None = None,
-        unit_symbol: str | None = None,
-        created_date: str | None = None,
-        last_modified: str | None = None,
-        attributes: Mapping[str, Any] | None = None,
-    ) -> None:
-        concept_key = str(id or concept_id or "")
-        self.id = concept_key
-        self.canonical_name = canonical_name
-        self.status = None if status is None else coerce_concept_status(status)
-        self.definition = definition
-        self.kind_type = kind_type
-        self.form = form
-        self.domain = domain
-        self.form_parameters = form_parameters
-        self.primary_logical_id = primary_logical_id
-        self.logical_ids_json = logical_ids_json
-        self.version_id = version_id
-        self.content_hash = content_hash
-        self.seq = seq
-        self.range_min = range_min
-        self.range_max = range_max
-        self.is_dimensionless = is_dimensionless
-        self.unit_symbol = unit_symbol
-        self.created_date = created_date
-        self.last_modified = last_modified
-        self.attributes = dict(attributes or {})
-
+class Concept(FamilyModel):
     @property
     def concept_id(self) -> ConceptId:
-        return to_concept_id(self.id)
-
-    @classmethod
-    def from_row_mapping(cls, row: Mapping[str, Any]) -> "Concept":
-        payload = dict(row)
-        concept_id = payload.pop("concept_id", None) or payload.pop("id", None)
-        known = {
-            "canonical_name",
-            "status",
-            "definition",
-            "kind_type",
-            "form",
-            "domain",
-            "form_parameters",
-            "primary_logical_id",
-            "logical_ids_json",
-            "version_id",
-            "content_hash",
-            "seq",
-            "range_min",
-            "range_max",
-            "is_dimensionless",
-            "unit_symbol",
-            "created_date",
-            "last_modified",
-        }
-        values = {key: payload.pop(key, None) for key in known}
-        values["attributes"] = payload
-        return cls(concept_id=concept_id, **values)
-
-    @classmethod
-    def coerce(cls, value: "Concept | Mapping[str, Any]") -> "Concept":
-        if isinstance(value, Concept):
-            return value
-        return cls.from_row_mapping(value)
-
-    def to_row_mapping(self) -> dict[str, Any]:
-        data = {
-            "id": self.id,
-            "concept_id": self.concept_id,
-            "canonical_name": self.canonical_name,
-            "status": self.status,
-            "definition": self.definition,
-            "kind_type": self.kind_type,
-            "form": self.form,
-            "domain": self.domain,
-            "form_parameters": self.form_parameters,
-            "primary_logical_id": self.primary_logical_id,
-            "logical_ids_json": self.logical_ids_json,
-            "version_id": self.version_id,
-            "content_hash": self.content_hash,
-            "seq": self.seq,
-            "range_min": self.range_min,
-            "range_max": self.range_max,
-            "is_dimensionless": self.is_dimensionless,
-            "unit_symbol": self.unit_symbol,
-            "created_date": self.created_date,
-            "last_modified": self.last_modified,
-        }
-        data.update(getattr(self, "attributes", {}))
-        return data
+        return to_concept_id(cast(str, getattr(self, "id")))
 
     def parsed_logical_ids(self) -> list[dict[str, Any]]:
-        if not self.logical_ids_json:
+        logical_ids_json = cast(str | None, getattr(self, "logical_ids_json", None))
+        if not logical_ids_json:
             return []
         try:
-            loaded = json.loads(self.logical_ids_json)
+            loaded = json.loads(logical_ids_json)
         except json.JSONDecodeError:
             return []
         return loaded if isinstance(loaded, list) else []
 
     def attribute_mapping(self) -> dict[str, Any]:
-        data = dict(getattr(self, "attributes", {}))
+        data: dict[str, Any] = {}
         for key in (
             "version_id",
             "content_hash",
@@ -337,122 +226,65 @@ class Concept:
             "created_date",
             "last_modified",
         ):
-            value = getattr(self, key)
+            value = getattr(self, key, None)
             if value is not None:
                 data[key] = value
         return data
 
     def attribute_value(self, key: str) -> Any:
-        if hasattr(self, key):
-            value = getattr(self, key)
-            if value is not None:
-                return value
-        return dict(getattr(self, "attributes", {})).get(key)
-
-
-class ConceptAlias:
-    def __init__(
-        self,
-        concept_id: ConceptId | str,
-        alias_name: str,
-        source: str | None = None,
-    ) -> None:
-        self.concept_id = to_concept_id(concept_id)
-        self.alias_name = alias_name
-        self.source = source
-
-
-class ConceptRelationship:
-    def __init__(
-        self,
-        source_id: ConceptId | str,
-        type: object,
-        target_id: ConceptId | str,
-        *,
-        conditions_cel: str | None = None,
-        note: str | None = None,
-    ) -> None:
-        self.source_id = to_concept_id(source_id)
-        self.type = str(type)
-        self.target_id = to_concept_id(target_id)
-        self.conditions_cel = conditions_cel
-        self.note = note
-
-    @property
-    def relationship_type(self) -> str:
-        return self.type
-
-
-class Parameterization:
-    attributes: Mapping[str, Any] = MappingProxyType({})
-
-    def __init__(
-        self,
-        output_concept_id: ConceptId | str,
-        concept_ids: str,
-        *,
-        formula: str | None = None,
-        sympy: str | None = None,
-        exactness: Exactness | str | None = None,
-        conditions_cel: str | None = None,
-        conditions_ir: str | None = None,
-        attributes: Mapping[str, Any] | None = None,
-    ) -> None:
-        self.output_concept_id = to_concept_id(output_concept_id)
-        self.concept_ids = concept_ids
-        self.formula = formula
-        self.sympy = sympy
-        self.exactness = coerce_exactness(exactness)
-        self.conditions_cel = conditions_cel
-        self.conditions_ir = conditions_ir
-        self.attributes = dict(attributes or {})
-
-    @classmethod
-    def from_row_mapping(cls, row: Mapping[str, Any]) -> "Parameterization":
-        payload = dict(row)
-        known = {
-            "output_concept_id",
-            "concept_ids",
-            "formula",
-            "sympy",
-            "exactness",
-            "conditions_cel",
-            "conditions_ir",
-        }
-        values = {key: payload.pop(key, None) for key in known}
-        values["attributes"] = payload
-        return cls(**values)
-
-    @classmethod
-    def coerce(cls, value: "Parameterization | Mapping[str, Any]") -> "Parameterization":
-        if isinstance(value, Parameterization):
+        value = getattr(self, key, None)
+        if value is not None:
             return value
-        return cls.from_row_mapping(value)
+        return None
 
-    def to_row_mapping(self) -> dict[str, Any]:
-        data = {
-            "output_concept_id": self.output_concept_id,
-            "concept_ids": self.concept_ids,
-            "formula": self.formula,
-            "sympy": self.sympy,
-            "exactness": self.exactness,
-            "conditions_cel": self.conditions_cel,
-            "conditions_ir": self.conditions_ir,
+    def conflict_detector_payload(self) -> dict[str, Any]:
+        data: dict[str, Any] = {
+            "id": self.id,
+            "canonical_name": self.canonical_name,
+            "status": self.status,
+            "form": self.form,
+            "kind_type": self.kind_type,
         }
-        data.update(getattr(self, "attributes", {}))
+        if self.range_min is not None:
+            data["range_min"] = self.range_min
+        if self.range_max is not None:
+            data["range_max"] = self.range_max
+        if self.form_parameters:
+            try:
+                form_parameters = json.loads(self.form_parameters)
+            except json.JSONDecodeError:
+                form_parameters = {}
+            if isinstance(form_parameters, dict):
+                data["form_parameters"] = form_parameters
         return data
 
 
-class ParameterizationGroup:
-    def __init__(self, concept_id: ConceptId | str, group_id: int) -> None:
-        self.concept_id = to_concept_id(concept_id)
-        self.group_id = int(group_id)
+class ConceptAlias(FamilyModel):
+    pass
 
 
-ParameterizationInput = Parameterization | Mapping[str, Any]
+class ConceptRelationship(FamilyModel):
+    @property
+    def relationship_type(self) -> str:
+        return cast(str, getattr(self, "type"))
 
 
-ConceptInput = Concept | Mapping[str, Any]
+class Parameterization(FamilyModel):
+    def conflict_detector_payload(self) -> dict[str, Any]:
+        return {
+            "inputs": json.loads(self.concept_ids) if self.concept_ids else [],
+            "sympy": self.sympy,
+            "exactness": self.exactness,
+            "conditions": (
+                json.loads(self.conditions_cel)
+                if self.conditions_cel
+                else []
+            ),
+        }
+
+
+class ParameterizationGroup(FamilyModel):
+    pass
 
 
 CONCEPT_EMBEDDING_STATUS_PROJECTION = embedding_status_projection(
