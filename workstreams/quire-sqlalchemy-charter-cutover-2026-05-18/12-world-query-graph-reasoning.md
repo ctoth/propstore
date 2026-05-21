@@ -243,6 +243,48 @@ workstream. Production hits outside those targets block implementation.
 - Continue with the remaining resolver-wrapper, active-input, and
   `from_mapping` deletion targets.
 
+2026-05-21 resolver-wrapper deletion update:
+
+- Commit `74ec11ea` deleted the world-specific claim/concept/alias resolver
+  wrapper surface instead of renaming it.
+- `WorldQuery.resolve_concept`, `WorldQuery.resolve_alias`,
+  `_build_logical_id_index`, `_get_logical_id_index`, and the
+  `_logical_id_indexes` cache are gone from `propstore/world/model.py`.
+- Concept and alias lookup now use Quire family-reference metadata:
+  `concept` charter reference keys include primary logical ID, bare logical
+  ID value, `namespace:value`, and canonical name; `alias` charter reference
+  keys include `alias_name`.
+- `Concept.logical_ids` is a behavior-only typed property over the existing
+  charter-owned `logical_ids_json` field so Quire `ReferenceKey` metadata can
+  read logical IDs without a WorldQuery-side JSON/cache helper.
+- Bound/overlay/app/sensitivity/worldline callers now use typed
+  `get_concept` or direct Quire `schema.resolve_reference_id` where the
+  session is already open; no `resolve_*`, `lookup_*`, `get_*_id`, raw SQL
+  selector, or cached logical-id-map substitute was added.
+- Test doubles that modeled the removed production resolver methods were
+  updated to return typed `Concept` fixtures through `get_concept` instead.
+- Deleted the unused `propstore/families/identity/concepts.py`
+  `resolve_concept_reference` helper rather than keeping a dead old resolver
+  name.
+- Search gates returned zero hits for `def resolve_claim`,
+  `def resolve_concept`, `def resolve_alias`, `.resolve_claim(`,
+  `.resolve_concept(`, `.resolve_alias(`, `_get_logical_id_index`,
+  `resolve_claim_id`, `resolve_concept_id`, and `resolve_concept_alias` under
+  `propstore` and `tests`.
+- `uv run pyright propstore` passed with zero errors after the deletion.
+- Focused lookup/worldline gate
+  `powershell -File scripts/run_logged_pytest.ps1 --label
+  resolver-wrapper-deletion tests/test_world_model_resolve_cache.py
+  tests/test_world_query.py tests/test_worldline_error_visibility.py
+  tests/test_worldline_hash_excludes_transient_errors.py
+  tests/test_worldline_revision.py` passed with 162 tests and 29 expected
+  warnings; log:
+  `logs/test-runs/resolver-wrapper-deletion-20260521-121132.log`.
+- Continue with the remaining Phase 14 targets:
+  `ActiveClaimInput`, `ActiveMicropublicationInput`, active value resolver
+  naming, generic `from_mapping` constructors, typed bound/overlay/ATMS graph
+  migration, support-revision, ASPIC, and final parity/search gates.
+
 ## Inventory Rows
 
 | Inventory surface | Current owner | Final owner | Required action |
