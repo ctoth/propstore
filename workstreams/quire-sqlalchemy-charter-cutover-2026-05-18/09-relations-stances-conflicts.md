@@ -434,3 +434,19 @@ This slice is complete only when:
 - all required tests pass through the logged pytest wrapper;
 - all old-path search gates above are zero-hit outside notes, workstreams,
   docs, and reports.
+
+## Phase 11 Execution Record
+
+Recorded 2026-05-20.
+
+- Generated relation identity metadata: commit `6581f945` marked the
+  chartered `relation_edge.id` and `conflict_witness.id` fields as generated
+  integer primary keys in `propstore/families/world_charters.py`. This keeps
+  autoincrement identity in field metadata and SQLAlchemy instead of adding
+  row-id constructors or restoring projection-row behavior. `uv run pyright
+  propstore` passed with 0 errors, and focused logged pytest `powershell -File
+  scripts/run_logged_pytest.ps1 -Label generated-relation-id
+  tests/test_world_query.py::TestWorldQueryConstruction::test_construct_from_repo
+  tests/test_world_query.py::TestAlgorithmWorldQuery::test_algorithm_value_of_single`
+  passed with 2 tests and log
+  `logs\test-runs\generated-relation-id-20260520-203640.log`.
