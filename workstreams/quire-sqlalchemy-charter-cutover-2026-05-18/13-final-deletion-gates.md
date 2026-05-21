@@ -395,6 +395,8 @@ Gate: no local path, workspace, or file URL Quire dependency.
   `086ac24a Serialize revision base through owner payload`.
 - Propstore algorithm canonical AST projection cleanup is committed as
   `12c9436f Populate algorithm canonical AST`.
+- Propstore SI numeric normalization cleanup is committed as
+  `520eae85 Normalize claim numeric SI values`.
 - Passing focused gates:
   - `uv run pyright propstore`
   - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-regression-clusters-7 ...`
@@ -433,6 +435,10 @@ Gate: no local path, workspace, or file URL Quire dependency.
     passed 4 tests.
   - `uv run pyright propstore` passed with 0 errors after the algorithm AST
     production change.
+  - `powershell -File scripts/run_logged_pytest.ps1 -Label phase17-si-normalized-values tests/test_build_sidecar.py::TestClaimValueSI tests/test_cli.py::TestClaimShow::test_owner_build_claim_view_reports_si_value tests/test_cli.py::TestClaimShow::test_claim_show_displays_si_values tests/test_cli.py::TestClaimShow::test_claim_show_json_uses_report_shape`
+    passed 7 tests.
+  - `uv run pyright propstore` passed with 0 errors after the SI normalization
+    production change.
 - Full Propstore gate:
   - `powershell -File scripts/run_logged_pytest.ps1 -Label sqlalchemy-charter-full-2`
     failed: 125 failed, 3474 passed, 4 skipped.
@@ -457,8 +463,7 @@ Current full-gate repair queue, deletion-first:
   properties directly. The concept view fixture now uses `Concept.id` instead
   of `Concept.concept_id`.
 - Repair remaining typed payload projection gaps found by full suite:
-  SI-normalized numeric payloads and worldline dependency identity
-  expectations.
+  worldline dependency identity expectations.
 - Contract manifest failures are not deferrable; after charter-field changes,
   update the manifest/version evidence through the intended contract workflow,
   not by weakening the manifest test.
