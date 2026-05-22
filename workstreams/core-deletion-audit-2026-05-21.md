@@ -328,7 +328,44 @@ commit message body:
     explicitly non-concept condition bindings instead of fake concept metadata
     unless the concept owner declares them.
 
+- [x] `propstore/core/conditions/solver.py`
+  - Read: 2026-05-21.
+  - Action: keep condition solver; tighten binding/model value types and align
+    with registry rewrite.
+  - Reason: this is the owner for semantic condition satisfiability,
+    disjointness, equivalence, and implication over checked `ConditionIR`. The
+    dynamic `z3` return objects justify localized `Any` around the solver
+    backend, but public bindings currently use `Mapping[str, Any]` and internal
+    caches use untyped `Any`.
+  - Required follow-up: introduce the shared condition evaluation/binding value
+    type and use it at public solver boundaries. After `ConceptInfo` becomes an
+    immutable metadata-derived projection, remove the defensive mutable
+    `replace(... category_values=list(...))` copy.
+
+- [x] `propstore/core/conditions/sql_backend.py`
+  - Read: 2026-05-21.
+  - Action: keep condition SQL projection; tighten parameter value type.
+  - Reason: it projects closed `ConditionIR` into parameterized SQL fragments
+    and does not inline literal values. The loose part is
+    `SqlConditionFragment.parameters: tuple[object, ...]`; this should use the
+    same explicit condition scalar/value type as the evaluators.
+  - Required follow-up: replace `object` parameters with the condition value
+    alias and ensure SQL callers get identifiers from the condition owner, not
+    duplicated storage metadata.
+
+- [x] `propstore/core/conditions/z3_backend.py`
+  - Read: 2026-05-21.
+  - Action: keep Z3 projection backend; tighten binding/category value types
+    and registry projection types.
+  - Reason: localized `Any` is acceptable for `z3` AST terms because the
+    upstream library is dynamically typed. It is not acceptable for domain
+    binding values. `binding_constraint`, `reference_binding_constraints`,
+    `_binding_constraint_for_kind`, and `z3_bindings_for_values` accept
+    `object` values, and `_get_enum` accepts `tuple[str, ...] | list[str]`.
+  - Required follow-up: use the shared condition value type for bindings and
+    immutable category tuples from the typed registry projection.
+
 ## Progress
 
-- Files read: 24 / 51.
-- Next file: `propstore/core/conditions/solver.py`.
+- Files read: 27 / 51.
+- Next file: `propstore/core/embeddings.py`.
