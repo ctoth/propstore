@@ -17,7 +17,7 @@ from enum import StrEnum
 
 from propstore.core.base_rates import BaseRateUnresolved
 from propstore.core.id_types import AssertionId
-from propstore.opinion import Opinion, from_evidence, from_probability
+from propstore.opinion import Opinion
 from propstore.provenance import (
     Provenance,
     ProvenanceStatus,
@@ -244,7 +244,7 @@ class CorpusCalibrator:
         """
         p = 1.0 - self.percentile(raw_score)  # similarity = 1 - percentile
         n_eff = self._effective_sample_size(raw_score)
-        return from_probability(
+        return Opinion.from_probability(
             p,
             n_eff,
             self._base_rate,
@@ -402,7 +402,7 @@ def categorical_to_opinion(
         ProvenanceStatus.CALIBRATED,
         "categorical_calibration_counts",
     )
-    return from_evidence(
+    return Opinion.from_evidence(
         r,
         s,
         base_rate,
@@ -440,7 +440,7 @@ def calibrated_probability_to_opinion(
         raise ValueError(f"probability={probability} not in [0, 1]")
     if effective_sample_size < 0.0:
         raise ValueError(f"effective_sample_size={effective_sample_size} must be >= 0")
-    return from_probability(probability, effective_sample_size, base_rate)
+    return Opinion.from_probability(probability, effective_sample_size, base_rate)
 
 
 # ---------------------------------------------------------------------------

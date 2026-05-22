@@ -342,7 +342,7 @@ def opinion_sensitivity(
     *,
     delta: float = 0.01,
 ) -> float | None:
-    from propstore.opinion import wbf
+    from propstore.opinion import Opinion
 
     if len(opinions) < 2:
         return None
@@ -356,7 +356,7 @@ def opinion_sensitivity(
         mutable = list(opinions)
         mutable[index] = candidate
         try:
-            return wbf(*mutable).expectation()
+            return Opinion.wbf(*mutable).expectation()
         except ValueError:
             return None
 

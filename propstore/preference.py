@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from propstore.core.graph_types import ClaimNode
 from propstore.families.claims.declaration import Claim
 from propstore.families.claims.metadata import claim_metadata_value
-from propstore.opinion import Opinion, from_probability
+from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
 
@@ -108,7 +108,7 @@ def metadata_strength_vector(
         and sample_size_value is not None
         and uncertainty_value is None
     ):
-        opinion = from_probability(
+        opinion = Opinion.from_probability(
             confidence_value,
             sample_size_value,
             _METADATA_STRENGTH_BASE_RATE,

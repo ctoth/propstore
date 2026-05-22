@@ -20,7 +20,7 @@ from argumentation.probabilistic import (
 from propstore.core.graph_types import ClaimNode
 from propstore.families.claims.declaration import Claim
 from propstore.families.claims.metadata import claim_metadata_value
-from propstore.opinion import Opinion, W, discount, from_probability
+from propstore.opinion import Opinion, W
 from propstore.probabilistic_relations import ProbabilisticRelation, relation_from_row
 from propstore.provenance import Provenance, ProvenanceStatus
 
@@ -237,7 +237,7 @@ def p_arg_from_claim(claim: Claim | ClaimNode) -> Opinion | NoCalibration:
     if omega_prior is None:
         return _missing_calibration("missing_base_rate", "source_prior_base_rate")
     if claim_probability is not None and effective_sample_size is not None:
-        omega_claim = from_probability(
+        omega_claim = Opinion.from_probability(
             float(claim_probability),
             float(effective_sample_size),
             omega_prior.a,
@@ -260,7 +260,7 @@ def p_arg_from_claim(claim: Claim | ClaimNode) -> Opinion | NoCalibration:
         float(quality_payload["a"]),
         _praf_provenance(ProvenanceStatus.CALIBRATED, "source_quality"),
     )
-    return discount(omega_source_quality, omega_claim)
+    return omega_source_quality.discount(omega_claim)
 
 
 def _opinion_from_typed_claim(
@@ -331,7 +331,7 @@ def p_relation_from_stance(stance: dict) -> Opinion | NoCalibration:
                 "effective_sample_size",
                 "sample_size",
             )
-        return from_probability(
+        return Opinion.from_probability(
             confidence_value,
             float(effective_sample_size),
             a,
@@ -461,7 +461,7 @@ def enforce_coh(
             e_target = expectations[arg]
             p = (e_target * (n + W) - a * W) / n if n > 1e-12 else e_target
             p = max(0.0, min(1.0, p))
-            new_p_args[arg] = from_probability(p, n, a)
+            new_p_args[arg] = Opinion.from_probability(p, n, a)
 
     kernel = ProbabilisticArgumentationFramework(
         framework=praf.kernel.framework,

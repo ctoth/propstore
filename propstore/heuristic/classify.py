@@ -330,10 +330,10 @@ def _build_stance_dict(
 
         if opinion is not None and reference_distances is not None and embedding_distance is not None and len(reference_distances) > 0:
             from propstore.heuristic.calibrate import CorpusCalibrator
-            from propstore.opinion import fuse
+            from propstore.opinion import Opinion
             corpus_cal = CorpusCalibrator(reference_distances, corpus_base_rate=opinion.a)
             corpus_opinion = corpus_cal.to_opinion(embedding_distance)
-            opinion = fuse(opinion, corpus_opinion)
+            opinion = Opinion.fuse(opinion, corpus_opinion)
 
         confidence = None if opinion is None else opinion.expectation()
     else:
