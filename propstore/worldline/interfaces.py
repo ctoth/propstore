@@ -61,7 +61,8 @@ class HasLiftingSystem(Protocol):
 
 @runtime_checkable
 class HasActiveGraph(Protocol):
-    _active_graph: WorldActivationGraph | None
+    @property
+    def active_graph(self) -> WorldActivationGraph | None: ...
 
 
 class WorldlineStore(WorldStore, Protocol):

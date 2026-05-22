@@ -259,6 +259,10 @@ class BoundWorld(BeliefSpace):
     def lifting_system(self) -> LiftingSystem | None:
         return self._lifting_system
 
+    @property
+    def active_graph(self) -> WorldActivationGraph | None:
+        return self._active_graph
+
     def _normalize_claim_id_set(self, claim_ids: Sequence[str]) -> set[str]:
         return {str(claim_id) for claim_id in claim_ids}
 

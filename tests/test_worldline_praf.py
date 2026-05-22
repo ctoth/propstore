@@ -33,6 +33,10 @@ class FakeBound:
         self._bindings = {}
         self._active_graph = active_graph
 
+    @property
+    def active_graph(self):
+        return self._active_graph
+
     def value_of(self, concept_id):
         return ValueResult(
             concept_id=concept_id,

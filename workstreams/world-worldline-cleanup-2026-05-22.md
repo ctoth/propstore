@@ -582,6 +582,67 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/argumentation.py`.
 
+## Iteration 29 - `propstore/worldline/argumentation.py`
+
+Slice read:
+- `propstore/worldline/argumentation.py`
+- `propstore/worldline/interfaces.py`
+- `propstore/world/bound.py`
+- `propstore/world/overlay.py`
+- active-graph fakes and direct argumentation tests.
+
+Surfaces:
+- `Any` active-graph and semantics parameters in worldline argumentation
+  - Disposition: rewrite.
+  - Owner after cleanup: `WorldActivationGraph` owns the active graph type;
+    `ArgumentationSemantics` owns validated backend semantics.
+  - Action: type `_capture_claim_graph`, `_capture_aspic`, `_capture_praf`,
+    and `_worldline_inference_mode` with those owner types, and import
+    `validate_backend_semantics` / `ReasoningBackend` from
+    `propstore.core.reasoning`.
+- `HasActiveGraph._active_graph` and `bound._active_graph` reads in worldline
+  argumentation
+  - Disposition: delete.
+  - Owner after cleanup: bound-world objects expose `active_graph` as a public
+    property.
+  - Action: add `BoundWorld.active_graph`, `OverlayWorld.active_graph`, and
+    change the worldline `HasActiveGraph` protocol plus argumentation capture
+    to use the public property.
+- Test fakes with only `_active_graph`
+  - Disposition: rewrite.
+  - Action: make fakes implement the same public `active_graph` protocol and
+    pass typed `ArgumentationSemantics` / `WorldActivationGraph` in direct
+    argumentation tests.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/worldline/argumentation.py` returned
+  zero hits.
+- Pass: `rg -n -F -- "bound._active_graph"
+  propstore/worldline/argumentation.py propstore/worldline/interfaces.py
+  tests/test_worldline.py tests/test_worldline_praf.py
+  tests/test_worldline_argumentation_multi_extension.py` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Failed then fixed: first logged pytest run
+  `worldline-argumentation-typed-active-graph` failed two graph-backed
+  worldline tests because fakes still implemented only `_active_graph`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-argumentation-typed-active-graph-rerun
+  tests/test_worldline.py::TestSemanticCorePhase7Worldlines
+  tests/test_worldline.py::TestWorldlineDependencyLiveness
+  tests/test_worldline_praf.py
+  tests/test_worldline_argumentation_multi_extension.py
+  tests/test_structured_projection.py tests/test_atms_engine.py` returned
+  `75 passed`.
+- Log:
+  `logs/test-runs/worldline-argumentation-typed-active-graph-rerun-20260522-042639.log`.
+
+Commit:
+- Expose worldline active graph property.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/__init__.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

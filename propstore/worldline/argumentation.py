@@ -1,10 +1,14 @@
 from __future__ import annotations
 
-from typing import Any
-
 import rfc8785
+from propstore.core.graph_types import WorldActivationGraph
 from propstore.core.id_types import ClaimId
 from propstore.core.labels import Label, SupportQuality
+from propstore.core.reasoning import (
+    ArgumentationSemantics,
+    ReasoningBackend,
+    validate_backend_semantics,
+)
 from propstore.families.claims.declaration import Claim
 from propstore.reporting import json_ready
 from propstore.families.relations.declaration import Stance
@@ -14,7 +18,6 @@ from propstore.world.types import (
     GroundingBundleStore,
     HasATMSEngine,
     RenderPolicy,
-    validate_backend_semantics,
 )
 from propstore.worldline.definition import WorldlineDefinition
 from propstore.worldline.interfaces import HasActiveGraph, WorldlineBoundView, WorldlineStore
@@ -26,11 +29,9 @@ def capture_argumentation_state(
     world: WorldlineStore,
     definition: WorldlineDefinition,
 ) -> tuple[WorldlineArgumentationState | None, list[str], set[ClaimId]]:
-    from propstore.world.types import ReasoningBackend
-
     active = list(bound.active_claims())
     active_ids = {ClaimId(claim.id) for claim in active}
-    active_graph = bound._active_graph if isinstance(bound, HasActiveGraph) else None
+    active_graph = bound.active_graph if isinstance(bound, HasActiveGraph) else None
     reasoning_backend = definition.policy.reasoning_backend
     _, normalized_semantics = validate_backend_semantics(
         reasoning_backend,
@@ -77,9 +78,9 @@ def capture_argumentation_state(
 def _capture_claim_graph(
     world: WorldlineStore,
     active_ids: set[ClaimId],
-    active_graph: Any,
+    active_graph: WorldActivationGraph | None,
     policy: RenderPolicy,
-    normalized_semantics: Any,
+    normalized_semantics: ArgumentationSemantics,
 ) -> WorldlineArgumentationState | None:
     justified_claims: frozenset[ClaimId] | None = None
     extension_claim_sets: tuple[frozenset[ClaimId], ...] = ()
@@ -138,9 +139,8 @@ def _capture_claim_graph(
     )
 
 
-def _worldline_inference_mode(normalized_semantics: Any) -> str:
-    semantics_name = str(getattr(normalized_semantics, "value", normalized_semantics))
-    return "grounded" if semantics_name == "grounded" else "credulous"
+def _worldline_inference_mode(normalized_semantics: ArgumentationSemantics) -> str:
+    return "grounded" if normalized_semantics is ArgumentationSemantics.GROUNDED else "credulous"
 
 
 def _claims_for_inference_mode(
@@ -159,11 +159,10 @@ def _capture_aspic(
     world: WorldlineStore,
     active: list[Claim],
     active_ids: set[ClaimId],
-    active_graph: Any,
+    active_graph: WorldActivationGraph | None,
     policy: RenderPolicy,
-    normalized_semantics: Any,
+    normalized_semantics: ArgumentationSemantics,
 ) -> WorldlineArgumentationState | None:
-    from propstore.world.types import ReasoningBackend
     from propstore.aspic_bridge import build_aspic_projection
     from propstore.structured_projection import compute_structured_justified_arguments
 
@@ -222,9 +221,9 @@ def _capture_atms(
 def _capture_praf(
     world: WorldlineStore,
     active_ids: set[ClaimId],
-    active_graph: Any,
+    active_graph: WorldActivationGraph | None,
     policy: RenderPolicy,
-    normalized_semantics: Any,
+    normalized_semantics: ArgumentationSemantics,
 ) -> WorldlineArgumentationState:
     praf_strategy = policy.praf_strategy or "auto"
     praf_mc_epsilon = policy.praf_mc_epsilon or 0.01
@@ -324,7 +323,7 @@ def active_stance_dependencies(
     world: WorldlineStore,
     active_ids: set[ClaimId],
 ) -> list[str]:
-    active_graph = bound._active_graph if isinstance(bound, HasActiveGraph) else None
+    active_graph = bound.active_graph if isinstance(bound, HasActiveGraph) else None
     graph_relation_types = {
         "rebuts",
         "undercuts",

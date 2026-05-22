@@ -30,6 +30,7 @@ from propstore.core.graph_types import (
     CompiledWorldGraph,
     ConflictWitness,
     GraphDelta,
+    WorldActivationGraph,
 )
 from propstore.core.store_results import (
     WorldStoreStats,
@@ -431,6 +432,10 @@ class OverlayWorld(BeliefSpace):
             policy=base._policy,
             active_graph=self._active_graph,
         )
+
+    @property
+    def active_graph(self) -> WorldActivationGraph | None:
+        return self._active_graph
 
     def active_claims(self, concept_id: str | None = None) -> list[Claim]:
         return self._overlay.active_claims(concept_id)
