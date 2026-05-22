@@ -312,3 +312,9 @@ Next: `propstore/core/assertions/codec.py`.
 Kept `AssertionCanonicalRecord`: shallow canonical assertion serialization owner; mapping use is IO-boundary only.
 Gates: architecture guards pass, codec tests pass (`logs/test-runs/pytest-20260521-225658.log`), pyright pass.
 Next: `propstore/core/assertions/conversion.py`.
+
+## Iteration 9 - `propstore/core/assertions/conversion.py`
+
+Deleted duplicate free `assertion_source_record_from_payload`; `AssertionSourceRecord.from_payload` owns boundary parsing.
+Gates: helper zero-hit, conversion tests pass (`logs/test-runs/pytest-20260521-225818.log`), pyright pass.
+Next: `propstore/core/assertions/refs.py`.

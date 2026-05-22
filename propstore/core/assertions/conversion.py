@@ -35,7 +35,16 @@ class AssertionSourceRecord:
 
     @classmethod
     def from_payload(cls, payload: Mapping[str, object]) -> AssertionSourceRecord:
-        return assertion_source_record_from_payload(payload)
+        if _has_old_claim_shape(payload):
+            raise ValueError("structural assertion payload is required")
+
+        return cls(
+            relation=_relation_ref(_required(payload, "relation")),
+            role_bindings=_role_binding_set(_required(payload, "roles")),
+            context=_context_ref(_required(payload, "context")),
+            condition=_condition_ref(_required(payload, "condition_ref")),
+            provenance_ref=_graph_ref(_required(payload, "provenance_ref")),
+        )
 
     def to_situated_assertion(
         self,
@@ -51,21 +60,6 @@ class AssertionSourceRecord:
             condition=self.condition,
             provenance_ref=self.provenance_ref,
         )
-
-
-def assertion_source_record_from_payload(
-    payload: Mapping[str, object],
-) -> AssertionSourceRecord:
-    if _has_old_claim_shape(payload):
-        raise ValueError("structural assertion payload is required")
-
-    return AssertionSourceRecord(
-        relation=_relation_ref(_required(payload, "relation")),
-        role_bindings=_role_binding_set(_required(payload, "roles")),
-        context=_context_ref(_required(payload, "context")),
-        condition=_condition_ref(_required(payload, "condition_ref")),
-        provenance_ref=_graph_ref(_required(payload, "provenance_ref")),
-    )
 
 
 def _required(payload: Mapping[str, object], key: str) -> object:
