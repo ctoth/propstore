@@ -6,7 +6,7 @@ from propstore.core.id_types import ConceptId
 from propstore.core.environment import WorldStore
 from propstore.families.claims.declaration import Claim
 from propstore.world.types import DerivedResult, RenderPolicy, ResolvedResult, ValueResult
-from propstore.worldline.interfaces import HasBindings, WorldlineBoundView
+from propstore.worldline.interfaces import HasEnvironment, WorldlineBoundView
 from propstore.worldline.result_types import (
     WorldlineInputSource,
     WorldlineTargetValue,
@@ -401,8 +401,8 @@ def _resolve_chain_target(
     del value_result
     strategy_enum = context.policy.strategy if context.policy.strategy is not None else None
     chain_bindings: dict[str, object] = {}
-    if isinstance(context.query_world, HasBindings):
-        chain_bindings = dict(context.query_world._bindings)
+    if isinstance(context.query_world, HasEnvironment):
+        chain_bindings = dict(context.query_world.environment.bindings)
     try:
         chain_result = context.world.chain_query(
             concept_id,

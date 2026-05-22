@@ -423,6 +423,45 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/interfaces.py`.
 
+## Iteration 26 - `propstore/worldline/interfaces.py`
+
+Slice read:
+- `propstore/worldline/interfaces.py`
+- `propstore/worldline/resolution.py`
+- current `HasBindings` and `_bindings` hits in worldline/world code.
+
+Surfaces:
+- `HasBindings` protocol exposing `_bindings`
+  - Disposition: delete.
+  - Owner after cleanup: `HasEnvironment.environment.bindings` exposes the
+    binding data through the public bound-world environment surface.
+  - Action: remove `HasBindings` and update worldline chain resolution to read
+    `context.query_world.environment.bindings` when the bound view satisfies
+    `HasEnvironment`.
+  - Evidence: the protocol made a private `BoundWorld` attribute part of the
+    worldline interface even though the environment property already owns that
+    semantic state.
+
+Gate results:
+- Pass: `rg -n -F -- "HasBindings" propstore tests` returned zero hits.
+- Pass: `rg -n -F -- "_bindings" propstore/worldline propstore/world` returned
+  zero worldline private-binding hits; remaining world hits are owned by
+  `BoundWorld` internals and unrelated binding helper code.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-interfaces-public-bindings tests/test_worldline.py
+  tests/test_worldline_properties.py tests/test_worldline_praf.py
+  tests/test_structured_projection.py` returned `99 passed`.
+- Log:
+  `logs/test-runs/worldline-interfaces-public-bindings-20260522-040811.log`.
+
+Commit:
+- Delete worldline private bindings protocol.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/hashing.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

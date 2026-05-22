@@ -48,11 +48,6 @@ class WorldlineBoundView(BeliefSpace, Protocol):
 
 
 @runtime_checkable
-class HasBindings(Protocol):
-    _bindings: Mapping[str, Any]
-
-
-@runtime_checkable
 class HasEnvironment(Protocol):
     @property
     def environment(self) -> Environment: ...
