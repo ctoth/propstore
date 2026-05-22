@@ -960,6 +960,63 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/consistency.py`.
 
+## Iteration 36 - `propstore/world/consistency.py`
+
+Slice read:
+- `propstore/world/consistency.py`
+- `propstore/world/bound.py`
+- `propstore/conflict_detector/collectors.py`
+- conflict detector and world consistency callers/tests.
+
+Surfaces:
+- duplicated world-to-conflict-detector concept registry projection
+  - Disposition: consolidate.
+  - Owner after cleanup: `propstore.world.conflict_projection` owns the
+    projection from world concept/parameterization rows into the conflict
+    detector registry inputs.
+  - Action: add `concept_registry_for_world` and
+    `conflict_detector_inputs_for_world`; update transitive consistency and
+    bound conflict recomputation to use the shared projection; delete the
+    duplicated registry loops from `consistency.py` and `bound.py`.
+  - Evidence: both files assembled `parameterization_relationships` from
+    concept and parameterization rows by hand.
+- `WorldConsistencyReport` owner API
+  - Disposition: keep.
+  - Owner after cleanup: `propstore.world.consistency` owns the app-facing
+    consistency report and delegates conflict-detector input projection to the
+    shared world projection owner.
+  - Evidence: the file has no `Any`, no compatibility branch, no fallback
+    reader, and no source-local shape.
+
+Gate results:
+- Pass: `rg -n -F -- "conflict_detector_payload"
+  propstore/world/bound.py propstore/world/consistency.py` returned zero hits.
+- Pass: `rg -n -F -- "parameterization_relationships"
+  propstore/world/bound.py propstore/world/consistency.py` returned zero hits.
+- Failed then fixed: initial `uv run pyright propstore` exposed
+  `ConceptCatalogStore` as the wrong narrowing surface for the new projection
+  protocol.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Initial logged pytest selectors were invalid and ran zero tests; corrected
+  gate below was used.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-consistency-conflict-projection-final
+  tests/test_cli.py::TestWorldOwnerReports
+  tests/test_world_query.py::TestBoundConflicts
+  tests/test_world_query.py::TestConflictResolution
+  tests/test_world_query.py::TestTransitiveConsistency
+  tests/test_world_query.py::TestConflictsCaching
+  tests/test_conflict_detector.py` returned `118 passed, 6 warnings`.
+- Log:
+  `logs/test-runs/world-consistency-conflict-projection-final-20260522-045944.log`.
+
+Commit:
+- Consolidate world conflict projection.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/intervention.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

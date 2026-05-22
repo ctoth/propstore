@@ -4,17 +4,15 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from propstore.core.conditions import checked_condition_set, checked_condition_set_from_json
 from propstore.core.conditions.cel_frontend import check_condition_ir
-from propstore.core.conditions.registry import ConceptInfo
-from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import CelExpr
 from propstore.core.activation import is_claim_active
 from propstore.families.claims.types import ClaimType
-from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore, WorldStore
+from propstore.core.environment import ConceptCatalogStore, WorldStore
 from propstore.core.id_types import (
     ClaimId,
     ConceptId,
@@ -39,6 +37,11 @@ from propstore.core.labels import (
     merge_labels,
 )
 from propstore.world.value_resolver import ClaimValueResolver, collect_known_values
+from propstore.world.conflict_projection import (
+    ConflictDetectorInputs,
+    WorldConflictProjectionStore,
+    conflict_detector_inputs_for_world,
+)
 from propstore.world.types import (
     ATMSConceptInterventionPlan,
     ATMSConceptRelevanceReport,
@@ -88,50 +91,11 @@ class _LiftingSystemLoader(Protocol):
     def _load_lifting_system(self) -> LiftingSystem | None: ...
 
 
-@dataclass(frozen=True)
-class _ConflictInputs:
-    """Memoized concept + CEL registry used to revalidate conflicts at render time.
-
-    These inputs are invariant for the lifetime of a ``BoundWorld`` instance
-    because the underlying store is set once in ``__init__`` and never
-    rebound. The free function ``_conflict_inputs_for_store`` still returns a
-    bare tuple for backward compatibility with its existing call sites in
-    ``propstore.world.overlay`` (which operate on ``_GraphOverlayStore``
-    instances and intentionally rebuild per call); the dataclass wrapper is
-    introduced only at the ``BoundWorld`` caching layer.
-    """
-
-    concept_registry: dict[str, dict]
-    cel_registry: dict[str, ConceptInfo]
-
-
-def _conflict_inputs_for_store(world) -> tuple[dict[str, dict], dict[str, ConceptInfo]]:
-    registry: dict[str, dict] = {}
-    rows = []
-    for concept in world.all_concepts():
-        rows.append(concept)
-        cdata = concept.conflict_detector_payload()
-        cid = str(concept.concept_id)
-        params = world.parameterizations_for(cid)
-        if params:
-            cdata["parameterization_relationships"] = []
-            for param in params:
-                cdata["parameterization_relationships"].append(
-                    param.conflict_detector_payload()
-                )
-        registry[cid] = cdata
-    if isinstance(world, ConditionSolverStore):
-        cel_registry = dict(world.condition_solver().registry)
-    else:
-        cel_registry = build_store_cel_registry(rows)
-    return registry, cel_registry
-
-
 def _recomputed_conflicts(
     world,
     claims: list[Claim],
     *,
-    precomputed_inputs: _ConflictInputs | None = None,
+    precomputed_inputs: ConflictDetectorInputs | None = None,
 ) -> list[ConflictWitness]:
     """Revalidate active conflicts against the live belief space.
 
@@ -149,7 +113,7 @@ def _recomputed_conflicts(
 
     if len(claims) < 2:
         return []
-    if not isinstance(world, ConceptCatalogStore):
+    if not isinstance(world, WorldConflictProjectionStore):
         return []
 
     conflict_claims = [
@@ -158,7 +122,9 @@ def _recomputed_conflicts(
         if (conflict_claim := conflict_claim_from_claim(active_claim)) is not None
     ]
     if precomputed_inputs is None:
-        concept_registry, cel_registry = _conflict_inputs_for_store(world)
+        inputs = conflict_detector_inputs_for_world(world)
+        concept_registry = inputs.concept_registry
+        cel_registry = inputs.cel_registry
     else:
         concept_registry = precomputed_inputs.concept_registry
         cel_registry = precomputed_inputs.cel_registry
@@ -242,7 +208,7 @@ class BoundWorld(BeliefSpace):
         # never rebound. MUST NOT be shared across BoundWorld instances —
         # OverlayWorld overlays construct their own BoundWorld over a
         # _GraphOverlayStore and rely on getting a fresh cache.
-        self._conflict_inputs_cache: _ConflictInputs | None = None
+        self._conflict_inputs_cache: ConflictDetectorInputs | None = None
         self._resolver = ClaimValueResolver(
             parameterizations_for=lambda concept_id: list(
                 self._store.parameterizations_for(str(concept_id))
@@ -906,7 +872,7 @@ class BoundWorld(BeliefSpace):
     def is_determined(self, concept_id: str) -> bool:
         return self.value_of(concept_id).status is ValueStatus.DETERMINED
 
-    def _get_or_build_conflict_inputs(self) -> _ConflictInputs:
+    def _get_or_build_conflict_inputs(self) -> ConflictDetectorInputs:
         """Return the cached concept + CEL registry, building it on first miss.
 
         The registry iterates every concept in the store, so rebuilding it on
@@ -917,11 +883,7 @@ class BoundWorld(BeliefSpace):
         and reach this helper through their own instance.
         """
         if self._conflict_inputs_cache is None:
-            concept_registry, cel_registry = _conflict_inputs_for_store(self._store)
-            self._conflict_inputs_cache = _ConflictInputs(
-                concept_registry=concept_registry,
-                cel_registry=cel_registry,
-            )
+            self._conflict_inputs_cache = conflict_detector_inputs_for_world(self._store)
         return self._conflict_inputs_cache
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]:
