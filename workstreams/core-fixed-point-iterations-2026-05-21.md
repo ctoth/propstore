@@ -306,3 +306,9 @@ Next: `propstore/core/assertions/__init__.py`.
 Deleted assertion package re-exports; callers now import concrete `refs`, `situated`, `codec`, or `conversion` owners.
 Gates: package import zero-hit, `__all__` empty, pyright pass, assertion tests pass (`logs/test-runs/pytest-20260521-225526.log`).
 Next: `propstore/core/assertions/codec.py`.
+
+## Iteration 8 - `propstore/core/assertions/codec.py`
+
+Kept `AssertionCanonicalRecord`: shallow canonical assertion serialization owner; mapping use is IO-boundary only.
+Gates: architecture guards pass, codec tests pass (`logs/test-runs/pytest-20260521-225658.log`), pyright pass.
+Next: `propstore/core/assertions/conversion.py`.
