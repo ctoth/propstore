@@ -56,16 +56,6 @@ class WorldlineCaptureError(Enum):
     SENSITIVITY = "sensitivity"
 
 
-def coerce_worldline_capture_error(
-    value: WorldlineCaptureError | str | None,
-) -> WorldlineCaptureError | None:
-    if value is None:
-        return None
-    if isinstance(value, WorldlineCaptureError):
-        return value
-    return WorldlineCaptureError(str(value))
-
-
 @dataclass(frozen=True)
 class WorldlineVariableRef:
     name: str | None = None
@@ -389,7 +379,8 @@ class WorldlineSensitivityOutcome:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "entries", tuple(self.entries))
-        object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
+        if self.error is not None and not isinstance(self.error, WorldlineCaptureError):
+            raise TypeError("WorldlineSensitivityOutcome.error must be a WorldlineCaptureError")
 
     @classmethod
     def from_value(cls, data: Any) -> WorldlineSensitivityOutcome:
@@ -403,7 +394,11 @@ class WorldlineSensitivityOutcome:
             )
         if isinstance(data, Mapping):
             return cls(
-                error=coerce_worldline_capture_error(data.get("error"))
+                error=(
+                    None
+                    if data.get("error") is None
+                    else WorldlineCaptureError(str(data["error"]))
+                )
             )
         return cls()
 
@@ -467,7 +462,8 @@ class WorldlineArgumentationState:
     why_out: Mapping[str, ATMSWhyOutReport] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
+        if self.error is not None and not isinstance(self.error, WorldlineCaptureError):
+            raise TypeError("WorldlineArgumentationState.error must be a WorldlineCaptureError")
         object.__setattr__(self, "justified", tuple(self.justified))
         object.__setattr__(self, "defeated", tuple(self.defeated))
         object.__setattr__(
@@ -547,7 +543,11 @@ class WorldlineArgumentationState:
         return cls(
             backend=None if data.get("backend") is None else str(data.get("backend")),
             status=None if data.get("status") is None else str(data.get("status")),
-            error=coerce_worldline_capture_error(data.get("error")),
+            error=(
+                None
+                if data.get("error") is None
+                else WorldlineCaptureError(str(data["error"]))
+            ),
             justified=tuple(str(item) for item in data.get("justified") or ()),
             defeated=tuple(str(item) for item in data.get("defeated") or ()),
             extensions=tuple(

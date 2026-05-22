@@ -63,3 +63,40 @@ Commit:
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
+
+## Iteration 2 - `propstore/worldline/result_types.py::coerce_worldline_capture_error`
+
+Slice read:
+- `propstore/worldline/result_types.py`
+- `propstore/worldline/revision_types.py`
+- current `coerce_worldline_capture_error` callers from literal search.
+
+Surfaces:
+- `coerce_worldline_capture_error`
+  - Disposition: delete.
+  - Owner after cleanup: `WorldlineCaptureError` enum in runtime objects;
+    `from_json_payload` methods parse serialized strings at the worldline IO
+    boundary.
+  - Action: remove the coercer, require typed enum values in dataclass
+    construction, and parse raw payload strings only inside JSON payload
+    readers.
+  - Evidence: the helper accepts strings through runtime `__post_init__`
+    paths, preserving a coercion surface beyond the IO boundary.
+
+Gate results:
+- Pass: `rg -n -F -- "coerce_worldline_capture_error" propstore tests`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-capture-error-cleanup tests/test_worldline_error_visibility.py
+  tests/test_worldline_hash_excludes_transient_errors.py
+  tests/test_worldline_revision.py tests/test_worldline_revision_event_capture.py
+  tests/test_worldline_result_boundaries.py tests/test_capture_journal.py`
+  returned `27 passed`.
+- Log: `logs/test-runs/worldline-capture-error-cleanup-20260522-020548.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.

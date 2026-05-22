@@ -6,7 +6,6 @@ from typing import Any
 
 from propstore.worldline.result_types import (
     WorldlineCaptureError,
-    coerce_worldline_capture_error,
 )
 from propstore.support_revision.state import RevisionEvent
 
@@ -186,7 +185,8 @@ class WorldlineRevisionState:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "target_atom_ids", tuple(str(atom_id) for atom_id in self.target_atom_ids))
-        object.__setattr__(self, "error", coerce_worldline_capture_error(self.error))
+        if self.error is not None and not isinstance(self.error, WorldlineCaptureError):
+            raise TypeError("WorldlineRevisionState.error must be a WorldlineCaptureError")
 
     @classmethod
     def from_json_payload(cls, data: object) -> WorldlineRevisionState | None:
@@ -211,7 +211,11 @@ class WorldlineRevisionState:
             result=WorldlineRevisionResult.from_json_payload(result_data),
             state=None if state_data is None else dict(state_data),
             status=None if payload.get("status") is None else str(payload.get("status")),
-            error=coerce_worldline_capture_error(payload.get("error")),
+            error=(
+                None
+                if payload.get("error") is None
+                else WorldlineCaptureError(str(payload["error"]))
+            ),
             event=None if event_data is None else RevisionEvent.from_json_payload(event_data),
         )
 
