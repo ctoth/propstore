@@ -130,6 +130,47 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/trace.py`.
 
+## Iteration 20 - `propstore/worldline/trace.py`
+
+Slice read:
+- `propstore/worldline/trace.py`
+- `propstore/worldline/result_types.py`
+- current `ResolutionTrace` and `record_step` callers.
+
+Surfaces:
+- `ResolutionTrace.record_binding`, `record_override`, and `record_step`
+  value parameters
+  - Disposition: rewrite.
+  - Owner after cleanup: `propstore.worldline.result_types` owns the scalar
+    worldline value type once as `WorldlineScalarValue`.
+  - Action: replace trace-local `Any` value parameters with the result-model
+    scalar value alias, and use the same alias for `WorldlineInputSource`,
+    `WorldlineTargetValue`, and `WorldlineStep` values.
+  - Evidence: `WorldlineStep` already restricted persisted step values to
+    `float | str | None`; trace accepted `Any`, weakening the typed runtime
+    boundary before constructing the typed result object.
+
+Gate results:
+- Pass: `rg -n -F -- "value: Any" propstore/worldline/trace.py
+  propstore/worldline/result_types.py` returned no trace hits; remaining hits
+  are IO/helper payload functions in `result_types.py`.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-trace-scalar-value tests/test_worldline.py
+  tests/test_worldline_revision.py tests/test_capture_journal.py
+  tests/test_worldline_hash_width.py
+  tests/test_worldline_hash_excludes_transient_errors.py
+  tests/test_worldline_praf.py tests/test_worldline_properties.py` returned
+  `93 passed`.
+- Log: `logs/test-runs/worldline-trace-scalar-value-20260522-034019.log`.
+
+Commit:
+- Type worldline trace scalar values.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/runner.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

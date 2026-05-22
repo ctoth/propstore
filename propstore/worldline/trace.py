@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from typing import Any
-
 from propstore.core.id_types import ClaimId
 from propstore.families.claims.declaration import Claim
-from propstore.worldline.result_types import WorldlineStep
+from propstore.worldline.result_types import WorldlineScalarValue, WorldlineStep
 
 
 class ResolutionTrace:
@@ -14,10 +12,10 @@ class ResolutionTrace:
         self.dependency_claims: set[ClaimId] = set()
         self.steps: list[WorldlineStep] = []
 
-    def record_binding(self, concept: str, value: Any) -> None:
+    def record_binding(self, concept: str, value: WorldlineScalarValue) -> None:
         self.record_step(concept=concept, value=value, source="binding")
 
-    def record_override(self, concept: str, value: Any) -> None:
+    def record_override(self, concept: str, value: WorldlineScalarValue) -> None:
         self.record_step(concept=concept, value=value, source="override")
 
     def record_step(
@@ -25,7 +23,7 @@ class ResolutionTrace:
         *,
         concept: str,
         source: str,
-        value: Any = None,
+        value: WorldlineScalarValue = None,
         claim_id: str | None = None,
         strategy: str | None = None,
         reason: str | None = None,

@@ -14,6 +14,8 @@ from propstore.world.types import (
     ATMSWhyOutReport,
 )
 
+WorldlineScalarValue = float | str | None
+
 
 def _optional_mapping(value: Any, *, field: str) -> Mapping[str, Any]:
     if value is None:
@@ -92,7 +94,7 @@ class WorldlineVariableRef:
 @dataclass(frozen=True)
 class WorldlineInputSource:
     source: str
-    value: float | str | None = None
+    value: WorldlineScalarValue = None
     claim_id: str | None = None
     formula: str | None = None
     reason: str | None = None
@@ -143,7 +145,7 @@ class WorldlineInputSource:
 @dataclass(frozen=True)
 class WorldlineTargetValue:
     status: str
-    value: float | str | None = None
+    value: WorldlineScalarValue = None
     source: str | None = None
     reason: str | None = None
     claim_id: str | None = None
@@ -248,7 +250,7 @@ class WorldlineTargetValue:
 class WorldlineStep:
     concept: str
     source: str
-    value: float | str | None = None
+    value: WorldlineScalarValue = None
     claim_id: str | None = None
     strategy: str | None = None
     reason: str | None = None
