@@ -137,7 +137,7 @@ Gate results:
 - Log: `logs/test-runs/world-render-policy-normalize-cleanup-20260522-025249.log`.
 
 Commit:
-- Pending.
+- `4a1ba12d Require typed render policy enums`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
