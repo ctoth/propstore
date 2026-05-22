@@ -170,16 +170,13 @@ class QueryableAssumption:
         *,
         source: str = "future",
     ) -> QueryableAssumption:
-        normalized_cel = to_cel_expr(cel)
+        normalized_cel = normalize_queryable_cel(cel)
         digest = hashlib.sha256(f"queryable\0{source}\0{normalized_cel}".encode("utf-8")).hexdigest()
         return cls(
             assumption_id=QueryableId(f"queryable:{source}:{digest}"),
             cel=normalized_cel,
             source=source,
         )
-
-
-QueryableInput: TypeAlias = QueryableAssumption | str | CelExpr
 
 
 def normalize_queryable_cel(queryable: str | CelExpr) -> CelExpr:
@@ -190,23 +187,6 @@ def normalize_queryable_cel(queryable: str | CelExpr) -> CelExpr:
         key, _, value = queryable_text.partition("=")
         return to_cel_expr(f"{key} == '{value}'")
     return to_cel_expr(queryable_text)
-
-
-def coerce_queryable_assumptions(
-    queryables: Iterable[QueryableInput],
-) -> tuple[QueryableAssumption, ...]:
-    normalized: dict[tuple[CelExpr, QueryableId], QueryableAssumption] = {}
-    for queryable in queryables:
-        candidate = (
-            queryable
-            if isinstance(queryable, QueryableAssumption)
-            else QueryableAssumption.from_cel(normalize_queryable_cel(str(queryable)))
-        )
-        normalized[(candidate.cel, candidate.assumption_id)] = candidate
-    return tuple(
-        normalized[key]
-        for key in sorted(normalized)
-    )
 
 
 @dataclass(frozen=True)
@@ -785,7 +765,7 @@ class RenderPolicy:
     branch_weights: Mapping[str, float] | None = None
     # explicit integrity constraints for global assignment-selection merge
     integrity_constraints: tuple[IntegrityConstraint, ...] = field(default_factory=tuple)
-    future_queryables: tuple[str, ...] = field(default_factory=tuple)
+    future_queryables: tuple[QueryableAssumption, ...] = field(default_factory=tuple)
     future_limit: int | None = None
     overrides: Mapping[str, str] = field(default_factory=dict)
     concept_strategies: Mapping[str, ResolutionStrategy] = field(default_factory=dict)
@@ -837,11 +817,13 @@ class RenderPolicy:
             "integrity_constraints",
             tuple(self.integrity_constraints),
         )
-        object.__setattr__(
-            self,
-            "future_queryables",
-            tuple(self.future_queryables),
-        )
+        future_queryables = tuple(self.future_queryables)
+        for queryable in future_queryables:
+            if not isinstance(queryable, QueryableAssumption):
+                raise TypeError(
+                    "RenderPolicy.future_queryables values must be QueryableAssumption"
+                )
+        object.__setattr__(self, "future_queryables", future_queryables)
         object.__setattr__(self, "overrides", dict(self.overrides))
         concept_strategies: dict[str, ResolutionStrategy] = {}
         for concept_id, strategy in self.concept_strategies.items():
@@ -921,7 +903,10 @@ class RenderPolicy:
                 integrity_constraint_from_dict(item)
                 for item in (data.get("integrity_constraints") or ())
             ),
-            future_queryables=tuple(data.get("future_queryables") or ()),
+            future_queryables=tuple(
+                QueryableAssumption.from_cel(queryable)
+                for queryable in (data.get("future_queryables") or ())
+            ),
             future_limit=(
                 None
                 if data.get("future_limit") is None
@@ -974,7 +959,10 @@ class RenderPolicy:
                 for constraint in self.integrity_constraints
             ]
         if self.future_queryables:
-            data["future_queryables"] = list(self.future_queryables)
+            data["future_queryables"] = [
+                str(queryable.cel)
+                for queryable in self.future_queryables
+            ]
         if self.future_limit is not None:
             data["future_limit"] = self.future_limit
         if self.overrides:

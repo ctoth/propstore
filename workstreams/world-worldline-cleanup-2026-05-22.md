@@ -99,6 +99,52 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 8 - `propstore/world/types.py::coerce_queryable_assumptions`
+
+Slice read:
+- `propstore/world/types.py`
+- `propstore/world/bound.py`
+- `propstore/worldline/argumentation.py`
+- `propstore/app/world_atms.py`
+- `propstore/fragility_contributors.py`
+- `propstore/families/documents/worldlines.py`
+- `tests/test_atms_engine.py`
+- current `coerce_queryable_assumptions`, `QueryableInput`, and
+  `future_queryables` callers from literal search.
+
+Surfaces:
+- `coerce_queryable_assumptions`
+- `QueryableInput`
+  - Disposition: delete.
+  - Owner after cleanup: runtime APIs receive `QueryableAssumption` objects;
+    serialized policy/app request strings are parsed at the IO/app boundary.
+  - Action: remove the object/string coercer and mixed input alias, type
+    `RenderPolicy.future_queryables` and `BoundWorld` queryable APIs as
+    `QueryableAssumption`, and parse document/app queryable strings with
+    `QueryableAssumption.from_cel`.
+  - Evidence: ATMS already requires `Sequence[QueryableAssumption]`; the
+    helper only preserves a raw string path through bound runtime methods and
+    worldline argumentation capture.
+
+Gate results:
+- Pass: `rg -n -F -- "coerce_queryable_assumptions" propstore tests`
+  returned zero hits.
+- Pass: `rg -n -F -- "QueryableInput" propstore tests` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Initial logged gate failed because two ATMS tests still called runtime
+  methods with raw string queryables.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-queryable-assumption-cleanup tests/test_atms_engine.py
+  tests/test_render_contracts.py tests/test_fragility.py` returned
+  `79 passed`.
+- Log: `logs/test-runs/world-queryable-assumption-cleanup-20260522-023353.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 6 - `propstore/world/atms.py::_coerce_environment_key`
 
 Slice read:

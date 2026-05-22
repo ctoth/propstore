@@ -1633,11 +1633,12 @@ def test_atms_concept_interventions_use_replayed_value_statuses() -> None:
         ],
     )
     bound = _make_bound(store, bindings={"x": 1})
+    queryables = (QueryableAssumption.from_cel("y == 2"),)
 
-    plans = bound.concept_interventions("concept2", ["y == 2"], ValueStatus.DETERMINED, limit=8)
+    plans = bound.concept_interventions("concept2", queryables, ValueStatus.DETERMINED, limit=8)
     suggestions = bound.concept_next_queryables(
         "concept2",
-        ["y == 2"],
+        queryables,
         ValueStatus.DETERMINED,
         limit=8,
     )
@@ -1663,14 +1664,30 @@ def test_atms_claim_interventions_return_no_plan_when_unreachable_and_respect_li
     )
     bound = _make_bound(store)
 
-    assert bound.claim_interventions("claim_future", ["z == 3"], ATMSNodeStatus.IN, limit=8) == []
+    assert bound.claim_interventions(
+        "claim_future",
+        (QueryableAssumption.from_cel("z == 3"),),
+        ATMSNodeStatus.IN,
+        limit=8,
+    ) == []
     with pytest.raises(BudgetExhausted) as exc_info:
-        bound.claim_interventions("claim_future", ["a == 1", "b == 2"], ATMSNodeStatus.IN, limit=1)
+        bound.claim_interventions(
+            "claim_future",
+            (
+                QueryableAssumption.from_cel("a == 1"),
+                QueryableAssumption.from_cel("b == 2"),
+            ),
+            ATMSNodeStatus.IN,
+            limit=1,
+        )
     assert exc_info.value.examined == 1
     assert exc_info.value.total == 4
     assert [plan.queryable_cels for plan in bound.claim_interventions(
         "claim_future",
-        ["b == 2", "a == 1"],
+        (
+            QueryableAssumption.from_cel("b == 2"),
+            QueryableAssumption.from_cel("a == 1"),
+        ),
         ATMSNodeStatus.IN,
         limit=8,
     )] == [("a == 1", "b == 2")]

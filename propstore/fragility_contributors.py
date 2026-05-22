@@ -38,7 +38,7 @@ from propstore.provenance import (
     derivation_count,
     partial_derivative,
 )
-from propstore.world.types import QueryableAssumption, ValueStatus, coerce_queryable_assumptions
+from propstore.world.types import QueryableAssumption, ValueStatus
 
 
 _ASSUMPTION_VAR_PREFIX = "ps:source:assumption:"
@@ -135,18 +135,18 @@ def _in_extension(current_status: object) -> bool:
 def _parameterizations_to_queryables(
     bound: FragilityWorld,
 ) -> tuple[QueryableAssumption, ...]:
-    queryables: list[str | QueryableAssumption] = []
+    queryables: set[QueryableAssumption] = set()
     for parameterization in bound._store.all_parameterizations():
         if not parameterization.conditions_cel:
             continue
         decoded = json.loads(parameterization.conditions_cel)
         if isinstance(decoded, str):
-            queryables.append(decoded)
+            queryables.add(QueryableAssumption.from_cel(decoded))
             continue
         for item in decoded:
             if isinstance(item, str):
-                queryables.append(item)
-    return coerce_queryable_assumptions(queryables)
+                queryables.add(QueryableAssumption.from_cel(item))
+    return tuple(sorted(queryables))
 
 
 def derive_scored_concepts(bound: FragilityWorld) -> list[str]:
@@ -182,7 +182,7 @@ def collect_assumption_interventions(
     atms_limit: int,
 ) -> tuple[RankedIntervention, ...]:
     normalized_queryables = (
-        coerce_queryable_assumptions(queryables)
+        tuple(sorted(set(queryables)))
         if queryables is not None
         else _parameterizations_to_queryables(bound)
     )

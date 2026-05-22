@@ -14,7 +14,6 @@ from propstore.world.types import (
     GroundingBundleStore,
     HasATMSEngine,
     RenderPolicy,
-    coerce_queryable_assumptions,
     validate_backend_semantics,
 )
 from propstore.worldline.definition import WorldlineDefinition
@@ -214,7 +213,7 @@ def _capture_atms(
         return None
     return WorldlineArgumentationState.from_json_payload(
         bound.atms_engine().argumentation_state(
-            queryables=coerce_queryable_assumptions(policy.future_queryables),
+            queryables=policy.future_queryables,
             future_limit=policy.future_limit or 8,
         )
     )

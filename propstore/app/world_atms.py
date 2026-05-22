@@ -222,9 +222,9 @@ def _string_sequence(value: object, *, field_name: str) -> tuple[str, ...]:
 
 
 def _queryables(queryables: tuple[str, ...]):
-    from propstore.world.types import coerce_queryable_assumptions
+    from propstore.world.types import QueryableAssumption
 
-    return list(coerce_queryable_assumptions(queryables))
+    return tuple(QueryableAssumption.from_cel(queryable) for queryable in queryables)
 
 
 def bind_atms_world(
