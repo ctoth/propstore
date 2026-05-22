@@ -288,7 +288,47 @@ commit message body:
   - Required follow-up: define a narrow condition evaluation value type and use
     it for ESTree literals, bindings, member evaluation, and numeric helpers.
 
+- [x] `propstore/core/conditions/ir.py`
+  - Read: 2026-05-21.
+  - Action: keep closed condition IR; tighten runtime constructors to typed
+    values.
+  - Reason: the file defines the actual closed `ConditionIR` domain model and
+    enum vocabulary for condition expressions. It does not preserve old paths.
+    The tightening target is `ConditionReference.concept_id:
+    ConceptId | str` and enum normalization in runtime dataclass
+    `__post_init__` methods.
+  - Required follow-up: make the IR runtime model require `ConceptId`,
+    `ConditionValueKind`, and operator enum instances after boundary decoding;
+    keep enum construction in `codec.py`/`cel_frontend.py`.
+
+- [x] `propstore/core/conditions/python_backend.py`
+  - Read: 2026-05-21.
+  - Action: keep only if it remains an explicit backend; tighten value typing
+    and consolidate evaluator semantics with ESTree where duplication appears.
+  - Reason: the backend translates closed `ConditionIR` to Python AST and
+    evaluates a controlled expression. The public evaluator accepts
+    `Mapping[str, object]` and returns `object`, duplicating the loose-value
+    problem also present in the ESTree backend.
+  - Required follow-up: introduce the same condition evaluation value type used
+    by the ESTree backend. If both evaluators implement the same runtime
+    semantics for production callers, consolidate the production evaluator and
+    keep backend-specific translation only where needed.
+
+- [x] `propstore/core/conditions/registry.py`
+  - Read: 2026-05-21.
+  - Action: rewrite as a typed projection from concept/family metadata, not a
+    hand-maintained duplicate model.
+  - Reason: `ConceptInfo` duplicates concept identity/name/kind/category fields
+    in a mutable dataclass. `scope_condition_registry` accepts mixed string
+    collection shapes. `synthetic_category_concept` silently filters non-string
+    values. This must be a typed condition-registry projection derived from the
+    concept owner/family metadata, with hard failures for invalid values.
+  - Required follow-up: use `ConceptId`, immutable category tuples, and a typed
+    iterable of concept IDs. Ensure standard synthetic bindings remain
+    explicitly non-concept condition bindings instead of fake concept metadata
+    unless the concept owner declares them.
+
 ## Progress
 
-- Files read: 21 / 51.
-- Next file: `propstore/core/conditions/ir.py`.
+- Files read: 24 / 51.
+- Next file: `propstore/core/conditions/solver.py`.
