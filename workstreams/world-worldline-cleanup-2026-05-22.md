@@ -97,7 +97,7 @@ Gate results:
 - Log: `logs/test-runs/worldline-result-coercer-cleanup-20260522-020908.log`.
 
 Commit:
-- Pending.
+- `8b786db4 Delete worldline result coercers`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
