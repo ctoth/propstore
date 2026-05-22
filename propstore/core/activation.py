@@ -8,9 +8,9 @@ from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions import CheckedConditionSet
 from propstore.core.conditions.cel_frontend import check_condition_ir
-from propstore.core.conditions.registry import with_standard_synthetic_bindings
 from propstore.core.conditions.registry import ConceptInfo, KindType
-from propstore.core.conditions.solver import ConditionSolver, Z3TranslationError
+from propstore.core.conditions.registry import with_standard_synthetic_bindings
+from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ClaimId
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
@@ -77,7 +77,7 @@ def claim_lifting_materializations(
     from propstore.context_lifting import (
         IstProposition,
     )
-    from propstore.core.assertions import ContextReference
+    from propstore.core.assertions.refs import ContextReference
 
     return lifting_system.materialize_lifted_assertions(
         (
@@ -114,16 +114,6 @@ def _raise_unknown_concept_if_present(
         return
     concept_name = message.split(prefix, 1)[1].split("'", 1)[0]
     raise UnknownConceptInCEL(concept_name, source_artifact=source_artifact) from exc
-
-
-def _retry_with_standard_bindings(
-    solver: ConditionSolver,
-) -> ConditionSolver:
-    base_registry = solver.registry
-    augmented_registry = with_standard_synthetic_bindings(base_registry)
-    if augmented_registry == dict(base_registry):
-        return solver
-    return ConditionSolver(augmented_registry)
 
 
 def _binding_kind(value: object) -> KindType:
@@ -197,28 +187,6 @@ def is_claim_active(
             source_artifact=source_artifact,
         )
         raise
-    except Z3TranslationError:
-        retry_solver = _retry_with_standard_bindings(
-            query_solver,
-        )
-        retry_registry = retry_solver.registry
-        try:
-            return not retry_solver.are_disjoint(
-                checked_condition_set(
-                    check_condition_ir(str(condition), retry_registry)
-                    for condition in binding_conditions
-                ),
-                checked_condition_set(
-                    check_condition_ir(source, retry_registry)
-                    for source in claim_conditions.sources
-                ),
-            )
-        except ValueError as exc:
-            _raise_unknown_concept_if_present(
-                exc,
-                source_artifact=source_artifact,
-            )
-            raise
 
 
 def activate_compiled_world_graph(
