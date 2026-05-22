@@ -15,7 +15,7 @@ from propstore.families.documents.sources import (
     SourceTrustQualityDocument,
 )
 from quire.documents import DocumentSchemaError, convert_document_value
-from propstore.opinion import Opinion, consensus_pair
+from propstore.opinion import Opinion
 from propstore.provenance import (
     PROVENANCE_NOTES_REF,
     Provenance,
@@ -179,7 +179,7 @@ def test_opinion_fusion_composes_provenance() -> None:
     left = Opinion(0.4, 0.2, 0.4, 0.5, provenance=_provenance(ProvenanceStatus.STATED, "left"))
     right = Opinion(0.2, 0.3, 0.5, 0.5, provenance=_provenance(ProvenanceStatus.CALIBRATED, "right"))
 
-    fused = consensus_pair(left, right)
+    fused = left.consensus_pair(right)
 
     assert fused.provenance is not None
     assert fused.provenance.status is ProvenanceStatus.CALIBRATED
@@ -206,7 +206,7 @@ def test_probability_derivation_without_provenance_does_not_manufacture_status()
     left = Opinion(0.4, 0.2, 0.4, 0.5)
     right = Opinion(0.2, 0.3, 0.5, 0.5)
 
-    fused = consensus_pair(left, right)
+    fused = left.consensus_pair(right)
 
     assert fused.provenance is None
     with pytest.raises(ValueError, match="explicit provenance"):

@@ -12,7 +12,7 @@ from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabil
 from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
-from propstore.opinion import Opinion, from_probability as _from_probability
+from propstore.opinion import Opinion
 from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
@@ -20,7 +20,7 @@ _TEST_BASE_RATE = 0.5
 
 
 def from_probability(p: float, n: float) -> Opinion:
-    return _from_probability(p, n, _TEST_BASE_RATE)
+    return Opinion.from_probability(p, n, _TEST_BASE_RATE)
 
 
 def _probability(value: float | Opinion) -> float:

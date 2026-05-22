@@ -35,7 +35,7 @@ from propstore.families.claims.references import (
 )
 from propstore.families.contexts.documents import ContextReferenceDocument
 from propstore.families.documents.stances import StanceDocument
-from propstore.opinion import Opinion, fuse
+from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus
 
 
@@ -666,5 +666,5 @@ class TestCorpusCalibReducesUncertainty:
         )
         assert isinstance(cat_op, Opinion)
 
-        expected = fuse(corpus_op, cat_op)
+        expected = Opinion.fuse(corpus_op, cat_op)
         assert u == pytest.approx(expected.u, abs=1e-12)

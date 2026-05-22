@@ -7,7 +7,7 @@ Paper anchors are the actual PDF page numbers:
 
 import pytest
 
-from propstore.opinion import Opinion, wbf
+from propstore.opinion import Opinion
 
 
 def test_wbf_table_i_three_source_matches_paper() -> None:
@@ -16,7 +16,7 @@ def test_wbf_table_i_three_source_matches_paper() -> None:
     a2 = Opinion(0.40, 0.20, 0.40, 0.5)
     a3 = Opinion(0.70, 0.10, 0.20, 0.5)
 
-    result = wbf(a1, a2, a3)
+    result = Opinion.wbf(a1, a2, a3)
 
     assert result.b == pytest.approx(0.562, abs=5e-4)
     assert result.d == pytest.approx(0.146, abs=5e-4)
@@ -30,7 +30,7 @@ def test_wbf_definition_4_base_rate_is_confidence_weighted() -> None:
     a2 = Opinion(0.40, 0.20, 0.40, 0.5)
     a3 = Opinion(0.70, 0.10, 0.20, 0.8)
 
-    result = wbf(a1, a2, a3)
+    result = Opinion.wbf(a1, a2, a3)
 
     expected_a = ((0.2 * 0.4) + (0.5 * 0.6) + (0.8 * 0.8)) / (0.4 + 0.6 + 0.8)
     assert result.a == pytest.approx(expected_a, abs=1e-12)
@@ -41,7 +41,7 @@ def test_wbf_single_dogmatic_source_dominates_finite_evidence() -> None:
     dogmatic = Opinion.dogmatic_true(0.3)
     finite = Opinion(0.10, 0.30, 0.60, 0.7)
 
-    result = wbf(dogmatic, finite)
+    result = Opinion.wbf(dogmatic, finite)
 
     assert result.b == pytest.approx(1.0, abs=1e-12)
     assert result.d == pytest.approx(0.0, abs=1e-12)
@@ -51,7 +51,7 @@ def test_wbf_single_dogmatic_source_dominates_finite_evidence() -> None:
 
 def test_wbf_all_vacuous_remains_vacuous_with_average_base_rate() -> None:
     """Definition 4 case 3 / Remark 3 (p.5): no evidence stays no evidence."""
-    result = wbf(Opinion.vacuous(0.2), Opinion.vacuous(0.8))
+    result = Opinion.wbf(Opinion.vacuous(0.2), Opinion.vacuous(0.8))
 
     assert result.b == pytest.approx(0.0, abs=1e-12)
     assert result.d == pytest.approx(0.0, abs=1e-12)

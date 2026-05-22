@@ -6,7 +6,7 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.opinion import Opinion, wbf
+from propstore.opinion import Opinion
 
 
 @st.composite
@@ -29,8 +29,8 @@ def test_wbf_base_rate_is_confidence_weighted_without_clamp(pair) -> None:
     """vdH 2018 Def 4 (p.5) computes a_hat from confidence weights."""
     left, right = pair
 
-    fused = wbf(left, right)
-    reversed_fused = wbf(right, left)
+    fused = Opinion.wbf(left, right)
+    reversed_fused = Opinion.wbf(right, left)
     expected_a = (
         left.a * (1.0 - left.u) + right.a * (1.0 - right.u)
     ) / ((1.0 - left.u) + (1.0 - right.u))
@@ -48,7 +48,7 @@ def test_wbf_base_rate_is_confidence_weighted_without_clamp(pair) -> None:
 
 def test_wbf_base_rate_is_not_clamped_to_propstore_convention() -> None:
     """Def 4 keeps valid low base rates; `_BASE_RATE_CLAMP` is not applied."""
-    fused = wbf(
+    fused = Opinion.wbf(
         Opinion(0.2, 0.3, 0.5, 0.001),
         Opinion(0.1, 0.4, 0.5, 0.001),
     )

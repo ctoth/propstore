@@ -4,7 +4,7 @@ import pytest
 from argumentation.dung import ArgumentationFramework
 from argumentation.probabilistic import ProbabilisticAF
 
-from propstore.opinion import Opinion, from_probability
+from propstore.opinion import Opinion
 from propstore.praf import COHDogmaticInputError, PropstorePrAF, enforce_coh
 
 
@@ -15,12 +15,12 @@ def _praf() -> PropstorePrAF:
         attacks=frozenset({("a", "b"), ("b", "a")}),
     )
     p_args = {
-        "a": from_probability(0.9, 20.0, 0.5),
-        "b": from_probability(0.9, 20.0, 0.5),
+        "a": Opinion.from_probability(0.9, 20.0, 0.5),
+        "b": Opinion.from_probability(0.9, 20.0, 0.5),
     }
     p_defeats = {
-        ("a", "b"): from_probability(1.0, 20.0, 0.5),
-        ("b", "a"): from_probability(1.0, 20.0, 0.5),
+        ("a", "b"): Opinion.from_probability(1.0, 20.0, 0.5),
+        ("b", "a"): Opinion.from_probability(1.0, 20.0, 0.5),
     }
     return PropstorePrAF(
         kernel=ProbabilisticAF(

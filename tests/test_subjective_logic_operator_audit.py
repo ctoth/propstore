@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 import yaml
 
-from propstore.opinion import Opinion, ccf, consensus_pair, discount, wbf
+from propstore.opinion import Opinion
 from propstore.world.types import DecisionValueSource, apply_decision_criterion
 
 
@@ -44,15 +44,15 @@ def test_subjective_logic_operator_manifest(row: dict[str, Any]) -> None:
     elif row["id"] == "disjunction":
         result = opinions[0].disjunction(opinions[1])
     elif row["id"] == "consensus_pair":
-        result = consensus_pair(opinions[0], opinions[1])
+        result = opinions[0].consensus_pair(opinions[1])
     elif row["id"] == "discount":
-        result = discount(opinions[0], opinions[1])
+        result = opinions[0].discount(opinions[1])
     elif row["id"] == "maximize_uncertainty":
         result = opinions[0].maximize_uncertainty()
     elif row["id"] == "wbf":
-        result = wbf(*opinions)
+        result = Opinion.wbf(*opinions)
     elif row["id"] == "ccf":
-        result = ccf(*opinions)
+        result = Opinion.ccf(*opinions)
     else:
         raise AssertionError(f"unknown operator audit row {row['id']!r}")
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from propstore.opinion import Opinion, wbf
+from propstore.opinion import Opinion
 from propstore.world.types import apply_decision_criterion
 
 
@@ -12,7 +12,7 @@ def test_workstream_d_done() -> None:
     manifest = Path(__file__).parent / "data" / "subjective_logic_canonical.yaml"
 
     assert manifest.exists()
-    assert wbf(
+    assert Opinion.wbf(
         Opinion(0.10, 0.30, 0.60, 0.5),
         Opinion(0.40, 0.20, 0.40, 0.5),
         Opinion(0.70, 0.10, 0.20, 0.5),

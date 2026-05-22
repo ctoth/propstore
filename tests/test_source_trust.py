@@ -17,7 +17,7 @@ from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.families.registry import ClaimRef
-from propstore.opinion import Opinion, discount, from_probability
+from propstore.opinion import Opinion
 from propstore.praf import NoCalibration, p_arg_from_claim
 from propstore.source.common import initial_source_document
 from tests.family_helpers import materialized_world_store_path
@@ -56,7 +56,7 @@ def test_p_arg_from_claim_builds_claim_evidence_opinion() -> None:
         )
     )
     assert isinstance(opinion, Opinion)
-    assert opinion == from_probability(0.8, 10, 0.62)
+    assert opinion == Opinion.from_probability(0.8, 10, 0.62)
     assert opinion.provenance is not None
 
 
@@ -97,8 +97,8 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
             "a": 0.5,
         },
     )
-    expected_claim = from_probability(0.8, 10, 0.62)
-    expected = discount(Opinion(0.7, 0.1, 0.2, 0.5), expected_claim)
+    expected_claim = Opinion.from_probability(0.8, 10, 0.62)
+    expected = Opinion(0.7, 0.1, 0.2, 0.5).discount(expected_claim)
     actual = p_arg_from_claim(claim)
     assert isinstance(actual, Opinion)
     assert actual == expected
@@ -121,8 +121,8 @@ def test_p_arg_from_claim_uses_source_trust_mapping() -> None:
         claim_probability=0.8,
         effective_sample_size=10,
     )
-    expected_claim = from_probability(0.8, 10, 0.62)
-    expected = discount(Opinion(0.7, 0.1, 0.2, 0.5), expected_claim)
+    expected_claim = Opinion.from_probability(0.8, 10, 0.62)
+    expected = Opinion(0.7, 0.1, 0.2, 0.5).discount(expected_claim)
     actual = p_arg_from_claim(claim)
     assert isinstance(actual, Opinion)
     assert actual == expected

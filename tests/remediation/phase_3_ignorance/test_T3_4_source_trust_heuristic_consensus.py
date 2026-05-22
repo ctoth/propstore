@@ -1,4 +1,4 @@
-from propstore.opinion import Opinion, consensus
+from propstore.opinion import Opinion
 
 
 def test_derive_source_trust_in_heuristic_layer() -> None:
@@ -14,5 +14,5 @@ def test_caller_prior_combined_via_josang_consensus() -> None:
     chain = Opinion(0.3, 0.6, 0.1, 0.5)
     combined = derive_source_trust(prior=prior, chain_opinion=chain)
 
-    assert combined == consensus(prior, chain)
+    assert combined == Opinion.consensus(prior, chain)
     assert combined not in (prior, chain)
