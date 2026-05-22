@@ -99,6 +99,41 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 10 - `propstore/world/value_resolver.py::_coerce_override_value`
+
+Slice read:
+- `propstore/world/value_resolver.py`
+- `propstore/world/bound.py`
+- current `override_values` callers from literal search.
+
+Surfaces:
+- `_coerce_override_value`
+  - Disposition: rewrite.
+  - Owner after cleanup: derivation uses numeric override values that already
+    crossed their IO/app boundary; string parsing is not owned by the runtime
+    resolver.
+  - Action: replace the coercer with a numeric override reader that accepts
+    `int | float` values, rejects bool/string/object values, and keeps `None`
+    as no override.
+  - Evidence: formula evaluation needs numeric inputs; parsing strings with
+    `float(...)` inside the resolver silently preserves a loose payload path.
+
+Gate results:
+- Pass: `rg -n -F -- "coerce" propstore/world propstore/worldline`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-override-value-cleanup tests/test_world_query.py::TestDerivedValue
+  tests/test_labelled_core.py::test_derived_value_combines_input_labels`
+  returned `10 passed`.
+- Log: `logs/test-runs/world-override-value-cleanup-20260522-024009.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 9 - `propstore/world/types.py::DerivedResult.exactness`
 
 Slice read:

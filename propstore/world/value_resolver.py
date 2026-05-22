@@ -335,7 +335,7 @@ class ClaimValueResolver:
 
         input_values: dict[ConceptId, float] = {}
         for input_id in effective_inputs:
-            override_value = self._coerce_override_value(override_values, input_id)
+            override_value = self._numeric_override_value(override_values, input_id)
             if override_value is not None:
                 input_values[input_id] = override_value
                 continue
@@ -484,7 +484,7 @@ class ClaimValueResolver:
         return aliases
 
     @staticmethod
-    def _coerce_override_value(
+    def _numeric_override_value(
         override_values: Mapping[str, float | str | None] | None,
         input_id: ConceptId,
     ) -> float | None:
@@ -494,12 +494,11 @@ class ClaimValueResolver:
         override_value = override_values[override_key]
         if override_value is None:
             return None
-        try:
-            return float(override_value)
-        except (TypeError, ValueError) as exc:
-            raise ValueError(
-                f"Invalid override value for {override_key!r}: {override_value!r}"
-            ) from exc
+        if isinstance(override_value, bool) or not isinstance(override_value, int | float):
+            raise TypeError(
+                f"Override value for {override_key!r} must be numeric"
+            )
+        return float(override_value)
 
     @staticmethod
     def _normalize_value(value: float | str | None) -> float | str | None:

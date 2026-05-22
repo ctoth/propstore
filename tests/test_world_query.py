@@ -1299,6 +1299,12 @@ class TestDerivedValue:
         # concept5 = concept6 * concept1 = 0.001 * 200 = 0.2
         assert abs(result.value - 0.2) < 1e-9
 
+    def test_derived_override_values_must_already_be_numeric(self, world):
+        bound = world.bind(task="speech")
+
+        with pytest.raises(TypeError, match="must be numeric"):
+            bound.derived_value("concept5", override_values={"concept1": "200.0"})
+
 
 # ── Feature 2: Hypothetical World ────────────────────────────────────
 
