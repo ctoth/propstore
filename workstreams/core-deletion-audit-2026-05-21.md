@@ -220,7 +220,44 @@ commit message body:
     `ConceptRelationshipType` under the concept/family owner, and update callers
     to use the enum constructor at IO/document boundaries only.
 
+- [x] `propstore/core/concept_status.py`
+  - Read: 2026-05-21.
+  - Action: move concept-family vocabulary to the concept owner and delete the
+    helper.
+  - Delete: `coerce_concept_status`.
+  - Reason: concept status is concept-family semantic vocabulary, not generic
+    core infrastructure. The helper accepts mixed enum/string input and hides
+    boundary parsing inside runtime code.
+  - Required follow-up: delete `coerce_concept_status` first, move/consolidate
+    `ConceptStatus` under the concept/family owner, and update callers to use
+    `ConceptStatus(value)` at IO/document boundaries only.
+
+- [x] `propstore/core/conditions/__init__.py`
+  - Read: 2026-05-21.
+  - Action: delete eager low-level package re-export surface unless caller audit
+    proves it is the intentional condition package API.
+  - Reason: this initializer imports checked models, codecs, ESTree backend,
+    IR, Python backend, SQL backend, solver, and Z3 backend. That violates the
+    shallow package initializer rule and can pull unrelated backends into
+    callers that only need one surface.
+  - Required follow-up: search all `propstore.core.conditions import` callers.
+    Prefer concrete-module imports. If a package API remains, it must be narrow
+    and must not import every backend eagerly.
+
+- [x] `propstore/core/conditions/cel_frontend.py`
+  - Read: 2026-05-21.
+  - Action: keep in condition owner, with type-boundary tightening.
+  - Reason: this is the real CEL frontend lowering/type-checking owner for
+    `ConditionIR`. It uses typed registry entries, hard-fails unsupported CEL
+    nodes, and does not preserve old shapes. The remaining tightening is to
+    ensure public entrypoints use the declared CEL/domain source type
+    consistently rather than plain strings where the type system can carry
+    `CelExpr`.
+  - Required follow-up: audit callers of `condition_ir_from_cel` and
+    `check_condition_ir`; if they already have `CelExpr`, pass it through as a
+    typed value instead of stringifying before this boundary.
+
 ## Progress
 
-- Files read: 15 / 51.
-- Next file: `propstore/core/concept_status.py`.
+- Files read: 18 / 51.
+- Next file: `propstore/core/conditions/checked.py`.
