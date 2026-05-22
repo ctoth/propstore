@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 import pytest
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
 from propstore.world.value_resolver import ClaimValueResolver, _claim_value_view
 from tests.typed_family_fixtures import claim_from_payload

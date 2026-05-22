@@ -1,4 +1,4 @@
-"""Canonical claim-type vocabulary for authored and runtime claim semantics."""
+"""Claim-family semantic vocabulary."""
 
 from __future__ import annotations
 
@@ -23,9 +23,3 @@ VALID_CLAIM_TYPES = frozenset(
     for claim_type in ClaimType
     if claim_type is not ClaimType.UNKNOWN
 )
-
-
-def coerce_claim_type(value: object | None) -> ClaimType | None:
-    if value is None:
-        return None
-    return ClaimType(str(value))

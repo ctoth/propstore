@@ -24,7 +24,7 @@ from quire.references import ForeignKeySpec, ReferenceKey
 from quire.schema_catalog import SchemaCatalog
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.versions import VersionId
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.justifications import Justification
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.concepts.declaration import (

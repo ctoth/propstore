@@ -15,7 +15,7 @@ from propstore.families.claims.documents import (
 )
 from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.exactness_types import Exactness
 from propstore.core.source_types import SourceKind, SourceOriginType
 from quire.documents import DocumentStruct

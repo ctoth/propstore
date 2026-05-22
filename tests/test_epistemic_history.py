@@ -8,7 +8,7 @@ from dataclasses import replace
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state

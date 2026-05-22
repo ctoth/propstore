@@ -13,7 +13,7 @@ from ast_equiv import canonical_dump
 from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCompilationBundle
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.id_types import ConceptId
 from propstore.families.claims.documents import VariableBindingDocument
 

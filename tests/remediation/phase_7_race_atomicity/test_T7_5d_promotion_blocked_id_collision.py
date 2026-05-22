@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from sqlalchemy import text
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.families.claims.declaration import (
     PromotionBlockedModels,
     compile_promotion_blocked_models,

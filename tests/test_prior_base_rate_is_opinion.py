@@ -4,7 +4,7 @@ import json
 
 from quire.documents import convert_document_value
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.claim_values import SourceTrust
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId

@@ -8,7 +8,7 @@ from propstore.canonical_namespaces import assert_namespace_not_reserved
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.families.claims.documents import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.registry import SourceRef
-from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.families.claims.types import ClaimType
 from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository, retry_live_branch_update
@@ -475,8 +475,7 @@ def commit_source_claim_proposal(
 ) -> SourceClaimDocument:
     branch = repo.families.source_claims.address(SourceRef(source_name)).branch
     source_doc = load_source_document(repo, source_name)
-    normalized_claim_type = coerce_claim_type(claim_type)
-    assert normalized_claim_type is not None
+    normalized_claim_type = ClaimType(claim_type)
 
     def update(expected_head: str | None) -> tuple[SourceClaimDocument, ...]:
         existing = load_source_claims_document(repo, source_name) or ()

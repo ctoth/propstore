@@ -577,7 +577,7 @@ def list_world_algorithms(
     world: WorldQuery,
     request: WorldAlgorithmsRequest,
 ) -> WorldAlgorithmsReport:
-    from propstore.core.claim_types import ClaimType
+    from propstore.families.claims.types import ClaimType
 
     claims = list(world.claims_for(None))
     algorithms = [claim for claim in claims if claim.type is ClaimType.ALGORITHM]
@@ -647,7 +647,7 @@ def diff_hypothetical_world(
     request: WorldHypotheticalRequest,
 ) -> WorldHypotheticalReport:
     from propstore.cel_types import to_cel_exprs
-    from propstore.core.claim_types import ClaimType, coerce_claim_type
+    from propstore.families.claims.types import ClaimType
     from propstore.core.environment import Environment
     from propstore.core.id_types import ConceptId
     from propstore.world import OverlayWorld, SyntheticClaim
@@ -657,7 +657,7 @@ def diff_hypothetical_world(
         SyntheticClaim(
             id=spec.claim_id,
             concept_id=ConceptId(spec.concept_id),
-            type=coerce_claim_type(spec.claim_type) or ClaimType.PARAMETER,
+            type=ClaimType(spec.claim_type),
             value=spec.value,
             conditions=list(to_cel_exprs(spec.conditions)),
         )

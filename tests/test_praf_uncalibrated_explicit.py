@@ -4,7 +4,7 @@ from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.dung import ArgumentationFramework
 
 from propstore.argumentation import SharedAnalyzerInput, build_praf_from_shared_input
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.probabilistic_relations import ClaimGraphRelations

@@ -35,7 +35,7 @@ from quire.documents import convert_document
 from propstore.cli import cli
 from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import (
     ClaimDocument,

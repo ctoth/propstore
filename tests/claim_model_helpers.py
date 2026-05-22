@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence
 from typing import cast
 
 from propstore.core.algorithm_stage import AlgorithmStage
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import (
     Claim,

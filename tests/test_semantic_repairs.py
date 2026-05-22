@@ -4,7 +4,7 @@ import pytest
 import yaml
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from tests.family_helpers import materialized_world_store_path
 from propstore.world import ResolutionStrategy, WorldQuery, resolve
 from propstore.world.queries import world_claim_display_id

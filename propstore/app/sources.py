@@ -445,12 +445,12 @@ def propose_source_claim(
     repo: Repository,
     request: SourceClaimProposalRequest,
 ) -> SourceClaimProposalReport:
-    from propstore.core.claim_types import coerce_claim_type
+    from propstore.families.claims.types import ClaimType
     from propstore.source import commit_source_claim_proposal
 
-    typed_claim_type = coerce_claim_type(request.claim_type)
-    if typed_claim_type is None:
+    if request.claim_type is None:
         raise SourceAppError("claim type is required")
+    typed_claim_type = ClaimType(request.claim_type)
     entry = commit_source_claim_proposal(
         repo,
         request.source_name,

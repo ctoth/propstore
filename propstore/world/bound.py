@@ -13,7 +13,7 @@ from propstore.core.conditions.registry import ConceptInfo
 from propstore.cel_registry import build_store_cel_registry
 from propstore.cel_types import CelExpr
 from propstore.core.activation import is_claim_active
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.environment import ConceptCatalogStore, ConditionSolverStore, WorldStore
 from propstore.core.id_types import (
     ClaimId,

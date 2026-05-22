@@ -12,7 +12,7 @@ from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.dung import ArgumentationFramework
 
 from propstore.argumentation import SharedAnalyzerInput
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.id_types import ClaimId
 from propstore.core.results import AnalyzerResult, ClaimProjection

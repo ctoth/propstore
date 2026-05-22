@@ -6,7 +6,7 @@ that lack explicit statement fields.
 
 import pytest
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.description_generator import generate_description, _format_conditions_prose
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.contexts.documents import ContextReferenceDocument

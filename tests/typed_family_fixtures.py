@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from propstore.core.claim_types import coerce_claim_type
+from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.families.claims.graph import claim_node_from_claim
 from propstore.families.claims.declaration import (
@@ -29,7 +29,7 @@ _CLAIM_GRAPH_METADATA_KEYS = (
 
 def claim_from_payload(payload: Mapping[str, Any]) -> Claim:
     claim_id = str(payload["id"])
-    claim_type = coerce_claim_type(payload.get("type", "parameter"))
+    claim_type = ClaimType(payload.get("type", "parameter"))
     claim = Claim(
         id=claim_id,
         type=claim_type,

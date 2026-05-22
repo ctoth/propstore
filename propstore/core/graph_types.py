@@ -8,7 +8,7 @@ import json
 from typing import Any, cast
 
 from propstore.cel_types import CelExpr, to_cel_exprs
-from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.families.claims.types import ClaimType
 from propstore.core.conditions.checked import (
     CheckedCondition,
     CheckedConditionSet,
@@ -46,10 +46,9 @@ def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
 
 
 def _require_claim_type(value: object) -> ClaimType:
-    claim_type = coerce_claim_type(value)
-    if claim_type is None:
+    if not isinstance(value, str):
         raise ValueError("active world graph claim node requires claim_type")
-    return claim_type
+    return ClaimType(value)
 
 
 def _pairs_from_json_payload(value: Mapping[str, object]) -> list[tuple[str, object]]:
@@ -274,7 +273,6 @@ class ClaimNode:
     attributes: tuple[tuple[str, Any], ...] = ()
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "claim_type", coerce_claim_type(self.claim_type))
         object.__setattr__(
             self,
             "source_assertion_ids",

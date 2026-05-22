@@ -25,7 +25,7 @@ from propstore.claims import (
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.algorithm_stage import AlgorithmStage
-from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.families.claims.types import ClaimType
 from propstore.core.conditions import (
     CheckedConditionSet,
     checked_condition_set_from_json,
@@ -62,10 +62,9 @@ if TYPE_CHECKING:
 
 
 def _require_claim_type(value: object) -> ClaimType:
-    claim_type = coerce_claim_type(value)
-    if claim_type is None:
+    if not isinstance(value, str):
         raise KeyError('claim_type')
-    return claim_type
+    return ClaimType(value)
 
 
 class Claim(FamilyModel):

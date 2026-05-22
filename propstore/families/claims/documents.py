@@ -9,7 +9,7 @@ from typing import Any, ClassVar
 from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.relations import ClaimConceptLinkRole
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from quire.documents import DocumentStruct
 from quire.versions import VersionId
 from propstore.families.contexts.documents import ContextReferenceDocument
@@ -684,4 +684,3 @@ class ClaimDocument(DocumentStruct):
         if self.variables:
             payload["variables"] = [variable.to_payload() for variable in self.variables]
         return payload
-

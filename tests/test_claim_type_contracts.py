@@ -6,7 +6,7 @@ from propstore.families.claims.documents import (
     claim_type_contract_for,
     iter_claim_type_contracts,
 )
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 
 
 def test_parameter_contract_declares_value_unit_and_concept_reference() -> None:

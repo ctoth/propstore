@@ -9,7 +9,7 @@ import pytest
 
 from argumentation.dung import ArgumentationFramework, grounded_extension, preferred_extensions
 from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabilisticAF
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.opinion import Opinion

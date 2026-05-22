@@ -24,7 +24,7 @@ from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.families.world_charters import Concept
 from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from tests.claim_model_helpers import claim_model
 from tests.family_helpers import (
     claim_artifact_commit_payloads,

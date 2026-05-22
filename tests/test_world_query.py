@@ -16,7 +16,7 @@ import yaml
 
 from sqlalchemy import create_engine, insert
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.conflict_detector import ConflictClass
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.source_types import SourceKind, SourceOriginType

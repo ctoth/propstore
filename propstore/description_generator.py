@@ -10,7 +10,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping, Sequence
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.families.claims.documents import ClaimDocument
 
 

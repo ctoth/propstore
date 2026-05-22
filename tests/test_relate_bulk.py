@@ -8,7 +8,7 @@ import pytest
 from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import create_sqlalchemy_store
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.families.claims.sidecar_runtime import (
     all_claim_ids,
     claim_text_by_id,

@@ -17,7 +17,7 @@ from propstore.app.repository_views import (
     AppRepositoryViewRequest,
     RepositoryViewUnsupportedStateError,
 )
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim, ClaimConceptLink
 from propstore.families.concepts.declaration import Concept

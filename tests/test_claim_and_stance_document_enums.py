@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.families.claims.documents import ClaimDocument, StanceDocument
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.families.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
 from propstore.families.documents.stances import StanceDocument as CanonicalStanceDocument

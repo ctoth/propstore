@@ -9,7 +9,7 @@ from propstore.families.contexts.documents import ContextDocument
 from propstore.families.contexts.documents import ContextReferenceDocument
 from propstore.families.registry import ClaimRef, ContextRef, SourceRef
 from propstore.repository import Repository
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.families.claims.references import (
     ImportedClaimReference,
     imported_claim_reference_index,

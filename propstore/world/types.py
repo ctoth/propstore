@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypeVar, ov
 
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
-from propstore.core.claim_types import ClaimType, coerce_claim_type
+from propstore.families.claims.types import ClaimType
 from propstore.core.environment import WorldStore, Environment  # noqa: F401
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import (
@@ -693,7 +693,7 @@ class SyntheticClaim:
 
     def __post_init__(self) -> None:
         self.concept_id = ConceptId(self.concept_id)
-        self.type = coerce_claim_type(self.type) or ClaimType.PARAMETER
+        self.type = ClaimType(self.type)
         self.conditions = list(to_cel_exprs(self.conditions))
         if self.sample_size is not None:
             self.sample_size = int(self.sample_size)

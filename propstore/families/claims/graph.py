@@ -6,7 +6,7 @@ import json
 from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, cast
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.core.conditions import (
     CheckedConditionSet,
     check_condition_ir,

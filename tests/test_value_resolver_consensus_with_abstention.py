@@ -13,7 +13,7 @@ absorbed.
 
 from __future__ import annotations
 
-from propstore.core.claim_types import ClaimType
+from propstore.families.claims.types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
 from propstore.world.value_resolver import ClaimValueResolver
 from tests.typed_family_fixtures import claim_from_payload

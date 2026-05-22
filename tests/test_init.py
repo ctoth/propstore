@@ -74,7 +74,7 @@ class TestInit:
 
         preference = importlib.import_module("propstore.preference")
         graph_types = importlib.import_module("propstore.core.graph_types")
-        claim_types = importlib.import_module("propstore.core.claim_types")
+        claim_types = importlib.import_module("propstore.families.claims.types")
         id_types = importlib.import_module("propstore.core.id_types")
         claim = graph_types.ClaimNode(
             claim_id=id_types.ClaimId("claim_metadata"),
