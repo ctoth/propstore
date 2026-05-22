@@ -51,7 +51,46 @@ If any condition fails, the action is delete, move, consolidate, or rewrite.
   - Required follow-up: update all callers to construct `AlgorithmStage(value)`
     at IO/document/app boundaries and pass typed values through runtime APIs.
 
+- [x] `propstore/core/aliases.py`
+  - Read: 2026-05-21.
+  - Action: move or delete from `core`.
+  - Reason: the module opens repository family handles and exports a concept
+    alias report. That is repository/app/family presentation behavior, not a
+    core semantic primitive. It imports `Repository`,
+    `parse_concept_record_document`, and identity helper code, so keeping it in
+    `core` violates owner layering.
+  - Required follow-up: find callers. If the export is still used, move it to
+    the concept app/family owner and delete the `propstore.core.aliases` import
+    path first; no core re-export.
+
+- [x] `propstore/core/analyzers.py`
+  - Read: 2026-05-21.
+  - Action: delete from `core`; move real analyzer orchestration to the
+    world/argumentation owner.
+  - Reason: it builds active-world analyzer inputs, converts family records to
+    graph rows, constructs Dung/bipolar/PrAF frameworks, runs claim-graph and
+    PrAF analysis, wraps ASPIC backend solving, and projects analyzer results.
+    That is world/argumentation runtime orchestration, not core primitive
+    ownership.
+  - Delete: `propstore/core/analyzers.py` as an import path.
+  - Required follow-up: create the target owner only as
+    `propstore/world/analyzers.py` or another explicitly chosen
+    world/argumentation owner, update every caller, and leave no
+    `propstore.core.analyzers` shim, alias, or package re-export.
+  - Additional cleanup: remove helper-shaped local coercion inside the moved
+    code, including `coerce_graph_relation_type("rebuts")` and broad
+    query-claim-id normalization that accepts multiple loose collection shapes
+    past the owner boundary.
+
+- [x] `propstore/core/anytime.py`
+  - Read: 2026-05-21.
+  - Action: keep as a narrow core result sentinel.
+  - Reason: `EnumerationExceeded` is typed, small, and does not duplicate field
+    metadata, storage mechanics, family lookup, compatibility handling, or old
+    import paths. It is a cross-cutting computation sentinel, not an IO parser
+    or owner-specific workflow.
+
 ## Progress
 
-- Files read: 3 / 51.
-- Next file: `propstore/core/aliases.py`.
+- Files read: 6 / 51.
+- Next file: `propstore/core/assertions/__init__.py`.
