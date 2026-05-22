@@ -26,7 +26,7 @@ from propstore.context_lifting import (
     LiftingRule,
     LiftingSystem,
 )
-from propstore.core.assertions import ContextReference
+from propstore.core.assertions.refs import ContextReference
 from propstore.families.contexts import load_contexts
 from propstore.families.contexts.passes import run_context_pipeline
 from propstore.families.contexts.stages import (

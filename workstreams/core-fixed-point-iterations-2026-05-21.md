@@ -300,3 +300,9 @@ Next: `propstore/core/anytime.py`.
 Kept `EnumerationExceeded`: it is the typed bounded-enumeration sentinel, not a shim/coercer/wrapper.
 Gates: direct uses only, pyright pass, anytime enumeration tests pass (`logs/test-runs/pytest-20260521-225324.log`).
 Next: `propstore/core/assertions/__init__.py`.
+
+## Iteration 7 - `propstore/core/assertions/__init__.py`
+
+Deleted assertion package re-exports; callers now import concrete `refs`, `situated`, `codec`, or `conversion` owners.
+Gates: package import zero-hit, `__all__` empty, pyright pass, assertion tests pass (`logs/test-runs/pytest-20260521-225526.log`).
+Next: `propstore/core/assertions/codec.py`.

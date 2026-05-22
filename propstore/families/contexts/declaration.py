@@ -17,7 +17,7 @@ from propstore.context_lifting import (
     LiftingRule,
     LiftingSystem,
 )
-from propstore.core.assertions import ContextReference
+from propstore.core.assertions.refs import ContextReference
 from propstore.core.id_types import ContextId
 from propstore.cel_types import to_cel_exprs
 from propstore.families.contexts.stages import (

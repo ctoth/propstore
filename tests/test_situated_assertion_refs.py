@@ -4,7 +4,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from propstore.core.assertions import (
+from propstore.core.assertions.refs import (
     UNCONDITIONAL_CONDITION_REF,
     ConditionRef,
     ContextReference,

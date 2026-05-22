@@ -12,7 +12,7 @@ from propstore.context_lifting import (
     LiftingRule,
     LiftingSystem,
 )
-from propstore.core.assertions import ContextReference
+from propstore.core.assertions.refs import ContextReference
 from propstore.families.contexts.declaration import (
     compile_context_lifting_materializations,
     compile_context_models,

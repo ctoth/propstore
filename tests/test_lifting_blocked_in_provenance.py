@@ -7,7 +7,7 @@ from propstore.context_lifting import (
     LiftingRule,
     LiftingSystem,
 )
-from propstore.core.assertions import ContextReference
+from propstore.core.assertions.refs import ContextReference
 from propstore.families.concepts.declaration import Concept
 from propstore.world.types import Environment
 from propstore.world.bound import BoundWorld

@@ -39,7 +39,7 @@ from propstore.context_lifting import (
     LiftingSystem,
 )
 from propstore.argumentation import SharedAnalyzerInput, analyze_praf
-from propstore.core.assertions import ContextReference
+from propstore.core.assertions.refs import ContextReference
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import claim_key

@@ -247,7 +247,7 @@ def _lifting_dependencies(
     lifting_system = bound._lifting_system
 
     from propstore.context_lifting import IstProposition, LiftingDecisionStatus
-    from propstore.core.assertions import ContextReference
+    from propstore.core.assertions.refs import ContextReference
 
     rule_ids: set[str] = set()
     blocked_exception_ids: set[str] = set()

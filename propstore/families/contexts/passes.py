@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from propstore.cel_types import to_cel_exprs
 from propstore.context_lifting import LiftingSystem
-from propstore.core.assertions import ContextReference
+from propstore.core.assertions.refs import ContextReference
 from propstore.families.contexts.stages import (
     ContextAuthoredSet,
     ContextBoundGraph,

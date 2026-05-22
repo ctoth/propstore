@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.core.assertions import (
-    AssertionSourceRecord,
+from propstore.core.assertions.conversion import AssertionSourceRecord
+from propstore.core.assertions.refs import (
     ConditionRef,
     ContextReference,
     ProvenanceGraphRef,
-    SituatedAssertion,
 )
+from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import ConceptId
 from propstore.core.relations import (
     RelationConceptRef,
