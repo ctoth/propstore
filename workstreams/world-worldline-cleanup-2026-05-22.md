@@ -95,7 +95,7 @@ Gate results:
 - Log: `logs/test-runs/world-atms-environment-key-cleanup-20260522-022228.log`.
 
 Commit:
-- Pending.
+- `db8507f8 Delete ATMS environment key coercer`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
