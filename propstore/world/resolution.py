@@ -192,16 +192,8 @@ def _display_claim_id(store: WorldStore | None, claim_id: str | None) -> str | N
     return claim_id
 
 
-def _coerce_resolution_claim(
-    claim: _ResolutionClaimView | Claim,
-) -> _ResolutionClaimView:
-    if isinstance(claim, _ResolutionClaimView):
-        return claim
-    return _resolution_claim_view(claim)
-
-
 def _resolve_recency(
-    claims: Sequence[_ResolutionClaimView | Claim],
+    claims: Sequence[_ResolutionClaimView],
 ) -> tuple[str | None, str | None]:
     """Pick the claim with the most recent date in provenance_json.
 
@@ -211,7 +203,7 @@ def _resolve_recency(
     """
     best_date = ""
     dated_claims: list[tuple[str, str]] = []  # (claim_id, date)
-    for c in (_coerce_resolution_claim(claim) for claim in claims):
+    for c in claims:
         provenance = c.provenance
         if provenance is None:
             continue
@@ -233,7 +225,7 @@ def _resolve_recency(
 
 
 def _resolve_sample_size(
-    claims: Sequence[_ResolutionClaimView | Claim],
+    claims: Sequence[_ResolutionClaimView],
 ) -> tuple[str | None, str | None]:
     """Pick the claim with the largest sample_size.
 
@@ -243,7 +235,7 @@ def _resolve_sample_size(
     """
     best_n: int | None = None
     best_claims: list[str] = []
-    for c in (_coerce_resolution_claim(claim) for claim in claims):
+    for c in claims:
         n = c.sample_size
         if n is not None:
             if best_n is None or n > best_n:
@@ -259,8 +251,8 @@ def _resolve_sample_size(
 
 
 def _resolve_claim_graph_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | Claim],
-    active_claims: Sequence[_ResolutionClaimView | Claim],
+    target_claims: Sequence[_ResolutionClaimView],
+    active_claims: Sequence[_ResolutionClaimView],
     world: WorldStore,
     *,
     semantics: str = "grounded",
@@ -282,8 +274,8 @@ def _resolve_claim_graph_argumentation(
         shared_analyzer_input_from_store,
     )
 
-    active_views = tuple(_coerce_resolution_claim(claim) for claim in active_claims)
-    target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
+    active_views = tuple(active_claims)
+    target_views = tuple(target_claims)
     active_ids = {str(c.id) for c in active_views}
     target_ids = {str(c.id) for c in target_views}
     shared = (
@@ -320,7 +312,7 @@ def _resolve_claim_graph_argumentation(
 
 
 def _resolve_structured_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | Claim],
+    target_claims: Sequence[_ResolutionClaimView],
     active_claims: list[Claim],
     view: BeliefSpace,
     world: WorldStore,
@@ -391,10 +383,9 @@ def _resolve_structured_argumentation(
         backend=ReasoningBackend.ASPIC,
     )
 
-    target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
     target_arg_ids = frozenset(
         arg_id
-        for claim in target_views
+        for claim in target_claims
         for arg_id in projection.claim_to_argument_ids.get(claim.id, ())
     )
     if isinstance(result, frozenset):
@@ -429,7 +420,7 @@ def _resolve_structured_argumentation(
 
 
 def _resolve_aspic_argumentation(
-    target_claims: Sequence[_ResolutionClaimView | Claim],
+    target_claims: Sequence[_ResolutionClaimView],
     active_claims: list[Claim],
     view: BeliefSpace,
     world: WorldStore,
@@ -451,8 +442,8 @@ def _resolve_aspic_argumentation(
 
 
 def _resolve_praf(
-    target_claims: Sequence[_ResolutionClaimView | Claim],
-    active_claims: Sequence[_ResolutionClaimView | Claim],
+    target_claims: Sequence[_ResolutionClaimView],
+    active_claims: Sequence[_ResolutionClaimView],
     world: WorldStore,
     *,
     semantics: str = "grounded",
@@ -479,8 +470,8 @@ def _resolve_praf(
         semantics,
     )
 
-    target_views = tuple(_coerce_resolution_claim(claim) for claim in target_claims)
-    active_views = tuple(_coerce_resolution_claim(claim) for claim in active_claims)
+    target_views = tuple(target_claims)
+    active_views = tuple(active_claims)
     active_ids = {str(c.id) for c in active_views}
     target_ids = {str(c.id) for c in target_views}
 
@@ -642,7 +633,7 @@ def _resolve_praf(
 
 
 def _resolve_atms_support(
-    target_claims: Sequence[_ResolutionClaimView | Claim],
+    target_claims: Sequence[_ResolutionClaimView],
     view: BeliefSpace,
 ) -> tuple[str | None, str | None]:
     """Resolve by ATMS-supported status over the active belief space."""
@@ -650,7 +641,7 @@ def _resolve_atms_support(
         raise NotImplementedError("ATMS backend requires a bound world with an ATMS engine")
 
     engine = view.atms_engine()
-    target_ids = {claim.id for claim in (_coerce_resolution_claim(row) for row in target_claims)}
+    target_ids = {claim.id for claim in target_claims}
     supported = engine.supported_claim_ids() & target_ids
     if len(supported) == 0:
         return None, "all ATMS-supported claims defeated"

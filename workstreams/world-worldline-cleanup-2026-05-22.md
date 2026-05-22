@@ -64,6 +64,43 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 5 - `propstore/world/resolution.py::_coerce_resolution_claim`
+
+Slice read:
+- `propstore/world/resolution.py`
+- current `_coerce_resolution_claim` callers from literal search.
+
+Surfaces:
+- `_coerce_resolution_claim`
+  - Disposition: delete.
+  - Owner after cleanup: `resolve()` constructs `_ResolutionClaimView` once at
+    the resolution boundary; internal helper functions receive only typed
+    views.
+  - Action: remove union parameters and generator coercion inside resolution
+    helpers.
+  - Evidence: `resolve()` already computes `active_views` and
+    `active_claim_views`; the helper preserves a mixed `Claim |
+    _ResolutionClaimView` path inside runtime resolution.
+
+Gate results:
+- Pass: `rg -n -F -- "_coerce_resolution_claim" propstore tests`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Initial logged gate failed because direct private-helper tests still passed
+  `Claim` rows; tests were updated to construct `_ResolutionClaimView`
+  explicitly.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-resolution-claim-view-cleanup tests/test_resolution_helpers.py
+  tests/test_praf_integration.py tests/test_world_query.py::TestConflictResolution
+  tests/test_semantic_repairs.py` returned `59 passed`.
+- Log: `logs/test-runs/world-resolution-claim-view-cleanup-20260522-021716.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 4 - `propstore/worldline/result_types.py::_coerce_variable_refs`
 
 Slice read:

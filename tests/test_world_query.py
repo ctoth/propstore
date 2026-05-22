@@ -1656,11 +1656,11 @@ class TestConflictResolution:
 
     def test_resolve_recency_tie_returns_conflicted(self):
         """Two claims with identical dates → conflicted, not arbitrary winner."""
-        from propstore.world.resolution import _resolve_recency
+        from propstore.world.resolution import _resolution_claim_view, _resolve_recency
 
         claims = [
-            claim_model("a", provenance_json={"date": "2025-01-01"}),
-            claim_model("b", provenance_json={"date": "2025-01-01"}),
+            _resolution_claim_view(claim_model("a", provenance_json={"date": "2025-01-01"})),
+            _resolution_claim_view(claim_model("b", provenance_json={"date": "2025-01-01"})),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id is None, (
@@ -1670,23 +1670,23 @@ class TestConflictResolution:
 
     def test_resolve_recency_tie_unique_best_still_wins(self):
         """One claim has strictly newest date → still resolves to winner."""
-        from propstore.world.resolution import _resolve_recency
+        from propstore.world.resolution import _resolution_claim_view, _resolve_recency
 
         claims = [
-            claim_model("a", provenance_json={"date": "2025-01-01"}),
-            claim_model("b", provenance_json={"date": "2024-06-01"}),
-            claim_model("c", provenance_json={"date": "2024-06-01"}),
+            _resolution_claim_view(claim_model("a", provenance_json={"date": "2025-01-01"})),
+            _resolution_claim_view(claim_model("b", provenance_json={"date": "2024-06-01"})),
+            _resolution_claim_view(claim_model("c", provenance_json={"date": "2024-06-01"})),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id == "a"
 
     def test_resolve_sample_size_tie_returns_conflicted(self):
         """Two claims with identical sample_size → conflicted, not arbitrary winner."""
-        from propstore.world.resolution import _resolve_sample_size
+        from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
 
         claims = [
-            claim_model("a", sample_size=50),
-            claim_model("b", sample_size=50),
+            _resolution_claim_view(claim_model("a", sample_size=50)),
+            _resolution_claim_view(claim_model("b", sample_size=50)),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id is None, (
@@ -1696,23 +1696,27 @@ class TestConflictResolution:
 
     def test_resolve_sample_size_tie_unique_best_still_wins(self):
         """One claim has strictly largest sample_size → still resolves to winner."""
-        from propstore.world.resolution import _resolve_sample_size
+        from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
 
         claims = [
-            claim_model("a", sample_size=100),
-            claim_model("b", sample_size=50),
-            claim_model("c", sample_size=50),
+            _resolution_claim_view(claim_model("a", sample_size=100)),
+            _resolution_claim_view(claim_model("b", sample_size=50)),
+            _resolution_claim_view(claim_model("c", sample_size=50)),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id == "a"
 
     def test_resolve_recency_tie_through_resolve_api(self):
         """Integration: tied dates through resolve() → conflicted status."""
-        from propstore.world.resolution import _resolve_recency
+        from propstore.world.resolution import _resolution_claim_view, _resolve_recency
 
         tied_claims = [
-            claim_model("claim1", value=200.0, provenance_json={"date": "2025-01-01"}),
-            claim_model("claim2", value=350.0, provenance_json={"date": "2025-01-01"}),
+            _resolution_claim_view(
+                claim_model("claim1", value=200.0, provenance_json={"date": "2025-01-01"})
+            ),
+            _resolution_claim_view(
+                claim_model("claim2", value=350.0, provenance_json={"date": "2025-01-01"})
+            ),
         ]
         # Test the helper directly — resolve() returns "conflicted" when
         # the helper returns (None, reason)
@@ -1724,11 +1728,11 @@ class TestConflictResolution:
 
     def test_resolve_sample_size_tie_through_resolve_api(self):
         """Integration: tied sample_size through resolve() → conflicted status."""
-        from propstore.world.resolution import _resolve_sample_size
+        from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
 
         tied_claims = [
-            claim_model("claim1", value=200.0, sample_size=50),
-            claim_model("claim2", value=350.0, sample_size=50),
+            _resolution_claim_view(claim_model("claim1", value=200.0, sample_size=50)),
+            _resolution_claim_view(claim_model("claim2", value=350.0, sample_size=50)),
         ]
         winner_id, reason = _resolve_sample_size(tied_claims)
         assert winner_id is None
