@@ -96,7 +96,7 @@ Gate results:
 - Log: `logs/test-runs/world-resolution-claim-view-cleanup-20260522-021716.log`.
 
 Commit:
-- Pending.
+- `142ff9ab Delete resolution claim coercer`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
