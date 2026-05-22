@@ -291,6 +291,17 @@ zero-hit or its exact owner-boundary parser is named and recorded.
   - Required follow-up: delete the coercer first, move/consolidate
     `ConceptRelationshipType` under the concept/family owner, and update callers
     to use the enum constructor at IO/document boundaries only.
+  - Execution note, 2026-05-22: completed in commit `4615997e`.
+    `ConceptRelationshipType` and `VALID_CONCEPT_RELATIONSHIP_TYPES` moved to
+    `propstore.families.concepts.types`, `coerce_concept_relationship_type` was
+    deleted, and concept parsing now constructs `ConceptRelationshipType`
+    directly at the concept boundary. Gates:
+    `rg -n -F -- "propstore.core.concept_relationship_types" propstore tests`
+    zero-hit,
+    `rg -n -F -- "coerce_concept_relationship_type" propstore tests`
+    zero-hit, `uv run pyright propstore` passed, and logged pytest
+    `concept-relationship-owner-cleanup-20260522-013322.log` passed with
+    `32 passed`.
 
 - [x] `propstore/core/concept_status.py`
   - Read: 2026-05-21.
