@@ -365,7 +365,46 @@ commit message body:
   - Required follow-up: use the shared condition value type for bindings and
     immutable category tuples from the typed registry projection.
 
+- [x] `propstore/core/embeddings.py`
+  - Read: 2026-05-21.
+  - Action: move out of `core` to the embedding/heuristic/family owner.
+  - Reason: the module imports claim and concept family models and prepares
+    sidecar embedding text. That is embedding pipeline behavior over family
+    objects, not a core semantic primitive.
+  - Required follow-up: find callers, delete `propstore.core.embeddings` first,
+    move the real text-preparation functions to the embedding owner, and update
+    callers. No core re-export.
+
+- [x] `propstore/core/environment.py`
+  - Read: 2026-05-21.
+  - Action: move world store protocols and environment runtime state out of
+    `core`; rewrite loose IO parsing.
+  - Reason: the file imports claim/concept/relation/micropublication family
+    models and defines `WorldStore` plus many world/catalog/query protocols.
+    That is world runtime and repository interface ownership, not core. The
+    `Environment.from_dict` boundary accepts `object`/mapping payloads and
+    silently ignores malformed assumption entries that are neither
+    `AssumptionRef` nor mappings.
+  - Delete/move: store protocols belong under the world/repository owner.
+    `Environment` belongs with the world/condition runtime owner unless a
+    smaller typed condition-environment primitive is extracted.
+  - Required follow-up: delete the core import path first, update callers to the
+    world owner, and replace `from_dict` with an exact IO-boundary decoder that
+    hard-fails malformed assumptions.
+
+- [x] `propstore/core/exactness_types.py`
+  - Read: 2026-05-21.
+  - Action: move parameterization exactness vocabulary to the parameterization or
+    concept-family owner and delete the helper.
+  - Delete: `coerce_exactness`.
+  - Reason: exactness is parameterization/concept-family semantics, not generic
+    core infrastructure. The helper accepts `object | None` and stringifies
+    locally.
+  - Required follow-up: delete `coerce_exactness` first, move/consolidate
+    `Exactness` under the semantic owner, and update callers to construct the
+    enum at IO/document boundaries only.
+
 ## Progress
 
-- Files read: 27 / 51.
-- Next file: `propstore/core/embeddings.py`.
+- Files read: 30 / 51.
+- Next file: `propstore/core/graph_build.py`.
