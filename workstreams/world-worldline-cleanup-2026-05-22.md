@@ -462,6 +462,42 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/hashing.py`.
 
+## Iteration 27 - `propstore/worldline/hashing.py`
+
+Slice read:
+- `propstore/worldline/hashing.py`
+- current `compute_worldline_content_hash` callers from literal search.
+
+Surfaces:
+- `compute_worldline_content_hash`
+  - Disposition: keep.
+  - Owner after cleanup: `propstore.worldline.hashing` owns the deterministic
+    fingerprint over already-typed worldline content.
+  - Evidence: the function receives typed `WorldlineTargetValue`,
+    `WorldlineStep`, `WorldlineDependencies`, `WorldlineSensitivityReport`,
+    `WorldlineArgumentationState`, and `WorldlineRevisionState` objects, then
+    serializes through the owning objects' `to_dict()` methods for canonical
+    RFC8785 hashing. It does not contain a shim, coercer, fallback reader,
+    compatibility branch, `Any`, or duplicate field parser.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/worldline/hashing.py` returned zero
+  hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-hashing-keep tests/test_worldline_hash_width.py
+  tests/test_worldline_hash_excludes_transient_errors.py
+  tests/test_worldline_revision.py tests/test_policy_governance.py
+  tests/test_worldline.py` returned `66 passed`.
+- Log: `logs/test-runs/worldline-hashing-keep-20260522-041413.log`.
+
+Commit:
+- Record worldline hashing keep decision.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/definition.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
