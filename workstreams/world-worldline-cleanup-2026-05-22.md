@@ -83,6 +83,53 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/_constants.py`.
 
+## Iteration 19 - `propstore/worldline/_constants.py`
+
+Slice read:
+- `propstore/worldline/_constants.py`
+- `propstore/worldline/trace.py`
+- `tests/test_worldline_override_prefix_constant.py`
+- current `OVERRIDE_CLAIM_PREFIX`, `__override_`, and
+  `record_claim_dependency` hits.
+
+Surfaces:
+- `OVERRIDE_CLAIM_PREFIX`
+  - Disposition: delete.
+  - Owner after cleanup: none; the current runtime records typed claim
+    dependencies from real claim resolution paths.
+  - Evidence: no production path created the `__override_` sentinel; the module
+    existed only to preserve a private string filter in `ResolutionTrace`.
+- `ResolutionTrace.record_claim_dependency` sentinel-prefix filter
+  - Disposition: delete.
+  - Owner after cleanup: `ResolutionTrace` records the claim id it is given;
+    callers that resolve real claims already pass real claim ids.
+- `tests/test_worldline_override_prefix_constant.py`
+  - Disposition: delete.
+  - Evidence: the test asserted the removed private sentinel behavior and did
+    not describe current runtime semantics.
+
+Gate results:
+- Pass: `rg -n -F -- "OVERRIDE_CLAIM_PREFIX" propstore tests` returned zero
+  hits.
+- Pass: `rg -n -F -- "__override_" propstore tests` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-override-constant-deletion tests/test_worldline.py
+  tests/test_worldline_revision.py tests/test_capture_journal.py
+  tests/test_worldline_hash_width.py
+  tests/test_worldline_hash_excludes_transient_errors.py
+  tests/test_worldline_praf.py tests/test_worldline_properties.py` returned
+  `93 passed`.
+- Log:
+  `logs/test-runs/worldline-override-constant-deletion-20260522-033503.log`.
+
+Commit:
+- Delete worldline override sentinel constant.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/trace.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
