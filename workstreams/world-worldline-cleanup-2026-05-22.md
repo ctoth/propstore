@@ -159,6 +159,77 @@ Commit:
 Next slice:
 - Run full package gates for the world/worldline cleanup batch.
 
+## Iteration 16 - full-gate regression fixes
+
+Slice read:
+- `propstore/world/types.py`
+- `propstore/world/value_resolver.py`
+- `tests/test_argumentation_package_track_e.py`
+- `tests/test_value_resolver_failure_reasons.py`
+- `tests/test_world_query.py`
+- `tests/test_worldline.py`
+- `tests/test_worldline_hash_excludes_transient_errors.py`
+- `tests/test_structured_projection.py`
+- failed full-suite log.
+
+Surfaces:
+- `RenderPolicy.from_dict` backend/semantics parsing
+  - Disposition: rewrite.
+  - Owner after cleanup: `RenderPolicy.from_dict` is the IO/document boundary
+    parser; direct `RenderPolicy` construction remains typed-only.
+  - Action: keep enum construction at runtime and map bad serialized backend or
+    semantics values to field-specific `ValueError` messages at the document
+    boundary.
+  - Evidence: full suite failed tests expecting `Unknown reasoning_backend`
+    for invalid worldline policy documents.
+- stale test imports and runtime string semantics
+  - Disposition: delete/rewrite.
+  - Owner after cleanup: `propstore.core.reasoning` owns semantics helper
+    exposure; runtime tests construct `RenderPolicy` with
+    `ArgumentationSemantics`.
+  - Action: remove the deleted `propstore.world.types` helper import from the
+    package track test and update direct policy construction tests to pass typed
+    semantics.
+  - Evidence: full suite failed during collection on
+    `normalize_argumentation_semantics` imported from `propstore.world.types`,
+    and direct runtime policy construction rejected raw string semantics.
+- `_coerce_override_value` stale test call
+  - Disposition: delete.
+  - Owner after cleanup: `_numeric_override_value` rejects non-numeric override
+    values; old string parsing is gone.
+  - Action: update the old failure-reason test to assert typed non-numeric
+    rejection without naming the deleted coercer.
+  - Evidence: full suite failed because the stale test called the deleted
+    helper directly.
+
+Gate results:
+- Fail: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-worldline-cleanup-full` returned `6 failed, 3507 passed, 4 skipped,
+  30 warnings, 1 error`.
+- Log: `logs/test-runs/world-worldline-cleanup-full-20260522-030204.log`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-worldline-full-failure-fixes
+  tests/test_value_resolver_failure_reasons.py::test_non_numeric_override_value_raises
+  tests/test_worldline_hash_excludes_transient_errors.py::test_ws_j_equivalent_argumentation_failures_have_same_content_hash
+  tests/test_structured_projection.py::test_worldline_policy_rejects_removed_structured_projection_alias
+  tests/test_world_query.py::TestSemanticCorePhase6HypotheticalDeltas::test_claim_graph_overlay_uses_delta_backed_conflicts
+  tests/test_world_query.py::TestSemanticCorePhase6HypotheticalDeltas::test_praf_overlay_keeps_delta_conflicts_unresolved_without_priors
+  tests/test_worldline.py::TestWorldlineDefinition::test_worldline_definition_rejects_unknown_reasoning_backend
+  tests/test_argumentation_package_track_e.py::test_track_e_package_semantics_are_exposed_by_propstore`
+  returned `7 passed`.
+- Log: `logs/test-runs/world-worldline-full-failure-fixes-20260522-030930.log`.
+- Pass: `rg -n -F -- "_coerce_override_value(" propstore tests` returned
+  zero hits.
+- Pass: `rg -n -F -- "from propstore.world.types import"
+  tests/test_argumentation_package_track_e.py` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+
+Commit:
+- `ffd656d1 Fix world cleanup gate regressions`
+
+Next slice:
+- Rerun full package gates for the world/worldline cleanup batch.
+
 ## Iteration 14 - duplicated merge-operator normalization
 
 Slice read:
