@@ -1,7 +1,6 @@
 from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
 
 from propstore.core.id_types import ConceptId
 from propstore.core.environment import WorldStore
@@ -235,7 +234,7 @@ def _resolve_override_target(
     concept_id: ConceptId,
     target_name: str,
     trace: ResolutionTrace,
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineTargetValue | None:
     del target_name, trace, value_result
     if concept_id not in context.override_values:
@@ -270,7 +269,7 @@ def _resolve_preresolved_target(
     concept_id: ConceptId,
     target_name: str,
     trace: ResolutionTrace,
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineTargetValue | None:
     del target_name, trace, value_result
     resolved = context.resolved_values.get(concept_id)
@@ -284,7 +283,7 @@ def _resolve_claim_target(
     concept_id: ConceptId,
     target_name: str,
     trace: ResolutionTrace,
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineTargetValue | None:
     del concept_id
     if value_result.status != "determined":
@@ -319,7 +318,7 @@ def _resolve_conflict_target(
     concept_id: ConceptId,
     target_name: str,
     trace: ResolutionTrace,
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineTargetValue | None:
     from propstore.world.resolution import resolve
 
@@ -351,7 +350,7 @@ def _resolve_derived_target(
     concept_id: ConceptId,
     target_name: str,
     trace: ResolutionTrace,
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineTargetValue | None:
     del value_result
     derived = context.query_world.derived_value(
@@ -397,11 +396,11 @@ def _resolve_chain_target(
     concept_id: ConceptId,
     target_name: str,
     trace: ResolutionTrace,
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineTargetValue | None:
     del value_result
     strategy_enum = context.policy.strategy if context.policy.strategy is not None else None
-    chain_bindings: dict[str, Any] = {}
+    chain_bindings: dict[str, object] = {}
     if isinstance(context.query_world, HasBindings):
         chain_bindings = dict(context.query_world._bindings)
     try:
@@ -490,7 +489,7 @@ def _resolve_override_input(
     concept_id: ConceptId,
     trace: ResolutionTrace,
     seen: set[ConceptId],
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineInputSource | None:
     del trace, seen, value_result
     if concept_id not in context.override_values:
@@ -506,7 +505,7 @@ def _resolve_preresolved_input(
     concept_id: ConceptId,
     trace: ResolutionTrace,
     seen: set[ConceptId],
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineInputSource | None:
     del trace, seen, value_result
     resolved = context.resolved_values.get(concept_id)
@@ -531,7 +530,7 @@ def _resolve_claim_input(
     concept_id: ConceptId,
     trace: ResolutionTrace,
     seen: set[ConceptId],
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineInputSource | None:
     del concept_id, seen
     if value_result.status != "determined":
@@ -555,7 +554,7 @@ def _resolve_conflict_input(
     concept_id: ConceptId,
     trace: ResolutionTrace,
     seen: set[ConceptId],
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineInputSource | None:
     from propstore.world.resolution import resolve
 
@@ -592,7 +591,7 @@ def _resolve_derived_input(
     concept_id: ConceptId,
     trace: ResolutionTrace,
     seen: set[ConceptId],
-    value_result: Any,
+    value_result: ValueResult,
 ) -> WorldlineInputSource | None:
     del value_result
     derived = context.query_world.derived_value(
@@ -631,7 +630,7 @@ def _resolve_derived_input(
 
 def _trace_derived_inputs(
     context: ResolutionContext,
-    derived: Any,
+    derived: DerivedResult,
     trace: ResolutionTrace,
 ) -> dict[str, WorldlineInputSource]:
     inputs_used: dict[str, WorldlineInputSource] = {}

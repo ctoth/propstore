@@ -378,6 +378,51 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/resolution.py`.
 
+## Iteration 25 - `propstore/worldline/resolution.py`
+
+Slice read:
+- `propstore/worldline/resolution.py`
+- `propstore/world/types.py`
+- current `Any` and `getattr` hits in worldline resolution.
+
+Surfaces:
+- resolver helper `value_result: Any`
+  - Disposition: rewrite.
+  - Owner after cleanup: `ValueResult` from `propstore.world.types` owns the
+    value-resolution result shape.
+  - Action: type every target/input resolver helper with `ValueResult`.
+- `_trace_derived_inputs(derived: Any)`
+  - Disposition: rewrite.
+  - Owner after cleanup: `DerivedResult` from `propstore.world.types` owns the
+    derived-value result shape.
+  - Action: type the helper with `DerivedResult`.
+- `chain_bindings: dict[str, Any]`
+  - Disposition: rewrite.
+  - Owner after cleanup: chain-query keyword bindings are opaque objects at
+    this pass-through boundary.
+  - Action: use `dict[str, object]`.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/worldline/resolution.py` returned zero
+  hits.
+- Pass: `rg -n -F -- "getattr" propstore/worldline/resolution.py` returned
+  zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-resolution-typed-results tests/test_worldline.py
+  tests/test_worldline_properties.py tests/test_worldline_praf.py
+  tests/test_structured_projection.py tests/test_atms_engine.py
+  tests/test_worldline_result_boundaries.py` returned `147 passed`.
+- Log:
+  `logs/test-runs/worldline-resolution-typed-results-20260522-040314.log`.
+
+Commit:
+- Type worldline resolution result flow.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/interfaces.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
