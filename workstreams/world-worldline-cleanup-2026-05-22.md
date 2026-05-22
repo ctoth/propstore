@@ -92,7 +92,7 @@ Gate results:
 - Log: `logs/test-runs/worldline-variable-ref-cleanup-20260522-021151.log`.
 
 Commit:
-- Pending.
+- `533db62f Delete worldline variable ref coercer`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
