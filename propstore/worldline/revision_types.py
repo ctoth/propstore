@@ -6,6 +6,7 @@ from typing import Any
 
 from propstore.worldline.result_types import (
     WorldlineCaptureError,
+    WorldlineScalarValue,
 )
 from propstore.support_revision.state import RevisionEvent
 
@@ -24,7 +25,7 @@ class RevisionAtomRef:
     assertion_id: str | None = None
     assumption_id: str | None = None
     atom_id: str | None = None
-    value: float | str | None = None
+    value: WorldlineScalarValue = None
 
     @classmethod
     def from_json_payload(cls, data: object) -> RevisionAtomRef | None:
@@ -137,7 +138,7 @@ class WorldlineRevisionResult:
     accepted_atom_ids: tuple[str, ...] = ()
     rejected_atom_ids: tuple[str, ...] = ()
     incision_set: tuple[str, ...] = ()
-    explanation: Any | None = None
+    explanation: Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))
@@ -178,7 +179,7 @@ class WorldlineRevisionState:
     input_atom_id: str | None = None
     target_atom_ids: tuple[str, ...] = ()
     result: WorldlineRevisionResult | None = None
-    state: Any | None = None
+    state: Mapping[str, Any] | None = None
     status: str | None = None
     error: WorldlineCaptureError | None = None
     event: RevisionEvent | None = None

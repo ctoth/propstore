@@ -222,6 +222,55 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/revision_types.py`.
 
+## Iteration 22 - `propstore/worldline/revision_types.py`
+
+Slice read:
+- `propstore/worldline/revision_types.py`
+- `propstore/support_revision/state.py`
+- `propstore/support_revision/input_normalization.py`
+- `propstore/families/documents/worldlines.py`
+- current `from_json_payload`, `Any`, `WorldlineRevisionResult`, and
+  `to_revision_input` hits.
+
+Surfaces:
+- `RevisionAtomRef.value`
+  - Disposition: rewrite.
+  - Owner after cleanup: `WorldlineScalarValue` in
+    `propstore.worldline.result_types` owns scalar worldline values.
+  - Action: replace the repeated `float | str | None` union with the shared
+    worldline scalar alias.
+- `WorldlineRevisionResult.explanation` and `WorldlineRevisionState.state`
+  - Disposition: rewrite.
+  - Owner after cleanup: revision document boundary stores these as mappings;
+    support-revision owner types still own the semantic explanation/event
+    structures.
+  - Action: replace arbitrary `Any | None` fields with
+    `Mapping[str, Any] | None`, matching the existing boundary validation.
+  - Evidence: `from_json_payload` already rejects non-mapping `explanation`,
+    `result`, `state`, and `event` blocks.
+
+Gate results:
+- Pass: `rg -n -F -- "float | str | None"
+  propstore/worldline/revision_types.py` returned zero hits.
+- Pass: `rg -n -F -- "Any | None"
+  propstore/worldline/revision_types.py` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-revision-types-tightening tests/test_worldline_revision.py
+  tests/test_worldline_revision_event_capture.py
+  tests/test_worldline_revision_properties.py
+  tests/test_worldline_revision_snapshot_boundary.py
+  tests/test_mapping_boundary_failures.py tests/test_capture_journal.py
+  tests/test_worldline.py` returned `86 passed`.
+- Log: `logs/test-runs/worldline-revision-types-tightening-20260522-035120.log`.
+
+Commit:
+- Tighten worldline revision document value types.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/revision_capture.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
