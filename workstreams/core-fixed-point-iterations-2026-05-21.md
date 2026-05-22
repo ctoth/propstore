@@ -294,3 +294,9 @@ Next slice:
 Moved argumentation analyzer orchestration to `propstore/argumentation.py`; deleted old `propstore.core.analyzers` path and updated callers.
 Gates: old path zero-hit, deleted file absent, pyright pass, focused argumentation tests pass (`logs/test-runs/pytest-20260521-225159.log`).
 Next: `propstore/core/anytime.py`.
+
+## Iteration 6 - `propstore/core/anytime.py`
+
+Kept `EnumerationExceeded`: it is the typed bounded-enumeration sentinel, not a shim/coercer/wrapper.
+Gates: direct uses only, pyright pass, anytime enumeration tests pass (`logs/test-runs/pytest-20260521-225324.log`).
+Next: `propstore/core/assertions/__init__.py`.
