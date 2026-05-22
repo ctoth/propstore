@@ -1531,6 +1531,58 @@ Next slice:
 - Reread the workstream and run the final fixed-point/search gates for
   `propstore/world` and `propstore/worldline`.
 
+## Iteration 47 - final reasoning parser search-gate repair
+
+Slice read:
+- `propstore/core/reasoning.py`
+- `propstore/app/rendering.py`
+- `propstore/app/world_reasoning.py`
+- `propstore/app/worldlines.py`
+- `propstore/policies.py`
+- `tests/test_argumentation_package_track_e.py`
+- final workstream search-gate output.
+
+Surfaces:
+- `normalize_reasoning_backend` and `normalize_argumentation_semantics`
+  - Disposition: delete.
+  - Owner after cleanup: `propstore.core.reasoning` owns boundary parsers named
+    `parse_reasoning_backend` and `parse_argumentation_semantics`; runtime
+    validation uses those parsers directly.
+  - Action: rename the owner functions, update every caller, and do not leave
+    aliases.
+  - Evidence: the workstream names the old `normalize_*` symbols as literal
+    search gates; keeping renamed wrappers or aliases would preserve the old
+    helper surface.
+- `"bipolar_stable"` semantics alias
+  - Disposition: delete.
+  - Owner after cleanup: `ArgumentationSemantics` enum values are the accepted
+    serialized names.
+  - Action: remove the underscore alias map and parse semantics through
+    `ArgumentationSemantics(str(value))`.
+
+Gate results:
+- Pass: `rg -n -F -- "normalize_reasoning_backend" propstore tests` returned
+  zero hits.
+- Pass: `rg -n -F -- "normalize_argumentation_semantics" propstore tests`
+  returned zero hits.
+- Pass: `rg -n -F -- "bipolar_stable" propstore tests` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  reasoning-parser-gate-cleanup tests/test_argumentation_package_track_e.py
+  tests/test_app_rendering.py tests/test_render_contracts.py
+  tests/test_render_policy_opinions.py tests/test_praf_integration.py
+  tests/test_policy_governance.py tests/test_reasoning_demo_cli.py
+  tests/test_cli.py::TestWorldOwnerReports tests/test_cli_render_policy_flags.py`
+  returned `110 passed`.
+- Log:
+  `logs/test-runs/reasoning-parser-gate-cleanup-20260522-054315.log`.
+
+Commit:
+- Delete reasoning normalize parser names.
+
+Next slice:
+- Rerun the final fixed-point/search gates and package gates.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

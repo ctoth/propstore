@@ -18,7 +18,7 @@ from propstore.core.id_types import ClaimId
 from propstore.core.reasoning import (
     ArgumentationSemantics,
     ReasoningBackend,
-    normalize_argumentation_semantics,
+    parse_argumentation_semantics,
     supported_argumentation_semantics,
 )
 from propstore.core.results import AnalyzerResult, ClaimProjection
@@ -54,15 +54,15 @@ def _minimal_aspic_theory() -> tuple[
 
 def test_track_e_package_semantics_are_exposed_by_propstore() -> None:
     assert (
-        normalize_argumentation_semantics("praf-paper-td-complete")
+        parse_argumentation_semantics("praf-paper-td-complete")
         is ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE
     )
     assert (
-        normalize_argumentation_semantics("aspic-direct-grounded")
+        parse_argumentation_semantics("aspic-direct-grounded")
         is ArgumentationSemantics.ASPIC_DIRECT_GROUNDED
     )
     assert (
-        normalize_argumentation_semantics("aspic-incomplete-grounded")
+        parse_argumentation_semantics("aspic-incomplete-grounded")
         is ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED
     )
 

@@ -30,27 +30,6 @@ class ArgumentationSemantics(StrEnum):
     ASPIC_INCOMPLETE_GROUNDED = "aspic-incomplete-grounded"
 
 
-_ARGUMENTATION_SEMANTICS_ALIASES: dict[str, ArgumentationSemantics] = {
-    ArgumentationSemantics.GROUNDED.value: ArgumentationSemantics.GROUNDED,
-    ArgumentationSemantics.PREFERRED.value: ArgumentationSemantics.PREFERRED,
-    ArgumentationSemantics.STABLE.value: ArgumentationSemantics.STABLE,
-    ArgumentationSemantics.D_PREFERRED.value: ArgumentationSemantics.D_PREFERRED,
-    ArgumentationSemantics.S_PREFERRED.value: ArgumentationSemantics.S_PREFERRED,
-    ArgumentationSemantics.C_PREFERRED.value: ArgumentationSemantics.C_PREFERRED,
-    "bipolar_stable": ArgumentationSemantics.BIPOLAR_STABLE,
-    ArgumentationSemantics.BIPOLAR_STABLE.value: ArgumentationSemantics.BIPOLAR_STABLE,
-    ArgumentationSemantics.COMPLETE.value: ArgumentationSemantics.COMPLETE,
-    ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE.value: (
-        ArgumentationSemantics.PRAF_PAPER_TD_COMPLETE
-    ),
-    ArgumentationSemantics.ASPIC_DIRECT_GROUNDED.value: (
-        ArgumentationSemantics.ASPIC_DIRECT_GROUNDED
-    ),
-    ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED.value: (
-        ArgumentationSemantics.ASPIC_INCOMPLETE_GROUNDED
-    ),
-}
-
 _CLI_ARGUMENTATION_SEMANTICS = (
     ArgumentationSemantics.GROUNDED,
     ArgumentationSemantics.PREFERRED,
@@ -96,7 +75,7 @@ _BACKEND_SEMANTICS: dict[ReasoningBackend, frozenset[ArgumentationSemantics]] = 
 }
 
 
-def normalize_reasoning_backend(value: ReasoningBackend | str) -> ReasoningBackend:
+def parse_reasoning_backend(value: ReasoningBackend | str) -> ReasoningBackend:
     if isinstance(value, ReasoningBackend):
         return value
     try:
@@ -105,15 +84,15 @@ def normalize_reasoning_backend(value: ReasoningBackend | str) -> ReasoningBacke
         raise ValueError(f"Unknown reasoning_backend '{value}'") from exc
 
 
-def normalize_argumentation_semantics(
+def parse_argumentation_semantics(
     value: ArgumentationSemantics | str,
 ) -> ArgumentationSemantics:
     if isinstance(value, ArgumentationSemantics):
         return value
-    normalized = _ARGUMENTATION_SEMANTICS_ALIASES.get(str(value))
-    if normalized is None:
-        raise ValueError(f"Unknown semantics: {value}")
-    return normalized
+    try:
+        return ArgumentationSemantics(str(value))
+    except ValueError as exc:
+        raise ValueError(f"Unknown semantics: {value}") from exc
 
 
 def cli_argumentation_semantics_values() -> tuple[str, ...]:
@@ -123,7 +102,7 @@ def cli_argumentation_semantics_values() -> tuple[str, ...]:
 def supported_argumentation_semantics(
     backend: ReasoningBackend | str,
 ) -> frozenset[ArgumentationSemantics]:
-    normalized_backend = normalize_reasoning_backend(backend)
+    normalized_backend = parse_reasoning_backend(backend)
     return _BACKEND_SEMANTICS[normalized_backend]
 
 
@@ -131,8 +110,8 @@ def validate_backend_semantics(
     backend: ReasoningBackend | str,
     semantics: ArgumentationSemantics | str,
 ) -> tuple[ReasoningBackend, ArgumentationSemantics]:
-    normalized_backend = normalize_reasoning_backend(backend)
-    normalized_semantics = normalize_argumentation_semantics(semantics)
+    normalized_backend = parse_reasoning_backend(backend)
+    normalized_semantics = parse_argumentation_semantics(semantics)
     supported = supported_argumentation_semantics(normalized_backend)
     if normalized_semantics not in supported:
         supported_names = ", ".join(item.value for item in sorted(supported, key=str))

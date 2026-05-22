@@ -10,7 +10,7 @@ from propstore.app.world import WorldSidecarMissingError, open_app_world_model
 from propstore.families.registry import WorldlineRef
 from propstore.json_types import JsonObject, JsonValue
 from propstore.repository import Repository
-from propstore.core.reasoning import normalize_argumentation_semantics
+from propstore.core.reasoning import ArgumentationSemantics
 from propstore.world.types import (
     ReasoningBackend,
     cli_argumentation_semantics_values,
@@ -343,7 +343,7 @@ def build_worldline_policy_dict(
         policy["strategy"] = options.strategy
     if normalized_backend != ReasoningBackend.CLAIM_GRAPH:
         policy["reasoning_backend"] = normalized_backend.value
-    if normalized_semantics != normalize_argumentation_semantics("grounded"):
+    if normalized_semantics != ArgumentationSemantics.GROUNDED:
         policy["semantics"] = normalized_semantics.value
     if options.set_comparison != "elitist":
         policy["comparison"] = options.set_comparison

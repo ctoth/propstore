@@ -13,8 +13,8 @@ from quire import canonical_json_bytes
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.id_types import ContextId, ProvenanceGraphId
 from propstore.core.reasoning import (
-    normalize_argumentation_semantics,
-    normalize_reasoning_backend,
+    parse_argumentation_semantics,
+    parse_reasoning_backend,
 )
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.core.assertions.situated import SituatedAssertion
@@ -127,12 +127,12 @@ class AdmissibilityProfile:
         object.__setattr__(
             self,
             "reasoning_backend",
-            normalize_reasoning_backend(self.reasoning_backend),
+            parse_reasoning_backend(self.reasoning_backend),
         )
         object.__setattr__(
             self,
             "semantics",
-            normalize_argumentation_semantics(self.semantics),
+            parse_argumentation_semantics(self.semantics),
         )
         object.__setattr__(self, "pessimism_index", float(self.pessimism_index))
 

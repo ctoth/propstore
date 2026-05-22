@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, cast
 from propstore.reporting import JsonReportMixin
 from propstore.app.world import bind_world, open_app_world_model
 from propstore.repository import Repository
-from propstore.core.reasoning import ReasoningBackend, normalize_reasoning_backend
+from propstore.core.reasoning import ReasoningBackend, parse_reasoning_backend
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
 from propstore.world.types import GroundingBundleStore
@@ -117,7 +117,7 @@ def world_extensions(
             return None
 
         claim_ids = {str(claim.id) for claim in active}
-        backend = normalize_reasoning_backend(request.backend)
+        backend = parse_reasoning_backend(request.backend)
 
         if backend is ReasoningBackend.ATMS:
             raise WorldExtensionsUnsupportedBackend(backend.value)

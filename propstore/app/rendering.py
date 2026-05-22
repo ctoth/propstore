@@ -5,8 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from propstore.core.reasoning import (
-    normalize_argumentation_semantics,
-    normalize_reasoning_backend,
+    parse_argumentation_semantics,
+    parse_reasoning_backend,
 )
 from propstore.world.types import RenderPolicy, ResolutionStrategy
 
@@ -57,8 +57,8 @@ def build_render_policy(request: AppRenderPolicyRequest) -> RenderPolicy:
     """Normalize an app render-policy request into the domain policy object."""
 
     try:
-        reasoning_backend = normalize_reasoning_backend(request.reasoning_backend)
-        semantics = normalize_argumentation_semantics(request.semantics)
+        reasoning_backend = parse_reasoning_backend(request.reasoning_backend)
+        semantics = parse_argumentation_semantics(request.semantics)
         strategy = (
             None
             if request.strategy is None
