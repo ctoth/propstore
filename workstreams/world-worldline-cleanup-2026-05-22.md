@@ -1484,6 +1484,53 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/value_resolver.py`.
 
+## Iteration 46 - `propstore/world/value_resolver.py`
+
+Slice read:
+- `propstore/world/value_resolver.py`
+- value resolver, derivation, algorithm comparison, and labelled-core tests.
+
+Surfaces:
+- `Any` in algorithm known-values comparison
+  - Disposition: rewrite.
+  - Owner after cleanup: algorithm equivalence comparison receives known
+    numeric concept values as `Mapping[ConceptId, float]`.
+  - Action: remove the `Any` import and type `_all_algorithms_equivalent`
+    known values as numeric.
+  - Evidence: known values are produced by `collect_known_values` and are used
+    as numeric inputs to algorithm equivalence; accepting `Any` hid that
+    existing type fact.
+- `ClaimValueResolver._normalize_value`
+  - Disposition: keep.
+  - Owner after cleanup: value resolver numeric canonicalization for equality
+    and algorithm/direct-value comparison.
+  - Evidence: classified in Iteration 15; it does not parse old shapes or
+    accept loose payloads.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/value_resolver.py` returned zero
+  hits.
+- Pass: `rg -n -F -- "coerce" propstore/world/value_resolver.py` returned
+  zero hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world/value_resolver.py`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-value-resolver-known-values tests/test_world_query.py::TestDerivedValue
+  tests/test_world_query.py::TestAlgorithmWorldQuery
+  tests/test_value_resolver_failure_reasons.py tests/test_labelled_core.py
+  tests/test_worldline.py::TestWorldlineRunner::test_derived_value_accuracy`
+  returned `39 passed`.
+- Log:
+  `logs/test-runs/world-value-resolver-known-values-20260522-054001.log`.
+
+Commit:
+- Type value resolver known values.
+
+Next slice:
+- Reread the workstream and run the final fixed-point/search gates for
+  `propstore/world` and `propstore/worldline`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

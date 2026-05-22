@@ -7,7 +7,7 @@ import logging
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Callable
 
 from ast_equiv import AlgorithmParseError, compare as ast_compare
 
@@ -549,7 +549,7 @@ class ClaimValueResolver:
     def _all_algorithms_equivalent(
         self,
         algo_claims: Sequence[_ClaimValueView | Claim],
-        known_values: Mapping[ConceptId, Any],
+        known_values: Mapping[ConceptId, float],
     ) -> _AlgorithmComparison:
         normalized_claims = [
             claim if isinstance(claim, _ClaimValueView) else _claim_value_view(claim)
