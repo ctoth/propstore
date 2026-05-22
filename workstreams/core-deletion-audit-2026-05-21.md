@@ -501,7 +501,40 @@ commit message body:
     conversion to the world/condition owner and use the shared condition value
     type.
 
+- [x] `propstore/core/lemon/__init__.py`
+  - Read: 2026-05-21.
+  - Action: delete eager broad re-export surface unless caller audit proves this
+    is the intentional Lemon package API.
+  - Reason: it imports and re-exports every Lemon submodule surface. That is a
+    low-level package initializer doing broad eager imports. It is not an old
+    compatibility shim by itself, but it violates the shallow initializer rule.
+  - Required follow-up: search callers. Prefer concrete Lemon module imports,
+    or keep only a narrow public Lemon API that does not pull all submodules
+    eagerly.
+
+- [x] `propstore/core/lemon/description_kinds.py`
+  - Read: 2026-05-21.
+  - Action: keep Lemon domain structs; tighten identity/reference IDs if owner
+    types exist.
+  - Reason: `DescriptionKind`, slots, bindings, merge arguments, and causal
+    assertions are semantic Lemon domain objects, not storage/family mechanics
+    or compatibility wrappers. They use `DocumentStruct` for structured fields
+    and validate slot bindings.
+  - Required follow-up: replace bare `str` IDs such as `claim_id`,
+    `description_claim_ids`, and causal description IDs with typed owner IDs
+    once those are available, rather than carrying raw strings through the
+    semantic pipeline.
+
+- [x] `propstore/core/lemon/forms.py`
+  - Read: 2026-05-21.
+  - Action: keep as Lemon lexical form value object.
+  - Reason: `LexicalForm` is a narrow domain object with field-local validation.
+    `require_text` and `fold_text` are local lexical text utilities, not old
+    path adapters or broad semantic coercers.
+  - Required follow-up: none from deletion rules unless duplicate lexical text
+    normalization appears elsewhere in the Lemon audit.
+
 ## Progress
 
-- Files read: 36 / 51.
-- Next file: `propstore/core/lemon/__init__.py`.
+- Files read: 39 / 51.
+- Next file: `propstore/core/lemon/proto_roles.py`.
