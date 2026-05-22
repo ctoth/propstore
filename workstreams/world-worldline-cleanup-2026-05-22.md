@@ -1370,6 +1370,58 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/scm.py`.
 
+## Iteration 44 - `propstore/world/scm.py`
+
+Slice read:
+- `propstore/world/scm.py`
+- `propstore/world/actual_cause.py`
+- SCM/intervention/actual-cause test callers.
+
+Surfaces:
+- `Value: TypeAlias = Any`
+  - Disposition: delete.
+  - Owner after cleanup: the SCM module owns a finite causal scalar value
+    surface as `bool | int | float | str | None`.
+  - Action: replace the unconstrained alias and remove the `Any` import.
+  - Evidence: structural causal model assignments, equation domains, and
+    actual-cause witnesses should carry the finite value domain they actually
+    accept instead of hiding it behind `Any`.
+- implicit numeric conversion in parameterization-backed structural equations
+  - Disposition: rewrite.
+  - Owner after cleanup: `_structural_equation_from_edge` is the boundary where
+    parameterization equations require numeric parent values.
+  - Action: build typed `dict[str, float]` parameters with a hard
+    non-bool numeric check; non-numeric SCM parent values fail at the equation
+    boundary instead of flowing into `float(...)` as an unconstrained value.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/scm.py` returned zero hits.
+- Pass: `rg -n -F -- "Value: TypeAlias = Any" propstore` returned zero hits.
+- Pass: `rg -n -F -- "coerce" propstore/world/scm.py` returned zero hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world/scm.py` returned zero
+  hits.
+- Failed then fixed: first `uv run pyright propstore` exposed the numeric
+  parent-value narrowing site in parameterization-backed structural equations.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-scm-value-type tests/test_actual_cause_suzy_billy.py
+  tests/test_actual_cause_witness_budget.py tests/test_actual_cause_minimality.py
+  tests/test_actual_cause_voting.py tests/test_actual_cause_forest_fire.py
+  tests/test_intervention_diff_walks_descendants.py
+  tests/test_intervention_world_severs_edges.py
+  tests/test_intervention_world_public_surface.py
+  tests/test_intervention_world_construction_requires_compiled_graph.py
+  tests/test_intervention_world_distinct_from_observation.py` returned
+  `15 passed`.
+- Log: `logs/test-runs/world-scm-value-type-20260522-053110.log`.
+
+Commit:
+- Type SCM causal values.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/types.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any, TypeAlias
+from typing import TypeAlias
 
 from propstore.core.graph_types import CompiledWorldGraph, ParameterizationEdge
 from propstore.core.id_types import ConceptId
 
-Value: TypeAlias = Any
+Value: TypeAlias = bool | int | float | str | None
 
 
 @dataclass(frozen=True)
@@ -223,13 +223,20 @@ def _structural_equation_from_edge(edge: ParameterizationEdge) -> StructuralEqua
             evaluate_parameterization,
         )
 
+        parameters: dict[str, float] = {}
+        for parent in edge.input_concept_ids:
+            parent_id = str(parent)
+            if parent_id not in values:
+                continue
+            parent_value = values[parent_id]
+            if isinstance(parent_value, bool) or not isinstance(parent_value, int | float):
+                raise TypeError(
+                    f"Structural equation parent {parent_id} must be numeric"
+                )
+            parameters[parent_id] = float(parent_value)
         result = evaluate_parameterization(
             edge.sympy or "",
-            {
-                str(parent): float(values[str(parent)])
-                for parent in edge.input_concept_ids
-                if str(parent) in values
-            },
+            parameters,
             str(edge.output_concept_id),
         )
         if result.status is not ParameterizationEvaluationStatus.VALUE:
