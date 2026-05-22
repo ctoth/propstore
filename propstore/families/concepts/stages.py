@@ -22,7 +22,7 @@ from propstore.families.concepts.documents import (
     ConceptRelationshipDocument,
     ParameterizationRelationshipDocument,
 )
-from propstore.core.concept_status import ConceptStatus, coerce_concept_status
+from propstore.families.concepts.types import ConceptStatus
 from propstore.families.concepts.types import ConceptRelationshipType
 from quire.documents import convert_document_value, load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
@@ -242,9 +242,6 @@ class ConceptRecord:
     created_date: str | None = None
     last_modified: str | None = None
     notes: str | None = None
-
-    def __post_init__(self) -> None:
-        object.__setattr__(self, "status", coerce_concept_status(self.status))
 
     @property
     def primary_logical_id(self) -> str | None:
@@ -523,7 +520,7 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
     return ConceptRecord(
         artifact_id=ConceptId(artifact_id),
         canonical_name=canonical_name,
-        status=coerce_concept_status(status),
+        status=ConceptStatus(status),
         definition=definition,
         form=form,
         logical_ids=tuple(logical_ids),

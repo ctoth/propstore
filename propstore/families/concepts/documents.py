@@ -8,7 +8,7 @@ from propstore.cel_types import CelExpr
 from propstore.core.lemon.description_kinds import DescriptionKind
 from propstore.core.lemon.proto_roles import ProtoRoleBundle
 from propstore.core.lemon.qualia import QualiaStructure
-from propstore.core.concept_status import ConceptStatus
+from propstore.families.concepts.types import ConceptStatus
 from propstore.families.concepts.types import ConceptRelationshipType
 from propstore.core.exactness_types import Exactness
 from quire.documents import DocumentStruct

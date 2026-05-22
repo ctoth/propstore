@@ -5,6 +5,15 @@ from __future__ import annotations
 from enum import StrEnum
 
 
+class ConceptStatus(StrEnum):
+    ACCEPTED = "accepted"
+    DEPRECATED = "deprecated"
+    PROPOSED = "proposed"
+
+
+VALID_CONCEPT_STATUSES = frozenset(status.value for status in ConceptStatus)
+
+
 class ConceptRelationshipType(StrEnum):
     BROADER = "broader"
     NARROWER = "narrower"

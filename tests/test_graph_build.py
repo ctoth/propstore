@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from propstore.families.concepts.types import ConceptRelationshipType
-from propstore.core.concept_status import ConceptStatus
+from propstore.families.concepts.types import ConceptStatus
 from propstore.core.graph_relation_types import GraphRelationType
 from tests.family_helpers import materialized_world_store_path
 from propstore.families.identity.concepts import derive_concept_artifact_id

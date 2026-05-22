@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from propstore.concept_ids import NamespaceAmbiguity, _numeric_concept_id
-from propstore.core.concept_status import ConceptStatus
+from propstore.families.concepts.types import ConceptStatus
 from propstore.families.concepts.documents import (
     ConceptDocument,
     ConceptLogicalIdDocument,

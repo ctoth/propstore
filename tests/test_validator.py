@@ -17,7 +17,7 @@ Tests the compiler contract checks that JSON Schema can't express:
 import pytest
 import yaml
 
-from propstore.core.concept_status import ConceptStatus
+from propstore.families.concepts.types import ConceptStatus
 from quire.documents import DocumentSchemaError
 from propstore.families.concepts.passes import (
     ConceptPipelineContext,
