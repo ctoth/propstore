@@ -99,7 +99,7 @@ Gate results:
   `0 errors, 0 warnings, 0 informations`.
 
 Commit:
-- Pending.
+- `87af2150 Make claim file stage explicit`
 
 Next slice:
 - Delete or replace `ClaimFileEntry` and the `claim_file_*` helper family after
