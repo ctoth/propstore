@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
 
+from assignment_selection import MergeOperator
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
 from propstore.families.claims.types import ClaimType
@@ -564,13 +565,6 @@ class ResolutionStrategy(StrEnum):
     ASSIGNMENT_SELECTION_MERGE = "assignment_selection_merge"
 
 
-def _normalize_merge_operator_value(value: object) -> str:
-    normalized = str(getattr(value, "value", value))
-    if normalized not in {"sigma", "max", "gmax"}:
-        raise ValueError(f"Unknown merge_operator '{value}'")
-    return normalized
-
-
 @dataclass
 class ResolvedResult:
     concept_id: ConceptId
@@ -757,7 +751,7 @@ class RenderPolicy:
     praf_mc_seed: int | None = None  # RNG seed (None = random)
     # assignment-selection merge fields for the assignment-level Konieczny-style adaptation.
     # merge_operator selects the aggregation family used by the global solver.
-    merge_operator: str = "sigma"
+    merge_operator: MergeOperator = MergeOperator.SIGMA
     # branch_filter restricts which branches are included as sources.
     branch_filter: tuple[str, ...] | None = None
     # branch_weights assigns per-branch importance weights.
@@ -791,11 +785,8 @@ class RenderPolicy:
             raise TypeError("RenderPolicy.strategy must be a ResolutionStrategy or None")
         if not isinstance(self.semantics, ArgumentationSemantics):
             raise TypeError("RenderPolicy.semantics must be ArgumentationSemantics")
-        object.__setattr__(
-            self,
-            "merge_operator",
-            _normalize_merge_operator_value(self.merge_operator),
-        )
+        if not isinstance(self.merge_operator, MergeOperator):
+            raise TypeError("RenderPolicy.merge_operator must be MergeOperator")
         if self.branch_filter is not None:
             object.__setattr__(
                 self,
@@ -895,8 +886,13 @@ class RenderPolicy:
                 if data.get("praf_mc_seed") is None
                 else int(data["praf_mc_seed"])
             ),
-            merge_operator=_normalize_merge_operator_value(
-                data.get("merge_operator", "sigma")
+            merge_operator=(
+                merge_operator
+                if isinstance(
+                    merge_operator := data.get("merge_operator", MergeOperator.SIGMA),
+                    MergeOperator,
+                )
+                else MergeOperator(str(merge_operator))
             ),
             branch_filter=(
                 None
@@ -952,8 +948,8 @@ class RenderPolicy:
             data["praf_treewidth_cutoff"] = self.praf_treewidth_cutoff
         if self.praf_mc_seed is not None:
             data["praf_mc_seed"] = self.praf_mc_seed
-        if self.merge_operator != "sigma":
-            data["merge_operator"] = self.merge_operator
+        if self.merge_operator is not MergeOperator.SIGMA:
+            data["merge_operator"] = self.merge_operator.value
         if self.branch_filter is not None:
             data["branch_filter"] = list(self.branch_filter)
         if self.branch_weights is not None:

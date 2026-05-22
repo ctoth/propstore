@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 from dataclasses import replace
 
+from assignment_selection import MergeOperator
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
@@ -170,13 +171,13 @@ _token = st.from_regex(r"[a-z][a-z0-9_]{0,8}", fullmatch=True)
 @pytest.mark.property
 @given(
     operator=_token,
-    merge_operator=st.sampled_from(["sigma", "max", "gmax"]),
+    merge_operator=st.sampled_from(list(MergeOperator)),
     comparison=st.sampled_from(["elitist", "democratic"]),
     link=st.sampled_from(["last", "weakest"]),
 )
 def test_policy_serialization_roundtrip_property(
     operator: str,
-    merge_operator: str,
+    merge_operator: MergeOperator,
     comparison: str,
     link: str,
 ) -> None:

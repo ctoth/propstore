@@ -7,6 +7,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from assignment_selection import MergeOperator
 from quire import canonical_json_bytes
 
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
@@ -46,13 +47,6 @@ def _hash(value: Any) -> str:
     return hashlib.sha256(canonical_json_bytes(_plain(value))).hexdigest()
 
 
-def _normalize_merge_operator_value(value: object) -> str:
-    normalized = str(getattr(value, "value", value))
-    if normalized not in {"sigma", "max", "gmax"}:
-        raise ValueError(f"Unknown merge_operator '{value}'")
-    return normalized
-
-
 @dataclass(frozen=True, order=True)
 class RevisionPolicy:
     operator: str = DEFAULT_ITERATED_OPERATOR
@@ -81,13 +75,14 @@ class RevisionPolicy:
 
 @dataclass(frozen=True, order=True)
 class MergePolicy:
-    operator: str = "sigma"
+    operator: MergeOperator = MergeOperator.SIGMA
     conflict_strategy: str = "surface_conflicts"
     branch_filter: tuple[str, ...] | None = None
     require_witnesses: bool = True
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "operator", _normalize_merge_operator_value(self.operator))
+        if not isinstance(self.operator, MergeOperator):
+            raise TypeError("MergePolicy.operator must be MergeOperator")
         if self.branch_filter is not None:
             object.__setattr__(self, "branch_filter", tuple(str(item) for item in self.branch_filter))
 
@@ -95,8 +90,13 @@ class MergePolicy:
     def from_dict(cls, data: Mapping[str, Any] | None) -> MergePolicy:
         payload = {} if data is None else data
         branch_filter = payload.get("branch_filter")
+        operator_value = payload.get("operator", MergeOperator.SIGMA)
         return cls(
-            operator=payload.get("operator", "sigma"),
+            operator=(
+                operator_value
+                if isinstance(operator_value, MergeOperator)
+                else MergeOperator(str(operator_value))
+            ),
             conflict_strategy=str(payload.get("conflict_strategy", "surface_conflicts")),
             branch_filter=None if branch_filter is None else tuple(str(item) for item in branch_filter),
             require_witnesses=bool(payload.get("require_witnesses", True)),
@@ -104,7 +104,7 @@ class MergePolicy:
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
-            "operator": self.operator,
+            "operator": self.operator.value,
             "conflict_strategy": self.conflict_strategy,
             "require_witnesses": self.require_witnesses,
         }

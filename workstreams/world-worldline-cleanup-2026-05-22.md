@@ -99,6 +99,47 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 14 - duplicated merge-operator normalization
+
+Slice read:
+- `propstore/world/types.py`
+- `propstore/policies.py`
+- `../assignment-selection/src/assignment_selection/model.py`
+- current `merge_operator` and `_normalize_merge_operator_value` hits from
+  literal search.
+
+Surfaces:
+- `propstore/world/types.py::_normalize_merge_operator_value`
+- `propstore/policies.py::_normalize_merge_operator_value`
+  - Disposition: delete.
+  - Owner after cleanup: `assignment_selection.MergeOperator` is the single
+    typed owner for merge operator values; policy/document boundaries parse
+    strings into that enum.
+  - Action: type `RenderPolicy.merge_operator` and `MergePolicy.operator` as
+    `MergeOperator`, remove duplicate normalizers, and serialize enum values
+    at dict boundaries.
+  - Evidence: both helpers repeat the same value set already defined by the
+    assignment-selection package.
+
+Gate results:
+- Pass: `rg -n -F -- "_normalize_merge_operator_value" propstore tests`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Initial logged gate failed because one policy-governance property test still
+  constructed `MergePolicy` with raw strings; the test now generates
+  `MergeOperator` values.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-merge-operator-cleanup
+  tests/test_assignment_selection_merge.py::TestRenderPolicyIntegration
+  tests/test_policy_governance.py` returned `10 passed`.
+- Log: `logs/test-runs/world-merge-operator-cleanup-20260522-025738.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 13 - `RenderPolicy` backend/semantics normalization
 
 Slice read:
