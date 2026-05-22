@@ -243,6 +243,15 @@ zero-hit or its exact owner-boundary parser is named and recorded.
     `propstore.families.claims.documents`; delete `coerce_claim_type`; update
     callers to construct `ClaimType(value)` at IO/document boundaries and pass
     typed values through runtime APIs.
+  - Execution note, 2026-05-22: completed in commit `429ea38e`. The owner
+    landed as `propstore.families.claims.types` so claim documents, source
+    documents, claim declaration models, world/query code, and tests import the
+    claim-family vocabulary directly without a top-level facade or core
+    re-export. `coerce_claim_type` was deleted. Gates:
+    `rg -n -F -- "propstore.core.claim_types" propstore tests` zero-hit,
+    `rg -n -F -- "coerce_claim_type" propstore tests` zero-hit,
+    `uv run pyright propstore` passed, and logged pytest
+    `claim-type-owner-cleanup-20260522-012340.log` passed with `36 passed`.
 
 - [x] `propstore/core/claim_values.py`
   - Read: 2026-05-21.
