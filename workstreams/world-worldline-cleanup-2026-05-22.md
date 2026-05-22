@@ -140,7 +140,7 @@ Gate results:
 - Log: `logs/test-runs/world-queryable-assumption-cleanup-20260522-023353.log`.
 
 Commit:
-- Pending.
+- `bf846a23 Delete queryable assumption coercer`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
