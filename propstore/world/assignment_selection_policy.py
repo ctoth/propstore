@@ -249,7 +249,14 @@ def _compile_integrity_constraint(constraint: IntegrityConstraint) -> Constraint
         )
 
     if constraint.kind == IntegrityConstraintKind.CATEGORY:
-        allowed_values = tuple(constraint.metadata.get("allowed_values", ()))
+        allowed_values_raw = constraint.metadata.get("allowed_values", ())
+        if isinstance(allowed_values_raw, str) or not isinstance(
+            allowed_values_raw,
+            Sequence,
+        ):
+            raise TypeError("CATEGORY integrity constraint allowed_values must be a sequence")
+        else:
+            allowed_values = tuple(allowed_values_raw)
         extensible = bool(constraint.metadata.get("extensible", False))
 
         def _holds(assignment: Assignment) -> bool:

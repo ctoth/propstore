@@ -6,7 +6,7 @@ import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
 
 from assignment_selection import MergeOperator
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
@@ -59,12 +59,78 @@ def _tuple_of_tuples(values: Iterable[Iterable[_T]]) -> tuple[tuple[_T, ...], ..
     return tuple(tuple(value) for value in values)
 
 
-def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+def _optional_mapping(value: object, field_name: str) -> Mapping[str, object]:
     if value is None:
         return {}
     if not isinstance(value, Mapping):
         raise ValueError(f"render policy field '{field_name}' must be a mapping")
     return value
+
+
+def _optional_sequence(value: object, field_name: str) -> Sequence[object]:
+    if value is None:
+        return ()
+    if isinstance(value, str) or not isinstance(value, Sequence):
+        raise ValueError(f"render policy field '{field_name}' must be a sequence")
+    return value
+
+
+def _float_field(value: object, field_name: str, default: float) -> float:
+    if value is None:
+        return default
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise ValueError(f"render policy field '{field_name}' must be numeric")
+    return float(value)
+
+
+def _int_field(value: object, field_name: str, default: int | None) -> int | None:
+    if value is None:
+        return default
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise ValueError(f"render policy field '{field_name}' must be an integer")
+    return value
+
+
+def _string_mapping(value: object, field_name: str) -> dict[str, str]:
+    result: dict[str, str] = {}
+    for key, item in _optional_mapping(value, field_name).items():
+        if not isinstance(item, str):
+            raise ValueError(f"render policy field '{field_name}' values must be strings")
+        result[str(key)] = item
+    return result
+
+
+def _float_mapping(value: object, field_name: str) -> dict[str, float] | None:
+    if value is None:
+        return None
+    result: dict[str, float] = {}
+    for key, item in _optional_mapping(value, field_name).items():
+        if isinstance(item, bool) or not isinstance(item, int | float):
+            raise ValueError(f"render policy field '{field_name}' values must be numeric")
+        result[str(key)] = float(item)
+    return result
+
+
+def _integrity_constraints_field(value: object) -> tuple[IntegrityConstraint, ...]:
+    constraints: list[IntegrityConstraint] = []
+    for item in _optional_sequence(value, "integrity_constraints"):
+        if not isinstance(item, Mapping):
+            raise ValueError(
+                "render policy field 'integrity_constraints' values must be mappings"
+            )
+        constraints.append(integrity_constraint_from_dict(item))
+    return tuple(constraints)
+
+
+def _future_queryables_field(value: object) -> tuple[QueryableAssumption, ...]:
+    queryables: list[QueryableAssumption] = []
+    for item in _optional_sequence(value, "future_queryables"):
+        if not isinstance(item, str):
+            raise ValueError(
+                "render policy field 'future_queryables' values must be strings"
+            )
+        queryables.append(QueryableAssumption.from_cel(item))
+    return tuple(queryables)
 
 
 class ValueStatus(StrEnum):
@@ -605,7 +671,7 @@ class IntegrityConstraintKind(StrEnum):
 class IntegrityConstraint:
     kind: IntegrityConstraintKind
     concept_ids: tuple[str, ...]
-    metadata: Mapping[str, Any] = field(default_factory=dict)
+    metadata: Mapping[str, object] = field(default_factory=dict)
     cel: CelExpr | None = None
     description: str | None = None
 
@@ -624,14 +690,17 @@ class IntegrityConstraint:
                 raise TypeError("CUSTOM integrity constraint requires callable metadata['predicate']")
 
 
-def integrity_constraint_from_dict(data: Mapping[str, Any]) -> IntegrityConstraint:
+def integrity_constraint_from_dict(data: Mapping[str, object]) -> IntegrityConstraint:
     return IntegrityConstraint(
         kind=(
             data["kind"]
             if isinstance(data["kind"], IntegrityConstraintKind)
             else IntegrityConstraintKind(str(data["kind"]))
         ),
-        concept_ids=tuple(str(concept_id) for concept_id in data.get("concept_ids", ())),
+        concept_ids=tuple(
+            str(concept_id)
+            for concept_id in _optional_sequence(data.get("concept_ids"), "concept_ids")
+        ),
         metadata=dict(_optional_mapping(data.get("metadata"), "metadata")),
         cel=None if data.get("cel") is None else to_cel_expr(str(data["cel"])),
         description=(
@@ -642,7 +711,7 @@ def integrity_constraint_from_dict(data: Mapping[str, Any]) -> IntegrityConstrai
     )
 
 
-def integrity_constraint_to_dict(constraint: IntegrityConstraint) -> dict[str, Any]:
+def integrity_constraint_to_dict(constraint: IntegrityConstraint) -> dict[str, object]:
     metadata = dict(constraint.metadata)
     if constraint.kind == IntegrityConstraintKind.CUSTOM and "predicate" in metadata:
         raise TypeError("CUSTOM integrity constraints with callable predicates are not serializable")
@@ -717,7 +786,7 @@ class ChainResult:
     target_concept_id: ConceptId
     result: ValueResult | DerivedResult
     steps: list[ChainStep] = field(default_factory=list)
-    bindings_used: dict[str, Any] = field(default_factory=dict)
+    bindings_used: dict[str, float | str | None] = field(default_factory=dict)
     unresolved_dependencies: list[ConceptId] = field(default_factory=list)
 
     def __post_init__(self) -> None:
@@ -838,7 +907,7 @@ class RenderPolicy:
         )
 
     @classmethod
-    def from_dict(cls, data: Mapping[str, Any] | None) -> RenderPolicy:
+    def from_dict(cls, data: Mapping[str, object] | None) -> RenderPolicy:
         if not data:
             return cls()
 
@@ -874,11 +943,7 @@ class RenderPolicy:
                 "concept_strategies",
             ).items()
         }
-        branch_weights = (
-            None
-            if data.get("branch_weights") is None
-            else dict(_optional_mapping(data.get("branch_weights"), "branch_weights"))
-        )
+        branch_weights = _float_mapping(data.get("branch_weights"), "branch_weights")
         return cls(
             reasoning_backend=reasoning_backend,
             strategy=(
@@ -894,17 +959,28 @@ class RenderPolicy:
             comparison=str(data.get("comparison", "elitist")),
             link=str(data.get("link", "last")),
             decision_criterion=str(data.get("decision_criterion", "pignistic")),
-            pessimism_index=float(data.get("pessimism_index", 0.5)),
+            pessimism_index=_float_field(
+                data.get("pessimism_index"),
+                "pessimism_index",
+                0.5,
+            ),
             show_uncertainty_interval=bool(data.get("show_uncertainty_interval", False)),
             praf_strategy=str(data.get("praf_strategy", "auto")),
-            praf_mc_epsilon=float(data.get("praf_mc_epsilon", 0.01)),
-            praf_mc_confidence=float(data.get("praf_mc_confidence", 0.95)),
-            praf_treewidth_cutoff=int(data.get("praf_treewidth_cutoff", 12)),
-            praf_mc_seed=(
-                None
-                if data.get("praf_mc_seed") is None
-                else int(data["praf_mc_seed"])
+            praf_mc_epsilon=_float_field(
+                data.get("praf_mc_epsilon"),
+                "praf_mc_epsilon",
+                0.01,
             ),
+            praf_mc_confidence=_float_field(
+                data.get("praf_mc_confidence"),
+                "praf_mc_confidence",
+                0.95,
+            ),
+            praf_treewidth_cutoff=(
+                _int_field(data.get("praf_treewidth_cutoff"), "praf_treewidth_cutoff", 12)
+                or 12
+            ),
+            praf_mc_seed=_int_field(data.get("praf_mc_seed"), "praf_mc_seed", None),
             merge_operator=(
                 merge_operator
                 if isinstance(
@@ -916,31 +992,26 @@ class RenderPolicy:
             branch_filter=(
                 None
                 if data.get("branch_filter") is None
-                else tuple(data["branch_filter"])
+                else tuple(str(item) for item in _optional_sequence(
+                    data.get("branch_filter"),
+                    "branch_filter",
+                ))
             ),
             branch_weights=branch_weights,
-            integrity_constraints=tuple(
-                integrity_constraint_from_dict(item)
-                for item in (data.get("integrity_constraints") or ())
+            integrity_constraints=_integrity_constraints_field(
+                data.get("integrity_constraints")
             ),
-            future_queryables=tuple(
-                QueryableAssumption.from_cel(queryable)
-                for queryable in (data.get("future_queryables") or ())
-            ),
-            future_limit=(
-                None
-                if data.get("future_limit") is None
-                else int(data["future_limit"])
-            ),
-            overrides=dict(_optional_mapping(data.get("overrides"), "overrides")),
+            future_queryables=_future_queryables_field(data.get("future_queryables")),
+            future_limit=_int_field(data.get("future_limit"), "future_limit", None),
+            overrides=_string_mapping(data.get("overrides"), "overrides"),
             concept_strategies=concept_strategies,
             include_drafts=bool(data.get("include_drafts", False)),
             include_blocked=bool(data.get("include_blocked", False)),
             show_quarantined=bool(data.get("show_quarantined", False)),
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {}
+    def to_dict(self) -> dict[str, object]:
+        data: dict[str, object] = {}
         if self.reasoning_backend != ReasoningBackend.CLAIM_GRAPH:
             data["reasoning_backend"] = self.reasoning_backend.value
         if self.strategy is not None:
@@ -1107,7 +1178,7 @@ class ATMSEngineView(Protocol):
         *,
         queryables: Sequence[QueryableAssumption],
         future_limit: int,
-    ) -> dict[str, Any]: ...
+    ) -> dict[str, object]: ...
 
 
 @runtime_checkable

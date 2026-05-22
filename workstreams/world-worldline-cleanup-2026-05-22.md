@@ -1422,6 +1422,68 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/types.py`.
 
+## Iteration 45 - `propstore/world/types.py`
+
+Slice read:
+- `propstore/world/types.py`
+- `propstore/world/assignment_selection_policy.py`
+- prior `normalize_queryable_cel` classification in this workstream
+- render policy, assignment-selection, ATMS state, and mapping-boundary tests.
+
+Surfaces:
+- `Any` annotations in render/type metadata surfaces
+  - Disposition: rewrite.
+  - Owner after cleanup: render policy document parsing is the boundary that
+    accepts `object`; runtime/result fields use explicit mappings, scalar
+    bindings, typed queryables, and `dict[str, object]` report metadata.
+  - Action: replace `Any` in `IntegrityConstraint`, `RenderPolicy.from_dict`,
+    `RenderPolicy.to_dict`, `ChainResult.bindings_used`, and
+    `ATMSEngineView.argumentation_state`.
+  - Evidence: these are owned type surfaces; `Any` hid the document-boundary
+    parsing work and let malformed shapes pass until later runtime code.
+- render policy document readers
+  - Disposition: rewrite.
+  - Owner after cleanup: `RenderPolicy.from_dict` owns parsing serialized
+    policy documents.
+  - Action: add typed boundary readers for mappings, sequences, numeric
+    fields, integer fields, string maps, float maps, integrity constraints, and
+    future queryables. Malformed entries now raise instead of being silently
+    dropped or accepted through `Any`.
+- assignment-selection category metadata read
+  - Disposition: rewrite.
+  - Owner after cleanup: `assignment_selection_policy` reads typed
+    `IntegrityConstraint.metadata` and hard-fails malformed category
+    `allowed_values`.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/types.py` returned zero hits.
+- Pass: `rg -n -F -- "Any" propstore/world/assignment_selection_policy.py`
+  returned zero hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world/types.py
+  propstore/world/assignment_selection_policy.py` returned zero hits.
+- Pass: `rg -n -F -- "coerce" propstore/world/types.py` returned zero hits.
+- Kept: `normalize_queryable_cel`, per Iteration 15, remains the
+  `QueryableAssumption.from_cel` string/CEL boundary parser.
+- Failed then fixed: first `uv run pyright propstore` exposed explicit
+  document-boundary narrowing sites in `RenderPolicy.from_dict`,
+  `integrity_constraint_from_dict`, and assignment-selection category
+  metadata.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-types-no-any tests/test_render_contracts.py tests/test_praf_integration.py
+  tests/test_render_policy_opinions.py tests/test_assignment_selection_merge.py
+  tests/test_resolution_helpers.py tests/test_mapping_boundary_failures.py
+  tests/test_worldline_praf.py tests/test_worldline_result_boundaries.py
+  tests/test_atms_engine.py` returned `133 passed`.
+- Log: `logs/test-runs/world-types-no-any-20260522-053757.log`.
+
+Commit:
+- Type world render policy metadata boundaries.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/value_resolver.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
