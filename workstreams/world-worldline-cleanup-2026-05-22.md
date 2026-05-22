@@ -59,7 +59,7 @@ Gate results:
 - Log: `logs/test-runs/world-value-status-cleanup-20260522-020128.log`.
 
 Commit:
-- Pending.
+- `6bfd7eb8 Delete value status coercer`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
