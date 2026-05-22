@@ -20,6 +20,21 @@ Content is kept only when all are true:
 
 If any condition fails, the action is delete, move, consolidate, or rewrite.
 
+## Commit Rule
+
+Every commit for this audit must repeat the governing principle block in the
+commit message body:
+
+- no old production surface survives through wrappers, aliases, adapters,
+  fallbacks, compatibility branches, re-export modules, or renamed helpers;
+- field/schema/storage/reference mechanics come from Quire charters, field
+  metadata, and family APIs, not duplicated Propstore code;
+- Propstore keeps semantic behavior in the correct owner layer;
+- runtime APIs receive typed/domain objects, not loose `dict`, `object`, mixed
+  strings, or source-local handles past the IO boundary;
+- if the content fails those checks, it is deleted, moved, consolidated, or
+  rewritten.
+
 ## File Checklist
 
 - [x] `propstore/core/__init__.py`
@@ -162,7 +177,50 @@ If any condition fails, the action is delete, move, consolidate, or rewrite.
   - Required follow-up: search callers, delete the loose mapping entrypoint
     first, then update callers to pass typed claim/domain objects.
 
+- [x] `propstore/core/claim_types.py`
+  - Read: 2026-05-21.
+  - Action: move claim-family vocabulary to the claim owner and delete the
+    helper.
+  - Delete: `coerce_claim_type`.
+  - Reason: `ClaimType` is claim-family semantic vocabulary, not generic core
+    infrastructure. The coercer accepts `object | None` and stringifies meaning
+    locally. `VALID_CLAIM_TYPES` duplicates the enum-derived vocabulary and
+    should only remain if a caller truly needs a derived constant in the claim
+    owner.
+  - Required follow-up: delete `coerce_claim_type` first. Move or consolidate
+    `ClaimType` under the claim family/semantic owner, then update callers to
+    construct `ClaimType(value)` at IO/document boundaries and pass typed values
+    through runtime APIs.
+
+- [x] `propstore/core/claim_values.py`
+  - Read: 2026-05-21.
+  - Action: move out of `core` and rewrite boundary parsing.
+  - Reason: the module is claim/source nested row payload handling, not a core
+    primitive. It accepts loose `object`, `Mapping[str, Any]`, JSON strings, and
+    sequences; it silently returns `None` or empty tuples for malformed JSON in
+    several places; and it calls source coercers inside dataclass
+    `__post_init__`/payload constructors.
+  - Delete/rewrite: `_parse_mapping_json`, `_parse_list_json`,
+    `_opinion_from_json_payload`, `SourceOrigin.from_json_payload`,
+    `SourceTrust.from_json_payload`, `ClaimSource.from_json_payload`, and
+    `ClaimProvenance.from_components` cannot remain as loose core parsing.
+  - Required follow-up: move typed claim/source value objects to the claim or
+    source owner. Parse decoded JSON/YAML/SQLite values at the IO boundary with
+    an exact schema and hard failures; do not preserve fallback-to-empty
+    behavior.
+
+- [x] `propstore/core/concept_relationship_types.py`
+  - Read: 2026-05-21.
+  - Action: move concept-relationship vocabulary to the concept owner and delete
+    the helper.
+  - Delete: `coerce_concept_relationship_type`.
+  - Reason: this is concept-family semantic vocabulary, not generic core
+    infrastructure. The coercer accepts `object | None` and stringifies locally.
+  - Required follow-up: delete the coercer first, move/consolidate
+    `ConceptRelationshipType` under the concept/family owner, and update callers
+    to use the enum constructor at IO/document boundaries only.
+
 ## Progress
 
-- Files read: 12 / 51.
-- Next file: `propstore/core/claim_types.py`.
+- Files read: 15 / 51.
+- Next file: `propstore/core/concept_status.py`.
