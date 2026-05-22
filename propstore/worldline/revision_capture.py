@@ -306,7 +306,7 @@ def _journal_operator_input(
         if not isinstance(integrity_constraint, Mapping):
             raise ValueError("IC merge journal capture requires integrity_constraint")
         merge_parent_commits = tuple(revision_query.merge_parent_commits or state.scope.merge_parent_commits)
-        merge_operator = revision_query.operator or "sigma"
+        merge_operator = revision_query.merge_operator or "sigma"
         max_alphabet_size = revision_query.max_alphabet_size or DEFAULT_MAX_ALPHABET_SIZE
         target_atom_ids = tuple(dict.fromkeys(atom_id for profile in profile_atom_ids for atom_id in profile))
         operator_input = {

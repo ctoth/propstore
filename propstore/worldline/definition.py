@@ -101,6 +101,7 @@ class WorldlineRevisionQuery:
     target: str | None = None
     conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
     operator: str | None = None
+    merge_operator: str | None = None
     profile_atom_ids: tuple[tuple[str, ...], ...] = ()
     integrity_constraint: Mapping[str, object] | None = None
     merge_parent_commits: tuple[str, ...] = ()
@@ -129,6 +130,7 @@ class WorldlineRevisionQuery:
                 }
             ),
             operator=data.operator,
+            merge_operator=data.merge_operator,
             profile_atom_ids=data.profile_atom_ids,
             integrity_constraint=data.integrity_constraint,
             merge_parent_commits=data.merge_parent_commits,
@@ -159,6 +161,8 @@ class WorldlineRevisionQuery:
             data["conflicts"] = self.conflicts.to_dict()
         if self.operator is not None:
             data["operator"] = self.operator
+        if self.merge_operator is not None:
+            data["merge_operator"] = self.merge_operator
         if self.profile_atom_ids:
             data["profile_atom_ids"] = [list(profile) for profile in self.profile_atom_ids]
         if self.integrity_constraint is not None:

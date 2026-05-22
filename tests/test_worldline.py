@@ -121,6 +121,9 @@ class _FakeWorldlineRepo:
 
         return RepositorySnapshot(self)
 
+    def mutation_guard(self):
+        return self.git._mutation_guard()
+
     def tree(self, commit: str | None = None):
         return GitKnowledgePath(self.git, commit=commit)
 
@@ -2188,7 +2191,7 @@ class TestWorldlineCLIFlags:
                 dependencies=WorldlineDependencies(),
             )
 
-        monkeypatch.setattr("propstore.world.WorldQuery", _FakeWorldQuery)
+        monkeypatch.setattr("propstore.world.model.WorldQuery", _FakeWorldQuery)
         monkeypatch.setattr("propstore.worldline.runner.run_worldline", fake_run_worldline)
 
         @click.group()
@@ -2319,7 +2322,7 @@ class TestWorldlineCLIFlags:
                 dependencies=WorldlineDependencies(claims=("claim:one",)),
             )
 
-        monkeypatch.setattr("propstore.world.WorldQuery", _FakeWorldQuery)
+        monkeypatch.setattr("propstore.world.model.WorldQuery", _FakeWorldQuery)
         monkeypatch.setattr("propstore.worldline.runner.run_worldline", fake_run_worldline)
         fake_repo = _FakeWorldlineRepo(wl_dir)
 
