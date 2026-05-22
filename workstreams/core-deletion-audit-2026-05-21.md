@@ -534,7 +534,38 @@ commit message body:
   - Required follow-up: none from deletion rules unless duplicate lexical text
     normalization appears elsewhere in the Lemon audit.
 
+- [x] `propstore/core/lemon/proto_roles.py`
+  - Read: 2026-05-21.
+  - Action: keep ProtoRole domain model; tighten entailment property typing.
+  - Reason: the file encodes Dowty-style proto-role domain semantics and does
+    not duplicate storage/family mechanics. `GradedEntailment.property` is a
+    bare `str` that is checked against enum classes in `ProtoRoleBundle` but not
+    stored as the enum type.
+  - Required follow-up: make proto-agent and proto-patient entailment property
+    types explicit at construction or split the entailment records by owner role
+    so the type system carries the vocabulary.
+
+- [x] `propstore/core/lemon/qualia.py`
+  - Read: 2026-05-21.
+  - Action: keep Qualia domain model; review `coerce_via_qualia` naming under
+    search gates.
+  - Reason: the function named `coerce_via_qualia` is not a type coercion helper;
+    it implements a Pustejovsky qualia-mediated semantic operation and returns a
+    `CoercedReference` domain object. It must not become an excuse for broad
+    `coerce_*` helper allowance.
+  - Required follow-up: either document this as an explicit domain exception in
+    the old-symbol search gate or rename to a non-helper-shaped domain verb such
+    as `qualia_mediated_reference` and update callers.
+
+- [x] `propstore/core/lemon/references.py`
+  - Read: 2026-05-21.
+  - Action: keep as Lemon ontology reference value object.
+  - Reason: `OntologyReference` is narrow, typed, and validates required text.
+    It does not parse loose payloads, preserve old shapes, duplicate family
+    metadata, or perform compatibility bridging.
+  - Required follow-up: none from deletion rules.
+
 ## Progress
 
-- Files read: 39 / 51.
-- Next file: `propstore/core/lemon/proto_roles.py`.
+- Files read: 42 / 51.
+- Next file: `propstore/core/lemon/temporal.py`.
