@@ -303,7 +303,7 @@ Next: `propstore/core/assertions/__init__.py`.
 
 ## Iteration 7 - `propstore/core/assertions/__init__.py`
 
-Deleted assertion package re-exports; callers now import concrete `refs`, `situated`, `codec`, or `conversion` owners.
+Deleted assertion package re-exports; callers now import concrete `refs`, `situated`, or `codec` owners.
 Gates: package import zero-hit, `__all__` empty, pyright pass, assertion tests pass (`logs/test-runs/pytest-20260521-225526.log`).
 Next: `propstore/core/assertions/codec.py`.
 
@@ -315,6 +315,6 @@ Next: `propstore/core/assertions/conversion.py`.
 
 ## Iteration 9 - `propstore/core/assertions/conversion.py`
 
-Deleted duplicate free `assertion_source_record_from_payload`; `AssertionSourceRecord.from_payload` owns boundary parsing.
-Gates: helper zero-hit, conversion tests pass (`logs/test-runs/pytest-20260521-225818.log`), pyright pass.
+Deleted `AssertionSourceRecord` and `conversion.py`: test-only hand parser; runtime/canonical owners are `SituatedAssertion`, `AssertionCanonicalRecord`, and typed claim source-assertion relationships.
+Gates: conversion zero-hit, architecture/assertion tests pass (`logs/test-runs/pytest-20260521-230926.log`), pyright pass.
 Next: `propstore/core/assertions/refs.py`.

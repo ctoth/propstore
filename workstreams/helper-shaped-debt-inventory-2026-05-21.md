@@ -91,7 +91,6 @@ they are deleted or moved to the exact owner boundary named here.
 | `propstore/grounding/predicates.py:_normalize_argument_type` | `semantic-owner` | Predicate declaration semantics. |
 | `propstore/aspic_bridge/lifting_projection.py:LiftingProjectionRecord` and all `LiftingProjectionRecord` hits | `semantic-owner` | ASPIC lifting projection result. |
 | `propstore/core/assertions/codec.py:AssertionCanonicalRecord` and all `AssertionCanonicalRecord` hits | `semantic-owner` | Assertion canonical codec. |
-| `propstore/core/assertions/conversion.py:AssertionSourceRecord` and all `AssertionSourceRecord` hits | `semantic-owner` | Assertion source codec. |
 | `propstore/core/base_rates.py:BaseRateAssertionRecord` | `semantic-owner` | Base-rate assertion model. |
 | `propstore/core/results.py:_normalize_strings`, `_normalize_metadata` | `semantic-owner` | Result value canonicalization. |
 | `propstore/core/analyzers.py:_normalize_query_claim_ids`, `_claim_node_from_row`, `_relation_edge_from_row`, `_conflict_witness_from_row` | `semantic-owner` | Graph analyzer projection from family model rows. |

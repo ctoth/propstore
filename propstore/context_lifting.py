@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 
 from propstore.cel_types import CelExpr, to_cel_exprs
-from propstore.core.assertions.refs import ContextReference
+from propstore.core.assertions.refs import ContextReference as AssertionContextRef
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.id_types import ContextId
 from propstore.defeasibility import (
@@ -40,7 +40,7 @@ from propstore.core.conditions.solver import (
 
 @dataclass(frozen=True)
 class IstProposition:
-    context: ContextReference
+    context: AssertionContextRef
     proposition_id: str
 
 
@@ -59,8 +59,8 @@ class LiftingDecisionStatus(StrEnum):
 @dataclass(frozen=True)
 class LiftingRule:
     id: str
-    source: ContextReference
-    target: ContextReference
+    source: AssertionContextRef
+    target: AssertionContextRef
     conditions: tuple[CelExpr, ...] = ()
     mode: LiftingMode = LiftingMode.BRIDGE
     justification: str | None = None
@@ -73,7 +73,7 @@ class LiftingRule:
 class LiftingException:
     id: str
     rule_id: str
-    target: ContextReference
+    target: AssertionContextRef
     proposition_id: str
     clashing_set: tuple[str, ...] = ()
     justification: str | None = None
@@ -143,8 +143,8 @@ class LiftingDecisionProvenance:
 
 @dataclass(frozen=True)
 class LiftingDecision:
-    source_context: ContextReference
-    target_context: ContextReference
+    source_context: AssertionContextRef
+    target_context: AssertionContextRef
     proposition_id: str
     status: LiftingDecisionStatus
     mode: LiftingMode
@@ -181,11 +181,11 @@ class LiftedAssertion:
     clashing_set: tuple[str, ...] = ()
 
     @property
-    def source_context(self) -> ContextReference:
+    def source_context(self) -> AssertionContextRef:
         return self.source_assertion.context
 
     @property
-    def target_context(self) -> ContextReference:
+    def target_context(self) -> AssertionContextRef:
         return self.assertion.context
 
     @property
@@ -202,7 +202,7 @@ class LiftedAssertion:
 
 @dataclass(frozen=True)
 class LiftingSystem:
-    contexts: tuple[ContextReference, ...] = ()
+    contexts: tuple[AssertionContextRef, ...] = ()
     lifting_rules: tuple[LiftingRule, ...] = ()
     lifting_exceptions: tuple[LiftingException, ...] = ()
     context_assumptions: Mapping[ContextId, tuple[CelExpr, ...]] = field(
@@ -313,7 +313,7 @@ class LiftingSystem:
     ) -> tuple[LiftingDecision, ...]:
         target_id = ContextId(target)
         assertion = IstProposition(
-            context=ContextReference(ContextId(source)),
+            context=AssertionContextRef(ContextId(source)),
             proposition_id=proposition_id,
         )
         return tuple(

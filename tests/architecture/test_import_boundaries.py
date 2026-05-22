@@ -9,7 +9,6 @@ import pytest
 RELATIONS_MODULE = Path("propstore/core/relations.py")
 ASSERTION_REFS = Path("propstore/core/assertions/refs.py")
 ASSERTION_SITUATED = Path("propstore/core/assertions/situated.py")
-ASSERTION_CONVERSION = Path("propstore/core/assertions/conversion.py")
 ASSERTION_CODEC = Path("propstore/core/assertions/codec.py")
 CONDITION_IR = Path("propstore/core/conditions/ir.py")
 CONDITION_CHECKED = Path("propstore/core/conditions/checked.py")
@@ -137,23 +136,6 @@ def test_situated_assertions_exist_as_shallow_owner_module() -> None:
 
 def test_situated_assertions_do_not_import_downstream_semantic_layers() -> None:
     imports = _imported_modules(ASSERTION_SITUATED)
-
-    forbidden = {
-        imported
-        for imported in imports
-        for prefix in FORBIDDEN_IMPORT_PREFIXES
-        if imported == prefix or imported.startswith(f"{prefix}.")
-    }
-
-    assert forbidden == set()
-
-
-def test_assertion_conversion_exists_as_shallow_owner_module() -> None:
-    assert ASSERTION_CONVERSION.exists()
-
-
-def test_assertion_conversion_does_not_import_downstream_semantic_layers() -> None:
-    imports = _imported_modules(ASSERTION_CONVERSION)
 
     forbidden = {
         imported
