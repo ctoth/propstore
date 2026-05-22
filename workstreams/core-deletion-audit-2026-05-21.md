@@ -257,7 +257,38 @@ commit message body:
     `check_condition_ir`; if they already have `CelExpr`, pass it through as a
     typed value instead of stringifying before this boundary.
 
+- [x] `propstore/core/conditions/checked.py`
+  - Read: 2026-05-21.
+  - Action: keep in condition owner, with CEL source type tightening.
+  - Reason: `CheckedCondition` and `CheckedConditionSet` are typed runtime
+    carriers for checked condition semantics. JSON decode/encode functions are
+    explicit versioned IO boundaries and hard-fail malformed payloads.
+    `_normalize_checked_conditions` operates on typed `CheckedCondition`
+    objects, so it is canonicalization rather than mixed-shape coercion.
+  - Required follow-up: consider carrying `CelExpr` instead of bare `str` for
+    `CheckedCondition.source` and `.sources` if the type exists at all callers.
+
+- [x] `propstore/core/conditions/codec.py`
+  - Read: 2026-05-21.
+  - Action: keep as condition-owned versioned JSON codec.
+  - Reason: it serializes/deserializes the closed `ConditionIR` tree at an IO
+    boundary, uses explicit version tags, enum constructors, and hard failures.
+    It does not preserve old shapes or define broad compatibility fallbacks.
+  - Required follow-up: none from deletion rules unless duplicate condition
+    JSON parsing appears elsewhere during the remaining audit.
+
+- [x] `propstore/core/conditions/estree_backend.py`
+  - Read: 2026-05-21.
+  - Action: keep backend, but replace loose evaluation value typing with an
+    explicit scalar/value alias.
+  - Reason: the translation from `ConditionIR` to ESTree is owner-correct. The
+    evaluator currently exposes `EstreeLiteral.value: object`,
+    `bindings: Mapping[str, object]`, and returns `object`; that is a loose
+    runtime boundary where the condition value type should be explicit.
+  - Required follow-up: define a narrow condition evaluation value type and use
+    it for ESTree literals, bindings, member evaluation, and numeric helpers.
+
 ## Progress
 
-- Files read: 18 / 51.
-- Next file: `propstore/core/conditions/checked.py`.
+- Files read: 21 / 51.
+- Next file: `propstore/core/conditions/ir.py`.
