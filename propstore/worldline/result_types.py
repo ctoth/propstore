@@ -140,21 +140,6 @@ class WorldlineInputSource:
         return data
 
 
-def _coerce_variable_refs(
-    raw_variables: Any,
-) -> tuple[WorldlineVariableRef, ...]:
-    if isinstance(raw_variables, Sequence) and not isinstance(raw_variables, (str, bytes)):
-        refs: list[WorldlineVariableRef] = []
-        for index, item in enumerate(raw_variables):
-            if not isinstance(item, Mapping):
-                raise ValueError(f"worldline variables[{index}] must be a mapping")
-            refs.append(WorldlineVariableRef.from_json_payload(item))
-        return tuple(refs)
-    if isinstance(raw_variables, Mapping):
-        raise ValueError("worldline variables must be a list of variable bindings")
-    return ()
-
-
 @dataclass(frozen=True)
 class WorldlineTargetValue:
     status: str
@@ -180,7 +165,15 @@ class WorldlineTargetValue:
 
     @classmethod
     def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineTargetValue:
-        variables = _coerce_variable_refs(data.get("variables"))
+        variables: list[WorldlineVariableRef] = []
+        raw_variables = data.get("variables")
+        if isinstance(raw_variables, Sequence) and not isinstance(raw_variables, (str, bytes)):
+            for index, item in enumerate(raw_variables):
+                if not isinstance(item, Mapping):
+                    raise ValueError(f"worldline variables[{index}] must be a mapping")
+                variables.append(WorldlineVariableRef.from_json_payload(item))
+        elif isinstance(raw_variables, Mapping):
+            raise ValueError("worldline variables must be a list of variable bindings")
         inputs_used = {
             name: WorldlineInputSource.from_json_payload(value)
             for name, value in _nested_mapping_items(
@@ -207,7 +200,7 @@ class WorldlineTargetValue:
             canonical_ast=(
                 None if data.get("canonical_ast") is None else str(data.get("canonical_ast"))
             ),
-            variables=variables,
+            variables=tuple(variables),
             formula=None if data.get("formula") is None else str(data.get("formula")),
             strategy=None if data.get("strategy") is None else str(data.get("strategy")),
             inputs_used=inputs_used,

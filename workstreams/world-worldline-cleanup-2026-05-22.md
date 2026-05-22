@@ -64,6 +64,39 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 4 - `propstore/worldline/result_types.py::_coerce_variable_refs`
+
+Slice read:
+- `propstore/worldline/result_types.py`
+- current `_coerce_variable_refs` callers from literal search.
+
+Surfaces:
+- `_coerce_variable_refs`
+  - Disposition: delete.
+  - Owner after cleanup: `WorldlineTargetValue.from_json_payload`, the exact IO
+    boundary that owns parsing serialized variable references.
+  - Action: inline the variable-reference payload parser into
+    `WorldlineTargetValue.from_json_payload`; keep hard failures for wrong
+    variable shapes.
+  - Evidence: there is one caller, and a private coercer helper creates a
+    reusable-looking surface for a single field parser.
+
+Gate results:
+- Pass: `rg -n -F -- "_coerce_variable_refs" propstore tests` returned
+  zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-variable-ref-cleanup tests/test_worldline_result_boundaries.py
+  tests/test_worldline.py::TestWorldlineDefinition::test_worldline_result_from_yaml`
+  returned `7 passed`.
+- Log: `logs/test-runs/worldline-variable-ref-cleanup-20260522-021151.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 3 - `WorldlineResult` value/step coercers
 
 Slice read:
