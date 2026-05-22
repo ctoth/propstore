@@ -27,7 +27,7 @@ from propstore.compiler.context import (
 )
 from propstore.families.claims.passes import validate_claims
 from propstore.concept_ids import candidate_concept_id_for_repo, reserve_concept_id_candidate
-from propstore.core.concept_relationship_types import VALID_CONCEPT_RELATIONSHIP_TYPES
+from propstore.families.concepts.types import VALID_CONCEPT_RELATIONSHIP_TYPES
 from propstore.families.concepts.passes import (
     ConceptPipelineContext,
     run_concept_pipeline,

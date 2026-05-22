@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.core.concept_relationship_types import (
+from propstore.families.concepts.types import (
     VALID_CONCEPT_RELATIONSHIP_TYPES,
 )
 from propstore.core.exactness_types import Exactness

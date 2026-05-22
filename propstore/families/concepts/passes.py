@@ -36,7 +36,7 @@ from propstore.families.identity.concepts import (
     normalize_canonical_concept_payload,
 )
 from propstore.core.concept_status import ConceptStatus
-from propstore.core.concept_relationship_types import (
+from propstore.families.concepts.types import (
     ConceptRelationshipType,
     VALID_CONCEPT_RELATIONSHIP_TYPES,
 )

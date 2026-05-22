@@ -5,7 +5,7 @@ import json
 import pytest
 import yaml
 
-from propstore.core.concept_relationship_types import ConceptRelationshipType
+from propstore.families.concepts.types import ConceptRelationshipType
 from propstore.core.concept_status import ConceptStatus
 from propstore.core.graph_relation_types import GraphRelationType
 from tests.family_helpers import materialized_world_store_path
@@ -260,4 +260,3 @@ def test_world_query_compiled_graph_hook_is_stable(graph_build_world) -> None:
 
     assert first == second
     assert first is not second
-

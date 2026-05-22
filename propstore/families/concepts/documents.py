@@ -9,7 +9,7 @@ from propstore.core.lemon.description_kinds import DescriptionKind
 from propstore.core.lemon.proto_roles import ProtoRoleBundle
 from propstore.core.lemon.qualia import QualiaStructure
 from propstore.core.concept_status import ConceptStatus
-from propstore.core.concept_relationship_types import ConceptRelationshipType
+from propstore.families.concepts.types import ConceptRelationshipType
 from propstore.core.exactness_types import Exactness
 from quire.documents import DocumentStruct
 from propstore.provenance import Provenance

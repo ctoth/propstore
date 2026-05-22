@@ -23,10 +23,7 @@ from propstore.families.concepts.documents import (
     ParameterizationRelationshipDocument,
 )
 from propstore.core.concept_status import ConceptStatus, coerce_concept_status
-from propstore.core.concept_relationship_types import (
-    ConceptRelationshipType,
-    coerce_concept_relationship_type,
-)
+from propstore.families.concepts.types import ConceptRelationshipType
 from quire.documents import convert_document_value, load_document_dir, to_document_builtins
 from propstore.core.exactness_types import Exactness, coerce_exactness
 from propstore.core.id_types import (
@@ -175,11 +172,6 @@ class ConceptRelationship:
     note: str | None = None
 
     def __post_init__(self) -> None:
-        object.__setattr__(
-            self,
-            "relationship_type",
-            coerce_concept_relationship_type(self.relationship_type),
-        )
         object.__setattr__(self, "conditions", to_cel_exprs(self.conditions))
 
     def to_payload(self) -> dict[str, Any]:
@@ -466,12 +458,9 @@ def parse_concept_record(data: Mapping[str, Any]) -> ConceptRecord:
             continue
         if not isinstance(target, str) or not target:
             continue
-        coerced_relationship_type = coerce_concept_relationship_type(relationship_type)
-        if coerced_relationship_type is None:
-            continue
         relationships.append(
             ConceptRelationship(
-                relationship_type=coerced_relationship_type,
+                relationship_type=ConceptRelationshipType(relationship_type),
                 target=ConceptId(target),
                 conditions=to_cel_exprs(_string_list(relationship.get("conditions"))),
                 note=relationship.get("note") if isinstance(relationship.get("note"), str) else None,
