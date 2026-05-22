@@ -650,7 +650,8 @@ def diff_hypothetical_world(
     from propstore.families.claims.types import ClaimType
     from propstore.core.environment import Environment
     from propstore.core.id_types import ConceptId
-    from propstore.world import OverlayWorld, SyntheticClaim
+    from propstore.world.overlay import OverlayWorld
+    from propstore.world.types import SyntheticClaim
 
     bound = world.bind(Environment(bindings=dict(request.bindings)))
     synthetics = [
@@ -780,7 +781,7 @@ def resolve_world_value(
     request: WorldResolveRequest,
 ) -> WorldResolveReport:
     from propstore.core.environment import Environment
-    from propstore.world import resolve
+    from propstore.world.resolution import resolve
 
     resolved = resolve_world_target(world, request.concept_id)
     bound = world.bind(Environment(bindings=dict(request.bindings)))
@@ -817,7 +818,7 @@ def query_world_chain(
     world: WorldQuery,
     request: WorldChainRequest,
 ) -> WorldChainReport:
-    from propstore.world import DerivedResult, ResolutionStrategy
+    from propstore.world.types import DerivedResult, ResolutionStrategy
 
     resolved = resolve_world_target(world, request.concept_id)
     strategy = ResolutionStrategy(request.strategy) if request.strategy else None

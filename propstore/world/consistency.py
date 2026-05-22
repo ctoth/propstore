@@ -12,7 +12,7 @@ from propstore.families.concepts.declaration import Concept, Parameterization
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
-    from propstore.world import WorldQuery
+    from propstore.world.model import WorldQuery
 
 
 @dataclass(frozen=True)

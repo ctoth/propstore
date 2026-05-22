@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, cast
 from propstore.reporting import JsonReportMixin
 from propstore.app.world import bind_world, open_app_world_model
 from propstore.repository import Repository
-from propstore.core.reasoning import normalize_reasoning_backend
+from propstore.core.reasoning import ReasoningBackend, normalize_reasoning_backend
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
 from propstore.world.types import GroundingBundleStore
@@ -17,7 +17,7 @@ from propstore.world.types import GroundingBundleStore
 if TYPE_CHECKING:
     from propstore.core.graph_types import WorldActivationGraph
     from propstore.core.labels import Label, SupportQuality
-    from propstore.world import WorldQuery
+    from propstore.world.model import WorldQuery
 
 
 class WorldReasoningAppError(Exception):
@@ -107,8 +107,6 @@ def world_extensions(
     """Compute argumentation extension reports for a bound world."""
 
     from propstore.relation_analysis import stance_summary
-    from propstore.world import ReasoningBackend
-
     with open_app_world_model(repo) as world:
         bound = bind_world(world, request.bindings, context_id=request.context)
         active = tuple(bound.active_claims())
@@ -339,8 +337,6 @@ def _grounded_claim_ids(
     backend: object,
     argument_to_claim: Mapping[str, str],
 ) -> set[str]:
-    from propstore.world import ReasoningBackend
-
     if backend is ReasoningBackend.ASPIC:
         return {
             claim_id
@@ -356,8 +352,6 @@ def _extension_sets(
     backend: object,
     argument_to_claim: Mapping[str, str],
 ) -> tuple[WorldExtensionsSet, ...]:
-    from propstore.world import ReasoningBackend
-
     extensions: list[WorldExtensionsSet] = []
     for extension in cast(list[frozenset[str]], result):
         if backend is ReasoningBackend.ASPIC:

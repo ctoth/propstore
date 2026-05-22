@@ -10,14 +10,14 @@ import json
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Mapping
 
-from propstore.core.environment import Environment
+from propstore.core.environment import Environment, WorldStore
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept, Parameterization
-from propstore.world import WorldStore, BeliefSpace
+from propstore.world.types import BeliefSpace
 
 if TYPE_CHECKING:
-    from propstore.world import WorldQuery
+    from propstore.world.model import WorldQuery
 
 
 def _claim_concept_id(claim: Claim) -> Any:

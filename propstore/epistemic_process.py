@@ -23,7 +23,7 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
-    from propstore.world import WorldQuery
+    from propstore.world.model import WorldQuery
 
 
 _INVESTIGATION_PLAN_VERSION = "propstore.investigation_plan.v1"

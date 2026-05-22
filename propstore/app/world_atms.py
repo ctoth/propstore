@@ -23,7 +23,8 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
-    from propstore.world import BoundWorld, WorldQuery
+    from propstore.world.bound import BoundWorld
+    from propstore.world.model import WorldQuery
 
 
 SerializedSupport = Mapping[str, Sequence[str]]

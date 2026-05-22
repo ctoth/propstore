@@ -643,6 +643,53 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/__init__.py`.
 
+## Iteration 30 - `propstore/world/__init__.py`
+
+Slice read:
+- `propstore/world/__init__.py`
+- current production `from propstore.world import ...` callers.
+
+Surfaces:
+- `propstore.world` package initializer
+  - Disposition: keep as the public world API barrel.
+  - Evidence: tests and external callers may import the public world surface
+    from the package root.
+- production imports through `propstore.world`
+  - Disposition: delete.
+  - Owner after cleanup: production modules import concrete owner modules:
+    `WorldQuery` from `propstore.world.model`, `BoundWorld` from
+    `propstore.world.bound`, `OverlayWorld` from `propstore.world.overlay`,
+    `resolve` from `propstore.world.resolution`, core environment/reasoning
+    types from `propstore.core.*`, and render/result types from
+    `propstore.world.types`.
+  - Action: update production imports in app, compiler, verification,
+    graph-export, fragility, epistemic process, support revision, and world
+    query modules. Tests may continue using the public API.
+
+Gate results:
+- Pass: `rg -n -F -- "from propstore.world import" propstore` returned zero
+  hits.
+- Pass: `rg -n -F -- "import propstore.world" propstore` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Failed then fixed: first logged pytest command selected zero tests because
+  the `TestWorldQueryBasics` node id did not exist.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-package-barrel-production-imports-rerun tests/test_cli_layout.py
+  tests/test_world_query.py::TestWorldQueryConstruction
+  tests/test_world_query.py::TestWorldQuerySidecarPath
+  tests/test_worldline.py::TestWorldlineRunner tests/test_semantic_repairs.py
+  tests/test_graph_export.py tests/test_claim_workflows.py
+  tests/test_concept_workflows.py` returned `68 passed`.
+- Log:
+  `logs/test-runs/world-package-barrel-production-imports-rerun-20260522-043222.log`.
+
+Commit:
+- Remove production world barrel imports.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with the next
+  `propstore/world` file.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

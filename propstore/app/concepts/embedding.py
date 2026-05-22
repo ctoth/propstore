@@ -86,7 +86,7 @@ def find_similar_concepts(
                 top_k=request.top_k,
             )
         else:
-            from propstore.world import WorldQuery
+            from propstore.world.model import WorldQuery
 
             with WorldQuery(derived_store=derived_store) as world:
                 similarity_hits = world.similar_concepts(

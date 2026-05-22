@@ -15,7 +15,8 @@ if TYPE_CHECKING:
         EpistemicState,
         RevisionResult,
     )
-    from propstore.world import BoundWorld, WorldQuery
+    from propstore.world.bound import BoundWorld
+    from propstore.world.model import WorldQuery
 
 
 @dataclass(frozen=True)

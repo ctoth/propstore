@@ -120,7 +120,7 @@ def show_form(
     decompositions: tuple[FormAlgebraDecomposition, ...] = ()
     uses: tuple[FormAlgebraUse, ...] = ()
     try:
-        from propstore.world import WorldQuery
+        from propstore.world.model import WorldQuery
 
         with WorldQuery(repo) as world:
             decompositions = tuple(

@@ -14,10 +14,11 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 from propstore.core.algorithm_stage import AlgorithmStage
+from propstore.core.environment import Environment
 from propstore.core.id_types import ContextId
 from propstore.app.rendering import AppRenderPolicyRequest, build_render_policy
 from propstore.repository import Repository
-from propstore.world import Environment, RenderPolicy
+from propstore.world.types import RenderPolicy
 from propstore.world.queries import (
     WorldAlgorithmsReport,
     WorldAlgorithmsRequest,
@@ -56,7 +57,8 @@ from propstore.world.queries import (
 )
 
 if TYPE_CHECKING:
-    from propstore.world import BoundWorld, WorldQuery
+    from propstore.world.bound import BoundWorld
+    from propstore.world.model import WorldQuery
 
 
 class WorldAppError(Exception):
@@ -161,7 +163,7 @@ class AppWorldConsistencyRequest:
 
 @contextmanager
 def open_app_world_model(repo: Repository) -> Iterator[WorldQuery]:
-    from propstore.world import WorldQuery
+    from propstore.world.model import WorldQuery
 
     try:
         world = WorldQuery(repo)

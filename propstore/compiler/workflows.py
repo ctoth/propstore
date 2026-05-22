@@ -647,7 +647,7 @@ def build_repository(
         from collections import defaultdict
 
         from propstore.conflict_detector import ConflictClass
-        from propstore.world import WorldQuery
+        from propstore.world.model import WorldQuery
 
         wm = WorldQuery(repo, commit=hash_key)
         stats = wm.stats()

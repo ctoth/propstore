@@ -50,7 +50,7 @@ from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.world.types import GroundingBundleStore, QueryableAssumption
 
 if TYPE_CHECKING:
-    from propstore.world import WorldQuery
+    from propstore.world.model import WorldQuery
 
 
 @dataclass(frozen=True)

@@ -120,7 +120,7 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
 
     claim_id = claim_ref
     if claim_id not in claims_by_id:
-        from propstore.world import WorldQuery
+        from propstore.world.model import WorldQuery
 
         try:
             wm = WorldQuery(repo)
@@ -245,8 +245,8 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
     visit(claim_id)
 
     atms_label = None
-    from propstore.world import WorldQuery
     from propstore.world.types import Environment
+    from propstore.world.model import WorldQuery
 
     try:
         wm = WorldQuery(repo)

@@ -17,7 +17,7 @@ from quire.tree_path import TreePath as KnowledgePath
 if TYPE_CHECKING:
     from quire.derived_store import DerivedStoreHandle
 
-    from propstore.world import WorldQuery
+    from propstore.world.model import WorldQuery
 
 
 class ClaimWorkflowError(Exception):
@@ -215,7 +215,7 @@ def compare_algorithm_claims_from_repo(
     repo: Repository,
     request: ClaimCompareRequest,
 ) -> ClaimCompareReport:
-    from propstore.world import WorldQuery
+    from propstore.world.model import WorldQuery
 
     try:
         with WorldQuery(repo) as world:
@@ -525,7 +525,7 @@ def find_similar_claims(
                 top_k=request.top_k,
             )
         else:
-            from propstore.world import WorldQuery
+            from propstore.world.model import WorldQuery
 
             with WorldQuery(derived_store=sidecar) as world:
                 similarity_hits = world.similar_claims(
