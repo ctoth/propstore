@@ -314,6 +314,16 @@ zero-hit or its exact owner-boundary parser is named and recorded.
   - Required follow-up: delete `coerce_concept_status` first, move/consolidate
     `ConceptStatus` under the concept/family owner, and update callers to use
     `ConceptStatus(value)` at IO/document boundaries only.
+  - Execution note, 2026-05-22: completed in commit `29921f7f`.
+    `ConceptStatus` and `VALID_CONCEPT_STATUSES` moved to
+    `propstore.families.concepts.types`, `coerce_concept_status` was deleted,
+    and concept record parsing now constructs `ConceptStatus` directly at the
+    concept boundary. Gates:
+    `rg -n -F -- "propstore.core.concept_status" propstore tests` zero-hit,
+    `rg -n -F -- "coerce_concept_status" propstore tests` zero-hit,
+    `uv run pyright propstore` passed, and logged pytest
+    `concept-status-owner-cleanup-20260522-013559.log` passed with
+    `65 passed`.
 
 - [x] `propstore/core/conditions/__init__.py`
   - Read: 2026-05-21.
