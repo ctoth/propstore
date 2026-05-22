@@ -2172,11 +2172,14 @@ class TestWorldlineCLIFlags:
         def fake_run_worldline(definition, world):
             seen["revision"] = None if definition.revision is None else definition.revision.to_dict()
             from propstore.worldline import WorldlineResult
+            from propstore.worldline.result_types import WorldlineTargetValue
 
             return WorldlineResult(
                 computed="2026-03-29T00:00:00Z",
                 content_hash="abc123",
-                values={"concept1": {"status": "determined", "value": 1.0}},
+                values={
+                    "concept1": WorldlineTargetValue(status="determined", value=1.0)
+                },
                 steps=[],
                 dependencies={"claims": [], "stances": [], "contexts": []},
             )
@@ -2284,25 +2287,26 @@ class TestWorldlineCLIFlags:
 
         def fake_run_worldline(definition, world):
             from propstore.worldline import WorldlineResult
+            from propstore.worldline.result_types import WorldlineStep, WorldlineTargetValue
 
             return WorldlineResult(
                 computed="2026-03-29T00:00:00Z",
                 content_hash="abc123",
                 values={
-                    "concept1": {
-                        "status": "determined",
-                        "value": 1.0,
-                        "source": "claim",
-                        "winning_claim_id": "claim:one",
-                    }
+                    "concept1": WorldlineTargetValue(
+                        status="determined",
+                        value=1.0,
+                        source="claim",
+                        winning_claim_id="claim:one",
+                    )
                 },
                 steps=[
-                    {
-                        "concept": "concept1",
-                        "value": 1.0,
-                        "source": "claim",
-                        "claim_id": "claim:one",
-                    }
+                    WorldlineStep(
+                        concept="concept1",
+                        value=1.0,
+                        source="claim",
+                        claim_id="claim:one",
+                    )
                 ],
                 dependencies={"claims": ["claim:one"], "stances": [], "contexts": []},
             )

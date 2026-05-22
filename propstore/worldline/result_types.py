@@ -251,15 +251,6 @@ class WorldlineTargetValue:
         return data
 
 
-WorldlineTargetValueInput = WorldlineTargetValue | Mapping[str, Any]
-
-
-def coerce_worldline_target_value(value: WorldlineTargetValueInput) -> WorldlineTargetValue:
-    if isinstance(value, WorldlineTargetValue):
-        return value
-    return WorldlineTargetValue.from_json_payload(value)
-
-
 @dataclass(frozen=True)
 class WorldlineStep:
     concept: str
@@ -298,15 +289,6 @@ class WorldlineStep:
         if self.formula is not None:
             data["formula"] = self.formula
         return data
-
-
-WorldlineStepInput = WorldlineStep | Mapping[str, Any]
-
-
-def coerce_worldline_step(step: WorldlineStepInput) -> WorldlineStep:
-    if isinstance(step, WorldlineStep):
-        return step
-    return WorldlineStep.from_json_payload(step)
 
 
 @dataclass(frozen=True)

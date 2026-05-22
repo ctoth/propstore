@@ -22,8 +22,6 @@ from propstore.worldline.result_types import (
     WorldlineSensitivityReport,
     WorldlineStep,
     WorldlineTargetValue,
-    coerce_worldline_step,
-    coerce_worldline_target_value,
 )
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
@@ -231,11 +229,18 @@ class WorldlineResult:
     revision: WorldlineRevisionState | None = None
 
     def __post_init__(self) -> None:
-        self.values = {
-            str(target_name): coerce_worldline_target_value(value)
-            for target_name, value in self.values.items()
-        }
-        self.steps = tuple(coerce_worldline_step(step) for step in self.steps)
+        values: dict[str, WorldlineTargetValue] = {}
+        for target_name, value in self.values.items():
+            if not isinstance(value, WorldlineTargetValue):
+                raise TypeError("WorldlineResult.values entries must be WorldlineTargetValue")
+            values[str(target_name)] = value
+        self.values = values
+        steps: list[WorldlineStep] = []
+        for step in self.steps:
+            if not isinstance(step, WorldlineStep):
+                raise TypeError("WorldlineResult.steps entries must be WorldlineStep")
+            steps.append(step)
+        self.steps = tuple(steps)
         if not isinstance(self.dependencies, WorldlineDependencies):
             self.dependencies = WorldlineDependencies.from_json_payload(self.dependencies)
         if self.sensitivity is not None and not isinstance(self.sensitivity, WorldlineSensitivityReport):

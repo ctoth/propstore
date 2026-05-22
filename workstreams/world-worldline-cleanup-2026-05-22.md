@@ -64,6 +64,44 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 3 - `WorldlineResult` value/step coercers
+
+Slice read:
+- `propstore/worldline/result_types.py`
+- `propstore/worldline/definition.py`
+- current `WorldlineResult(` construction sites from literal search.
+
+Surfaces:
+- `coerce_worldline_target_value`
+- `coerce_worldline_step`
+  - Disposition: delete.
+  - Owner after cleanup: `WorldlineResult.from_document` and
+    `WorldlineResult.from_dict` parse serialized mappings; direct
+    `WorldlineResult` construction receives typed `WorldlineTargetValue` and
+    `WorldlineStep` objects.
+  - Action: remove the coercers and make runtime construction reject mapping
+    values/steps.
+  - Evidence: `WorldlineResult.__post_init__` currently accepts mapping payloads
+    and converts them, duplicating the existing explicit IO constructors.
+
+Gate results:
+- Pass: `rg -n -F -- "coerce_worldline_target_value" propstore tests`
+  returned zero hits.
+- Pass: `rg -n -F -- "coerce_worldline_step" propstore tests` returned
+  zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-result-coercer-cleanup tests/test_worldline.py
+  tests/test_worldline_result_boundaries.py tests/test_capture_journal.py
+  tests/test_worldline_revision.py` returned `75 passed`.
+- Log: `logs/test-runs/worldline-result-coercer-cleanup-20260522-020908.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 2 - `propstore/worldline/result_types.py::coerce_worldline_capture_error`
 
 Slice read:
