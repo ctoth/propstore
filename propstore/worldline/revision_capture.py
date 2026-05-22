@@ -13,7 +13,9 @@ from propstore.support_revision.history import (
 )
 from propstore.support_revision.input_normalization import normalize_revision_input
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
-from propstore.support_revision.state import EpistemicState, RevisionEvent
+from propstore.support_revision.state import EpistemicState, RevisionEvent, RevisionResult
+from propstore.worldline.definition import WorldlineRevisionQuery
+from propstore.worldline.interfaces import WorldlineBoundView
 from propstore.worldline.revision_types import (
     RevisionAtomRef,
     WorldlineRevisionResult,
@@ -29,7 +31,10 @@ _VERSION_POLICY_SNAPSHOT: Mapping[str, str] = {
 }
 
 
-def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevisionState:
+def capture_revision_state(
+    bound: WorldlineBoundView,
+    revision_query: WorldlineRevisionQuery,
+) -> WorldlineRevisionState:
     operation = revision_query.operation
     if operation == "expand":
         result = bound.expand(_revision_atom_input(revision_query.atom))
@@ -105,8 +110,8 @@ def capture_revision_state(bound: Any, revision_query: Any) -> WorldlineRevision
 
 
 def capture_journal(
-    bound: Any,
-    operations: Sequence[Any],
+    bound: WorldlineBoundView,
+    operations: Sequence[WorldlineRevisionQuery],
     *,
     policy_id: str = _POLICY_ID,
     policy_payload: Mapping[str, Any] | None = None,
@@ -142,7 +147,10 @@ def capture_journal(
     return TransitionJournal(entries=tuple(entries))
 
 
-def _revision_result_payload(bound: Any, result: Any) -> WorldlineRevisionResult:
+def _revision_result_payload(
+    bound: WorldlineBoundView,
+    result: RevisionResult,
+) -> WorldlineRevisionResult:
     return WorldlineRevisionResult(
         accepted_atom_ids=tuple(result.accepted_atom_ids),
         rejected_atom_ids=tuple(result.rejected_atom_ids),
@@ -152,12 +160,12 @@ def _revision_result_payload(bound: Any, result: Any) -> WorldlineRevisionResult
 
 
 def _revision_event_payload(
-    bound: Any,
+    bound: WorldlineBoundView,
     *,
     operation: str,
     input_atom_id: str | None,
     target_atom_ids: tuple[str, ...],
-    result: Any,
+    result: RevisionResult,
 ) -> RevisionEvent:
     return RevisionEvent(
         operation=operation,
@@ -171,7 +179,7 @@ def _revision_event_payload(
     )
 
 
-def _bound_epistemic_state_hash(bound: Any) -> str:
+def _bound_epistemic_state_hash(bound: WorldlineBoundView) -> str:
     state = getattr(bound, "epistemic_state", None)
     if not callable(state):
         return ""
@@ -189,18 +197,24 @@ def _revision_atom_input(atom: RevisionAtomRef | None) -> Mapping[str, Any] | No
     return atom.to_revision_input()
 
 
-def _revision_state_snapshot(bound: Any, state: Any) -> Any:
+def _revision_state_snapshot(
+    bound: WorldlineBoundView,
+    state: EpistemicState,
+) -> Mapping[str, Any]:
     snapshot = getattr(bound, "revision_state_snapshot", None)
-    if callable(snapshot):
-        return snapshot(state)
-    raise TypeError("revision capture requires bound.revision_state_snapshot(state)")
+    if not callable(snapshot):
+        raise TypeError("revision capture requires bound.revision_state_snapshot(state)")
+    snapshot_payload = getattr(snapshot(state), "to_dict", None)
+    if not callable(snapshot_payload):
+        raise TypeError("bound.revision_state_snapshot(state) must return a snapshot payload")
+    payload = snapshot_payload()
+    if not isinstance(payload, Mapping):
+        raise TypeError("bound.revision_state_snapshot(state) must return a mapping payload")
+    return dict(payload)
 
 
-def _initial_epistemic_state(bound: Any) -> EpistemicState:
-    state = getattr(bound, "epistemic_state", None)
-    if not callable(state):
-        raise TypeError("journal capture requires bound.epistemic_state()")
-    result = state()
+def _initial_epistemic_state(bound: WorldlineBoundView) -> EpistemicState:
+    result = bound.epistemic_state()
     if not isinstance(result, EpistemicState):
         raise TypeError("bound.epistemic_state() must return EpistemicState")
     return result
@@ -208,7 +222,7 @@ def _initial_epistemic_state(bound: Any) -> EpistemicState:
 
 def _journal_operator_input(
     state: EpistemicState,
-    revision_query: Any,
+    revision_query: WorldlineRevisionQuery,
 ) -> tuple[JournalOperator, TransitionOperation, Mapping[str, Any]]:
     operation = str(revision_query.operation)
     if operation == "expand":
@@ -318,7 +332,7 @@ def _query_atom_id(atom: RevisionAtomRef | None) -> str | None:
     return atom.resolved_atom_id()
 
 
-def _query_target_atom_ids(target: Any) -> list[str]:
+def _query_target_atom_ids(target: str | None) -> list[str]:
     if target is None:
         return []
     if isinstance(target, str):
@@ -328,7 +342,7 @@ def _query_target_atom_ids(target: Any) -> list[str]:
     return [str(target)]
 
 
-def _query_conflict_target_atom_ids(revision_query: Any) -> list[str]:
+def _query_conflict_target_atom_ids(revision_query: WorldlineRevisionQuery) -> list[str]:
     input_atom_id = _query_atom_id(revision_query.atom)
     if input_atom_id is None:
         return []

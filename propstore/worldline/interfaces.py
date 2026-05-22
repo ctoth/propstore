@@ -9,10 +9,42 @@ from propstore.world.types import BeliefSpace, RenderPolicy
 
 if TYPE_CHECKING:
     from propstore.context_lifting import LiftingSystem
+    from propstore.support_revision.explanation_types import RevisionExplanation
+    from propstore.support_revision.state import EpistemicState, RevisionResult
 
 
 class WorldlineBoundView(BeliefSpace, Protocol):
-    pass
+    def expand(self, atom: Mapping[str, Any] | None) -> RevisionResult: ...
+
+    def contract(
+        self,
+        targets: str | None,
+        *,
+        max_candidates: int,
+    ) -> RevisionResult: ...
+
+    def revise(
+        self,
+        atom: Mapping[str, Any] | None,
+        *,
+        max_candidates: int,
+        conflicts: Mapping[str, tuple[str, ...]] | None = None,
+    ) -> RevisionResult: ...
+
+    def iterated_revise(
+        self,
+        atom: Mapping[str, Any] | None,
+        *,
+        max_candidates: int,
+        conflicts: Mapping[str, tuple[str, ...]] | None = None,
+        operator: str,
+    ) -> tuple[RevisionResult, EpistemicState]: ...
+
+    def revision_explain(self, result: RevisionResult) -> RevisionExplanation: ...
+
+    def epistemic_state(self) -> EpistemicState: ...
+
+    def revision_state_snapshot(self, state: EpistemicState) -> object: ...
 
 
 @runtime_checkable

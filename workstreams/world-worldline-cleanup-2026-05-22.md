@@ -271,6 +271,72 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/revision_capture.py`.
 
+## Iteration 23 - `propstore/worldline/revision_capture.py`
+
+Slice read:
+- `propstore/worldline/revision_capture.py`
+- `propstore/worldline/definition.py`
+- `propstore/worldline/interfaces.py`
+- `propstore/worldline/revision_types.py`
+- `propstore/world/bound.py`
+- revision capture, journal capture, and snapshot-boundary tests.
+
+Surfaces:
+- raw `revision_query: Any` and `Sequence[Any]` operation inputs
+  - Disposition: rewrite.
+  - Owner after cleanup: `WorldlineRevisionQuery` owns worldline revision query
+    shape.
+  - Action: type capture and journal operations with `WorldlineRevisionQuery`.
+- raw revision-capable `bound: Any`
+  - Disposition: rewrite.
+  - Owner after cleanup: `WorldlineBoundView` owns the worldline runner's bound
+    view contract, including revision methods used by revision capture.
+  - Action: add the revision method surface to `WorldlineBoundView` and type
+    revision capture helpers against that protocol.
+- live iterated revision state object in `WorldlineRevisionState.state`
+  - Disposition: delete.
+  - Owner after cleanup: worldline revision state stores the snapshot payload
+    mapping returned by the bound-world revision snapshot owner.
+  - Action: `_revision_state_snapshot` now requires
+    `bound.revision_state_snapshot(state)` and stores its `to_dict()` mapping,
+    while still rejecting missing snapshot support with an explicit TypeError.
+- support-revision explanation payload
+  - Disposition: keep typed owner object.
+  - Owner after cleanup: `RevisionExplanation` remains owned by
+    `propstore.support_revision.explanation_types`; worldline result
+    serialization calls its `to_dict()` through the existing plain-data path.
+
+Gate results:
+- Pass: `rg -n -F -- "bound: Any" propstore/worldline/revision_capture.py`
+  returned zero hits.
+- Pass: `rg -n -F -- "revision_query: Any"
+  propstore/worldline/revision_capture.py` returned zero hits.
+- Pass: `rg -n -F -- "result: Any"
+  propstore/worldline/revision_capture.py` returned zero hits.
+- Pass: `rg -n -F -- "state: Any"
+  propstore/worldline/revision_capture.py` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Failed then fixed: the first logged rerun exposed one stale test assertion
+  expecting a state object with `to_dict()`; the second exposed the need to keep
+  optional pre-state hash behavior for one-shot fake bounds and explicit
+  snapshot TypeErrors.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-revision-capture-boundary-fixed tests/test_worldline_revision.py
+  tests/test_worldline_revision_event_capture.py
+  tests/test_worldline_revision_properties.py
+  tests/test_worldline_revision_snapshot_boundary.py
+  tests/test_mapping_boundary_failures.py tests/test_capture_journal.py
+  tests/test_worldline.py` returned `86 passed`.
+- Log:
+  `logs/test-runs/worldline-revision-capture-boundary-fixed-20260522-035836.log`.
+
+Commit:
+- Type worldline revision capture boundaries.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/result_types.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

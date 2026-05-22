@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
+from propstore.support_revision.explanation_types import RevisionExplanation
 from propstore.worldline.result_types import (
     WorldlineCaptureError,
     WorldlineScalarValue,
@@ -138,7 +139,7 @@ class WorldlineRevisionResult:
     accepted_atom_ids: tuple[str, ...] = ()
     rejected_atom_ids: tuple[str, ...] = ()
     incision_set: tuple[str, ...] = ()
-    explanation: Mapping[str, Any] | None = None
+    explanation: RevisionExplanation | Mapping[str, Any] | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "accepted_atom_ids", tuple(str(atom_id) for atom_id in self.accepted_atom_ids))

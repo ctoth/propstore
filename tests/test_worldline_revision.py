@@ -262,7 +262,7 @@ def test_run_worldline_captures_iterated_revision_state_payload(monkeypatch) -> 
     assert result.revision is not None
     assert result.revision.operation == "iterated_revise"
     assert result.revision.state is not None
-    assert result.revision.state.to_dict() == epistemic_state_payload(iterated_result[1])
+    assert result.revision.state == epistemic_state_payload(iterated_result[1])
     assert len(bound.calls) == 1
     call_operation, call_atom, call_conflicts, call_operator, call_max_candidates = bound.calls[0]
     assert call_operation == "iterated_revise"
