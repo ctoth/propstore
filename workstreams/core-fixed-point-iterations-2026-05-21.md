@@ -324,3 +324,9 @@ Next: `propstore/core/assertions/refs.py`.
 Deleted `ConditionRef.from_sources`; checked condition sets now own reference identity, and assertion refs require typed IDs without self-mutating coercion.
 Gates: `from_sources`/`object.__setattr__` zero-hit in slice, focused tests pass (`logs/test-runs/pytest-20260521-231703.log`), pyright pass.
 Next: final reread and files 2-10 completion gates.
+
+## Final files 2-10 gate
+
+Reread this record; iterations 2-10 are recorded with dispositions.
+Gates: old-surface searches zero-hit; deleted core files absent; combined focused tests pass (`logs/test-runs/pytest-20260521-232010.log`); pyright pass.
+Next: requested serial core pass complete.
