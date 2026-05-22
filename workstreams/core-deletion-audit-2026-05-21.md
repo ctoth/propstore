@@ -641,7 +641,44 @@ commit message body:
     kernel under the relation owner, require typed `ConceptId` and typed role
     value/reference objects, and update callers from the resulting failures.
 
+- [x] `propstore/core/results.py`
+  - Read: 2026-05-21.
+  - Action: move analyzer result records to world/argumentation owner and
+    replace loose string/metadata normalization.
+  - Reason: analyzer results belong to world/argumentation runtime, not generic
+    core. The module imports graph label serialization, stores backend and
+    semantics as bare strings, carries claim IDs as strings, accepts
+    `Mapping[str, Any]` in `from_dict`, and normalizes arbitrary metadata pairs.
+  - Delete/rewrite: `_normalize_strings`, `_normalize_metadata`, graph-label
+    dict coupling, and `from_dict` loose payload parsing inside runtime result
+    constructors.
+  - Required follow-up: delete the core import path first, move typed result
+    objects to the analyzer owner, use typed backend/semantics/claim IDs, and
+    put serialization in an explicit artifact/API boundary.
+
+- [x] `propstore/core/source_types.py`
+  - Read: 2026-05-21.
+  - Action: move source-family vocabulary to source owner and delete coercers.
+  - Delete: `coerce_source_kind` and `coerce_source_origin_type`.
+  - Reason: source kind/origin vocabulary belongs to the source family/semantic
+    owner, not generic core. Both helpers accept `object`, branch on strings,
+    and reconstruct enum meaning locally.
+  - Required follow-up: delete the coercers first, move/consolidate
+    `SourceKind` and `SourceOriginType` under the source owner, and update
+    callers to construct enums at IO/document boundaries only.
+
+- [x] `propstore/core/store_results.py`
+  - Read: 2026-05-21.
+  - Action: move world store result DTOs to world/store owner and tighten ID
+    construction.
+  - Reason: search/similarity hits and world store stats are world-query result
+    surfaces, not core primitives. `__post_init__` constructors convert IDs from
+    whatever was passed instead of requiring typed IDs at the semantic boundary.
+  - Required follow-up: delete the core import path first, move the result types
+    to the world/store owner, and require typed `ClaimId`/`ConceptId` after
+    boundary parsing.
+
 ## Progress
 
-- Files read: 48 / 51.
-- Next file: `propstore/core/results.py`.
+- Files read: 51 / 51.
+- `propstore.core` audit read pass complete.
