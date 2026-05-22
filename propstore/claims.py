@@ -108,7 +108,6 @@ def claim_batch_files_from_payload(
             store_root=knowledge_root,
             document=document,
         )
-        setattr(claim_file, "source_path", source_path)
         if isinstance(stage, str):
             setattr(claim_file, "stage", stage)
         loaded.append(claim_file)

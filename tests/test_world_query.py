@@ -2075,7 +2075,7 @@ class TestTransitiveConsistency:
             modified_files.append(
                 loaded_claim_file_from_payload(
                     filename=cf.filename,
-                    source_path=cf.source_path,
+                    source_path=cf.artifact_path,
                     data=new_data,
                 )
             )
