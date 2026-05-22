@@ -601,7 +601,47 @@ commit message body:
     `IstLiteralKey` is the canonical claim literal. Change `claim_key` to accept
     `ClaimId` and `ContextId` after boundary parsing.
 
+- [x] `propstore/core/reasoning.py`
+  - Read: 2026-05-21.
+  - Action: move to world/argumentation owner and delete normalizer/alias
+    compatibility surface.
+  - Delete/rewrite: `normalize_reasoning_backend`,
+    `normalize_argumentation_semantics`, and string alias handling such as
+    `bipolar_stable`.
+  - Reason: backend/semantics selection is argumentation/world runtime policy,
+    not generic core. The normalize functions accept string inputs past the
+    boundary, and the alias table preserves alternate spellings instead of
+    requiring the enum value at the boundary. CLI value lists belong at the CLI
+    presentation boundary.
+  - Required follow-up: delete the core import path first, move typed enums and
+    compatibility-free validation to the world/argumentation owner, and update
+    CLI/app callers to parse strings at their boundary with enum constructors.
+
+- [x] `propstore/core/relation_types.py`
+  - Read: 2026-05-21.
+  - Action: move/consolidate with relation and argumentation owners.
+  - Reason: the file classifies attack/support relation semantics using
+    `GraphRelationType`, which this audit already marks as duplicated graph
+    vocabulary. These sets are argumentation relation semantics, not generic
+    core constants.
+  - Required follow-up: derive attack/support classification from the relation
+    owner or stance vocabulary once, then update claim-graph/PrAF/ASPIC callers.
+
+- [x] `propstore/core/relations.py`
+  - Read: 2026-05-21.
+  - Action: move relation concept kernel to the relation semantic owner; delete
+    helper coercion and loose role values.
+  - Delete: `coerce_claim_concept_link_role`.
+  - Reason: the module contains real relation-concept semantics, but
+    `propstore.core` is the wrong owner. Claim-concept link roles belong with
+    claim/concept relation ownership. `RelationConceptRef` and `RoleDefinition`
+    accept `ConceptId | str`, `RoleBinding.value` is `object`, and
+    `canonicalize_binary_values` stringifies arbitrary objects.
+  - Required follow-up: delete the core import path first, move the relation
+    kernel under the relation owner, require typed `ConceptId` and typed role
+    value/reference objects, and update callers from the resulting failures.
+
 ## Progress
 
-- Files read: 45 / 51.
-- Next file: `propstore/core/reasoning.py`.
+- Files read: 48 / 51.
+- Next file: `propstore/core/results.py`.
