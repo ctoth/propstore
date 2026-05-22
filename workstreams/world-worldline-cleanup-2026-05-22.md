@@ -1583,6 +1583,132 @@ Commit:
 Next slice:
 - Rerun the final fixed-point/search gates and package gates.
 
+## Iteration 48 - final worldline revision gate repair
+
+Slice read:
+- `propstore/worldline/revision_types.py`
+- `propstore/worldline/revision_capture.py`
+- `propstore/worldline/definition.py`
+- `tests/test_worldline_revision.py`
+- `tests/test_worldline_revision_event_capture.py`
+- `tests/test_structured_projection.py`
+
+Surfaces:
+- `WorldlineRevisionQuery.merge_operator`
+  - Disposition: add to the typed revision query contract.
+  - Owner after cleanup: `WorldlineRevisionQueryDocument` and
+    `WorldlineRevisionQuery` carry the IC merge operator explicitly.
+  - Action: parse and serialize `merge_operator` as a first-class typed field,
+    and have revision capture pass that value to IC merge realization.
+  - Evidence: the final suite exposed that IC merge policy had been conflated
+    with the generic revision `operator`; strict document decoding rejected the
+    authored `merge_operator` field.
+- stale worldline test patch/fake-repo surfaces
+  - Disposition: repair tests to target concrete owner paths and complete the
+    fake repository protocol used by real family saves.
+  - Owner after cleanup: tests patch `propstore.world.model.WorldQuery`; the
+    fake repo implements `mutation_guard()` because family writes require the
+    repository mutation protocol.
+
+Gate results:
+- Failed: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-worldline-final-gate` returned 5 failures: missing fake
+  `mutation_guard`, stale `propstore.world.WorldQuery` monkeypatch targets, and
+  strict schema rejection of `merge_operator`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-worldline-final-failure-repair-rerun
+  tests/test_worldline_revision.py::test_run_worldline_captures_one_shot_revision_payload
+  tests/test_worldline_revision.py::test_run_worldline_captures_iterated_revision_state_payload
+  tests/test_worldline_revision_event_capture.py::test_worldline_revision_capture_persists_typed_event_payload
+  tests/test_worldline_revision_event_capture.py::test_worldline_revision_capture_handles_ic_merge_realization_failure
+  tests/test_structured_projection.py::test_export_version_gates_worldline_to_structured_projection`
+  returned `5 passed`.
+- Log:
+  `logs/test-runs/world-worldline-final-failure-repair-rerun-20260522-055512.log`.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+
+Commit:
+- `880b6f43 Fix worldline final gate failures`
+
+Next slice:
+- Rerun the final package gates.
+
+## Iteration 49 - contract manifest gate repair
+
+Slice read:
+- `propstore/_resources/contract_manifests/semantic-contracts.yaml`
+- generated contract manifest freshness failure from the full-suite rerun.
+
+Surfaces:
+- checked-in semantic contract manifest
+  - Disposition: update generated contract manifest to match the typed
+    `WorldlineRevisionQueryDocument` contract.
+  - Owner after cleanup: Quire/propstore contract manifest generation records
+    the authoritative typed document fields.
+  - Action: run `uv run pks contract-manifest --write` and keep only the
+    manifest delta for `merge_operator`.
+  - Evidence: the post-repair full suite failed only
+    `test_checked_in_contract_manifest_is_current`; the generated manifest was
+    stale after the typed revision query contract changed.
+
+Gate results:
+- Failed then fixed: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-worldline-final-gate-rerun` failed only
+  `tests/test_contract_manifests.py::test_checked_in_contract_manifest_is_current`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  contract-manifest-merge-operator
+  tests/test_contract_manifests.py::test_checked_in_contract_manifest_is_current`
+  returned `1 passed`.
+- Log:
+  `logs/test-runs/contract-manifest-merge-operator-20260522-060321.log`.
+
+Commit:
+- `0e545acf Update worldline revision contract manifest`
+
+Next slice:
+- Rerun literal final search gates, pyright, and the full logged suite.
+
+## Final fixed-point gates
+
+Search gates:
+- Pass: `rg -n -F -- "coerce_value_status" propstore tests` returned zero
+  hits.
+- Pass: `rg -n -F -- "normalize_reasoning_backend" propstore tests` returned
+  zero hits.
+- Pass: `rg -n -F -- "normalize_argumentation_semantics" propstore tests`
+  returned zero hits.
+- Pass: `rg -n -F -- "fallback" propstore/world propstore/worldline`
+  returned zero hits.
+- Pass: `rg -n -F -- "legacy" propstore/world propstore/worldline` returned
+  zero hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world propstore/worldline`
+  returned zero hits.
+
+Type gate:
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+
+Runtime gates:
+- Failed then classified: `powershell -File scripts/run_logged_pytest.ps1
+  -Label world-worldline-final-gate-after-manifest` failed because xdist worker
+  `gw0` crashed while running
+  `tests/test_aspic_bridge.py::TestBridgeRationalityPostulates::test_direct_consistency`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  aspic-direct-consistency-rerun
+  tests/test_aspic_bridge.py::TestBridgeRationalityPostulates::test_direct_consistency`
+  returned `1 passed`.
+- Log:
+  `logs/test-runs/aspic-direct-consistency-rerun-20260522-061113.log`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-worldline-final-gate-clean-rerun` returned
+  `3520 passed, 4 skipped, 30 warnings`.
+- Log:
+  `logs/test-runs/world-worldline-final-gate-clean-rerun-20260522-061203.log`.
+
+Completion state:
+- Workstream fixed point reached for the named `propstore.world` and
+  `propstore.worldline` cleanup surfaces: old literal forbidden search gates
+  are clean, pyright is clean, and the full logged pytest suite is clean.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
