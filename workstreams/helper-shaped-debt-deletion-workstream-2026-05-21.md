@@ -372,3 +372,30 @@ Completion requires:
   helper-shaped replacement was added;
 - Propstore gates pass through the logged wrappers and `uv run pyright
   propstore`.
+
+Execution record:
+
+- `git status --short --untracked-files=no`: clean before final gates.
+- `uv run pyright propstore`: passed with
+  `0 errors, 0 warnings, 0 informations`.
+- Phase 1 helper symbol gates:
+  `rg -n -- "\b(to_concept_id|to_claim_id|to_assertion_id|to_context_id|to_condition_id|to_provenance_graph_id|to_justification_id|to_assumption_id|to_queryable_id|to_concept_ids|to_claim_ids|to_assumption_ids|to_queryable_ids)\b" propstore tests`
+  and
+  `rg -n -- "def to_[A-Za-z0-9_]+_id|def to_[A-Za-z0-9_]+_ids" propstore tests`
+  both returned zero hits.
+- Phase 2 deletion-row gate:
+  `rg -n -- "\b(coerce_conflict_class|coerce_assumption_ref|_normalize_attrs|_ParameterizationCatalogAdapter)\b" propstore tests`
+  returned zero hits.
+- First full-suite run exposed test fixtures still passing mapping payloads into
+  `AssumptionAtom` after production stopped accepting generic coercion:
+  `84 failed, 3515 passed, 4 skipped, 30 warnings`, log
+  `logs\test-runs\helper-shaped-debt-full-20260521-175310.log`.
+- Repaired those tests to construct typed assumption atoms through the
+  test-only `make_assumption_atom` fixture helper. Focused rerun:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label helper-shaped-debt-assumption-callers-rerun tests/test_revision_iterated.py tests/test_revision_operators.py tests/remediation/phase_8_dos_anytime/test_T8_1_choose_incision_set_ceiling.py tests/test_worldline_ic_merge_realization.py tests/test_revision_entrenchment.py tests/test_revision_properties.py`,
+  passed with `103 passed`, log
+  `logs\test-runs\helper-shaped-debt-assumption-callers-rerun-20260521-180503.log`.
+- Final full-suite rerun:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label helper-shaped-debt-full-rerun`,
+  passed with `3599 passed, 4 skipped, 30 warnings`, log
+  `logs\test-runs\helper-shaped-debt-full-rerun-20260521-180613.log`.
