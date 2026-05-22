@@ -29,6 +29,60 @@ Runtime gates:
 - `powershell -File scripts/run_logged_pytest.ps1 -Label world-value-status-cleanup ...`
 - `uv run pyright propstore`
 
+## Iteration 18 - `propstore/worldline/__init__.py`
+
+Slice read:
+- `propstore/worldline/__init__.py`
+- `propstore/app/worldlines.py`
+- current production and test imports of `propstore.worldline`.
+
+Surfaces:
+- `propstore.worldline` package initializer exports
+  - Disposition: keep as the small public worldline API surface.
+  - Owner after cleanup: package-level public imports for external/test callers
+    only; production internals use concrete owner modules.
+  - Evidence: the initializer exports six named worldline entrypoints and does
+    not contain compatibility branches, fallback readers, field restatement, or
+    runtime coercion.
+- production imports from the worldline package initializer
+  - Disposition: delete.
+  - Owner after cleanup: `propstore.worldline.definition` owns
+    `WorldlineDefinition` and `WorldlineResult`; `propstore.worldline.runner`
+    owns `run_worldline`.
+  - Action: update `propstore/app/worldlines.py` to import from concrete owner
+    modules, and update tests that patched the old package-barrel runner symbol
+    to patch the concrete runner owner.
+
+Gate results:
+- Pass: full-suite pre-slice rerun
+  `powershell -File scripts/run_logged_pytest.ps1 -Label
+  goal-rerun-before-next-slice` returned `3518 passed, 4 skipped, 30 warnings`.
+- Log: `logs/test-runs/goal-rerun-before-next-slice-20260522-031819.log`.
+- Pass: `rg -n -F -- "from propstore.worldline import" propstore`
+  returned zero hits.
+- Pass: `rg -n -F -- "propstore.worldline.run_worldline" tests propstore`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Failed then fixed: first targeted logged pytest run exposed two stale test
+  monkeypatches of `propstore.worldline.run_worldline`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-init-barrel-cleanup-rerun tests/test_worldline.py
+  tests/test_worldline_revision.py tests/test_artifact_store.py
+  tests/test_atms_engine.py tests/test_capture_journal.py
+  tests/test_lifting_blocked_in_provenance.py tests/test_policy_governance.py
+  tests/test_structured_projection.py tests/test_worldline_hash_width.py
+  tests/test_worldline_hash_excludes_transient_errors.py
+  tests/test_worldline_praf.py tests/test_worldline_properties.py
+  tests/test_worldline_target_shape_validation.py` returned `175 passed`.
+- Log: `logs/test-runs/worldline-init-barrel-cleanup-rerun-20260522-032908.log`.
+
+Commit:
+- Remove app worldline barrel imports.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/_constants.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

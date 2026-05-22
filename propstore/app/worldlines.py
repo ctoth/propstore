@@ -16,7 +16,7 @@ from propstore.world.types import (
     cli_argumentation_semantics_values,
     validate_backend_semantics,
 )
-from propstore.worldline import WorldlineDefinition, WorldlineResult
+from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 
 
 class WorldlineAppError(Exception):
@@ -446,7 +446,7 @@ def materialize_worldline(
     repo: Repository,
     request: WorldlineRunRequest,
 ) -> WorldlineRunReport:
-    from propstore.worldline import run_worldline
+    from propstore.worldline.runner import run_worldline
 
     ref = WorldlineRef(request.name)
     if repo.families.worldlines.load(ref) is not None:

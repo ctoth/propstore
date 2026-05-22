@@ -2185,7 +2185,7 @@ class TestWorldlineCLIFlags:
             )
 
         monkeypatch.setattr("propstore.world.WorldQuery", _FakeWorldQuery)
-        monkeypatch.setattr("propstore.worldline.run_worldline", fake_run_worldline)
+        monkeypatch.setattr("propstore.worldline.runner.run_worldline", fake_run_worldline)
 
         @click.group()
         @click.pass_context
@@ -2312,7 +2312,7 @@ class TestWorldlineCLIFlags:
             )
 
         monkeypatch.setattr("propstore.world.WorldQuery", _FakeWorldQuery)
-        monkeypatch.setattr("propstore.worldline.run_worldline", fake_run_worldline)
+        monkeypatch.setattr("propstore.worldline.runner.run_worldline", fake_run_worldline)
         fake_repo = _FakeWorldlineRepo(wl_dir)
 
         @click.group()
