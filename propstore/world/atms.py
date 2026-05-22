@@ -1278,7 +1278,7 @@ class ATMSEngine:
                 for environment in self.nogoods.environments
             ],
         }
-        normalized_queryables = self._coerce_queryables(queryables or ())
+        normalized_queryables = self._future_queryables(queryables or ())
         if normalized_queryables:
             result["declared_queryables"] = [queryable.cel for queryable in normalized_queryables]
             result["future_statuses"] = {
@@ -2082,7 +2082,7 @@ class ATMSEngine:
             context_ids.add(ContextId(micropub.context_id))
         return tuple(sorted(context_ids))
 
-    def _coerce_queryables(
+    def _future_queryables(
         self,
         queryables: Sequence[QueryableAssumption],
     ) -> tuple[QueryableAssumption, ...]:
@@ -2112,7 +2112,7 @@ class ATMSEngine:
         *,
         max_candidates: int | None = None,
     ) -> tuple[tuple[QueryableAssumption, ...], ...] | EnumerationExceeded:
-        """Enumerate future queryable sets for legacy anytime-ceiling callers.
+        """Enumerate future queryable sets for bounded anytime callers.
 
         Zilberstein 1996 treats interrupted enumeration as an anytime result:
         callers get the exact completed candidate count and the unvisited
@@ -2124,7 +2124,7 @@ class ATMSEngine:
         if max_candidates is not None and max_candidates < 0:
             raise ValueError("max_candidates must be non-negative")
 
-        normalized = self._coerce_queryables(queryables)
+        normalized = self._future_queryables(queryables)
         queryable_sets: list[tuple[QueryableAssumption, ...]] = []
         count = 0
         for width in range(1, len(normalized) + 1):
@@ -2150,7 +2150,7 @@ class ATMSEngine:
         if limit is not None and limit < 0:
             raise ValueError("limit must be non-negative")
 
-        normalized = self._coerce_queryables(queryables)
+        normalized = self._future_queryables(queryables)
         total = 1 << len(normalized)
         examined = 0
         for width in range(1, len(normalized) + 1):

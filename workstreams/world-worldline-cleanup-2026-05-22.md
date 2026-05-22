@@ -64,6 +64,41 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 7 - `propstore/world/atms.py::_coerce_queryables`
+
+Slice read:
+- `propstore/world/atms.py`
+- current `_coerce_queryables` callers from literal search.
+
+Surfaces:
+- `_coerce_queryables`
+  - Disposition: rewrite.
+  - Owner after cleanup: typed ATMS future-query enumeration receives
+    `QueryableAssumption` values and deduplicates/filter already-active
+    queryables through a named future-query operation.
+  - Action: replace the misleading coercer surface with `_future_queryables`
+    and remove adjacent `legacy` wording.
+  - Evidence: the helper does not parse old shapes; it filters typed
+    `QueryableAssumption` objects. The `coerce` name is the wrong surface and
+    should not remain as a search hit.
+
+Gate results:
+- Pass: `rg -n -F -- "_coerce_queryables" propstore tests` returned
+  zero hits.
+- Pass: `rg -n -F -- "legacy anytime-ceiling" propstore/world/atms.py`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-atms-queryable-name-cleanup tests/test_atms_engine.py` returned
+  `39 passed`.
+- Log: `logs/test-runs/world-atms-queryable-name-cleanup-20260522-022454.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 6 - `propstore/world/atms.py::_coerce_environment_key`
 
 Slice read:
