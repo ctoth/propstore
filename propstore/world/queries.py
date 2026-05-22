@@ -8,16 +8,17 @@ Request/result/failure types owned here:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Mapping
 
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.reporting import JsonReportMixin
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept, ConceptSearchQuerySyntaxError
-from propstore.world.types import RenderPolicy
+from propstore.world.types import BeliefSpace, RenderPolicy
 
 if TYPE_CHECKING:
     from propstore.world.model import WorldQuery
+    from propstore.world.overlay import OverlayWorld
 
 
 class WorldQueryError(Exception):
@@ -722,8 +723,8 @@ def _grounded_extension_snapshot(
 
 def _diff_grounded_extension(
     world: WorldQuery,
-    bound,
-    overlay,
+    bound: BeliefSpace,
+    overlay: OverlayWorld,
 ) -> WorldHypotheticalExtensionDiff:
     base_active_ids = {str(claim.id) for claim in bound.active_claims()}
     hypothetical_active_ids = {
@@ -761,18 +762,14 @@ def _diff_grounded_extension(
 
 def _hypothetical_claim_display_id(
     world: WorldQuery,
-    overlay,
+    overlay: OverlayWorld,
     claim_id: str,
 ) -> str:
     claim = world.get_claim(claim_id)
     if claim is None:
-        getter = getattr(overlay, "get_claim", None)
-        if callable(getter):
-            claim = getter(claim_id)
+        claim = overlay.get_claim(claim_id)
     if claim is None:
         return claim_id
-    if not isinstance(claim, Claim):
-        raise TypeError("overlay get_claim must return a typed Claim")
     return world_claim_display_id(claim)
 
 

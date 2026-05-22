@@ -1265,6 +1265,56 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with the next
   `propstore/world` file named by the workstream.
 
+## Iteration 42 - `propstore/world/queries.py`
+
+Slice read:
+- `propstore/world/queries.py`
+- `propstore/claim_graph.py`
+- `propstore/argumentation.py` store-backed analyzer entrypoint
+- direct test/app/CLI callers of `query_world_*` and hypothetical reports.
+
+Surfaces:
+- unused `Any` import in query owner APIs
+  - Disposition: delete.
+  - Owner after cleanup: query request/report types use explicit scalar,
+    object-valued JSON report fields, or typed world/domain objects.
+  - Action: remove the import and keep the file's `Any` search gate at zero.
+- dynamic overlay claim lookup in hypothetical extension display
+  - Disposition: delete.
+  - Owner after cleanup: `diff_hypothetical_world` constructs an
+    `OverlayWorld`, and `OverlayWorld.get_claim` is the typed method for
+    overlay-local claims.
+  - Action: type `_diff_grounded_extension` and
+    `_hypothetical_claim_display_id`, call `overlay.get_claim` directly, and
+    remove the dynamic `getattr`/callable branch plus the defensive non-Claim
+    runtime type check.
+  - Evidence: the old code treated the overlay as an untyped object even
+    though this owner creates the exact overlay family instance.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/queries.py` returned zero hits.
+- Pass: `rg -n -F -- "getattr(overlay" propstore/world/queries.py` returned
+  zero hits.
+- Pass: `rg -n -F -- "coerce" propstore/world/queries.py` returned zero hits.
+- Pass: `rg -n -F -- "normalize" propstore/world/queries.py` returned zero
+  hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world/queries.py` returned zero
+  hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-queries-typed-overlay-helper tests/test_world_query.py
+  tests/test_cli.py tests/test_cli_render_policy_flags.py` returned
+  `304 passed`.
+- Log:
+  `logs/test-runs/world-queries-typed-overlay-helper-20260522-052438.log`.
+
+Commit:
+- Type world query overlay helper boundary.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/resolution.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
