@@ -9,9 +9,10 @@ from typing import TYPE_CHECKING, cast
 from propstore.reporting import JsonReportMixin
 from propstore.app.world import bind_world, open_app_world_model
 from propstore.repository import Repository
+from propstore.core.reasoning import normalize_reasoning_backend
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.declaration import Claim
-from propstore.world.types import GroundingBundleStore, normalize_reasoning_backend
+from propstore.world.types import GroundingBundleStore
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import WorldActivationGraph

@@ -30,8 +30,6 @@ from propstore.core.reasoning import (
     ArgumentationSemantics,
     ReasoningBackend,
     cli_argumentation_semantics_values,
-    normalize_argumentation_semantics,
-    normalize_reasoning_backend,
     supported_argumentation_semantics,
     validate_backend_semantics,
 )
@@ -791,11 +789,8 @@ class RenderPolicy:
             raise TypeError("RenderPolicy.reasoning_backend must be a ReasoningBackend")
         if self.strategy is not None and not isinstance(self.strategy, ResolutionStrategy):
             raise TypeError("RenderPolicy.strategy must be a ResolutionStrategy or None")
-        object.__setattr__(
-            self,
-            "semantics",
-            normalize_argumentation_semantics(self.semantics),
-        )
+        if not isinstance(self.semantics, ArgumentationSemantics):
+            raise TypeError("RenderPolicy.semantics must be ArgumentationSemantics")
         object.__setattr__(
             self,
             "merge_operator",
@@ -846,7 +841,11 @@ class RenderPolicy:
 
         strategy_value = data.get("strategy")
         reasoning_backend_value = data.get("reasoning_backend", ReasoningBackend.CLAIM_GRAPH)
-        reasoning_backend = normalize_reasoning_backend(reasoning_backend_value)
+        reasoning_backend = (
+            reasoning_backend_value
+            if isinstance(reasoning_backend_value, ReasoningBackend)
+            else ReasoningBackend(str(reasoning_backend_value))
+        )
         concept_strategies = {
             str(concept_id): (
                 strategy
@@ -874,8 +873,13 @@ class RenderPolicy:
                     else ResolutionStrategy(str(strategy_value))
                 )
             ),
-            semantics=normalize_argumentation_semantics(
-                data.get("semantics", ArgumentationSemantics.GROUNDED)
+            semantics=(
+                semantics_value
+                if isinstance(
+                    semantics_value := data.get("semantics", ArgumentationSemantics.GROUNDED),
+                    ArgumentationSemantics,
+                )
+                else ArgumentationSemantics(str(semantics_value))
             ),
             comparison=str(data.get("comparison", "elitist")),
             link=str(data.get("link", "last")),

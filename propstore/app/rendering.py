@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from propstore.world import RenderPolicy, ResolutionStrategy
-from propstore.world.types import (
+from propstore.core.reasoning import (
     normalize_argumentation_semantics,
     normalize_reasoning_backend,
 )
+from propstore.world import RenderPolicy, ResolutionStrategy
 
 
 class RenderPolicyAppError(Exception):

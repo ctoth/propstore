@@ -10,10 +10,10 @@ from propstore.app.world import WorldSidecarMissingError, open_app_world_model
 from propstore.families.registry import WorldlineRef
 from propstore.json_types import JsonObject, JsonValue
 from propstore.repository import Repository
+from propstore.core.reasoning import normalize_argumentation_semantics
 from propstore.world.types import (
     ReasoningBackend,
     cli_argumentation_semantics_values,
-    normalize_argumentation_semantics,
     validate_backend_semantics,
 )
 from propstore.worldline import WorldlineDefinition, WorldlineResult

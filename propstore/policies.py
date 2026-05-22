@@ -11,6 +11,10 @@ from quire import canonical_json_bytes
 
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.id_types import ContextId, ProvenanceGraphId
+from propstore.core.reasoning import (
+    normalize_argumentation_semantics,
+    normalize_reasoning_backend,
+)
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR
@@ -18,8 +22,6 @@ from propstore.world.types import (
     ArgumentationSemantics,
     ReasoningBackend,
     RenderPolicy,
-    normalize_argumentation_semantics,
-    normalize_reasoning_backend,
 )
 
 _PROFILE_VERSION = "propstore.policy_profile.v1"

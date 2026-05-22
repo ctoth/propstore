@@ -99,6 +99,49 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 13 - `RenderPolicy` backend/semantics normalization
+
+Slice read:
+- `propstore/world/types.py`
+- `propstore/app/rendering.py`
+- `propstore/core/reasoning.py`
+- current `normalize_reasoning_backend` and
+  `normalize_argumentation_semantics` hits from literal search.
+
+Surfaces:
+- `RenderPolicy.__post_init__` accepting raw semantics/backend strings.
+- `world.types` importing normalization helpers as part of the runtime policy
+  surface.
+  - Disposition: rewrite.
+  - Owner after cleanup: `RenderPolicy` stores typed `ReasoningBackend` and
+    `ArgumentationSemantics`; `RenderPolicy.from_dict` and app request parsing
+    are the string boundaries.
+  - Action: remove runtime normalization imports from `world.types`, parse
+    document/app strings before construction, and require typed enum values in
+    `RenderPolicy.__post_init__`.
+  - Evidence: direct runtime policy construction should not preserve a
+    stringly backend/semantics path.
+
+Gate results:
+- Pass: `rg -n -F -- "normalize_reasoning_backend" propstore/world
+  propstore/worldline` returned zero hits.
+- Pass: `rg -n -F -- "normalize_argumentation_semantics" propstore/world
+  propstore/worldline` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Initial logged gate selected an invalid test node and ran zero tests;
+  corrected file-level gate below was used.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-render-policy-normalize-cleanup tests/test_render_contracts.py
+  tests/test_app_rendering.py tests/test_render_policy_opinions.py` returned
+  `29 passed`.
+- Log: `logs/test-runs/world-render-policy-normalize-cleanup-20260522-025249.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 12 - `propstore/world/bound.py::conflict_claim_from_payload`
 
 Slice read:
