@@ -132,7 +132,7 @@ Gate results:
 - Log: `logs/test-runs/world-fallback-wording-cleanup-20260522-024304.log`.
 
 Commit:
-- Pending.
+- `05ec4e97 Remove world fallback wording`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
