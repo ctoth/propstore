@@ -11,7 +11,7 @@ import pytest
 
 from propstore.core.graph_types import CompiledWorldGraph, WorldActivationGraph
 from propstore.families.concepts.declaration import Concept
-from propstore.world.types import DerivedResult, ValueResult
+from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 from propstore.worldline import WorldlineDefinition, run_worldline
 from tests.typed_family_fixtures import (
     claim_from_payload,
@@ -36,12 +36,12 @@ class FakeBound:
     def value_of(self, concept_id):
         return ValueResult(
             concept_id=concept_id,
-            status="conflicted",
+            status=ValueStatus.CONFLICTED,
             claims=self._claims,
         )
 
     def derived_value(self, concept_id, override_values=None):
-        return DerivedResult(concept_id=concept_id, status="no_relationship")
+        return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
     def active_claims(self, concept_id=None):
         return list(self._claims)

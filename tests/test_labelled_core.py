@@ -16,7 +16,7 @@ from propstore.core.labels import (
 )
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.families.concepts.declaration import Concept
-from propstore.world.types import DerivedResult, Environment, ValueResult
+from propstore.world.types import DerivedResult, Environment, ValueResult, ValueStatus
 from propstore.worldline import WorldlineDefinition, run_worldline
 from propstore.families.world_charters import world_record
 from tests.claim_model_helpers import claim_model_from_test_payload
@@ -384,7 +384,7 @@ def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
         def value_of(self, concept_id: str) -> ValueResult:
             return ValueResult(
                 concept_id=concept_id,
-                status="determined",
+                status=ValueStatus.DETERMINED,
                 claims=[claim],
                 label=Label.empty(),
             )
@@ -395,7 +395,7 @@ def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
             *,
             override_values: dict[str, float | str | None] | None = None,
         ) -> DerivedResult:
-            return DerivedResult(concept_id=concept_id, status="no_relationship")
+            return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
         def active_claims(self, concept_id: str | None = None):
             return [claim]

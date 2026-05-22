@@ -6,7 +6,7 @@ import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypeVar, overload, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypeAlias, TypeVar, runtime_checkable
 
 from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
@@ -97,20 +97,9 @@ class ValueResultReason(Enum):
     ALGORITHM_UNPARSEABLE = "algorithm_unparseable"
 
 
-@overload
-def coerce_value_status(value: None) -> None: ...
-
-
-@overload
-def coerce_value_status(value: object) -> ValueStatus: ...
-
-
-def coerce_value_status(value: object | None) -> ValueStatus | None:
-    if value is None:
-        return None
-    if isinstance(value, ValueStatus):
-        return value
-    return ValueStatus(str(value))
+def _require_value_status(value: ValueStatus, field_name: str) -> None:
+    if not isinstance(value, ValueStatus):
+        raise TypeError(f"{field_name} must be a ValueStatus")
 
 
 SerializedEnvironment: TypeAlias = Mapping[str, Sequence[str]]
@@ -126,7 +115,7 @@ class ValueResult:
 
     def __post_init__(self) -> None:
         self.concept_id = ConceptId(self.concept_id)
-        self.status = coerce_value_status(self.status)
+        _require_value_status(self.status, "ValueResult.status")
 
 
 @dataclass
@@ -141,7 +130,7 @@ class DerivedResult:
 
     def __post_init__(self) -> None:
         self.concept_id = ConceptId(self.concept_id)
-        self.status = coerce_value_status(self.status)
+        _require_value_status(self.status, "DerivedResult.status")
         self.exactness = coerce_exactness(self.exactness)
         self.input_values = {
             ConceptId(concept_id): float(value)
@@ -617,7 +606,7 @@ class ResolvedResult:
 
     def __post_init__(self) -> None:
         self.concept_id = ConceptId(self.concept_id)
-        self.status = coerce_value_status(self.status)
+        _require_value_status(self.status, "ResolvedResult.status")
 
 
 class IntegrityConstraintKind(StrEnum):

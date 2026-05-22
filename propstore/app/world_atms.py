@@ -546,15 +546,12 @@ def _target_status_for_claim(target_status: str):
 
 
 def _target_status_for_concept(target_status: str):
-    from propstore.world.types import coerce_value_status
+    from propstore.world.types import ValueStatus
 
     try:
-        typed_status = coerce_value_status(target_status)
+        return ValueStatus(target_status)
     except ValueError as exc:
         raise WorldAtmsValidationError(str(exc)) from exc
-    if typed_status is None:
-        raise WorldAtmsValidationError("target status is required")
-    return typed_status
 
 
 def world_atms_interventions(

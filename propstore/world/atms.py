@@ -97,7 +97,6 @@ from propstore.world.types import (
     QueryableAssumption,
     ValueStatus,
     ValueResult,
-    coerce_value_status,
 )
 
 if TYPE_CHECKING:
@@ -1052,18 +1051,19 @@ class ATMSEngine:
         max_plans: int | None = None,
     ) -> list[ATMSConceptInterventionPlan]:
         """Return minimal additive plans that reach the requested concept value status."""
+        if not isinstance(target_value_status, ValueStatus):
+            raise TypeError("target_value_status must be a ValueStatus")
         current_status = self._runtime.concept_status(concept_id)
-        normalized_target = self._coerce_concept_target_status(target_value_status)
         candidates = [
             future
             for future in self._concept_future_entries(concept_id, queryables, limit=limit)
-            if future.consistent and future.status == normalized_target
+            if future.consistent and future.status == target_value_status
         ]
         plans = [
             self._concept_intervention_plan(
                 concept_id,
                 current_status=current_status,
-                target_status=normalized_target,
+                target_status=target_value_status,
                 future=future,
             )
             for future in self._minimal_future_entries(candidates)
@@ -2442,12 +2442,6 @@ class ATMSEngine:
             minimal.append(pair)
             minimal_sets.append(queryable_set)
         return minimal
-
-    @staticmethod
-    def _coerce_concept_target_status(target_status: ValueStatus) -> ValueStatus:
-        normalized = coerce_value_status(target_status)
-        assert normalized is not None
-        return normalized
 
     @staticmethod
     def _future_reaches_node_target(

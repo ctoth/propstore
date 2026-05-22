@@ -35,7 +35,7 @@ from quire.tree_path import GitTreePath as GitKnowledgePath
 from quire.git_store import GitStore
 from tests.git_store_helpers import init_store
 from propstore.world import Environment, RenderPolicy
-from propstore.world.types import DerivedResult, ValueResult
+from propstore.world.types import DerivedResult, ValueResult, ValueStatus
 from propstore.world import WorldQuery
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
 
@@ -689,13 +689,13 @@ class TestWorldlineRunner:
                 if self._context_id == "ctx_physics":
                     return ValueResult(
                         concept_id=concept_id,
-                        status="determined",
+                        status=ValueStatus.DETERMINED,
                         claims=[self._claim],
                     )
-                return ValueResult(concept_id=concept_id, status="no_claims")
+                return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
         class FakeWorld:
             def __init__(self):
@@ -800,10 +800,10 @@ class TestWorldlineDependencyLiveness:
                 self._bindings = {}
 
             def value_of(self, concept_id):
-                return ValueResult(concept_id=concept_id, status="conflicted", claims=self._claims)
+                return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=self._claims)
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
             def active_claims(self, concept_id=None):
                 return list(self._claims)
@@ -872,10 +872,10 @@ class TestWorldlineDependencyLiveness:
                 self._bindings = {}
 
             def value_of(self, concept_id):
-                return ValueResult(concept_id=concept_id, status="conflicted", claims=self._claims)
+                return ValueResult(concept_id=concept_id, status=ValueStatus.CONFLICTED, claims=self._claims)
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
             def active_claims(self, concept_id=None):
                 return list(self._claims)
@@ -1000,13 +1000,13 @@ class TestWorldlineDependencyLiveness:
                 if self._context_id == "ctx_physics" and self._active:
                     return ValueResult(
                         concept_id=concept_id,
-                        status="determined",
+                        status=ValueStatus.DETERMINED,
                         claims=[self._claim],
                     )
-                return ValueResult(concept_id=concept_id, status="no_claims")
+                return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
             def active_claims(self, concept_id=None):
                 if self._context_id == "ctx_physics" and self._active:
@@ -1067,12 +1067,12 @@ class TestWorldlineDependencyLiveness:
             def value_of(self, concept_id):
                 return ValueResult(
                     concept_id=concept_id,
-                    status="determined",
+                    status=ValueStatus.DETERMINED,
                     claims=[self._claim],
                 )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
             def active_claims(self, concept_id=None):
                 return [self._claim]
@@ -1159,12 +1159,12 @@ class TestSemanticCorePhase7Worldlines:
             def value_of(self, concept_id):
                 return ValueResult(
                     concept_id=concept_id,
-                    status="conflicted",
+                    status=ValueStatus.CONFLICTED,
                     claims=[self._claims[claim_id] for claim_id in self._claim_order],
                 )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
             def active_claims(self, concept_id=None):
                 return [self._claims[claim_id] for claim_id in self._claim_order]
@@ -1365,12 +1365,12 @@ class TestSemanticCorePhase7Worldlines:
             def value_of(self, concept_id):
                 return ValueResult(
                     concept_id=concept_id,
-                    status="determined",
+                    status=ValueStatus.DETERMINED,
                     claims=[self._claims["claim_a"]],
                 )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
             def active_claims(self, concept_id=None):
                 return [self._claims["claim_a"], self._claims["claim_b"]]
@@ -1537,12 +1537,12 @@ class TestWorldlineFailureModes:
             def value_of(self, concept_id):
                 return ValueResult(
                     concept_id=concept_id,
-                    status="determined",
+                    status=ValueStatus.DETERMINED,
                     claims=[self._claim],
                 )
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
             def active_claims(self, concept_id=None):
                 return [self._claim]
@@ -1584,10 +1584,10 @@ class TestWorldlineFailureModes:
                 self._bindings = {}
 
             def value_of(self, concept_id):
-                return ValueResult(concept_id=concept_id, status="no_claims")
+                return ValueResult(concept_id=concept_id, status=ValueStatus.NO_CLAIMS)
 
             def derived_value(self, concept_id, override_values=None):
-                return DerivedResult(concept_id=concept_id, status="no_relationship")
+                return DerivedResult(concept_id=concept_id, status=ValueStatus.NO_RELATIONSHIP)
 
         class FakeWorld:
             def bind(self, environment=None, *, policy=None, **conditions):
