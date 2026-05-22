@@ -35,6 +35,56 @@ commit message body:
 - if the content fails those checks, it is deleted, moved, consolidated, or
   rewritten.
 
+## SQLAlchemy Gate Audit Backfill
+
+Recorded 2026-05-21 from the literal gate reports under
+`workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/gate-audits/`.
+
+This backfill tightens the core checklist. A checked read entry below does not
+mean the file is acceptable as-is. If this section names a core surface, that
+surface remains an active delete/move/rewrite target until its search gate is
+zero-hit or its exact owner-boundary parser is named and recorded.
+
+- `propstore/core/justifications.py`
+  - New gate evidence:
+    `rg -n -F -- "CanonicalJustification(" propstore tests` still has
+    production/test hits, including this core file.
+  - Required final state: delete the duplicate `CanonicalJustification`
+    payload class/constructor path from core. Move the generated-family model
+    behavior to the justification family owner and active-graph projection to
+    the world/argumentation owner. No `propstore.core.justifications` re-export
+    or replacement payload DTO remains.
+
+- `propstore/core/assertions/conversion.py` and
+  `propstore/core/assertions/__init__.py`
+  - New gate evidence: `_from_payload` still has core production hits in the
+    wave 1-E audit.
+  - Required final state: no broad `_from_payload` runtime constructor remains
+    in core. If source assertion parsing is real IO, place it as an explicit
+    assertion/source boundary parser with hard failures and import it from the
+    concrete module, not through the package initializer.
+
+- `propstore/core/assertions/codec.py`
+  - New gate effect: the canonical assertion parser may remain only as the
+    canonical assertion IO boundary. It must not be used as proof that broad
+    `_from_payload` or loose payload constructors are allowed elsewhere in
+    core.
+
+- `propstore/core/claim_values.py`
+  - New gate effect: the helper inventory backfill treats broad payload and
+    JSON repair constructors as illegal outside exact IO owners. This keeps the
+    existing action strict: move claim-owned nested value objects to the claim
+    owner, source-owned nested value objects to the source owner, and delete
+    loose JSON/string fallback parsing from core.
+
+- Core-wide compatibility/classification gates
+  - New gate evidence: broad `legacy`, `backward compat`, `backwards compat`,
+    `compat shim`, `fallback`, and `coerce_*` searches still have production
+    hits outside and inside core-adjacent surfaces.
+  - Required final state: each core hit is either deleted or recorded as a
+    named semantic/IO owner boundary. There is no generic permission for
+    compatibility wording, fallback parsing, or `coerce_*` helpers in core.
+
 ## File Checklist
 
 - [x] `propstore/core/__init__.py`
@@ -45,20 +95,19 @@ commit message body:
 
 - [x] `propstore/core/activation.py`
   - Read: 2026-05-21.
-  - Action: rewrite/move candidate.
-  - Reason: activation over compiled world graphs is real behavior, but it is
-    world runtime orchestration over `CompiledWorldGraph`, `Environment`,
-    condition solvers, and context lifting. It should be audited against the
-    world owner boundary before being kept in `core`.
-  - Required follow-up: decide whether the semantic primitive is only
-    condition-activation math or whether the whole module belongs under
-    `propstore.world`. If moved, delete the old `propstore.core.activation`
-    import path first and update callers; no re-export module.
+  - Action: delete `propstore.core.activation` and create
+    `propstore.world.activation`.
+  - Reason: activation over compiled world graphs is world runtime
+    orchestration over `WorldActivationGraph`, `Environment`, condition solvers,
+    and context lifting. It is not a core semantic primitive.
+  - Required follow-up: move `UnknownConceptInCEL`, `is_claim_active`,
+    `claim_lifting_materializations`, and `activate_compiled_world_graph` to
+    `propstore.world.activation`; update callers in `propstore.world.*` and
+    tests; leave no `propstore.core.activation` module or re-export.
 
 - [x] `propstore/core/algorithm_stage.py`
   - Read: 2026-05-21.
-  - Action: delete helper functions; keep only the branded type if stage remains
-    a Propstore semantic primitive.
+  - Action: keep `AlgorithmStage`; delete helper functions.
   - Delete: `to_algorithm_stage` and `coerce_algorithm_stage`.
   - Reason: both functions are helper-shaped wrappers around the `NewType`.
     `coerce_algorithm_stage` accepts `object` and reconstructs semantic meaning
@@ -68,15 +117,16 @@ commit message body:
 
 - [x] `propstore/core/aliases.py`
   - Read: 2026-05-21.
-  - Action: move or delete from `core`.
+  - Action: delete `propstore.core.aliases` and create
+    `propstore.app.concepts.aliases`.
   - Reason: the module opens repository family handles and exports a concept
     alias report. That is repository/app/family presentation behavior, not a
     core semantic primitive. It imports `Repository`,
     `parse_concept_record_document`, and identity helper code, so keeping it in
     `core` violates owner layering.
-  - Required follow-up: find callers. If the export is still used, move it to
-    the concept app/family owner and delete the `propstore.core.aliases` import
-    path first; no core re-export.
+  - Required follow-up: move `AliasExportEntry` and `export_concept_aliases` to
+    `propstore.app.concepts.aliases`; update `propstore.app.compiler` to import
+    that owner; leave no `propstore.core.aliases` module or re-export.
 
 - [x] `propstore/core/analyzers.py`
   - Read: 2026-05-21.
@@ -107,15 +157,14 @@ commit message body:
 
 - [x] `propstore/core/assertions/__init__.py`
   - Read: 2026-05-21.
-  - Action: consolidate package API or remove eager re-exports after caller
-    audit.
+  - Action: delete eager re-exports from the package initializer.
   - Reason: it eagerly re-exports assertion codec, conversion, refs, and
-    situated types. This is not an old-path shim by itself, but low-level
-    package `__init__.py` files are required to stay shallow. If callers only
-    need concrete modules, delete these re-exports and update imports directly.
-  - Required follow-up: search callers of `propstore.core.assertions import`.
-    If re-export use is broad convenience only, delete the re-export surface;
-    if kept, prove it does not pull owner workflows or create circular imports.
+    situated types. Low-level package `__init__.py` files are required to stay
+    shallow.
+  - Required follow-up: update all callers of
+    `from propstore.core.assertions import ...` to import from concrete
+    assertion modules. Leave `propstore/core/assertions/__init__.py` with
+    package documentation only.
 
 - [x] `propstore/core/assertions/codec.py`
   - Read: 2026-05-21.
@@ -164,18 +213,21 @@ commit message body:
 
 - [x] `propstore/core/base_rates.py`
   - Read: 2026-05-21.
-  - Action: split. Keep typed resolver/value objects; move or delete source
-    claim payload parsing from `core`.
+  - Action: split into exact owners and delete the core module.
   - Reason: `BaseRateProfile`, `BaseRateResolver`, and
     `construct_assertion_opinion` operate on typed assertion IDs and opinion
     domain objects. `BaseRateAssertionRecord.from_parameter_claim` accepts a
     loose `Mapping[str, object]` and hardcodes claim payload fields
     (`type`, `id`, `concept`, `value`, `unit`) inside `core`.
-  - Delete/move: `BaseRateAssertionRecord.from_parameter_claim` cannot remain
-    in `core`; it belongs at the source/family/document boundary or should be
-    replaced by a typed parameter-claim/domain object supplied by that owner.
-  - Required follow-up: search callers, delete the loose mapping entrypoint
-    first, then update callers to pass typed claim/domain objects.
+  - Required follow-up: move `BaseRateProfile`, `BaseRateResolved`,
+    `BaseRateUnresolved`, `AssertionOpinion`, `BaseRateResolver`, and
+    `construct_assertion_opinion` to `propstore.heuristic.base_rates`.
+  - Required deletion: delete `BaseRateAssertionRecord.from_parameter_claim`.
+    Base-rate extraction from parameter claims must be implemented at the
+    claim/source document boundary with typed claim objects, not loose
+    mappings.
+  - Required final state: no `propstore.core.base_rates` module, no core
+    re-export, and no `BaseRateAssertionRecord` loose mapping parser.
 
 - [x] `propstore/core/claim_types.py`
   - Read: 2026-05-21.
@@ -187,10 +239,10 @@ commit message body:
     locally. `VALID_CLAIM_TYPES` duplicates the enum-derived vocabulary and
     should only remain if a caller truly needs a derived constant in the claim
     owner.
-  - Required follow-up: delete `coerce_claim_type` first. Move or consolidate
-    `ClaimType` under the claim family/semantic owner, then update callers to
-    construct `ClaimType(value)` at IO/document boundaries and pass typed values
-    through runtime APIs.
+  - Required follow-up: move `ClaimType` and the derived valid-value set to
+    `propstore.families.claims.documents`; delete `coerce_claim_type`; update
+    callers to construct `ClaimType(value)` at IO/document boundaries and pass
+    typed values through runtime APIs.
 
 - [x] `propstore/core/claim_values.py`
   - Read: 2026-05-21.
@@ -204,10 +256,11 @@ commit message body:
     `_opinion_from_json_payload`, `SourceOrigin.from_json_payload`,
     `SourceTrust.from_json_payload`, `ClaimSource.from_json_payload`, and
     `ClaimProvenance.from_components` cannot remain as loose core parsing.
-  - Required follow-up: move typed claim/source value objects to the claim or
-    source owner. Parse decoded JSON/YAML/SQLite values at the IO boundary with
-    an exact schema and hard failures; do not preserve fallback-to-empty
-    behavior.
+  - Required follow-up: move claim-owned nested value objects to
+    `propstore.families.claims.documents` and source-owned nested value objects
+    to `propstore.families.sources.declaration`. Parse decoded JSON/YAML/SQLite
+    values at the IO boundary with an exact schema and hard failures; do not
+    preserve fallback-to-empty behavior.
 
 - [x] `propstore/core/concept_relationship_types.py`
   - Read: 2026-05-21.
@@ -234,15 +287,14 @@ commit message body:
 
 - [x] `propstore/core/conditions/__init__.py`
   - Read: 2026-05-21.
-  - Action: delete eager low-level package re-export surface unless caller audit
-    proves it is the intentional condition package API.
+  - Action: delete eager low-level package re-export surface.
   - Reason: this initializer imports checked models, codecs, ESTree backend,
     IR, Python backend, SQL backend, solver, and Z3 backend. That violates the
     shallow package initializer rule and can pull unrelated backends into
     callers that only need one surface.
-  - Required follow-up: search all `propstore.core.conditions import` callers.
-    Prefer concrete-module imports. If a package API remains, it must be narrow
-    and must not import every backend eagerly.
+  - Required follow-up: update all `propstore.core.conditions import` callers
+    to concrete-module imports. Leave `propstore/core/conditions/__init__.py`
+    with package documentation only.
 
 - [x] `propstore/core/conditions/cel_frontend.py`
   - Read: 2026-05-21.
@@ -253,9 +305,9 @@ commit message body:
     ensure public entrypoints use the declared CEL/domain source type
     consistently rather than plain strings where the type system can carry
     `CelExpr`.
-  - Required follow-up: audit callers of `condition_ir_from_cel` and
-    `check_condition_ir`; if they already have `CelExpr`, pass it through as a
-    typed value instead of stringifying before this boundary.
+  - Required follow-up: change `condition_ir_from_cel` and
+    `check_condition_ir` to accept `CelExpr`; update callers to pass `CelExpr`
+    through this boundary instead of stringifying it.
 
 - [x] `propstore/core/conditions/checked.py`
   - Read: 2026-05-21.
@@ -265,8 +317,9 @@ commit message body:
     explicit versioned IO boundaries and hard-fail malformed payloads.
     `_normalize_checked_conditions` operates on typed `CheckedCondition`
     objects, so it is canonicalization rather than mixed-shape coercion.
-  - Required follow-up: consider carrying `CelExpr` instead of bare `str` for
-    `CheckedCondition.source` and `.sources` if the type exists at all callers.
+  - Required follow-up: change `CheckedCondition.source` and `.sources` to carry
+    `CelExpr` instead of bare `str`; keep text decoding in the versioned JSON
+    boundary.
 
 - [x] `propstore/core/conditions/codec.py`
   - Read: 2026-05-21.
@@ -274,8 +327,7 @@ commit message body:
   - Reason: it serializes/deserializes the closed `ConditionIR` tree at an IO
     boundary, uses explicit version tags, enum constructors, and hard failures.
     It does not preserve old shapes or define broad compatibility fallbacks.
-  - Required follow-up: none from deletion rules unless duplicate condition
-    JSON parsing appears elsewhere during the remaining audit.
+  - Required follow-up: keep as the only condition JSON codec.
 
 - [x] `propstore/core/conditions/estree_backend.py`
   - Read: 2026-05-21.
@@ -303,16 +355,15 @@ commit message body:
 
 - [x] `propstore/core/conditions/python_backend.py`
   - Read: 2026-05-21.
-  - Action: keep only if it remains an explicit backend; tighten value typing
-    and consolidate evaluator semantics with ESTree where duplication appears.
+  - Action: keep Python AST translation backend; delete duplicated production
+    evaluator semantics after the shared condition value evaluator exists.
   - Reason: the backend translates closed `ConditionIR` to Python AST and
     evaluates a controlled expression. The public evaluator accepts
     `Mapping[str, object]` and returns `object`, duplicating the loose-value
     problem also present in the ESTree backend.
   - Required follow-up: introduce the same condition evaluation value type used
-    by the ESTree backend. If both evaluators implement the same runtime
-    semantics for production callers, consolidate the production evaluator and
-    keep backend-specific translation only where needed.
+    by the ESTree backend. Consolidate production evaluation through one shared
+    condition evaluator and keep backend-specific translation functions only.
 
 - [x] `propstore/core/conditions/registry.py`
   - Read: 2026-05-21.
@@ -324,9 +375,8 @@ commit message body:
     values. This must be a typed condition-registry projection derived from the
     concept owner/family metadata, with hard failures for invalid values.
   - Required follow-up: use `ConceptId`, immutable category tuples, and a typed
-    iterable of concept IDs. Ensure standard synthetic bindings remain
-    explicitly non-concept condition bindings instead of fake concept metadata
-    unless the concept owner declares them.
+    iterable of concept IDs. Model standard synthetic bindings as explicit
+    non-concept condition bindings, not fake concept metadata.
 
 - [x] `propstore/core/conditions/solver.py`
   - Read: 2026-05-21.
@@ -385,40 +435,39 @@ commit message body:
     `Environment.from_dict` boundary accepts `object`/mapping payloads and
     silently ignores malformed assumption entries that are neither
     `AssumptionRef` nor mappings.
-  - Delete/move: store protocols belong under the world/repository owner.
-    `Environment` belongs with the world/condition runtime owner unless a
-    smaller typed condition-environment primitive is extracted.
-  - Required follow-up: delete the core import path first, update callers to the
-    world owner, and replace `from_dict` with an exact IO-boundary decoder that
-    hard-fails malformed assumptions.
+  - Required follow-up: move `Environment` to `propstore.world.environment`.
+    Move `WorldStore` and related store protocols to `propstore.world.store`.
+    Delete `propstore.core.environment`.
+  - Required deletion: delete `Environment.from_dict` from runtime state. Add an
+    exact IO decoder under the world/API boundary that hard-fails malformed
+    assumptions.
 
 - [x] `propstore/core/exactness_types.py`
   - Read: 2026-05-21.
-  - Action: move parameterization exactness vocabulary to the parameterization or
-    concept-family owner and delete the helper.
+  - Action: move parameterization exactness vocabulary to the concept-family
+    parameterization owner and delete the helper.
   - Delete: `coerce_exactness`.
   - Reason: exactness is parameterization/concept-family semantics, not generic
     core infrastructure. The helper accepts `object | None` and stringifies
     locally.
-  - Required follow-up: delete `coerce_exactness` first, move/consolidate
-    `Exactness` under the semantic owner, and update callers to construct the
-    enum at IO/document boundaries only.
+  - Required follow-up: move `Exactness` to
+    `propstore.families.concepts.documents`; update concept/parameterization
+    callers to import that owner; construct the enum at IO/document boundaries
+    only; leave no `propstore.core.exactness_types` module.
 
 - [x] `propstore/core/graph_build.py`
   - Read: 2026-05-21.
-  - Action: move out of `core` to world graph/build owner and rewrite from typed
-    family projections.
+  - Action: delete `propstore.core.graph_build` and create
+    `propstore.world.graph_build`.
   - Reason: it builds compiled world graphs from world/repository stores,
     imports family models, parses JSON sidecar fields, performs provenance
     payload decoding, deduplicates parameterization rows in Python when store
     querying should own that, and calls graph relation coercers. This is world
     graph orchestration, not core primitive code.
-  - Delete/move: `build_compiled_world_graph` and its helpers cannot remain in
-    `core`.
   - Required follow-up: delete the core import path first, move real graph build
-    behavior to the world/family graph owner, and have stores/family APIs supply
-    typed rows/projections instead of parsing JSON strings and loose mappings in
-    graph build code.
+    behavior to `propstore.world.graph_build`, and have stores/family APIs
+    supply typed rows/projections instead of parsing JSON strings and loose
+    mappings in graph build code.
 
 - [x] `propstore/core/graph_relation_types.py`
   - Read: 2026-05-21.
@@ -436,39 +485,43 @@ commit message body:
 
 - [x] `propstore/core/graph_types.py`
   - Read: 2026-05-21.
-  - Action: rewrite/move; delete duplicated family field models and helper
-    normalization/coercion from `core`.
+  - Action: delete `propstore.core.graph_types`, create
+    `propstore.world.graph`, and keep claim-specific projection in
+    `propstore.families.claims.graph`.
   - Reason: `ConceptNode`, `ClaimNode`, `RelationEdge`, `ParameterizationEdge`,
     `ConflictWitness`, and `WorldActivationGraph` hand-type many fields already
     owned by claim/concept/relation/parameterization families or world runtime
     state. The module imports enum coercers, accepts loose `Mapping[str, Any]`
     payloads, parses embedded JSON, normalizes arbitrary attribute pairs, and
     has `from_dict`/`to_dict` schema definitions separate from the charters.
-  - Delete/rewrite: `_normalize_pairs`, `_require_claim_type`,
-    `ProvenanceRecord.from_json_payload`, graph `from_dict` methods, and
-    dataclass `__post_init__` coercion of claim/exactness/relation types.
-  - Required follow-up: define the graph projection once from the family/world
-    owners or generated field metadata. Runtime graph code must receive typed
-    `ClaimType`, relation type, `Exactness`, `ConceptId`, `ClaimId`, and
-    `Environment` objects; IO decoding belongs at a versioned graph artifact
-    boundary, not inside semantic dataclass constructors.
+  - Required follow-up: move `CompiledWorldGraph`, `WorldActivationGraph`,
+    `GraphDelta`, `RelationEdge`, `ParameterizationEdge`, `ConflictWitness`,
+    and `ProvenanceRecord` to `propstore.world.graph`. Keep `ClaimNode` creation
+    in `propstore.families.claims.graph`; create
+    `propstore.families.concepts.graph` for concept graph projections and
+    `propstore.families.relations.graph` for relation graph projections.
+  - Required deletion: delete `_normalize_pairs`, `_require_claim_type`,
+    `ProvenanceRecord.from_json_payload`, graph `from_dict` runtime parsers,
+    and dataclass `__post_init__` coercion of claim/exactness/relation types.
+    Runtime graph code must receive typed values; IO decoding belongs in a
+    versioned graph artifact boundary.
 
 - [x] `propstore/core/id_types.py`
   - Read: 2026-05-21.
-  - Action: keep semantic ID aliases only until replaced by Quire/family
-    reference types; move logical identity record to identity owner if still
-    needed.
+  - Action: move `LogicalId` to the identity family owner; keep semantic ID
+    aliases as the current typed surface.
   - Reason: `NewType` aliases are the current mechanism carrying semantic IDs
     through the type system. They do not parse old shapes. `LogicalId`, however,
     is identity-family behavior and payload shape, not generic core code.
-  - Required follow-up: as Quire family reference/FK APIs become the canonical
-    reference mechanism, replace direct string/NewType plumbing with those
-    typed references. Move or delete `LogicalId` from `core` after caller audit.
+  - Required follow-up: move `LogicalId` to
+    `propstore.families.identity.logical_ids`. Replace direct string/NewType
+    plumbing with Quire family reference/FK APIs as those APIs become available.
 
 - [x] `propstore/core/justifications.py`
   - Read: 2026-05-21.
-  - Action: move out of `core` and rewrite duplicated justification/graph
-    payload handling.
+  - Action: delete `propstore.core.justifications`, move generated-family model
+    methods to the justification family owner, and move active-graph projection
+    to the world argumentation owner.
   - Reason: `Justification` is a `FamilyModel` subclass with semantic methods,
     which is the right pattern for attaching behavior to generated fields, but
     it is in the wrong owner package. `CanonicalJustification` duplicates a
@@ -476,54 +529,47 @@ commit message body:
     parses JSON fields, imports graph provenance, and
     `claim_justifications_from_active_graph` is active-world argumentation
     orchestration.
-  - Delete/move: the family model subclass belongs under the justification
-    family owner. Active-graph justification projection belongs under the
-    world/argumentation owner. `CanonicalJustification.from_dict` and duplicated
-    payload schema should be replaced by the owner boundary.
-  - Required follow-up: delete `propstore.core.justifications` first, move the
-    real behavior to the owner modules, and update callers; no core re-export.
+  - Required follow-up: move `Justification` to
+    `propstore.families.justifications.declaration`; move
+    `claim_justifications_from_active_graph` to
+    `propstore.world.argumentation`; delete `CanonicalJustification.from_dict`
+    and duplicated payload schema from runtime constructors; leave no core
+    re-export.
 
 - [x] `propstore/core/labels.py`
   - Read: 2026-05-21.
-  - Action: split. Keep ATMS/provenance label algebra; move/rewrite CEL binding
-    parsing and loose environment compilation.
+  - Action: keep ATMS/provenance label algebra in `core`; move CEL binding
+    construction and loose environment compilation to the world condition owner.
   - Reason: `EnvironmentKey`, `NogoodSet`, `Label`, and polynomial conversion
     are core belief-space kernel behavior. But `binding_condition_to_cel`,
     `cel_to_binding`, and `compile_environment_assumptions` accept loose
     `Any`/string values, render CEL by string interpolation, and parse CEL back
     with string splitting. That is boundary/world condition handling, not core
     label algebra.
-  - Delete/rewrite: `cel_to_binding` string parsing and `binding_condition_to_cel`
-    interpolation must be replaced by typed condition construction at the
-    world/condition boundary. `compile_environment_assumptions` should receive
-    typed bindings/assumptions, not `Mapping[str, Any]`.
-  - Required follow-up: keep only the label algebra in `core`; move binding/CEL
-    conversion to the world/condition owner and use the shared condition value
-    type.
+  - Required follow-up: move `binding_condition_to_cel`, `cel_to_binding`, and
+    `compile_environment_assumptions` to `propstore.world.conditions`; replace
+    string interpolation and string splitting with typed condition construction;
+    keep `EnvironmentKey`, `NogoodSet`, `Label`, and polynomial conversion in
+    `core`.
 
 - [x] `propstore/core/lemon/__init__.py`
   - Read: 2026-05-21.
-  - Action: delete eager broad re-export surface unless caller audit proves this
-    is the intentional Lemon package API.
+  - Action: delete eager broad re-export surface.
   - Reason: it imports and re-exports every Lemon submodule surface. That is a
     low-level package initializer doing broad eager imports. It is not an old
     compatibility shim by itself, but it violates the shallow initializer rule.
-  - Required follow-up: search callers. Prefer concrete Lemon module imports,
-    or keep only a narrow public Lemon API that does not pull all submodules
-    eagerly.
+  - Required follow-up: update callers to concrete Lemon module imports. Leave
+    `propstore/core/lemon/__init__.py` with package documentation only.
 
 - [x] `propstore/core/lemon/description_kinds.py`
   - Read: 2026-05-21.
-  - Action: keep Lemon domain structs; tighten identity/reference IDs if owner
-    types exist.
+  - Action: keep Lemon domain structs; replace raw IDs with typed owner IDs.
   - Reason: `DescriptionKind`, slots, bindings, merge arguments, and causal
     assertions are semantic Lemon domain objects, not storage/family mechanics
     or compatibility wrappers. They use `DocumentStruct` for structured fields
     and validate slot bindings.
   - Required follow-up: replace bare `str` IDs such as `claim_id`,
-    `description_claim_ids`, and causal description IDs with typed owner IDs
-    once those are available, rather than carrying raw strings through the
-    semantic pipeline.
+    `description_claim_ids`, and causal description IDs with typed owner IDs.
 
 - [x] `propstore/core/lemon/forms.py`
   - Read: 2026-05-21.
@@ -531,8 +577,8 @@ commit message body:
   - Reason: `LexicalForm` is a narrow domain object with field-local validation.
     `require_text` and `fold_text` are local lexical text utilities, not old
     path adapters or broad semantic coercers.
-  - Required follow-up: none from deletion rules unless duplicate lexical text
-    normalization appears elsewhere in the Lemon audit.
+  - Required follow-up: keep `require_text` and `fold_text` as the Lemon lexical
+    text utilities.
 
 - [x] `propstore/core/lemon/proto_roles.py`
   - Read: 2026-05-21.
@@ -541,21 +587,19 @@ commit message body:
     not duplicate storage/family mechanics. `GradedEntailment.property` is a
     bare `str` that is checked against enum classes in `ProtoRoleBundle` but not
     stored as the enum type.
-  - Required follow-up: make proto-agent and proto-patient entailment property
-    types explicit at construction or split the entailment records by owner role
-    so the type system carries the vocabulary.
+  - Required follow-up: split `GradedEntailment` into proto-agent and
+    proto-patient entailment records so the property enum type carries the
+    vocabulary.
 
 - [x] `propstore/core/lemon/qualia.py`
   - Read: 2026-05-21.
-  - Action: keep Qualia domain model; review `coerce_via_qualia` naming under
-    search gates.
+  - Action: keep Qualia domain model; rename `coerce_via_qualia`.
   - Reason: the function named `coerce_via_qualia` is not a type coercion helper;
     it implements a Pustejovsky qualia-mediated semantic operation and returns a
     `CoercedReference` domain object. It must not become an excuse for broad
     `coerce_*` helper allowance.
-  - Required follow-up: either document this as an explicit domain exception in
-    the old-symbol search gate or rename to a non-helper-shaped domain verb such
-    as `qualia_mediated_reference` and update callers.
+  - Required follow-up: rename `coerce_via_qualia` to
+    `qualia_mediated_reference` and update callers.
 
 - [x] `propstore/core/lemon/references.py`
   - Read: 2026-05-21.
@@ -573,33 +617,32 @@ commit message body:
     semantics. The implementation builds synthetic `ConceptInfo` records with
     fake `ps:concept:*` IDs solely to run the condition solver, and
     `DescriptionTemporalAnchor.claim_id` is a bare string.
-  - Required follow-up: replace the fake concept registry with either typed
-    interval relation math or explicit non-concept condition bindings from the
-    condition owner. Use typed claim/description IDs instead of raw strings.
+  - Required follow-up: replace the fake concept registry and condition solver
+    call with typed interval relation math. Use typed claim/description IDs
+    instead of raw strings.
 
 - [x] `propstore/core/lemon/types.py`
   - Read: 2026-05-21.
-  - Action: keep Lemon lexical entry/sense domain model; tighten role bundle
-    collection typing if needed.
+  - Action: keep Lemon lexical entry/sense domain model; make role bundle keys a
+    typed open lexical-role value.
   - Reason: this file is semantic Lemon modeling, not storage plumbing or
     compatibility code. The main loose point is
     `role_bundles: Mapping[str, ProtoRoleBundle] | None`, where arbitrary
     string role names are validated only as non-empty text.
-  - Required follow-up: if role names are a known vocabulary, carry that
-    vocabulary in the type. If they are intentionally open lexical roles, keep
-    the text validation and document the openness.
+  - Required follow-up: define `LexicalRoleName = NewType(\"LexicalRoleName\",
+    str)` or an equivalent value object and use it for `role_bundles` keys.
 
 - [x] `propstore/core/literal_keys.py`
   - Read: 2026-05-21.
-  - Action: keep ASPIC literal key domain objects; delete raw string claim-key
-    surface.
+  - Action: delete `ClaimLiteralKey`; keep `IstLiteralKey` and
+    `GroundLiteralKey`.
   - Reason: the file defines typed literal identity keys grounded in the ASPIC
     literature. `IstLiteralKey` carries `ContextId` and `ClaimId`, but
     `ClaimLiteralKey.claim_id` and `claim_key(claim_id: str, context_id:
     ContextId | str)` allow raw strings at the semantic boundary.
-  - Required follow-up: remove unused `ClaimLiteralKey` if caller audit confirms
-    `IstLiteralKey` is the canonical claim literal. Change `claim_key` to accept
-    `ClaimId` and `ContextId` after boundary parsing.
+  - Required follow-up: delete `ClaimLiteralKey` from `LiteralKey` and
+    `__all__`; update tests and callers to use `IstLiteralKey`; change
+    `claim_key` to accept `ClaimId` and `ContextId` after boundary parsing.
 
 - [x] `propstore/core/reasoning.py`
   - Read: 2026-05-21.

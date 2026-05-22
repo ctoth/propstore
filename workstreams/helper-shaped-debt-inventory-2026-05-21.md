@@ -9,6 +9,30 @@ rg -n -- "\b(def|class)\s+\w*(helper|adapter|shim|coerce|normalize|from_row|from
 Classification values: `delete`, `io-boundary`, `presentation`,
 `semantic-owner`, `quire-needed`.
 
+## SQLAlchemy Gate Audit Backfill
+
+Recorded 2026-05-21 from the wave gate audits under
+`workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/gate-audits/`.
+
+The earlier classification below is superseded where this section names a
+stricter action. A surface is not complete merely because the old projection
+symbol gate is zero-hit. Direct string table/model lookup, duplicate payload
+constructors, and broad compatibility/classification hits remain work until
+they are deleted or moved to the exact owner boundary named here.
+
+| Surface | Classification | Required final state |
+| --- | --- | --- |
+| `propstore/families/world_charters.py:_MODELS`, `_CLAIM_MODEL_TABLES`, `world_model`, `world_record`, `_claim_models` | `delete` | No Propstore-owned table/model registry and no claim-special model routing. Callers use Quire family/charter metadata and session APIs for main model lookup and table access. |
+| Direct `derived.schema.table("claim_core")`, `derived.schema.table("build_diagnostics")`, `derived.schema.model("build_diagnostics")`, and `schema.model("claim_core")` hits | `delete` | Source status, diagnostics, claims, embeddings, and world callers use generic family metadata/session APIs rather than string table/model lookup. |
+| Direct `schema.model("alias")` and `schema.model("concept")` hits | `delete` | Concept and alias lookup use generic Quire family-reference/model metadata APIs. Do not replace with concept-specific resolver wrappers. |
+| Direct `schema.model("context")`, `schema.model("context_assumption")`, `schema.model("context_lifting_rule")`, and `schema.model("context_lifting_materialization")` hits | `delete` | Context/lifting callers use generic Quire family metadata/session APIs. Do not keep context-specific table/model selectors. |
+| `propstore/core/justifications.py:CanonicalJustification` and `CanonicalJustification(` production/test construction hits | `delete` | Delete the duplicate canonical justification payload class/constructor path. Keep justification model behavior in the justification family owner and active-graph projection in the world/argumentation owner. |
+| `propstore/core/assertions/conversion.py:_from_payload`, `propstore/families/claims/stages.py:_from_payload`, and `propstore/world/bound.py:_from_payload` | `delete` unless promoted to a named IO boundary in the owning module | Active runtime/family/core surfaces must not carry broad `_from_payload` constructors. If a payload decoder is real IO, rename/place it as an explicit owner-boundary parser and make malformed shapes hard-fail. |
+| `quire/charters.py:**values` | `quire-needed` | Quire charter construction must not use a broad kwargs sink that duplicates field shape. Replace with typed charter construction or prove this is not a field-shape/compatibility sink in Quire, then record the proof. |
+| `legacy`, `backward compat`, `backwards compat`, `compat shim`, `fallback`, and broad `coerce_*` hits | `delete` or exact owner-boundary classification required per hit | Each production hit must be classified as real IO boundary, semantic lowering, or illegal compatibility. Illegal compat/fallback/coercer paths are deleted; no generic allowance remains. |
+| `tests/test_world_query.py:claim["..."]` hits | `delete` | World-query tests use typed claim/domain objects or typed fixtures, not dict-shaped claim access. |
+| `propstore/app/repository_overview.py:count_claims(` | `presentation` pending owner check | This is not the deleted claim-family SQLite helper, but the app helper must remain presentation-only and must not open or preserve old storage/query mechanics. |
+
 ## Delete
 
 | Surface | Classification | Required final state |
