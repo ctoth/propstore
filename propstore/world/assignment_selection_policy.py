@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from typing import Any
 
 from assignment_selection import (
     Assignment,
@@ -20,6 +19,7 @@ from propstore.core.conditions import CheckedCondition
 from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, scope_condition_registry
 from propstore.core.conditions.solver import ConditionSolver
+from propstore.core.environment import WorldStore
 from propstore.core.id_types import ClaimId
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept
@@ -27,7 +27,6 @@ from propstore.world.types import (
     IntegrityConstraint,
     IntegrityConstraintKind,
     RenderPolicy,
-    WorldStore,
 )
 
 
@@ -179,7 +178,7 @@ def _enriched_policy_integrity_constraints(
 def _constraint_scope_values(
     assignment: Assignment,
     constraint: IntegrityConstraint,
-) -> dict[str, Any]:
+) -> dict[str, object]:
     return {
         concept_id: assignment.value_for(concept_id)
         for concept_id in constraint.concept_ids
@@ -197,8 +196,8 @@ def _cel_bindings(
     assignment: Assignment,
     constraint: IntegrityConstraint,
     registry: Mapping[str, ConceptInfo],
-) -> dict[str, Any]:
-    bindings: dict[str, Any] = {}
+) -> dict[str, object]:
+    bindings: dict[str, object] = {}
     for canonical_name, info in registry.items():
         bindings[canonical_name] = assignment.value_for(info.id)
     return bindings
@@ -225,14 +224,22 @@ def _compile_integrity_constraint(constraint: IntegrityConstraint) -> Constraint
         def _holds(assignment: Assignment) -> bool:
             scoped_values = _constraint_scope_values(assignment, constraint)
             for value in scoped_values.values():
+                if isinstance(value, bool) or not isinstance(value, int | float | str):
+                    return False
                 try:
                     numeric = float(value)
                 except (TypeError, ValueError):
                     return False
-                if lower is not None and numeric < float(lower):
-                    return False
-                if upper is not None and numeric > float(upper):
-                    return False
+                if lower is not None:
+                    if isinstance(lower, bool) or not isinstance(lower, int | float | str):
+                        return False
+                    if numeric < float(lower):
+                        return False
+                if upper is not None:
+                    if isinstance(upper, bool) or not isinstance(upper, int | float | str):
+                        return False
+                    if numeric > float(upper):
+                        return False
             return True
 
         return Constraint(

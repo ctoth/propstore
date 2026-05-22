@@ -726,6 +726,52 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/assignment_selection_policy.py`.
 
+## Iteration 32 - `propstore/world/assignment_selection_policy.py`
+
+Slice read:
+- `propstore/world/assignment_selection_policy.py`
+- assignment-selection, condition-runtime, and resolution-helper tests.
+
+Surfaces:
+- external assignment-selection integration module
+  - Disposition: keep.
+  - Owner after cleanup: `propstore.world.assignment_selection_policy` owns the
+    boundary between Propstore `Claim`/`RenderPolicy`/`WorldStore` semantics
+    and the external `assignment_selection` solver package.
+  - Evidence: this is an external package integration boundary, not a
+    compatibility shim for an old Propstore path; tests explicitly assert the
+    old `assignment_selection_merge` module path is deleted.
+- local `Any` annotations in CEL/range binding dictionaries
+  - Disposition: rewrite.
+  - Owner after cleanup: object-valued assignment/condition bindings at the
+    external solver boundary.
+  - Action: use `dict[str, object]`, import `WorldStore` from
+    `propstore.core.environment`, and explicitly narrow range metadata and
+    scoped values before numeric conversion.
+
+Gate results:
+- Pass: `rg -n -F -- "Any"
+  propstore/world/assignment_selection_policy.py` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Failed then fixed: first Pyright run exposed one un-narrowed `float(value)`
+  call after replacing `Any` with `object`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-assignment-selection-policy-typed-rerun
+  tests/test_assignment_selection_merge.py
+  tests/test_condition_runtime_no_reparse.py
+  tests/test_resolution_helpers.py::test_assignment_selection_policy_adapter_surface_exists
+  tests/test_resolution_helpers.py::test_assignment_selection_old_solver_module_is_deleted
+  tests/test_policy_governance.py` returned `24 passed`.
+- Log:
+  `logs/test-runs/world-assignment-selection-policy-typed-rerun-20260522-043621.log`.
+
+Commit:
+- Type assignment-selection policy boundary.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/atms.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
