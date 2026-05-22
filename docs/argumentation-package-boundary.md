@@ -77,7 +77,7 @@ These propstore surfaces stay in propstore:
 - `propstore/claim_graph.py`
 - `propstore/structured_projection.py`
 - `propstore/defeasibility.py`
-- `propstore/core/analyzers.py`
+- `propstore/argumentation.py`
 - `propstore/praf/` adapters, opinion/calibration helpers, provenance
   projection, and store-facing construction
 - `propstore/support_revision/` operational support-incision adapters; formal
@@ -126,7 +126,7 @@ Propstore keeps subjective-logic opinions, calibration, provenance rows, store
 projection, and CLI/worldline policy.
 
 `argumentation.semantics` owns generic dispatch over argumentation-owned Dung,
-bipolar, and partial-AF dataclasses. Propstore analyzers still own backend
+bipolar, and partial-AF dataclasses. `propstore.argumentation` owns backend
 policy validation, claim projection, result packaging, and worldline state.
 
 ## Target Runtime Shape

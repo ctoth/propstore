@@ -125,32 +125,5 @@ def condition_sources(value: object) -> tuple[str, ...]:
     return (str(value),)
 
 
-class _ExactMatchSolver:
-    @property
-    def registry(self):
-        return condition_registry_for_sources(())
-
-    def are_disjoint(self, left: object, right: object) -> bool:
-        return set(condition_sources(left)).isdisjoint(condition_sources(right))
-
-
-class _OverlapSolver:
-    @property
-    def registry(self):
-        return condition_registry_for_sources(("x == 1", "x > 0"))
-
-    def are_equivalent(self, left: object, right: object) -> bool:
-        return set(condition_sources(left)) == set(condition_sources(right))
-
-    def are_disjoint(self, left: object, right: object) -> bool:
-        left_sources = condition_sources(left)
-        right_sources = condition_sources(right)
-        if "x == 1" in left_sources and "x > 0" in right_sources:
-            return False
-        if "x > 0" in left_sources and "x == 1" in right_sources:
-            return False
-        return set(left_sources).isdisjoint(right_sources)
-
-
 def leaf_lifting_system(context_id: str) -> LiftingSystem:
     return LiftingSystem(contexts=(ContextReference(context_id),))

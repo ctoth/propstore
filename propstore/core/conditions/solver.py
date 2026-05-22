@@ -15,6 +15,7 @@ from propstore.core.conditions.checked import (
     CheckedConditionSet,
     checked_condition_set,
 )
+from propstore.core.conditions.ir import ConditionIR
 from propstore.core.conditions.registry import (
     ConceptInfo,
     condition_registry_fingerprint,
@@ -169,6 +170,35 @@ class ConditionSolver:
         except z3.Z3Exception as exc:
             raise Z3TranslationError(str(exc)) from exc
 
+    def are_disjoint_from_runtime_ir(
+        self,
+        checked_conditions: Sequence[CheckedCondition] | CheckedConditionSet,
+        runtime_conditions: Sequence[ConditionIR],
+    ) -> bool:
+        result = _require_decided(
+            self.are_disjoint_from_runtime_ir_result(
+                checked_conditions,
+                runtime_conditions,
+            )
+        )
+        return isinstance(result, SolverUnsat)
+
+    def are_disjoint_from_runtime_ir_result(
+        self,
+        checked_conditions: Sequence[CheckedCondition] | CheckedConditionSet,
+        runtime_conditions: Sequence[ConditionIR],
+    ) -> SolverResult:
+        try:
+            checked_expr = self._conditions_to_z3(checked_conditions)
+            runtime_expr = self._runtime_conditions_to_z3(runtime_conditions)
+            solver = self._new_solver()
+            solver.add(checked_expr)
+            solver.add(runtime_expr)
+            self._add_temporal_constraints(solver)
+            return solver_result_from_z3(solver)
+        except z3.Z3Exception as exc:
+            raise Z3TranslationError(str(exc)) from exc
+
     def are_equivalent(
         self,
         conditions_a: Sequence[CheckedCondition] | CheckedConditionSet,
@@ -291,6 +321,21 @@ class ConditionSolver:
             expr = terms[0] if len(terms) == 1 else z3.And(*terms)
         self._condition_set_cache[key] = expr
         return expr
+
+    def _runtime_conditions_to_z3(
+        self,
+        conditions: Sequence[ConditionIR],
+    ) -> Any:
+        if not conditions:
+            return z3.BoolVal(True, self._ctx)
+        terms = [self._runtime_condition_to_z3(condition) for condition in conditions]
+        return terms[0] if len(terms) == 1 else z3.And(*terms)
+
+    def _runtime_condition_to_z3(self, condition: ConditionIR) -> Any:
+        try:
+            return self._encoder.condition_to_z3(condition)
+        except Z3BackendTranslationError as exc:
+            raise Z3TranslationError(str(exc)) from exc
 
     def _ensure_condition_set(
         self,

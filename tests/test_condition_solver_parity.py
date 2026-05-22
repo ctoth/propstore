@@ -4,6 +4,7 @@ import pytest
 
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions import check_condition_ir, checked_condition_set
+from propstore.core.conditions.cel_frontend import runtime_condition_ir_from_cel
 
 
 def _registry() -> dict[str, ConceptInfo]:
@@ -148,3 +149,49 @@ def test_condition_solver_rejects_registry_fingerprint_mismatch() -> None:
             mismatched,
             _condition_set("task == 'singing'"),
         )
+
+
+def test_condition_solver_compares_checked_conditions_to_runtime_ir() -> None:
+    from propstore.core.conditions.solver import ConditionSolver
+
+    registry = {
+        "x": ConceptInfo(
+            id="ps:concept:x",
+            canonical_name="x",
+            kind=KindType.QUANTITY,
+        )
+    }
+    checked = checked_condition_set((check_condition_ir("x == 1", registry),))
+    solver = ConditionSolver(registry)
+
+    assert not solver.are_disjoint_from_runtime_ir(
+        checked,
+        (runtime_condition_ir_from_cel("y == 2", registry, {}),),
+    )
+    assert solver.are_disjoint_from_runtime_ir(
+        checked,
+        (runtime_condition_ir_from_cel("x == 2", registry, {}),),
+    )
+
+
+def test_runtime_condition_ir_uses_canonical_registry_semantics() -> None:
+    registry = {
+        "task": ConceptInfo(
+            id="ps:concept:task",
+            canonical_name="task",
+            kind=KindType.CATEGORY,
+            category_values=["speech"],
+            category_extensible=False,
+        )
+    }
+
+    condition = runtime_condition_ir_from_cel("task == 'speech'", registry, {})
+
+    assert condition.left.source_name == "task"
+    assert condition.left.concept_id == "ps:concept:task"
+    assert condition.left.category_extensible is False
+
+
+def test_runtime_condition_ir_rejects_ambiguous_runtime_only_symbols() -> None:
+    with pytest.raises(ValueError, match="no inferable type"):
+        runtime_condition_ir_from_cel("y == z", {}, {})

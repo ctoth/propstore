@@ -160,10 +160,10 @@ Opinions flow into PrAF from the stance and calibration layer:
 
 3. **Construction from store:** `build_praf()` in
    `propstore/praf/projection.py` is the store-facing entrypoint. It is
-   re-exported from `propstore.praf` and delegates to
-   `build_praf_from_shared_input()` in `propstore/core/analyzers.py` to
-   assemble a `PropstorePrAF` from relation maps and claim data. The embedded
-   `.kernel` is an `argumentation.probabilistic.ProbabilisticAF`.
+   re-exported from `propstore.praf` and delegates to the shared argumentation
+   projection in `propstore.argumentation` to assemble a `PropstorePrAF` from
+   relation maps and claim data. The embedded `.kernel` is an
+   `argumentation.probabilistic.ProbabilisticAF`.
 
 The calibration layer (temperature scaling per Guo et al. 2017,
 evidence-to-opinion mapping per Sensoy et al. 2018) feeds into opinion

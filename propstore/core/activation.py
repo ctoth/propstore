@@ -5,11 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from propstore.cel_types import CelExpr, to_cel_exprs
-from propstore.core.conditions import checked_condition_set
 from propstore.core.conditions import CheckedConditionSet
-from propstore.core.conditions.cel_frontend import check_condition_ir
-from propstore.core.conditions.registry import ConceptInfo, KindType
-from propstore.core.conditions.registry import with_standard_synthetic_bindings
+from propstore.core.conditions.cel_frontend import runtime_condition_ir_from_cel
 from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.id_types import ClaimId, ContextId
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
@@ -116,33 +113,6 @@ def _raise_unknown_concept_if_present(
     raise UnknownConceptInCEL(concept_name, source_artifact=source_artifact) from exc
 
 
-def _binding_kind(value: object) -> KindType:
-    if isinstance(value, bool):
-        return KindType.BOOLEAN
-    if isinstance(value, int | float):
-        return KindType.QUANTITY
-    return KindType.CATEGORY
-
-
-def _solver_with_environment_bindings(
-    solver: ConditionSolver,
-    environment: Environment,
-) -> ConditionSolver:
-    registry = with_standard_synthetic_bindings(solver.registry)
-    for name, value in environment.bindings.items():
-        if name in registry:
-            continue
-        registry[name] = ConceptInfo(
-            id=f"ps:binding:{name}",
-            canonical_name=name,
-            kind=_binding_kind(value),
-            category_extensible=True,
-        )
-    if registry == dict(solver.registry):
-        return solver
-    return ConditionSolver(registry)
-
-
 def is_claim_active(
     *,
     claim_id: str,
@@ -170,16 +140,18 @@ def is_claim_active(
     if solver is None:
         raise ValueError("A condition solver is required for conditional activation")
 
-    query_solver = _solver_with_environment_bindings(solver, environment)
-
     try:
-        registry = query_solver.registry
-        return not query_solver.are_disjoint(
-            checked_condition_set(
-                check_condition_ir(str(condition), registry)
-                for condition in binding_conditions
-            ),
+        runtime_conditions = tuple(
+            runtime_condition_ir_from_cel(
+                str(condition),
+                solver.registry,
+                environment.bindings,
+            )
+            for condition in binding_conditions
+        )
+        return not solver.are_disjoint_from_runtime_ir(
             claim_conditions,
+            runtime_conditions,
         )
     except ValueError as exc:
         _raise_unknown_concept_if_present(

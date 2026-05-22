@@ -15,6 +15,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 from cel_parser import (
     OP_ADD,
@@ -597,6 +598,25 @@ def condition_ir_from_cel(
     return _lower_node(ast, registry)
 
 
+def runtime_condition_ir_from_cel(
+    source: str,
+    registry: Mapping[str, ConceptInfo],
+    runtime_bindings: Mapping[str, Any],
+) -> ConditionIR:
+    """Lower runtime-only CEL into IR without minting a checked-condition fingerprint."""
+    try:
+        ast = parse(source)
+    except ParseError as exc:
+        raise ValueError(f"Parse error: {exc}") from exc
+    runtime_registry = _runtime_condition_registry(ast, registry, runtime_bindings)
+    errors = check_cel_expression(source, runtime_registry)
+    hard_errors = [error for error in errors if not error.is_warning]
+    if hard_errors:
+        message = "; ".join(error.message for error in hard_errors)
+        raise ValueError(message)
+    return _lower_node(ast, runtime_registry)
+
+
 def check_condition_ir(
     source: str,
     registry: Mapping[str, ConceptInfo],
@@ -615,6 +635,240 @@ def check_condition_ir(
         ir=_lower_node(ast, registry),
         registry_fingerprint=str(condition_registry_fingerprint(registry)),
         warnings=tuple(error.message for error in errors if error.is_warning),
+    )
+
+
+def _runtime_condition_registry(
+    ast: Expr,
+    registry: Mapping[str, ConceptInfo],
+    runtime_bindings: Mapping[str, Any],
+) -> dict[str, ConceptInfo]:
+    inferred: dict[str, KindType] = {}
+    _collect_runtime_symbol_kinds(
+        ast,
+        registry=registry,
+        runtime_bindings=runtime_bindings,
+        inferred=inferred,
+        expected_kind=None,
+    )
+    runtime_registry = dict(registry)
+    for name, kind in sorted(inferred.items()):
+        if name in runtime_registry:
+            continue
+        runtime_registry[name] = ConceptInfo(
+            id=f"ps:runtime-condition:{name}",
+            canonical_name=name,
+            kind=kind,
+            category_extensible=True,
+        )
+    return runtime_registry
+
+
+def _collect_runtime_symbol_kinds(
+    node: Expr,
+    *,
+    registry: Mapping[str, ConceptInfo],
+    runtime_bindings: Mapping[str, Any],
+    inferred: dict[str, KindType],
+    expected_kind: KindType | None,
+) -> None:
+    if isinstance(node, Ident):
+        _record_runtime_symbol_kind(
+            node.name,
+            registry=registry,
+            runtime_bindings=runtime_bindings,
+            inferred=inferred,
+            expected_kind=expected_kind,
+        )
+        return
+    if isinstance(node, (BoolLit, IntLit, UintLit, DoubleLit, StringLit, BytesLit, NullLit)):
+        return
+    if not isinstance(node, Call) or node.target is not None:
+        return
+
+    if node.function == OP_NOT and len(node.args) == 1:
+        _collect_runtime_symbol_kinds(
+            node.args[0],
+            registry=registry,
+            runtime_bindings=runtime_bindings,
+            inferred=inferred,
+            expected_kind=KindType.BOOLEAN,
+        )
+        return
+    if node.function == OP_NEG and len(node.args) == 1:
+        _collect_runtime_symbol_kinds(
+            node.args[0],
+            registry=registry,
+            runtime_bindings=runtime_bindings,
+            inferred=inferred,
+            expected_kind=KindType.QUANTITY,
+        )
+        return
+    if node.function == OP_TERNARY and len(node.args) == 3:
+        condition, when_true, when_false = node.args
+        _collect_runtime_symbol_kinds(
+            condition,
+            registry=registry,
+            runtime_bindings=runtime_bindings,
+            inferred=inferred,
+            expected_kind=KindType.BOOLEAN,
+        )
+        for branch in (when_true, when_false):
+            _collect_runtime_symbol_kinds(
+                branch,
+                registry=registry,
+                runtime_bindings=runtime_bindings,
+                inferred=inferred,
+                expected_kind=expected_kind,
+            )
+        return
+    if node.function == OP_IN and len(node.args) == 2:
+        element, list_expr = node.args
+        element_kind = (
+            _literal_list_kind(list_expr.elements)
+            if isinstance(list_expr, CreateList)
+            else None
+        )
+        _collect_runtime_symbol_kinds(
+            element,
+            registry=registry,
+            runtime_bindings=runtime_bindings,
+            inferred=inferred,
+            expected_kind=element_kind,
+        )
+        if isinstance(list_expr, CreateList):
+            for option in list_expr.elements:
+                _collect_runtime_symbol_kinds(
+                    option,
+                    registry=registry,
+                    runtime_bindings=runtime_bindings,
+                    inferred=inferred,
+                    expected_kind=None,
+                )
+        return
+    if len(node.args) != 2:
+        return
+
+    left, right = node.args
+    if node.function in LOGICAL_FUNCTIONS:
+        for child in (left, right):
+            _collect_runtime_symbol_kinds(
+                child,
+                registry=registry,
+                runtime_bindings=runtime_bindings,
+                inferred=inferred,
+                expected_kind=KindType.BOOLEAN,
+            )
+        return
+    if node.function in ARITHMETIC_FUNCTIONS or node.function in ORDERING_FUNCTIONS:
+        for child in (left, right):
+            _collect_runtime_symbol_kinds(
+                child,
+                registry=registry,
+                runtime_bindings=runtime_bindings,
+                inferred=inferred,
+                expected_kind=KindType.QUANTITY,
+            )
+        return
+    if node.function in EQUALITY_FUNCTIONS:
+        _collect_runtime_symbol_kinds(
+            left,
+            registry=registry,
+            runtime_bindings=runtime_bindings,
+            inferred=inferred,
+            expected_kind=_runtime_kind_from_peer(right, registry, runtime_bindings),
+        )
+        _collect_runtime_symbol_kinds(
+            right,
+            registry=registry,
+            runtime_bindings=runtime_bindings,
+            inferred=inferred,
+            expected_kind=_runtime_kind_from_peer(left, registry, runtime_bindings),
+        )
+
+
+def _record_runtime_symbol_kind(
+    name: str,
+    *,
+    registry: Mapping[str, ConceptInfo],
+    runtime_bindings: Mapping[str, Any],
+    inferred: dict[str, KindType],
+    expected_kind: KindType | None,
+) -> None:
+    if name in registry:
+        return
+    binding_kind = (
+        _runtime_kind_from_value(runtime_bindings[name])
+        if name in runtime_bindings
+        else None
+    )
+    kind = binding_kind or expected_kind
+    if kind is None:
+        raise ValueError(
+            f"Runtime condition symbol '{name}' has no inferable type"
+        )
+    existing = inferred.get(name)
+    if existing is not None and existing != kind:
+        raise ValueError(
+            f"Runtime condition symbol '{name}' has conflicting inferred types"
+        )
+    inferred[name] = kind
+
+
+def _runtime_kind_from_peer(
+    node: Expr,
+    registry: Mapping[str, ConceptInfo],
+    runtime_bindings: Mapping[str, Any],
+) -> KindType | None:
+    literal_kind = _runtime_kind_from_literal(node)
+    if literal_kind is not None:
+        return literal_kind
+    if isinstance(node, Ident):
+        info = registry.get(node.name)
+        if info is not None:
+            return _runtime_kind_from_registry_info(info)
+        if node.name in runtime_bindings:
+            return _runtime_kind_from_value(runtime_bindings[node.name])
+    return None
+
+
+def _runtime_kind_from_registry_info(info: ConceptInfo) -> KindType:
+    if info.kind == KindType.TIMEPOINT:
+        return KindType.QUANTITY
+    return info.kind
+
+
+def _runtime_kind_from_literal(node: Expr) -> KindType | None:
+    if isinstance(node, BoolLit):
+        return KindType.BOOLEAN
+    if isinstance(node, (IntLit, UintLit, DoubleLit)):
+        return KindType.QUANTITY
+    if isinstance(node, (StringLit, BytesLit)):
+        return KindType.CATEGORY
+    return None
+
+
+def _literal_list_kind(nodes: list[Expr] | tuple[Expr, ...]) -> KindType | None:
+    inferred: KindType | None = None
+    for node in nodes:
+        kind = _runtime_kind_from_literal(node)
+        if kind is None:
+            continue
+        if inferred is not None and inferred != kind:
+            raise ValueError("Runtime condition membership list has mixed literal types")
+        inferred = kind
+    return inferred
+
+
+def _runtime_kind_from_value(value: object) -> KindType:
+    if isinstance(value, bool):
+        return KindType.BOOLEAN
+    if isinstance(value, int | float):
+        return KindType.QUANTITY
+    if isinstance(value, str):
+        return KindType.CATEGORY
+    raise ValueError(
+        f"Runtime condition binding value {value!r} has no supported CEL type"
     )
 
 

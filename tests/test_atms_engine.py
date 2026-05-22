@@ -40,8 +40,6 @@ from propstore.world.types import (
 from propstore.worldline import WorldlineDefinition, run_worldline
 
 from tests.atms_helpers import (
-    _ExactMatchSolver,
-    _OverlapSolver,
     condition_ir_json,
     condition_registry_for_sources,
     condition_sources_from_json,
@@ -581,7 +579,6 @@ def test_atms_supported_claims_are_subset_of_active_claims_and_ignore_semantic_o
                 "conditions_cel": json.dumps(["x > 0"]),
             },
         ],
-        solver=_OverlapSolver(),
     )
     bound = _make_bound(store, bindings={"x": 1})
 
@@ -726,7 +723,6 @@ def test_atms_node_status_partition_and_support_quality_honesty() -> None:
                 "conditions_cel": json.dumps(["x > 0"]),
             },
         ],
-        solver=_OverlapSolver(),
     )
     bound = _make_bound(store, bindings={"x": 1})
 
@@ -901,7 +897,6 @@ def test_atms_preserves_nogood_pruned_vs_semantic_only_out_and_provenance() -> N
         conflicts=[
             {"claim_a_id": "claim_x", "claim_b_id": "claim_y", "concept_id": "concept3"},
         ],
-        solver=_OverlapSolver(),
     )
     bound = _make_bound(store, bindings={"x": 1, "y": 2})
     engine = bound.atms_engine()

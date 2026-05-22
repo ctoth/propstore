@@ -98,7 +98,7 @@ See [Probabilistic Argumentation](probabilistic-argumentation.md) for full PrAF 
 
 ### Claim graph
 
-The claim-graph bridge (`propstore/core/analyzers.py`) routes `supports` and `explains` stance types into the bipolar support relation. All other stance types flow into the defeat relation as before. Derived defeats are computed via `cayrol_derived_defeats` and added to the defeat set before framework construction.
+The claim-graph bridge in `propstore.argumentation` routes `supports` and `explains` stance types into the bipolar support relation. All other stance types flow into the defeat relation as before. Derived defeats are computed via `cayrol_derived_defeats` and added to the defeat set before framework construction.
 
 The bipolar semantics `d-preferred`, `s-preferred`, `c-preferred`, and `bipolar-stable` are selectable through `analyze_claim_graph` and through the worldline / Python policy surfaces. The current `pks world extensions` CLI only accepts `grounded`, `preferred`, and `stable`.
 
