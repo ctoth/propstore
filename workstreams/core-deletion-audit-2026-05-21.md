@@ -404,7 +404,56 @@ commit message body:
     `Exactness` under the semantic owner, and update callers to construct the
     enum at IO/document boundaries only.
 
+- [x] `propstore/core/graph_build.py`
+  - Read: 2026-05-21.
+  - Action: move out of `core` to world graph/build owner and rewrite from typed
+    family projections.
+  - Reason: it builds compiled world graphs from world/repository stores,
+    imports family models, parses JSON sidecar fields, performs provenance
+    payload decoding, deduplicates parameterization rows in Python when store
+    querying should own that, and calls graph relation coercers. This is world
+    graph orchestration, not core primitive code.
+  - Delete/move: `build_compiled_world_graph` and its helpers cannot remain in
+    `core`.
+  - Required follow-up: delete the core import path first, move real graph build
+    behavior to the world/family graph owner, and have stores/family APIs supply
+    typed rows/projections instead of parsing JSON strings and loose mappings in
+    graph build code.
+
+- [x] `propstore/core/graph_relation_types.py`
+  - Read: 2026-05-21.
+  - Action: consolidate graph relation vocabulary with the real relation owners
+    and delete the helper.
+  - Delete: `coerce_graph_relation_type`.
+  - Reason: `GraphRelationType` combines concept relationship types and stance
+    relation types into another enum surface. That duplicates vocabulary that
+    already belongs to concept relationships and stances/relations. The helper
+    accepts mixed enum/string input and locally reconstructs meaning.
+  - Required follow-up: replace duplicated graph relation enum use with typed
+    relation-owner values or a derived graph-edge relation projection generated
+    from those owners. Delete the coercer first and update callers from the
+    failures.
+
+- [x] `propstore/core/graph_types.py`
+  - Read: 2026-05-21.
+  - Action: rewrite/move; delete duplicated family field models and helper
+    normalization/coercion from `core`.
+  - Reason: `ConceptNode`, `ClaimNode`, `RelationEdge`, `ParameterizationEdge`,
+    `ConflictWitness`, and `WorldActivationGraph` hand-type many fields already
+    owned by claim/concept/relation/parameterization families or world runtime
+    state. The module imports enum coercers, accepts loose `Mapping[str, Any]`
+    payloads, parses embedded JSON, normalizes arbitrary attribute pairs, and
+    has `from_dict`/`to_dict` schema definitions separate from the charters.
+  - Delete/rewrite: `_normalize_pairs`, `_require_claim_type`,
+    `ProvenanceRecord.from_json_payload`, graph `from_dict` methods, and
+    dataclass `__post_init__` coercion of claim/exactness/relation types.
+  - Required follow-up: define the graph projection once from the family/world
+    owners or generated field metadata. Runtime graph code must receive typed
+    `ClaimType`, relation type, `Exactness`, `ConceptId`, `ClaimId`, and
+    `Environment` objects; IO decoding belongs at a versioned graph artifact
+    boundary, not inside semantic dataclass constructors.
+
 ## Progress
 
-- Files read: 30 / 51.
-- Next file: `propstore/core/graph_build.py`.
+- Files read: 33 / 51.
+- Next file: `propstore/core/id_types.py`.
