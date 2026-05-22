@@ -697,7 +697,7 @@ class ATMSEngine:
     ) -> ATMSNodeFutureStatusEntry:
         inspection = future.future_engine._future_node_inspection(
             node_id,
-            fallback=self._nodes.get(node_id),
+            current_node=self._nodes.get(node_id),
         )
         essential_support = self._serialize_environment_key(inspection.essential_support) or {
             "assumption_ids": [],
@@ -2545,19 +2545,19 @@ class ATMSEngine:
         self,
         node_id: str,
         *,
-        fallback: ATMSNode | None,
+        current_node: ATMSNode | None,
     ) -> ATMSInspection:
         if node_id in self._nodes:
             return self.node_status(node_id)
         support_quality = (
             SupportQuality.EXACT
-            if fallback is None or fallback.kind != "claim"
-            else self._support_quality_for_node(fallback)
+            if current_node is None or current_node.kind != "claim"
+            else self._support_quality_for_node(current_node)
         )
         return ATMSInspection(
             node_id=node_id,
-            claim_id=None if fallback is None else _node_claim_id(fallback),
-            kind=None if fallback is None else fallback.kind,
+            claim_id=None if current_node is None else _node_claim_id(current_node),
+            kind=None if current_node is None else current_node.kind,
             status=ATMSNodeStatus.OUT,
             support_quality=support_quality,
             label=None,

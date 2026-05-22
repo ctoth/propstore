@@ -99,6 +99,44 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 11 - `fallback` wording in world runtime
+
+Slice read:
+- `propstore/world/atms.py`
+- `propstore/world/resolution.py`
+- current `fallback` hits from literal search.
+
+Surfaces:
+- `ATMSEngine._future_node_inspection(..., fallback=...)`
+- resolution comment phrase `raw confidence fallback`
+  - Disposition: rewrite.
+  - Owner after cleanup: ATMS future inspection names the current graph node
+    metadata as `current_node`; resolution comment names the confidence-derived
+    score without fallback wording.
+  - Action: remove `fallback` wording from production world modules.
+  - Evidence: these hits are not old-data compatibility paths, but keeping the
+    word defeats the search gate and obscures the actual semantics.
+
+Gate results:
+- Pass: `rg -n -F -- "fallback" propstore/world propstore/worldline`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Two initial logged gates selected invalid test nodes and ran zero tests;
+  corrected gate below was used.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-fallback-wording-cleanup
+  tests/test_atms_engine.py::test_atms_future_queryables_can_activate_exact_support_without_fabricating_current_support
+  tests/test_atms_engine.py::test_atms_why_out_distinguishes_missing_support_from_nogood_and_future_activation
+  tests/test_render_policy_opinions.py::test_missing_opinion_ignores_raw_confidence`
+  returned `3 passed`.
+- Log: `logs/test-runs/world-fallback-wording-cleanup-20260522-024304.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 10 - `propstore/world/value_resolver.py::_coerce_override_value`
 
 Slice read:

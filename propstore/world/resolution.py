@@ -605,7 +605,7 @@ def _resolve_praf(
             # Unpack the tagged DecisionValue for numeric tiebreaking. The
             # provenance tag (.source) is intentionally discarded here:
             # tiebreaker arithmetic does not care whether the value came
-            # from a calibrated opinion or a raw confidence fallback. If
+            # from a calibrated opinion or a raw confidence-derived score. If
             # the source needs to surface in the resolution reason, that
             # is a separate plumbing concern.
             decision_values[cid] = dv.value
