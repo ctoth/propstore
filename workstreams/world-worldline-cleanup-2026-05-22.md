@@ -96,7 +96,7 @@ Gate results:
 - Log: `logs/test-runs/worldline-capture-error-cleanup-20260522-020548.log`.
 
 Commit:
-- Pending.
+- `777ea1c6 Delete worldline capture error coercer`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
