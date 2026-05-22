@@ -301,8 +301,14 @@ def world_atms_status(repo: Repository, request: AppAtmsViewRequest) -> AtmsStat
 
 
 def world_atms_context(repo: Repository, request: AppAtmsViewRequest) -> AtmsContextReport:
+    from propstore.core.labels import EnvironmentKey
+
     manager, wm, bound, _bindings, concept_id = _bind_atms(repo, request)
     try:
+        environment_key = EnvironmentKey(tuple(
+            assumption.assumption_id
+            for assumption in bound._environment.assumptions
+        ))
         environment_assumption_ids = tuple(
             str(assumption.assumption_id)
             for assumption in bound._environment.assumptions
@@ -315,7 +321,7 @@ def world_atms_context(repo: Repository, request: AppAtmsViewRequest) -> AtmsCon
                 else [str(bound._environment.context_id)]
             ),
         }
-        claim_ids = bound.claims_in_environment(environment_assumption_ids)
+        claim_ids = bound.claims_in_environment(environment_key)
         if concept_id:
             resolved = resolve_world_target(wm, concept_id)
             allowed = {

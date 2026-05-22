@@ -64,6 +64,42 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 6 - `propstore/world/atms.py::_coerce_environment_key`
+
+Slice read:
+- `propstore/world/atms.py`
+- `propstore/world/bound.py`
+- current environment-key callers from literal search.
+
+Surfaces:
+- `_coerce_environment_key`
+  - Disposition: delete.
+  - Owner after cleanup: ATMS environment APIs require typed `EnvironmentKey`;
+    callers construct keys at their boundary.
+  - Action: narrow ATMS and bound-world method signatures and remove
+    tuple/list conversion.
+  - Evidence: tests and current callers already pass `EnvironmentKey`; the
+    tuple/list path is a helper-shaped alternate runtime representation.
+
+Gate results:
+- Pass: `rg -n -F -- "_coerce_environment_key" propstore tests` returned
+  zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings` after
+  moving the remaining tuple-to-`EnvironmentKey` conversion to
+  `propstore/app/world_atms.py`.
+- Initial logged gate selected a non-existent test class and ran zero tests;
+  corrected gate below was used.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-atms-environment-key-cleanup tests/test_atms_engine.py
+  tests/test_atms_environment_context_serialisation.py` returned `40 passed`.
+- Log: `logs/test-runs/world-atms-environment-key-cleanup-20260522-022228.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 5 - `propstore/world/resolution.py::_coerce_resolution_claim`
 
 Slice read:

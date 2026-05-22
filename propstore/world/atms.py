@@ -1129,7 +1129,7 @@ class ATMSEngine:
     def essential_support(
         self,
         node_id: str,
-        environment: EnvironmentKey | tuple[str, ...] | list[str] | None = None,
+        environment: EnvironmentKey | None = None,
     ) -> EnvironmentKey | None:
         node = self._nodes.get(node_id)
         if node is None:
@@ -1140,7 +1140,7 @@ class ATMSEngine:
         bound_environment = (
             self._bound_environment_key()
             if environment is None
-            else self._coerce_environment_key(environment)
+            else environment
         )
         compatible = [
             env
@@ -1157,13 +1157,12 @@ class ATMSEngine:
 
     def nodes_in_environment(
         self,
-        environment: EnvironmentKey | tuple[str, ...] | list[str],
+        environment: EnvironmentKey,
     ) -> list[str]:
-        environment_key = self._coerce_environment_key(environment)
         return sorted(
             node_id
             for node_id, node in self._nodes.items()
-            if any(label_env.subsumes(environment_key) for label_env in node.label.environments)
+            if any(label_env.subsumes(environment) for label_env in node.label.environments)
         )
 
     def explain_node(self, node_id: str) -> ATMSNodeExplanation:
@@ -1171,12 +1170,11 @@ class ATMSEngine:
 
     def explain_nogood(
         self,
-        environment_key: EnvironmentKey | tuple[str, ...] | list[str],
+        environment_key: EnvironmentKey,
     ) -> ATMSNogoodDetail | None:
-        query = self._coerce_environment_key(environment_key)
-        if query not in self.nogoods.environments:
+        if environment_key not in self.nogoods.environments:
             return None
-        return self._serialize_nogood_detail(query)
+        return self._serialize_nogood_detail(environment_key)
 
     def verify_labels(self) -> ATMSLabelVerificationReport:
         consistency_errors: list[str] = []
@@ -2567,14 +2565,6 @@ class ATMSEngine:
             reason="node absent from future ATMS view",
             out_kind=ATMSOutKind.MISSING_SUPPORT,
         )
-
-    @staticmethod
-    def _coerce_environment_key(
-        environment: EnvironmentKey | tuple[AssumptionId, ...] | list[AssumptionId] | tuple[str, ...] | list[str],
-    ) -> EnvironmentKey:
-        if isinstance(environment, EnvironmentKey):
-            return environment
-        return EnvironmentKey(tuple(AssumptionId(value) for value in environment))
 
     def _explain_justification(
         self,

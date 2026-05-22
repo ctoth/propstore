@@ -867,7 +867,7 @@ class BoundWorld(BeliefSpace):
 
     def explain_nogood(
         self,
-        environment: EnvironmentKey | tuple[str, ...] | list[str],
+        environment: EnvironmentKey,
     ) -> ATMSNogoodDetail | None:
         return self.atms_engine().explain_nogood(environment)
 
@@ -877,7 +877,7 @@ class BoundWorld(BeliefSpace):
 
     def claims_in_environment(
         self,
-        environment: EnvironmentKey | tuple[str, ...] | list[str],
+        environment: EnvironmentKey,
     ) -> list[str]:
         """Return assertion IDs whose exact ATMS support is visible inside the environment."""
         return [
