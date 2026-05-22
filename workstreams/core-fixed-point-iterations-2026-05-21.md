@@ -318,3 +318,9 @@ Next: `propstore/core/assertions/conversion.py`.
 Deleted `AssertionSourceRecord` and `conversion.py`: test-only hand parser; runtime/canonical owners are `SituatedAssertion`, `AssertionCanonicalRecord`, and typed claim source-assertion relationships.
 Gates: conversion zero-hit, architecture/assertion tests pass (`logs/test-runs/pytest-20260521-230926.log`), pyright pass.
 Next: `propstore/core/assertions/refs.py`.
+
+## Iteration 10 - `propstore/core/assertions/refs.py`
+
+Deleted `ConditionRef.from_sources`; checked condition sets now own reference identity, and assertion refs require typed IDs without self-mutating coercion.
+Gates: `from_sources`/`object.__setattr__` zero-hit in slice, focused tests pass (`logs/test-runs/pytest-20260521-231703.log`), pyright pass.
+Next: final reread and files 2-10 completion gates.

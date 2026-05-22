@@ -12,6 +12,7 @@ from propstore.core.assertions.refs import (
 )
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import AssertionId
+from propstore.core.id_types import ConditionId, ContextId, ProvenanceGraphId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 
 
@@ -127,14 +128,14 @@ def _role_binding(value: object) -> RoleBinding:
 def _context_ref(value: object) -> ContextReference:
     if not isinstance(value, Mapping):
         raise TypeError("context must be a mapping")
-    return ContextReference(_text(_required(value, "id"), "context id"))
+    return ContextReference(ContextId(_text(_required(value, "id"), "context id")))
 
 
 def _condition_ref(value: object) -> ConditionRef:
     if not isinstance(value, Mapping):
         raise TypeError("condition reference must be a mapping")
     return ConditionRef(
-        id=_text(_required(value, "id"), "condition id"),
+        id=ConditionId(_text(_required(value, "id"), "condition id")),
         registry_fingerprint=_text(
             _required(value, "registry_fingerprint"),
             "registry fingerprint",
@@ -146,7 +147,7 @@ def _graph_ref(value: object) -> ProvenanceGraphRef:
     if not isinstance(value, Mapping):
         raise TypeError("provenance graph reference must be a mapping")
     return ProvenanceGraphRef(
-        _text(_required(value, "graph_name"), "provenance graph name")
+        ProvenanceGraphId(_text(_required(value, "graph_name"), "provenance graph name"))
     )
 
 

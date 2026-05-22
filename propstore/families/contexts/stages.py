@@ -235,13 +235,13 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
     )
 
 
-def _parse_context_reference_id(raw: object) -> str | None:
+def _parse_context_reference_id(raw: object) -> ContextId | None:
     if isinstance(raw, str) and raw:
-        return raw
+        return ContextId(raw)
     if isinstance(raw, Mapping):
         raw_id = raw.get("id")
         if isinstance(raw_id, str) and raw_id:
-            return raw_id
+            return ContextId(raw_id)
     return None
 
 
@@ -295,8 +295,8 @@ def parse_context_record_document(data: ContextDocument) -> ContextRecord:
         lifting_rules=tuple(
             LiftingRule(
                 id=rule.id,
-                source=ContextReference(id=rule.source),
-                target=ContextReference(id=rule.target),
+                source=ContextReference(id=ContextId(rule.source)),
+                target=ContextReference(id=ContextId(rule.target)),
                 conditions=rule.conditions,
                 mode=LiftingMode(rule.mode),
                 justification=rule.justification,

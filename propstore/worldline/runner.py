@@ -258,7 +258,7 @@ def _lifting_dependencies(
             continue
         decisions = lifting_system.lift_decisions_for(
             IstProposition(
-                context=ContextReference(str(claim.context_id)),
+                context=ContextReference(ContextId(str(claim.context_id))),
                 proposition_id=str(claim.id),
             )
         )

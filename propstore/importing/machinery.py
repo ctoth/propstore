@@ -15,6 +15,7 @@ from typing import Any, Literal
 
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.assertions.situated import SituatedAssertion
+from propstore.core.id_types import ConditionId, ContextId, ProvenanceGraphId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.provenance.records import (
     ExternalInferenceProvenanceRecord,
@@ -369,7 +370,7 @@ class ImportAuthoredFormLens:
             label=surface.mapping_policy_label,
         )
         context_mapping = ContextMicrotheoryMapping(
-            context=ContextReference(surface.context_id),
+            context=ContextReference(ContextId(surface.context_id)),
             microtheory_id=surface.microtheory_id,
             mapping_policy_id=surface.mapping_policy_id,
             lifting_rule_id=surface.lifting_rule_id,
@@ -391,7 +392,7 @@ class ImportAuthoredFormLens:
                 )
             ),
             condition=ConditionRef(
-                id=surface.condition_id,
+                id=ConditionId(surface.condition_id),
                 registry_fingerprint=surface.condition_registry_fingerprint,
             ),
         )
@@ -450,7 +451,9 @@ class ImportCompiler:
             context=form.context_mapping.context,
             condition=form.condition,
             provenance_ref=ProvenanceGraphRef(
-                f"urn:propstore:import-provenance:{_digest(metadata.identity_payload())}"
+                ProvenanceGraphId(
+                    f"urn:propstore:import-provenance:{_digest(metadata.identity_payload())}"
+                )
             ),
         )
         return CompiledImportAssertion(assertion=assertion, import_metadata=metadata)

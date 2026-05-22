@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
-from collections.abc import Sequence
 from dataclasses import dataclass
 
+from propstore.core.conditions.checked import (
+    UNCONDITIONAL_CONDITION_ID,
+    UNCONDITIONAL_CONDITION_REGISTRY_FINGERPRINT,
+)
 from propstore.core.id_types import (
     ConditionId,
     ContextId,
@@ -15,23 +16,19 @@ from propstore.core.id_types import (
 
 _CONDITION_ID_PREFIX = "ps:condition:"
 _GRAPH_NAME_PREFIXES = ("urn:", "ni://", "http://", "https://")
-_UNCONDITIONAL_ID = ConditionId("ps:condition:unconditional")
-_UNCONDITIONAL_FINGERPRINT = "registry:unconditional"
 
 
 @dataclass(frozen=True, order=True)
 class ContextReference:
     """Stable context identity reference for situated assertions."""
 
-    id: ContextId | str
+    id: ContextId
 
     def __post_init__(self) -> None:
         if not isinstance(self.id, str):
             raise TypeError("context id must be a string")
-        context_id = ContextId(self.id.strip())
-        if str(context_id) == "":
+        if str(self.id).strip() != str(self.id) or str(self.id) == "":
             raise ValueError("context id must be non-empty")
-        object.__setattr__(self, "id", context_id)
 
     def identity_payload(self) -> tuple[str, str]:
         return ("context", str(self.id))
@@ -46,44 +43,22 @@ class ConditionRef:
     for later WS3 compiler work.
     """
 
-    id: ConditionId | str
+    id: ConditionId
     registry_fingerprint: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.id, str):
             raise TypeError("condition id must be a string")
-        ref_id = ConditionId(self.id.strip())
-        if not str(ref_id).startswith(_CONDITION_ID_PREFIX):
+        if str(self.id).strip() != str(self.id) or not str(self.id).startswith(_CONDITION_ID_PREFIX):
             raise ValueError("condition id must start with ps:condition:")
-        fingerprint = str(self.registry_fingerprint).strip()
-        if fingerprint == "":
+        if self.registry_fingerprint.strip() != self.registry_fingerprint or self.registry_fingerprint == "":
             raise ValueError("condition registry fingerprint must be non-empty")
-        object.__setattr__(self, "id", ref_id)
-        object.__setattr__(self, "registry_fingerprint", fingerprint)
 
     @classmethod
     def unconditional(cls) -> ConditionRef:
         return cls(
-            id=_UNCONDITIONAL_ID,
-            registry_fingerprint=_UNCONDITIONAL_FINGERPRINT,
-        )
-
-    @classmethod
-    def from_sources(cls, sources: Sequence[object]) -> ConditionRef:
-        rendered_sources = tuple(str(source) for source in sources)
-        if not rendered_sources:
-            return cls.unconditional()
-        digest = hashlib.sha256(
-            json.dumps(
-                rendered_sources,
-                sort_keys=True,
-                separators=(",", ":"),
-                ensure_ascii=True,
-            ).encode("utf-8")
-        ).hexdigest()
-        return cls(
-            id=f"ps:condition:{digest}",
-            registry_fingerprint=f"claim-condition-source:{digest}",
+            id=UNCONDITIONAL_CONDITION_ID,
+            registry_fingerprint=UNCONDITIONAL_CONDITION_REGISTRY_FINGERPRINT,
         )
 
     def identity_payload(self) -> tuple[str, str, str]:
@@ -99,15 +74,13 @@ class ProvenanceGraphRef:
     stay in the provenance carrier.
     """
 
-    graph_name: ProvenanceGraphId | str
+    graph_name: ProvenanceGraphId
 
     def __post_init__(self) -> None:
         if not isinstance(self.graph_name, str):
             raise TypeError("provenance graph name must be a string")
-        graph_name = ProvenanceGraphId(self.graph_name.strip())
-        if not str(graph_name).startswith(_GRAPH_NAME_PREFIXES):
+        if str(self.graph_name).strip() != str(self.graph_name) or not str(self.graph_name).startswith(_GRAPH_NAME_PREFIXES):
             raise ValueError("provenance graph reference must be a URI")
-        object.__setattr__(self, "graph_name", graph_name)
 
     def identity_payload(self) -> tuple[str, str]:
         return ("provenance_graph", str(self.graph_name))

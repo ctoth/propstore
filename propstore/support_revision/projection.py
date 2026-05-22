@@ -10,6 +10,8 @@ from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import (
     AssumptionId,
     ClaimId,
+    ContextId,
+    ProvenanceGraphId,
 )
 from propstore.core.labels import SupportQuality
 from propstore.core.relations import ClaimConceptLinkRole, RelationConceptRef, RoleBinding, RoleBindingSet
@@ -193,17 +195,20 @@ def _context_ref(
     context_id: object | None,
 ) -> ContextReference:
     if claim.context_id is not None:
-        return ContextReference(str(claim.context_id))
+        return ContextReference(ContextId(str(claim.context_id)))
     if context_id is not None:
-        return ContextReference(str(context_id))
-    return ContextReference("ps:context:global")
+        return ContextReference(ContextId(str(context_id)))
+    return ContextReference(ContextId("ps:context:global"))
 
 
 def _condition_ref(claim: Claim) -> ConditionRef:
     checked_conditions = claim.checked_conditions
     if checked_conditions is None:
         return ConditionRef.unconditional()
-    return ConditionRef.from_sources(checked_conditions.sources)
+    return ConditionRef(
+        id=checked_conditions.reference_id,
+        registry_fingerprint=checked_conditions.reference_registry_fingerprint,
+    )
 
 
 def _provenance_ref(claim: Claim) -> ProvenanceGraphRef:
@@ -212,7 +217,9 @@ def _provenance_ref(claim: Claim) -> ProvenanceGraphRef:
         claim.source_slug,
         claim.provenance_json,
     ]
-    return ProvenanceGraphRef(f"urn:propstore:claim-provenance:{_digest(payload)}")
+    return ProvenanceGraphRef(
+        ProvenanceGraphId(f"urn:propstore:claim-provenance:{_digest(payload)}")
+    )
 
 
 def _stable_value(value: object) -> str:

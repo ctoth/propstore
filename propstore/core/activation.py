@@ -11,7 +11,7 @@ from propstore.core.conditions.cel_frontend import check_condition_ir
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.registry import with_standard_synthetic_bindings
 from propstore.core.conditions.solver import ConditionSolver
-from propstore.core.id_types import ClaimId
+from propstore.core.id_types import ClaimId, ContextId
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.environment import Environment
 from propstore.core.labels import binding_condition_to_cel
@@ -82,7 +82,7 @@ def claim_lifting_materializations(
     return lifting_system.materialize_lifted_assertions(
         (
             IstProposition(
-                context=ContextReference(claim_context_id),
+                context=ContextReference(ContextId(claim_context_id)),
                 proposition_id=claim_id,
             ),
         )

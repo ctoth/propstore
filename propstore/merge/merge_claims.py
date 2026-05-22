@@ -9,7 +9,7 @@ from typing import Any
 
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.assertions.situated import SituatedAssertion
-from propstore.core.id_types import AssertionId
+from propstore.core.id_types import AssertionId, ContextId, ProvenanceGraphId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.identity.logical_ids import format_logical_id
@@ -81,8 +81,8 @@ class MergeClaim:
                     RoleBinding("content", _stable_json(_semantic_payload(self.document))),
                 )
             ),
-            context=ContextReference(self.document.context.id),
-            condition=ConditionRef.from_sources(tuple(self.document.conditions)),
+            context=ContextReference(ContextId(self.document.context.id)),
+            condition=ConditionRef.unconditional(),
             provenance_ref=_provenance_ref(self),
         )
 
@@ -139,7 +139,9 @@ def _semantic_payload(document: ClaimDocument) -> dict[str, Any]:
 
 def _provenance_ref(claim: MergeClaim) -> ProvenanceGraphRef:
     return ProvenanceGraphRef(
-        f"urn:propstore:claim-provenance:{_digest(claim.provenance_payload())}"
+        ProvenanceGraphId(
+            f"urn:propstore:claim-provenance:{_digest(claim.provenance_payload())}"
+        )
     )
 
 

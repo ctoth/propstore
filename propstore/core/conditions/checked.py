@@ -4,14 +4,18 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
+import hashlib
 import json
 from typing import Any
 
 from propstore.core.conditions.codec import condition_ir_from_json, condition_ir_to_json
 from propstore.core.conditions.ir import ConditionIR
+from propstore.core.id_types import ConditionId
 
 
 CHECKED_CONDITION_SET_JSON_VERSION = 1
+UNCONDITIONAL_CONDITION_ID = ConditionId("ps:condition:unconditional")
+UNCONDITIONAL_CONDITION_REGISTRY_FINGERPRINT = "registry:unconditional"
 
 
 @dataclass(frozen=True)
@@ -65,6 +69,35 @@ class CheckedConditionSet:
     @property
     def sources(self) -> tuple[str, ...]:
         return tuple(condition.source for condition in self.conditions)
+
+    @property
+    def reference_id(self) -> ConditionId:
+        if not self.conditions:
+            return UNCONDITIONAL_CONDITION_ID
+        digest = hashlib.sha256(
+            json.dumps(
+                self.identity_payload(),
+                sort_keys=True,
+                separators=(",", ":"),
+                ensure_ascii=True,
+            ).encode("utf-8")
+        ).hexdigest()
+        return ConditionId(f"ps:condition:{digest}")
+
+    @property
+    def reference_registry_fingerprint(self) -> str:
+        if not self.conditions:
+            return UNCONDITIONAL_CONDITION_REGISTRY_FINGERPRINT
+        return self.registry_fingerprint
+
+    def identity_payload(self) -> tuple[str, tuple[tuple[str, str], ...]]:
+        return (
+            self.registry_fingerprint,
+            tuple(
+                (condition.source, condition.encoded_ir or "")
+                for condition in self.conditions
+            ),
+        )
 
 
 def checked_condition_set(

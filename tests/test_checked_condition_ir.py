@@ -50,6 +50,20 @@ def test_checked_condition_set_deduplicates_and_sorts_by_source() -> None:
     assert condition_set.registry_fingerprint == "sha256:registry"
 
 
+def test_checked_condition_set_owns_reference_identity() -> None:
+    span = ConditionSourceSpan(0, 1)
+    condition_set = checked_condition_set((
+        CheckedCondition(
+            source="a == true",
+            ir=ConditionLiteral(True, ConditionValueKind.BOOLEAN, span),
+            registry_fingerprint="sha256:registry",
+        ),
+    ))
+
+    assert str(condition_set.reference_id).startswith("ps:condition:")
+    assert condition_set.reference_registry_fingerprint == "sha256:registry"
+
+
 def test_checked_condition_rejects_empty_registry_fingerprint() -> None:
     with pytest.raises(ValueError, match="registry fingerprint"):
         CheckedCondition(

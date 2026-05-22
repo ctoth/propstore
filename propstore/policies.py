@@ -10,6 +10,7 @@ from typing import Any
 from quire import canonical_json_bytes
 
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
+from propstore.core.id_types import ContextId, ProvenanceGraphId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.support_revision.belief_set_adapter import DEFAULT_ITERATED_OPERATOR
@@ -336,10 +337,10 @@ def policy_assertions(
     *,
     context_id: str,
 ) -> tuple[SituatedAssertion, ...]:
-    context = ContextReference(context_id)
+    context = ContextReference(ContextId(context_id))
     condition = ConditionRef.unconditional()
     provenance = ProvenanceGraphRef(
-        f"urn:propstore:policy-provenance:{profile.content_hash}"
+        ProvenanceGraphId(f"urn:propstore:policy-provenance:{profile.content_hash}")
     )
     return (
         _policy_assertion(
