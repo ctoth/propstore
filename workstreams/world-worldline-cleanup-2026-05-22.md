@@ -99,6 +99,45 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 9 - `propstore/world/types.py::DerivedResult.exactness`
+
+Slice read:
+- `propstore/world/types.py`
+- `propstore/world/value_resolver.py`
+- `propstore/core/exactness_types.py`
+- current `coerce_exactness` callers from literal search.
+
+Surfaces:
+- `DerivedResult.__post_init__` exactness coercion.
+  - Disposition: rewrite.
+  - Owner after cleanup: `DerivedResult` receives `Exactness | None`;
+    `ClaimValueResolver` parses the string stored on the `Parameterization`
+    row while translating the row into a runtime result.
+  - Action: remove the `coerce_exactness` import/use from `world.types` and
+    construct typed exactness at the parameterization-row boundary.
+  - Evidence: `DerivedResult` is a runtime result object; row strings should
+    not be accepted by its constructor.
+
+Gate results:
+- Pass: `rg -n -F -- "coerce_exactness" propstore/world propstore/worldline`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Initial logged gate selected a non-existent worldline test node and ran zero
+  tests; corrected gate below was used.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-derived-exactness-cleanup
+  tests/test_labelled_core.py::test_derived_value_combines_input_labels
+  tests/test_world_query.py::TestDerivedValue
+  tests/test_worldline.py::TestWorldlineRunner::test_derived_value_accuracy`
+  returned `10 passed`.
+- Log: `logs/test-runs/world-derived-exactness-cleanup-20260522-023715.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 8 - `propstore/world/types.py::coerce_queryable_assumptions`
 
 Slice read:

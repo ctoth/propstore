@@ -12,7 +12,7 @@ from propstore.cel_types import CelExpr, to_cel_expr, to_cel_exprs
 from propstore.conflict_detector import ConflictClass
 from propstore.families.claims.types import ClaimType
 from propstore.core.environment import WorldStore, Environment  # noqa: F401
-from propstore.core.exactness_types import Exactness, coerce_exactness
+from propstore.core.exactness_types import Exactness
 from propstore.core.id_types import (
     AssumptionId,
     ClaimId,
@@ -131,7 +131,8 @@ class DerivedResult:
     def __post_init__(self) -> None:
         self.concept_id = ConceptId(self.concept_id)
         _require_value_status(self.status, "DerivedResult.status")
-        self.exactness = coerce_exactness(self.exactness)
+        if self.exactness is not None and not isinstance(self.exactness, Exactness):
+            raise TypeError("DerivedResult.exactness must be Exactness or None")
         self.input_values = {
             ConceptId(concept_id): float(value)
             for concept_id, value in self.input_values.items()

@@ -12,6 +12,7 @@ from typing import Any, Callable
 from ast_equiv import AlgorithmParseError, compare as ast_compare
 
 from propstore.families.claims.types import ClaimType
+from propstore.core.exactness_types import Exactness
 from propstore.core.id_types import ConceptId
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Parameterization
@@ -384,7 +385,11 @@ class ClaimValueResolver:
             value=result,
             formula=param.formula,
             input_values=input_values,
-            exactness=param.exactness,
+            exactness=(
+                None
+                if param.exactness is None
+                else Exactness(str(param.exactness))
+            ),
         )
 
     def _evaluate_parameterization(
