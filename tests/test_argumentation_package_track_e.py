@@ -15,6 +15,12 @@ from propstore.argumentation import SharedAnalyzerInput
 from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.id_types import ClaimId
+from propstore.core.reasoning import (
+    ArgumentationSemantics,
+    ReasoningBackend,
+    normalize_argumentation_semantics,
+    supported_argumentation_semantics,
+)
 from propstore.core.results import AnalyzerResult, ClaimProjection
 from propstore.merge.structured_merge import argumentation_evidence_from_projection
 from propstore.probabilistic_relations import ClaimGraphRelations
@@ -23,13 +29,6 @@ from propstore.structured_projection import (
     claim_source_assertion_ids_from_active_graph,
     lift_analyzer_result_projection,
 )
-from propstore.world.types import (
-    ArgumentationSemantics,
-    ReasoningBackend,
-    normalize_argumentation_semantics,
-    supported_argumentation_semantics,
-)
-
 
 def _minimal_aspic_theory() -> tuple[
     ArgumentationSystem,

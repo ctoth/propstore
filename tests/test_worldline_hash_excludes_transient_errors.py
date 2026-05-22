@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+from propstore.core.reasoning import ArgumentationSemantics
 from propstore.world import Environment
 from propstore.families.concepts.declaration import Concept
 from propstore.world.types import ReasoningBackend, RenderPolicy, ResolutionStrategy
@@ -54,7 +55,7 @@ def _argumentation_definition() -> WorldlineDefinition:
         policy=RenderPolicy(
             strategy=ResolutionStrategy.ARGUMENTATION,
             reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
-            semantics="grounded",
+            semantics=ArgumentationSemantics.GROUNDED,
         ),
         targets=("target",),
     )

@@ -18,6 +18,7 @@ from sqlalchemy import create_engine, insert
 
 from propstore.families.claims.types import ClaimType
 from propstore.conflict_detector import ConflictClass
+from propstore.core.reasoning import ArgumentationSemantics
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.concepts.declaration import Concept
@@ -3016,7 +3017,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
             RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
                 reasoning_backend=ReasoningBackend.CLAIM_GRAPH,
-                semantics="grounded",
+                semantics=ArgumentationSemantics.GROUNDED,
                 comparison="democratic",
             )
         )
@@ -3046,7 +3047,7 @@ class TestSemanticCorePhase6HypotheticalDeltas:
             RenderPolicy(
                 strategy=ResolutionStrategy.ARGUMENTATION,
                 reasoning_backend=ReasoningBackend.PRAF,
-                semantics="grounded",
+                semantics=ArgumentationSemantics.GROUNDED,
                 praf_strategy="exact_enum",
             )
         )

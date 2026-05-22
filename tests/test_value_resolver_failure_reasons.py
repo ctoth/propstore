@@ -265,8 +265,8 @@ def test_ast_compare_none_equivalence_is_benign_inconclusive():
     assert comparison.parse_failed is False
 
 
-def test_unparseable_override_value_raises():
+def test_non_numeric_override_value_raises():
     resolver = _make_resolver()
 
-    with pytest.raises(ValueError, match="Invalid override value"):
-        resolver._coerce_override_value({"input": "not-a-number"}, "input")
+    with pytest.raises(TypeError, match="must be numeric"):
+        resolver._numeric_override_value({"input": "not-a-number"}, "input")

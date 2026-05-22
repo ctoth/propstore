@@ -832,11 +832,25 @@ class RenderPolicy:
 
         strategy_value = data.get("strategy")
         reasoning_backend_value = data.get("reasoning_backend", ReasoningBackend.CLAIM_GRAPH)
-        reasoning_backend = (
-            reasoning_backend_value
-            if isinstance(reasoning_backend_value, ReasoningBackend)
-            else ReasoningBackend(str(reasoning_backend_value))
-        )
+        try:
+            reasoning_backend = (
+                reasoning_backend_value
+                if isinstance(reasoning_backend_value, ReasoningBackend)
+                else ReasoningBackend(str(reasoning_backend_value))
+            )
+        except ValueError as exc:
+            raise ValueError(
+                f"Unknown reasoning_backend '{reasoning_backend_value}'"
+            ) from exc
+        semantics_value = data.get("semantics", ArgumentationSemantics.GROUNDED)
+        try:
+            semantics = (
+                semantics_value
+                if isinstance(semantics_value, ArgumentationSemantics)
+                else ArgumentationSemantics(str(semantics_value))
+            )
+        except ValueError as exc:
+            raise ValueError(f"Unknown semantics: {semantics_value}") from exc
         concept_strategies = {
             str(concept_id): (
                 strategy
@@ -864,14 +878,7 @@ class RenderPolicy:
                     else ResolutionStrategy(str(strategy_value))
                 )
             ),
-            semantics=(
-                semantics_value
-                if isinstance(
-                    semantics_value := data.get("semantics", ArgumentationSemantics.GROUNDED),
-                    ArgumentationSemantics,
-                )
-                else ArgumentationSemantics(str(semantics_value))
-            ),
+            semantics=semantics,
             comparison=str(data.get("comparison", "elitist")),
             link=str(data.get("link", "last")),
             decision_criterion=str(data.get("decision_criterion", "pignistic")),
