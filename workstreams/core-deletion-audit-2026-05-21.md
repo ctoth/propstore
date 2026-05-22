@@ -90,7 +90,45 @@ If any condition fails, the action is delete, move, consolidate, or rewrite.
     import paths. It is a cross-cutting computation sentinel, not an IO parser
     or owner-specific workflow.
 
+- [x] `propstore/core/assertions/__init__.py`
+  - Read: 2026-05-21.
+  - Action: consolidate package API or remove eager re-exports after caller
+    audit.
+  - Reason: it eagerly re-exports assertion codec, conversion, refs, and
+    situated types. This is not an old-path shim by itself, but low-level
+    package `__init__.py` files are required to stay shallow. If callers only
+    need concrete modules, delete these re-exports and update imports directly.
+  - Required follow-up: search callers of `propstore.core.assertions import`.
+    If re-export use is broad convenience only, delete the re-export surface;
+    if kept, prove it does not pull owner workflows or create circular imports.
+
+- [x] `propstore/core/assertions/codec.py`
+  - Read: 2026-05-21.
+  - Action: keep canonical assertion boundary, but consolidate duplicate
+    assertion payload parsing with `conversion.py`.
+  - Reason: `from_payload` is an IO/serialization boundary and hard-rejects old
+    claim-shaped payloads instead of rewriting them. That part follows the
+    rule. The file duplicates `_required`, `_text`, role-binding parsing,
+    condition-ref parsing, and provenance-ref parsing with
+    `assertions/conversion.py`.
+  - Required follow-up: factor only the shared assertion payload readers into a
+    narrow assertion-owned private parser module or shared private functions.
+    Do not create a broad `coerce_*`/`normalize_*` helper and do not accept old
+    shapes.
+
+- [x] `propstore/core/assertions/conversion.py`
+  - Read: 2026-05-21.
+  - Action: keep source assertion boundary, but consolidate duplicated parser
+    code with `codec.py`.
+  - Reason: decoded source mappings are accepted only at the boundary and are
+    immediately converted into assertion/relation domain objects. Hard failure
+    for old claim-shaped payloads is correct. The duplicate private payload
+    readers should be written once inside the assertion boundary.
+  - Required follow-up: when consolidating, preserve the distinct canonical
+    shape and source shape. The shared code may parse common typed parts only;
+    it must not become an old/new shape adapter.
+
 ## Progress
 
-- Files read: 6 / 51.
-- Next file: `propstore/core/assertions/__init__.py`.
+- Files read: 9 / 51.
+- Next file: `propstore/core/assertions/refs.py`.
