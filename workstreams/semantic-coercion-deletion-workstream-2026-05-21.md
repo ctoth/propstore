@@ -40,6 +40,10 @@ identified after the helper-shaped debt cleanup.
   type. Public entrypoints convert `Claim` values to the internal view once at
   the resolution owner boundary; resolution algorithms do not call
   `_coerce_resolution_claim` or accept `Sequence[_ResolutionClaimView | Claim]`.
+- `propstore/core/analyzers.py` is deleted. Claim-graph, PrAF, ASPIC backend,
+  and active-world analyzer orchestration live under the world/argumentation
+  owner surface, not under `propstore.core`.
+- No production or test import path references `propstore.core.analyzers`.
 - No replacement helper family, shim, adapter, fallback reader, alias, old/new
   dual path, or renamed coercer is added.
 
@@ -75,6 +79,15 @@ Recorded 2026-05-21 before implementation:
 - `ClaimType`, `Exactness`, `StanceType`, and `ValueStatus` are already
   `StrEnum` classes. Direct class construction at IO/document boundaries is the
   target enum parser; no project-local helper is needed for those cases.
+- `propstore/core/analyzers.py` currently builds active-world analyzer inputs,
+  converts claim/relation/conflict family records into graph rows, constructs
+  Dung, bipolar, and PrAF frameworks, runs claim-graph and PrAF analysis, wraps
+  ASPIC backend solving, and projects analyzer results back to target claims.
+  Its production callers are `propstore.claim_graph`,
+  `propstore.fragility_contributors`, `propstore.praf.projection`,
+  `propstore.world.resolution`, `propstore.worldline.argumentation`, and app
+  world reasoning. This is world/argumentation runtime orchestration, not core
+  primitive type ownership.
 
 ## Global Execution Rules
 
@@ -90,6 +103,41 @@ Recorded 2026-05-21 before implementation:
 - Delete first. Compiler, pyright, test, and search failures are the work
   queue.
 
+## Deletion Checklist
+
+For every phase and every owned production surface in that phase, fill this
+checklist in the execution record before claiming the phase is complete:
+
+- [ ] Exact old production surface is named: module, function, method, class,
+  import path, exported symbol, or runtime API.
+- [ ] Old definition is deleted before adding replacement behavior.
+- [ ] Old imports, package exports, tests, and docs that keep the deleted
+  surface alive are removed or rewritten to the target owner.
+- [ ] No helper-shaped replacement is introduced. This specifically forbids
+  `to_*`, `coerce_*`, `_coerce_*`, `normalize_*`, `_normalize_*`, `ensure_*`,
+  `as_*`, `make_*`, `parse_*`, wrapper modules, re-export modules, fallback
+  readers, compatibility aliases, old/new branch logic, and renamed copies of
+  the deleted abstraction.
+- [ ] Remaining failures from pyright, tests, import errors, and literal old
+  path searches are used as the caller-update queue.
+- [ ] Every updated caller now receives the typed/domain object required by
+  the target owner boundary. Runtime code does not accept `object` and rebuild
+  semantic meaning locally.
+- [ ] Tests that asserted the old mixed-input or compatibility behavior are
+  deleted or rewritten to assert the new typed boundary.
+- [ ] Literal old-symbol search gate for the phase returns zero production and
+  test hits, except this workstream's historical record if the search includes
+  `workstreams/`.
+- [ ] Targeted logged pytest gate for the phase passes, or the exact failing
+  test is recorded as the active work queue item.
+- [ ] `uv run pyright propstore` is clean for the touched package surface, or
+  the exact pyright diagnostic is recorded as the active work queue item.
+- [ ] The phase commit is path-limited to the owned files for that deletion
+  slice.
+
+If a phase edit is not deleting an old production surface or fixing a failure
+caused by that deletion, it is outside this workstream.
+
 ## Phase 0: Baseline And Gates
 
 Run and record:
@@ -98,6 +146,7 @@ Run and record:
 git status --short --untracked-files=no
 rg -n -- "\b(to_algorithm_stage|coerce_algorithm_stage|coerce_claim_type|coerce_exactness|coerce_stance_type|coerce_value_status|coerce_queryable_assumptions|normalize_queryable_cel|_coerce_resolution_claim)\b" propstore tests
 rg -n -- "\bdef (to_[A-Za-z0-9_]+|coerce_[A-Za-z0-9_]+|_coerce_[A-Za-z0-9_]+|normalize_[A-Za-z0-9_]+|_normalize_[A-Za-z0-9_]+)\b" propstore
+rg -n -- "propstore\.core\.analyzers|from propstore.core import analyzers|core.analyzers" propstore tests
 ```
 
 Gate:
@@ -105,6 +154,8 @@ Gate:
 - tracked worktree is clean before deletion;
 - all Phase 1 through Phase 4 deletion targets are still present exactly where
   this workstream records them;
+- `propstore/core/analyzers.py` and its caller list are recorded before the
+  ownership move;
 - broad `def coerce/normalize/to` output is captured in the execution record
   or a sibling inventory before Phase 1 begins.
 
@@ -291,7 +342,65 @@ Targeted tests:
 powershell -File scripts/run_logged_pytest.ps1 -Label semantic-coercion-resolution tests/test_world_query.py tests/test_resolution_helpers.py tests/test_structured_projection.py tests/test_ws_f_aspic_bridge.py
 ```
 
-## Phase 5: Final Gates
+## Phase 5: Move Analyzer Ownership Out Of Core
+
+Owned files:
+
+- `propstore/core/analyzers.py`
+- `propstore/world/analyzers.py`
+- production/test callers of `propstore.core.analyzers`
+
+Delete first:
+
+- `propstore/core/analyzers.py`
+
+Required final state:
+
+- The analyzer pipeline is owned by `propstore/world/analyzers.py`.
+- Claim-graph analysis, PrAF analysis, ASPIC backend analysis, active-graph
+  input construction, and result projection imports point at
+  `propstore.world.analyzers`.
+- `propstore/claim_graph.py` describes itself as a store-based claim-graph
+  entrypoint over the world analyzer owner. It does not describe `core` as the
+  shared orchestration owner.
+- Tests patch and import `propstore.world.analyzers`, not
+  `propstore.core.analyzers`.
+- `propstore/core/analyzers.py` is not left behind as a re-export shim,
+  alias module, compatibility module, or renamed wrapper.
+
+Known production caller queue:
+
+- `propstore/claim_graph.py`
+- `propstore/fragility_contributors.py`
+- `propstore/praf/projection.py`
+- `propstore/app/world_reasoning.py`
+- `propstore/world/resolution.py`
+- `propstore/worldline/argumentation.py`
+
+Invalid fixes:
+
+- adding `propstore/core/analyzers.py` as a re-export module;
+- creating `propstore/core/analysis.py`, `propstore/core/argumentation.py`, or
+  another core-owned spelling for the same orchestration;
+- splitting by copying the same functions into multiple owner modules;
+- broadening imports through package `__init__.py` re-exports.
+
+Search gate:
+
+```powershell
+rg -n -- "propstore\.core\.analyzers|from propstore.core import analyzers|core.analyzers" propstore tests
+Test-Path propstore/core/analyzers.py
+```
+
+`rg` must return zero hits. `Test-Path` must return `False`.
+
+Targeted tests:
+
+```powershell
+powershell -File scripts/run_logged_pytest.ps1 -Label semantic-coercion-analyzer-owner tests/test_core_analyzers.py tests/test_argumentation_integration.py tests/test_argumentation_package_track_e.py tests/test_praf.py tests/test_praf_integration.py tests/test_praf_uncalibrated_explicit.py tests/test_resolution_helpers.py tests/test_worldline.py tests/test_worldline_argumentation_multi_extension.py tests/test_ws_f_aspic_bridge.py
+```
+
+## Phase 6: Final Gates
 
 Run:
 
@@ -299,13 +408,17 @@ Run:
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label semantic-coercion-full
 rg -n -- "\b(to_algorithm_stage|coerce_algorithm_stage|coerce_claim_type|coerce_exactness|coerce_stance_type|coerce_value_status|coerce_queryable_assumptions|normalize_queryable_cel|_coerce_resolution_claim|QueryableInput)\b" propstore tests
+rg -n -- "propstore\.core\.analyzers|from propstore.core import analyzers|core.analyzers" propstore tests
 rg -n -- "\bdef (to_[A-Za-z0-9_]+|coerce_[A-Za-z0-9_]+|_coerce_[A-Za-z0-9_]+)\b" propstore
+Test-Path propstore/core/analyzers.py
 ```
 
 Completion requires:
 
 - every Phase 1 through Phase 4 deletion target is zero-hit in production and
   tests;
+- `propstore/core/analyzers.py` is deleted and every caller imports the world
+  analyzer owner;
 - remaining `normalize_*` names are exact IO/document/presentation/domain
   operations already classified by the helper-shaped debt inventory or recorded
   in this workstream execution record;
