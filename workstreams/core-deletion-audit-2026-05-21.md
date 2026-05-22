@@ -453,7 +453,55 @@ commit message body:
     `Environment` objects; IO decoding belongs at a versioned graph artifact
     boundary, not inside semantic dataclass constructors.
 
+- [x] `propstore/core/id_types.py`
+  - Read: 2026-05-21.
+  - Action: keep semantic ID aliases only until replaced by Quire/family
+    reference types; move logical identity record to identity owner if still
+    needed.
+  - Reason: `NewType` aliases are the current mechanism carrying semantic IDs
+    through the type system. They do not parse old shapes. `LogicalId`, however,
+    is identity-family behavior and payload shape, not generic core code.
+  - Required follow-up: as Quire family reference/FK APIs become the canonical
+    reference mechanism, replace direct string/NewType plumbing with those
+    typed references. Move or delete `LogicalId` from `core` after caller audit.
+
+- [x] `propstore/core/justifications.py`
+  - Read: 2026-05-21.
+  - Action: move out of `core` and rewrite duplicated justification/graph
+    payload handling.
+  - Reason: `Justification` is a `FamilyModel` subclass with semantic methods,
+    which is the right pattern for attaching behavior to generated fields, but
+    it is in the wrong owner package. `CanonicalJustification` duplicates a
+    justification/argument record shape, parses loose mappings in `from_dict`,
+    parses JSON fields, imports graph provenance, and
+    `claim_justifications_from_active_graph` is active-world argumentation
+    orchestration.
+  - Delete/move: the family model subclass belongs under the justification
+    family owner. Active-graph justification projection belongs under the
+    world/argumentation owner. `CanonicalJustification.from_dict` and duplicated
+    payload schema should be replaced by the owner boundary.
+  - Required follow-up: delete `propstore.core.justifications` first, move the
+    real behavior to the owner modules, and update callers; no core re-export.
+
+- [x] `propstore/core/labels.py`
+  - Read: 2026-05-21.
+  - Action: split. Keep ATMS/provenance label algebra; move/rewrite CEL binding
+    parsing and loose environment compilation.
+  - Reason: `EnvironmentKey`, `NogoodSet`, `Label`, and polynomial conversion
+    are core belief-space kernel behavior. But `binding_condition_to_cel`,
+    `cel_to_binding`, and `compile_environment_assumptions` accept loose
+    `Any`/string values, render CEL by string interpolation, and parse CEL back
+    with string splitting. That is boundary/world condition handling, not core
+    label algebra.
+  - Delete/rewrite: `cel_to_binding` string parsing and `binding_condition_to_cel`
+    interpolation must be replaced by typed condition construction at the
+    world/condition boundary. `compile_environment_assumptions` should receive
+    typed bindings/assumptions, not `Mapping[str, Any]`.
+  - Required follow-up: keep only the label algebra in `core`; move binding/CEL
+    conversion to the world/condition owner and use the shared condition value
+    type.
+
 ## Progress
 
-- Files read: 33 / 51.
-- Next file: `propstore/core/id_types.py`.
+- Files read: 36 / 51.
+- Next file: `propstore/core/lemon/__init__.py`.
