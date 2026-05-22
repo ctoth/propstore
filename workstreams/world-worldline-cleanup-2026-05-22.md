@@ -99,6 +99,66 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 15 - remaining broad `normalize_` hits classification
+
+Slice read:
+- `propstore/world/atms.py`
+- `propstore/world/bound.py`
+- `propstore/world/types.py`
+- `propstore/world/value_resolver.py`
+- `propstore/worldline/revision_capture.py`
+- current `normalize_` hits from literal search.
+
+Surfaces:
+- `normalize_revision_input` / `_normalize_revision_targets` /
+  `_normalize_query_atom`
+  - Disposition: keep.
+  - Owner after cleanup: support-revision input parsing and worldline revision
+    capture boundaries.
+  - Evidence: these functions convert revision query documents or CLI-shaped
+    revision atoms into revision-domain atoms at the revision boundary; they
+    are not old-data compatibility paths.
+- `_normalize_claim_id_set`
+  - Disposition: keep.
+  - Owner after cleanup: `BoundWorld` active-graph set materialization.
+  - Evidence: this converts already-typed active graph claim-id sequences into
+    lookup sets for runtime membership checks.
+- `_normalize_override_values`
+  - Disposition: keep.
+  - Owner after cleanup: `BoundWorld` resolves override keys through the world
+    concept index before value resolution.
+  - Evidence: this is concept-key resolution, not payload coercion; value
+    parsing was deleted in Iteration 10.
+- `normalize_queryable_cel`
+  - Disposition: keep.
+  - Owner after cleanup: `QueryableAssumption.from_cel` string/CEL boundary.
+  - Evidence: queryable policy/app strings are parsed into typed
+    `QueryableAssumption` objects at the boundary; runtime methods now require
+    those typed objects.
+- `ATMSEngine._normalize_value` and `ClaimValueResolver._normalize_value`
+  - Disposition: keep.
+  - Owner after cleanup: numeric value canonicalization for equality,
+    fingerprints, and algorithm/direct-value comparison.
+  - Evidence: these do not parse old shapes or accept loose payloads; they
+    canonicalize `int` to `float` for stable numeric semantics.
+
+Gate results:
+- Pass: `rg -n -F -- "coerce" propstore/world propstore/worldline` returned
+  zero hits.
+- Pass: `rg -n -F -- "fallback" propstore/world propstore/worldline`
+  returned zero hits.
+- Pass: `rg -n -F -- "legacy" propstore/world propstore/worldline` returned
+  zero hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world propstore/worldline`
+  returned zero hits.
+- Remaining broad `normalize_` hits are classified above.
+
+Commit:
+- Record-only classification commit for this iteration.
+
+Next slice:
+- Run full package gates for the world/worldline cleanup batch.
+
 ## Iteration 14 - duplicated merge-operator normalization
 
 Slice read:
