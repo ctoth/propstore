@@ -105,3 +105,43 @@ Next slice:
 - Delete or replace `ClaimFileEntry` and the `claim_file_*` helper family after
   classifying which callers should accept `LoadedClaimsFile` and which should
   accept Quire `ArtifactHandle` directly.
+
+## Iteration 3 - `ClaimFileEntry compatibility alias`
+
+Slice read:
+- `propstore/claims.py`
+- all `ClaimFileEntry` references under `propstore`
+- direct `claim_file_*` helper users under `propstore`
+- repository-handle callers surfaced by `uv run pyright propstore`
+
+Surfaces:
+- `ClaimFileEntry`
+  - Classification: compatibility alias hiding two representations:
+    `LoadedClaimsFile` and Quire `ArtifactHandle`.
+  - Disposition: delete.
+  - Owner after cleanup: semantic compiler/runtime paths accept
+    `LoadedClaimsFile`; repository scans use Quire handles only at storage
+    boundaries and lower to `LoadedClaimsFile` before semantic pipelines.
+  - Action: removed the alias, narrowed compiler/family/grounding/conflict
+    APIs to `LoadedClaimsFile`, and rewrote repo-handle scans to either
+    construct `LoadedClaimsFile` or read handle `.document` directly when the
+    caller stays inside the storage boundary.
+  - Evidence: pyright exposed all remaining callers that were passing handles
+    through the old alias; those callers were updated without reintroducing a
+    wrapper, fallback, or renamed alias.
+
+Gate results:
+- Pass: `rg -n -F -- "ClaimFileEntry" propstore tests` returned zero matches.
+- Pass: `uv run pyright propstore` returned
+  `0 errors, 0 warnings, 0 informations`.
+- Pass:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label claim-file-entry-cleanup tests/test_algorithm_stage_types.py tests/test_world_query.py::TestTransitiveConsistency::test_no_transitive_when_compatible tests/test_merge_symmetry_non_claim_files.py tests/test_build_sidecar.py::TestClaimStanceTable::test_persisted_stance_edges_reference_extant_claim_ids`
+  returned `6 passed`; `LOG_PATH=logs\test-runs\claim-file-entry-cleanup-20260522-004213.log`.
+
+Commit:
+- `91f97bb2 Delete claim file entry alias`
+
+Next slice:
+- Delete the `claim_file_*` helper accessor family by moving callers to
+  `LoadedClaimsFile` fields and `ClaimDocument` fields directly, without
+  adding replacement wrapper helpers.
