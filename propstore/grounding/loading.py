@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom
+from propstore.claims import LoadedClaimsFile
 from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record_document
 from propstore.grounding.bundle import GroundedRulesBundle
@@ -58,7 +59,12 @@ def load_grounding_inputs(
         for handle in repo.families.concepts.iter_handles(commit=commit)
     ]
     claim_files = tuple(
-        handle
+        LoadedClaimsFile(
+            filename=handle.ref.artifact_id,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
+            document=handle.document,
+        )
         for handle in repo.families.claims.iter_handles(commit=commit)
     )
     facts = extract_facts(

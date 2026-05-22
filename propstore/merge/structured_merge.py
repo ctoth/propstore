@@ -17,7 +17,7 @@ from propstore.families.relations.declaration import Stance
 from propstore.stances import coerce_stance_type
 from argumentation.dung import ArgumentationFramework
 from propstore.aspic_bridge import build_aspic_projection
-from propstore.claims import LoadedClaimsFile, claim_file_claims
+from propstore.claims import LoadedClaimsFile
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.structured_projection import StructuredProjection
@@ -308,10 +308,9 @@ def _canonical_stance_rows(
 def _load_branch_claims(snapshot: RepositorySnapshot, commit: str | None) -> list[MergeClaim]:
     active_claims: list[MergeClaim] = []
     for claim_file in snapshot.repo.families.claims.iter_handles(commit=commit):
-        for claim in claim_file_claims(claim_file):
-            merge_claim = MergeClaim.from_document(claim)
-            if merge_claim is not None:
-                active_claims.append(merge_claim)
+        merge_claim = MergeClaim.from_document(claim_file.document)
+        if merge_claim is not None:
+            active_claims.append(merge_claim)
     return active_claims
 
 

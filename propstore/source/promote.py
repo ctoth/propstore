@@ -23,7 +23,7 @@ from typing import Any
 
 from propstore.artifact_codes import stamp_canonical_artifact_codes
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
-from propstore.claims import ClaimFileEntry, loaded_claim_file_from_payload
+from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.compiler.errors import CompilerWorkflowError
 from propstore.families.claims.passes import run_claim_pipeline
@@ -159,18 +159,23 @@ def _validate_promoted_claims_before_commit(
         if record.context_id is not None:
             context_ids.add(str(record.context_id))
 
-    claim_files: list[ClaimFileEntry] = [
-        handle
+    claim_files: list[LoadedClaimsFile] = [
+        LoadedClaimsFile(
+            filename=handle.ref.artifact_id,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
+            document=handle.document,
+        )
         for handle in repo.families.claims.iter_handles(commit=head_sha)
         if handle.ref not in promoted_claim_documents
     ]
     for claim_ref, claim_document in promoted_claim_documents.items():
         claim_files.append(
-            loaded_claim_file_from_payload(
+            LoadedClaimsFile(
                 filename=claim_ref.artifact_id,
-                source_path=tree / repo.families.claims.address(claim_ref).require_path(),
-                data=claim_document.to_payload(),
-                knowledge_root=tree,
+                artifact_path=tree / repo.families.claims.address(claim_ref).require_path(),
+                store_root=tree,
+                document=claim_document,
             )
         )
 

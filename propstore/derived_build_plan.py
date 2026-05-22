@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from propstore.claims import (
-    ClaimFileEntry,
+    LoadedClaimsFile,
 )
 from propstore.families.concepts.stages import LoadedConcept
 from propstore.families.concepts.declaration import (
@@ -70,7 +70,7 @@ class RepositoryCheckedBundle:
     compilation_context: "CompilationContext"
     concept_registry: dict
     claim_checked_bundle: ClaimCheckedBundle | None
-    normalized_claim_files: tuple[ClaimFileEntry, ...] | None
+    normalized_claim_files: tuple[LoadedClaimsFile, ...] | None
 
 
 @dataclass(frozen=True)

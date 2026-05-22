@@ -12,7 +12,7 @@ from quire.references import FamilyReferenceIndex
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
 from propstore.cel_registry import build_canonical_cel_registry
-from propstore.claims import ClaimFileEntry
+from propstore.claims import LoadedClaimsFile
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
@@ -50,7 +50,7 @@ def _freeze_mapping(data: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def build_compiler_claim_index(
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
 ) -> FamilyReferenceIndex[ClaimReferenceRecord]:
     return build_claim_file_reference_index(claim_files)
 
@@ -123,7 +123,7 @@ def _build_context_from_concepts(
     concepts: list[LoadedConcept],
     form_registry: dict[str, FormDefinition],
     *,
-    claim_files: Sequence[ClaimFileEntry] | None,
+    claim_files: Sequence[LoadedClaimsFile] | None,
     context_ids: set[str] | None,
 ) -> CompilationContext:
     concepts_by_id: dict[str, ConceptRecord] = {}
@@ -157,7 +157,7 @@ def build_compilation_context_from_loaded(
     *,
     forms_dir: Path | KnowledgePath | None = None,
     form_registry: dict[str, FormDefinition] | None = None,
-    claim_files: Sequence[ClaimFileEntry] | None = None,
+    claim_files: Sequence[LoadedClaimsFile] | None = None,
     context_ids: set[str] | None = None,
 ) -> CompilationContext:
     resolved_form_registry = (
@@ -180,7 +180,7 @@ def build_compilation_context_from_loaded(
 def build_compilation_context_from_repo(
     repo: Repository | None,
     *,
-    claim_files: Sequence[ClaimFileEntry] | None = None,
+    claim_files: Sequence[LoadedClaimsFile] | None = None,
     context_ids: set[str] | None = None,
     commit: str | None = None,
 ) -> CompilationContext:

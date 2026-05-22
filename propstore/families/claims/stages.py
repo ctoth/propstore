@@ -10,7 +10,7 @@ from typing import Any
 
 from ast_equiv import canonical_dump
 
-from propstore.claims import ClaimFileEntry
+from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import CompilationContext
 from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.claim_types import ClaimType
@@ -139,14 +139,14 @@ def claim_algorithm_canonical_ast(
 
 @dataclass(frozen=True)
 class ClaimAuthoredFiles:
-    claim_files: tuple[ClaimFileEntry, ...]
+    claim_files: tuple[LoadedClaimsFile, ...]
     context: CompilationContext
     context_ids: frozenset[str] | None = None
 
     @classmethod
     def from_sequence(
         cls,
-        claim_files: Sequence[ClaimFileEntry],
+        claim_files: Sequence[LoadedClaimsFile],
         context: CompilationContext,
         *,
         context_ids: set[str] | None = None,

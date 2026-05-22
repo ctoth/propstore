@@ -9,7 +9,7 @@ from typing import Any
 from quire.references import FamilyReferenceIndex
 
 from propstore.claims import (
-    ClaimFileEntry,
+    LoadedClaimsFile,
     claim_file_claims,
     claim_file_filename,
     claim_file_source_paper,
@@ -62,7 +62,7 @@ def claim_reference_keys(record: ClaimReferenceRecord) -> tuple[str, ...]:
 
 
 def claim_reference_records(
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
 ) -> tuple[ClaimReferenceRecord, ...]:
     records: list[ClaimReferenceRecord] = []
     for claim_file in claim_files:
@@ -75,7 +75,7 @@ def claim_reference_records(
 
 
 def build_claim_file_reference_index(
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
 ) -> FamilyReferenceIndex[ClaimReferenceRecord]:
     return FamilyReferenceIndex.from_records(
         claim_reference_records(claim_files),

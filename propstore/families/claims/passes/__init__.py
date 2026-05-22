@@ -16,7 +16,7 @@ from propstore.core.conditions import check_condition_ir
 from propstore.core.conditions.checked import CheckedCondition, checked_condition_set
 from quire.documents import convert_document_value
 from propstore.claims import (
-    ClaimFileEntry,
+    LoadedClaimsFile,
     claim_file_claims,
     claim_file_filename,
     claim_file_source_paper,
@@ -191,7 +191,7 @@ def _bind_claim(
 
 
 def compile_claim_files(
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
     context: CompilationContext,
     *,
     context_ids: set[str] | None = None,
@@ -521,7 +521,7 @@ def _collect_raw_id_quarantine_records(
 
 
 def validate_claims(
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
     context: CompilationContext,
     context_ids: set[str] | None = None,
 ) -> PipelineResult[object]:

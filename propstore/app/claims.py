@@ -10,6 +10,7 @@ from propstore.families.claims.sidecar_runtime import (
     relate_all_from_sidecar,
     relate_claim_from_sidecar,
 )
+from propstore.claims import LoadedClaimsFile
 from propstore.repository import Repository
 from quire.tree_path import TreePath as KnowledgePath
 
@@ -254,8 +255,14 @@ def validate_claim_files(
 
     try:
         if claims_root is None:
+            tree = repo.tree()
             files = [
-                handle
+                LoadedClaimsFile(
+                    filename=handle.ref.artifact_id,
+                    artifact_path=tree / handle.address.require_path(),
+                    store_root=tree,
+                    document=handle.document,
+                )
                 for handle in repo.families.claims.iter_handles()
             ]
         else:
@@ -342,8 +349,14 @@ def detect_claim_conflicts(
         parse_context_record_document,
     )
 
+    tree = repo.tree()
     files = [
-        handle
+        LoadedClaimsFile(
+            filename=handle.ref.artifact_id,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
+            document=handle.document,
+        )
         for handle in repo.families.claims.iter_handles()
     ]
     if not files:

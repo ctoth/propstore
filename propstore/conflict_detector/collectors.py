@@ -9,7 +9,7 @@ from typing import Any
 
 from eq_equiv import equation_signature
 
-from propstore.claims import ClaimFileEntry, claim_file_claims, claim_file_source_paper
+from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
 
 from .equation_inputs import bound_equation_from_conflict_claim
 from .models import ConflictClaim
@@ -29,7 +29,7 @@ def conflict_claim_from_payload(
 
 
 def conflict_claims_from_claim_files(
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
 ) -> list[ConflictClaim]:
     claims: list[ConflictClaim] = []
     for claim_file in claim_files:

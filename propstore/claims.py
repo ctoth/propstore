@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, TypeAlias
+from typing import Any
 
-from quire.artifacts import ArtifactHandle
 from propstore.families.batch_specs import CLAIM_BATCH_SPEC
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.registry import ClaimRef
 from quire.documents import (
     convert_document_value,
     decode_document_batch_bytes,
@@ -41,11 +39,6 @@ class LoadedClaimsFile(LoadedDocument[ClaimDocument]):
             document=document,
         )
         self.stage = stage
-
-
-ClaimFileEntry: TypeAlias = (
-    LoadedClaimsFile | ArtifactHandle[Any, ClaimRef, ClaimDocument]
-)
 
 
 def load_claim_file(
@@ -142,22 +135,15 @@ def claim_batch_files_from_payload(
     return tuple(loaded)
 
 
-def claim_file_filename(claim_file: ClaimFileEntry) -> str:
-    filename = getattr(claim_file, "filename", None)
-    if isinstance(filename, str):
-        return filename
-    ref = getattr(claim_file, "ref", None)
-    artifact_id = getattr(ref, "artifact_id", None)
-    if isinstance(artifact_id, str):
-        return artifact_id
-    raise TypeError("claim artifact entry has no filename or artifact_id")
+def claim_file_filename(claim_file: LoadedClaimsFile) -> str:
+    return claim_file.filename
 
 
-def claim_file_claims(claim_file: ClaimFileEntry) -> tuple[ClaimDocument, ...]:
+def claim_file_claims(claim_file: LoadedClaimsFile) -> tuple[ClaimDocument, ...]:
     return (claim_file.document,)
 
 
-def claim_file_source_paper(claim_file: ClaimFileEntry) -> str:
+def claim_file_source_paper(claim_file: LoadedClaimsFile) -> str:
     source = claim_file.document.source
     if source is not None:
         return source.paper
@@ -167,11 +153,9 @@ def claim_file_source_paper(claim_file: ClaimFileEntry) -> str:
     return claim_file_filename(claim_file)
 
 
-def claim_file_stage(claim_file: ClaimFileEntry) -> str | None:
-    if isinstance(claim_file, LoadedClaimsFile):
-        return claim_file.stage
-    return None
+def claim_file_stage(claim_file: LoadedClaimsFile) -> str | None:
+    return claim_file.stage
 
 
-def claim_file_payload(claim_file: ClaimFileEntry) -> dict[str, Any]:
+def claim_file_payload(claim_file: LoadedClaimsFile) -> dict[str, Any]:
     return claim_file.document.to_payload()

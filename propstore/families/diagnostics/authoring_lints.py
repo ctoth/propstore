@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 
-from propstore.claims import ClaimFileEntry, claim_file_claims, claim_file_filename
+from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_filename
 from propstore.families.claims.stages import ClaimStage
 from propstore.families.documents.sources import SourceDocument
 from propstore.families.documents.stances import StanceDocument
@@ -17,7 +17,7 @@ def collect_authoring_lints(
     *,
     source_entries: Iterable[tuple[str, SourceDocument]],
     stance_entries: Iterable[tuple[str, StanceDocument]],
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
 ) -> tuple[PassDiagnostic, ...]:
     diagnostics: list[PassDiagnostic] = []
     diagnostics.extend(_lint_sources(source_entries))
@@ -92,7 +92,7 @@ def _lint_stance_files(
 
 
 def _lint_claim_files(
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
 ) -> tuple[PassDiagnostic, ...]:
     diagnostics: list[PassDiagnostic] = []
     for claim_file in claim_files:

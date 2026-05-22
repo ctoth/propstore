@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from quire.documents import DocumentSchemaError
-from propstore.claims import ClaimFileEntry, claim_file_payload
+from propstore.claims import LoadedClaimsFile, claim_file_payload
 from propstore.compiler.context import (
     build_compiler_claim_index,
     build_compilation_context_from_loaded,
@@ -272,7 +272,12 @@ def validate_repository(repo: Repository) -> RepositoryValidationSummary:
     )
 
     files = [
-        handle
+        LoadedClaimsFile(
+            filename=handle.ref.artifact_id,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
+            document=handle.document,
+        )
         for handle in repo.families.claims.iter_handles()
     ]
 
@@ -441,11 +446,19 @@ def build_repository(
     build_messages.extend(form_messages)
     form_registry = form_result.output.registry
 
-    files: list[ClaimFileEntry] = []
+    files: list[LoadedClaimsFile] = []
     claim_schema_messages: list[PassDiagnostic] = []
     for ref in repo.families.claims.iter(commit=hash_key):
         try:
-            files.append(repo.families.claims.require_handle(ref, commit=hash_key))
+            handle = repo.families.claims.require_handle(ref, commit=hash_key)
+            files.append(
+                LoadedClaimsFile(
+                    filename=handle.ref.artifact_id,
+                    artifact_path=tree / handle.address.require_path(),
+                    store_root=tree,
+                    document=handle.document,
+                )
+            )
         except DocumentSchemaError as exc:
             artifact_id = ref.artifact_id
             claim_schema_messages.append(

@@ -6,6 +6,7 @@ import json
 from typing import TYPE_CHECKING, Mapping
 
 from propstore.reporting import JsonReportMixin
+from propstore.claims import LoadedClaimsFile
 from propstore.core.environment import Environment
 from propstore.families.concepts.declaration import Concept, Parameterization
 
@@ -67,8 +68,14 @@ def _check_transitive_consistency(
     from propstore.conflict_detector import detect_transitive_conflicts
     from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 
+    tree = repo.tree()
     claim_files = [
-        handle
+        LoadedClaimsFile(
+            filename=handle.ref.artifact_id,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
+            document=handle.document,
+        )
         for handle in repo.families.claims.iter_handles()
     ]
     concept_registry: dict[str, dict] = {}

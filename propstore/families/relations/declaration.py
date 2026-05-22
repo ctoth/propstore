@@ -9,7 +9,7 @@ from typing import Any
 from quire.charters import FamilyModel
 from quire.references import FamilyReferenceIndex
 
-from propstore.claims import ClaimFileEntry
+from propstore.claims import LoadedClaimsFile
 from propstore.conflict_detector import detect_conflicts, detect_transitive_conflicts
 from propstore.conflict_detector.collectors import conflict_claims_from_claim_files
 from propstore.core.id_types import (
@@ -213,7 +213,7 @@ def compile_claim_embedded_stance_models_for_claims_with_diagnostics(
 
 
 def compile_conflict_witness_models(
-    claim_files: Sequence[ClaimFileEntry],
+    claim_files: Sequence[LoadedClaimsFile],
     concept_registry: dict,
     cel_registry: dict,
     lifting_system=None,

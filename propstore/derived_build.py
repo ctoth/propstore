@@ -32,7 +32,7 @@ from quire.sqlalchemy_store import (
 )
 from quire.sqlite_vec_store import SqlAlchemyVecSnapshotStore
 from sqlalchemy import delete, select
-from propstore.claims import ClaimFileEntry
+from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import (
     build_compilation_context_from_loaded,
 )
@@ -276,7 +276,7 @@ def _build_sidecar_file(
     commit_hash: str | None = None,
     compilation_context: CompilationContext | None = None,
     claim_checked_bundle: ClaimCheckedBundle | None = None,
-    claim_files: tuple[ClaimFileEntry, ...] | None = None,
+    claim_files: tuple[LoadedClaimsFile, ...] | None = None,
     claim_diagnostics: tuple[PassDiagnostic, ...] = (),
     concept_files: tuple[LoadedConcept, ...] | None = None,
     concept_diagnostics: tuple[PassDiagnostic, ...] = (),
@@ -333,7 +333,12 @@ def _build_sidecar_file(
         list(claim_files)
         if claim_files is not None
         else [
-            handle
+            LoadedClaimsFile(
+                filename=handle.ref.artifact_id,
+                artifact_path=tree / handle.address.require_path(),
+                store_root=tree,
+                document=handle.document,
+            )
             for handle in repo.families.claims.iter_handles(commit=commit_hash)
         ]
     )

@@ -7,7 +7,7 @@ from typing import Any
 
 from quire.references import ReferenceResolution as ResolvedReference
 
-from propstore.claims import ClaimFileEntry
+from propstore.claims import LoadedClaimsFile
 from propstore.core.conditions.checked import CheckedConditionSet
 from propstore.families.claims.documents import (
     ClaimDocument,
@@ -47,8 +47,8 @@ class SemanticClaim:
 class SemanticClaimFile:
     """Semantic view of a single authored claim file."""
 
-    loaded_entry: ClaimFileEntry
-    normalized_entry: ClaimFileEntry
+    loaded_entry: LoadedClaimsFile
+    normalized_entry: LoadedClaimsFile
     claims: tuple[SemanticClaim, ...] = ()
 
 
@@ -57,7 +57,7 @@ class ClaimCompilationBundle:
     """The result of compiling authored claim files into semantic IR."""
 
     context: Any
-    normalized_claim_files: tuple[ClaimFileEntry, ...]
+    normalized_claim_files: tuple[LoadedClaimsFile, ...]
     semantic_files: tuple[SemanticClaimFile, ...]
     diagnostics: tuple[PassDiagnostic, ...] = field(default_factory=tuple)
 

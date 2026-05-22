@@ -51,7 +51,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.claims import ClaimFileEntry, claim_file_claims
+from propstore.claims import LoadedClaimsFile, claim_file_claims
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.stages import LoadedConcept
 from propstore.grounding.predicates import (
@@ -66,7 +66,7 @@ class GroundingFactInputs:
     """Typed source bundle for propstore-to-Datalog fact extraction."""
 
     concepts: tuple[LoadedConcept, ...] = ()
-    claim_files: tuple[ClaimFileEntry, ...] = ()
+    claim_files: tuple[LoadedClaimsFile, ...] = ()
 
 
 def extract_facts(
@@ -264,7 +264,7 @@ def _collect_claim_facts(
                 )
 
 
-def _iter_claims(claim_files: Sequence[ClaimFileEntry]) -> tuple[ClaimDocument, ...]:
+def _iter_claims(claim_files: Sequence[LoadedClaimsFile]) -> tuple[ClaimDocument, ...]:
     claims: list[ClaimDocument] = []
     for claim_file in claim_files:
         claims.extend(claim_file_claims(claim_file))

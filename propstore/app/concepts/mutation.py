@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 from propstore.reporting import JsonReportMixin
 from propstore.claims import (
-    ClaimFileEntry,
+    LoadedClaimsFile,
     claim_file_filename,
     claim_file_payload,
     loaded_claim_file_from_payload,
@@ -636,7 +636,7 @@ def _concept_ref(concept_entry: LoadedConcept) -> ConceptFileRef:
     return ConceptFileRef(concept_entry.filename)
 
 
-def _claims_ref(claim_file: ClaimFileEntry) -> ClaimRef:
+def _claims_ref(claim_file: LoadedClaimsFile) -> ClaimRef:
     artifact_id = claim_file.document.artifact_id
     if not isinstance(artifact_id, str) or not artifact_id:
         artifact_id = claim_file_filename(claim_file)
@@ -844,8 +844,14 @@ def _run_concept_validation(
     repo: Repository,
     concepts: list[LoadedConcept],
 ) -> PipelineResult[object]:
+    tree = repo.tree()
     claim_files = [
-        handle
+        LoadedClaimsFile(
+            filename=handle.ref.artifact_id,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
+            document=handle.document,
+        )
         for handle in repo.families.claims.iter_handles()
     ]
     return run_concept_pipeline(
@@ -1123,8 +1129,14 @@ def rename_concept(
             )
         )
 
+    claim_tree = repo.tree()
     claim_files = [
-        handle
+        LoadedClaimsFile(
+            filename=handle.ref.artifact_id,
+            artifact_path=claim_tree / handle.address.require_path(),
+            store_root=claim_tree,
+            document=handle.document,
+        )
         for handle in repo.families.claims.iter_handles()
     ]
     concept_validation = _run_concept_validation(
@@ -1140,7 +1152,7 @@ def rename_concept(
         for warning in concept_validation.warnings
     ]
 
-    updated_claim_files: list[tuple[ClaimRef, ClaimFileEntry]] = []
+    updated_claim_files: list[tuple[ClaimRef, LoadedClaimsFile]] = []
     changed_claim_refs: set[ClaimRef] = set()
     if claim_files:
         for claim_file in claim_files:
