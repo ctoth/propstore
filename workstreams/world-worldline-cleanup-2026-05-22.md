@@ -129,7 +129,7 @@ Gate results:
 - Log: `logs/test-runs/world-override-value-cleanup-20260522-024009.log`.
 
 Commit:
-- Pending.
+- `19510167 Delete override value coercer`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
