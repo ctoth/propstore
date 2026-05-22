@@ -690,6 +690,42 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with the next
   `propstore/world` file.
 
+## Iteration 31 - `propstore/world/actual_cause.py`
+
+Slice read:
+- `propstore/world/actual_cause.py`
+- current `actual_cause` callers.
+
+Surfaces:
+- `actual_cause`, `ActualCauseVerdict`, `ActualCauseWitness`,
+  `EnumerationExceeded`
+  - Disposition: keep.
+  - Owner after cleanup: `propstore.world.actual_cause` owns modified-HP
+    actual-cause evaluation over `InterventionWorld` and
+    `StructuralCausalModel`.
+  - Evidence: the file uses typed SCM/intervention/value surfaces, has no
+    `Any`, no dict/payload parser, no compatibility branch, no fallback
+    reader, and no duplicate field metadata.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/actual_cause.py` returned zero
+  hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-actual-cause-keep tests/test_actual_cause_suzy_billy.py
+  tests/test_actual_cause_minimality.py tests/test_actual_cause_forest_fire.py
+  tests/test_actual_cause_witness_budget.py tests/test_actual_cause_voting.py
+  tests/test_intervention_world_public_surface.py` returned `10 passed`.
+- Log:
+  `logs/test-runs/world-actual-cause-keep-20260522-043352.log`.
+
+Commit:
+- Record world actual-cause keep decision.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/assignment_selection_policy.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
