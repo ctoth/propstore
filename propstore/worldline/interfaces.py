@@ -22,12 +22,14 @@ class HasBindings(Protocol):
 
 @runtime_checkable
 class HasEnvironment(Protocol):
-    _environment: Environment
+    @property
+    def environment(self) -> Environment: ...
 
 
 @runtime_checkable
 class HasLiftingSystem(Protocol):
-    _lifting_system: LiftingSystem | None
+    @property
+    def lifting_system(self) -> LiftingSystem | None: ...
 
 
 @runtime_checkable

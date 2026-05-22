@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime, timezone
-from typing import Any
 
 from propstore.core.id_types import (
     ConceptId,
@@ -15,7 +14,12 @@ from propstore.policies import policy_profile_from_render_policy
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
-from propstore.worldline.interfaces import HasEnvironment, HasLiftingSystem, WorldlineStore
+from propstore.worldline.interfaces import (
+    HasEnvironment,
+    HasLiftingSystem,
+    WorldlineBoundView,
+    WorldlineStore,
+)
 from propstore.worldline.result_types import (
     WorldlineCaptureError,
     WorldlineArgumentationState,
@@ -171,7 +175,7 @@ def run_worldline(
 
 def _capture_sensitivity(
     world: WorldlineStore,
-    bound: Any,
+    bound: WorldlineBoundView,
     target_map: dict[str, ConceptId],
     values: dict[str, WorldlineTargetValue],
     override_concept_ids: dict[ConceptId, float | str],
@@ -218,7 +222,7 @@ def _capture_sensitivity(
 
 
 def _context_dependencies(
-    bound: Any,
+    bound: WorldlineBoundView,
     context_id: ContextId | None,
 ) -> list[str]:
     if not context_id:
@@ -226,13 +230,13 @@ def _context_dependencies(
 
     dependencies = [str(context_id)]
     if isinstance(bound, HasEnvironment):
-        for assumption in bound._environment.effective_assumptions:
+        for assumption in bound.environment.effective_assumptions:
             dependencies.append(f"assumption:{assumption}")
     return dependencies
 
 
 def _lifting_dependencies(
-    bound: Any,
+    bound: WorldlineBoundView,
     world: WorldlineStore,
     context_id: ContextId | None,
 ) -> tuple[list[str], list[str]]:
@@ -241,10 +245,10 @@ def _lifting_dependencies(
 
     if not isinstance(bound, HasEnvironment):
         return [], []
-    if not isinstance(bound, HasLiftingSystem) or bound._lifting_system is None:
+    if not isinstance(bound, HasLiftingSystem) or bound.lifting_system is None:
         return [], []
-    environment = bound._environment
-    lifting_system = bound._lifting_system
+    environment = bound.environment
+    lifting_system = bound.lifting_system
 
     from propstore.context_lifting import IstProposition, LiftingDecisionStatus
     from propstore.core.assertions.refs import ContextReference

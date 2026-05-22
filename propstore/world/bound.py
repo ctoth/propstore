@@ -251,6 +251,14 @@ class BoundWorld(BeliefSpace):
             concept_symbol_candidates=self._concept_symbol_candidates,
         )
 
+    @property
+    def environment(self) -> Environment:
+        return self._environment
+
+    @property
+    def lifting_system(self) -> LiftingSystem | None:
+        return self._lifting_system
+
     def _normalize_claim_id_set(self, claim_ids: Sequence[str]) -> set[str]:
         return {str(claim_id) for claim_id in claim_ids}
 

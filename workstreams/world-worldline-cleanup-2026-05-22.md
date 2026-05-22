@@ -171,6 +171,57 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/runner.py`.
 
+## Iteration 21 - `propstore/worldline/runner.py`
+
+Slice read:
+- `propstore/worldline/runner.py`
+- `propstore/worldline/interfaces.py`
+- `propstore/world/bound.py`
+- current `_environment`, `_lifting_system`, and `Any` hits in runner and
+  worldline interfaces.
+
+Surfaces:
+- runner helper `bound: Any`
+  - Disposition: rewrite.
+  - Owner after cleanup: `WorldlineBoundView` is the runner's bound-world type.
+  - Action: type `_capture_sensitivity`, `_context_dependencies`, and
+    `_lifting_dependencies` with `WorldlineBoundView`.
+- `HasEnvironment._environment` and `HasLiftingSystem._lifting_system`
+  - Disposition: delete.
+  - Owner after cleanup: `BoundWorld.environment` and
+    `BoundWorld.lifting_system` public properties expose the semantic state
+    that worldline dependency capture needs.
+  - Action: add those properties to `BoundWorld`, update worldline protocols,
+    and update runner dependency capture to use public properties.
+  - Evidence: the previous protocols made private attributes part of the
+    worldline contract instead of asking the bound-world owner for the required
+    semantic state.
+
+Gate results:
+- Pass: `rg -n -F -- "_environment"
+  propstore/worldline/runner.py propstore/worldline/interfaces.py` returned
+  zero hits.
+- Pass: `rg -n -F -- "_lifting_system"
+  propstore/worldline/runner.py propstore/worldline/interfaces.py` returned
+  zero hits.
+- Pass: `rg -n -F -- "Any" propstore/worldline/runner.py` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-runner-bound-properties tests/test_worldline.py
+  tests/test_worldline_revision.py tests/test_capture_journal.py
+  tests/test_worldline_hash_width.py
+  tests/test_worldline_hash_excludes_transient_errors.py
+  tests/test_worldline_praf.py tests/test_worldline_properties.py
+  tests/test_lifting_blocked_in_provenance.py` returned `95 passed`.
+- Log: `logs/test-runs/worldline-runner-bound-properties-20260522-034611.log`.
+
+Commit:
+- Expose bound worldline dependency state through properties.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/revision_types.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
