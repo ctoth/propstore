@@ -64,5 +64,5 @@ def test_claim_file_stage_split_is_preserved(tmp_path) -> None:
 
     claim_file = load_claim_files(tmp_path)[0]
 
-    assert getattr(claim_file, "stage") == "draft"
+    assert claim_file.stage == "draft"
     assert claim_file.document.stage == AlgorithmStage("inference")

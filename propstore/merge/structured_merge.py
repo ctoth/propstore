@@ -7,7 +7,6 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from quire.documents import LoadedDocument
 from propstore.core.id_types import (
     ClaimId,
     JustificationId,
@@ -18,7 +17,7 @@ from propstore.families.relations.declaration import Stance
 from propstore.stances import coerce_stance_type
 from argumentation.dung import ArgumentationFramework
 from propstore.aspic_bridge import build_aspic_projection
-from propstore.claims import claim_file_claims
+from propstore.claims import LoadedClaimsFile, claim_file_claims
 from propstore.merge.merge_claims import MergeClaim
 from propstore.storage.snapshot import RepositorySnapshot
 from propstore.structured_projection import StructuredProjection
@@ -316,8 +315,8 @@ def _load_branch_claims(snapshot: RepositorySnapshot, commit: str | None) -> lis
     return active_claims
 
 
-def _claim_entry(claim: MergeClaim) -> LoadedDocument:
-    return LoadedDocument(
+def _claim_entry(claim: MergeClaim) -> LoadedClaimsFile:
+    return LoadedClaimsFile(
         filename=claim.artifact_id,
         artifact_path=None,
         store_root=None,
@@ -325,7 +324,7 @@ def _claim_entry(claim: MergeClaim) -> LoadedDocument:
     )
 
 
-def _semantic_claim(claim: MergeClaim, entry: LoadedDocument) -> SemanticClaim:
+def _semantic_claim(claim: MergeClaim, entry: LoadedClaimsFile) -> SemanticClaim:
     return SemanticClaim(
         filename=entry.filename,
         source_paper=claim.provenance_payload().get("paper", claim.artifact_id),

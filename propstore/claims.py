@@ -19,7 +19,30 @@ from quire.documents import (
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path
 from quire.documents import LoadedDocument
 
-LoadedClaimsFile: TypeAlias = LoadedDocument[ClaimDocument]
+
+class LoadedClaimsFile(LoadedDocument[ClaimDocument]):
+    """Loaded canonical claim document plus file-level claim metadata."""
+
+    stage: str | None
+
+    def __init__(
+        self,
+        *,
+        filename: str,
+        artifact_path: KnowledgePath | Path | None = None,
+        store_root: KnowledgePath | Path | None = None,
+        document: ClaimDocument,
+        stage: str | None = None,
+    ) -> None:
+        super().__init__(
+            filename=filename,
+            artifact_path=artifact_path,
+            store_root=store_root,
+            document=document,
+        )
+        self.stage = stage
+
+
 ClaimFileEntry: TypeAlias = (
     LoadedClaimsFile | ArtifactHandle[Any, ClaimRef, ClaimDocument]
 )
@@ -30,10 +53,16 @@ def load_claim_file(
     *,
     knowledge_root: KnowledgePath | Path | None = None,
 ) -> LoadedClaimsFile:
-    return load_document(
+    loaded = load_document(
         path,
         ClaimDocument,
         store_root=knowledge_root,
+    )
+    return LoadedClaimsFile(
+        filename=loaded.filename,
+        artifact_path=loaded.artifact_path,
+        store_root=loaded.store_root,
+        document=loaded.document,
     )
 
 
@@ -55,7 +84,7 @@ def loaded_claim_file_from_payload(
         source_payload = data.get("source")
         if isinstance(source_payload, dict) and "source" not in claim_payload:
             claim_payload["source"] = source_payload
-    return LoadedDocument(
+    return LoadedClaimsFile(
         filename=filename,
         artifact_path=source_path,
         store_root=knowledge_root,
@@ -102,14 +131,13 @@ def claim_batch_files_from_payload(
 
     loaded: list[LoadedClaimsFile] = []
     for index, document in enumerate(documents, start=1):
-        claim_file = LoadedDocument(
+        claim_file = LoadedClaimsFile(
             filename=f"{filename}#{index}",
             artifact_path=source_path,
             store_root=knowledge_root,
             document=document,
+            stage=stage if isinstance(stage, str) else None,
         )
-        if isinstance(stage, str):
-            setattr(claim_file, "stage", stage)
         loaded.append(claim_file)
     return tuple(loaded)
 
@@ -140,8 +168,9 @@ def claim_file_source_paper(claim_file: ClaimFileEntry) -> str:
 
 
 def claim_file_stage(claim_file: ClaimFileEntry) -> str | None:
-    stage = getattr(claim_file, "stage", None)
-    return stage if isinstance(stage, str) else None
+    if isinstance(claim_file, LoadedClaimsFile):
+        return claim_file.stage
+    return None
 
 
 def claim_file_payload(claim_file: ClaimFileEntry) -> dict[str, Any]:

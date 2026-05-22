@@ -56,8 +56,52 @@ Gate results:
   `0 errors, 0 warnings, 0 informations`.
 
 Commit:
-- Pending.
+- `90b0c8a9 Delete duplicate claim loaded source path`
 
 Next slice:
 - Delete or replace file-level `stage` attachment after proving the correct
   owner for claim file-level stage metadata.
+
+## Iteration 2 - `claim loaded-document file stage`
+
+Slice read:
+- `propstore/claims.py`
+- `quire/documents/loaded.py`
+- `propstore/families/batch_specs.py`
+- `propstore/families/claims/documents.py`
+- `propstore/families/claims/passes/__init__.py`
+- `propstore/families/claims/declaration.py`
+- `propstore/merge/structured_merge.py`
+- `tests/test_algorithm_stage_types.py`
+
+Surfaces:
+- `setattr(claim_file, "stage", stage)`
+  - Classification: IO boundary carrier metadata, not a claim document field.
+  - Disposition: rewrite.
+  - Owner after cleanup: explicit `LoadedClaimsFile.stage`.
+  - Action: converted `LoadedClaimsFile` from a type alias into an explicit
+    loaded claim document carrier with a `stage` field; updated claim loading,
+    claim batch decoding, claim stage access, the stage split test, and
+    structured merge's synthetic claim entry construction.
+  - Evidence: top-level batch `stage` is distinct from `ClaimDocument.stage`,
+    which is algorithm stage; `tests/test_algorithm_stage_types.py` asserts
+    that split.
+
+Gate results:
+- Pass: `rg -n -F -- 'setattr(claim_file, "stage"' propstore tests`
+  returned zero matches.
+- Pass: `rg -n -F -- 'getattr(claim_file, "stage"' propstore tests`
+  returned zero matches.
+- Pass:
+  `powershell -File scripts/run_logged_pytest.ps1 tests/test_algorithm_stage_types.py tests/test_world_query.py::TestTransitiveConsistency::test_no_transitive_when_compatible tests/test_merge_symmetry_non_claim_files.py`
+  returned `5 passed`; `LOG_PATH=logs\test-runs\pytest-20260522-003019.log`.
+- Pass: `uv run pyright propstore` returned
+  `0 errors, 0 warnings, 0 informations`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Delete or replace `ClaimFileEntry` and the `claim_file_*` helper family after
+  classifying which callers should accept `LoadedClaimsFile` and which should
+  accept Quire `ArtifactHandle` directly.
