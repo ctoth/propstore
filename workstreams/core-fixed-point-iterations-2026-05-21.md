@@ -223,3 +223,68 @@ Derived file disposition:
 Next slice:
 
 - Continue with `propstore/core/aliases.py`.
+
+## Iteration 4 - `propstore/core/aliases.py`
+
+Slice files read:
+
+- `propstore/core/aliases.py`
+- `propstore/app/compiler.py` as the only production caller
+- `propstore/families/concepts/stages.py` as the typed concept-record owner
+- `propstore/families/identity/logical_ids.py` as the old dict helper used by
+  the slice
+- Alias export CLI and git-backend tests
+
+Actions executed:
+
+- `propstore/core/aliases.py`
+  - Decision: `delete`.
+  - Final owner: `propstore.app.compiler`.
+  - Edit: removed the core module.
+  - Reason: alias export is repository-bound app/compiler workflow code, not a
+    core semantic type. Keeping it in core forced core to import repository and
+    family-stage surfaces.
+  - Gates: `Test-Path propstore/core/aliases.py` is false and
+    `rg -n -F -- "propstore.core.aliases" propstore tests` is zero-hit after
+    the edit.
+
+- `export_concept_aliases`
+  - Decision: `move`.
+  - Final owner: `propstore.app.compiler.export_aliases`.
+  - Edit: removed the extra helper and implemented the export loop directly in
+    the app owner.
+  - Reason: the public owner API is already `export_aliases`; a second core
+    helper was only a misplaced wrapper.
+  - Gate: `rg -n -F -- "export_concept_aliases" propstore tests` is zero-hit
+    after the edit.
+
+- Alias export payload inspection
+  - Decision: `rewrite`.
+  - Final owner: typed `ConceptRecord`.
+  - Edit: app export now uses `parse_concept_record_document`,
+    `record.primary_logical_id`, `record.canonical_name`, and
+    `record.aliases` directly.
+  - Reason: the old code converted the typed concept record back to a payload
+    dict and then used a dict-shaped logical-id helper.
+
+Gate results:
+
+- Pass: deleted-file gate for `propstore/core/aliases.py`.
+- Pass: old import gate for `propstore.core.aliases` is zero-hit.
+- Pass: old helper gate for `export_concept_aliases` is zero-hit.
+- Pass: `uv run pyright propstore` completed with 0 errors, 0 warnings, 0
+  informations.
+- Pass:
+  `powershell -File scripts/run_logged_pytest.ps1 tests/test_cli.py::TestExportAliases::test_export_aliases_json tests/test_cli.py::TestExportAliases::test_export_aliases_text tests/test_git_backend.py::test_export_aliases_reads_git_head_not_worktree`
+  completed with 3 passed. Log:
+  `logs/test-runs/pytest-20260521-224402.log`.
+
+Derived file disposition:
+
+- `propstore/core/aliases.py`: `delete-file`.
+- `propstore/app/compiler.py`: `rewrite`; owns the repository-bound alias export
+  workflow and uses typed concept records.
+
+Next slice:
+
+- Continue with `propstore/core/analyzers.py`.

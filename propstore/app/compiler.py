@@ -5,13 +5,25 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Mapping
 
-from propstore.core.aliases import AliasExportEntry
+from propstore.families.concepts.stages import parse_concept_record_document
 from propstore.repository import Repository
 
 
 @dataclass(frozen=True)
 class AliasExportRequest:
     pass
+
+
+@dataclass(frozen=True)
+class AliasExportEntry:
+    logical_id: str
+    name: str
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "logical_id": self.logical_id,
+            "name": self.name,
+        }
 
 
 def validate_repository(repo: Repository):
@@ -36,6 +48,13 @@ def build_repository(
 
 
 def export_aliases(repo: Repository) -> Mapping[str, AliasExportEntry]:
-    from propstore.core.aliases import export_concept_aliases
-
-    return export_concept_aliases(repo)
+    aliases: dict[str, AliasExportEntry] = {}
+    for handle in repo.families.concepts.iter_handles():
+        record = parse_concept_record_document(handle.document)
+        logical_id = record.primary_logical_id or record.canonical_name
+        for alias in record.aliases:
+            aliases[alias.name] = AliasExportEntry(
+                logical_id=str(logical_id),
+                name=record.canonical_name,
+            )
+    return aliases
