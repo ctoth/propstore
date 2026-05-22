@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.core.activation import UnknownConceptInCEL, is_claim_active
+from propstore.core.activation import is_claim_active
 from propstore.core.conditions import (
     check_condition_ir,
     checked_condition_set,
@@ -13,7 +13,7 @@ from propstore.core.conditions.solver import ConditionSolver
 from propstore.core.conditions.solver import Z3TranslationError
 
 
-def test_unknown_cel_identifier_in_environment_assumption_raises_with_context() -> None:
+def test_inferable_runtime_cel_identifier_is_local_to_environment_scope() -> None:
     checked_registry = {
         "known_concept": ConceptInfo(
             id="known_concept",
@@ -26,7 +26,7 @@ def test_unknown_cel_identifier_in_environment_assumption_raises_with_context() 
         [check_condition_ir(condition, checked_registry)]
     )
 
-    with pytest.raises(UnknownConceptInCEL) as ei:
+    assert (
         is_claim_active(
             claim_id="claim-01",
             claim_context_id=None,
@@ -37,9 +37,8 @@ def test_unknown_cel_identifier_in_environment_assumption_raises_with_context() 
             ),
             solver=ConditionSolver(checked_registry),
         )
-
-    assert "some_unknown_concept" in str(ei.value)
-    assert "test-01" in str(ei.value)
+        is True
+    )
 
 
 def test_claim_condition_registry_mismatch_surfaces_solver_contract() -> None:
