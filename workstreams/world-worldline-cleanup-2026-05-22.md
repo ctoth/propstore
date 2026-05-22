@@ -1017,6 +1017,69 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/intervention.py`.
 
+## Iteration 36A - `propstore/world/conflict_projection.py`
+
+Slice read:
+- `propstore/world/conflict_projection.py`
+- `propstore/world/bound.py`
+- `propstore/world/consistency.py`
+- `propstore/conflict_detector/__init__.py`
+- `propstore/conflict_detector/orchestrator.py`
+- `propstore/families/concepts/declaration.py`
+- `tests/test_world_bound_conflicts_cache.py`
+
+Surfaces:
+- `ConflictDetectorInputs`
+  - Disposition: keep.
+  - Owner after cleanup: `propstore.world.conflict_projection` owns the typed
+    cache carrier for the world-to-conflict-detector projection.
+  - Action: no code change; this is not a compatibility adapter. It is the
+    boundary object that prevents `BoundWorld` from rebuilding the concept and
+    CEL registries on every conflict query.
+  - Evidence: `BoundWorld` stores exactly this typed carrier in
+    `_conflict_inputs_cache`; tests assert the cache is per-bound-world and not
+    shared with overlays.
+- `concept_registry_for_world` and `conflict_detector_inputs_for_world`
+  - Disposition: keep.
+  - Owner after cleanup: this module owns projection from world/family rows to
+    the current conflict-detector API.
+  - Action: no code change; the loose `dict[str, dict]` is confined to the
+    conflict-detector boundary because `detect_conflicts` and
+    `detect_transitive_conflicts` currently require that registry shape.
+  - Evidence: the field knowledge is sourced from
+    `Concept.conflict_detector_payload()` and
+    `Parameterization.conflict_detector_payload()`, not restated in this
+    module; production callers are only `BoundWorld` conflict recomputation and
+    world consistency transitive checking.
+
+Gate results:
+- Pass: `rg -n -F -- "coerce" propstore/world/conflict_projection.py`
+  returned zero hits.
+- Pass: `rg -n -F -- "normalize" propstore/world/conflict_projection.py`
+  returned zero hits.
+- Pass: `rg -n -F -- "fallback" propstore/world/conflict_projection.py`
+  returned zero hits.
+- Pass: `rg -n -F -- "legacy" propstore/world/conflict_projection.py`
+  returned zero hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world/conflict_projection.py`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-conflict-projection-keep tests/test_world_bound_conflicts_cache.py
+  tests/test_world_query.py::TestConflictResolution
+  tests/test_world_query.py::TestTransitiveConsistency
+  tests/test_cli.py::TestWorldCommandsKeepConnectionOpen` returned
+  `47 passed, 7 warnings`.
+- Log: `logs/test-runs/world-conflict-projection-keep-20260522-062646.log`.
+
+Commit:
+- Recorded by this workstream-only commit.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with the next
+  current `propstore.world`/`propstore.worldline` file not yet given a direct
+  file disposition.
+
 ## Iteration 37 - `propstore/world/intervention.py`
 
 Slice read:
