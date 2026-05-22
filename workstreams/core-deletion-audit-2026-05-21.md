@@ -565,7 +565,43 @@ commit message body:
     metadata, or perform compatibility bridging.
   - Required follow-up: none from deletion rules.
 
+- [x] `propstore/core/lemon/temporal.py`
+  - Read: 2026-05-21.
+  - Action: keep Allen/Lemon temporal semantics; rewrite fake condition-registry
+    construction and raw IDs.
+  - Reason: Allen relations over description temporal anchors are real Lemon
+    semantics. The implementation builds synthetic `ConceptInfo` records with
+    fake `ps:concept:*` IDs solely to run the condition solver, and
+    `DescriptionTemporalAnchor.claim_id` is a bare string.
+  - Required follow-up: replace the fake concept registry with either typed
+    interval relation math or explicit non-concept condition bindings from the
+    condition owner. Use typed claim/description IDs instead of raw strings.
+
+- [x] `propstore/core/lemon/types.py`
+  - Read: 2026-05-21.
+  - Action: keep Lemon lexical entry/sense domain model; tighten role bundle
+    collection typing if needed.
+  - Reason: this file is semantic Lemon modeling, not storage plumbing or
+    compatibility code. The main loose point is
+    `role_bundles: Mapping[str, ProtoRoleBundle] | None`, where arbitrary
+    string role names are validated only as non-empty text.
+  - Required follow-up: if role names are a known vocabulary, carry that
+    vocabulary in the type. If they are intentionally open lexical roles, keep
+    the text validation and document the openness.
+
+- [x] `propstore/core/literal_keys.py`
+  - Read: 2026-05-21.
+  - Action: keep ASPIC literal key domain objects; delete raw string claim-key
+    surface.
+  - Reason: the file defines typed literal identity keys grounded in the ASPIC
+    literature. `IstLiteralKey` carries `ContextId` and `ClaimId`, but
+    `ClaimLiteralKey.claim_id` and `claim_key(claim_id: str, context_id:
+    ContextId | str)` allow raw strings at the semantic boundary.
+  - Required follow-up: remove unused `ClaimLiteralKey` if caller audit confirms
+    `IstLiteralKey` is the canonical claim literal. Change `claim_key` to accept
+    `ClaimId` and `ContextId` after boundary parsing.
+
 ## Progress
 
-- Files read: 42 / 51.
-- Next file: `propstore/core/lemon/temporal.py`.
+- Files read: 45 / 51.
+- Next file: `propstore/core/reasoning.py`.
