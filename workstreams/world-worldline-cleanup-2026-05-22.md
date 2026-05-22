@@ -139,7 +139,7 @@ Gate results:
 - Log: `logs/test-runs/world-conflict-claim-typed-cleanup-20260522-024740.log`.
 
 Commit:
-- Pending.
+- `12d28516 Use typed conflict claims in world`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
