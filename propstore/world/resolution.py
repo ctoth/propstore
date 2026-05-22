@@ -9,9 +9,8 @@ from __future__ import annotations
 
 import json
 import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import cast
 
 from propstore.core.environment import AuthoredJustificationStore, StanceStore
 from propstore.core.id_types import (
@@ -181,10 +180,7 @@ def _display_claim_id(store: WorldStore | None, claim_id: str | None) -> str | N
         return None
     if store is None:
         return claim_id
-    getter = getattr(store, "get_claim", None)
-    if not callable(getter):
-        return claim_id
-    claim = cast(Callable[[str], Claim | None], getter)(claim_id)
+    claim = store.get_claim(claim_id)
     if claim is not None:
         primary_logical_id = claim.primary_logical_id
         if isinstance(primary_logical_id, str) and primary_logical_id:
@@ -339,7 +335,7 @@ def _resolve_structured_argumentation(
         return None, "ASPIC backend requires a grounded bundle-capable store"
 
     active_ids = {str(_claim_id(claim)) for claim in active_claims}
-    active_graph = view._active_graph if isinstance(view, HasActiveGraph) else None
+    active_graph = view.active_graph if isinstance(view, HasActiveGraph) else None
     bundle = world.grounding_bundle()
     if active_graph is None:
         has_stance_surface = isinstance(world, StanceStore)
@@ -725,7 +721,7 @@ def resolve(
     winner_id: str | None = None
     reason: str | None = None
     _acceptance_probs: dict[str, float] | None = None
-    active_graph = view._active_graph if isinstance(view, HasActiveGraph) else None
+    active_graph = view.active_graph if isinstance(view, HasActiveGraph) else None
 
     if strategy == ResolutionStrategy.OVERRIDE:
         override_map = {} if overrides is None else overrides

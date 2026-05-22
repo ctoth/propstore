@@ -1315,6 +1315,61 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/resolution.py`.
 
+## Iteration 43 - `propstore/world/resolution.py`
+
+Slice read:
+- `propstore/world/resolution.py`
+- `propstore/world/types.py` `HasActiveGraph`
+- `propstore/app/world_reasoning.py` active-graph access
+- current `HasActiveGraph`, `_active_graph`, dynamic store lookup, and
+  resolution test callers.
+
+Surfaces:
+- `HasActiveGraph` private `_active_graph` protocol
+  - Disposition: delete.
+  - Owner after cleanup: bound/overlay belief spaces expose
+    `active_graph` as a public semantic property.
+  - Action: change `propstore.world.types.HasActiveGraph` to require the
+    public `active_graph` property, update resolution and app reasoning
+    callers to use it, and remove production reads of `view._active_graph`
+    and `bound._active_graph`.
+  - Evidence: resolution should not make a bound-world private cache field
+    part of the runtime protocol when the owner already exposes the semantic
+    graph publicly.
+- dynamic `WorldStore.get_claim` lookup in `_display_claim_id`
+  - Disposition: delete.
+  - Owner after cleanup: `WorldStore` owns `get_claim`.
+  - Action: call `store.get_claim` directly and remove the local
+    `getattr`/`Callable`/`cast` path.
+
+Gate results:
+- Pass: `rg -n -F -- "view._active_graph" propstore/world/resolution.py`
+  returned zero hits.
+- Pass: `rg -n -F -- "bound._active_graph" propstore/app/world_reasoning.py
+  propstore/world/resolution.py` returned zero hits.
+- Pass: `rg -n -F -- "_active_graph: WorldActivationGraph"
+  propstore/world/types.py` returned zero hits.
+- Pass: `rg -n -F -- "getattr(store" propstore/world/resolution.py` returned
+  zero hits.
+- Pass: `rg -n -F -- "Callable" propstore/world/resolution.py` returned zero
+  hits.
+- Pass: `rg -n -F -- "Any" propstore/world/resolution.py` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-resolution-public-active-graph tests/test_resolution_helpers.py
+  tests/test_world_query.py tests/test_ws_f_aspic_bridge.py
+  tests/test_pignistic_vs_smets_kennes_1994.py tests/test_reasoning_demo_cli.py
+  tests/test_cli_layout.py` returned `225 passed`.
+- Log:
+  `logs/test-runs/world-resolution-public-active-graph-20260522-052738.log`.
+
+Commit:
+- Use public active graph in resolution.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/scm.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

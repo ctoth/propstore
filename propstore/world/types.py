@@ -1117,7 +1117,8 @@ class HasATMSEngine(Protocol):
 
 @runtime_checkable
 class HasActiveGraph(Protocol):
-    _active_graph: WorldActivationGraph | None
+    @property
+    def active_graph(self) -> WorldActivationGraph | None: ...
 
 
 @runtime_checkable

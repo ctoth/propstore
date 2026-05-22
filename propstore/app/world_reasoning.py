@@ -405,7 +405,7 @@ def _active_graph_for(bound: object) -> WorldActivationGraph | None:
     from propstore.world.types import HasActiveGraph
 
     if isinstance(bound, HasActiveGraph):
-        return bound._active_graph
+        return bound.active_graph
     return None
 
 
