@@ -337,6 +337,47 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/result_types.py`.
 
+## Iteration 24 - `propstore/worldline/result_types.py`
+
+Slice read:
+- `propstore/worldline/result_types.py`
+- `tests/test_worldline_result_boundaries.py`
+- current `from_json_payload` and `Any` hits in result types.
+
+Surfaces:
+- `WorldlineInputSource.from_json_payload`, `WorldlineTargetValue.from_json_payload`,
+  and `WorldlineStep.from_json_payload` raw `value` reads
+  - Disposition: rewrite.
+  - Owner after cleanup: `WorldlineScalarValue` owns worldline scalar values;
+    `_worldline_scalar_value` enforces that boundary once.
+  - Action: reject mapping/list/bool values before constructing typed result
+    objects, and add focused boundary tests for all three value-bearing result
+    types.
+  - Evidence: the dataclass fields were already typed as scalar values, but the
+    document loader passed raw `data.get("value")` through without checking the
+    shape.
+- remaining `Any` in this file
+  - Disposition: keep for IO/document helpers and JSON serialization only.
+  - Evidence: remaining hits are `from_json_payload` input mappings,
+    `to_dict` JSON dictionaries, and `_json_native` serialization of nested
+    typed reports.
+
+Gate results:
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-result-types-scalar-boundary tests/test_worldline_result_boundaries.py
+  tests/test_worldline.py tests/test_worldline_hash_excludes_transient_errors.py
+  tests/test_worldline_revision.py` returned `68 passed`.
+- Log:
+  `logs/test-runs/worldline-result-types-scalar-boundary-20260522-040056.log`.
+
+Commit:
+- Validate worldline result scalar values.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/resolution.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

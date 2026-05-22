@@ -17,6 +17,16 @@ from propstore.world.types import (
 WorldlineScalarValue = float | str | None
 
 
+def _worldline_scalar_value(value: object, *, field: str) -> WorldlineScalarValue:
+    if value is None or isinstance(value, str):
+        return value
+    if isinstance(value, bool):
+        raise ValueError(f"{field} must be a string or number")
+    if isinstance(value, (int, float)):
+        return value
+    raise ValueError(f"{field} must be a string or number")
+
+
 def _optional_mapping(value: Any, *, field: str) -> Mapping[str, Any]:
     if value is None:
         return {}
@@ -108,7 +118,7 @@ class WorldlineInputSource:
     def from_json_payload(cls, data: Mapping[str, Any]) -> WorldlineInputSource:
         return cls(
             source=str(data.get("source") or "unknown"),
-            value=data.get("value"),
+            value=_worldline_scalar_value(data.get("value"), field="value"),
             claim_id=None if data.get("claim_id") is None else str(data.get("claim_id")),
             formula=None if data.get("formula") is None else str(data.get("formula")),
             reason=None if data.get("reason") is None else str(data.get("reason")),
@@ -185,7 +195,7 @@ class WorldlineTargetValue:
         }
         return cls(
             status=str(data.get("status") or "underspecified"),
-            value=data.get("value"),
+            value=_worldline_scalar_value(data.get("value"), field="value"),
             source=None if data.get("source") is None else str(data.get("source")),
             reason=None if data.get("reason") is None else str(data.get("reason")),
             claim_id=None if data.get("claim_id") is None else str(data.get("claim_id")),
@@ -261,7 +271,7 @@ class WorldlineStep:
         return cls(
             concept=str(data.get("concept") or ""),
             source=str(data.get("source") or "unknown"),
-            value=data.get("value"),
+            value=_worldline_scalar_value(data.get("value"), field="value"),
             claim_id=None if data.get("claim_id") is None else str(data.get("claim_id")),
             strategy=None if data.get("strategy") is None else str(data.get("strategy")),
             reason=None if data.get("reason") is None else str(data.get("reason")),
