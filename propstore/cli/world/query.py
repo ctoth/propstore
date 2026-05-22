@@ -30,6 +30,7 @@ from propstore.cli.world import (
     parse_world_binding_args,
     world,
 )
+from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.repository import Repository
 
 
@@ -276,7 +277,10 @@ def world_algorithms(
     repo: Repository = obj["repo"]
     report = run_world_algorithms(
         repo,
-        AppWorldAlgorithmsRequest(stage=stage, concept=concept),
+        AppWorldAlgorithmsRequest(
+            stage=None if stage is None else AlgorithmStage(stage),
+            concept=concept,
+        ),
     )
 
     if fmt == "json":

@@ -13,6 +13,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
+from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.id_types import ContextId
 from propstore.app.rendering import AppRenderPolicyRequest, build_render_policy
 from propstore.repository import Repository
@@ -91,7 +92,7 @@ class AppWorldExplainRequest:
 
 @dataclass(frozen=True)
 class AppWorldAlgorithmsRequest:
-    stage: str | None = None
+    stage: AlgorithmStage | None = None
     concept: str | None = None
 
 

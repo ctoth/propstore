@@ -6,7 +6,7 @@ import yaml
 
 from propstore.families.claims.documents import ClaimDocument
 from tests.family_helpers import load_claim_files
-from propstore.core.algorithm_stage import AlgorithmStage, to_algorithm_stage
+from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.documents.sources import SourceClaimDocument
 from propstore.families.world_charters import world_charter_catalog
 from tests.claim_model_helpers import claim_model
@@ -28,7 +28,7 @@ def test_algorithm_stage_annotations_cover_runtime_path() -> None:
 
 
 def test_typed_claim_carries_algorithm_stage() -> None:
-    stage = to_algorithm_stage("excitation")
+    stage = AlgorithmStage("excitation")
     claim = claim_model(
         claim_id="ps:claim:test",
         algorithm_stage=stage,
@@ -65,4 +65,4 @@ def test_claim_file_stage_split_is_preserved(tmp_path) -> None:
     claim_file = load_claim_files(tmp_path)[0]
 
     assert getattr(claim_file, "stage") == "draft"
-    assert claim_file.document.stage == to_algorithm_stage("inference")
+    assert claim_file.document.stage == AlgorithmStage("inference")

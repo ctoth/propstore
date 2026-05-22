@@ -161,3 +161,65 @@ Derived file disposition:
 Next slice:
 
 - Continue with `propstore/core/algorithm_stage.py`.
+
+## Iteration 3 - `propstore/core/algorithm_stage.py`
+
+Slice files read:
+
+- `propstore/core/algorithm_stage.py`
+- `propstore/world/queries.py` as the owner-layer caller of the stage filter
+- `propstore/app/world.py` as the app request boundary
+- `propstore/cli/world/query.py` as the CLI string parsing boundary
+- `tests/test_algorithm_stage_types.py` and owner/CLI algorithm tests
+
+Actions executed:
+
+- `to_algorithm_stage`
+  - Decision: `delete`.
+  - Final owner: `AlgorithmStage` type constructor.
+  - Edit: removed the helper and updated tests to use `AlgorithmStage(...)`
+    directly.
+  - Reason: the helper duplicated what the type already carries.
+  - Gate: `rg -n -F -- "to_algorithm_stage" propstore tests` is zero-hit
+    after the edit.
+
+- `coerce_algorithm_stage`
+  - Decision: `delete`.
+  - Final owner: CLI request parsing and typed request objects.
+  - Edit: removed the helper, changed `WorldAlgorithmsRequest.stage` and
+    `AppWorldAlgorithmsRequest.stage` to `AlgorithmStage | None`, and converted
+    the CLI `--stage` string with `AlgorithmStage(stage)` at the presentation
+    boundary.
+  - Reason: owner-layer world queries should receive the typed stage value, not
+    coerce loose objects at runtime.
+  - Gate: `rg -n -F -- "coerce_algorithm_stage" propstore tests` is zero-hit
+    after the edit.
+
+Gate results:
+
+- Pass: old helper gates for `to_algorithm_stage` and
+  `coerce_algorithm_stage` are zero-hit.
+- Pass: `uv run pyright propstore` completed with 0 errors, 0 warnings, 0
+  informations.
+- Pass:
+  `powershell -File scripts/run_logged_pytest.ps1 tests/test_algorithm_stage_types.py`
+  completed with 3 passed. Log:
+  `logs/test-runs/pytest-20260521-224127.log`.
+- Pass:
+  `powershell -File scripts/run_logged_pytest.ps1 tests/test_cli.py::TestWorldOwnerReports::test_owner_algorithms_report_empty_when_none tests/test_cli.py::TestWorldOwnerReports::test_world_algorithms_cli_reports_empty_inventory`
+  completed with 2 passed. Log:
+  `logs/test-runs/pytest-20260521-224158.log`.
+
+Derived file disposition:
+
+- `propstore/core/algorithm_stage.py`: `rewrite`; the file now contains only
+  the branded semantic type.
+- `propstore/world/queries.py`: `rewrite`; stage filter consumes typed request
+  data directly.
+- `propstore/app/world.py`: `rewrite`; app request carries the typed stage.
+- `propstore/cli/world/query.py`: `rewrite`; CLI parses command text into the
+  typed request.
+
+Next slice:
+
+- Continue with `propstore/core/aliases.py`.

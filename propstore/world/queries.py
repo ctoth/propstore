@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Mapping
 
+from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.reporting import JsonReportMixin
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept, ConceptSearchQuerySyntaxError
@@ -175,7 +176,7 @@ class WorldExplainReport(JsonReportMixin):
 
 @dataclass(frozen=True)
 class WorldAlgorithmsRequest:
-    stage: str | None = None
+    stage: AlgorithmStage | None = None
     concept: str | None = None
 
 
@@ -576,22 +577,16 @@ def list_world_algorithms(
     world: WorldQuery,
     request: WorldAlgorithmsRequest,
 ) -> WorldAlgorithmsReport:
-    from propstore.core.algorithm_stage import coerce_algorithm_stage
     from propstore.core.claim_types import ClaimType
 
     claims = list(world.claims_for(None))
     algorithms = [claim for claim in claims if claim.type is ClaimType.ALGORITHM]
-    stage_filter = (
-        coerce_algorithm_stage(request.stage)
-        if request.stage is not None
-        else None
-    )
-    if stage_filter is not None:
+    if request.stage is not None:
         algorithms = [
             claim
             for claim in algorithms
             if claim.algorithm_payload is not None
-            and claim.algorithm_payload.algorithm_stage == stage_filter
+            and claim.algorithm_payload.algorithm_stage == request.stage
         ]
     if request.concept:
         algorithms = [
