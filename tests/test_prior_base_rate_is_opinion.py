@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import json
-
 from quire.documents import convert_document_value
 
 from propstore.families.claims.types import ClaimType
-from propstore.core.claim_values import SourceTrust
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.families.documents.sources import SourceDocument
@@ -54,19 +51,6 @@ def test_source_model_serializes_prior_base_rate_as_opinion_payload() -> None:
     prior_payload = models[0].trust.prior_base_rate
 
     assert prior_payload == PRIOR_PAYLOAD
-
-
-def test_claim_row_source_trust_round_trips_prior_opinion() -> None:
-    trust = SourceTrust.from_json_payload(
-        {
-            "prior_base_rate": json.dumps(PRIOR_PAYLOAD),
-            "derived_from": json.dumps(["rule:demo"]),
-        }
-    )
-
-    assert trust is not None
-    assert trust.prior_base_rate == Opinion(**PRIOR_PAYLOAD)
-    assert trust.to_dict()["prior_base_rate"] == PRIOR_PAYLOAD
 
 
 def test_praf_uses_prior_opinion_without_float_coercion() -> None:

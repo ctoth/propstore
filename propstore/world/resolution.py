@@ -7,13 +7,13 @@ is only relevant when the strategy is ARGUMENTATION.
 
 from __future__ import annotations
 
+import json
 import math
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import cast
 
 from propstore.core.environment import AuthoredJustificationStore, StanceStore
-from propstore.core.claim_values import ClaimProvenance
 from propstore.core.id_types import (
     ClaimId,
     ConceptId,
@@ -39,6 +39,80 @@ from propstore.world.types import (
     apply_decision_criterion,
     validate_backend_semantics,
 )
+
+
+def _parse_provenance_payload(raw: object) -> Mapping[str, object]:
+    if raw is None or raw == "":
+        return {}
+    if isinstance(raw, Mapping):
+        return dict(raw)
+    if not isinstance(raw, str):
+        raise ValueError("claim provenance must be a mapping or JSON object")
+    try:
+        loaded = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise ValueError("claim provenance must be valid JSON") from exc
+    if not isinstance(loaded, Mapping):
+        raise ValueError("claim provenance JSON must decode to a mapping")
+    return dict(loaded)
+
+
+@dataclass(frozen=True)
+class ClaimProvenance:
+    paper: str | None = None
+    page: int | None = None
+    payload: Mapping[str, object] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "payload", dict(self.payload or {}))
+
+    @classmethod
+    def from_components(
+        cls,
+        *,
+        paper: str | None = None,
+        page: int | None = None,
+        provenance_json: object = None,
+    ) -> ClaimProvenance | None:
+        payload = _parse_provenance_payload(provenance_json)
+        resolved_paper = paper
+        if resolved_paper is None and isinstance(payload.get("paper"), str):
+            resolved_paper = str(payload["paper"])
+        resolved_page = page
+        page_value = payload.get("page")
+        if resolved_page is None and page_value is not None:
+            if isinstance(page_value, bool):
+                raise ValueError("claim provenance page must be an integer")
+            if isinstance(page_value, int):
+                resolved_page = page_value
+            elif isinstance(page_value, str):
+                resolved_page = int(page_value)
+            else:
+                raise ValueError("claim provenance page must be an integer")
+        provenance = cls(
+            paper=resolved_paper,
+            page=resolved_page,
+            payload=payload,
+        )
+        return None if provenance.is_empty else provenance
+
+    @property
+    def is_empty(self) -> bool:
+        return self.paper is None and self.page is None and not self.payload
+
+    def to_dict(self) -> dict[str, object]:
+        data = dict(self.payload)
+        if self.paper is not None:
+            data["paper"] = self.paper
+        if self.page is not None:
+            data["page"] = self.page
+        return data
+
+    def to_json(self) -> str | None:
+        data = self.to_dict()
+        if not data:
+            return None
+        return json.dumps(data, sort_keys=True)
 
 
 @dataclass(frozen=True)

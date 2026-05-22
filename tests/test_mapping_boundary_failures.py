@@ -1,6 +1,5 @@
 import pytest
 
-from propstore.core.claim_values import ClaimProvenance
 from propstore.core.environment import Environment
 from propstore.core.graph_types import WorldActivationGraph
 from propstore.support_revision.explanation_types import RevisionExplanation
@@ -13,6 +12,7 @@ from propstore.world.types import (
     RenderPolicy,
     integrity_constraint_from_dict,
 )
+from propstore.world.resolution import ClaimProvenance
 from propstore.worldline.definition import WorldlineInputs, WorldlineResult
 from propstore.worldline.revision_types import (
     RevisionConflictSelection,
