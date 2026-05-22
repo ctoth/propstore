@@ -141,7 +141,7 @@ def _recomputed_conflicts(
     """
 
     from propstore.conflict_detector import detect_conflicts
-    from propstore.conflict_detector.collectors import conflict_claim_from_payload
+    from propstore.conflict_detector.collectors import conflict_claim_from_claim
 
     if len(claims) < 2:
         return []
@@ -151,11 +151,7 @@ def _recomputed_conflicts(
     conflict_claims = [
         conflict_claim
         for active_claim in claims
-        if (
-            conflict_claim := conflict_claim_from_payload(
-                active_claim.to_source_claim_payload()
-            )
-        ) is not None
+        if (conflict_claim := conflict_claim_from_claim(active_claim)) is not None
     ]
     if precomputed_inputs is None:
         concept_registry, cel_registry = _conflict_inputs_for_store(world)

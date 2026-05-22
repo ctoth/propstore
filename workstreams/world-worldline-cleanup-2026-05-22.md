@@ -99,6 +99,51 @@ Commit:
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
 
+## Iteration 12 - `propstore/world/bound.py::conflict_claim_from_payload`
+
+Slice read:
+- `propstore/world/bound.py`
+- `propstore/conflict_detector/collectors.py`
+- `propstore/conflict_detector/models.py`
+- `propstore/families/claims/declaration.py`
+- current `from_payload` hits from literal search.
+
+Surfaces:
+- `world.bound` calling `conflict_claim_from_payload(active_claim.to_source_claim_payload())`
+  - Disposition: rewrite.
+  - Owner after cleanup: conflict detector owns typed `Claim` to
+    `ConflictClaim` collection; world passes `Claim` objects and does not
+    round-trip through loose source payload dictionaries.
+  - Action: add `conflict_claim_from_claim` in the conflict detector owner and
+    update world conflict revalidation to use it.
+  - Evidence: `world.bound` already has typed `Claim` rows. Building a source
+    payload inside the runtime path only to parse it back into
+    `ConflictClaim` is duplicate IO-shape plumbing.
+
+Gate results:
+- Pass: `rg -n -F -- "from_payload" propstore/world propstore/worldline`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Initial logged gate failed with an import cycle from a runtime import of the
+  `Claim` family declaration; the collector was changed to use a type-only
+  import and claim type values.
+- A second logged gate selected invalid test nodes and ran zero tests;
+  corrected gate below was used.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-conflict-claim-typed-cleanup
+  tests/test_world_query.py::TestUnboundQueries::test_conflicts
+  tests/test_world_query.py::TestHypothesisProperties::test_bound_conflicts_remain_structured
+  tests/test_world_query.py::TestConflictsCaching::test_conflicts_cached
+  tests/test_conflict_detector.py::TestConflictRegistryProjection::test_conflict_same_conditions_different_values`
+  returned `4 passed`.
+- Log: `logs/test-runs/world-conflict-claim-typed-cleanup-20260522-024740.log`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Continue world/worldline fixed-point search after this gate.
+
 ## Iteration 11 - `fallback` wording in world runtime
 
 Slice read:
