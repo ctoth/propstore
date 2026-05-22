@@ -10,9 +10,8 @@ Per design section 7 + 11 (Phase 3 properties):
 - P-HEAVY-3: cache hits/misses are observable.
 
 The heavy path requires ``snapshot.scope.commit`` (enforced by the
-scope_policy require= rule). For property tests, the synthetic belief
-space implements a minimal commit registry: scope.commit identifies a
-named registered fixture; ``replay_at_step`` looks it up.
+scope_policy require= rule). Property tests exercise the same belief-space
+query and historical-query surfaces as production replay.
 """
 
 from __future__ import annotations
@@ -39,10 +38,7 @@ from propstore.support_revision.snapshot_types import (
 )
 from propstore.support_revision.state import AssertionAtom, RevisionScope
 from propstore.world.journal_projection import at_journal_step
-from propstore.world.journal_replay import (
-    HeavyCacheStats,
-    register_fixture_commit,
-)
+from propstore.world.journal_replay import HeavyCacheStats
 from tests.fixtures.journal import (
     SyntheticBeliefSpace,
     make_assertion_atom,
@@ -134,7 +130,6 @@ def test_p_heavy_1_parity_on_stance_free_input() -> None:
     )
     space = synthetic_belief_space_with(atom)
     commit_sha = "a" * 40
-    register_fixture_commit(commit_sha, claim_ids=frozenset(), stances=())
     journal = _build_heavy_journal(atoms=(atom,), commit_sha=commit_sha)
 
     light = at_journal_step(space, journal, 0, heavy=False)
@@ -148,32 +143,30 @@ def test_p_heavy_2_heavy_surfaces_stances_minimal_does_not() -> None:
         relation_local="r",
         subject="s",
         value="v",
-        source_claim_local_ids=("c1",),
+        source_claim_local_ids=("c1", "c2"),
     )
     space = synthetic_belief_space_with(atom)
     commit_sha = "b" * 40
-    extra_row = space.add_claim("c2")
     fake_stance = Stance(
         source_kind="claim",
         source_id=str(_claim_id("c1")),
         relation_type=str(StanceType.SUPPORTS),
         target_kind="claim",
-        target_id=str(ClaimId(extra_row.id)),
+        target_id=str(_claim_id("c2")),
     )
     fake_conflict = ConflictWitness(
         claim_a_id=_claim_id("c1"),
-        claim_b_id=ClaimId(extra_row.id),
+        claim_b_id=_claim_id("c2"),
     )
-    register_fixture_commit(
-        commit_sha,
-        claim_ids=frozenset({str(extra_row.id)}),
-        stances=(fake_stance,),
-        conflicts=(fake_conflict,),
+    heavy_space = SyntheticHeavyBeliefSpace(
+        rows=space.rows,
+        stance_rows=(fake_stance,),
+        conflict_rows=(fake_conflict,),
     )
     journal = _build_heavy_journal(atoms=(atom,), commit_sha=commit_sha)
 
     light = at_journal_step(space, journal, 0, heavy=False)
-    heavy = at_journal_step(space, journal, 0, heavy=True)
+    heavy = at_journal_step(heavy_space, journal, 0, heavy=True)
     assert light.stances == ()
     assert light.conflicts == ()
     assert heavy.stances == (fake_stance,)
@@ -264,7 +257,6 @@ def test_p_heavy_3_cache_hits_misses_are_observable() -> None:
     )
     space = synthetic_belief_space_with(atom)
     commit_sha = "c" * 40
-    register_fixture_commit(commit_sha, claim_ids=frozenset(), stances=())
     journal = _build_heavy_journal(atoms=(atom,), commit_sha=commit_sha)
 
     journal_replay.reset_cache()

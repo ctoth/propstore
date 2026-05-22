@@ -1107,6 +1107,51 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/journal_replay.py`.
 
+## Iteration 39 - `propstore/world/journal_replay.py`
+
+Slice read:
+- `propstore/world/journal_replay.py`
+- `tests/test_p_heavy.py`
+- journal projection tests.
+
+Surfaces:
+- `_FixtureCommit`, `_FIXTURE_REGISTRY`, and `register_fixture_commit`
+  - Disposition: delete.
+  - Owner after cleanup: none in production; tests exercise the real
+    belief-space query and historical-query protocols directly.
+  - Action: remove production fixture registration and the fixture lookup
+    branch; update heavy replay tests to use `SyntheticHeavyBeliefSpace` and
+    `SyntheticHistoricalBeliefSpace`.
+  - Evidence: the fixture registry was explicitly for property testing and
+    made production replay carry a test-only alternate commit path.
+- heavy replay cache and `_HistoricalQuerySpace`
+  - Disposition: keep.
+  - Owner after cleanup: `propstore.world.journal_replay` owns cached
+    commit-scoped replay over the supplied belief-space query surface.
+
+Gate results:
+- Pass: `rg -n -F -- "register_fixture_commit" propstore tests` returned zero
+  hits.
+- Pass: `rg -n -F -- "_FIXTURE_REGISTRY" propstore tests` returned zero hits.
+- Pass: `rg -n -F -- "_FixtureCommit" propstore tests` returned zero hits.
+- Pass: `rg -n -F -- "Any" propstore/world/journal_replay.py` returned zero
+  hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-journal-replay-fixture-deletion tests/test_p_heavy.py
+  tests/test_world_query_at_journal_step.py
+  tests/test_world_query_at_journal_step_method.py tests/test_scope_policy.py`
+  returned `15 passed`.
+- Log:
+  `logs/test-runs/world-journal-replay-fixture-deletion-20260522-050649.log`.
+
+Commit:
+- Delete journal replay fixture registry.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/model.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
