@@ -19,7 +19,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field, replace
 from collections.abc import Iterable, Mapping, Sequence
 from itertools import combinations, product
-from typing import TYPE_CHECKING, Any, Callable, Protocol, TypeGuard, TypeVar, cast, runtime_checkable
+from typing import TYPE_CHECKING, Callable, Protocol, TypeGuard, TypeVar, cast, runtime_checkable
 
 from propstore.core.activation import activate_compiled_world_graph
 from propstore.core.conditions import (
@@ -95,6 +95,7 @@ from propstore.world.types import (
     ATMSWhyOutReport,
     Environment,
     QueryableAssumption,
+    RenderPolicy,
     ValueStatus,
     ValueResult,
 )
@@ -145,11 +146,20 @@ class _ATMSRuntimeLike(Protocol):
 
 @runtime_checkable
 class _ATMSBoundLike(Protocol):
-    _environment: Environment
-    _active_graph: WorldActivationGraph | None
-    _store: WorldStore
-    _lifting_system: LiftingSystem | None
-    _policy: Any
+    @property
+    def environment(self) -> Environment: ...
+
+    @property
+    def active_graph(self) -> WorldActivationGraph | None: ...
+
+    @property
+    def store(self) -> WorldStore: ...
+
+    @property
+    def lifting_system(self) -> LiftingSystem | None: ...
+
+    @property
+    def policy(self) -> RenderPolicy | None: ...
 
     def is_param_compatible(self, parameterization: Parameterization) -> bool: ...
     def active_claims(self, concept_id: str | None = None) -> list[Claim]: ...
@@ -159,7 +169,7 @@ class _ATMSBoundLike(Protocol):
         self,
         environment: Environment,
         *,
-        policy: Any = None,
+        policy: RenderPolicy | None = None,
     ) -> "_ATMSBoundLike": ...
 
 
@@ -307,15 +317,6 @@ class _ATMSRuntime:
     claim_support: Callable[[Claim], tuple[Label | None, SupportQuality]]
     concept_status: Callable[[str], ValueStatus]
     replay: Callable[[tuple[QueryableAssumption, ...]], "_ATMSRuntime"]
-
-    @property
-    def _environment(self) -> Environment:
-        return self.environment
-
-    @property
-    def _active_graph(self) -> WorldActivationGraph:
-        return self.active_graph
-
 
 @dataclass(frozen=True)
 class _FutureReplay:
@@ -469,13 +470,13 @@ def _extend_environment(
 
 
 def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
-    active_graph = bound._active_graph
+    active_graph = bound.active_graph
     if active_graph is None:
         active_graph = activate_compiled_world_graph(
-            build_compiled_world_graph(bound._store),
-            environment=bound._environment,
-            solver=bound._store.condition_solver(),
-            lifting_system=bound._lifting_system,
+            build_compiled_world_graph(bound.store),
+            environment=bound.environment,
+            solver=bound.store.condition_solver(),
+            lifting_system=bound.lifting_system,
         )
 
     def _active_claims() -> list[Claim]:
@@ -501,27 +502,27 @@ def _runtime_from_bound(bound: _ATMSBoundLike) -> _ATMSRuntime:
         ]
 
     def _all_micropublications() -> list[Micropublication]:
-        if isinstance(bound._store, MicropublicationCatalogStore):
-            return list(bound._store.all_micropublications())
+        if isinstance(bound.store, MicropublicationCatalogStore):
+            return list(bound.store.all_micropublications())
         return []
 
     def _replay(queryable_set: tuple[QueryableAssumption, ...]) -> _ATMSRuntime:
-        future_environment = _extend_environment(bound._environment, queryable_set)
+        future_environment = _extend_environment(bound.environment, queryable_set)
         future_bound = bound.rebind(
             environment=future_environment,
-            policy=bound._policy,
+            policy=bound.policy,
         )
         return _runtime_from_bound(future_bound)
 
     return _ATMSRuntime(
-        environment=bound._environment,
+        environment=bound.environment,
         active_graph=active_graph,
         all_parameterizations=_all_parameterizations,
         active_claims=_active_claims,
         conflicts=_conflicts,
         is_param_compatible=lambda parameterization: bound.is_param_compatible(parameterization),
-        condition_registry=bound._store.condition_solver().registry,
-        condition_solver=bound._store.condition_solver,
+        condition_registry=bound.store.condition_solver().registry,
+        condition_solver=bound.store.condition_solver,
         all_micropublications=_all_micropublications,
         claim_support=lambda claim: bound.claim_support(claim),
         concept_status=lambda concept_id: bound.value_of(concept_id).status,
@@ -1239,7 +1240,7 @@ class ATMSEngine:
         *,
         queryables: Sequence[QueryableAssumption] | None = None,
         future_limit: int = 8,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         claim_inspections = {
             str(claim.id): self.claim_status(str(claim.id))
             for claim in self._runtime.active_claims()
@@ -2691,7 +2692,7 @@ class ATMSEngine:
         )
 
     @classmethod
-    def _serialize_inspection(cls, inspection: ATMSInspection) -> dict[str, Any]:
+    def _serialize_inspection(cls, inspection: ATMSInspection) -> dict[str, object]:
         return {
             "node_id": inspection.node_id,
             "claim_id": inspection.claim_id,
@@ -2705,7 +2706,7 @@ class ATMSEngine:
         }
 
     @classmethod
-    def _serialize_future_report(cls, report: ATMSFutureStatusReport) -> dict[str, Any]:
+    def _serialize_future_report(cls, report: ATMSFutureStatusReport) -> dict[str, object]:
         return {
             "node_id": report.node_id,
             "claim_id": report.claim_id,
@@ -2739,7 +2740,7 @@ class ATMSEngine:
         }
 
     @classmethod
-    def _serialize_why_out(cls, report: ATMSWhyOutReport) -> dict[str, Any]:
+    def _serialize_why_out(cls, report: ATMSWhyOutReport) -> dict[str, object]:
         return {
             "node_id": report.node_id,
             "claim_id": report.claim_id,
@@ -2758,7 +2759,7 @@ class ATMSEngine:
     def _serialize_future_entry(
         cls,
         future: ATMSNodeFutureStatusEntry | ATMSConceptFutureStatusEntry,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         result = {
             "queryable_ids": list(future.queryable_ids),
             "queryable_cels": list(future.queryable_cels),
@@ -2782,7 +2783,7 @@ class ATMSEngine:
     @staticmethod
     def _serialize_relevance_state(
         state: ATMSNodeRelevanceState | ATMSConceptRelevanceState,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         return {
             "queryable_ids": list(state.queryable_ids),
             "queryable_cels": list(state.queryable_cels),
@@ -2795,7 +2796,7 @@ class ATMSEngine:
     def _serialize_stability_report(
         cls,
         report: ATMSNodeStabilityReport | ATMSConceptStabilityReport,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         serialized = {
             "stable": report.stable,
             "limit": report.limit,
@@ -2820,7 +2821,7 @@ class ATMSEngine:
     def _serialize_relevance_report(
         cls,
         report: ATMSNodeRelevanceReport | ATMSConceptRelevanceReport,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         serialized = {
             "relevant_queryables": list(report.relevant_queryables),
             "irrelevant_queryables": list(report.irrelevant_queryables),
@@ -2851,7 +2852,7 @@ class ATMSEngine:
     def _serialize_intervention_plan(
         cls,
         plan: ATMSNodeInterventionPlan | ATMSConceptInterventionPlan,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         serialized = {
             "target": plan.target,
             "queryable_ids": list(plan.queryable_ids),
@@ -2882,7 +2883,7 @@ class ATMSEngine:
     def _serialize_next_query_suggestion(
         cls,
         suggestion: ATMSNextQuerySuggestion,
-    ) -> dict[str, Any]:
+    ) -> dict[str, object]:
         return {
             "queryable_id": suggestion.queryable_id,
             "queryable_cel": suggestion.queryable_cel,

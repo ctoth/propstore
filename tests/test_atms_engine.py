@@ -268,22 +268,22 @@ class _GraphOnlyATMSRuntime:
         from propstore.core.activation import activate_compiled_world_graph
         from propstore.core.graph_build import build_compiled_world_graph
 
-        self.environment = bound._environment
+        self.environment = bound.environment
         self.active_graph = (
-            bound._active_graph
-            if bound._active_graph is not None
+            bound.active_graph
+            if bound.active_graph is not None
             else activate_compiled_world_graph(
-                build_compiled_world_graph(bound._store),
-                environment=bound._environment,
-                solver=bound._store.condition_solver(),
-                lifting_system=bound._lifting_system,
+                build_compiled_world_graph(bound.store),
+                environment=bound.environment,
+                solver=bound.store.condition_solver(),
+                lifting_system=bound.lifting_system,
             )
         )
         self._bound = bound
-        self.condition_registry = bound._store.condition_solver().registry
+        self.condition_registry = bound.store.condition_solver().registry
 
     def condition_solver(self):
-        return self._bound._store.condition_solver()
+        return self._bound.store.condition_solver()
 
     @staticmethod
     def _claim_node_to_claim(claim_node) -> Claim:
@@ -393,7 +393,7 @@ class _GraphOnlyATMSRuntime:
             key, value = parsed
             bindings[key] = value
         future_bound = _make_bound(
-            self._bound._store,
+            self._bound.store,
             bindings=bindings,
             context_id=self.environment.context_id,
             effective_assumptions=tuple(self.environment.effective_assumptions),
@@ -435,7 +435,7 @@ def test_atms_propagates_combined_support_to_derived_node() -> None:
     bound = _make_bound(store, bindings={"x": 1, "y": 2})
     assumption_ids = {
         assumption.cel: assumption.assumption_id
-        for assumption in bound._environment.assumptions
+        for assumption in bound.environment.assumptions
     }
 
     result = bound.derived_value("concept3")
@@ -686,7 +686,7 @@ def test_atms_reconstructs_exact_support_for_context_scoped_claim_with_matching_
     )
     assumption_id = next(
         assumption.assumption_id
-        for assumption in bound._environment.assumptions
+        for assumption in bound.environment.assumptions
         if assumption.cel == "framework == 'general'"
     )
 
@@ -781,7 +781,7 @@ def test_atms_essential_support_intersection_and_environment_queries_are_exact()
 
     assumption_ids = {
         assumption.cel: assumption.assumption_id
-        for assumption in bound._environment.assumptions
+        for assumption in bound.environment.assumptions
     }
     derived_node_id = engine._derived_node_id("concept3", derived.value)
     essential_support = engine.essential_support(derived_node_id)
@@ -1136,7 +1136,7 @@ def test_atms_cli_surfaces_status_context_and_verify(monkeypatch) -> None:
             return None
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
+    monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
 
@@ -1176,7 +1176,7 @@ def test_world_extensions_cli_rejects_atms_backend_explicitly(monkeypatch) -> No
             return None
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
+    monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
     result = runner.invoke(cli, ["world", "extensions", "--backend", "atms"])
@@ -1250,7 +1250,7 @@ def test_run5_future_audit_pins_rebuilt_bound_world_substrate() -> None:
     assert future_engine._bound is not bound
     assert any(
         assumption.assumption_id == queryable.assumption_id
-        for assumption in future_engine._bound._environment.assumptions
+        for assumption in future_engine._bound.environment.assumptions
     )
     assert future_report.queryable_ids == (queryable.assumption_id,)
     assert future_report.queryable_cels == ("y == 2",)
@@ -1276,7 +1276,7 @@ def test_future_engine_includes_queryable_bindings_in_environment() -> None:
     queryable = QueryableAssumption.from_cel("y == 2")
 
     future_engine = engine._future_engine((queryable,))
-    future_bindings = future_engine._bound._environment.bindings
+    future_bindings = future_engine._bound.environment.bindings
 
     # The original binding must survive
     assert future_bindings.get("x") == 1
@@ -1309,7 +1309,7 @@ def test_run7_future_audit_queryables_are_additive_only() -> None:
     )
     current_assumption_ids = {
         assumption.cel: assumption.assumption_id
-        for assumption in bound._environment.assumptions
+        for assumption in bound.environment.assumptions
     }
     future_queryable = QueryableAssumption.from_cel("y == 2")
 
@@ -1567,7 +1567,7 @@ def test_atms_claim_interventions_and_next_queries_are_minimal() -> None:
     suggestions = bound.claim_next_queryables("claim_future", queryables, ATMSNodeStatus.IN, limit=8)
     current_assumption_ids = {
         assumption.cel: assumption.assumption_id
-        for assumption in bound._environment.assumptions
+        for assumption in bound.environment.assumptions
     }
     future_queryable = QueryableAssumption.from_cel("y == 2")
 
@@ -1933,7 +1933,7 @@ def test_atms_cli_surfaces_future_analysis(monkeypatch) -> None:
             return None
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
+    monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
 
@@ -2011,7 +2011,7 @@ def test_atms_cli_surfaces_interventions_and_next_queries(monkeypatch) -> None:
             return None
 
     monkeypatch.setattr("propstore.repository.Repository.find", lambda start=None: FakeRepo())
-    monkeypatch.setattr("propstore.world.WorldQuery", FakeWorldQuery)
+    monkeypatch.setattr("propstore.world.model.WorldQuery", FakeWorldQuery)
 
     runner = CliRunner()
 

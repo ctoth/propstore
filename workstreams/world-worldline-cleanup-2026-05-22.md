@@ -772,6 +772,63 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/atms.py`.
 
+## Iteration 33 - `propstore/world/atms.py`
+
+Slice read:
+- `propstore/world/atms.py`
+- `propstore/world/bound.py`
+- `tests/test_atms_engine.py`
+
+Surfaces:
+- `_ATMSBoundLike` private `BoundWorld` attribute protocol
+  - Disposition: rewrite.
+  - Owner after cleanup: public `BoundWorld` properties expose the typed
+    runtime substrate needed by ATMS without making ATMS depend on private
+    storage attributes.
+  - Action: add `BoundWorld.store` and `BoundWorld.policy`, use existing
+    `BoundWorld.environment`, `BoundWorld.lifting_system`, and
+    `BoundWorld.active_graph`, and remove the `_ATMSRuntime` private
+    compatibility properties.
+  - Evidence: the ATMS runtime can be built from typed world surfaces; private
+    `_environment`, `_store`, `_active_graph`, `_lifting_system`, and `_policy`
+    access preserved an implementation-detail dependency.
+- `Any` serializer and boundary annotations in `propstore/world/atms.py`
+  - Disposition: rewrite.
+  - Owner after cleanup: ATMS typed reports own their runtime fields; JSON-like
+    presentation dictionaries are object-valued only at the serialization
+    boundary.
+  - Action: replace `dict[str, Any]` return types with `dict[str, object]` and
+    delete the `Any` import from the ATMS module.
+- ATMS tests patching the old `propstore.world.WorldQuery` package barrel and
+  inspecting private `BoundWorld` attributes
+  - Disposition: rewrite.
+  - Owner after cleanup: tests target the concrete `propstore.world.model`
+    owner for monkeypatching and the public `BoundWorld` substrate properties
+    for runtime assertions.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/atms.py` returned zero hits.
+- Pass: `rg -n -F -- "bound._" propstore/world/atms.py
+  tests/test_atms_engine.py` returned zero hits.
+- Pass: `rg -n -F -- "propstore.world.WorldQuery"
+  tests/test_atms_engine.py propstore/world/atms.py` returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-atms-public-bound-surface-rerun tests/test_atms_engine.py
+  tests/test_atms_max_iterations_anytime.py
+  tests/remediation/phase_8_dos_anytime/test_T8_4_atms_build_termination_guard.py
+  tests/test_worldline.py::TestWorldlineRunner tests/test_worldline_revision.py`
+  returned `57 passed`.
+- Log:
+  `logs/test-runs/world-atms-public-bound-surface-rerun-20260522-044242.log`.
+
+Commit:
+- Use public ATMS bound surface.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/bound.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

@@ -263,6 +263,14 @@ class BoundWorld(BeliefSpace):
     def active_graph(self) -> WorldActivationGraph | None:
         return self._active_graph
 
+    @property
+    def store(self) -> WorldStore:
+        return self._store
+
+    @property
+    def policy(self) -> RenderPolicy | None:
+        return self._policy
+
     def _normalize_claim_id_set(self, claim_ids: Sequence[str]) -> set[str]:
         return {str(claim_id) for claim_id in claim_ids}
 
