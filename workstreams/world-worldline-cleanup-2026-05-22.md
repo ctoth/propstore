@@ -94,7 +94,7 @@ Gate results:
 - Log: `logs/test-runs/world-atms-queryable-name-cleanup-20260522-022454.log`.
 
 Commit:
-- Pending.
+- `987912a4 Rename ATMS future query helper`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
