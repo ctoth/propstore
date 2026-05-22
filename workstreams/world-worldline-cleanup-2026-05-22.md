@@ -133,7 +133,7 @@ Gate results:
 - Log: `logs/test-runs/world-derived-exactness-cleanup-20260522-023715.log`.
 
 Commit:
-- Pending.
+- `100f8bd2 Require typed derived exactness`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
