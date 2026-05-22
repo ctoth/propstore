@@ -2927,6 +2927,9 @@ contracts:
     - name: operator
       required: true
       type: str | None
+    - name: merge_operator
+      required: true
+      type: str | None
     - name: profile_atom_ids
       required: true
       type: tuple[tuple[str, ...], ...]
