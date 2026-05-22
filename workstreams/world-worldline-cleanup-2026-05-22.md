@@ -135,7 +135,7 @@ Gate results:
 - Log: `logs/test-runs/world-merge-operator-cleanup-20260522-025738.log`.
 
 Commit:
-- Pending.
+- `4f9726dd Use typed merge operators`
 
 Next slice:
 - Continue world/worldline fixed-point search after this gate.
