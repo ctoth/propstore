@@ -230,6 +230,49 @@ Commit:
 Next slice:
 - Rerun full package gates for the world/worldline cleanup batch.
 
+## Iteration 17 - final package gates
+
+Slice read:
+- `propstore/world`
+- `propstore/worldline`
+- `workstreams/world-worldline-cleanup-2026-05-22.md`
+
+Surfaces:
+- final `world/worldline` forbidden-surface gates
+  - Disposition: keep.
+  - Owner after cleanup: typed runtime world/worldline APIs and exact
+    IO/document/app parsing boundaries.
+  - Evidence: old helper/coercion/fallback/payload search gates are clean
+    inside the world/worldline runtime slice; remaining broad `normalize_`
+    hits were classified in Iteration 15.
+- full package runtime gate
+  - Disposition: keep.
+  - Owner after cleanup: package-level tests prove the changed runtime and
+    document boundaries work with the rest of propstore.
+  - Evidence: full logged pytest rerun passed after the full-gate regression
+    fix slice.
+
+Gate results:
+- Pass: `rg -n -F -- "coerce" propstore/world propstore/worldline` returned
+  zero hits.
+- Pass: `rg -n -F -- "fallback" propstore/world propstore/worldline`
+  returned zero hits.
+- Pass: `rg -n -F -- "legacy" propstore/world propstore/worldline` returned
+  zero hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world propstore/worldline`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-worldline-cleanup-full-rerun` returned `3518 passed, 4 skipped,
+  30 warnings`.
+- Log: `logs/test-runs/world-worldline-cleanup-full-rerun-20260522-031125.log`.
+
+Commit:
+- Record-only final gate commit for this iteration.
+
+Next slice:
+- `world/worldline` cleanup workstream fixed point reached for this slice.
+
 ## Iteration 14 - duplicated merge-operator normalization
 
 Slice read:
