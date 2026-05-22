@@ -218,3 +218,38 @@ powershell -File scripts/run_logged_pytest.ps1
 ## Execution Log
 
 Record each implementation commit here before moving to the next phase.
+
+- `e8cbca57 Add runtime condition scope workstream`
+  - Created this executable workstream.
+- `3767a5a8 Fix runtime condition activation scope`
+  - Phase 1: deleted `_solver_with_environment_bindings`, activation-side
+    runtime registry expansion imports, and runtime
+    `checked_condition_set(check_condition_ir(...))` construction.
+  - Phase 2: added condition-owner runtime CEL lowering to non-persisted
+    `ConditionIR`; runtime-only symbol typing comes from CEL AST context and
+    environment bindings, with ambiguous symbols hard-failing.
+  - Phase 3: added solver comparison of persisted checked conditions against
+    runtime `ConditionIR` while preserving strict checked-condition fingerprint
+    validation.
+  - Phase 4: wired activation through the condition-owner runtime lowering API
+    and solver runtime-IR comparison API.
+  - Phase 5: updated live docs covered by the doc drift gate.
+- `3bba92d7 Update runtime activation remediation contract`
+  - Updated the stale remediation test to match the workstream contract:
+    inferable runtime-only CEL identifiers are local runtime constraints rather
+    than persisted registry errors.
+
+Final gates:
+
+- Forbidden-surface searches: zero matches for all Phase 6 `rg -n -F` gates.
+- Targeted logged pytest:
+  `powershell -File scripts/run_logged_pytest.ps1 tests/test_condition_solver_parity.py tests/test_atms_unbounded_stability_api.py tests/test_atms_engine.py tests/test_revision_projection.py tests/test_doc_drift_clean.py`
+  - `58 passed`
+  - `LOG_PATH=logs\test-runs\pytest-20260522-001910.log`
+- Package Pyright:
+  `uv run pyright propstore`
+  - `0 errors, 0 warnings, 0 informations`
+- Full logged pytest:
+  `powershell -File scripts/run_logged_pytest.ps1`
+  - `3518 passed, 4 skipped, 30 warnings`
+  - `LOG_PATH=logs\test-runs\pytest-20260522-001254.log`
