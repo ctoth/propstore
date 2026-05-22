@@ -71,7 +71,7 @@ def test_worldline_result_rejects_malformed_values():
     with pytest.raises(ValueError, match="values"):
         WorldlineResult.from_dict({"values": []})
 
-    with pytest.raises(ValueError, match="values.target"):
+    with pytest.raises(ValueError, match=r"\$\.values"):
         WorldlineResult.from_dict({"values": {"target": []}})
 
 

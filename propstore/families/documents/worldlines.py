@@ -115,7 +115,6 @@ class WorldlineRevisionQueryDocument(DocumentStruct):
     profile_atom_ids: tuple[tuple[str, ...], ...] = ()
     integrity_constraint: dict[str, Any] | None = None
     merge_parent_commits: tuple[str, ...] = ()
-    merge_operator: str | None = None
     max_alphabet_size: int | None = None
 
 

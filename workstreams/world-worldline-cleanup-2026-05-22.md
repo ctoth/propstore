@@ -498,6 +498,90 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/worldline/definition.py`.
 
+## Iteration 28 - `propstore/worldline/definition.py`
+
+Slice read:
+- `propstore/worldline/definition.py`
+- `propstore/families/documents/worldlines.py`
+- `propstore/contracts.py`
+- `propstore/_resources/contract_manifests/semantic-contracts.yaml`
+- current `WorldlineDefinition`, `WorldlineInputs`,
+  `WorldlineRevisionQuery`, `WorldlineResult`, `merge_operator`, `Any`, and
+  `_optional_mapping` hits.
+
+Surfaces:
+- `WorldlineInputs.from_document`
+  - Disposition: rewrite.
+  - Owner after cleanup: `WorldlineInputsDocument` owns the authored input
+    shape; `Environment` owns environment parsing.
+  - Action: replace hand-built environment field dictionaries with
+    `to_document_builtins(data)` passed to `Environment.from_dict`.
+- `WorldlineInputs.from_dict`, `WorldlineRevisionQuery.from_dict`,
+  `WorldlineResult.from_dict`, and `WorldlineDefinition.from_dict`
+  - Disposition: rewrite.
+  - Owner after cleanup: Quire document conversion plus the
+    `Worldline*Document` structs own decoded dict validation; runtime
+    dataclasses receive typed domain objects.
+  - Action: route dict payloads through `convert_document_value(...,
+    Worldline*Document, ...)` and then through `from_document`.
+- `_optional_mapping` and `_revision_profile_atom_ids`
+  - Disposition: delete.
+  - Evidence: after dict inputs use the document owner, these local parsing
+    helpers are duplicate field-shape code.
+- `WorldlineResult.__post_init__` conversion of dependencies, sensitivity,
+  argumentation, and revision mappings
+  - Disposition: delete.
+  - Owner after cleanup: exact `from_dict`/`from_document` IO boundaries parse
+    serialized mappings; runtime construction requires typed worldline result
+    objects.
+- `WorldlineRevisionQueryDocument.merge_operator` and runtime
+  `merge_operator` fallback
+  - Disposition: delete.
+  - Owner after cleanup: revision queries use the single `operator` field.
+  - Action: remove the duplicate document field, remove
+    `data.merge_operator or data.operator` / `data.get("merge_operator") or
+    data.get("operator")`, bump the document contract override to
+    `2026.05.22`, and regenerate the checked-in contract manifest with
+    `uv run pks contract-manifest --write`.
+- `WorldlineDefinition.is_stale(world: Any)`
+  - Disposition: rewrite.
+  - Owner after cleanup: `WorldlineStore` protocol defines the worldline
+    runner store surface.
+
+Gate results:
+- Pass: `rg -n -F -- "_optional_mapping"
+  propstore/worldline/definition.py` returned zero hits.
+- Pass: `rg -n -F -- "Any" propstore/worldline/definition.py` returned zero
+  hits.
+- Pass: `rg -n -F -- 'data.get("merge_operator")'
+  propstore/worldline/definition.py
+  propstore/families/documents/worldlines.py tests` returned zero hits.
+- Pass: `uv run pks contract-manifest --write` regenerated
+  `propstore/_resources/contract_manifests/semantic-contracts.yaml`; the
+  `WorldlineRevisionQueryDocument` manifest entry is version `2026.05.22` and
+  has no `merge_operator` field.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Failed then fixed: first logged pytest run
+  `worldline-definition-document-boundary` passed 63 tests and failed one
+  boundary assertion that still expected the old hand-built
+  `values.target` message instead of the Quire/msgspec `$.values[...]` path.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  worldline-definition-document-boundary-contract
+  tests/test_worldline.py::TestWorldlineDefinition
+  tests/test_worldline.py::TestWorldlineCLIFlags tests/test_worldline_revision.py
+  tests/test_worldline_result_boundaries.py tests/test_mapping_boundary_failures.py
+  tests/test_capture_journal.py tests/test_cli_layout.py` returned
+  `91 passed`.
+- Log:
+  `logs/test-runs/worldline-definition-document-boundary-contract-20260522-042213.log`.
+
+Commit:
+- Rewrite worldline definitions through documents.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/worldline/argumentation.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

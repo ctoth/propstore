@@ -4,12 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING
 
 from propstore.families.documents.worldlines import (
     WorldlineDefinitionDocument,
     WorldlineInputsDocument,
-    WorldlinePolicyDocument,
     WorldlineRevisionQueryDocument,
     WorldlineResultDocument,
 )
@@ -29,16 +28,11 @@ from propstore.worldline.revision_types import (
     WorldlineRevisionState,
 )
 
-
-def _optional_mapping(value: object, field_name: str) -> Mapping[str, Any]:
-    if value is None:
-        return {}
-    if not isinstance(value, Mapping):
-        raise ValueError(f"worldline field '{field_name}' must be a mapping")
-    return value
+if TYPE_CHECKING:
+    from propstore.worldline.interfaces import WorldlineStore
 
 
-def _required_document_mapping(value: object, field_name: str) -> Mapping[str, Any]:
+def _required_document_mapping(value: object, field_name: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise ValueError(f"worldline field '{field_name}' must be a mapping")
     return value
@@ -74,22 +68,10 @@ class WorldlineInputs:
     def from_document(cls, data: WorldlineInputsDocument | None) -> WorldlineInputs:
         if data is None:
             return cls()
-        environment_payload = {
-            "bindings": dict(data.bindings),
-            "context_id": data.context_id,
-            "effective_assumptions": list(data.effective_assumptions),
-            "assumptions": [
-                {
-                    "assumption_id": item.assumption_id,
-                    "kind": item.kind,
-                    "source": item.source,
-                    "cel": item.cel,
-                }
-                for item in data.assumptions
-            ],
-        }
         return cls(
-            environment=Environment.from_dict(environment_payload),
+            environment=Environment.from_dict(
+                _required_document_mapping(to_document_builtins(data), "inputs")
+            ),
             overrides=dict(data.overrides),
         )
 
@@ -97,15 +79,15 @@ class WorldlineInputs:
     def from_dict(cls, data: object) -> WorldlineInputs:
         if data is None:
             return cls()
-        payload = _optional_mapping(data, "inputs")
-        if not payload:
-            return cls()
-        return cls(
-            environment=Environment.from_dict(payload),
-            overrides=dict(_optional_mapping(payload.get("overrides"), "overrides")),
+        return cls.from_document(
+            convert_document_value(
+                data,
+                WorldlineInputsDocument,
+                source="worldline:inputs",
+            )
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         data = self.environment.to_dict()
         if self.overrides:
             data["overrides"] = dict(self.overrides)
@@ -120,7 +102,7 @@ class WorldlineRevisionQuery:
     conflicts: RevisionConflictSelection = field(default_factory=RevisionConflictSelection)
     operator: str | None = None
     profile_atom_ids: tuple[tuple[str, ...], ...] = ()
-    integrity_constraint: Mapping[str, Any] | None = None
+    integrity_constraint: Mapping[str, object] | None = None
     merge_parent_commits: tuple[str, ...] = ()
     max_alphabet_size: int | None = None
 
@@ -134,12 +116,7 @@ class WorldlineRevisionQuery:
         atom = None
         if data.atom is not None:
             atom = RevisionAtomRef.from_json_payload(
-                {
-                    "kind": data.atom.kind,
-                    "id": data.atom.id,
-                    "atom_id": data.atom.atom_id,
-                    "value": data.atom.value,
-                }
+                _required_document_mapping(to_document_builtins(data.atom), "revision.atom")
             )
         return cls(
             operation=data.operation,
@@ -151,40 +128,29 @@ class WorldlineRevisionQuery:
                     for atom_id, target_ids in data.conflicts.items()
                 }
             ),
-            operator=data.merge_operator or data.operator,
-            profile_atom_ids=tuple(tuple(str(atom_id) for atom_id in profile) for profile in data.profile_atom_ids),
-            integrity_constraint=None if data.integrity_constraint is None else dict(data.integrity_constraint),
-            merge_parent_commits=tuple(str(commit) for commit in data.merge_parent_commits),
+            operator=data.operator,
+            profile_atom_ids=data.profile_atom_ids,
+            integrity_constraint=data.integrity_constraint,
+            merge_parent_commits=data.merge_parent_commits,
             max_alphabet_size=data.max_alphabet_size,
         )
 
     @classmethod
-    def from_dict(cls, data: dict | None) -> WorldlineRevisionQuery | None:
-        if not data:
+    def from_dict(cls, data: object) -> WorldlineRevisionQuery | None:
+        if data is None:
             return None
-        max_alphabet_size = data.get("max_alphabet_size")
-        return cls(
-            operation=str(data.get("operation", "")),
-            atom=RevisionAtomRef.from_json_payload(data.get("atom")),
-            target=_validated_revision_target(str(data.get("operation", "")), data.get("target")),
-            conflicts=RevisionConflictSelection.from_json_payload(data.get("conflicts")),
-            operator=data.get("merge_operator") or data.get("operator"),
-            profile_atom_ids=_revision_profile_atom_ids(data.get("profile_atom_ids") or ()),
-            integrity_constraint=(
-                None
-                if data.get("integrity_constraint") is None
-                else dict(_optional_mapping(data.get("integrity_constraint"), "integrity_constraint"))
-            ),
-            merge_parent_commits=tuple(str(commit) for commit in (data.get("merge_parent_commits") or ())),
-            max_alphabet_size=(
-                None
-                if max_alphabet_size is None
-                else int(max_alphabet_size)
+        if isinstance(data, Mapping) and not data:
+            return None
+        return cls.from_document(
+            convert_document_value(
+                data,
+                WorldlineRevisionQueryDocument,
+                source="worldline:revision",
             ),
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {"operation": self.operation}
+    def to_dict(self) -> dict[str, object]:
+        data: dict[str, object] = {"operation": self.operation}
         if self.atom is not None:
             data["atom"] = self.atom.to_dict()
         if self.target is not None:
@@ -202,17 +168,6 @@ class WorldlineRevisionQuery:
         if self.max_alphabet_size is not None:
             data["max_alphabet_size"] = self.max_alphabet_size
         return data
-
-
-def _revision_profile_atom_ids(value: object) -> tuple[tuple[str, ...], ...]:
-    if isinstance(value, str) or not isinstance(value, tuple | list):
-        raise ValueError("worldline revision profile_atom_ids must be a sequence")
-    profiles: list[tuple[str, ...]] = []
-    for profile in value:
-        if isinstance(profile, str) or not isinstance(profile, tuple | list):
-            raise ValueError("worldline revision profile_atom_ids entries must be sequences")
-        profiles.append(tuple(str(atom_id) for atom_id in profile))
-    return tuple(profiles)
 
 
 @dataclass
@@ -242,13 +197,13 @@ class WorldlineResult:
             steps.append(step)
         self.steps = tuple(steps)
         if not isinstance(self.dependencies, WorldlineDependencies):
-            self.dependencies = WorldlineDependencies.from_json_payload(self.dependencies)
+            raise TypeError("WorldlineResult.dependencies must be WorldlineDependencies")
         if self.sensitivity is not None and not isinstance(self.sensitivity, WorldlineSensitivityReport):
-            self.sensitivity = WorldlineSensitivityReport.from_json_payload(self.sensitivity)
+            raise TypeError("WorldlineResult.sensitivity must be WorldlineSensitivityReport or None")
         if self.argumentation is not None and not isinstance(self.argumentation, WorldlineArgumentationState):
-            self.argumentation = WorldlineArgumentationState.from_json_payload(self.argumentation)
+            raise TypeError("WorldlineResult.argumentation must be WorldlineArgumentationState or None")
         if self.revision is not None and not isinstance(self.revision, WorldlineRevisionState):
-            self.revision = WorldlineRevisionState.from_json_payload(self.revision)
+            raise TypeError("WorldlineResult.revision must be WorldlineRevisionState or None")
 
     @classmethod
     def from_document(cls, data: WorldlineResultDocument | None) -> WorldlineResult | None:
@@ -289,32 +244,18 @@ class WorldlineResult:
     def from_dict(cls, data: object) -> WorldlineResult | None:
         if data is None:
             return None
-        payload = _optional_mapping(data, "results")
-        if not payload:
+        if isinstance(data, Mapping) and not data:
             return None
-        raw_values = _optional_mapping(payload.get("values"), "values")
-        values: dict[str, WorldlineTargetValue] = {}
-        for target_name, value in raw_values.items():
-            if not isinstance(value, Mapping):
-                raise ValueError(f"worldline field 'values.{target_name}' must be a mapping")
-            values[str(target_name)] = WorldlineTargetValue.from_json_payload(value)
-        return cls(
-            computed=payload.get("computed", ""),
-            content_hash=payload.get("content_hash", ""),
-            values=values,
-            steps=tuple(
-                WorldlineStep.from_json_payload(step)
-                for step in (payload.get("steps") or ())
-                if isinstance(step, dict)
+        return cls.from_document(
+            convert_document_value(
+                data,
+                WorldlineResultDocument,
+                source="worldline:results",
             ),
-            dependencies=WorldlineDependencies.from_json_payload(payload.get("dependencies")),
-            sensitivity=WorldlineSensitivityReport.from_json_payload(payload.get("sensitivity")),
-            argumentation=WorldlineArgumentationState.from_json_payload(payload.get("argumentation")),
-            revision=WorldlineRevisionState.from_json_payload(payload.get("revision")),
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {
+    def to_dict(self) -> dict[str, object]:
+        data: dict[str, object] = {
             "computed": self.computed,
             "content_hash": self.content_hash,
             "values": {
@@ -385,33 +326,17 @@ class WorldlineDefinition:
         )
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> WorldlineDefinition:
-        if "id" not in data:
-            raise ValueError("Worldline definition requires 'id'")
-        targets = data.get("targets")
-        if not targets:
-            raise ValueError("Worldline definition requires 'targets'")
-
-        return cls(
-            id=data["id"],
-            name=data.get("name", ""),
-            created=data.get("created", ""),
-            inputs=WorldlineInputs.from_dict(data.get("inputs")),
-            policy=RenderPolicy.from_dict(data.get("policy")),
-            targets=list(targets),
-            revision=WorldlineRevisionQuery.from_dict(data.get("revision")),
-            journal=(
-                None
-                if data.get("journal") is None
-                else TransitionJournal.from_json_payload(
-                    _required_document_mapping(data.get("journal"), "journal")
-                )
-            ),
-            results=WorldlineResult.from_dict(data.get("results")),
+    def from_dict(cls, data: object) -> WorldlineDefinition:
+        return cls.from_document(
+            convert_document_value(
+                data,
+                WorldlineDefinitionDocument,
+                source="worldline:definition",
+            )
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        data: dict[str, Any] = {"id": self.id}
+    def to_dict(self) -> dict[str, object]:
+        data: dict[str, object] = {"id": self.id}
         if self.name:
             data["name"] = self.name
         if self.created:
@@ -442,7 +367,7 @@ class WorldlineDefinition:
             source=f"worldline:{self.id}",
         )
 
-    def is_stale(self, world: Any) -> bool:
+    def is_stale(self, world: WorldlineStore) -> bool:
         if self.results is None:
             return False
 

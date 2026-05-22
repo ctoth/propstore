@@ -2172,7 +2172,7 @@ class TestWorldlineCLIFlags:
         def fake_run_worldline(definition, world):
             seen["revision"] = None if definition.revision is None else definition.revision.to_dict()
             from propstore.worldline import WorldlineResult
-            from propstore.worldline.result_types import WorldlineTargetValue
+            from propstore.worldline.result_types import WorldlineDependencies, WorldlineTargetValue
 
             return WorldlineResult(
                 computed="2026-03-29T00:00:00Z",
@@ -2181,7 +2181,7 @@ class TestWorldlineCLIFlags:
                     "concept1": WorldlineTargetValue(status="determined", value=1.0)
                 },
                 steps=[],
-                dependencies={"claims": [], "stances": [], "contexts": []},
+                dependencies=WorldlineDependencies(),
             )
 
         monkeypatch.setattr("propstore.world.WorldQuery", _FakeWorldQuery)
@@ -2287,7 +2287,11 @@ class TestWorldlineCLIFlags:
 
         def fake_run_worldline(definition, world):
             from propstore.worldline import WorldlineResult
-            from propstore.worldline.result_types import WorldlineStep, WorldlineTargetValue
+            from propstore.worldline.result_types import (
+                WorldlineDependencies,
+                WorldlineStep,
+                WorldlineTargetValue,
+            )
 
             return WorldlineResult(
                 computed="2026-03-29T00:00:00Z",
@@ -2308,7 +2312,7 @@ class TestWorldlineCLIFlags:
                         claim_id="claim:one",
                     )
                 ],
-                dependencies={"claims": ["claim:one"], "stances": [], "contexts": []},
+                dependencies=WorldlineDependencies(claims=("claim:one",)),
             )
 
         monkeypatch.setattr("propstore.world.WorldQuery", _FakeWorldQuery)
