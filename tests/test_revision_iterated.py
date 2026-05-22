@@ -8,9 +8,9 @@ from pathlib import Path
 
 from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.explanation_types import EntrenchmentReason
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionEpisode, RevisionScope
+from propstore.support_revision.state import BeliefBase, RevisionEpisode, RevisionScope
 from tests.support_revision.formal_realization_helpers import contract_via_formal_decision
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
 from tests.test_revision_operators import _base_with_shared_support
 
 
@@ -113,8 +113,8 @@ def _history_sensitive_base() -> tuple[BeliefBase, EntrenchmentReport, Entrenchm
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            AssumptionAtom("assumption:left_path", {"assumption_id": "left_path"}),
-            AssumptionAtom("assumption:right_path", {"assumption_id": "right_path"}),
+            make_assumption_atom("left_path"),
+            make_assumption_atom("right_path"),
             legacy,
             left_dependent,
             right_dependent,

@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from propstore.core.labels import Label
+from propstore.core.id_types import AssumptionId
+from propstore.core.labels import AssumptionRef, Label
 from propstore.support_revision.projection import situated_assertion_from_claim
-from propstore.support_revision.state import AssertionAtom
+from propstore.support_revision.state import AssertionAtom, AssumptionAtom
 from tests.claim_model_helpers import claim_model
 
 
@@ -28,5 +29,25 @@ def make_assertion_atom(
         atom_id=str(assertion.assertion_id),
         assertion=assertion,
         source_claims=(claim,),
+        label=label,
+    )
+
+
+def make_assumption_atom(
+    name: str,
+    *,
+    cel: str = "",
+    kind: str = "",
+    source: str = "",
+    label: Label | None = None,
+) -> AssumptionAtom:
+    return AssumptionAtom(
+        atom_id=f"assumption:{name}",
+        assumption=AssumptionRef(
+            assumption_id=AssumptionId(name),
+            cel=cel,
+            kind=kind,
+            source=source,
+        ),
         label=label,
     )

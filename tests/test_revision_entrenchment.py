@@ -5,8 +5,8 @@ from pathlib import Path
 
 from propstore.core.labels import AssumptionRef, Label
 from propstore.support_revision.entrenchment import compute_entrenchment
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom
+from propstore.support_revision.state import BeliefBase, RevisionScope
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
 
 
 class _BoundStub:
@@ -42,13 +42,10 @@ def test_compute_entrenchment_kind_override_can_promote_assumptions() -> None:
         scope=RevisionScope(bindings={}),
         atoms=(
             alpha,
-            AssumptionAtom(
-                atom_id="assumption:env:x_eq_1",
-                assumption={
-                    "assumption_id": "env:x_eq_1",
-                    "cel": "x == 1",
-                    "kind": "binding",
-                },
+            make_assumption_atom(
+                "env:x_eq_1",
+                cel="x == 1",
+                kind="binding",
             ),
         ),
         assumptions=(

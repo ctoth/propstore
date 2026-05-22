@@ -12,10 +12,10 @@ from propstore.support_revision.entrenchment import EntrenchmentReport
 from propstore.support_revision.history import JournalOperator, TransitionJournal, TransitionOperation
 from propstore.support_revision.iterated import make_epistemic_state
 from propstore.support_revision.realization import realize_ic_merge_decision
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionMergeRequiredFailure, RevisionScope
+from propstore.support_revision.state import BeliefBase, RevisionMergeRequiredFailure, RevisionScope
 from propstore.worldline.definition import WorldlineRevisionQuery
 from tests.fixtures.journal import make_journal_entry
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
 
 
 _POLICY = {
@@ -409,8 +409,8 @@ def _merge_state():
             merge_parent_commits=("left", "right"),
         ),
         atoms=(
-            AssumptionAtom("assumption:support_a", {"assumption_id": "support_a"}),
-            AssumptionAtom("assumption:support_b", {"assumption_id": "support_b"}),
+            make_assumption_atom("support_a"),
+            make_assumption_atom("support_b"),
             atom_a,
             atom_b,
         ),

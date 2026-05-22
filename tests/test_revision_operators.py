@@ -13,7 +13,7 @@ from tests.support_revision.formal_realization_helpers import (
     expand_via_formal_decision,
     revise_via_formal_decision,
 )
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
 
 
 def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport, dict[str, str]]:
@@ -28,9 +28,9 @@ def _base_with_shared_support() -> tuple[BeliefBase, EntrenchmentReport, dict[st
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            AssumptionAtom("assumption:a_strong", {"assumption_id": "a_strong"}),
-            AssumptionAtom("assumption:b_medium", {"assumption_id": "b_medium"}),
-            AssumptionAtom("assumption:shared_weak", {"assumption_id": "shared_weak"}),
+            make_assumption_atom("a_strong"),
+            make_assumption_atom("b_medium"),
+            make_assumption_atom("shared_weak"),
             legacy,
             dependent,
             independent,
@@ -90,14 +90,12 @@ def test_contract_uses_computed_entrenchment_order_for_equal_size_cuts() -> None
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            AssumptionAtom(
-                "assumption:a_weak",
-                {"assumption_id": "a_weak"},
+            make_assumption_atom(
+                "a_weak",
                 label=Label((EnvironmentKey(("a_weak",)),)),
             ),
-            AssumptionAtom(
-                "assumption:z_strong",
-                {"assumption_id": "z_strong"},
+            make_assumption_atom(
+                "z_strong",
                 label=Label(
                     (
                         EnvironmentKey(("z_strong_primary",)),

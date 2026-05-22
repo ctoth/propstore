@@ -3,9 +3,9 @@ from __future__ import annotations
 from propstore.core.anytime import EnumerationExceeded
 from propstore.provenance import ProvenanceStatus
 from propstore.support_revision.entrenchment import EntrenchmentReport
-from propstore.support_revision.state import AssumptionAtom, BeliefBase, RevisionScope
+from propstore.support_revision.state import BeliefBase, RevisionScope
 from tests.support_revision.formal_realization_helpers import contract_via_formal_decision
-from tests.support_revision.revision_assertion_helpers import make_assertion_atom
+from tests.support_revision.revision_assertion_helpers import make_assertion_atom, make_assumption_atom
 
 
 def test_contract_surfaces_enumeration_exceeded_past_ceiling() -> None:
@@ -13,10 +13,10 @@ def test_contract_surfaces_enumeration_exceeded_past_ceiling() -> None:
     base = BeliefBase(
         scope=RevisionScope(bindings={}),
         atoms=(
-            AssumptionAtom("assumption:a0", {"assumption_id": "a0"}),
-            AssumptionAtom("assumption:a1", {"assumption_id": "a1"}),
-            AssumptionAtom("assumption:a2", {"assumption_id": "a2"}),
-            AssumptionAtom("assumption:a3", {"assumption_id": "a3"}),
+            make_assumption_atom("a0"),
+            make_assumption_atom("a1"),
+            make_assumption_atom("a2"),
+            make_assumption_atom("a3"),
             target,
         ),
         support_sets={
