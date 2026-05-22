@@ -7,7 +7,7 @@ from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import aliased, selectinload
@@ -63,6 +63,8 @@ if TYPE_CHECKING:
     from propstore.repository import Repository
     from propstore.world.bound import BoundWorld
     from propstore.context_lifting import LiftingSystem
+    from propstore.core.graph_types import WorldActivationGraph
+    from propstore.world.scm import Value
 from propstore.world.resolution import resolve
 from propstore.world.types import (
     WorldStore,
@@ -149,7 +151,7 @@ class WorldQuery(WorldStore):
         self._lifting_system: LiftingSystem | None = None
         self._lifting_system_loaded = False
         self._compiled_graph_cache = None
-        self._active_graph_cache: dict[str, Any] = {}
+        self._active_graph_cache: dict[str, WorldActivationGraph] = {}
         self._validate_schema()
 
     def __enter__(self) -> WorldQuery:
@@ -343,7 +345,7 @@ class WorldQuery(WorldStore):
 
     def _render_policy_predicates(
         self, policy: RenderPolicy
-    ) -> tuple[list[str], tuple[Any, ...]]:
+    ) -> tuple[list[str], tuple[object, ...]]:
         """Translate a ``RenderPolicy`` into SQL ``WHERE`` predicates on
         ``claim_core``'s lifecycle columns.
 
@@ -361,7 +363,7 @@ class WorldQuery(WorldStore):
         by default" posture required by the CLAUDE.md design checklist.
         """
         predicates: list[str] = []
-        params: list[Any] = []
+        params: list[object] = []
         if not policy.include_drafts:
             predicates.append("(core.stage IS NULL OR core.stage != 'draft')")
         if not policy.include_blocked:
@@ -378,7 +380,7 @@ class WorldQuery(WorldStore):
         self,
         policy: RenderPolicy,
         alias: str,
-    ) -> tuple[list[str], tuple[Any, ...]]:
+    ) -> tuple[list[str], tuple[object, ...]]:
         predicates, params = self._render_policy_predicates(policy)
         return [predicate.replace("core.", f"{alias}.") for predicate in predicates], params
 
@@ -429,7 +431,7 @@ class WorldQuery(WorldStore):
                 )
             return list(derived.execute(statement).scalars())
 
-    def build_diagnostics(self, policy: RenderPolicy) -> list[dict[str, Any]]:
+    def build_diagnostics(self, policy: RenderPolicy) -> list[dict[str, object]]:
         """Return ``build_diagnostics`` rows when ``policy.show_quarantined``
         is ``True``; an empty list otherwise.
 
@@ -494,7 +496,7 @@ class WorldQuery(WorldStore):
     def bind_for_view(
         self,
         *,
-        bindings: Mapping[str, Any],
+        bindings: Mapping[str, object],
         context_id: str | None,
         restricted_to: frozenset[str],
     ) -> _BoundView:
@@ -782,8 +784,10 @@ class WorldQuery(WorldStore):
                 row_dims: dict[str, int] = {}
                 if not row["is_dimensionless"]:
                     continue  # No dimensions and not dimensionless — skip
-            else:
+            elif isinstance(row_dims_json, str):
                 row_dims = json.loads(row_dims_json)
+            else:
+                continue
             if dims_equal(row_dims, dims):
                 results.append(dict(row))
         return results
@@ -803,12 +807,15 @@ class WorldQuery(WorldStore):
         rows = self._all_form_algebra_rows()
         results = []
         for row in rows:
-            input_forms = json.loads(row["input_forms"])
+            raw_input_forms = row["input_forms"]
+            if not isinstance(raw_input_forms, str):
+                continue
+            input_forms = json.loads(raw_input_forms)
             if form_name in input_forms:
                 results.append(row)
         return results
 
-    def _all_form_rows(self) -> list[dict[str, Any]]:
+    def _all_form_rows(self) -> list[dict[str, object]]:
         schema = world_sqlalchemy_schema()
         form = schema.model("form")
         with self._derived_store.readonly_session(schema) as derived:
@@ -817,7 +824,7 @@ class WorldQuery(WorldStore):
                 for row in derived.execute(select(form)).scalars()
             ]
 
-    def _all_form_algebra_rows(self) -> list[dict[str, Any]]:
+    def _all_form_algebra_rows(self) -> list[dict[str, object]]:
         schema = world_sqlalchemy_schema()
         form_algebra = schema.model("form_algebra")
         with self._derived_store.readonly_session(schema) as derived:
@@ -827,7 +834,7 @@ class WorldQuery(WorldStore):
             ]
 
     @staticmethod
-    def _model_row(table_name: str, row: object) -> dict[str, Any]:
+    def _model_row(table_name: str, row: object) -> dict[str, object]:
         schema = world_sqlalchemy_schema()
         return {
             column.name: getattr(row, column.name)
@@ -1030,9 +1037,9 @@ class WorldQuery(WorldStore):
 
     def intervene(
         self,
-        assignment: Mapping[str, Any],
+        assignment: Mapping[str, Value],
         *,
-        exogenous_assignment: Mapping[str, Any] | None = None,
+        exogenous_assignment: Mapping[str, Value] | None = None,
     ):
         """Return a Pearl-style intervention world over this compiled graph."""
         from propstore.world.intervention import InterventionWorld
@@ -1046,9 +1053,9 @@ class WorldQuery(WorldStore):
 
     def observe(
         self,
-        assignment: Mapping[str, Any],
+        assignment: Mapping[str, Value],
         *,
-        exogenous_assignment: Mapping[str, Any] | None = None,
+        exogenous_assignment: Mapping[str, Value] | None = None,
     ):
         """Return a deterministic observation world over this compiled graph."""
         from propstore.world.intervention import ObservationWorld
@@ -1066,11 +1073,11 @@ class WorldQuery(WorldStore):
         self,
         target_concept_id: str,
         strategy: ResolutionStrategy | None = None,
-        **bindings: Any,
+        **bindings: float | str | None,
     ) -> ChainResult:
         """Traverse the parameter space to derive the target concept."""
         policy = RenderPolicy(strategy=strategy) if strategy is not None else None
-        bound = self.bind(policy=policy, **bindings)
+        bound = self.bind(environment=Environment(bindings=bindings), policy=policy)
         steps: list[ChainStep] = []
         resolved_values: dict[str, float | str | None] = {}
         visited: set[str] = set()

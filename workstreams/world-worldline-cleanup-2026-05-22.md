@@ -1152,6 +1152,50 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/model.py`.
 
+## Iteration 40 - `propstore/world/model.py`
+
+Slice read:
+- `propstore/world/model.py`
+- model world-query, journal projection, intervention, chain-query, and form
+  algebra tests.
+
+Surfaces:
+- `Any` annotations in `WorldQuery`
+  - Disposition: rewrite.
+  - Owner after cleanup: object-valued SQL/report rows at query boundaries,
+    `Value`-typed intervention/observation assignments, scalar chain-query
+    bindings, and typed active-graph cache entries.
+  - Action: replace model-local `Any` annotations, narrow JSON row values
+    before `json.loads`, and call `bind` with an explicit `Environment` in
+    `chain_query`.
+  - Evidence: the model file should not carry unconstrained runtime values
+    through its public and internal APIs when the owned boundary shape is
+    known.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/model.py` returned zero hits.
+- Failed then fixed: initial `uv run pyright propstore` exposed JSON row and
+  chain binding narrowing sites after replacing `Any`.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-model-any-cleanup-rerun
+  tests/test_world_query.py::TestWorldQueryConstruction
+  tests/test_world_query.py::TestBindAndTypedClaims
+  tests/test_world_query.py::TestChainQuery
+  tests/test_world_query.py::TestAlgorithmWorldQuery
+  tests/test_world_query_at_journal_step_method.py
+  tests/test_intervention_world_severs_edges.py tests/test_form_algebra.py`
+  returned `64 passed`.
+- Log:
+  `logs/test-runs/world-model-any-cleanup-rerun-20260522-050934.log`.
+
+Commit:
+- Type world model runtime boundaries.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/overlay.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
