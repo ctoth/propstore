@@ -21,7 +21,7 @@ def test_d3_old_data_shim_symbols_are_deleted() -> None:
     offenders = [
         f"{path}:{needle}"
         for needle, path in forbidden.items()
-        if needle in path.read_text(encoding="utf-8")
+        if path.exists() and needle in path.read_text(encoding="utf-8")
     ]
 
     assert "CONFIDENCE_FALLBACK" not in DecisionValueSource.__members__
