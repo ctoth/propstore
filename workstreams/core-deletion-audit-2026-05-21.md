@@ -270,6 +270,16 @@ zero-hit or its exact owner-boundary parser is named and recorded.
     to `propstore.families.sources.declaration`. Parse decoded JSON/YAML/SQLite
     values at the IO boundary with an exact schema and hard failures; do not
     preserve fallback-to-empty behavior.
+  - Execution note, 2026-05-22: completed in commit `4b2f4353`.
+    `propstore.core.claim_values` was deleted. The only production-used
+    surface, `ClaimProvenance`, moved to the world resolution boundary with
+    hard-failure provenance JSON parsing. Source trust/origin duplicate test
+    coverage was removed because source-family documents and
+    `compile_source_models` already own that path. Gates:
+    `rg -n -F -- "propstore.core.claim_values" propstore tests` zero-hit,
+    `rg -n -F -- "SourceTrust.from_json_payload" propstore tests` zero-hit,
+    `uv run pyright propstore` passed, and logged pytest
+    `claim-values-core-deletion-20260522-012829.log` passed with `25 passed`.
 
 - [x] `propstore/core/concept_relationship_types.py`
   - Read: 2026-05-21.
