@@ -1071,6 +1071,42 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/journal_projection.py`.
 
+## Iteration 38 - `propstore/world/journal_projection.py`
+
+Slice read:
+- `propstore/world/journal_projection.py`
+- journal projection production and property callers.
+
+Surfaces:
+- `BeliefSpaceQuery` and `at_journal_step`
+  - Disposition: keep.
+  - Owner after cleanup: `propstore.world.journal_projection` owns the
+    projection from a transition journal step to a `ClaimView`.
+  - Evidence: the file is the semantic owner introduced by deleting
+    `propstore.world.bridge`; it has no `Any`, no bridge wording, no fallback
+    reader, no compatibility import path, and no duplicate field metadata.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/journal_projection.py` returned
+  zero hits.
+- Pass: `rg -n -F -- "bridge" propstore/world/journal_projection.py
+  tests/test_world_query_at_journal_step.py tests/test_p_mara_gate.py`
+  returned zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-journal-projection-keep tests/test_world_query_at_journal_step.py
+  tests/test_world_query_at_journal_step_method.py tests/test_p_heavy.py
+  tests/test_p_mara_gate.py tests/test_scope_policy.py` returned `17 passed`.
+- Log:
+  `logs/test-runs/world-journal-projection-keep-20260522-050419.log`.
+
+Commit:
+- Record journal projection keep decision.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/journal_replay.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
