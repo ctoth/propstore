@@ -85,7 +85,7 @@ def _capture_claim_graph(
     justified_claims: frozenset[ClaimId] | None = None
     extension_claim_sets: tuple[frozenset[ClaimId], ...] = ()
     if active_graph is not None:
-        from propstore.core.analyzers import (
+        from propstore.argumentation import (
             analyze_claim_graph,
             shared_analyzer_input_from_active_graph,
         )
@@ -234,7 +234,7 @@ def _capture_praf(
     praf_mc_seed = policy.praf_mc_seed
 
     if active_graph is not None:
-        from propstore.core.analyzers import (
+        from propstore.argumentation import (
             analyze_praf,
             shared_analyzer_input_from_active_graph,
         )
@@ -260,7 +260,7 @@ def _capture_praf(
         confidence_interval_half = metadata["confidence_interval_half"]
     else:
         from argumentation.probabilistic import compute_probabilistic_acceptance
-        from propstore.core.analyzers import praf_query_parameters
+        from propstore.argumentation import praf_query_parameters
         from propstore.praf import build_praf
 
         active_claim_ids = {str(claim_id) for claim_id in active_ids}

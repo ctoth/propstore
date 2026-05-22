@@ -208,11 +208,11 @@ class _AssignmentSelectionView:
 
 def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> None:
     monkeypatch.setattr(
-        "propstore.core.analyzers.shared_analyzer_input_from_store",
+        "propstore.argumentation.shared_analyzer_input_from_store",
         lambda *args, **kwargs: object(),
     )
     monkeypatch.setattr(
-        "propstore.core.analyzers.analyze_claim_graph",
+        "propstore.argumentation.analyze_claim_graph",
         lambda *args, **kwargs: AnalyzerResult(
             backend="claim_graph",
             semantics="preferred",
@@ -241,11 +241,11 @@ def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> 
 
 def test_claim_graph_resolution_distinguishes_no_stable_extension(monkeypatch) -> None:
     monkeypatch.setattr(
-        "propstore.core.analyzers.shared_analyzer_input_from_store",
+        "propstore.argumentation.shared_analyzer_input_from_store",
         lambda *args, **kwargs: object(),
     )
     monkeypatch.setattr(
-        "propstore.core.analyzers.analyze_claim_graph",
+        "propstore.argumentation.analyze_claim_graph",
         lambda *args, **kwargs: AnalyzerResult(
             backend="claim_graph",
             semantics="stable",

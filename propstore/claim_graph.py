@@ -2,12 +2,12 @@
 
 This module is not the general argumentation core. It owns the store-based
 entrypoints for the claim-graph backend and delegates shared orchestration to
-`propstore.core.analyzers`.
+`propstore.argumentation`.
 """
 
 from __future__ import annotations
 
-from propstore.core.analyzers import (
+from propstore.argumentation import (
     analyze_claim_graph,
     shared_analyzer_input_from_store,
 )

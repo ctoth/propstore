@@ -11,7 +11,7 @@ from argumentation.aspic import (
 from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.dung import ArgumentationFramework
 
-from propstore.core.analyzers import SharedAnalyzerInput
+from propstore.argumentation import SharedAnalyzerInput
 from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.id_types import ClaimId
@@ -123,7 +123,7 @@ def test_track_e_projection_lift_preserves_situated_assertion_ids() -> None:
 
 
 def test_track_e_core_analyzer_reports_optional_aspic_backend_absence() -> None:
-    from propstore.core.analyzers import analyze_aspic_backend
+    from propstore.argumentation import analyze_aspic_backend
 
     system, kb, pref = _minimal_aspic_theory()
 
@@ -146,7 +146,7 @@ def test_track_e_core_analyzer_reports_optional_aspic_backend_absence() -> None:
 
 
 def test_track_e_praf_analyzer_can_use_paper_td_package_strategy() -> None:
-    from propstore.core.analyzers import analyze_praf
+    from propstore.argumentation import analyze_praf
 
     claim_a = ClaimId("claim_a")
     claim_a_node = ClaimNode(

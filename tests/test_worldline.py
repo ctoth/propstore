@@ -933,7 +933,7 @@ class TestWorldlineDependencyLiveness:
             fake_justified_claims,
         )
         monkeypatch.setattr(
-            "propstore.core.analyzers.shared_analyzer_input_from_store",
+            "propstore.argumentation.shared_analyzer_input_from_store",
             lambda world, active_claim_ids, **kwargs: world,
         )
 
@@ -959,7 +959,7 @@ class TestWorldlineDependencyLiveness:
             )
 
         monkeypatch.setattr(
-            "propstore.core.analyzers.analyze_claim_graph",
+            "propstore.argumentation.analyze_claim_graph",
             fake_analyze_claim_graph,
         )
 
@@ -1226,11 +1226,11 @@ class TestSemanticCorePhase7Worldlines:
             )
 
         monkeypatch.setattr(
-            "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+            "propstore.argumentation.shared_analyzer_input_from_active_graph",
             fake_shared,
         )
         monkeypatch.setattr(
-            "propstore.core.analyzers.analyze_claim_graph",
+            "propstore.argumentation.analyze_claim_graph",
             fake_analyze,
         )
 
@@ -1318,11 +1318,11 @@ class TestSemanticCorePhase7Worldlines:
             )
 
         monkeypatch.setattr(
-            "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+            "propstore.argumentation.shared_analyzer_input_from_active_graph",
             fake_shared,
         )
         monkeypatch.setattr(
-            "propstore.core.analyzers.analyze_praf",
+            "propstore.argumentation.analyze_praf",
             fake_analyze,
         )
 
@@ -1455,11 +1455,11 @@ class TestSemanticCorePhase7Worldlines:
         world, active_graph = self._graph_only_world()
 
         monkeypatch.setattr(
-            "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+            "propstore.argumentation.shared_analyzer_input_from_active_graph",
             lambda graph, **kwargs: active_graph,
         )
         monkeypatch.setattr(
-            "propstore.core.analyzers.analyze_claim_graph",
+            "propstore.argumentation.analyze_claim_graph",
             lambda shared, *, semantics="grounded", target_claim_ids=None: AnalyzerResult(
                 backend="claim_graph",
                 semantics=semantics,

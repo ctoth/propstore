@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from propstore.core.analyzers import (
+from propstore.argumentation import (
     build_praf_from_shared_input,
     shared_analyzer_input_from_store,
 )

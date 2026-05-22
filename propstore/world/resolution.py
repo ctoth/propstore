@@ -202,7 +202,7 @@ def _resolve_claim_graph_argumentation(
         ReasoningBackend.CLAIM_GRAPH,
         semantics,
     )
-    from propstore.core.analyzers import (
+    from propstore.argumentation import (
         analyze_claim_graph,
         shared_analyzer_input_from_active_graph,
         shared_analyzer_input_from_store,
@@ -394,7 +394,7 @@ def _resolve_praf(
 
     Returns (winner_id, reason, acceptance_probs).
     """
-    from propstore.core.analyzers import (
+    from propstore.argumentation import (
         analyze_praf,
         praf_query_parameters,
         shared_analyzer_input_from_active_graph,

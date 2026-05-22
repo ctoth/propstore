@@ -345,7 +345,7 @@ def collect_conflict_interventions(
     if active_graph is None:
         return ()
 
-    from propstore.core.analyzers import shared_analyzer_input_from_active_graph
+    from propstore.argumentation import shared_analyzer_input_from_active_graph
 
     try:
         framework = shared_analyzer_input_from_active_graph(active_graph).argumentation_framework

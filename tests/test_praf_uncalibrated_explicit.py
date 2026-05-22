@@ -3,7 +3,7 @@ from __future__ import annotations
 from argumentation.bipolar import BipolarArgumentationFramework
 from argumentation.dung import ArgumentationFramework
 
-from propstore.core.analyzers import SharedAnalyzerInput, build_praf_from_shared_input
+from propstore.argumentation import SharedAnalyzerInput, build_praf_from_shared_input
 from propstore.core.claim_types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId

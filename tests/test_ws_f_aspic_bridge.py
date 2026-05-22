@@ -38,7 +38,7 @@ from propstore.context_lifting import (
     LiftingRule,
     LiftingSystem,
 )
-from propstore.core.analyzers import SharedAnalyzerInput, analyze_praf
+from propstore.argumentation import SharedAnalyzerInput, analyze_praf
 from propstore.core.assertions import ContextReference
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph
 from propstore.core.justifications import CanonicalJustification

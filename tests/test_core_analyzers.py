@@ -77,7 +77,7 @@ def test_shared_claim_graph_analyzer_matches_current_grounded(conn: Connection) 
     _insert_stance(conn, "c2", "c1", "rebuts")
     conn.commit()
 
-    from propstore.core.analyzers import analyze_claim_graph, shared_analyzer_input_from_store
+    from propstore.argumentation import analyze_claim_graph, shared_analyzer_input_from_store
 
     store = SQLiteArgumentationStore(conn)
     shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
@@ -100,7 +100,7 @@ def test_shared_claim_graph_analyzer_matches_current_grounded(conn: Connection) 
 
 def test_shared_claim_graph_analyzer_uses_grounded_over_defeats_only() -> None:
     from argumentation.bipolar import BipolarArgumentationFramework
-    from propstore.core.analyzers import SharedAnalyzerInput, analyze_claim_graph
+    from propstore.argumentation import SharedAnalyzerInput, analyze_claim_graph
     from argumentation.dung import ArgumentationFramework
 
     shared = SharedAnalyzerInput(
@@ -138,7 +138,7 @@ def test_shared_claim_graph_analyzer_matches_current_preferred_and_stable(
     _insert_stance(conn, "c2", "c1", "rebuts")
     conn.commit()
 
-    from propstore.core.analyzers import analyze_claim_graph, shared_analyzer_input_from_store
+    from propstore.argumentation import analyze_claim_graph, shared_analyzer_input_from_store
 
     store = SQLiteArgumentationStore(conn)
     shared = shared_analyzer_input_from_store(store, {"c1", "c2"})
@@ -218,7 +218,7 @@ def test_shared_praf_analyzer_matches_current_acceptance() -> None:
         active_claim_ids=("c1", "c2"),
     )
 
-    from propstore.core.analyzers import (
+    from propstore.argumentation import (
         analyze_praf,
         build_praf_from_shared_input,
         shared_analyzer_input_from_active_graph,
@@ -277,7 +277,7 @@ def test_shared_projection_is_independent_of_active_claim_id_order() -> None:
         active_claim_ids=("c2", "c1"),
     )
 
-    from propstore.core.analyzers import (
+    from propstore.argumentation import (
         analyze_claim_graph,
         shared_analyzer_input_from_active_graph,
     )
@@ -320,7 +320,7 @@ class TestConflictStanceSynthesis:
         )
         conn.commit()
 
-        from propstore.core.analyzers import shared_analyzer_input_from_store
+        from propstore.argumentation import shared_analyzer_input_from_store
 
         store = SQLiteArgumentationStore(conn)
         shared = shared_analyzer_input_from_store(
@@ -355,7 +355,7 @@ class TestConflictStanceSynthesis:
         )
         conn.commit()
 
-        from propstore.core.analyzers import shared_analyzer_input_from_store
+        from propstore.argumentation import shared_analyzer_input_from_store
 
         store = SQLiteArgumentationStore(conn)
         shared = shared_analyzer_input_from_store(

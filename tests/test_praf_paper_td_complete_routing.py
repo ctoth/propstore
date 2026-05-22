@@ -51,10 +51,10 @@ def test_praf_paper_td_complete_routes_resolution_to_extension_probability(monke
         )
 
     monkeypatch.setattr(
-        "propstore.core.analyzers.shared_analyzer_input_from_store",
+        "propstore.argumentation.shared_analyzer_input_from_store",
         fake_shared,
     )
-    monkeypatch.setattr("propstore.core.analyzers.analyze_praf", fake_analyze_praf)
+    monkeypatch.setattr("propstore.argumentation.analyze_praf", fake_analyze_praf)
 
     winner, reason, acceptance = _resolve_praf(
         [_claim("claim_a")],

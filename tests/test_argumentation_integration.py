@@ -17,7 +17,7 @@ from propstore.claim_graph import (
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
 )
-from propstore.core.analyzers import shared_analyzer_input_from_store
+from propstore.argumentation import shared_analyzer_input_from_store
 from argumentation.dung import conflict_free, grounded_extension
 from propstore.praf import build_praf
 from propstore.preference import claim_strength

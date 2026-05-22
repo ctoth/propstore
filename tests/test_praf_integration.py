@@ -581,7 +581,7 @@ def test_build_praf_no_stances():
 
 def test_analyze_praf_metadata_exposes_query_kind_and_inference_mode():
     """Analyzer metadata must preserve the explicit PrAF query contract."""
-    from propstore.core.analyzers import analyze_praf, shared_analyzer_input_from_store
+    from propstore.argumentation import analyze_praf, shared_analyzer_input_from_store
 
     claims, stances = _make_claims_and_stances_uncertain()
     store = _MockStore(claims, stances)

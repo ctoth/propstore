@@ -229,7 +229,7 @@ def _praf_extensions(
     summary: WorldExtensionsStanceSummary,
 ) -> WorldExtensionsReport:
     from argumentation.probabilistic import compute_probabilistic_acceptance
-    from propstore.core.analyzers import praf_query_parameters
+    from propstore.argumentation import praf_query_parameters
     from propstore.praf import build_praf
 
     praf = build_praf(world, claim_ids, comparison=request.set_comparison)

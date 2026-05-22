@@ -288,3 +288,9 @@ Derived file disposition:
 Next slice:
 
 - Continue with `propstore/core/analyzers.py`.
+
+## Iteration 5 - `propstore/core/analyzers.py`
+
+Moved argumentation analyzer orchestration to `propstore/argumentation.py`; deleted old `propstore.core.analyzers` path and updated callers.
+Gates: old path zero-hit, deleted file absent, pyright pass, focused argumentation tests pass (`logs/test-runs/pytest-20260521-225159.log`).
+Next: `propstore/core/anytime.py`.

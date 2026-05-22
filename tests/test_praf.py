@@ -595,7 +595,7 @@ def test_build_praf_from_store():
 
 def test_build_praf_omits_uncalibrated_relation_from_probability_envelope():
     """A bare stance may remain deterministic claim-graph structure, but not PrAF certainty."""
-    from propstore.core.analyzers import build_praf_from_shared_input, shared_analyzer_input_from_active_graph
+    from propstore.argumentation import build_praf_from_shared_input, shared_analyzer_input_from_active_graph
     from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph, RelationEdge
 
     graph = WorldActivationGraph(

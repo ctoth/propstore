@@ -27,11 +27,11 @@ def test_ws_j_claim_graph_multi_extension_state_is_captured(monkeypatch) -> None
         )
 
     monkeypatch.setattr(
-        "propstore.core.analyzers.shared_analyzer_input_from_active_graph",
+        "propstore.argumentation.shared_analyzer_input_from_active_graph",
         lambda active_graph, **_kwargs: active_graph,
     )
     monkeypatch.setattr(
-        "propstore.core.analyzers.analyze_claim_graph",
+        "propstore.argumentation.analyze_claim_graph",
         fake_analyze_claim_graph,
     )
 
