@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from propstore.core.conditions import checked_condition_set, checked_condition_set_from_json
 from propstore.core.conditions.cel_frontend import check_condition_ir
@@ -43,6 +43,7 @@ from propstore.world.types import (
     ATMSConceptInterventionPlan,
     ATMSConceptRelevanceReport,
     ATMSConceptStabilityReport,
+    ATMSConceptWhyOutReport,
     ATMSLabelVerificationReport,
     ATMSNodeExplanation,
     ATMSNodeStatus,
@@ -70,9 +71,12 @@ from propstore.support_revision.belief_set_adapter import (
     decide_expand,
     decide_revise,
 )
-from propstore.support_revision.input_normalization import normalize_revision_input
+from propstore.support_revision.input_normalization import (
+    RevisionInput,
+    normalize_revision_input,
+    normalize_revision_targets,
+)
 from propstore.support_revision.realization import realize_formal_decision
-from propstore.support_revision.state import AssumptionAtom, AssertionAtom
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import WorldActivationGraph
@@ -191,7 +195,7 @@ class BoundWorld(BeliefSpace):
     def __init__(
         self,
         world: WorldStore,
-        bindings: dict[str, Any] | None = None,
+        bindings: Mapping[str, object] | None = None,
         context_id: str | None = None,
         lifting_system: LiftingSystem | None = None,
         *,
@@ -275,7 +279,7 @@ class BoundWorld(BeliefSpace):
         return {str(claim_id) for claim_id in claim_ids}
 
     @staticmethod
-    def _bindings_to_cel(bindings: dict[str, Any]) -> list[CelExpr]:
+    def _bindings_to_cel(bindings: Mapping[str, object]) -> list[CelExpr]:
         """Convert keyword bindings to CEL condition strings."""
         return [binding_condition_to_cel(key, value) for key, value in bindings.items()]
 
@@ -410,7 +414,7 @@ class BoundWorld(BeliefSpace):
     def collect_known_values(
         self,
         variable_concepts: Sequence[ConceptId | str],
-    ) -> dict[ConceptId, Any]:
+    ) -> dict[ConceptId, float]:
         """Resolve numeric values for a list of concept IDs."""
         return collect_known_values(variable_concepts, self.value_of)
 
@@ -484,7 +488,7 @@ class BoundWorld(BeliefSpace):
 
         return project_belief_base(self)
 
-    def revision_entrenchment(self, *, overrides: Mapping[str, Mapping[str, Any]] | None = None):
+    def revision_entrenchment(self, *, overrides: Mapping[str, Mapping[str, object]] | None = None):
         """Compute the current revision-facing entrenchment ordering."""
         from propstore.support_revision.entrenchment import compute_entrenchment
 
@@ -508,14 +512,14 @@ class BoundWorld(BeliefSpace):
 
     def contract(
         self,
-        targets,
+        targets: RevisionInput | Sequence[RevisionInput],
         *,
         max_candidates: int,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        overrides: Mapping[str, Mapping[str, object]] | None = None,
     ):
         """Contract the scoped revision belief base using the current entrenchment."""
         base = self.revision_base()
-        target_ids = _normalize_revision_targets(base, targets)
+        target_ids = normalize_revision_targets(base, targets)
         decision = decide_contract(
             base,
             target_ids,
@@ -534,8 +538,8 @@ class BoundWorld(BeliefSpace):
         atom,
         *,
         max_candidates: int,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
-        conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
+        overrides: Mapping[str, Mapping[str, object]] | None = None,
+        conflicts: Mapping[str, Sequence[str]] | None = None,
     ):
         """Revise the scoped belief base by delegating to the revision package."""
         base = self.revision_base()
@@ -543,7 +547,11 @@ class BoundWorld(BeliefSpace):
         decision = decide_revise(
             base,
             normalized,
-            conflicts=_conflicts_for_revision_atom(normalized.atom_id, conflicts),
+            conflicts=(
+                ()
+                if conflicts is None
+                else tuple(str(conflict) for conflict in conflicts.get(normalized.atom_id, ()))
+            ),
             max_alphabet_size=DEFAULT_MAX_ALPHABET_SIZE,
         )
         return realize_formal_decision(
@@ -560,7 +568,7 @@ class BoundWorld(BeliefSpace):
         self,
         result,
         *,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        overrides: Mapping[str, Mapping[str, object]] | None = None,
     ):
         """Render the default explanation payload for a revision result."""
         from propstore.support_revision.explain import build_revision_explanation
@@ -573,7 +581,7 @@ class BoundWorld(BeliefSpace):
     def epistemic_state(
         self,
         *,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
+        overrides: Mapping[str, Mapping[str, object]] | None = None,
     ):
         """Build the explicit iterated revision state for this scoped world."""
         from propstore.support_revision.iterated import make_epistemic_state
@@ -594,8 +602,8 @@ class BoundWorld(BeliefSpace):
         atom,
         *,
         max_candidates: int,
-        overrides: Mapping[str, Mapping[str, Any]] | None = None,
-        conflicts: Mapping[str, tuple[str, ...] | list[str]] | None = None,
+        overrides: Mapping[str, Mapping[str, object]] | None = None,
+        conflicts: Mapping[str, Sequence[str]] | None = None,
         operator: str = DEFAULT_ITERATED_OPERATOR,
         state=None,
     ):
@@ -844,7 +852,7 @@ class BoundWorld(BeliefSpace):
         queryables: Sequence[QueryableAssumption] | None = None,
         *,
         limit: int | None,
-    ) -> dict[str, Any]:
+    ) -> ATMSConceptWhyOutReport:
         """Explain why a concept currently lacks exact ATMS support."""
         self._require_atms_backend()
         supported_ids = self.atms_engine().supported_claim_ids(concept_id)
@@ -856,12 +864,12 @@ class BoundWorld(BeliefSpace):
             )
             for claim in sorted(self.active_claims(concept_id), key=lambda row: str(row.id))
         }
-        return {
-            "concept_id": concept_id,
-            "value_status": self.value_of(concept_id).status,
-            "supported_claim_ids": sorted(supported_ids),
-            "claim_reasons": claim_reasons,
-        }
+        return ATMSConceptWhyOutReport(
+            concept_id=concept_id,
+            value_status=self.value_of(concept_id).status,
+            supported_claim_ids=tuple(sorted(supported_ids)),
+            claim_reasons=claim_reasons,
+        )
 
     def explain_nogood(
         self,
@@ -1156,24 +1164,3 @@ class BoundWorld(BeliefSpace):
     def _require_atms_backend(self) -> None:
         if self._reasoning_backend() != "atms":
             raise ValueError("Future ATMS analysis requires backend='atms'")
-
-
-def _normalize_revision_targets(base, targets) -> tuple[str, ...]:
-    if isinstance(targets, (str, Mapping)):
-        return (normalize_revision_input(base, targets).atom_id,)
-    if isinstance(targets, tuple) and len(targets) == 0:
-        return ()
-    if isinstance(targets, list) and len(targets) == 0:
-        return ()
-    if isinstance(targets, Sequence) and not isinstance(targets, (AssertionAtom, AssumptionAtom)):
-        return tuple(normalize_revision_input(base, target).atom_id for target in targets)
-    return (normalize_revision_input(base, targets).atom_id,)
-
-
-def _conflicts_for_revision_atom(
-    atom_id: str,
-    conflicts: Mapping[str, Sequence[str]] | None,
-) -> tuple[str, ...]:
-    if conflicts is None:
-        return ()
-    return tuple(str(conflict) for conflict in conflicts.get(atom_id, ()))

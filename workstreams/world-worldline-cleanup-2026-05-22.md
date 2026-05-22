@@ -829,6 +829,84 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/bound.py`.
 
+## Iteration 34 - `propstore/world/bound.py`
+
+Slice read:
+- `propstore/world/bound.py`
+- `propstore/support_revision/input_normalization.py`
+- `propstore/worldline/interfaces.py`
+- `propstore/worldline/revision_capture.py`
+- value collection and ATMS concept why-out callers.
+
+Surfaces:
+- bound-local `_normalize_revision_targets`
+  - Disposition: move.
+  - Owner after cleanup: `propstore.support_revision.input_normalization`
+    owns revision input and target normalization.
+  - Action: add `RevisionInput` and `normalize_revision_targets` in the
+    support-revision input owner; update `BoundWorld.contract` to call that
+    owner directly; delete the bound-local helper.
+  - Evidence: the helper normalized support-revision atoms inside the world
+    runtime file, while `normalize_revision_input` already owns the atomic
+    input parsing.
+- bound-local `_conflicts_for_revision_atom`
+  - Disposition: delete.
+  - Owner after cleanup: no separate owner; `BoundWorld.revise` reads the
+    requested atom id and lowers conflict values inline once.
+  - Evidence: the helper had one production caller and only wrapped
+    `conflicts.get(atom_id, ())`.
+- `BoundWorld.why_concept_out` dict payload
+  - Disposition: rewrite.
+  - Owner after cleanup: `propstore.world.types.ATMSConceptWhyOutReport` owns
+    the typed world-runtime report; `propstore.app.world_atms` adapts that
+    report for presentation.
+  - Action: add the typed report, return it from `BoundWorld`, and update the
+    sole app caller to use attributes instead of dictionary keys.
+- remaining bound-local `Any` annotations
+  - Disposition: rewrite.
+  - Owner after cleanup: object-valued boundary inputs where arbitrary JSON or
+    environment values are still accepted; float-valued known-value maps where
+    the value resolver only stores numeric values.
+  - Action: replace bound `Any` annotations, update `WorldQuery.bind`,
+    `OverlayWorld.collect_known_values`, `ClaimValueResolver` known-value
+    signatures, and the worldline bound protocol.
+- worldline revision capture optional atom/target pass-through
+  - Disposition: rewrite.
+  - Owner after cleanup: `revision_capture` enforces operation-required atom
+    and contract target values before calling the typed bound protocol.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/bound.py
+  propstore/worldline/interfaces.py` returned zero hits.
+- Pass: `rg -n -F -- "_normalize_revision_targets" propstore tests` returned
+  zero hits.
+- Pass: `rg -n -F -- "_conflicts_for_revision_atom" propstore tests` returned
+  zero hits.
+- Failed then fixed: initial `uv run pyright propstore` exposed stale
+  worldline protocol, optional revision-capture atom/target, app dict access,
+  and iterated conflict input types after deleting the bound-local loose
+  surfaces.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Initial logged pytest selector was invalid and ran zero tests; corrected
+  gates below were used.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-bound-typed-revision-targets-final-rerun
+  tests/test_world_query.py::TestDerivedValue
+  tests/test_world_query.py::TestOverlayWorld
+  tests/test_world_query.py::TestConflictResolution
+  tests/test_revision_operators.py tests/test_revision_properties.py
+  tests/test_worldline_revision.py tests/test_capture_journal.py
+  tests/test_atms_engine.py` returned `116 passed, 12 warnings`.
+- Log:
+  `logs/test-runs/world-bound-typed-revision-targets-final-rerun-20260522-045122.log`.
+
+Commit:
+- Type bound revision and ATMS reports.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/bridge.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

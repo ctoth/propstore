@@ -288,6 +288,18 @@ class ATMSWhyOutReport:
 
 
 @dataclass(frozen=True)
+class ATMSConceptWhyOutReport:
+    concept_id: str
+    value_status: ValueStatus
+    supported_claim_ids: Sequence[str]
+    claim_reasons: Mapping[str, ATMSWhyOutReport]
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "supported_claim_ids", _tuple(self.supported_claim_ids))
+        object.__setattr__(self, "claim_reasons", dict(self.claim_reasons))
+
+
+@dataclass(frozen=True)
 class ATMSNodeStabilityReport:
     node_id: str
     claim_id: str | None

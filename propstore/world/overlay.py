@@ -446,7 +446,7 @@ class OverlayWorld(BeliefSpace):
     def collect_known_values(
         self,
         variable_concepts: Sequence[ConceptId | str],
-    ) -> dict[ConceptId, Any]:
+    ) -> dict[ConceptId, float]:
         return self._overlay.collect_known_values(variable_concepts)
 
     def value_of(self, concept_id: str) -> ValueResult:

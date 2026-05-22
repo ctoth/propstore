@@ -11,7 +11,10 @@ from propstore.support_revision.history import (
     TransitionJournalEntry,
     TransitionOperation,
 )
-from propstore.support_revision.input_normalization import normalize_revision_input
+from propstore.support_revision.input_normalization import (
+    RevisionInput,
+    normalize_revision_input,
+)
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.support_revision.state import EpistemicState, RevisionEvent, RevisionResult
 from propstore.worldline.definition import WorldlineRevisionQuery
@@ -37,7 +40,7 @@ def capture_revision_state(
 ) -> WorldlineRevisionState:
     operation = revision_query.operation
     if operation == "expand":
-        result = bound.expand(_revision_atom_input(revision_query.atom))
+        result = bound.expand(_required_revision_atom_input(revision_query.atom))
         return WorldlineRevisionState(
             operation=operation,
             input_atom_id=_query_atom_id(revision_query.atom),
@@ -52,7 +55,7 @@ def capture_revision_state(
             ),
         )
     if operation == "contract":
-        result = bound.contract(revision_query.target, max_candidates=1024)
+        result = bound.contract(_required_revision_target(revision_query.target), max_candidates=1024)
         return WorldlineRevisionState(
             operation=operation,
             input_atom_id=None,
@@ -68,7 +71,7 @@ def capture_revision_state(
         )
     if operation == "revise":
         result = bound.revise(
-            _revision_atom_input(revision_query.atom),
+            _required_revision_atom_input(revision_query.atom),
             conflicts=revision_query.conflicts.to_revision_input(),
             max_candidates=1024,
         )
@@ -87,7 +90,7 @@ def capture_revision_state(
         )
     if operation == "iterated_revise":
         result, state = bound.iterated_revise(
-            _revision_atom_input(revision_query.atom),
+            _required_revision_atom_input(revision_query.atom),
             conflicts=revision_query.conflicts.to_revision_input(),
             max_candidates=1024,
             operator=revision_query.operator or DEFAULT_ITERATED_OPERATOR,
@@ -191,10 +194,16 @@ def _bound_epistemic_state_hash(bound: WorldlineBoundView) -> str:
     return EpistemicSnapshot.from_state(result).content_hash
 
 
-def _revision_atom_input(atom: RevisionAtomRef | None) -> Mapping[str, Any] | None:
+def _required_revision_atom_input(atom: RevisionAtomRef | None) -> RevisionInput:
     if atom is None:
-        return None
+        raise ValueError("worldline revision operation requires an atom")
     return atom.to_revision_input()
+
+
+def _required_revision_target(target: str | None) -> str:
+    if target is None:
+        raise ValueError("worldline contract revision requires a target")
+    return target
 
 
 def _revision_state_snapshot(

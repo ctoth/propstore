@@ -430,10 +430,8 @@ def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsW
         )
         return AtmsConceptWhyOutReport(
             target=resolved,
-            value_status=concept_report["value_status"],
-            supported_claim_ids=tuple(
-                str(claim_id) for claim_id in concept_report["supported_claim_ids"]
-            ),
+            value_status=concept_report.value_status,
+            supported_claim_ids=tuple(str(claim_id) for claim_id in concept_report.supported_claim_ids),
             claim_reasons=tuple(
                 AtmsClaimWhyOutReport(
                     target=str(claim_id),
@@ -446,7 +444,7 @@ def world_atms_why_out(repo: Repository, request: AppAtmsTargetRequest) -> AtmsW
                     candidate_queryables=(),
                     reason=str(report.reason),
                 )
-                for claim_id, report in sorted(concept_report["claim_reasons"].items())
+                for claim_id, report in sorted(concept_report.claim_reasons.items())
             ),
         )
     finally:

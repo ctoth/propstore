@@ -979,7 +979,7 @@ class WorldQuery(WorldStore):
         environment: Environment | None = None,
         *,
         policy: RenderPolicy | None = None,
-        **conditions: Any,
+        **conditions: object,
     ) -> BoundWorld:
         from propstore.world.bound import BoundWorld
 

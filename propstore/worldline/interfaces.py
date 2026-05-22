@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 from propstore.core.environment import WorldStore, Environment
 from propstore.core.graph_types import WorldActivationGraph
+from propstore.support_revision.input_normalization import RevisionInput
 from propstore.world.types import BeliefSpace, RenderPolicy
 
 if TYPE_CHECKING:
@@ -14,29 +15,29 @@ if TYPE_CHECKING:
 
 
 class WorldlineBoundView(BeliefSpace, Protocol):
-    def expand(self, atom: Mapping[str, Any] | None) -> RevisionResult: ...
+    def expand(self, atom: RevisionInput) -> RevisionResult: ...
 
     def contract(
         self,
-        targets: str | None,
+        targets: RevisionInput | Sequence[RevisionInput],
         *,
         max_candidates: int,
     ) -> RevisionResult: ...
 
     def revise(
         self,
-        atom: Mapping[str, Any] | None,
+        atom: RevisionInput,
         *,
         max_candidates: int,
-        conflicts: Mapping[str, tuple[str, ...]] | None = None,
+        conflicts: Mapping[str, Sequence[str]] | None = None,
     ) -> RevisionResult: ...
 
     def iterated_revise(
         self,
-        atom: Mapping[str, Any] | None,
+        atom: RevisionInput,
         *,
         max_candidates: int,
-        conflicts: Mapping[str, tuple[str, ...]] | None = None,
+        conflicts: Mapping[str, Sequence[str]] | None = None,
         operator: str,
     ) -> tuple[RevisionResult, EpistemicState]: ...
 
@@ -71,5 +72,5 @@ class WorldlineStore(WorldStore, Protocol):
         environment: Environment | None = None,
         *,
         policy: RenderPolicy | None = None,
-        **conditions: Any,
+        **conditions: object,
     ) -> WorldlineBoundView: ...

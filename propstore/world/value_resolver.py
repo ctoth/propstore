@@ -102,12 +102,12 @@ _SAFE_SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 def collect_known_values(
     variable_concepts: Sequence[ConceptId | str],
     value_of: Callable[[ConceptId | str], ValueResult],
-) -> dict[ConceptId, Any]:
+) -> dict[ConceptId, float]:
     """Resolve numeric values for a list of concept IDs.
 
     Shared implementation used by BoundWorld and OverlayWorld.
     """
-    known: dict[ConceptId, Any] = {}
+    known: dict[ConceptId, float] = {}
     for cid in variable_concepts:
         normalized_cid = ConceptId(cid)
         vr = value_of(normalized_cid)
@@ -131,7 +131,7 @@ class ClaimValueResolver:
         is_param_compatible: Callable[[Parameterization], bool],
         value_of: Callable[[ConceptId | str], ValueResult],
         extract_variable_concepts: Callable[[Claim], list[str]],
-        collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, Any]],
+        collect_known_values: Callable[[Sequence[ConceptId | str]], dict[ConceptId, float]],
         extract_bindings: Callable[[Claim], dict[str, str]],
         concept_symbol_candidates: Callable[[ConceptId | str], Sequence[str]] | None = None,
     ) -> None:

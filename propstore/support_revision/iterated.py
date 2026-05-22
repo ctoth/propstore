@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 from propstore.support_revision.entrenchment import EntrenchmentReport, compute_entrenchment
 from propstore.support_revision.belief_set_adapter import (
@@ -89,7 +89,7 @@ def iterated_revise(
     atom,
     *,
     max_candidates: int,
-    conflicts: dict[str, tuple[str, ...] | list[str]] | None = None,
+    conflicts: Mapping[str, Sequence[str]] | None = None,
     operator: str = DEFAULT_ITERATED_OPERATOR,
     policy_snapshot: Mapping[str, str] | None = None,
     replay_status: str | None = None,
