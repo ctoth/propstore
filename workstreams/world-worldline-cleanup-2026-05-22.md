@@ -1196,6 +1196,75 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/overlay.py`.
 
+## Iteration 41 - `propstore/world/overlay.py`
+
+Slice read:
+- `propstore/world/overlay.py`
+- `propstore/world/bound.py` public bound-state properties
+- `tests/test_world_bound_conflicts_cache.py`
+- current `OverlayWorld`, `propstore.world.overlay`, and old conflict-input
+  helper references.
+
+Surfaces:
+- direct `BoundWorld` private-state reads in overlay construction
+  - Disposition: delete.
+  - Owner after cleanup: `BoundWorld.store`, `BoundWorld.environment`,
+    `BoundWorld.lifting_system`, `BoundWorld.policy`, and
+    `BoundWorld.active_graph` expose the semantic state required by overlays.
+  - Action: replace overlay reads of `base._store`, `base._environment`,
+    `base._lifting_system`, `base._policy`, and `base._active_graph` with the
+    public bound properties.
+  - Evidence: the overlay is a semantic belief-space transform; it should use
+    the bound-world owner API instead of making private attributes part of its
+    contract.
+- `Any` in overlay forwarding
+  - Disposition: rewrite.
+  - Owner after cleanup: typed overlay forwarding accepts object-valued
+    bindings at the store boundary and a typed `ResolutionStrategy`.
+  - Action: remove overlay-local `Any`, type `chain_query`, type
+    `__getattr__`, remove unused imports, and type `_value_set`.
+- stale cache tests for deleted `_conflict_inputs_for_store`
+  - Disposition: delete old-symbol expectation.
+  - Owner after cleanup: `propstore.world.conflict_projection` owns conflict
+    detector input projection; `propstore.world.bound` imports and caches that
+    owner function.
+  - Action: update the cache tests to patch
+    `bound_module.conflict_detector_inputs_for_world` and remove the old helper
+    name from test documentation.
+
+Gate results:
+- Pass: `rg -n -F -- "Any" propstore/world/overlay.py` returned zero hits.
+- Pass: `rg -n -F -- "base._" propstore/world/overlay.py` returned zero
+  hits.
+- Pass: `rg -n -F -- "_conflict_inputs_for_store" propstore tests` returned
+  zero hits.
+- Pass: `rg -n -F -- "coerce" propstore/world/overlay.py` returned zero hits.
+- Pass: `rg -n -F -- "from_payload" propstore/world/overlay.py` returned zero
+  hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Failed then fixed: first focused logged pytest run exposed stale
+  `tests/test_world_bound_conflicts_cache.py` monkeypatches of deleted
+  `bound._conflict_inputs_for_store`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-conflict-cache-owner-test-update
+  tests/test_world_bound_conflicts_cache.py` returned `5 passed`.
+- Log:
+  `logs/test-runs/world-conflict-cache-owner-test-update-20260522-051801.log`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-overlay-public-bound-surface-rerun tests/test_overlay_world_renamed.py
+  tests/test_semantic_core_phase0.py tests/test_worldline_properties.py
+  tests/test_world_bound_conflicts_cache.py tests/test_world_query.py` returned
+  `180 passed`.
+- Log:
+  `logs/test-runs/world-overlay-public-bound-surface-rerun-20260522-051819.log`.
+
+Commit:
+- Use public bound state for overlays.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with the next
+  `propstore/world` file named by the workstream.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

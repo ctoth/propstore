@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import json
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from collections.abc import Sequence
-from typing import Any, Callable, Mapping, cast
+from typing import Callable, Mapping, cast
 
 from propstore.conflict_detector import ConflictClass
-from propstore.core.conditions.registry import ConceptInfo
 from propstore.core.environment import (
     WorldStore,
     ClaimCatalogStore,
@@ -57,6 +55,7 @@ from propstore.world.types import (
     BeliefSpace,
     DerivedResult,
     ResolvedResult,
+    ResolutionStrategy,
     SyntheticClaim,
     ValueResult,
 )
@@ -92,24 +91,26 @@ def _conflict_witness_from_model(row: RelationConflictWitness) -> ConflictWitnes
 
 
 def _compiled_graph_for_bound(base: BoundWorld) -> CompiledWorldGraph | None:
-    if base._active_graph is not None:
-        return base._active_graph.compiled
-    if isinstance(base._store, CompiledGraphStore):
-        return base._store.compiled_graph()
+    active_graph = base.active_graph
+    store = base.store
+    if active_graph is not None:
+        return active_graph.compiled
+    if isinstance(store, CompiledGraphStore):
+        return store.compiled_graph()
     if (
-        isinstance(base._store, ConceptCatalogStore)
-        and isinstance(base._store, ClaimCatalogStore)
-        and isinstance(base._store, ConflictStore)
+        isinstance(store, ConceptCatalogStore)
+        and isinstance(store, ClaimCatalogStore)
+        and isinstance(store, ConflictStore)
         and (
-            isinstance(base._store, ParameterizationCatalogStore)
-            or isinstance(base._store, ParameterizationLookupStore)
+            isinstance(store, ParameterizationCatalogStore)
+            or isinstance(store, ParameterizationLookupStore)
         )
         and (
-            isinstance(base._store, ClaimStanceInventoryStore)
-            or isinstance(base._store, StanceStore)
+            isinstance(store, ClaimStanceInventoryStore)
+            or isinstance(store, StanceStore)
         )
     ):
-        return build_compiled_world_graph(base._store)
+        return build_compiled_world_graph(store)
     return None
 
 
@@ -130,7 +131,7 @@ class _GraphOverlayStore:
         self._conflicts = list(conflicts)
         self._compiled = compiled
 
-    def __getattr__(self, name: str) -> Any:
+    def __getattr__(self, name: str) -> object:
         return getattr(self._base, name)
 
     def get_concept(self, concept_id: str) -> Concept | None:
@@ -263,7 +264,12 @@ class _GraphOverlayStore:
     def group_members(self, concept_id: str) -> list[str]:
         return list(self._base.group_members(concept_id))
 
-    def chain_query(self, target_concept_id: str, strategy=None, **bindings: Any):
+    def chain_query(
+        self,
+        target_concept_id: str,
+        strategy: ResolutionStrategy | None = None,
+        **bindings: object,
+    ) -> object:
         return self._base.chain_query(
             target_concept_id,
             strategy=strategy,
@@ -288,9 +294,10 @@ class OverlayWorld(BeliefSpace):
         add: list[SyntheticClaim] | None = None,
     ) -> None:
         self._base = base
+        base_store = base.store
 
         def store_claim_id(claim_id: str) -> str:
-            claim = base._store.get_claim(claim_id)
+            claim = base_store.get_claim(claim_id)
             return str(claim.id) if claim is not None else claim_id
 
         self._removed_ids = {
@@ -302,7 +309,7 @@ class OverlayWorld(BeliefSpace):
             return store_claim_id(claim_id)
 
         def resolve_synthetic_concept_id(concept_id: ConceptId) -> ConceptId:
-            concept = base._store.get_concept(str(concept_id))
+            concept = base_store.get_concept(str(concept_id))
             if concept is None:
                 return concept_id
             return ConceptId(str(concept.id))
@@ -316,8 +323,8 @@ class OverlayWorld(BeliefSpace):
             for synthetic in (add or [])
         ]
 
-        cel_registry = base._store.condition_solver().registry
-        base_claims = list(base._store.claims_for(None))
+        cel_registry = base_store.condition_solver().registry
+        base_claims = list(base_store.claims_for(None))
         base_claims_by_id = {
             str(claim.id): claim
             for claim in base_claims
@@ -371,9 +378,9 @@ class OverlayWorld(BeliefSpace):
         overlay_stances = (
             [
                 stance
-                for stance in base._store.stances_between(overlay_claim_ids)
+                for stance in base_store.stances_between(overlay_claim_ids)
             ]
-            if isinstance(base._store, StanceStore)
+            if isinstance(base_store, StanceStore)
             else []
         )
 
@@ -381,7 +388,7 @@ class OverlayWorld(BeliefSpace):
             conflict
             for conflict in (
                 conflict
-                for conflict in base._store.conflicts()
+                for conflict in base_store.conflicts()
             )
             if conflict.claim_a_id in overlay_claim_ids
             and conflict.claim_b_id in overlay_claim_ids
@@ -391,7 +398,7 @@ class OverlayWorld(BeliefSpace):
             for conflict in overlay_conflicts
         }
         for conflict in _recomputed_conflicts(
-            base._store,
+            base_store,
             overlay_claims,
         ):
             pair = _claim_pair(str(conflict.claim_a_id), str(conflict.claim_b_id))
@@ -409,7 +416,7 @@ class OverlayWorld(BeliefSpace):
                 conflicts=tuple(_conflict_witness_from_model(row) for row in overlay_conflicts),
             )
         self._overlay_store = _GraphOverlayStore(
-            base._store,
+            base_store,
             claims=overlay_claims,
             stances=overlay_stances,
             conflicts=overlay_conflicts,
@@ -418,18 +425,18 @@ class OverlayWorld(BeliefSpace):
         self._active_graph = (
             activate_compiled_world_graph(
                 self._compiled_graph,
-                environment=base._environment,
+                environment=base.environment,
                 solver=self._overlay_store.condition_solver(),
-                lifting_system=base._lifting_system,
+                lifting_system=base.lifting_system,
             )
             if self._compiled_graph is not None
             else None
         )
         self._overlay = BoundWorld(
             self._overlay_store,
-            environment=base._environment,
-            lifting_system=base._lifting_system,
-            policy=base._policy,
+            environment=base.environment,
+            lifting_system=base.lifting_system,
+            policy=base.policy,
             active_graph=self._active_graph,
         )
 
@@ -495,7 +502,7 @@ class OverlayWorld(BeliefSpace):
         for synthetic in self._synthetics:
             affected.add(synthetic.concept_id)
         for claim_id in self._removed_ids:
-            claim = self._base._store.get_claim(claim_id)
+            claim = self._base.store.get_claim(claim_id)
             if claim:
                 if claim.value_concept_id is not None:
                     affected.add(str(claim.value_concept_id))
@@ -512,7 +519,7 @@ class OverlayWorld(BeliefSpace):
         return result
 
 
-def _value_set(vr: ValueResult) -> set:
+def _value_set(vr: ValueResult) -> set[float]:
     return {
         numeric_payload.value
         for claim in vr.claims

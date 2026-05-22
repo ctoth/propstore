@@ -1,14 +1,14 @@
 """Tests for BoundWorld caching of conflict-detection registry inputs.
 
-Regression guard for Defect 4: `_conflict_inputs_for_store` was rebuilt on
+Regression guard for Defect 4: `conflict_detector_inputs_for_world` was rebuilt on
 every `BoundWorld.conflicts(concept_id)` invocation, so two calls with
 distinct concept ids paid the full iterate-all-concepts cost twice. The
 registry inputs are invariant for the lifetime of a `BoundWorld` instance
 (since `BoundWorld._store` is set once in `__init__` and never rebound), so
 they must be memoised on the instance.
 
-Overlay safety note: the free function `_conflict_inputs_for_store` is ALSO
-called by `propstore.world.overlay` against a `_GraphOverlayStore`.
+Overlay safety note: `conflict_detector_inputs_for_world` is ALSO called by
+`propstore.world.overlay` against a `_GraphOverlayStore`.
 Those call sites must continue to rebuild — a shared cache would validate
 synthetic overlay claims against the base store's registry. This test only
 asserts caching WITHIN a single `BoundWorld` instance; it does not (and
@@ -64,11 +64,11 @@ class TestBoundConflictInputsCache:
         """
         bound = world.bind(task="speech")
 
-        real_builder = bound_module._conflict_inputs_for_store
+        real_builder = bound_module.conflict_detector_inputs_for_world
         wrapped = Mock(wraps=real_builder)
         monkeypatch.setattr(
             bound_module,
-            "_conflict_inputs_for_store",
+            "conflict_detector_inputs_for_world",
             wrapped,
         )
 
@@ -84,7 +84,7 @@ class TestBoundConflictInputsCache:
 
         # The defect: call_count == 2 on master. After the fix: == 1.
         assert wrapped.call_count == 1, (
-            f"Expected _conflict_inputs_for_store to be called once across two "
+            f"Expected conflict_detector_inputs_for_world to be called once across two "
             f"BoundWorld.conflicts() invocations on distinct concept ids, "
             f"but was called {wrapped.call_count} times."
         )
@@ -96,11 +96,11 @@ class TestBoundConflictInputsCache:
         """
         bound = world.bind(task="speech")
 
-        real_builder = bound_module._conflict_inputs_for_store
+        real_builder = bound_module.conflict_detector_inputs_for_world
         wrapped = Mock(wraps=real_builder)
         monkeypatch.setattr(
             bound_module,
-            "_conflict_inputs_for_store",
+            "conflict_detector_inputs_for_world",
             wrapped,
         )
 
@@ -149,7 +149,7 @@ class TestBoundConflictInputsCache:
             ])
         )
         builder = Mock(side_effect=AssertionError("conflict inputs should not build"))
-        monkeypatch.setattr(bound_module, "_conflict_inputs_for_store", builder)
+        monkeypatch.setattr(bound_module, "conflict_detector_inputs_for_world", builder)
 
         assert bound.conflicts("concept_sparse") == []
         assert builder.call_count == 0
@@ -189,7 +189,7 @@ class TestBoundConflictInputsCache:
             )
         )
         builder = Mock(side_effect=AssertionError("conflict inputs should not build"))
-        monkeypatch.setattr(bound_module, "_conflict_inputs_for_store", builder)
+        monkeypatch.setattr(bound_module, "conflict_detector_inputs_for_world", builder)
 
         conflicts = bound.conflicts("concept_pair")
 
