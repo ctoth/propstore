@@ -128,7 +128,41 @@ If any condition fails, the action is delete, move, consolidate, or rewrite.
     shape and source shape. The shared code may parse common typed parts only;
     it must not become an old/new shape adapter.
 
+- [x] `propstore/core/assertions/refs.py`
+  - Read: 2026-05-21.
+  - Action: keep reference value objects; rewrite loose source hashing input.
+  - Reason: `ContextReference`, `ConditionRef`, and `ProvenanceGraphRef` are
+    core assertion identity/reference objects. They validate typed identifiers
+    and do not duplicate Quire storage mechanics. The exception is
+    `ConditionRef.from_sources`, which accepts `Sequence[object]` and
+    stringifies arbitrary values to build identity.
+  - Required follow-up: change `ConditionRef.from_sources` to accept the exact
+    typed condition-source representation used by the condition owner, not
+    arbitrary `object`; update callers from the resulting type errors.
+
+- [x] `propstore/core/assertions/situated.py`
+  - Read: 2026-05-21.
+  - Action: keep as core assertion identity.
+  - Reason: it composes typed assertion reference/domain objects and derives
+    deterministic assertion IDs from the identity payload. It does not parse IO
+    payloads, preserve compatibility paths, or duplicate family metadata.
+
+- [x] `propstore/core/base_rates.py`
+  - Read: 2026-05-21.
+  - Action: split. Keep typed resolver/value objects; move or delete source
+    claim payload parsing from `core`.
+  - Reason: `BaseRateProfile`, `BaseRateResolver`, and
+    `construct_assertion_opinion` operate on typed assertion IDs and opinion
+    domain objects. `BaseRateAssertionRecord.from_parameter_claim` accepts a
+    loose `Mapping[str, object]` and hardcodes claim payload fields
+    (`type`, `id`, `concept`, `value`, `unit`) inside `core`.
+  - Delete/move: `BaseRateAssertionRecord.from_parameter_claim` cannot remain
+    in `core`; it belongs at the source/family/document boundary or should be
+    replaced by a typed parameter-claim/domain object supplied by that owner.
+  - Required follow-up: search callers, delete the loose mapping entrypoint
+    first, then update callers to pass typed claim/domain objects.
+
 ## Progress
 
-- Files read: 9 / 51.
-- Next file: `propstore/core/assertions/refs.py`.
+- Files read: 12 / 51.
+- Next file: `propstore/core/claim_types.py`.
