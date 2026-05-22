@@ -1,9 +1,8 @@
-"""Heavy variant of ``at_journal_step`` — re-derived stances and conflicts.
+"""Heavy journal-step projection with re-derived stances and conflicts.
 
-Per quire/plans/worldline-journal-bridge-2026-05-02.md sections 7 + 11
-(Phase 3 properties P-HEAVY-1/2/3).
+Phase 3 properties P-HEAVY-1/2/3 cover this heavier projection mode.
 
-The minimal bridge (``at_journal_step(..., heavy=False)``) projects only
+The minimal projection (``at_journal_step(..., heavy=False)``) projects only
 the claim-id set accepted at step k. The heavy variant additionally
 re-derives stances and conflicts visible within that accepted claim set
 from the belief-space query surface. ``state.scope.commit`` anchors the

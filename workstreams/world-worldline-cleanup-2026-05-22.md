@@ -907,6 +907,59 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/bridge.py`.
 
+## Iteration 35 - `propstore/world/bridge.py`
+
+Slice read:
+- `propstore/world/bridge.py`
+- `propstore/world/model.py`
+- `propstore/world/journal_replay.py`
+- journal projection and capture tests.
+
+Surfaces:
+- `propstore.world.bridge`
+  - Disposition: delete.
+  - Owner after cleanup: `propstore.world.journal_projection` owns
+    journal-step projection from `TransitionJournal` state to `ClaimView`.
+  - Action: move `at_journal_step` and `BeliefSpaceQuery` to the semantic
+    journal projection owner, delete `bridge.py`, and update production/test
+    imports.
+  - Evidence: this was not compatibility behavior, but the bridge-named module
+    preserved transition terminology instead of naming the actual semantic
+    operation.
+- bridge wording in journal projection docs/tests
+  - Disposition: rewrite.
+  - Owner after cleanup: journal projection terminology in
+    `WorldQuery.at_journal_step`, `ClaimView`, heavy replay docs, and tests.
+- `BeliefSpaceQuery.bind_for_view` `Any` binding values
+  - Disposition: rewrite.
+  - Owner after cleanup: object-valued journal scope bindings at the projection
+    boundary.
+
+Gate results:
+- Pass: `rg -n -F -- "propstore.world.bridge" propstore tests` returned zero
+  hits.
+- Pass: `rg -n -F -- "from propstore.world.bridge" propstore tests` returned
+  zero hits.
+- Pass: `rg --files propstore/world | rg -n "bridge.py$"` returned zero hits.
+- Pass: `rg -n -F -- "Any" propstore/world/journal_projection.py` returned
+  zero hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-journal-projection-bridge-deletion
+  tests/test_world_query_at_journal_step.py
+  tests/test_world_query_at_journal_step_method.py tests/test_p_heavy.py
+  tests/test_p_mara_gate.py tests/test_scope_policy.py
+  tests/test_capture_journal.py` returned `28 passed`.
+- Log:
+  `logs/test-runs/world-journal-projection-bridge-deletion-20260522-045520.log`.
+
+Commit:
+- Rename journal bridge projection owner.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/consistency.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:

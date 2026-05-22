@@ -1,7 +1,7 @@
 """P-MARA — stance-free Mara-Jade gate.
 
 Per design section 10 Phase 1 acceptance criterion 3: this is the gate
-that decides whether the minimal bridge is sufficient or whether the
+that decides whether the minimal projection is sufficient or whether the
 heavy variant must be promoted.
 
 The fixture is HAND-BUILT (``mara_jade_fixture()``), not derived from
@@ -9,13 +9,13 @@ The fixture is HAND-BUILT (``mara_jade_fixture()``), not derived from
 expected claim_ids set is asserted by hand from the fixture's
 construction, not by reading back the journal's accepted_atom_ids.
 
-If this gate requires stance projection that the minimal bridge cannot
+If this gate requires stance projection that the minimal projection cannot
 deliver, P-MARA fails — heavy variant must be promoted to Phase 1.
 """
 
 from __future__ import annotations
 
-from propstore.world.bridge import at_journal_step
+from propstore.world.journal_projection import at_journal_step
 from tests.fixtures.journal import (
     make_state,
     mara_jade_fixture,
@@ -25,11 +25,11 @@ from tests.fixtures.journal import (
 
 
 def test_p_mara_stance_free_gate() -> None:
-    """The hand-built two-atom Mara fixture round-trips through the bridge.
+    """The hand-built two-atom Mara fixture round-trips through the projection.
 
     The expected_claim_ids set is asserted by hand from the fixture's
     construction. The journal is built by *running* dispatch over the
-    two atoms — the resulting state_out is what the bridge reads.
+    two atoms — the resulting state_out is what the projection reads.
     """
     fixture = mara_jade_fixture()
     space = synthetic_belief_space_with(
@@ -40,7 +40,7 @@ def test_p_mara_stance_free_gate() -> None:
         initial_state=initial,
         revision_atoms=(fixture.orders_atom, fixture.assignment_atom),
     )
-    # Step 1 (k=1) is after both revisions. Bridge claim_ids should equal
+    # Step 1 (k=1) is after both revisions. Projection claim_ids should equal
     # the hand-asserted expected set.
     view = at_journal_step(space, journal, len(journal.entries) - 1)
     expected = fixture.expected_claim_ids

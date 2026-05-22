@@ -677,7 +677,7 @@ class SyntheticClaim:
 
 @dataclass(frozen=True)
 class ClaimView:
-    """Bridge return type for ``at_journal_step``.
+    """Journal projection return type for ``at_journal_step``.
 
     Carries the claim-id-keyed claim rows projected from a journal step,
     the snapshot's ``RevisionScope`` (so callers know what bindings/
@@ -686,7 +686,7 @@ class ClaimView:
     distinct from the flat view), plus optional tuples of stances and
     conflicts populated only by the heavy variant.
 
-    See ``propstore.world.bridge.at_journal_step``.
+    See ``propstore.world.journal_projection.at_journal_step``.
     """
 
     claims: Mapping[str, Claim]

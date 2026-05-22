@@ -476,19 +476,18 @@ class WorldQuery(WorldStore):
     ) -> ClaimView:
         """Project the claims accepted at step ``k`` of the journal.
 
-        Bridge surface defined in
-        ``quire/plans/worldline-journal-bridge-2026-05-02.md``. Per Bonanno
-        [2007, 2010] (branching-time AGM with PLS) and Dixon [1993] (ATMS
+        Journal projection surface for captured worldline revision state.
+        Per Bonanno [2007, 2010] (branching-time AGM with PLS) and Dixon [1993] (ATMS
         into AGM behavioural equivalence), this projection is behaviourally
         equivalent to running the journal's operations against the live
         store, modulo the lossy projection at the AGM boundary.
 
-        Delegates to ``propstore.world.bridge.at_journal_step``; the same
+        Delegates to ``propstore.world.journal_projection.at_journal_step``; the same
         function is used by the property suite against a synthetic belief
         space, so this method's behaviour is the same shape as the
         property tests.
         """
-        from propstore.world.bridge import at_journal_step as _at_journal_step
+        from propstore.world.journal_projection import at_journal_step as _at_journal_step
 
         return _at_journal_step(self, journal, k, rebind=rebind, heavy=heavy)
 
@@ -512,7 +511,7 @@ class WorldQuery(WorldStore):
         )
         bound = self.bind(environment=env)
         # BoundWorld carries _environment; expose the restriction set on the
-        # view so the bridge tests can observe it.
+        # view so the journal projection tests can observe it.
         return _BoundView(bound=bound, restricted_to=restricted_to)
 
     def stances_between(self, claim_ids: set[str]) -> list[Stance]:

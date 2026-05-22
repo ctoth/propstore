@@ -1,4 +1,4 @@
-"""Property tests for ``WorldQuery.at_journal_step`` and the bridge core.
+"""Property tests for ``WorldQuery.at_journal_step`` and the projection core.
 
 Properties covered here:
 - P5: Dixon-shape behavioural equivalence between ``at_journal_step`` and
@@ -20,7 +20,7 @@ from hypothesis import strategies as st
 
 from propstore.support_revision.projection import snapshot_to_claim_ids
 from propstore.support_revision.state import AssertionAtom
-from propstore.world.bridge import at_journal_step  # NEW — introduced by GREEN
+from propstore.world.journal_projection import at_journal_step
 from tests.fixtures.journal import (
     direct_dispatch,
     make_assertion_atom,
@@ -114,7 +114,7 @@ def test_p5_at_journal_step_matches_direct_dispatch(triple) -> None:
         view = at_journal_step(space, journal, k)
         assert view.claim_ids() == ground_truth_claim_ids, (
             f"step {k}: oracle={ground_truth_claim_ids}, "
-            f"bridge={view.claim_ids()}, "
+            f"projection={view.claim_ids()}, "
             f"missing={ground_truth_claim_ids - view.claim_ids()}, "
             f"extra={view.claim_ids() - ground_truth_claim_ids}"
         )

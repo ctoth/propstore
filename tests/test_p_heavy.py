@@ -38,7 +38,7 @@ from propstore.support_revision.snapshot_types import (
     belief_atom_to_canonical_dict,
 )
 from propstore.support_revision.state import AssertionAtom, RevisionScope
-from propstore.world.bridge import at_journal_step
+from propstore.world.journal_projection import at_journal_step
 from propstore.world.journal_replay import (
     HeavyCacheStats,
     register_fixture_commit,

@@ -21,7 +21,7 @@ import warnings
 import pytest
 
 from propstore.support_revision.state import RevisionScope
-from propstore.world.bridge import at_journal_step
+from propstore.world.journal_projection import at_journal_step
 from tests.fixtures.journal import (
     make_assertion_atom,
     make_journal_entry,
