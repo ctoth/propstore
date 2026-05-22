@@ -12,10 +12,6 @@ from propstore.world.scm import StructuralCausalModel, Value
 from propstore.world.types import ValueStatus
 
 
-INTERVENTION_CLAIM_PREFIX = "__intervention_"
-OBSERVATION_CLAIM_PREFIX = "__observation_"
-
-
 class _CompiledGraphWorld(Protocol):
     def compiled_graph(self) -> CompiledWorldGraph | None: ...
 
@@ -119,7 +115,6 @@ class InterventionWorld:
             status=ValueStatus.DERIVED,
             value=values[concept_key],
         )
-
     def diff(self) -> dict[str, InterventionDiffEntry]:
         base_values = self._base_scm.evaluate()
         post_values = self.scm.evaluate()
@@ -136,9 +131,6 @@ class InterventionWorld:
                     new_value=new_value,
                 )
         return result
-
-    def trace_ids(self) -> tuple[str, ...]:
-        return _trace_ids(INTERVENTION_CLAIM_PREFIX, self._assignment)
 
 
 class ObservationWorld:
@@ -182,16 +174,3 @@ class ObservationWorld:
             status=ValueStatus.DERIVED,
             value=values[concept_key],
         )
-
-    def trace_ids(self) -> tuple[str, ...]:
-        return _trace_ids(OBSERVATION_CLAIM_PREFIX, self._assignment)
-
-
-def _trace_ids(
-    prefix: str,
-    assignment: Mapping[str, Value],
-) -> tuple[str, ...]:
-    return tuple(
-        f"{prefix}{concept_id}"
-        for concept_id in sorted(assignment)
-    )

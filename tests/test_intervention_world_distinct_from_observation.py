@@ -22,8 +22,6 @@ def test_observation_preserves_edges_and_is_not_intervention() -> None:
     assert observed.scm.equations["Y"].parents == ("X",)
     assert intervened.scm.equations["Y"].parents == ()
     assert observed.derived_value("Y").value == 1
-    assert observed.trace_ids() == ("__observation_Y",)
-    assert intervened.trace_ids() == ("__intervention_Y",)
 
 
 def test_inconsistent_deterministic_observation_fails_closed() -> None:

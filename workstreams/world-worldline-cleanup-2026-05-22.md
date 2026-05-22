@@ -1017,6 +1017,60 @@ Next slice:
 - Continue deterministic per-file cleanup-refactor review with
   `propstore/world/intervention.py`.
 
+## Iteration 37 - `propstore/world/intervention.py`
+
+Slice read:
+- `propstore/world/intervention.py`
+- `tests/test_intervention_world_distinct_from_observation.py`
+- intervention and actual-cause callers.
+
+Surfaces:
+- `INTERVENTION_CLAIM_PREFIX`, `OBSERVATION_CLAIM_PREFIX`,
+  `InterventionWorld.trace_ids`, `ObservationWorld.trace_ids`, and `_trace_ids`
+  - Disposition: delete.
+  - Owner after cleanup: none; intervention and observation worlds expose SCM
+    state, assignments, derived values, and diffs without synthetic claim-id
+    sentinels.
+  - Action: remove the sentinel prefixes and trace methods; remove the test
+    assertions that existed only to preserve those sentinel strings.
+  - Evidence: literal search showed the trace API and prefixes were used only
+    inside `intervention.py` and the one sentinel-preservation test.
+- `InterventionWorld`, `ObservationWorld`, `ObservationInconsistent`, causal
+  result/diff objects
+  - Disposition: keep.
+  - Owner after cleanup: `propstore.world.intervention` owns Pearl-style
+    do-surgery and deterministic observation worlds.
+  - Evidence: no `Any`, no dict payload parser, no compatibility branch, and
+    callers use the semantic SCM operations directly.
+
+Gate results:
+- Pass: `rg -n -F -- "trace_ids" propstore/world/intervention.py
+  tests/test_intervention_world_distinct_from_observation.py` returned zero
+  hits.
+- Pass: `rg -n -F -- "__intervention_" propstore tests` returned zero hits.
+- Pass: `rg -n -F -- "__observation_" propstore tests` returned zero hits.
+- Pass: `rg -n -F -- "Any" propstore/world/intervention.py` returned zero
+  hits.
+- Pass: `uv run pyright propstore` returned `0 errors, 0 warnings`.
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label
+  world-intervention-trace-sentinel-deletion
+  tests/test_intervention_world_construction_requires_compiled_graph.py
+  tests/test_intervention_diff_walks_descendants.py
+  tests/test_intervention_world_distinct_from_observation.py
+  tests/test_intervention_world_severs_edges.py
+  tests/test_actual_cause_suzy_billy.py tests/test_actual_cause_minimality.py
+  tests/test_actual_cause_forest_fire.py tests/test_actual_cause_voting.py
+  tests/test_actual_cause_witness_budget.py` returned `13 passed`.
+- Log:
+  `logs/test-runs/world-intervention-trace-sentinel-deletion-20260522-050157.log`.
+
+Commit:
+- Delete intervention trace sentinels.
+
+Next slice:
+- Continue deterministic per-file cleanup-refactor review with
+  `propstore/world/journal_projection.py`.
+
 ## Iteration 1 - `propstore/world/types.py::coerce_value_status`
 
 Slice read:
