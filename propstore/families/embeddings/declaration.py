@@ -682,3 +682,16 @@ def extract_embedding_snapshot_from_store(
         return embedding_snapshot
     except ImportError:
         return None
+
+
+def restore_embedding_snapshot_to_session(
+    derived,
+    snapshot: EmbeddingSnapshot,
+) -> RestoreReport | None:
+    caches = tuple(derived.schema.vector_caches.values())
+    if not caches:
+        return None
+    return SqlAlchemyVecSnapshotStore(
+        derived.session.connection(),
+        caches,
+    ).restore(snapshot.to_vec_snapshot())
