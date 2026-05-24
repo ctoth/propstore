@@ -208,6 +208,10 @@ Phase 1 execution record:
   `build_pass_diagnostics`, `build_authoring_diagnostics`,
   `build_quarantine_diagnostics`, `embedding_restore_diagnostic`, and
   `sidecar_build_exception_diagnostic`.
+- Commit `1d9c5c8e Move embedding restore to embedding owner` moved vector
+  snapshot restore behavior beside the existing embedding snapshot extraction
+  owner as
+  `propstore.families.embeddings.declaration.restore_embedding_snapshot_to_session`.
 
 ### Phase 2 - Production Caller File Deletion Review
 
