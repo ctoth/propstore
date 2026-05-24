@@ -13,6 +13,7 @@ from quire.sqlalchemy_store import DerivedSession
 
 if TYPE_CHECKING:
     from propstore.families.claims.stages import PromotionBlockedClaimFact
+    from propstore.semantic_passes.types import PassDiagnostic
     from propstore.families.world_charters import BuildDiagnostic
 
 
@@ -52,6 +53,102 @@ def quarantine_diagnostic(
             sort_keys=True,
             separators=(",", ":"),
         ),
+    )
+
+
+def build_pass_diagnostics(
+    diagnostics: tuple[PassDiagnostic, ...],
+    *,
+    kind: str,
+    diagnostic_kind: str,
+    prefer_filename: bool = False,
+) -> tuple[BuildDiagnostic, ...]:
+    records: list[BuildDiagnostic] = []
+    for diagnostic in diagnostics:
+        if not diagnostic.is_error:
+            continue
+        artifact_id = (
+            diagnostic.filename or diagnostic.artifact_id or "unknown"
+            if prefer_filename
+            else diagnostic.artifact_id or diagnostic.filename or "unknown"
+        )
+        records.append(
+            quarantine_diagnostic(
+                artifact_id=artifact_id,
+                kind=kind,
+                diagnostic_kind=diagnostic_kind,
+                message=diagnostic.render(),
+                file=diagnostic.filename,
+            )
+        )
+    return tuple(records)
+
+
+def build_authoring_diagnostics(
+    diagnostics: tuple[PassDiagnostic, ...],
+) -> tuple[BuildDiagnostic, ...]:
+    from propstore.families.world_charters import BuildDiagnostic
+
+    return tuple(
+        BuildDiagnostic(
+            claim_id=diagnostic.artifact_id,
+            source_kind="authoring",
+            source_ref=diagnostic.artifact_id or diagnostic.filename,
+            diagnostic_kind=diagnostic.code,
+            severity=diagnostic.level,
+            blocking=1 if diagnostic.is_error else 0,
+            message=diagnostic.render(),
+            file=diagnostic.filename,
+            detail_json=None,
+        )
+        for diagnostic in diagnostics
+    )
+
+
+def build_quarantine_diagnostics(
+    diagnostics: tuple[object, ...],
+) -> tuple[BuildDiagnostic, ...]:
+    return tuple(
+        quarantine_diagnostic(
+            artifact_id=str(getattr(diagnostic, "artifact_id")),
+            kind=str(getattr(diagnostic, "kind")),
+            diagnostic_kind=str(getattr(diagnostic, "diagnostic_kind")),
+            message=str(getattr(diagnostic, "message")),
+            file=getattr(diagnostic, "file"),
+        )
+        for diagnostic in diagnostics
+    )
+
+
+def embedding_restore_diagnostic(exc: Exception) -> BuildDiagnostic:
+    from propstore.families.world_charters import BuildDiagnostic
+
+    return BuildDiagnostic(
+        claim_id=None,
+        source_kind="embedding",
+        source_ref="restore",
+        diagnostic_kind="embedding_restore",
+        severity="warning",
+        blocking=0,
+        message=f"embedding restore failed: {exc}",
+        file=None,
+        detail_json=None,
+    )
+
+
+def sidecar_build_exception_diagnostic(exc: Exception) -> BuildDiagnostic:
+    from propstore.families.world_charters import BuildDiagnostic
+
+    return BuildDiagnostic(
+        claim_id=None,
+        source_kind="sidecar_build",
+        source_ref=None,
+        diagnostic_kind="build_exception",
+        severity="error",
+        blocking=1,
+        message=str(exc),
+        file=None,
+        detail_json=None,
     )
 
 
