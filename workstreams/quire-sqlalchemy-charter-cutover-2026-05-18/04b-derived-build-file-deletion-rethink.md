@@ -333,6 +333,36 @@ apply the same breakage review:
 - fixtures that need a built sidecar use the owner-layer build/export API;
 - tests must not import a replacement wrapper.
 
+Phase 4 execution record:
+
+- Commit `e6c62bcf Rewrite tests to build owner APIs` removed test and
+  remediation imports of `propstore.derived_build`.
+- Test fixtures that need cached repository world stores now call
+  `propstore.compiler.workflows.build_repository_world_store`.
+- Tests and remediation helpers that need explicit SQLite output now call
+  `propstore.compiler.workflows.write_repository_world_store`.
+- Cache-hash tests now exercise the compiler owner cache input and content
+  hash functions directly; no Propstore hash wrapper remains.
+- Promotion-blocked remediation helpers now call
+  `propstore.families.claims.declaration.write_promotion_blocked_models`.
+- Deleted private-helper monkeypatches now patch real owner boundaries:
+  compiler pass ordering, compiler FTS population, embedding owner restore,
+  and compiler world-store build/open behavior.
+- Search gates over tests for `propstore.derived_build`,
+  `derived_build_plan`, `materialize_world_sidecar`, `export_sidecar`,
+  `world_sidecar_hash`, `_add_write_batches`,
+  `_flush_promotion_blocked_claims`,
+  `extract_embedding_snapshot_from_store`, and
+  `_restore_embedding_snapshot` returned zero hits.
+- Focused verification:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-test-callers ...`
+  ran 136 selected tests; 134 passed and two owner-boundary test injections
+  failed because they patched the outer writer instead of the real failure
+  point.
+- Corrected verification:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-test-callers-recheck tests/test_repository_concurrency_boundary.py::test_sidecar_build_serializes_with_source_promote tests/remediation/phase_1_crits/test_T1_2_sidecar_survives_exception.py::test_sidecar_not_deleted_on_build_exception`
+  passed 2 tests.
+
 ### Phase 5 - Search Gates
 
 All of these are zero-hit gates outside this workstream file, notes, reports,
