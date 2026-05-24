@@ -249,6 +249,20 @@ files:
 - no table-name model registries in Propstore;
 - no `world_record(table_name, values)` construction helper.
 
+Phase 3 execution record:
+
+- Commit `c7d62b8e Move promotion blocked writes to claim owner` removed
+  `world_record(...)` from `propstore/families/claims/declaration.py`.
+- Claim compilation now constructs `Claim`, `ClaimNumericPayload`,
+  `ClaimTextPayload`, and `ClaimAlgorithmPayload` typed model objects
+  directly.
+- Promotion-blocked claim replacement is now owned by
+  `propstore.families.claims.declaration.write_promotion_blocked_models`,
+  with diagnostic deletion delegated to the diagnostics owner.
+- Remaining Phase 3 work: `propstore/families/world_charters.py` still must
+  pass the file-level gate for `_MODELS`, `_CLAIM_MODEL_TABLES`,
+  `world_record`, and `world_records`.
+
 ### Phase 4 - Test Caller Rethink
 
 For each test returned by:
