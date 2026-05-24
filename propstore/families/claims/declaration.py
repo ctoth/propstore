@@ -18,6 +18,8 @@ from typing import TYPE_CHECKING, Any
 
 from quire.charters import FamilyModel
 from quire.references import FamilyReferenceIndex
+from quire.sqlalchemy_store import DerivedSession
+from sqlalchemy import delete, select
 from propstore.claims import (
     claim_file_filename,
     claim_file_stage,
@@ -52,6 +54,7 @@ from propstore.families.claims.sympy_generation import derive_equation_sympy
 from propstore.families.diagnostics.declaration import (
     QuarantineDiagnostic,
     compile_promotion_blocked_diagnostics,
+    delete_promotion_blocked_diagnostics,
 )
 from propstore.families.documents.justifications import JustificationDocument
 
@@ -264,7 +267,7 @@ class PromotionBlockedModels:
     diagnostics: tuple[BuildDiagnostic, ...]
 
 
-from propstore.families.world_charters import BuildDiagnostic, world_record
+from propstore.families.world_charters import BuildDiagnostic
 
 
 def _numeric_si_value(
@@ -501,10 +504,10 @@ def compile_claim_models(
                 ),
                 "algorithm_stage": claim_doc.stage,
             }
-            claim_model = world_record("claim_core", claim_values)
-            numeric_payload = world_record("claim_numeric_payload", numeric_values)
-            text_payload = world_record("claim_text_payload", text_values)
-            algorithm_payload = world_record("claim_algorithm_payload", algorithm_values)
+            claim_model = Claim(**claim_values)
+            numeric_payload = ClaimNumericPayload(**numeric_values)
+            text_payload = ClaimTextPayload(**text_values)
+            algorithm_payload = ClaimAlgorithmPayload(**algorithm_values)
             source_assertion = ClaimSourceAssertion(
                 claim_id=claim_id,
                 source_assertion_id=f"ps:assertion:{claim_id}",
@@ -754,3 +757,71 @@ def compile_promotion_blocked_models(
         claims=claims,
         diagnostics=compile_promotion_blocked_diagnostics(facts),
     )
+
+
+def write_promotion_blocked_models(
+    derived: DerivedSession,
+    rows: PromotionBlockedModels,
+) -> None:
+    claim_objects_by_id = {
+        str(getattr(row, "id")): row
+        for row in rows.claims
+    }
+    diagnostic_objects = tuple(rows.diagnostics)
+    if claim_objects_by_id:
+        claim_core = derived.schema.table("claim_core")
+        existing_rows = derived.session.execute(
+            select(claim_core.c.id, claim_core.c.promotion_status).where(
+                claim_core.c.id.in_(tuple(claim_objects_by_id))
+            )
+        ).all()
+        preserved_claim_ids = {
+            str(row.id)
+            for row in existing_rows
+            if row.promotion_status != "blocked"
+        }
+        for claim_id in preserved_claim_ids:
+            claim_objects_by_id.pop(claim_id, None)
+    claim_objects = tuple(claim_objects_by_id.values())
+    if not claim_objects and not diagnostic_objects:
+        return
+    claim_ids = tuple(str(getattr(row, "id")) for row in claim_objects)
+    diagnostic_claim_ids = tuple(
+        sorted(
+            {
+                str(claim_id)
+                for row in diagnostic_objects
+                if getattr(row, "diagnostic_kind", None) == "promotion_blocked"
+                for claim_id in (getattr(row, "claim_id", None),)
+                if claim_id
+            }
+        )
+    )
+    if claim_ids:
+        derived.flush()
+        _delete_claim_children(derived, claim_ids)
+    for claim_id in sorted(set(claim_ids) | set(diagnostic_claim_ids)):
+        delete_promotion_blocked_diagnostics(derived, claim_id)
+    derived.add_all(claim_objects)
+    derived.add_all(diagnostic_objects)
+
+
+def _delete_claim_children(
+    derived: DerivedSession,
+    claim_ids: tuple[str, ...],
+) -> None:
+    schema = derived.schema
+    session = derived.session
+    for table_name in (
+        "claim_concept_link",
+        "claim_numeric_payload",
+        "claim_text_payload",
+        "claim_algorithm_payload",
+        "micropublication_claim",
+    ):
+        table = schema.tables.get(table_name)
+        if table is None or "claim_id" not in table.c:
+            continue
+        session.execute(delete(table).where(table.c.claim_id.in_(claim_ids)))
+    claim_core = schema.table("claim_core")
+    session.execute(delete(claim_core).where(claim_core.c.id.in_(claim_ids)))
