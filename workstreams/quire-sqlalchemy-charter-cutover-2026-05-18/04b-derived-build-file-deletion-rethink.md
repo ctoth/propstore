@@ -78,6 +78,8 @@ Current deletion fallout to review:
   `_flush_promotion_blocked_claims`, `_add_write_batches`,
   `extract_embedding_snapshot_from_store`, and `_restore_embedding_snapshot`
   from `propstore.derived_build`.
+- `scripts/compare_sqlalchemy_charter_parity.py` currently imports
+  `export_sidecar` and `_source_branch_tips` from `propstore.derived_build`.
 
 Known adjacent bad surfaces:
 
@@ -142,6 +144,7 @@ Confirm current state:
 ```powershell
 git status --short -- propstore/derived_build.py propstore/derived_build_plan.py
 rg -n -F -- "propstore.derived_build" propstore tests
+rg -n -F -- "propstore.derived_build" scripts
 rg -n -F -- "derived_build_plan" propstore tests
 ```
 
@@ -152,6 +155,27 @@ Expected state:
 - `derived_build_plan` has zero live code imports.
 - `propstore.derived_build` has live references that become the Phase 1
   rethink queue.
+- `scripts/compare_sqlalchemy_charter_parity.py` is part of the live rethink
+  queue.
+
+Phase 0 execution record, 2026-05-24:
+
+- Branch: `master`.
+- Current tracked deletion state:
+  `D propstore/derived_build.py` and
+  `D propstore/derived_build_plan.py`.
+- `rg -n -F -- "derived_build_plan" propstore tests` returned zero live code
+  hits.
+- `rg -n -F -- "propstore.derived_build" propstore tests` found production
+  callers in `propstore/compiler/workflows.py`, `propstore/world/model.py`,
+  `propstore/app/claims.py`, `propstore/app/sources.py`,
+  `propstore/app/repository_history.py`,
+  `propstore/app/concepts/display.py`,
+  `propstore/app/concepts/embedding.py`, and
+  `propstore/app/concepts/mutation.py`, plus test/remediation callers.
+- `rg -n -F -- "propstore.derived_build" scripts` found
+  `scripts/compare_sqlalchemy_charter_parity.py`; this script caller is now
+  in scope for the rethink queue.
 
 ### Phase 1 - Capability Disposition Table
 
@@ -160,12 +184,15 @@ disposition in this workstream before editing a caller:
 
 | Deleted symbol | Capability | Required disposition |
 | --- | --- | --- |
-| `materialize_world_sidecar` | ensure/open a repository world derived store for a commit | Move capability to the real repository/world build owner; update callers to that owner or delete the caller path. No standalone helper. |
-| `export_sidecar` | write a sidecar to a requested path | Keep only if an owner-layer export command is still needed; otherwise delete tests/callers that assert the old helper. No `derived_build` replacement. |
-| `world_sidecar_hash` / hash-input helpers | derived-store cache identity | Quire/repository derived-store lifecycle owns this. Delete Propstore hash helper wrappers. |
-| `_flush_promotion_blocked_claims` | promotion-blocked semantic policy write | Move to the promotion/source/claim owner if still needed; otherwise delete helper tests. |
+| `materialize_world_sidecar` | ensure/open a repository world derived store for a commit | The capability remains, but not as a helper. `propstore.compiler.workflows` owns build materialization during repository builds. `propstore.world.model` owns world query opening. App surfaces must call those owner APIs directly or delete the caller path. |
+| `export_sidecar` | write a sidecar to a requested path | The capability remains only for the parity harness and tests that need an explicit SQLite output path. It belongs to the compiler/build owner, not a deleted helper module. |
+| `world_sidecar_hash` / hash-input helpers | derived-store cache identity | Quire `derived_store_content_hash`, Quire schema catalog hash, and repository semantic tree/source branch inputs own this. Delete Propstore hash helper wrappers. The parity script computes semantic input hash in-script because it owns parity comparison, not cache identity. |
+| `_source_branch_tips` | source branch semantic input enumeration | Parity comparison still needs this input. The script owns parity semantic-input hashing and must compute source branch tips directly from `repo.snapshot.iter_branches()`, not import a deleted private helper. |
+| `_flush_promotion_blocked_claims` | promotion-blocked semantic policy write | Move to the claim/diagnostics semantic owner if still needed. It must not remain a build private helper. |
 | `_add_write_batches` | central batch insertion | Delete. Family/compiler owners write typed models through Quire sessions directly. |
-| `extract_embedding_snapshot_from_store` / `_restore_embedding_snapshot` | embedding snapshot policy | Move to the embeddings owner if still needed. No build-module private helper. |
+| `extract_embedding_snapshot_from_store` / `_restore_embedding_snapshot` | embedding snapshot policy | Extraction already belongs in `propstore.families.embeddings.declaration`. Restore behavior must move there too if still needed. No build-module private helper. |
+| `_pass_diagnostic_records`, `_authoring_diagnostic_records`, `_quarantine_diagnostic_records`, `_quarantine_record`, `_embedding_restore_diagnostic_record`, `_build_exception_record` | build diagnostic model construction | Build diagnostic construction belongs in `propstore.families.diagnostics.declaration` or the compiler/build owner that emits the diagnostic. No central deleted build helper. |
+| `_grounded_bundle_records`, `_grounded_bundle_input_records`, `build_grounding_sidecar` | grounding bundle persistence | Grounding semantics belong in rules/grounding owners. If explicit grounding sidecar output is still needed, it must be owned there; no derived-build private helper. |
 | `run_claim_pipeline` monkeypatch target | compiler pass ordering | Tests must patch the compiler/family owner directly or be deleted if they test the deleted module shape. |
 
 Phase 1 is complete only when this table has been updated with every remaining
@@ -245,18 +272,18 @@ All of these are zero-hit gates outside this workstream file, notes, reports,
 and docs:
 
 ```powershell
-rg -n -F -- "propstore.derived_build" propstore tests
-rg -n -F -- "derived_build_plan" propstore tests
-rg -n -F -- "materialize_world_sidecar" propstore tests
-rg -n -F -- "export_sidecar" propstore tests
-rg -n -F -- "world_sidecar_hash" propstore tests
-rg -n -F -- "_add_write_batches" propstore tests
-rg -n -F -- "_flush_promotion_blocked_claims" propstore tests
-rg -n -F -- "extract_embedding_snapshot_from_store" propstore tests
-rg -n -F -- "_restore_embedding_snapshot" propstore tests
-rg -n -F -- "def world_record" propstore tests
-rg -n -F -- "def world_records" propstore tests
-rg -n -F -- "_CLAIM_MODEL_TABLES" propstore tests
+rg -n -F -- "propstore.derived_build" propstore tests scripts
+rg -n -F -- "derived_build_plan" propstore tests scripts
+rg -n -F -- "materialize_world_sidecar" propstore tests scripts
+rg -n -F -- "export_sidecar" propstore tests scripts
+rg -n -F -- "world_sidecar_hash" propstore tests scripts
+rg -n -F -- "_add_write_batches" propstore tests scripts
+rg -n -F -- "_flush_promotion_blocked_claims" propstore tests scripts
+rg -n -F -- "extract_embedding_snapshot_from_store" propstore tests scripts
+rg -n -F -- "_restore_embedding_snapshot" propstore tests scripts
+rg -n -F -- "def world_record" propstore tests scripts
+rg -n -F -- "def world_records" propstore tests scripts
+rg -n -F -- "_CLAIM_MODEL_TABLES" propstore tests scripts
 ```
 
 ### Phase 6 - Runtime Gates
