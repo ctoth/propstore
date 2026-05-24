@@ -409,6 +409,36 @@ rg -n -F -- "def world_records" propstore tests scripts
 rg -n -F -- "_CLAIM_MODEL_TABLES" propstore tests scripts
 ```
 
+Phase 5 execution record:
+
+- Commit `c37bb814 Delete derived build production files` committed deletion
+  of `propstore/derived_build.py` and `propstore/derived_build_plan.py`
+  with 1093 removed lines.
+- `rg -n -F -- "propstore.derived_build" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "derived_build_plan" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "materialize_world_sidecar" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "export_sidecar" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "world_sidecar_hash" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "_add_write_batches" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "_flush_promotion_blocked_claims" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "extract_embedding_snapshot_from_store" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "_restore_embedding_snapshot" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "def world_record" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "def world_records" propstore tests scripts`
+  returned zero hits.
+- `rg -n -F -- "_CLAIM_MODEL_TABLES" propstore tests scripts`
+  returned zero hits.
+
 ### Phase 6 - Runtime Gates
 
 Run:
