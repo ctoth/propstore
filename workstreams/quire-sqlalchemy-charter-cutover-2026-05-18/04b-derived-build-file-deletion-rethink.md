@@ -262,6 +262,13 @@ Phase 2 execution record:
   `propstore/app/concepts/display.py`,
   `propstore/app/concepts/embedding.py`, and
   `propstore/app/concepts/mutation.py`.
+- Commit `f1b1efea Use compiler owner for world store opening` removed
+  `propstore.derived_build` imports from `propstore/world/model.py`.
+- Remaining Phase 2 production callers are now `propstore/app/claims.py`,
+  `propstore/app/sources.py`, `propstore/app/repository_history.py`,
+  `propstore/app/concepts/display.py`,
+  `propstore/app/concepts/embedding.py`, and
+  `propstore/app/concepts/mutation.py`.
 
 ### Phase 3 - World Charter File Review
 
