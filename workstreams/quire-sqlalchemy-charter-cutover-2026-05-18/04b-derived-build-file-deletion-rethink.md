@@ -243,6 +243,26 @@ Required first production files:
 - `propstore/app/concepts/embedding.py`
 - `propstore/app/concepts/mutation.py`
 
+Phase 2 execution record:
+
+- Commit `796d990a Move world store build to compiler owner` removed the
+  compiler production import of `propstore.derived_build`.
+- `propstore.compiler.workflows.build_repository_world_store` now owns cached
+  repository world-store materialization through Quire
+  `DerivedStoreManager.materialize_with_report`.
+- `propstore.compiler.workflows.write_repository_world_store` now owns explicit
+  sidecar SQLite output for the parity harness and tests.
+- The old central row-plan file is not recreated. Family compiler outputs are
+  written as typed model objects directly through the Quire writable session.
+- Grounding persistence uses the existing rules owner
+  `persist_grounded_bundle`.
+- Remaining Phase 2 production callers are `propstore/world/model.py`,
+  `propstore/app/claims.py`, `propstore/app/sources.py`,
+  `propstore/app/repository_history.py`,
+  `propstore/app/concepts/display.py`,
+  `propstore/app/concepts/embedding.py`, and
+  `propstore/app/concepts/mutation.py`.
+
 ### Phase 3 - World Charter File Review
 
 Run:
