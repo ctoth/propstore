@@ -464,19 +464,28 @@ def _write_repository_world_store_file(
     )
     claim_bundle = None if claim_checked_bundle is None else claim_checked_bundle.bundle
     recorded_claim_diagnostics = list(claim_diagnostics)
-    if claim_bundle is None and claim_entries:
-        claim_pipeline_result = run_claim_pipeline(
-            ClaimAuthoredFiles.from_sequence(
-                list(claim_entries),
-                compilation_context,
-                context_ids=context_ids if context_ids else None,
+    if claim_bundle is None and claim_entries and not recorded_claim_diagnostics:
+        try:
+            claim_pipeline_result = run_claim_pipeline(
+                ClaimAuthoredFiles.from_sequence(
+                    list(claim_entries),
+                    compilation_context,
+                    context_ids=context_ids if context_ids else None,
+                )
             )
-        )
-        if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
-            recorded_claim_diagnostics.extend(claim_pipeline_result.diagnostics)
+        except DocumentSchemaError as exc:
+            recorded_claim_diagnostics.append(
+                _claim_schema_diagnostic(
+                    exc,
+                    pass_name="compiler.write_repository_world_store",
+                )
+            )
         else:
-            claim_checked_bundle = claim_pipeline_result.output
-            claim_bundle = claim_checked_bundle.bundle
+            if not isinstance(claim_pipeline_result.output, ClaimCheckedBundle):
+                recorded_claim_diagnostics.extend(claim_pipeline_result.diagnostics)
+            else:
+                claim_checked_bundle = claim_pipeline_result.output
+                claim_bundle = claim_checked_bundle.bundle
     normalized_claim_files = (
         tuple(claim_bundle.normalized_claim_files)
         if claim_bundle is not None
@@ -710,6 +719,23 @@ def _workflow_diagnostic(
         message=message,
         family=family,
         stage=stage,
+    )
+
+
+def _claim_schema_diagnostic(
+    exc: DocumentSchemaError,
+    *,
+    pass_name: str,
+) -> PassDiagnostic:
+    return PassDiagnostic(
+        level="error",
+        code="claim.schema",
+        message=str(exc),
+        family=PropstoreFamily.CLAIMS,
+        stage=ClaimStage.AUTHORED,
+        filename=exc.source,
+        artifact_id=exc.source,
+        pass_name=pass_name,
     )
 
 
@@ -1159,14 +1185,8 @@ def build_repository(
                 claim_checked_bundle = claim_pipeline_result.output
         except DocumentSchemaError as exc:
             claim_messages.append(
-                PassDiagnostic(
-                    level="error",
-                    code="claim.schema",
-                    message=str(exc),
-                    family=PropstoreFamily.CLAIMS,
-                    stage=ClaimStage.AUTHORED,
-                    filename=exc.source,
-                    artifact_id=exc.source,
+                _claim_schema_diagnostic(
+                    exc,
                     pass_name="compiler.build_repository",
                 )
             )
