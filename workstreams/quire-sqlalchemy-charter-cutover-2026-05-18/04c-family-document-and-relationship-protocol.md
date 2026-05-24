@@ -23,8 +23,8 @@ unless the charter explicitly opts a field out.
 ## Executable Breakdown
 
 This file is decomposed into tracked child workstreams under
-`04c-family-protocol-breakdown/`. Execute them in the order listed in
-`04c-family-protocol-breakdown/00-index.md`.
+`04c-family-protocol-cutover/`. Execute them in the order listed in
+`04c-family-protocol-cutover/00-index.md`.
 
 The first child is deletion fallout from the already-deleted files
 `propstore/families/world_charters.py` and

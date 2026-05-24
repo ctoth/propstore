@@ -163,6 +163,12 @@ Sibling files:
   converts every Propstore mapped sidecar model into a methods-only Quire
   `FamilyModel` subclass and deletes duplicated field declarations,
   constructors, placeholder records, and mapping repair APIs.
+- `04c-family-document-and-relationship-protocol.md` and
+  `04c-family-protocol-cutover/00-index.md`: executable deletion-first split
+  for generated family documents, generic family lookup, source/proposal
+  lifecycle state machines, artifact/graph verification, worldline resolution,
+  context lifting, concept local IDs, compatibility gates, and the immediate
+  deleted-file fallout from `world_charters.py` and `claims/metadata.py`.
 - `11-rules-grounding-calibration-embeddings.md`: rules, grounding, calibration, embeddings, and vector runtimes.
 - `12-world-query-graph-reasoning.md`: WorldQuery, session, graph, and reasoning cutover.
 - `13-final-deletion-gates.md`: delete Quire projection modules, delete Propstore projection/helper leftovers, final gates, docs, and dependency pin.
