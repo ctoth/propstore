@@ -68,6 +68,9 @@ Final state:
 - Propstore owns semantic policy: diagnostics, quarantine decisions,
   promotion-blocked behavior, embedding snapshot policy, grounding bundle
   semantics, compiler pass ordering, and user-facing reports.
+- Quire owns charter-derived document structs/codecs. Propstore must not keep
+  `propstore.families.documents.*` as a second hand-authored schema surface for
+  fields already present in the family charter.
 
 ## Scope
 
@@ -108,6 +111,22 @@ Known adjacent bad surfaces:
   charter/domain ownership without those bad production surfaces, delete the
   whole file and recreate the remaining required charter registration in the
   correct owner files.
+- `propstore.families.claims.metadata.claim_metadata_value(claim, key)` is a
+  string-key compatibility accessor over multiple claim representations. It is
+  deleted. Callers must use typed claim/model fields, typed graph-node fields,
+  or real semantic methods on the owning type. Do not replace it with another
+  generic metadata accessor.
+- `propstore.families.documents.*` is a duplicate document-shape surface when
+  a document class restates fields that belong to a family charter. It cannot
+  be the final owner. The valid final owner is a family charter plus Quire
+  generated msgspec document structs/codecs.
+- `propstore.families.registry` is not a dumping ground for per-family field
+  facts, payload-shape facts, or source-local lifecycle special cases. It may
+  remain only as the Propstore family registry composition surface that
+  registers family charters, placements, references, lifecycle states, and
+  semantic import metadata already owned by per-family charter modules. It must
+  not define field lists, document DTOs, fallback codecs, or per-family helper
+  behavior.
 
 Out of scope:
 
@@ -117,6 +136,57 @@ Out of scope:
   code.
 - Broad family cutovers unrelated to derived-store build/open/write ownership,
   except when deletion exposes a bad file that must be removed.
+
+## Reopened Current State And Required Reordering
+
+The previous Phase 3 "world charter construction helper" result was not a
+valid endpoint. It deleted old helper names but recreated a central handwritten
+schema/catalog surface under `propstore.families.world_charters`. The full
+import-linter gate then exposed the wrong owner path:
+
+`propstore.source.status -> propstore.families.world_charters ->
+propstore.families.embeddings.declaration -> propstore.heuristic.embed`.
+
+The correct response is not an import allow-list change and not another
+Propstore wrapper. The current deletion-first state is:
+
+- Commit `30e7d242 Delete duplicated world charter surface` deleted
+  `propstore/families/world_charters.py`.
+- Commit `1e66fa1b Delete claim metadata accessor shim` deleted
+  `propstore/families/claims/metadata.py`.
+
+Those deletions are kept. The workstream is now reordered around the missing
+Quire capability that made the bad Propstore surfaces tempting.
+
+Required implementation order from this point:
+
+1. Update Quire first so `FamilyCharter` can generate or provide the msgspec
+   document struct and document codecs from appropriately annotated
+   `CharterField` metadata. This must cover field names, field types,
+   nullable/default semantics, unknown-field rejection, nested value-object
+   fields, source-local/canonical-only field policy, and YAML/JSON
+   decode/encode through existing Quire document APIs.
+2. Add Quire proof tests for charter-derived document structs/codecs. The test
+   must fail if a hand-authored document struct is still required to decode a
+   charter-backed family document.
+3. Push Quire and pin Propstore to the pushed Quire commit. No local path pin.
+4. Recreate world-store catalog composition only through per-family charter
+   modules. Use `propstore/families/<family>/charter.py` or the existing
+   family folder's charter owner. Do not recreate
+   `propstore.families.world_charters.py`.
+5. Delete or rewrite `propstore.families.documents.*` family by family. If a
+   document class repeats charter fields, delete it and use the
+   charter-derived Quire document type/codec. Keep only behavior that is
+   genuinely semantic and move it to the exact family owner.
+6. Repair `claim_metadata_value` callers by adding typed behavior to the
+   owning model/graph/domain type, or by using existing typed fields directly.
+   Do not add a generic metadata accessor.
+7. Audit `propstore.families.registry`. Keep registry composition only. Move
+   per-family charter facts into the family charter module; delete registry
+   code that defines field lists, payload shape, fallback codec behavior, or
+   per-family helper behavior.
+8. Run focused import/type gates after each deletion repair, then rerun the
+   full Phase 6 gates.
 
 ## Required Inputs
 

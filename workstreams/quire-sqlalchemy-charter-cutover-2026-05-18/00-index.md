@@ -29,8 +29,15 @@ Replace Propstore's duplicated projection/read-model/helper layer and Quire's ha
 Final state:
 
 - Quire owns generic typed Git artifact families, family charters, schema IR, Python-type-to-SQL mapping, SQLAlchemy table/mapping generation, sessions, derived SQLite lifecycle, schema catalog metadata, FKs, indexes, FTS/vector hooks, and generic query mechanics.
+- Quire owns charter-derived document structs and document codecs. The family
+  charter is the source of truth for IO document shape as well as storage
+  shape.
 - Propstore owns Propstore domain charters and semantic behavior: claims, concepts, sources, stances, justifications, contexts, forms, rules, micropublications, source-local authoring, promotion, world reasoning, semantic validators, and policy compilation.
 - Propstore has no handwritten projection-model layer, no `*Row` classes that duplicate domain models, no `ProjectionTable`/`ProjectionModel` usage, no manual optional-number/string/id coercer families, and no fake ORM.
+- Propstore has no hand-authored family document DTO layer that repeats
+  charter fields. `propstore.families.documents.*` is deleted or reduced to
+  non-shape semantic behavior after Quire can derive msgspec document structs
+  and codecs from family charters.
 - Propstore has no hand-authored mapped storage classes that restate charter
   fields. Quire owns generated mapped model classes or catalog construction
   from `FamilyCharter` metadata; Propstore owns semantic behavior around those
@@ -80,6 +87,8 @@ If any capability gate fails, fix Quire or the SQLAlchemy extension first. Do no
 - Do not keep old and new projection systems in production at the same time.
 - Do not pin dependencies to local paths.
 - Do not preserve `ProjectionTable`, `ProjectionModel`, or `*Row` aliases for compatibility.
+- Do not preserve hand-authored document structs, payload DTOs, or document
+  codec helpers that repeat fields owned by family charters.
 - Do not hand-author mapped storage classes, placeholder `*Record` classes,
   loose `__init__(**values)` sinks, or repeated constructor field lists for
   fields already declared in Quire charters.
@@ -165,10 +174,10 @@ Execute in this exact order:
 | Phase | Child workstream file | Gate to proceed |
 | --- | --- | --- |
 | 0. Mechanical order check and current-state inventory confirmation | `00-index.md`, `inventory-matrix.md`, and `helper-ledger.md` | Phase 0 checklist below is complete; order checker passes; inventory, architecture note, worktree state, Quire pin, and old-path imports are listed. |
-| 1-2. Quire SQLAlchemy capability proof and charter/schema IR | `01-quire-capability-and-charter.md` | Quire proof tests pass; charter/schema IR composes with existing family/document/placement/reference APIs. |
+| 1-2. Quire SQLAlchemy capability proof and charter/schema IR | `01-quire-capability-and-charter.md` | Quire proof tests pass; charter/schema IR composes with existing family/document/placement/reference APIs; Quire can derive msgspec document structs/codecs from annotated charter fields. |
 | 3. Quire SQLAlchemy table/mapping/session/catalog engine | `02-quire-sqlalchemy-engine.md` | Generated DDL, mapping, sessions, relationships, schema catalog, and hash tests pass. |
 | 4. Quire FTS and vector implementation | `03-quire-fts-vector.md` | `sqlalchemy-fts5` and Quire FTS/vector gates pass with no local dependency pins. |
-| Quire-first completion gate | `03-quire-fts-vector.md` | Quire has the full SQLAlchemy charter engine before Propstore build orchestration starts. |
+| Quire-first completion gate | `03-quire-fts-vector.md` | Quire has the full SQLAlchemy charter engine and charter-derived document struct/codec engine before Propstore build orchestration starts. |
 | 5. Build orchestration cutover | `04-propstore-build-orchestration.md` | Propstore build path uses Quire writable sessions and charter catalogs, with data parity. |
 | 6. Source and diagnostics slice | `05-source-and-diagnostics.md` | Source projection rows/tables/helpers and diagnostic projection tables are deleted; parity passes. |
 | 7-8. Forms, concepts, and parameterizations slice | `06-forms-concepts-parameterizations.md` | Duplicate form facade and concept/form/parameterization projection surfaces are deleted; parity passes. |
@@ -265,19 +274,25 @@ Every Propstore family phase uses this loop:
 
 1. Read the family inventory entry in `inventory-matrix.md` and the current family files.
 2. List every current production caller that imports or consumes the family's projection rows, projection models, raw SQLite selectors, or generic helper layer.
-3. Name the target charter/model classes in the phase notes or commit message.
-4. Delete the old production projection/read-model surface first.
-5. Run the smallest import/type/test command that exposes the next failures.
-6. Fix only failures caused by the deletion in the current family slice and named caller list.
-7. Replace raw SQLite access with Quire SQLAlchemy session/model access.
-8. Replace loose dict/list/row payloads with typed model objects.
-9. Delete field-specific coercers once generic charter conversion covers the field.
-10. Run the family gates.
-11. Run the old-path search gates for that family.
-12. Run the data-parity gate for that family.
-13. Commit only that family slice.
-14. If files moved, run `git log --diff-filter=R -1 --stat` after commit and verify the expected renames are visible.
-15. Reread this index and the active child workstream before selecting the next phase.
+3. Name the target charter/model/document classes in the phase notes or commit message.
+4. Verify Quire already provides every needed generic feature for this family:
+   generated mapped models, generated document structs/codecs, session/model
+   lookup, reference lookup, FTS/vector metadata, and data-parity support.
+5. If Quire lacks any required generic feature, stop and return to the Quire
+   phase that owns it. Do not create a Propstore workaround.
+6. Delete the old production projection/read-model/document-shape surface first.
+7. Run the smallest import/type/test command that exposes the next failures.
+8. Fix only failures caused by the deletion in the current family slice and named caller list.
+9. Replace raw SQLite access with Quire SQLAlchemy session/model access.
+10. Replace loose dict/list/row/document payloads with typed charter-derived
+    model or document objects.
+11. Delete field-specific coercers once generic charter conversion covers the field.
+12. Run the family gates.
+13. Run the old-path search gates for that family.
+14. Run the data-parity gate for that family.
+15. Commit only that family slice.
+16. If files moved, run `git log --diff-filter=R -1 --stat` after commit and verify the expected renames are visible.
+17. Reread this index and the active child workstream before selecting the next phase.
 
 If a family cannot follow this loop because Quire lacks a needed generic feature, stop and return to the Quire phase that owns that feature. Do not create a Propstore workaround.
 
@@ -460,6 +475,8 @@ rg -n -F -- "workspace = true" pyproject.toml
 The directory workstream is complete only when:
 
 - Quire has a SQLAlchemy-backed charter/schema engine.
+- Quire can generate or provide msgspec document structs and document
+  encode/decode codecs from `FamilyCharter`/`CharterField` metadata.
 - Quire derived-store handles open read-only SQLAlchemy sessions.
 - Quire schema catalogs describe the derived store from the same charters that generated the mappings.
 - Quire schema/catalog/session APIs expose generic family main-model access
@@ -475,6 +492,8 @@ The directory workstream is complete only when:
 - Propstore no longer imports Quire projection primitives.
 - Propstore has no family `projection_model.py` files.
 - Propstore has no duplicate `*Row` model layer for domain objects.
+- Propstore has no duplicate family document DTO layer for charter-backed
+  fields.
 - Propstore has no hand-authored mapped storage field declarations,
   constructor field lists, loose `__init__(**values)` sinks, mapping repair
   constructors, or placeholder `*Record` classes.
