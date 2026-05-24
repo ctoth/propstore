@@ -3,8 +3,7 @@
 ## Final State
 
 Numeric concept handles are concept-family identity policy backed by generic
-Quire local-id reservation, or the numeric handle feature is deleted from the
-product surface. Root `propstore/concept_ids.py` is gone in both final states.
+Quire local-id reservation. Root `propstore/concept_ids.py` is gone.
 
 World-query tests construct typed claim/domain fixtures. They do not mutate
 claim dictionaries with `claim["..."]`.
@@ -48,6 +47,6 @@ powershell -File scripts/run_logged_pytest.ps1 -Label concept-local-id-fixtures 
 
 - [ ] Root concept-id module is deleted.
 - [ ] Concept local-id behavior is concept-family identity behavior backed by
-      Quire reservation, or numeric handles are removed.
+      Quire reservation.
 - [ ] World-query tests use typed fixtures.
 - [ ] Search, type, and test gates pass.

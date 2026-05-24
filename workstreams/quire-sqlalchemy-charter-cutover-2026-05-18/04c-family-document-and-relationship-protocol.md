@@ -20,8 +20,27 @@ or the equivalent Quire family API. The document fields come from charter
 fields marked as document fields. Document inclusion should be the default
 unless the charter explicitly opts a field out.
 
+## Executable Breakdown
+
+This file is decomposed into tracked child workstreams under
+`04c-family-protocol-breakdown/`. Execute them in the order listed in
+`04c-family-protocol-breakdown/00-index.md`.
+
+The first child is deletion fallout from the already-deleted files
+`propstore/families/world_charters.py` and
+`propstore/families/claims/metadata.py`. Those files stay deleted; callers move
+to the real family charter/catalog owner and typed claim/world behavior.
+
 ## Actual Learnings So Far
 
+- This file is now the architectural parent. The executable split is
+  `04c-family-protocol-cutover/00-index.md`, produced from explicitly forked
+  scout reports in `reports/charter-cutover-breakdown/`.
+- The first executable repair is deleted-file fallout. The deleted
+  `propstore/families/world_charters.py` and
+  `propstore/families/claims/metadata.py` stay deleted. Their callers are
+  repaired by moving world schema composition to family charter/registry owners
+  and claim metadata access to typed claim/world behavior.
 - `propstore.families.documents.*` and sibling `*/documents.py` files are not
   the source of truth. They are hand-authored field lists that duplicate the
   family charter target state.
@@ -73,6 +92,26 @@ unless the charter explicitly opts a field out.
   input-source trees, chain fallback behavior, conflict resolution, derived
   input tracing, and trace recording that should be driven by typed
   world/worldline result protocols and family relationship metadata.
+
+## Executable Child Split
+
+The executable work queue is now:
+
+1. `04c-family-protocol-cutover/01-deleted-file-fallout-repair.md`
+2. `04c-family-protocol-cutover/02-quire-generated-family-protocols.md`
+3. `04c-family-protocol-cutover/03-generic-family-lookup-cleanup.md`
+4. `04c-family-protocol-cutover/04-family-document-deletion.md`
+5. `04c-family-protocol-cutover/05-registry-contracts-batch-specs.md`
+6. `04c-family-protocol-cutover/06-source-lifecycle-state-machines.md`
+7. `04c-family-protocol-cutover/07-proposal-lifecycle-state-machines.md`
+8. `04c-family-protocol-cutover/08-artifact-graph-verification-export.md`
+9. `04c-family-protocol-cutover/09-worldline-resolution-protocol.md`
+10. `04c-family-protocol-cutover/10-context-lifting-justification-views.md`
+11. `04c-family-protocol-cutover/11-concept-local-id-compatibility-fixtures.md`
+12. `04c-family-protocol-cutover/12-final-gates.md`
+
+Do not execute this parent file as a loose checklist. Execute the nested index
+in order.
 
 ## Target Architecture
 
