@@ -1,0 +1,400 @@
+# Family Document And Relationship Protocol Workstream
+
+Date: 2026-05-24
+
+## Why This Exists
+
+The derived-build deletion exposed another duplicated surface: family document
+field lists and cross-family verification code are still hand-authored outside
+the family charter.
+
+The target is not to remove documents. Every family still has a document. The
+target is to remove duplicate document definitions. A family document is
+generated on demand from the family charter:
+
+```python
+family.document()
+```
+
+or the equivalent Quire family API. The document fields come from charter
+fields marked as document fields. Document inclusion should be the default
+unless the charter explicitly opts a field out.
+
+## Actual Learnings So Far
+
+- `propstore.families.documents.*` and sibling `*/documents.py` files are not
+  the source of truth. They are hand-authored field lists that duplicate the
+  family charter target state.
+- The document concept remains. The handwritten document class does not.
+- Quire must provide generated msgspec document structs/codecs from
+  `FamilyCharter` and `CharterField` metadata before Propstore can delete the
+  handwritten family document classes cleanly.
+- Field metadata is the protocol. It must carry document inclusion, storage
+  participation, identity participation, references, relationships,
+  artifact-code participation, indexes, and lifecycle/source-local scope.
+- Cross-family behavior should not be a central view over hardcoded family
+  imports. A model is already a graph chunk: relationship/reference fields
+  expose related models generically.
+- Artifact verification is a real capability, but the current root-level
+  verifier is the wrong shape because it imports concrete document classes and
+  hardcodes the claim/source/justification/stance walk.
+- A generic protocol over model relationships replaces that central walk. The
+  model/family only supplies semantic callbacks where field metadata is not
+  enough.
+- "Family declaration modules" are current-code files such as
+  `propstore/families/<family>/declaration.py`; they are not the target
+  boundary. They currently mix model shells, compile behavior, query behavior,
+  and sometimes charter/schema concerns.
+- Root semantic modules such as `propstore.context_lifting` can contain real
+  domain behavior, but persisted context/lifting document shape belongs to the
+  context family charter and generated document protocol.
+- Proposal workflows are family lifecycle state machines over fields and
+  placements. `propstore.proposals`, `propstore.proposals_rules`, and
+  `propstore.proposals_predicates` currently hand-author promotion plans,
+  copied documents, branch selection, and target refs that should come from
+  proposal/canonical family metadata.
+- `propstore.graph_export` is a presentation/export surface that currently
+  rebuilds the semantic graph by hand. DOT/JSON rendering can stay; hardcoded
+  graph discovery over concepts, claims, parameterizations, relationships, and
+  stances must be replaced by generic field-relationship projection.
+- `propstore.concept_ids` is real concept-authoring identity state, not random
+  dead code. It allocates numeric local handles such as `concept1` and stores a
+  git counter ref. The wrong part is root ownership, handwritten document
+  scanning, and concept-specific storage mechanics outside the concept family
+  identity/charter protocol.
+
+## Target Architecture
+
+Each family has one charter-owned contract. That contract provides:
+
+- document type generation;
+- document codecs;
+- mapped model generation or mapping metadata;
+- reference and relationship fields;
+- identity fields;
+- artifact-code fields and dependency edges;
+- lifecycle/source-local/canonical scope;
+- local-id/index/counter policy where the family has authoring-local handles;
+- graph-node and graph-edge projection metadata;
+- indexes, FTS/vector flags, and storage metadata.
+
+Propstore family code owns:
+
+- methods on family models;
+- semantic validators;
+- semantic canonicalizers;
+- lifecycle/state-machine callbacks;
+- local-id semantic policy when a family really has human-authored local
+  handles;
+- graph display semantics when field metadata is not enough;
+- artifact-code canonical payload policy when generic field selection is not
+  enough;
+- family-specific dependency policy when generic relationship metadata is not
+  enough;
+- compiler-stage behavior that turns parsed input into typed model instances.
+
+Quire owns:
+
+- generating document structs/codecs from the charter;
+- resolving relationship/reference fields generically;
+- executing lifecycle/state transitions declared by family metadata;
+- reserving generic family index/counter state when a charter declares a
+  monotonic local-id policy;
+- projecting typed model relationship graphs into generic graph-view records;
+- mapping charter fields to SQLAlchemy;
+- exposing generic graph traversal over typed family relationships;
+- deriving schema/catalog/cache identity from the same charter.
+
+## Protocol Shape
+
+The protocol is metadata-first. A family model participates in document IO and
+artifact verification through its charter:
+
+- `document=True` means the field is included in the generated document type.
+- `document=False` excludes a storage/runtime field from document IO.
+- `reference=...` or `relationship=...` exposes related family models.
+- `artifact=True` includes the field in artifact-code payload generation.
+- `artifact_dependency=True` marks a relationship edge as part of the artifact
+  hash dependency graph.
+- `state=...`, `transition=...`, or equivalent lifecycle metadata defines
+  proposal-to-canonical promotion and rejection as a state transition over the
+  same family field contract.
+- `local_id=...` or equivalent identity metadata defines authoring-local
+  counters such as concept numeric handles when the family still needs them.
+- `graph_node=...` and `graph_edge=...` or equivalent view metadata defines
+  exportable nodes and edges from the same relationship fields.
+
+Names are illustrative; the Quire work decides exact API names. The required
+property is that the information is written once in the charter, not repeated
+in document structs, verification code, model constructors, or registry tables.
+
+Generic operations:
+
+- `family.document()` returns the generated document type.
+- `family.document_codec()` returns the generated codec.
+- `model.related()` or equivalent Quire API traverses relationship/reference
+  fields declared by the charter.
+- `model.artifact_payload()` is generated from artifact/document fields plus
+  optional family canonicalizer.
+- `model.artifact_dependencies()` is generated from relationship fields marked
+  as artifact dependencies plus optional family dependency callback.
+- `model.artifact_code()` hashes the generated canonical payload.
+- `family.transition(source_state, target_state, model)` or equivalent Quire
+  API materializes state-machine transitions such as proposal promotion
+  without handwritten document copying.
+- `family.reserve_local_id(...)` or equivalent Quire/family API reserves
+  monotonic local handles from declared family identity metadata.
+- `family.graph_projection(...)` or equivalent generic graph API emits graph
+  nodes and edges from relationship metadata and model semantic methods.
+
+The exact method names may differ, but the ownership may not: traversal and
+field selection come from charter metadata, not a central handwritten view.
+
+## Current Bad Surfaces
+
+Delete or rewrite these as part of this workstream after Quire support exists:
+
+- `propstore/families/documents/*.py` document field lists.
+- `propstore/families/claims/documents.py`.
+- `propstore/families/concepts/documents.py`.
+- `propstore/families/contexts/documents.py`.
+- `propstore/families/forms/documents.py`.
+- `propstore/families/sameas/documents.py`.
+- Root imports of concrete document classes in `propstore/artifact_codes.py`.
+- Root imports of concrete document classes in
+  `propstore/artifact_verification.py`.
+- Concrete document class registrations in `propstore/contracts.py` that treat
+  class paths as schema truth instead of resolving through family charters.
+- Contract-manifest entries that name handwritten document modules after the
+  generated document protocol exists.
+- Payload metadata outside the charter, including claim-stage
+  `metadata={"payload": ...}` and `payload_rest` field annotations.
+- Constructor kwargs and compile-time object construction that effectively
+  define fields for a family whose charter should own those fields.
+- `propstore/proposals.py`, `propstore/proposals_rules.py`, and
+  `propstore/proposals_predicates.py` promotion planners that hardcode
+  proposal branches, target canonical refs, result dataclasses, path matching,
+  and document-to-document field copying.
+- Heuristic proposal extraction code that constructs proposal document shapes
+  directly instead of asking the proposal family for its generated document and
+  lifecycle placement.
+- `propstore/graph_export.py::build_knowledge_graph`, `_claim_concept_id`,
+  `_display_claim_id_from_store`, and hardcoded calls to `all_concepts`,
+  `claims_for`, `all_parameterizations`, `all_relationships`, and
+  `all_claim_stances`.
+- `propstore/concept_ids.py` as a root module, including direct
+  `ConceptDocument` scanning and concept-specific git counter ref mechanics.
+
+## Correct Owner Placement
+
+Target layout for family-owned code:
+
+- `propstore/families/<family>/charter.py`: one field/schema/document/storage
+  contract, including lifecycle states such as source-local, proposal,
+  canonical, rejected, promoted, or archived when that family has those states.
+- `propstore/families/<family>/models.py`: methods-only `FamilyModel`
+  subclasses or behavior mixins; no fields.
+- `propstore/families/<family>/stages.py` or domain-named modules: semantic
+  compilation and validation.
+- `propstore/families/<family>/identity.py` or the existing
+  `propstore/families/identity/*` owner: semantic identity and artifact-code
+  canonicalization policy, including local-id parsing/allocation policy when
+  the family actually needs it.
+- `propstore/families/<family>/views.py` or a generic Quire graph-view owner:
+  graph display callbacks only; relationship discovery must still come from
+  charter metadata.
+- `propstore/families/registry.py`: registry composition only; it must not own
+  document field lists, fallback codecs, per-family helper behavior, or schema
+  facts already declared in a family charter.
+
+Root-level modules are kept only when they are true app/service entry points or
+pure cross-family algorithms over the generic protocol. They must not import
+every family document class to build their own schema view.
+
+## Proposal State-Machine Final State
+
+Proposal artifacts are not a separate handwritten workflow family. They are a
+family lifecycle state:
+
+- stance proposals are stances in a proposal state/placement;
+- rule proposals are rules in a proposal state/placement;
+- predicate proposals are predicates in a proposal state/placement;
+- source-local proposals are source-family or target-family records in a
+  source/proposal state.
+
+Promotion is a state transition:
+
+1. Resolve proposal records through the proposal state placement declared by
+   the family charter.
+2. Validate transition guards declared by the family: conflict checks,
+   already-promoted checks, required provenance, and mutation locks where a
+   real concurrency policy exists.
+3. Materialize canonical records through the same family document/model
+   contract with transition metadata such as `promoted_from_sha`.
+4. Commit through generic Quire family transaction APIs.
+
+The promotion engine should not have one root module per proposal kind that
+copies fields into another handwritten document class. If fields differ between
+proposal and canonical states, that difference is represented in charter field
+state metadata, not copied constructor arguments.
+
+## Graph Export Final State
+
+Graph export is presentation. It should not own the domain graph.
+
+Kept behavior:
+
+- a JSON/DOT export shape;
+- request/report objects for the app/CLI boundary;
+- rendering choices such as DOT node shapes and colors.
+
+Deleted/replaced behavior:
+
+- hardcoded graph discovery in `build_knowledge_graph`;
+- local claim-concept selection helpers that duplicate claim relationship
+  semantics;
+- manual JSON decoding of relationship fields such as parameterization
+  `concept_ids`;
+- direct dependence on `WorldStore` methods as the graph schema.
+
+The graph exporter receives typed graph-view records from generic family graph
+projection. Family charters say which models are nodes, which relationship
+fields are edges, and which fields become display labels or metadata. Bound
+world/environment filtering supplies the typed model set; it does not require a
+second hand-authored graph schema.
+
+## Concept Local-ID Final State
+
+Concept numeric IDs are useful only as an authoring-local handle policy. They
+are not the concept schema owner.
+
+If numeric `concept<N>` handles remain a product requirement:
+
+1. Move the policy under the concept family identity owner.
+2. Declare the logical-id/local-handle field in the concept charter once.
+3. Declare the monotonic counter/index ref in concept family identity metadata.
+4. Use a generic Quire/family reservation primitive for git-backed
+   compare-and-swap counter updates.
+5. Change concept mutation to call the concept family identity API instead of
+   importing `propstore.concept_ids`.
+6. Delete `propstore/concept_ids.py`.
+
+If numeric handles are no longer required, delete the allocation feature
+entirely and make concept creation derive identity from the family charter's
+canonical identity fields. Do not keep the root module for tests only.
+
+## Artifact Verification Final State
+
+The current verifier is replaced by generic graph traversal:
+
+1. Resolve the starting model through Quire family/reference APIs.
+2. Ask the model/family for its generated artifact payload.
+3. Traverse relationship fields marked as artifact dependencies.
+4. Recompute each model's artifact code through the generated protocol.
+5. Report mismatches.
+
+The verifier may be a small CLI/app entry point, but it must not hardcode
+`ClaimDocument`, `SourceDocument`, `JustificationDocument`, or `StanceDocument`
+imports and must not know the family graph by hand.
+
+## Context Lifting Placement
+
+`propstore.context_lifting` contains real context-family semantics: lifting
+rules, exceptions, decisions, materialization, and the lifting system. Those
+semantics should live under the context family owner, for example
+`propstore/families/contexts/lifting.py`, after the move is planned.
+
+The context document shape does not live there. Persisted context and lifting
+documents come from the context charter's generated document type.
+
+## Required Quire Work First
+
+This workstream is not executable until Quire can:
+
+- generate msgspec document structs from `FamilyCharter` fields;
+- default fields into document inclusion unless opted out;
+- generate YAML/JSON codecs for those document structs;
+- expose relationship/reference metadata for generic traversal;
+- expose artifact payload/dependency metadata from fields;
+- expose graph-node/edge projection metadata from fields;
+- expose family local-id/index reservation metadata and a generic reservation
+  primitive;
+- expose lifecycle state-machine transition metadata;
+- allow family semantic callbacks for canonicalization and special dependency
+  policy without requiring duplicate field lists.
+
+Add proof tests in Quire before deleting Propstore document classes.
+
+## Deletion-First Execution Order
+
+1. Add the missing Quire generated-document and relationship protocol.
+2. Push Quire and pin Propstore to the pushed commit.
+3. Pick one small family with a simple document shape.
+4. Delete that family's handwritten document class file first.
+5. Replace call sites with `family.document()` or the exact generated Quire
+   API.
+6. Use type/test/search failures as the work queue.
+7. Repeat family by family.
+8. Delete or rewrite `artifact_codes.py` and `artifact_verification.py` to use
+   generic model relationship traversal and family artifact policy.
+9. Delete or rewrite proposal promotion modules into family lifecycle
+   state-machine transitions over charter fields. Do not preserve
+   `StanceProposalPromotionPlan`, `RuleProposalPromotionPlan`, or
+   `PredicateProposalPromotionPlan` as handwritten per-family workflow
+   schemas if generic transition planning can express the same state.
+10. Replace `build_knowledge_graph` with generic graph projection from family
+    relationship metadata. Keep only DOT/JSON rendering and app/CLI request
+    shells if still needed.
+11. Move concept numeric local-id allocation under the concept family identity
+    owner or delete numeric local-id allocation entirely if no longer required.
+    In either case, delete `propstore/concept_ids.py`.
+12. Move context-lifting semantics under the context family owner, without
+    moving document shape there.
+13. Remove concrete document-class registration paths from contracts and
+    regenerate contract manifests through the family registry.
+
+## Search Gates
+
+These must be zero production hits after the workstream completes, excluding
+workstreams, reports, notes, and generated historical manifests only until the
+manifest regeneration phase:
+
+```powershell
+rg -n -F -- "from propstore.families.documents" propstore tests
+rg -n -F -- "from propstore.families.claims.documents" propstore tests
+rg -n -F -- "DocumentStruct" propstore/families propstore/source propstore/worldline propstore/support_revision propstore/core
+rg -n -F -- "metadata={\"payload\"" propstore tests
+rg -n -F -- "payload_rest" propstore tests
+rg -n -F -- "propstore.families.documents." propstore tests
+rg -n -F -- "StanceProposalPromotionPlan" propstore tests
+rg -n -F -- "RuleProposalPromotionPlan" propstore tests
+rg -n -F -- "PredicateProposalPromotionPlan" propstore tests
+rg -n -F -- "propstore.concept_ids" propstore tests
+rg -n -F -- "build_knowledge_graph" propstore tests
+rg -n -F -- "_claim_concept_id" propstore tests
+```
+
+Allowed remaining `DocumentStruct` hits must be generated by Quire or belong to
+non-family, non-persisted semantic value objects explicitly reviewed in this
+workstream. A reviewed exception is not allowed when the object is a family
+document, a source-local family document, or a persisted artifact document.
+
+## Completion Criteria
+
+- Every family document is available through the family/charter generated
+  document API.
+- No handwritten family document class repeats charter fields.
+- Artifact verification traverses generic relationship/reference metadata.
+- Artifact code payload/dependency policy is charter-driven with semantic
+  family callbacks only where necessary.
+- Proposal promotion is a generic lifecycle/state-machine transition over
+  family fields and placements, not handwritten per-family root workflow code.
+- Graph export uses generic family graph projection over field relationship
+  metadata. It keeps rendering but deletes the second hardcoded graph schema.
+- Concept local-id allocation is either concept-family identity metadata backed
+  by generic Quire reservation mechanics, or deleted completely if numeric
+  handles are no longer required.
+- `propstore.context_lifting` no longer owns persisted document shape; context
+  lifting semantics are under the context family owner.
+- Registry and contract code resolve document types through family charters,
+  not manual class imports.
