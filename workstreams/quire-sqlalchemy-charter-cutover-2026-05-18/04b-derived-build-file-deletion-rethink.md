@@ -269,6 +269,12 @@ Phase 2 execution record:
   `propstore/app/concepts/display.py`,
   `propstore/app/concepts/embedding.py`, and
   `propstore/app/concepts/mutation.py`.
+- Commit `d9aef753 Use compiler owner in app sidecar callers` removed
+  `propstore.derived_build` imports from all remaining app production callers.
+- Remaining non-test caller is
+  `scripts/compare_sqlalchemy_charter_parity.py`, which must use
+  `write_repository_world_store` for explicit parity sidecar output and compute
+  source branch tips directly from `repo.snapshot.iter_branches()`.
 
 ### Phase 3 - World Charter File Review
 
