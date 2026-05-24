@@ -472,6 +472,11 @@ Phase 6 execution record:
   `powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-remediation tests/remediation/phase_1_crits tests/remediation/phase_2_gates tests/remediation/phase_7_race_atomicity`
   passed 39 tests in 10.77s; log:
   `logs\test-runs\derived-build-remediation-20260524-145603.log`.
+- `uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json`
+  passed. The report recorded `after_head_sha`
+  `444ea1b2168551053976ce90ce5022e5b82728f6`, no failures, and pass status
+  for row counts, key sets, diagnostics, FTS, vectors, and table/schema checks.
+  The named parity artifacts were unchanged after the run.
 
 After these pass, run the full Propstore gates:
 
