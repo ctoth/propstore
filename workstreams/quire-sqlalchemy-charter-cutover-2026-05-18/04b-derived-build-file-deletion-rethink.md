@@ -275,6 +275,10 @@ Phase 2 execution record:
   `scripts/compare_sqlalchemy_charter_parity.py`, which must use
   `write_repository_world_store` for explicit parity sidecar output and compute
   source branch tips directly from `repo.snapshot.iter_branches()`.
+- Commit `f405af29 Use compiler owner in parity harness` removed the script
+  imports of `propstore.derived_build`. Production and script searches for
+  `propstore.derived_build` now return zero hits; remaining hits are tests and
+  remediation helpers in Phase 4.
 
 ### Phase 3 - World Charter File Review
 
