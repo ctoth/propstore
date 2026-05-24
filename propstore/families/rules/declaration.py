@@ -59,15 +59,11 @@ import gunray
 import msgspec
 from argumentation.aspic import Scalar
 from argumentation.aspic import GroundAtom as AspicGroundAtom
+from quire.charters import FamilyModel
 from quire.sqlalchemy_store import DerivedSession
 from sqlalchemy import select
 
 from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
-from propstore.families.world_charters import (
-    GroundedBundleInput,
-    GroundedFact,
-    GroundedFactEmptyPredicate,
-)
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
@@ -84,6 +80,18 @@ _SECTION_NAMES: tuple[str, ...] = (
     "undecided",
     "unknown",
 )
+
+
+class GroundedFact(FamilyModel):
+    pass
+
+
+class GroundedFactEmptyPredicate(FamilyModel):
+    pass
+
+
+class GroundedBundleInput(FamilyModel):
+    pass
 
 
 def persist_grounded_bundle(

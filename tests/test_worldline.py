@@ -20,8 +20,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from quire.documents import decode_document_path
+from propstore.families.concepts.declaration import Concept
 from propstore.families.identity.concepts import derive_concept_artifact_id
-from propstore.families.world_charters import Concept
 from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
 from propstore.families.claims.types import ClaimType

@@ -392,9 +392,11 @@ class TestCalibrationCountsInfrastructure:
         u = 2/(r+s+2). With 80/100 accuracy, u = 2/102 ~ 0.02.
         """
         from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
-        from propstore.families.calibration.declaration import calibration_counts_by_key
-        from propstore.families.world_charters import (
+        from propstore.families.calibration.declaration import (
             CalibrationCount,
+            calibration_counts_by_key,
+        )
+        from propstore.families.world_charters import (
             world_sqlalchemy_schema,
         )
 

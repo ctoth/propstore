@@ -13,11 +13,11 @@ from propstore.families.documents.rules import (
     TermDocument,
 )
 from propstore.families.rules.declaration import (
+    GroundedBundleInput,
     load_grounded_bundle,
     persist_grounded_bundle,
 )
 from propstore.families.world_charters import (
-    GroundedBundleInput,
     world_sqlalchemy_schema,
 )
 from propstore.grounding.grounder import ground

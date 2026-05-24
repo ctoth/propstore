@@ -4,8 +4,12 @@ from __future__ import annotations
 
 from sqlalchemy import select
 
+from quire.charters import FamilyModel
 from quire.sqlalchemy_store import DerivedSession
-from propstore.families.world_charters import CalibrationCount
+
+
+class CalibrationCount(FamilyModel):
+    pass
 
 
 def calibration_counts_by_key(

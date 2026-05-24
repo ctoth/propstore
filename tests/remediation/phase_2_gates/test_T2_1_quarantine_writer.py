@@ -4,7 +4,8 @@ from pathlib import Path
 
 from quire.sqlalchemy_store import create_sqlalchemy_store, writable_session
 from propstore.families.diagnostics.declaration import quarantine_diagnostic
-from propstore.families.world_charters import BuildDiagnostic, world_sqlalchemy_schema
+from propstore.families.diagnostics.declaration import BuildDiagnostic
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
 def test_quarantine_diagnostic_round_trips_through_charter(tmp_path: Path) -> None:

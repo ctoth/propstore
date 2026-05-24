@@ -6,6 +6,7 @@ import dataclasses
 from collections.abc import Callable, Sequence
 from pathlib import Path
 
+from quire.charters import FamilyModel
 from quire.derived_store import DerivedStoreHandle
 from sqlalchemy import select
 from quire.sqlalchemy_store import readonly_session
@@ -36,6 +37,18 @@ from propstore.heuristic.embed import (
 )
 from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
 from propstore.families.world_charters import world_sqlalchemy_schema
+
+
+class EmbeddingModel(FamilyModel):
+    pass
+
+
+class EmbeddingStatus(FamilyModel):
+    pass
+
+
+class ConceptEmbeddingStatus(FamilyModel):
+    pass
 
 
 @dataclasses.dataclass

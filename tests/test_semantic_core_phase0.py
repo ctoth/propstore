@@ -5,8 +5,8 @@ import json
 from propstore.world import BoundWorld, Environment, OverlayWorld, RenderPolicy, ResolutionStrategy, SyntheticClaim
 from propstore.core.conditions import ConditionSolver
 from propstore.core.labels import compile_environment_assumptions
+from propstore.families.concepts.declaration import Concept, Parameterization
 from propstore.families.relations.declaration import ConflictWitness, Stance
-from propstore.families.world_charters import world_record
 from tests.atms_helpers import condition_registry_for_rows, rows_with_condition_ir
 from tests.claim_model_helpers import claim_model_from_test_payload
 
@@ -42,9 +42,14 @@ class _Store:
         ]
         self._parameterizations = {
             concept_id: [
-                world_record(
-                    "parameterization",
-                    {**row, "output_concept_id": concept_id},
+                Parameterization(
+                    output_concept_id=concept_id,
+                    concept_ids=row["concept_ids"],
+                    formula=row["formula"],
+                    sympy=row.get("sympy"),
+                    exactness=row["exactness"],
+                    conditions_cel=row.get("conditions_cel"),
+                    conditions_ir=row.get("conditions_ir"),
                 )
                 for row in rows_with_condition_ir(rows, self._condition_registry)
             ]
@@ -91,21 +96,18 @@ class _Store:
             | {"concept3"}
         )
         return [
-            world_record(
-                "concept",
-                {
-                    "id": concept_id,
-                    "primary_logical_id": concept_id,
-                    "logical_ids_json": "[]",
-                    "version_id": "",
-                    "content_hash": concept_id,
-                    "seq": index,
-                    "canonical_name": concept_id,
-                    "status": "accepted",
-                    "definition": concept_id,
-                    "kind_type": "quantity",
-                    "form": "structural",
-                },
+            Concept(
+                id=concept_id,
+                primary_logical_id=concept_id,
+                logical_ids_json="[]",
+                version_id="",
+                content_hash=concept_id,
+                seq=index,
+                canonical_name=concept_id,
+                status="accepted",
+                definition=concept_id,
+                kind_type="quantity",
+                form="structural",
             )
             for index, concept_id in enumerate(concept_ids)
         ]

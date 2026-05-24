@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from propstore.families.claims.types import ClaimType
 from propstore.core.conditions import (
@@ -26,7 +26,6 @@ from propstore.families.claims.declaration import (
     ClaimNumericPayload,
     ClaimTextPayload,
 )
-from propstore.families.world_charters import world_record
 
 if TYPE_CHECKING:
     from propstore.world.types import SyntheticClaim
@@ -132,116 +131,97 @@ def synthetic_claim_to_claim(
     conditions_ir = _conditions_ir_json(condition_set)
     existing_numeric = None if existing_claim is None else existing_claim.numeric_payload
     existing_text = None if existing_claim is None else existing_claim.text_payload
-    claim = cast(Claim, world_record(
-        "claim_core",
-        {
-            "id": synthetic.id,
-            "primary_logical_id": (
-                existing_claim.primary_logical_id
-                if existing_claim is not None
-                else synthetic.id
-            ),
-            "logical_ids_json": (
-                existing_claim.logical_ids_json
-                if existing_claim is not None
-                else "[]"
-            ),
-            "version_id": existing_claim.version_id if existing_claim is not None else "",
-            "content_hash": existing_claim.content_hash if existing_claim is not None else "",
-            "seq": existing_claim.seq if existing_claim is not None else 0,
-            "type": synthetic.type,
-            "target_concept": (
-                ConceptId(synthetic.concept_id)
-                if synthetic.type is ClaimType.MEASUREMENT
-                else (
-                    existing_claim.target_concept
-                    if existing_claim is not None
-                    else None
-                )
-            ),
-            "source_slug": existing_claim.source_slug if existing_claim is not None else None,
-            "source_paper": existing_claim.source_paper if existing_claim is not None else "",
-            "provenance_page": (
-                existing_claim.provenance_page if existing_claim is not None else 0
-            ),
-            "provenance_json": (
-                existing_claim.provenance_json if existing_claim is not None else None
-            ),
-            "context_id": existing_claim.context_id if existing_claim is not None else None,
-            "premise_kind": (
-                existing_claim.premise_kind if existing_claim is not None else "ordinary"
-            ),
-            "branch": existing_claim.branch if existing_claim is not None else None,
-            "build_status": (
-                existing_claim.build_status if existing_claim is not None else "ingested"
-            ),
-            "stage": existing_claim.stage if existing_claim is not None else None,
-            "promotion_status": (
-                existing_claim.promotion_status if existing_claim is not None else None
-            ),
-        },
-    ))
-    numeric_payload = cast(ClaimNumericPayload, world_record(
-        "claim_numeric_payload",
-        {
-            "claim_id": synthetic.id,
-            "value": (
-                synthetic.value
-                if isinstance(synthetic.value, int | float)
-                and not isinstance(synthetic.value, bool)
-                else (None if existing_numeric is None else existing_numeric.value)
-            ),
-            "lower_bound": None if existing_numeric is None else existing_numeric.lower_bound,
-            "upper_bound": None if existing_numeric is None else existing_numeric.upper_bound,
-            "uncertainty": None if existing_numeric is None else existing_numeric.uncertainty,
-            "uncertainty_type": (
-                None if existing_numeric is None else existing_numeric.uncertainty_type
-            ),
-            "sample_size": (
-                synthetic.sample_size
-                if synthetic.sample_size is not None
-                else (None if existing_numeric is None else existing_numeric.sample_size)
-            ),
-            "confidence": (
-                None if existing_numeric is None else existing_numeric.confidence
-            ),
-            "unit": None if existing_numeric is None else existing_numeric.unit,
-            "value_si": None if existing_numeric is None else existing_numeric.value_si,
-            "lower_bound_si": (
-                None if existing_numeric is None else existing_numeric.lower_bound_si
-            ),
-            "upper_bound_si": (
-                None if existing_numeric is None else existing_numeric.upper_bound_si
-            ),
-        },
-    ))
-    text_payload = cast(ClaimTextPayload, world_record(
-        "claim_text_payload",
-        {
-            "claim_id": synthetic.id,
-            "conditions_cel": conditions_cel,
-            "conditions_ir": conditions_ir,
-            "statement": None if existing_text is None else existing_text.statement,
-            "expression": (
-                synthetic.value
-                if isinstance(synthetic.value, str)
-                else (None if existing_text is None else existing_text.expression)
-            ),
-            "sympy_generated": (
-                None if existing_text is None else existing_text.sympy_generated
-            ),
-            "sympy_error": None if existing_text is None else existing_text.sympy_error,
-            "name": None if existing_text is None else existing_text.name,
-            "measure": None if existing_text is None else existing_text.measure,
-            "listener_population": (
-                None if existing_text is None else existing_text.listener_population
-            ),
-            "methodology": None if existing_text is None else existing_text.methodology,
-            "notes": None if existing_text is None else existing_text.notes,
-            "description": None if existing_text is None else existing_text.description,
-            "auto_summary": None if existing_text is None else existing_text.auto_summary,
-        },
-    ))
+    claim = Claim(
+        id=synthetic.id,
+        primary_logical_id=(
+            existing_claim.primary_logical_id
+            if existing_claim is not None
+            else synthetic.id
+        ),
+        logical_ids_json=(
+            existing_claim.logical_ids_json if existing_claim is not None else "[]"
+        ),
+        version_id=existing_claim.version_id if existing_claim is not None else "",
+        content_hash=existing_claim.content_hash if existing_claim is not None else "",
+        seq=existing_claim.seq if existing_claim is not None else 0,
+        type=synthetic.type,
+        target_concept=(
+            ConceptId(synthetic.concept_id)
+            if synthetic.type is ClaimType.MEASUREMENT
+            else (existing_claim.target_concept if existing_claim is not None else None)
+        ),
+        source_slug=existing_claim.source_slug if existing_claim is not None else None,
+        source_paper=existing_claim.source_paper if existing_claim is not None else "",
+        provenance_page=(
+            existing_claim.provenance_page if existing_claim is not None else 0
+        ),
+        provenance_json=(
+            existing_claim.provenance_json if existing_claim is not None else None
+        ),
+        context_id=existing_claim.context_id if existing_claim is not None else None,
+        premise_kind=(
+            existing_claim.premise_kind if existing_claim is not None else "ordinary"
+        ),
+        branch=existing_claim.branch if existing_claim is not None else None,
+        build_status=(
+            existing_claim.build_status if existing_claim is not None else "ingested"
+        ),
+        stage=existing_claim.stage if existing_claim is not None else None,
+        promotion_status=(
+            existing_claim.promotion_status if existing_claim is not None else None
+        ),
+    )
+    numeric_payload = ClaimNumericPayload(
+        claim_id=synthetic.id,
+        value=(
+            synthetic.value
+            if isinstance(synthetic.value, int | float)
+            and not isinstance(synthetic.value, bool)
+            else (None if existing_numeric is None else existing_numeric.value)
+        ),
+        lower_bound=None if existing_numeric is None else existing_numeric.lower_bound,
+        upper_bound=None if existing_numeric is None else existing_numeric.upper_bound,
+        uncertainty=None if existing_numeric is None else existing_numeric.uncertainty,
+        uncertainty_type=(
+            None if existing_numeric is None else existing_numeric.uncertainty_type
+        ),
+        sample_size=(
+            synthetic.sample_size
+            if synthetic.sample_size is not None
+            else (None if existing_numeric is None else existing_numeric.sample_size)
+        ),
+        confidence=None if existing_numeric is None else existing_numeric.confidence,
+        unit=None if existing_numeric is None else existing_numeric.unit,
+        value_si=None if existing_numeric is None else existing_numeric.value_si,
+        lower_bound_si=(
+            None if existing_numeric is None else existing_numeric.lower_bound_si
+        ),
+        upper_bound_si=(
+            None if existing_numeric is None else existing_numeric.upper_bound_si
+        ),
+    )
+    text_payload = ClaimTextPayload(
+        claim_id=synthetic.id,
+        conditions_cel=conditions_cel,
+        conditions_ir=conditions_ir,
+        statement=None if existing_text is None else existing_text.statement,
+        expression=(
+            synthetic.value
+            if isinstance(synthetic.value, str)
+            else (None if existing_text is None else existing_text.expression)
+        ),
+        sympy_generated=None if existing_text is None else existing_text.sympy_generated,
+        sympy_error=None if existing_text is None else existing_text.sympy_error,
+        name=None if existing_text is None else existing_text.name,
+        measure=None if existing_text is None else existing_text.measure,
+        listener_population=(
+            None if existing_text is None else existing_text.listener_population
+        ),
+        methodology=None if existing_text is None else existing_text.methodology,
+        notes=None if existing_text is None else existing_text.notes,
+        description=None if existing_text is None else existing_text.description,
+        auto_summary=None if existing_text is None else existing_text.auto_summary,
+    )
     claim.concept_links = list(_synthetic_concept_links(synthetic))
     claim.numeric_payload = numeric_payload
     claim.text_payload = text_payload

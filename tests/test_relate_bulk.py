@@ -14,7 +14,7 @@ from propstore.families.claims.sidecar_runtime import (
     claim_text_by_id,
     claim_texts_by_id,
 )
-from propstore.families.world_charters import world_record, world_sqlalchemy_schema
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
 FIXTURE_CLAIMS = (
@@ -43,7 +43,7 @@ def handle(tmp_path: Path) -> DerivedStoreHandle:
             FIXTURE_CLAIMS
         ):
             derived.add(
-                world_record(
+                schema.construct(
                     "claim_core",
                     {
                         "id": claim_id,
@@ -60,7 +60,7 @@ def handle(tmp_path: Path) -> DerivedStoreHandle:
                 )
             )
             derived.add(
-                world_record(
+                schema.construct(
                     "claim_text_payload",
                     {
                         "claim_id": claim_id,

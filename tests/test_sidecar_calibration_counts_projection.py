@@ -4,7 +4,8 @@ from pathlib import Path
 
 from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from propstore.families.calibration.declaration import calibration_counts_by_key
-from propstore.families.world_charters import CalibrationCount, world_sqlalchemy_schema
+from propstore.families.calibration.declaration import CalibrationCount
+from propstore.families.world_charters import world_sqlalchemy_schema
 
 
 def test_calibration_counts_use_charter_model_and_typed_query(tmp_path: Path) -> None:

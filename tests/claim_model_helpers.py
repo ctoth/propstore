@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from typing import cast
 
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.claims.types import ClaimType
@@ -15,7 +14,6 @@ from propstore.families.claims.declaration import (
     ClaimSourceAssertion,
     ClaimTextPayload,
 )
-from propstore.families.world_charters import world_record
 
 
 def claim_concept_link(
@@ -26,18 +24,12 @@ def claim_concept_link(
     ordinal: int = 0,
     binding_name: str | None = None,
 ) -> ClaimConceptLink:
-    return cast(
-        ClaimConceptLink,
-        world_record(
-            "claim_concept_link",
-            {
-                "claim_id": claim_id,
-                "concept_id": concept_id,
-                "role": role,
-                "ordinal": ordinal,
-                "binding_name": binding_name,
-            },
-        ),
+    return ClaimConceptLink(
+        claim_id=claim_id,
+        concept_id=concept_id,
+        role=role,
+        ordinal=ordinal,
+        binding_name=binding_name,
     )
 
 
@@ -75,33 +67,25 @@ def claim_model(
     variables_json: str | None = None,
     source_assertion_ids: Sequence[str] = (),
 ) -> Claim:
-    claim = cast(
-        Claim,
-        world_record(
-            "claim_core",
-            {
-                "id": claim_id,
-                "primary_logical_id": claim_id,
-                "logical_ids_json": "[]",
-                "version_id": "",
-                "content_hash": "",
-                "seq": 0,
-                "type": claim_type,
-                "target_concept": target_concept,
-                "source_slug": source_slug,
-                "source_paper": source_paper,
-                "provenance_page": provenance_page,
-                "provenance_json": (
-                    None if provenance_json is None else json.dumps(provenance_json)
-                ),
-                "context_id": context_id,
-                "premise_kind": "ordinary",
-                "branch": branch,
-                "build_status": build_status,
-                "stage": stage,
-                "promotion_status": promotion_status,
-            },
-        ),
+    claim = Claim(
+        id=claim_id,
+        primary_logical_id=claim_id,
+        logical_ids_json="[]",
+        version_id="",
+        content_hash="",
+        seq=0,
+        type=claim_type,
+        target_concept=target_concept,
+        source_slug=source_slug,
+        source_paper=source_paper,
+        provenance_page=provenance_page,
+        provenance_json=None if provenance_json is None else json.dumps(provenance_json),
+        context_id=context_id,
+        premise_kind="ordinary",
+        branch=branch,
+        build_status=build_status,
+        stage=stage,
+        promotion_status=promotion_status,
     )
     links = list(concept_links) if concept_links is not None else [
         claim_concept_link(
@@ -114,80 +98,56 @@ def claim_model(
         link.claim = claim
     claim.concept_links = links
 
-    numeric_payload = cast(
-        ClaimNumericPayload,
-        world_record(
-            "claim_numeric_payload",
-            {
-                "claim_id": claim_id,
-                "value": value,
-                "lower_bound": lower_bound,
-                "upper_bound": upper_bound,
-                "uncertainty": uncertainty,
-                "uncertainty_type": uncertainty_type,
-                "sample_size": sample_size,
-                "confidence": confidence,
-                "unit": unit,
-                "value_si": value_si,
-                "lower_bound_si": None,
-                "upper_bound_si": None,
-            },
-        ),
+    numeric_payload = ClaimNumericPayload(
+        claim_id=claim_id,
+        value=value,
+        lower_bound=lower_bound,
+        upper_bound=upper_bound,
+        uncertainty=uncertainty,
+        uncertainty_type=uncertainty_type,
+        sample_size=sample_size,
+        confidence=confidence,
+        unit=unit,
+        value_si=value_si,
+        lower_bound_si=None,
+        upper_bound_si=None,
     )
     numeric_payload.claim = claim
     claim.numeric_payload = numeric_payload
 
-    text_payload = cast(
-        ClaimTextPayload,
-        world_record(
-            "claim_text_payload",
-            {
-                "claim_id": claim_id,
-                "conditions_cel": conditions_cel,
-                "conditions_ir": conditions_ir,
-                "statement": statement,
-                "expression": expression,
-                "sympy_generated": None,
-                "sympy_error": None,
-                "name": None,
-                "measure": None,
-                "listener_population": None,
-                "methodology": None,
-                "notes": None,
-                "description": None,
-                "auto_summary": None,
-            },
-        ),
+    text_payload = ClaimTextPayload(
+        claim_id=claim_id,
+        conditions_cel=conditions_cel,
+        conditions_ir=conditions_ir,
+        statement=statement,
+        expression=expression,
+        sympy_generated=None,
+        sympy_error=None,
+        name=None,
+        measure=None,
+        listener_population=None,
+        methodology=None,
+        notes=None,
+        description=None,
+        auto_summary=None,
     )
     text_payload.claim = claim
     claim.text_payload = text_payload
 
-    algorithm_payload = cast(
-        ClaimAlgorithmPayload,
-        world_record(
-            "claim_algorithm_payload",
-            {
-                "claim_id": claim_id,
-                "body": algorithm_body,
-                "canonical_ast": None,
-                "variables_json": variables_json,
-                "algorithm_stage": algorithm_stage,
-            },
-        ),
+    algorithm_payload = ClaimAlgorithmPayload(
+        claim_id=claim_id,
+        body=algorithm_body,
+        canonical_ast=None,
+        variables_json=variables_json,
+        algorithm_stage=algorithm_stage,
     )
     algorithm_payload.claim = claim
     claim.algorithm_payload = algorithm_payload
     source_assertions = [
-        cast(
-            ClaimSourceAssertion,
-            world_record(
-                "claim_source_assertion",
-                {
-                    "claim_id": claim_id,
-                    "source_assertion_id": source_assertion_id,
-                    "ordinal": ordinal,
-                },
-            ),
+        ClaimSourceAssertion(
+            claim_id=claim_id,
+            source_assertion_id=source_assertion_id,
+            ordinal=ordinal,
         )
         for ordinal, source_assertion_id in enumerate(source_assertion_ids)
     ]

@@ -26,7 +26,8 @@ def test_embedding_identity_distinguishes_punctuation_collisions() -> None:
 def test_sidecar_embedding_registry_stores_typed_identity_rows(tmp_path: Path) -> None:
     from quire.sqlalchemy_store import create_sqlalchemy_store, writable_session
 
-    from propstore.families.world_charters import EmbeddingModel, world_sqlalchemy_schema
+    from propstore.families.embeddings.declaration import EmbeddingModel
+    from propstore.families.world_charters import world_sqlalchemy_schema
     from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
 
     schema = world_sqlalchemy_schema()

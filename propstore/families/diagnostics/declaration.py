@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from quire.charters import FamilyModel
 from sqlalchemy import delete, select
 
 from quire.sqlalchemy_store import DerivedSession
@@ -14,7 +15,10 @@ from quire.sqlalchemy_store import DerivedSession
 if TYPE_CHECKING:
     from propstore.families.claims.stages import PromotionBlockedClaimFact
     from propstore.semantic_passes.types import PassDiagnostic
-    from propstore.families.world_charters import BuildDiagnostic
+
+
+class BuildDiagnostic(FamilyModel):
+    pass
 
 
 @dataclass(frozen=True)
@@ -34,8 +38,6 @@ def quarantine_diagnostic(
     message: str,
     file: str | None = None,
 ) -> BuildDiagnostic:
-    from propstore.families.world_charters import BuildDiagnostic
-
     return BuildDiagnostic(
         claim_id=artifact_id if kind == "claim" else None,
         source_kind=kind,
@@ -87,8 +89,6 @@ def build_pass_diagnostics(
 def build_authoring_diagnostics(
     diagnostics: tuple[PassDiagnostic, ...],
 ) -> tuple[BuildDiagnostic, ...]:
-    from propstore.families.world_charters import BuildDiagnostic
-
     return tuple(
         BuildDiagnostic(
             claim_id=diagnostic.artifact_id,
@@ -121,8 +121,6 @@ def build_quarantine_diagnostics(
 
 
 def embedding_restore_diagnostic(exc: Exception) -> BuildDiagnostic:
-    from propstore.families.world_charters import BuildDiagnostic
-
     return BuildDiagnostic(
         claim_id=None,
         source_kind="embedding",
@@ -137,8 +135,6 @@ def embedding_restore_diagnostic(exc: Exception) -> BuildDiagnostic:
 
 
 def sidecar_build_exception_diagnostic(exc: Exception) -> BuildDiagnostic:
-    from propstore.families.world_charters import BuildDiagnostic
-
     return BuildDiagnostic(
         claim_id=None,
         source_kind="sidecar_build",
@@ -155,8 +151,6 @@ def sidecar_build_exception_diagnostic(exc: Exception) -> BuildDiagnostic:
 def compile_promotion_blocked_diagnostics(
     facts: Sequence[PromotionBlockedClaimFact],
 ) -> tuple[BuildDiagnostic, ...]:
-    from propstore.families.world_charters import BuildDiagnostic
-
     diagnostics: list[BuildDiagnostic] = []
     for fact in facts:
         for reason in fact.reasons:

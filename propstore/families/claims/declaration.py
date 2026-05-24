@@ -52,6 +52,7 @@ from propstore.families.claims.stages import (
 )
 from propstore.families.claims.sympy_generation import derive_equation_sympy
 from propstore.families.diagnostics.declaration import (
+    BuildDiagnostic,
     QuarantineDiagnostic,
     compile_promotion_blocked_diagnostics,
     delete_promotion_blocked_diagnostics,
@@ -265,9 +266,6 @@ class RawIdQuarantineModels:
 class PromotionBlockedModels:
     claims: tuple[Claim, ...]
     diagnostics: tuple[BuildDiagnostic, ...]
-
-
-from propstore.families.world_charters import BuildDiagnostic
 
 
 def _numeric_si_value(
