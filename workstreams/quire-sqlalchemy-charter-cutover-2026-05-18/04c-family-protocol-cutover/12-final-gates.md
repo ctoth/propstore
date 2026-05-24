@@ -31,6 +31,8 @@ Additional final searches:
 rg -n -F -- "from propstore.families.documents" propstore tests
 rg -n -F -- "DocumentStruct" propstore/families propstore/source propstore/worldline propstore/support_revision propstore/core
 rg -n -F -- "metadata={\"payload\"" propstore tests
+rg -n -F -- "metadata={\"document\"" propstore tests
+rg -n -F -- "metadata={\"artifact\"" propstore tests
 rg -n -F -- "payload_rest" propstore tests
 rg -n -F -- "from_mapping" propstore/core propstore/families propstore/world propstore/worldline propstore/support_revision tests
 rg -n -F -- "ProjectionModel" propstore tests
@@ -49,6 +51,7 @@ uv run scripts/check_workstream_order.py workstreams/quire-sqlalchemy-charter-cu
 ```powershell
 uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label family-protocol-cutover-full
+uv run pks build
 ```
 
 ## Dependency Gates
@@ -60,6 +63,7 @@ rg -n -F -- "quire @ C:" pyproject.toml uv.lock
 rg -n -F -- "[tool.uv.sources]" pyproject.toml
 rg -n -F -- "path =" pyproject.toml
 rg -n -F -- "workspace = true" pyproject.toml
+git ls-remote https://github.com/ctoth/quire <pinned-sha>
 ```
 
 ## Completion
@@ -67,6 +71,7 @@ rg -n -F -- "workspace = true" pyproject.toml
 - Quire is pinned to a pushed commit.
 - Generated documents, lifecycle transitions, graph/artifact protocols, local
   IDs, and schema lookup are generic family infrastructure.
+- Real Propstore knowledge artifacts build through the generated protocol.
 - Propstore has no duplicate family document DTO layer, no restored deleted
   modules, no string-key claim metadata helper, and no root helper ownership of
   source/proposal/worldline/graph/artifact mechanics.

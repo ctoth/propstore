@@ -32,8 +32,10 @@ tracing, conflict resolution, or result document shape.
 ## Kept Behavior
 
 - `propstore/world/resolution.py::resolve`
-- `propstore/world/value_resolver.py::ClaimValueResolver`, after scalar
-  semantics are owned by typed claim/family behavior
+- `propstore/world/value_resolver.py::ClaimValueResolver` as the owner of
+  world-contextual value extraction and derivation. It may ask typed
+  claim/concept models for local display/scalar properties, but world-context
+  behavior does not move onto the claim model.
 - `propstore/worldline/runner.py::run_worldline`
 - `propstore/worldline/argumentation.py::capture_argumentation_state`
 - `propstore/worldline/hashing.py::compute_worldline_content_hash`, rehomed as
@@ -43,10 +45,13 @@ tracing, conflict resolution, or result document shape.
 ## Execution
 
 1. Delete worldline resolver-chain helpers first.
-2. Move claim scalar/display/variable semantics onto claim family/model
-   behavior.
-3. Move concept display semantics onto concept family/model behavior.
-4. Let value resolver or generic graph protocol supply typed derivation trees.
+2. Delete the worldline-side duplicate claim value/input/target extraction.
+3. Keep world-contextual value extraction in `ClaimValueResolver`; move only
+   local display/scalar properties onto claim/concept family models when those
+   properties do not depend on world overrides, parameterizations, or render
+   policy.
+4. Let `ClaimValueResolver` or generic graph protocol supply typed derivation
+   trees.
 5. Replace worldline result document classes with generated worldline family
    documents after Quire generated documents exist.
 6. Verify worldline hash includes only declared artifact fields and declared
@@ -67,6 +72,7 @@ rg -n -F -- "propstore.families.documents.worldlines" propstore tests
 
 ```powershell
 uv run pyright propstore/world/model.py propstore/world/resolution.py propstore/world/value_resolver.py propstore/worldline/runner.py propstore/worldline/definition.py propstore/worldline/result_types.py propstore/worldline/revision_types.py propstore/worldline/argumentation.py
+uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label worldline-resolution-protocol tests/test_worldline.py tests/test_worldline_result_boundaries.py tests/test_worldline_error_visibility.py tests/test_worldline_hash_excludes_transient_errors.py tests/test_worldline_revision.py tests/test_world_query.py
 ```
 

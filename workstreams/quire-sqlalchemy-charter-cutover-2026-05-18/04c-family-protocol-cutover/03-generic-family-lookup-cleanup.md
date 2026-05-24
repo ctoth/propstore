@@ -26,8 +26,10 @@ family is generic Quire/family-registry infrastructure.
 
 ## Required Owners
 
-- Quire schema/catalog APIs expose main mapped model, identity field, table,
-  reference keys, and reference resolution generically.
+- Quire schema/catalog APIs expose affirmative generic accessors:
+  `main_model(family_name) -> type[Any]`, `table(family_name)`,
+  `identity_field(family_name) -> str`, `reference_keys(family_name)`, and
+  `reference_resolver(family_name)`.
 - Propstore family owners may expose semantic query APIs only when they do more
   than model/table lookup.
 - Source status and diagnostics keep report semantics but stop selecting
@@ -40,6 +42,9 @@ family is generic Quire/family-registry infrastructure.
 3. Replace lookup-only code with generic family metadata/session APIs.
 4. Keep semantic owner APIs only where they encode source status, diagnostics,
    render policy, or world reasoning behavior.
+5. Do not add `resolve_claim`, `resolve_concept`, `claim_model`,
+   `concept_model`, or other per-family wrappers over generic model/reference
+   lookup.
 
 ## Search Gates
 
@@ -54,6 +59,10 @@ rg -n -F -- 'schema.model("context")' propstore/families/contexts propstore/cont
 rg -n -F -- 'schema.model("context_assumption")' propstore/families/contexts propstore/context_lifting.py propstore/aspic_bridge propstore/worldline tests
 rg -n -F -- 'schema.model("context_lifting_rule")' propstore/families/contexts propstore/context_lifting.py propstore/aspic_bridge propstore/worldline tests
 rg -n -F -- 'schema.model("context_lifting_materialization")' propstore/families/contexts propstore/context_lifting.py propstore/aspic_bridge propstore/worldline tests
+rg -n -F -- "def resolve_claim" propstore tests
+rg -n -F -- "def resolve_concept" propstore tests
+rg -n -F -- "def claim_model" propstore tests
+rg -n -F -- "def concept_model" propstore tests
 ```
 
 ## Gates
@@ -66,5 +75,7 @@ powershell -File scripts/run_logged_pytest.ps1 -Label generic-family-lookup test
 ## Completion
 
 - Direct string model/table lookups are zero production hits.
+- Per-family lookup wrappers over generic family infrastructure are zero
+  production hits.
 - Remaining model/reference resolution flows through Quire generic family
   metadata or a semantic owner API backed by that generic path.

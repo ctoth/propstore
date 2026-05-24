@@ -25,6 +25,9 @@ are not per-kind root workflow modules that copy document fields by hand.
 - `PredicateProposalPromotionPlan`
 - branch and target-ref hardcoding that duplicates family placement metadata
 - dict input accepted by proposal document builders
+- `PredicateProposalDocument` and `RuleProposalDocument` as separate persisted
+  handwritten document shapes after state-conditional generated documents
+  exist
 
 ## Kept Behavior
 
@@ -40,9 +43,11 @@ are not per-kind root workflow modules that copy document fields by hand.
 1. Delete one proposal root workflow first.
 2. Use failures to add generic lifecycle transition declarations to the
    owning family/proposal state.
-3. Replace copied document construction with generated family document/model
+3. Represent proposal-vs-canonical field differences with
+   `CharterField.states`, not separate document classes.
+4. Replace copied document construction with generated family document/model
    transition.
-4. Repeat for the other proposal kinds.
+5. Repeat for the other proposal kinds.
 
 ## Search Gates
 
@@ -53,6 +58,8 @@ rg -n -F -- "PredicateProposalPromotionPlan" propstore tests
 rg -n -F -- "build_stance_document" propstore tests
 rg -n -F -- "promote_rule_proposals" propstore tests
 rg -n -F -- "promote_predicate_proposals" propstore tests
+rg -n -F -- "PredicateProposalDocument" propstore tests
+rg -n -F -- "RuleProposalDocument" propstore tests
 ```
 
 ## Gates

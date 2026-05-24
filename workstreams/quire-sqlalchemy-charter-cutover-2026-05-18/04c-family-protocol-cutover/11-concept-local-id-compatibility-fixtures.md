@@ -42,8 +42,10 @@ fixtures do not preserve old shapes.
 2. Replace root concept-id callers with concept-family identity API backed by
    generic Quire reservation.
 3. Delete `propstore/concept_ids.py`.
-4. Classify every compatibility/fallback/coercer hit as `io-boundary`,
-   `semantic-owner`, or `delete`.
+4. Write `reports/charter-cutover-breakdown/compat-classification.md` with
+   every compatibility/fallback/coercer hit classified as `io-boundary`,
+   `semantic-owner`, or `delete`, with a one-sentence reason and owner. A
+   classification not written to that file does not count.
 5. Delete illegal compatibility/fallback/coercer hits.
 6. Replace dict-shaped world-query claim fixture mutation with typed fixtures.
 
@@ -72,5 +74,7 @@ powershell -File scripts/run_logged_pytest.ps1 -Label concept-local-id-compat te
 ## Completion
 
 - Root concept-id module is gone.
-- Compatibility/fallback/coercer inventory is resolved by owner.
+- Compatibility/fallback/coercer inventory is committed or promoted into the
+  workstream record with explicit owner/reason for every remaining production
+  hit.
 - World-query tests no longer preserve dict-shaped claim assumptions.

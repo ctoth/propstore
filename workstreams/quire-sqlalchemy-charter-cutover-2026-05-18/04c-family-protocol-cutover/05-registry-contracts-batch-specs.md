@@ -32,6 +32,11 @@ registry-owned field/reference/placement/batch/document facts.
   lifecycle metadata, batch envelope metadata, and contract version metadata.
 - Registry composes family declarations and exposes the complete registry.
 - Contract generation enumerates generated charter-backed document schemas.
+- Source batch codecs are generated from `FamilyCharter.batch_specs`; source
+  semantic owners supply only batch-level validation/rendering callbacks that
+  do not restate item fields.
+- Per-document contract versions live on `FamilyCharter` and field-level
+  contract impact lives on `CharterField.contract_version`.
 
 ## Execution
 
@@ -41,6 +46,8 @@ registry-owned field/reference/placement/batch/document facts.
 3. Replace source batch specs with generated batch metadata.
 4. Regenerate contract manifests only after generated contract code is the
    source of truth.
+5. Delete every handwritten source batch decode/render/payload function from
+   `registry.py`; do not move the same helper family into another root module.
 
 ## Search Gates
 
@@ -70,3 +77,5 @@ powershell -File scripts/run_logged_pytest.ps1 -Label registry-contracts-batches
 - Registry is composition only.
 - Contracts derive schema entries from generated family documents.
 - Batch behavior is charter metadata plus generic Quire batch IO.
+- Source batch item fields are not repeated in batch specs, registry helpers,
+  or source modules.
