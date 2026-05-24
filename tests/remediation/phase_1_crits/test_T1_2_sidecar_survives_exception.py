@@ -6,7 +6,7 @@ import pytest
 import yaml
 
 from propstore.repository import Repository
-from propstore.derived_build import export_sidecar as build_sidecar
+from propstore.compiler.workflows import write_repository_world_store as build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 from tests.family_helpers import claim_artifact_commit_payloads
 
@@ -64,13 +64,19 @@ def _seed_claim_repo(root) -> Repository:
 
 
 def test_sidecar_not_deleted_on_build_exception(tmp_path, monkeypatch) -> None:
+    import propstore.compiler.workflows as build_module
+
     repo = _seed_claim_repo(tmp_path / "knowledge")
     sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
 
-    def fail_write_batches(*args, **kwargs) -> None:
+    def fail_fts_population(*args, **kwargs) -> None:
         raise RuntimeError("boom")
 
-    monkeypatch.setattr("propstore.derived_build._add_write_batches", fail_write_batches)
+    monkeypatch.setattr(
+        build_module,
+        "populate_fts_index",
+        fail_fts_population,
+    )
 
     with pytest.raises(RuntimeError, match="boom"):
         build_sidecar(repo, sidecar_path, force=True)

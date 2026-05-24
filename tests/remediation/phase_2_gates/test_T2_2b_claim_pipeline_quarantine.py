@@ -7,7 +7,7 @@ from propstore.families.claims.stages import ClaimStage
 from propstore.families.registry import PropstoreFamily
 from propstore.repository import Repository
 from propstore.semantic_passes.types import PassDiagnostic, PipelineResult
-from propstore.derived_build import export_sidecar as build_sidecar
+from propstore.compiler.workflows import write_repository_world_store as build_sidecar
 from tests.conftest import normalize_claims_payload
 from tests.family_helpers import claim_artifact_commit_payloads
 
@@ -60,7 +60,10 @@ def test_claim_pipeline_none_quarantines_not_raises(
             ),
         )
 
-    monkeypatch.setattr("propstore.derived_build.run_claim_pipeline", fail_claim_pipeline)
+    monkeypatch.setattr(
+        "propstore.compiler.workflows.run_claim_pipeline",
+        fail_claim_pipeline,
+    )
 
     assert build_sidecar(repo, sidecar_path, force=True) is True
 

@@ -7,7 +7,7 @@ import yaml
 
 from propstore.families.registry import MicropublicationRef
 from propstore.repository import Repository
-from propstore.derived_build import export_sidecar as build_sidecar
+from propstore.compiler.workflows import write_repository_world_store as build_sidecar
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
 from tests.family_helpers import claim_artifact_commit_payloads
 

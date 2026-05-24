@@ -15,7 +15,7 @@ from sqlalchemy import text
 
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
-from propstore.derived_build import export_sidecar as build_sidecar
+from propstore.compiler.workflows import write_repository_world_store as build_sidecar
 from propstore.families.world_charters import world_sqlalchemy_schema
 from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot

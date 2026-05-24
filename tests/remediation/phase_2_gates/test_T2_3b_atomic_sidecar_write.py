@@ -7,7 +7,7 @@ import pytest
 import yaml
 
 from propstore.repository import Repository
-from propstore.derived_build import export_sidecar as build_sidecar
+from propstore.compiler.workflows import write_repository_world_store as build_sidecar
 
 
 def _form_names(sidecar_path: Path) -> list[str]:

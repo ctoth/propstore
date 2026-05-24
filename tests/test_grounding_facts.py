@@ -182,7 +182,7 @@ def concept_relationship_graphs() -> st.SearchStrategy:
 
     Each element is a ``Sequence[LoadedConcept]``, mirroring the shape
     that ``propstore.families.concepts.stages.load_concepts`` produces and that
-    ``propstore.derived_build`` passes through the build pipeline.
+    ``propstore.compiler.workflows`` passes through the build pipeline.
     Each generated concept carries zero or more outgoing
     ``ConceptRelationship`` edges drawn from a small fixed pool of
     relation names and target tokens (Garcia & Simari 2004 §3:

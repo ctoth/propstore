@@ -8,8 +8,7 @@ from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import create_sqlalchemy_store
 from sqlalchemy import select
 from propstore.core.store_results import ConceptSimilarityHit
-from propstore.derived_build import materialize_world_sidecar
-from propstore.families.world_charters import world_record, world_sqlalchemy_schema
+from propstore.families.world_charters import world_sqlalchemy_schema
 from propstore.app.concepts import (
     ConceptEmbedRequest,
     ConceptSearchRequest,
@@ -48,7 +47,7 @@ def test_search_concepts_uses_quire_fts_session(
     )
     with handle.writable_session(schema) as derived:
         derived.add(
-            world_record(
+            schema.construct(
                 "concept",
                 {
                     "id": "ps:concept:test",
@@ -84,7 +83,7 @@ def test_search_concepts_uses_quire_fts_session(
     )
     monkeypatch.setattr(
         concepts_display_mod,
-        "materialize_world_sidecar",
+        "build_repository_world_store",
         lambda repo: (handle, False),
     )
 

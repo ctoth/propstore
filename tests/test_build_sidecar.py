@@ -2450,7 +2450,7 @@ class TestEmbeddingSnapshotErrors:
 
         with (
             patch(
-                "propstore.derived_build.extract_embedding_snapshot_from_store",
+                "propstore.compiler.workflows.extract_embedding_snapshot",
                 MagicMock(side_effect=RuntimeError("snapshot boom")),
             ),
         ):

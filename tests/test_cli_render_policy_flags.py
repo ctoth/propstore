@@ -62,7 +62,7 @@ from propstore.families.registry import (
 )
 from propstore.provenance import ProvenanceStatus
 from propstore.repository import Repository
-from propstore.derived_build import materialize_world_sidecar
+from propstore.compiler.workflows import build_repository_world_store
 from propstore.stances import StanceType
 from propstore.world import RenderPolicy, WorldQuery
 from propstore.world.queries import (
@@ -117,7 +117,7 @@ def workspace(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     repo.git.commit_files(adds, "Seed cli-render-policy workspace")
     repo.git.sync_worktree()
 
-    handle, _ = materialize_world_sidecar(repo)
+    handle, _ = build_repository_world_store(repo)
     assert handle.path.exists()
     return tmp_path
 
@@ -132,7 +132,7 @@ def _concept_id(workspace: Path) -> str:
 
 
 def _world_store_path(workspace: Path) -> Path:
-    handle, _ = materialize_world_sidecar(Repository.find(workspace / "knowledge"))
+    handle, _ = build_repository_world_store(Repository.find(workspace / "knowledge"))
     return handle.path
 
 

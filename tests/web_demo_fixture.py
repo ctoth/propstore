@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from propstore.repository import Repository
-from propstore.derived_build import materialize_world_sidecar
+from propstore.compiler.workflows import build_repository_world_store
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,7 @@ class WebDemoRepositoryFixture:
 
 def seed_web_demo_repository(tmp_path: Path) -> WebDemoRepositoryFixture:
     repo = Repository.init(tmp_path / "web-demo-repo")
-    handle, _ = materialize_world_sidecar(repo, force=True)
+    handle, _ = build_repository_world_store(repo, force=True)
     conn = sqlite3.connect(handle.path)
     try:
         _seed_rows(conn)

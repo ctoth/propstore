@@ -38,9 +38,9 @@ from propstore.families.registry import JustificationRef, StanceRef
 from propstore.provenance import ProvenanceStatus
 from propstore.families.concepts.stages import load_concepts
 from propstore.repository import Repository
-from propstore.derived_build import (
-    export_sidecar as _export_sidecar,
-    materialize_world_sidecar,
+from propstore.compiler.workflows import (
+    build_repository_world_store,
+    write_repository_world_store as _write_repository_world_store,
 )
 from propstore.storage import PROPSTORE_GIT_POLICY
 from tests.git_store_helpers import is_store
@@ -95,7 +95,7 @@ def build_sidecar(repo_or_path: Repository | TreePath | Path, sidecar_path: Path
     _materialize_claim_fixture_batches(repo)
     if kwargs.get("commit_hash") is None:
         _commit_worktree(repo)
-    return _export_sidecar(repo, sidecar_path, **kwargs)
+    return _write_repository_world_store(repo, sidecar_path, **kwargs)
 
 
 def materialized_world_store(
@@ -111,7 +111,7 @@ def materialized_world_store(
     _materialize_claim_fixture_batches(repo)
     if kwargs.get("commit_hash") is None:
         _commit_worktree(repo)
-    handle, _ = materialize_world_sidecar(repo, force=force, **kwargs)
+    handle, _ = build_repository_world_store(repo, force=force, **kwargs)
     return handle
 
 

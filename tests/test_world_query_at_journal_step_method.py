@@ -189,7 +189,7 @@ def test_world_query_historical_query_builds_temp_sidecar_for_commit(
     repo.root.mkdir()
     requested_commits: list[str] = []
 
-    def fake_materialize_world_sidecar(
+    def fake_build_repository_world_store(
         repo_arg: object,
         force: bool = False,
         **kwargs: Any,
@@ -211,12 +211,12 @@ def test_world_query_historical_query_builds_temp_sidecar_for_commit(
         )
         return _derived_store_for_path(sidecar_path, commit=str(kwargs["commit_hash"])), True
 
-    import propstore.derived_build as sidecar_build
+    import propstore.compiler.workflows as sidecar_build
 
     monkeypatch.setattr(
         sidecar_build,
-        "materialize_world_sidecar",
-        fake_materialize_world_sidecar,
+        "build_repository_world_store",
+        fake_build_repository_world_store,
     )
     world = WorldQuery(
         cast(Any, repo),

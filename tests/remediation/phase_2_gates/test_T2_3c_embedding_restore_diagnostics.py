@@ -10,7 +10,7 @@ from sqlalchemy import text
 import yaml
 
 from propstore.repository import Repository
-from propstore.derived_build import export_sidecar as build_sidecar
+from propstore.compiler.workflows import write_repository_world_store as build_sidecar
 from propstore.families.world_charters import world_sqlalchemy_schema
 
 
@@ -47,11 +47,11 @@ def test_embedding_restore_failures_write_diagnostics(
 
     with (
         patch(
-            "propstore.derived_build.extract_embedding_snapshot_from_store",
+            "propstore.compiler.workflows.extract_embedding_snapshot",
             MagicMock(return_value=snapshot),
         ),
         patch(
-            "propstore.derived_build._restore_embedding_snapshot",
+            "propstore.compiler.workflows.restore_embedding_snapshot_to_session",
             MagicMock(side_effect=exc),
         ),
     ):

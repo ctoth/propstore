@@ -5,10 +5,10 @@ from pathlib import Path
 import yaml
 
 from propstore.repository import Repository
-import propstore.derived_build as sidecar_build
+import propstore.compiler.workflows as sidecar_build
 
 
-def test_world_sidecar_hash_changes_on_schema_version_bump(
+def test_world_store_content_hash_changes_on_schema_version_bump(
     tmp_path: Path,
     monkeypatch,
 ) -> None:
@@ -25,7 +25,7 @@ def test_world_sidecar_hash_changes_on_schema_version_bump(
     sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
     hash_path = sidecar_path.with_suffix(".hash")
 
-    assert sidecar_build.export_sidecar(repo, sidecar_path, force=True) is True
+    assert sidecar_build.write_repository_world_store(repo, sidecar_path, force=True) is True
     first_hash = hash_path.read_text().strip()
 
     monkeypatch.setattr(
@@ -34,7 +34,7 @@ def test_world_sidecar_hash_changes_on_schema_version_bump(
         sidecar_build.PROPSTORE_WORLD_SCHEMA_VERSION + 1,
     )
 
-    assert sidecar_build.export_sidecar(repo, sidecar_path) is True
+    assert sidecar_build.write_repository_world_store(repo, sidecar_path) is True
     second_hash = hash_path.read_text().strip()
 
     assert second_hash != first_hash
