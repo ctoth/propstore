@@ -68,6 +68,11 @@ unless the charter explicitly opts a field out.
   they also contain handwritten document conversion, loose payload rewriting,
   source-local string rewrites, and root-level workflow ownership that should
   be source-family lifecycle metadata and transition behavior.
+- `propstore.worldline.resolution` contains real worldline result semantics,
+  but it also manually reassembles claim values, display ids, target values,
+  input-source trees, chain fallback behavior, conflict resolution, derived
+  input tracing, and trace recording that should be driven by typed
+  world/worldline result protocols and family relationship metadata.
 
 ## Target Architecture
 
@@ -196,6 +201,11 @@ Delete or rewrite these as part of this workstream after Quire support exists:
   the source family charters. The first deletion targets are the bad files or
   functions themselves; required semantics are recreated only in exact source
   family lifecycle/transition owners.
+- `propstore/worldline/resolution.py` helper chains that duplicate world
+  resolution, claim value extraction, display-id formatting, derived input
+  tracing, and result/document shaping. The file is a deletion target unless
+  it can be reduced to a thin worldline runner adapter over generic typed
+  result protocols without owning field or relationship semantics.
 
 ## Correct Owner Placement
 
@@ -304,6 +314,55 @@ Correct owner examples:
 - source-local CEL/form validation: source/claim/concept semantic validation
   callbacks over typed models;
 - provenance stamping: transition metadata, not payload dict surgery.
+
+## Worldline Resolution Final State
+
+Worldline resolution is result projection over an already typed world graph.
+It is not a second resolution engine.
+
+The current file owns too many things:
+
+- extracts claim scalar/text/algorithm values from `Claim` internals;
+- formats claim display ids;
+- chooses target/input source branches through local resolver chains;
+- calls `world.resolution.resolve` directly for conflicts;
+- calls `query_world.derived_value` and `world.chain_query` as fallback
+  strategies;
+- recursively rebuilds input-source trees;
+- records trace steps while also constructing result documents.
+
+Correct final ownership:
+
+- claim value/display semantics live on typed claim/family model methods or
+  field metadata;
+- concept display semantics live on concept family model methods or field
+  metadata;
+- conflict resolution lives in the world resolution owner;
+- derived-value input tracing lives in the generic world/parameterization graph
+  protocol;
+- worldline result document shape comes from the worldline family charter;
+- worldline runner coordinates targets, policy, overrides, and result capture.
+
+Deletion-first rule for this queue:
+
+1. Delete `propstore/worldline/resolution.py` or the wrong helper family inside
+   it first.
+2. Use runner/import/test failures to identify the minimum required protocol.
+3. Recreate missing behavior as typed worldline/world/family methods or
+   generic graph projection; do not restore the resolver-chain file under a
+   new name.
+4. Do not add `Claim` field extraction helpers in worldline code.
+5. Do not keep worldline-specific display-id lookup when model/family display
+   policy can provide it.
+6. Do not let result document construction duplicate fields already in the
+   worldline charter.
+
+The final worldline runner should ask typed world/worldline protocols for:
+
+- target value for a concept under policy/overrides;
+- input dependency graph for a derived value;
+- trace entries from the same graph traversal;
+- generated result document values from the worldline charter.
 
 ## Graph Export Final State
 
@@ -419,9 +478,12 @@ Add proof tests in Quire before deleting Propstore document classes.
     authoring and promotion semantics in source/family lifecycle-transition
     owners. Start with the smallest source file whose deletion exposes a
     bounded queue, then proceed file by file.
-13. Move context-lifting semantics under the context family owner, without
+13. Delete `propstore/worldline/resolution.py` or its wrong helper family
+    first, then recreate only required target/input/trace behavior in typed
+    worldline/world/family protocols.
+14. Move context-lifting semantics under the context family owner, without
     moving document shape there.
-14. Remove concrete document-class registration paths from contracts and
+15. Remove concrete document-class registration paths from contracts and
     regenerate contract manifests through the family registry.
 
 ## Search Gates
@@ -449,6 +511,9 @@ rg -n -F -- "SourceClaimDocument" propstore/source propstore tests
 rg -n -F -- "SourceConceptEntryDocument" propstore/source propstore tests
 rg -n -F -- "SourceJustificationDocument" propstore/source propstore tests
 rg -n -F -- "SourceStanceEntryDocument" propstore/source propstore tests
+rg -n -F -- "propstore.worldline.resolution" propstore tests
+rg -n -F -- "_claim_value" propstore/worldline propstore tests
+rg -n -F -- "_resolve_claim_target" propstore/worldline propstore tests
 ```
 
 Allowed remaining `DocumentStruct` hits must be generated by Quire or belong to
@@ -475,6 +540,9 @@ document, a source-local family document, or a persisted artifact document.
   over typed family records. Root source helper modules no longer own document
   shape, payload rewriting, reference normalization, or branch workflow
   semantics.
+- Worldline resolution is typed result projection over world/family protocols.
+  It does not own claim field extraction, display-id lookup, conflict
+  resolution, derived input tracing, or result document shape.
 - `propstore.context_lifting` no longer owns persisted document shape; context
   lifting semantics are under the context family owner.
 - Registry and contract code resolve document types through family charters,
