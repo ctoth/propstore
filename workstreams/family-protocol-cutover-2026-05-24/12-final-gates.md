@@ -42,8 +42,7 @@ rg -n -F -- "ProjectionTable" propstore tests
 ## Order Gates
 
 ```powershell
-uv run scripts/check_workstream_order.py workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/00-index.md
-uv run scripts/check_workstream_order.py workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04c-family-protocol-cutover/00-index.md
+uv run scripts/check_workstream_order.py workstreams/family-protocol-cutover-2026-05-24/00-index.md
 ```
 
 ## Type/Test Gates

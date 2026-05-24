@@ -23,8 +23,8 @@ unless the charter explicitly opts a field out.
 ## Executable Breakdown
 
 This file is decomposed into tracked child workstreams under
-`04c-family-protocol-cutover/`. Execute them in the order listed in
-`04c-family-protocol-cutover/00-index.md`.
+`04c-family-protocol-breakdown/`. Execute them in the order listed in
+`04c-family-protocol-breakdown/00-index.md`.
 
 The first child is deletion fallout from the already-deleted files
 `propstore/families/world_charters.py` and
@@ -58,10 +58,8 @@ to the real family charter/catalog owner and typed claim/world behavior.
   verifier is the wrong shape because it imports concrete document classes and
   hardcodes the claim/source/justification/stance walk.
 - A generic protocol over model relationships replaces that central walk. The
-  model/family supplies semantic callbacks only for named domain policy such as
-  validation, canonicalization, transition guards, or display labels; callbacks
-  must not carry field lists, document shape, relationship discovery, or
-  storage shape.
+  model/family only supplies semantic callbacks where field metadata is not
+  enough.
 - "Family declaration modules" are current-code files such as
   `propstore/families/<family>/declaration.py`; they are not the target
   boundary. They currently mix model shells, compile behavior, query behavior,
@@ -138,11 +136,11 @@ Propstore family code owns:
 - lifecycle/state-machine callbacks;
 - local-id semantic policy when a family really has human-authored local
   handles;
-- graph display labels and rendering hints that do not discover graph edges;
-- artifact-code canonicalization policy over the already generated artifact
-  payload;
-- family-specific dependency policy only as a callback over already declared
-  relationship dependency edges;
+- graph display semantics when field metadata is not enough;
+- artifact-code canonical payload policy when generic field selection is not
+  enough;
+- family-specific dependency policy when generic relationship metadata is not
+  enough;
 - compiler-stage behavior that turns parsed input into typed model instances.
 
 Quire owns:
@@ -159,63 +157,45 @@ Quire owns:
 
 ## Protocol Shape
 
-The protocol is typed metadata-first. A family model participates in document
-IO and artifact verification through its charter. These concepts must be
-first-class typed charter attributes or typed charter-owned value objects, not
-ad hoc entries in `metadata: Mapping[str, object]`:
+The protocol is metadata-first. A family model participates in document IO and
+artifact verification through its charter:
 
-- `CharterField.document: bool` includes or excludes a field from the generated
-  document type. Inclusion defaults to true.
-- `CharterField.document_name` and `CharterField.document_order` control
-  document key spelling and stable output order.
-- `CharterField.states` controls source-local, proposal, canonical, rejected,
-  promoted, archived, and other state-conditional participation.
-- `CharterField.artifact` and `CharterField.artifact_name` control artifact
-  payload generation.
-- `CharterField.graph_node_label` and `CharterField.graph_metadata` control
-  field participation in graph projection output.
-- `CharterField.local_id` and `CharterField.local_id_policy` define
-  authoring-local counters such as concept numeric handles.
-- `CharterField.contract_version` records document/field contract impact.
-- `CharterField.parse_boundary` is allowed only for true YAML/JSON/SQLite IO
-  boundary parsing.
-- `CharterRelationship.artifact_dependency` marks a relationship edge as part
-  of the artifact hash dependency graph.
-- `CharterRelationship.graph_edge` and `CharterRelationship.graph_edge_kind`
-  define exportable graph edges from the same relationship fields.
-- `CharterRelationship.states` controls relationship participation by lifecycle
-  state.
-- `FamilyCharter.states`, `FamilyCharter.transitions`,
-  `FamilyCharter.local_id_policy`, `FamilyCharter.batch_specs`, and
-  `FamilyCharter.document_contract_version` define family-level state,
-  lifecycle, local-id, batch-envelope, and contract behavior.
+- `document=True` means the field is included in the generated document type.
+- `document=False` excludes a storage/runtime field from document IO.
+- `reference=...` or `relationship=...` exposes related family models.
+- `artifact=True` includes the field in artifact-code payload generation.
+- `artifact_dependency=True` marks a relationship edge as part of the artifact
+  hash dependency graph.
+- `state=...`, `transition=...`, or equivalent lifecycle metadata defines
+  proposal-to-canonical promotion and rejection as a state transition over the
+  same family field contract.
+- `local_id=...` or equivalent identity metadata defines authoring-local
+  counters such as concept numeric handles when the family still needs them.
+- `graph_node=...` and `graph_edge=...` or equivalent view metadata defines
+  exportable nodes and edges from the same relationship fields.
 
-The exact API names are fixed by
-`04c-family-protocol-cutover/02-quire-generated-family-protocols.md` before
-implementation starts. The required property is that the information is
-written once in the charter, not repeated in document structs, verification
-code, model constructors, registry tables, or untyped metadata bags.
+Names are illustrative; the Quire work decides exact API names. The required
+property is that the information is written once in the charter, not repeated
+in document structs, verification code, model constructors, or registry tables.
 
 Generic operations:
 
 - `family.document()` returns the generated document type.
 - `family.document_codec()` returns the generated codec.
-- `model.related()` traverses relationship/reference fields declared by the
-  charter.
-- `model.artifact_payload()` is generated from artifact/document fields plus a
-  named family canonicalizer callback that receives typed values.
+- `model.related()` or equivalent Quire API traverses relationship/reference
+  fields declared by the charter.
+- `model.artifact_payload()` is generated from artifact/document fields plus
+  optional family canonicalizer.
 - `model.artifact_dependencies()` is generated from relationship fields marked
-  as artifact dependencies plus a named family dependency callback that cannot
-  introduce new undeclared edges.
+  as artifact dependencies plus optional family dependency callback.
 - `model.artifact_code()` hashes the generated canonical payload.
-- `family.transition(source_state, target_state, model)` materializes
-  state-machine transitions such as proposal promotion without handwritten
-  document copying. Quire runs the framework; Propstore callbacks provide
-  semantic guards/materializers.
-- `family.reserve_local_id(...)` reserves monotonic local handles from declared
-  family identity metadata.
-- `family.graph_projection(...)` emits graph nodes and edges from relationship
-  metadata and model semantic methods.
+- `family.transition(source_state, target_state, model)` or equivalent Quire
+  API materializes state-machine transitions such as proposal promotion
+  without handwritten document copying.
+- `family.reserve_local_id(...)` or equivalent Quire/family API reserves
+  monotonic local handles from declared family identity metadata.
+- `family.graph_projection(...)` or equivalent generic graph API emits graph
+  nodes and edges from relationship metadata and model semantic methods.
 
 The exact method names may differ, but the ownership may not: traversal and
 field selection come from charter metadata, not a central handwritten view.
@@ -586,10 +566,8 @@ document, a source-local family document, or a persisted artifact document.
   document API.
 - No handwritten family document class repeats charter fields.
 - Artifact verification traverses generic relationship/reference metadata.
-- Artifact code payload/dependency policy is charter-driven. Semantic family
-  callbacks may canonicalize typed values or filter already declared dependency
-  edges, but they must not define field lists, document shape, storage shape,
-  or new undeclared dependency edges.
+- Artifact code payload/dependency policy is charter-driven with semantic
+  family callbacks only where necessary.
 - Proposal promotion is a generic lifecycle/state-machine transition over
   family fields and placements, not handwritten per-family root workflow code.
 - Graph export uses generic family graph projection over field relationship
