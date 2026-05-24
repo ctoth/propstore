@@ -450,6 +450,29 @@ powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-remediation 
 uv run scripts/compare_sqlalchemy_charter_parity.py --knowledge-dir . --before reports/sqlalchemy-charter-parity/build-orchestration/before.sqlite --build-after sqlalchemy-charter --after reports/sqlalchemy-charter-parity/build-orchestration/after.sqlite --owner build-orchestration --workstream workstreams/quire-sqlalchemy-charter-cutover-2026-05-18/04-propstore-build-orchestration.md --out reports/sqlalchemy-charter-parity/build-orchestration.json
 ```
 
+Phase 6 execution record:
+
+- `uv run pyright propstore` passed with 0 errors.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-deletion-rethink tests/test_build_sidecar.py tests/test_sidecar_projection_contract.py tests/test_fixture_schema_parity.py`
+  passed 105 tests in 52.36s; log:
+  `logs\test-runs\derived-build-deletion-rethink-20260524-145235.log`.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-remediation tests/remediation/phase_1_crits tests/remediation/phase_2_gates tests/remediation/phase_7_race_atomicity`
+  first failed 2 tests because claim-pipeline diagnostics were emitted twice
+  after preflight failure and `DocumentSchemaError` from direct materialization
+  escaped instead of becoming a claim-validation diagnostic.
+- Commit `f2c5dda9 Keep claim pipeline diagnostics single pass` kept the
+  repair in the compiler workflow owner: preflight diagnostics are consumed
+  once, and direct materialization maps claim schema exceptions into typed
+  claim-validation diagnostics.
+- `uv run pyright propstore\compiler\workflows.py` passed with 0 errors.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-remediation-recheck tests/remediation/phase_2_gates/test_T2_2p_compiler_claim_pipeline_output_quarantine.py::test_build_repository_claim_pipeline_none_quarantines_not_raises tests/remediation/phase_2_gates/test_T2_2q_compiler_claim_pipeline_schema_exception_quarantine.py::test_build_repository_claim_pipeline_schema_exception_quarantines_not_raises`
+  passed 2 tests in 6.84s; log:
+  `logs\test-runs\derived-build-remediation-recheck-20260524-145544.log`.
+- Corrected remediation gate:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-remediation tests/remediation/phase_1_crits tests/remediation/phase_2_gates tests/remediation/phase_7_race_atomicity`
+  passed 39 tests in 10.77s; log:
+  `logs\test-runs\derived-build-remediation-20260524-145603.log`.
+
 After these pass, run the full Propstore gates:
 
 ```powershell
