@@ -116,6 +116,24 @@ Run baseline gates:
 - `uv run pyright propstore`
 - `powershell -File scripts/run_logged_pytest.ps1 -Label value-resolver-domain-baseline tests/test_world_query.py::TestDerivedValue tests/test_world_query.py::TestAlgorithmWorldQuery tests/test_value_resolver_failure_reasons.py tests/test_value_resolver_consensus_with_abstention.py tests/test_semantic_repairs.py tests/test_labelled_core.py tests/test_worldline.py::TestWorldlineRunner::test_derived_value_accuracy`
 
+Phase 0 execution evidence, 2026-05-24:
+
+- Read the named resolver/domain/test surfaces for Phase 0.
+- `uv run pyright propstore` failed before any value-resolver edits with 49
+  errors outside the owned scope, including unresolved
+  `propstore.derived_build` imports and optional-derived-store errors in
+  `propstore/world/model.py`.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label value-resolver-domain-baseline tests/test_world_query.py::TestDerivedValue tests/test_world_query.py::TestAlgorithmWorldQuery tests/test_value_resolver_failure_reasons.py tests/test_value_resolver_consensus_with_abstention.py tests/test_semantic_repairs.py tests/test_labelled_core.py tests/test_worldline.py::TestWorldlineRunner::test_derived_value_accuracy`
+  failed during collection with
+  `ModuleNotFoundError: No module named 'propstore.derived_build'`.
+- Local evidence for the baseline blocker: `git status --short -- logs
+  propstore tests workstreams reports` showed tracked deletions
+  `D  propstore/derived_build.py` and
+  `D  propstore/derived_build_plan.py`, which are outside this workstream's
+  owned scope.
+- No implementation phase started. Phase 1 remains unchecked because Phase 0
+  required gates are blocked by the unrelated shared-worktree deletions above.
+
 ### Phase 1 - Move Claim-Local Value Semantics To `Claim`
 
 Delete first:
