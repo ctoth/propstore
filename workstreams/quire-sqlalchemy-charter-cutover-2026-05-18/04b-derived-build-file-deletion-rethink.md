@@ -315,6 +315,32 @@ Phase 3 execution record:
 - Remaining Phase 3 work: `propstore/families/world_charters.py` still must
   pass the file-level gate for `_MODELS`, `_CLAIM_MODEL_TABLES`,
   `world_record`, and `world_records`.
+- Commit `1d7f6bba Delete world charter construction helpers` deleted and
+  recreated `propstore/families/world_charters.py` as charter/catalog
+  registration only.
+- `WorldMeta` remains in `propstore.families.world_charters` because it is
+  world-store metadata. Support model marker classes moved to semantic owners:
+  grounded rule rows to `propstore.families.rules.declaration`,
+  calibration counts to `propstore.families.calibration.declaration`,
+  embedding status/model rows to `propstore.families.embeddings.declaration`,
+  and build diagnostics to `propstore.families.diagnostics.declaration`.
+- Production and test callers no longer import or call
+  `world_record(table_name, values)` or `world_records(table_name, rows)`.
+  Production synthetic-claim graph projection now constructs typed claim
+  owner models directly.
+- Phase 3 gates for `_MODELS`, `_CLAIM_MODEL_TABLES`, `def world_record`,
+  `def world_records`, and `world_record` returned zero hits in
+  `propstore`, `tests`, and `scripts`.
+- Focused verification:
+  `uv run pyright propstore\families\world_charters.py propstore\families\rules\declaration.py propstore\families\calibration\declaration.py propstore\families\embeddings\declaration.py propstore\families\diagnostics\declaration.py propstore\families\claims\declaration.py propstore\families\claims\graph.py`
+  passed with 0 errors.
+- Focused tests:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label world-charters-owner-cleanup ...`
+  ran 89 selected tests; 88 passed and one direct-constructor fixture failure
+  exposed a missing optional `conditions_ir` field.
+- Corrected verification:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label world-charters-owner-cleanup-recheck tests/test_labelled_core.py::test_derived_value_combines_input_labels tests/test_semantic_core_phase0.py::test_binding_order_does_not_change_active_or_resolved_semantics`
+  passed 2 tests.
 
 ### Phase 4 - Test Caller Rethink
 
