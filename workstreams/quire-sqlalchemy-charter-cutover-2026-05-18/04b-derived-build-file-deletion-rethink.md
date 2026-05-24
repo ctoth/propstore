@@ -212,6 +212,9 @@ Phase 1 execution record:
   snapshot restore behavior beside the existing embedding snapshot extraction
   owner as
   `propstore.families.embeddings.declaration.restore_embedding_snapshot_to_session`.
+- Commit `e5bf4264 Delete old embedding snapshot symbol` renamed the embedding
+  owner API to `extract_embedding_snapshot`, so the deleted
+  `extract_embedding_snapshot_from_store` spelling is not preserved.
 
 ### Phase 2 - Production Caller File Deletion Review
 
