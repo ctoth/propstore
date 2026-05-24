@@ -648,7 +648,7 @@ def find_similar_concepts_disagree(
     return _concept_similarity_hits(derived_store, rows)
 
 
-def extract_embedding_snapshot_from_store(
+def extract_embedding_snapshot(
     sidecar: Path,
     *,
     on_snapshot: Callable[[EmbeddingSnapshotReport], None] | None = None,
