@@ -175,7 +175,7 @@ def _build_projection_sidecar(
     knowledge_dir: Path,
     before: Path,
 ) -> tuple[str, str]:
-    from propstore.derived_build import export_sidecar
+    from propstore.compiler.workflows import write_repository_world_store
     from propstore.repository import Repository
 
     repo = Repository(knowledge_dir)
@@ -183,7 +183,7 @@ def _build_projection_sidecar(
     if head is None:
         raise ValueError("capture requires a committed git repository")
     before.unlink(missing_ok=True)
-    export_sidecar(repo, before, force=True, commit_hash=head)
+    write_repository_world_store(repo, before, force=True, commit_hash=head)
     return str(head), _semantic_input_hash(repo, str(head))
 
 
@@ -191,7 +191,7 @@ def _build_sqlalchemy_charter_sidecar(
     knowledge_dir: Path,
     after: Path,
 ) -> tuple[str, str]:
-    from propstore.derived_build import export_sidecar
+    from propstore.compiler.workflows import write_repository_world_store
     from propstore.repository import Repository
 
     repo = Repository(knowledge_dir)
@@ -199,17 +199,22 @@ def _build_sqlalchemy_charter_sidecar(
     if head is None:
         raise ValueError("comparison requires a committed git repository")
     after.unlink(missing_ok=True)
-    export_sidecar(repo, after, force=True, commit_hash=head)
+    write_repository_world_store(repo, after, force=True, commit_hash=head)
     return str(head), _semantic_input_hash(repo, str(head))
 
 
 def _semantic_input_hash(repo: Any, head: str) -> str:
-    from propstore.derived_build import _source_branch_tips
     from propstore.families.registry import semantic_import_roots, semantic_init_roots
 
     git = repo.require_git()
     roots = tuple(sorted(set(semantic_init_roots()) | set(semantic_import_roots())))
-    source_branch_tips = tuple(_source_branch_tips(repo))
+    source_branch_tips = tuple(
+        sorted(
+            (branch.name, branch.tip_sha)
+            for branch in repo.snapshot.iter_branches()
+            if branch.kind == "source"
+        )
+    )
     digest = hashlib.sha256()
     digest.update(
         json.dumps(
