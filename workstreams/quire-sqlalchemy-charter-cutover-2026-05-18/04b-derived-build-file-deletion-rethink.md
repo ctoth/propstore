@@ -500,6 +500,23 @@ uv run pyright propstore
 powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-deletion-full
 ```
 
+Full gate execution record, 2026-05-24:
+
+- `uv run pyright propstore` passed with 0 errors.
+- `powershell -File scripts/run_logged_pytest.ps1 -Label derived-build-deletion-full`
+  failed after 3519 passed, 4 skipped, and 1 failed in 433.40s; log:
+  `logs\test-runs\derived-build-deletion-full-20260524-145913.log`.
+- The failing test was
+  `tests/remediation/phase_4_layers/test_T4_1_importlinter_layers.py::test_importlinter_layer_contracts_are_clean`.
+- The broken import-linter path is direct evidence that the family placement
+  rule above was violated:
+  `propstore.source.status -> propstore.families.world_charters ->
+  propstore.families.embeddings.declaration -> propstore.heuristic.embed` and
+  `propstore.heuristic.embedding_identity`.
+- This workstream is not complete. The next repair queue is not an import
+  allow-list change; it is deletion-first removal of the replacement family
+  surface that recreated generic world/embedding wiring in the wrong owner.
+
 ## Completion Criteria
 
 This workstream is complete only when:
