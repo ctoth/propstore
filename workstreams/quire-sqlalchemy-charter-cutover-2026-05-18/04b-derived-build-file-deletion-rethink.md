@@ -25,6 +25,18 @@ After an IO boundary has parsed input, typed domain objects carry meaning. No
 generic coercion, loose mapping repair, shim, adapter, alias, bridge, fallback,
 or old/new dual path is allowed.
 
+Family placement is not enough. A duplicate fact moved into
+`propstore.families` is still a duplicate fact. The family charter is the
+single source of truth for the family contract: field names, field types,
+database columns, primary keys, reference keys, indexes, FTS/vector/cache
+metadata, validation hooks, and relational semantic callbacks. A family module
+may own semantic methods and callbacks attached to the charter/model, but it
+must not contain parallel schema construction, hardcoded table/field/index
+registries, handwritten SQL projection strings, payload reconstitution helpers,
+or per-field builders that restate charter metadata. The valid endpoint is
+charter metadata plus generated Quire machinery, not old complexity under a
+family package name.
+
 ## Goal
 
 Finish the Phase 5 repair by removing the deleted derived-build files as
@@ -38,6 +50,9 @@ Final state:
 - No production or test code imports `propstore.derived_build` or
   `propstore.derived_build_plan`.
 - No replacement module recreates those files under a new name.
+- No replacement family module recreates the deleted files by restating
+  charter facts, table facts, projection SQL, or payload shapes under a
+  better package name.
 - Repository derived-store lifecycle and cache identity use Quire
   `DerivedStoreManager`/`DerivedStoreHandle` APIs directly from the owning
   repository/build owner.
