@@ -62,6 +62,12 @@ unless the charter explicitly opts a field out.
   git counter ref. The wrong part is root ownership, handwritten document
   scanning, and concept-specific storage mechanics outside the concept family
   identity/charter protocol.
+- `propstore.source.claims`, `propstore.source.relations`,
+  `propstore.source.claim_concepts`, `propstore.source.concepts`, and
+  `propstore.source.common` contain real source-local authoring semantics, but
+  they also contain handwritten document conversion, loose payload rewriting,
+  source-local string rewrites, and root-level workflow ownership that should
+  be source-family lifecycle metadata and transition behavior.
 
 ## Target Architecture
 
@@ -184,6 +190,12 @@ Delete or rewrite these as part of this workstream after Quire support exists:
   `all_claim_stances`.
 - `propstore/concept_ids.py` as a root module, including direct
   `ConceptDocument` scanning and concept-specific git counter ref mechanics.
+- Root `propstore/source/*.py` helper surfaces that own source-local document
+  classes, source-local-to-canonical field rewriting, proposal payload
+  construction, reference normalization, and branch lifecycle mechanics outside
+  the source family charters. The first deletion targets are the bad files or
+  functions themselves; required semantics are recreated only in exact source
+  family lifecycle/transition owners.
 
 ## Correct Owner Placement
 
@@ -237,6 +249,61 @@ The promotion engine should not have one root module per proposal kind that
 copies fields into another handwritten document class. If fields differ between
 proposal and canonical states, that difference is represented in charter field
 state metadata, not copied constructor arguments.
+
+## Source-Local State-Machine Final State
+
+Source authoring is real. The root-level helper shape is not.
+
+Source branches, source-local claims, source-local concepts, source-local
+justifications, source-local stances, source notes, source metadata, finalize
+reports, and promotion results are lifecycle states over family records:
+
+- source-local claim records are claim-family records in a source-local state;
+- source-local concept records are concept-family records in a source-local
+  state;
+- source-local justifications and stances are relation/justification-family
+  records in a source-local state;
+- source finalize/promote is a transition from source-local state to canonical
+  state;
+- source-local handles are reference/index fields declared in the charter, not
+  ad hoc string rewrites.
+
+The existing source modules show the semantics that must survive:
+
+- source branch initialization and source metadata/notes lifecycle;
+- source-local claim stable identity and logical-id policy;
+- source-local concept proposal matching against primary-branch concepts;
+- source-local reference resolution against source and canonical indexes;
+- CEL/form validation for source-local claim authoring;
+- source-local concept-reference rewriting during import/promotion;
+- source-local justification/stance rule validation and provenance stamping.
+
+Deletion-first rule for this queue:
+
+1. Delete the wrong root/file/helper surface first.
+2. Let import/type/test/search failures name the missing capability.
+3. Recreate only the required semantic behavior in source-family charter,
+   identity, lifecycle, or transition owners.
+4. Do not preserve root helper modules as compatibility shells.
+5. Do not replace `SourceClaimDocument` payload patching with another dict
+   normalizer.
+6. Do not keep `ClaimDocument | SourceClaimDocument | Mapping[str, Any]`
+   unions past the IO boundary. The transition receives typed source-local
+   models and produces typed canonical models.
+
+Correct owner examples:
+
+- source branch placement and source-local lifecycle state: source family
+  charter metadata;
+- source-local claim identity: claim family identity policy scoped by source
+  lifecycle state;
+- source-local concept matching: concept family reference/index policy plus
+  source lifecycle state;
+- source-local claim-concept rewriting: transition over declared relationship
+  fields;
+- source-local CEL/form validation: source/claim/concept semantic validation
+  callbacks over typed models;
+- provenance stamping: transition metadata, not payload dict surgery.
 
 ## Graph Export Final State
 
@@ -348,9 +415,13 @@ Add proof tests in Quire before deleting Propstore document classes.
 11. Move concept numeric local-id allocation under the concept family identity
     owner or delete numeric local-id allocation entirely if no longer required.
     In either case, delete `propstore/concept_ids.py`.
-12. Move context-lifting semantics under the context family owner, without
+12. Delete root source-local helper surfaces first, then recreate source-local
+    authoring and promotion semantics in source/family lifecycle-transition
+    owners. Start with the smallest source file whose deletion exposes a
+    bounded queue, then proceed file by file.
+13. Move context-lifting semantics under the context family owner, without
     moving document shape there.
-13. Remove concrete document-class registration paths from contracts and
+14. Remove concrete document-class registration paths from contracts and
     regenerate contract manifests through the family registry.
 
 ## Search Gates
@@ -372,6 +443,12 @@ rg -n -F -- "PredicateProposalPromotionPlan" propstore tests
 rg -n -F -- "propstore.concept_ids" propstore tests
 rg -n -F -- "build_knowledge_graph" propstore tests
 rg -n -F -- "_claim_concept_id" propstore tests
+rg -n -F -- "ClaimDocument | SourceClaimDocument | Mapping" propstore/source propstore tests
+rg -n -F -- "convert_document_value(" propstore/source propstore/families tests
+rg -n -F -- "SourceClaimDocument" propstore/source propstore tests
+rg -n -F -- "SourceConceptEntryDocument" propstore/source propstore tests
+rg -n -F -- "SourceJustificationDocument" propstore/source propstore tests
+rg -n -F -- "SourceStanceEntryDocument" propstore/source propstore tests
 ```
 
 Allowed remaining `DocumentStruct` hits must be generated by Quire or belong to
@@ -394,6 +471,10 @@ document, a source-local family document, or a persisted artifact document.
 - Concept local-id allocation is either concept-family identity metadata backed
   by generic Quire reservation mechanics, or deleted completely if numeric
   handles are no longer required.
+- Source-local authoring and promotion are lifecycle/state-machine transitions
+  over typed family records. Root source helper modules no longer own document
+  shape, payload rewriting, reference normalization, or branch workflow
+  semantics.
 - `propstore.context_lifting` no longer owns persisted document shape; context
   lifting semantics are under the context family owner.
 - Registry and contract code resolve document types through family charters,
