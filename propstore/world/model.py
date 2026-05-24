@@ -125,9 +125,9 @@ class WorldQuery(WorldStore):
                 raise TypeError(
                     "WorldQuery requires either derived_store or repo argument"
                 )
-            from propstore.derived_build import materialize_world_sidecar
+            from propstore.compiler.workflows import build_repository_world_store
 
-            derived_store, _rebuilt = materialize_world_sidecar(
+            derived_store, _rebuilt = build_repository_world_store(
                 repo,
                 commit_hash=commit,
             )
@@ -172,9 +172,9 @@ class WorldQuery(WorldStore):
             raise ValueError(
                 "WorldQuery.historical_query requires a repository-backed query"
             )
-        from propstore.derived_build import materialize_world_sidecar
+        from propstore.compiler.workflows import build_repository_world_store
 
-        handle, _rebuilt = materialize_world_sidecar(
+        handle, _rebuilt = build_repository_world_store(
             self._repo,
             commit_hash=commit_sha,
         )
