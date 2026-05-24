@@ -200,6 +200,15 @@ symbol found by search and each row names delete, direct owner use, or owner
 extension. No row may say `maybe`, `if appropriate`, `temporary`, `later`, or
 `compatibility`.
 
+Phase 1 execution record:
+
+- Commit `8dedfd42 Move build diagnostics to diagnostics owner` moved build
+  diagnostic construction into `propstore.families.diagnostics.declaration`.
+- Deleted-module diagnostic helpers now have owner-layer replacements:
+  `build_pass_diagnostics`, `build_authoring_diagnostics`,
+  `build_quarantine_diagnostics`, `embedding_restore_diagnostic`, and
+  `sidecar_build_exception_diagnostic`.
+
 ### Phase 2 - Production Caller File Deletion Review
 
 For each production caller returned by:
