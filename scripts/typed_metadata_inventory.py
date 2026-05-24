@@ -319,7 +319,7 @@ def _scan_ast(text: str, item: FileInventory) -> None:
                 sql = _string_arg(node)
                 if sql and _has_sql_word(sql):
                     item.sql_literals.append(" ".join(sql.split()))
-            elif name == "materialize_world_sidecar":
+            elif name in {"build_repository_world_store", "write_repository_world_store"}:
                 item.materialize_calls += 1
             if name.endswith(("Request", "Report")):
                 item.request_report_calls.append(name)
@@ -807,7 +807,7 @@ def _bucket(relative_path: Path) -> str:
     parts = relative_path.parts
     if len(parts) >= 2 and parts[0] == "propstore":
         return parts[1]
-    return parts[0]
+    return next(iter(parts), ".")
 
 
 def render_markdown(items: list[FileInventory], root: Path, limit: int) -> None:
