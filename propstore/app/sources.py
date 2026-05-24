@@ -262,10 +262,10 @@ def promote_source(
 
 
 def inspect_source(repo: Repository, request: SourceNamedRequest):
-    from propstore.derived_build import materialize_world_sidecar
+    from propstore.compiler.workflows import build_repository_world_store
     from propstore.source import inspect_source_status
 
-    handle, _ = materialize_world_sidecar(repo)
+    handle, _ = build_repository_world_store(repo)
     return inspect_source_status(handle, request.name)
 
 

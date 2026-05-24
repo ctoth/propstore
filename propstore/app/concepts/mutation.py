@@ -498,9 +498,9 @@ def promote_concept_alignment(
 
 
 def _require_sidecar(repo: Repository) -> Path:
-    from propstore.derived_build import materialize_world_sidecar
+    from propstore.compiler.workflows import build_repository_world_store
 
-    handle, _rebuilt = materialize_world_sidecar(repo)
+    handle, _rebuilt = build_repository_world_store(repo)
     if not handle.path.exists():
         raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
     return handle.path

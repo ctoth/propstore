@@ -16,7 +16,7 @@ from .mutation import (
     UnknownConceptError,
     _concept_embed_model_report,
 )
-from propstore.derived_build import materialize_world_sidecar
+from propstore.compiler.workflows import build_repository_world_store
 from propstore.families.concepts.sidecar_runtime import (
     embed_concepts_for_request,
 )
@@ -34,7 +34,7 @@ def embed_concept_embeddings(
     if not request.concept_id and not request.embed_all:
         raise ConceptWorkflowError("provide a concept ID or request all concepts")
 
-    derived_store, _rebuilt = materialize_world_sidecar(repo)
+    derived_store, _rebuilt = build_repository_world_store(repo)
     if not derived_store.path.exists():
         raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
     try:
@@ -61,7 +61,7 @@ def find_similar_concepts(
     repo: Repository,
     request: ConceptSimilarRequest,
 ) -> ConceptSimilarReport:
-    derived_store, _rebuilt = materialize_world_sidecar(repo)
+    derived_store, _rebuilt = build_repository_world_store(repo)
     if not derived_store.path.exists():
         raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
     try:

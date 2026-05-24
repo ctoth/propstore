@@ -25,8 +25,8 @@ from .mutation import (
     _find_concept_entry,
     _loaded_concepts,
 )
-from propstore.derived_build import materialize_world_sidecar
 from propstore.app.repository_views import repository_view_label
+from propstore.compiler.workflows import build_repository_world_store
 from propstore.families.world_charters import world_sqlalchemy_schema
 
 if TYPE_CHECKING:
@@ -44,7 +44,7 @@ def search_concepts(
     request: ConceptSearchRequest,
 ) -> ConceptSearchReport:
     _ = repository_view_label(request.repository_view)
-    derived_store, _rebuilt = materialize_world_sidecar(repo)
+    derived_store, _rebuilt = build_repository_world_store(repo)
     if not derived_store.path.exists():
         raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
     schema = world_sqlalchemy_schema()
