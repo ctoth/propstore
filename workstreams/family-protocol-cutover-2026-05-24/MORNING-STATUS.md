@@ -10,6 +10,14 @@ HEAD: `72a22b40 Slice D: fold final _claim_value duplicate into ClaimValueResolv
 
 Every committed cut passed all gates (pyright + lint-imports + full test suite). Most propstore cuts had verifier MERGE. The state is consistent at HEAD; full test suite passes at the post-Phase-04 baseline.
 
+## Stashes for Q to inspect (`git stash list`)
+
+Two stashes captured partial work that hit late-night blockers:
+
+1. **Cut #23 predicates** (`On master: Cut #23 predicates H-D ...`) — Authored `propstore/families/predicates/declaration.py` with PREDICATE_DECLARATION_CHARTER + PREDICATE_PROPOSAL_CHARTER using the Quire validator hook (Cut #21). 13 test failures: 1 contract-manifest needs `PREDICATE_PROPOSAL_FAMILY_CONTRACT_VERSION` constant per Cut #22 sameas pattern; 12 in `rule_workflows.py` because the arity/arg_types validator is TOO EAGER — rule_workflows constructs predicates with empty arg_types and populates them later. Either relax the validator to accept the empty-arg_types degenerate case, OR move the validator off Quire's per-instance hook to an IO-boundary call (semantic refactor — needs Q decision on when invariant is enforced).
+
+2. **Cut #25+#25b stances** (`On master: Cut #25+#25b stances Phase 04 attempt ...`) — Authored `propstore/families/stances/declaration.py` with STANCE_CHARTER (str-typed strength/conditions_differ to match existing consumers). Replaced 9 `stance.to_payload()` callsites with `document_to_payload(stance)`. Bumped PROPOSAL_STANCES to STANCE_FAMILY_CONTRACT_VERSION. 8 pyright errors at the rewritten callsites because `document_to_payload()` returns `object` and consumers expect `dict`/`Mapping`. Fix: add `cast(dict, ...)` at the consumer sites, OR tighten the Quire `document_to_payload` return type annotation. Both small follow-up work.
+
 ## Stashed work for Q to inspect
 
 `git stash list` shows one stash: **"On master: Cut #22 sameas Phase 04 attempt (H-D contract-manifest version bump)"**. Contains a partial sameas family conversion:
