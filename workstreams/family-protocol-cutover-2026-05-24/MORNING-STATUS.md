@@ -32,8 +32,9 @@ Use `git stash pop` to restore the Cut #22 work; the family/artifact_family vers
 | justifications | DONE | 042cafa8 |
 | sources | DONE | fb97a3fe |
 | micropubs | DONE (Cut #21 added Quire validator hook + retry) | d8247f38 |
+| sameas | DONE (Cut #22 authored declaration.py from scratch) | 4e57e2e5 |
 | claims, concepts, rules | BLOCKED on structural multi-charter or behavior methods | n/a |
-| sameas, merge, predicates, source_alignment, stances, worldlines | BLOCKED on MISSING CHARTER MODULE (must author declaration.py first) | n/a |
+| merge, predicates, source_alignment, stances, worldlines | BLOCKED on MISSING CHARTER MODULE (must author declaration.py first) | n/a |
 
 ## Phase 02 progress: solid foundation
 Quire commits all pushed:
