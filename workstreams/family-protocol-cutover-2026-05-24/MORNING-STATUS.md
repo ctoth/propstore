@@ -6,9 +6,37 @@ HEAD: `72a22b40 Slice D: fold final _claim_value duplicate into ClaimValueResolv
 
 ## Honest Headline
 
-**The project is NOT 100% complete.** 10 commits landed (8 propstore + 2 Quire) closing roughly half the violations and laying Phase 02's foundation. The remaining work (Phase 04 onwards) hit a fundamental gap that requires per-family charter-field augmentation before any handwritten document can be deleted. That is multi-hour work and cannot be finished overnight.
+**The project is NOT 100% complete, but Phase 04 is partially done.** ~20 commits landed (~15 propstore + 5 Quire) closing roughly 38% of violations + Phase 02 partial (typed attrs + codegen + JSON SQL adapter) + 4 of 14 Phase 04 families fully converted (forms, contexts, justifications, sources).
 
-Every commit that landed was verified or had verifier in flight. Q's "no skip verification" directive was honored. The state is consistent — full test suite passes (3527/4 baseline) at HEAD.
+Every committed cut passed all gates (pyright + lint-imports + full test suite). Most propstore cuts had verifier MERGE. The state is consistent at HEAD; full test suite passes at the post-Phase-04 baseline.
+
+## Phase 04 progress: 4 of 14 families closed
+| Family | Status | Commit |
+|---|---|---|
+| forms | DONE | 9da1f1fe |
+| contexts | DONE | 0db60a97 |
+| justifications | DONE | 042cafa8 |
+| sources | DONE | fb97a3fe |
+| micropubs | BLOCKED on validator hook (Quire codegen gap) | n/a (688b921a marker) |
+| claims, concepts, rules | BLOCKED on structural multi-charter or behavior methods | n/a |
+| sameas, merge, predicates, source_alignment, stances, worldlines | BLOCKED on MISSING CHARTER MODULE (must author declaration.py first) | n/a |
+
+## Phase 02 progress: solid foundation
+Quire commits all pushed:
+- 85acdb5b — typed CharterField/Relationship/FamilyCharter attributes
+- 11335ce5 — generated_document + document_codec
+- d47159a — nullable + document_name + PEP 604 union safety
+- 95d2e66 — parse_boundary="json" codec
+- b8990ca — SQLAlchemy TypeDecorator for parse_boundary="json"
+
+Still deferred in Quire:
+- Document validators (`__post_init__` hook on generated_document) — blocks micropubs
+- FamilyState/FamilyTransition + lifecycle execution
+- LocalIdPolicy + local-id reservation
+- Generic graph projection runtime
+- Generic artifact payload/dependency traversal
+- FTS/vector cache proof
+- Removal of broad FamilyModel.__init__(**values)
 
 ## Commits Landed (chronological)
 
