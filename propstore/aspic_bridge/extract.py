@@ -64,7 +64,7 @@ def _extract_justifications(
         ]
     if authored:
         reported = [
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id=f"reported:{claim_id}",
                 conclusion_claim_id=claim_id,
                 rule_kind="reported_claim",
@@ -77,7 +77,7 @@ def _extract_justifications(
         return list(claim_justifications_from_active_graph(active_graph))
 
     justifications: list[CanonicalJustification] = [
-        CanonicalJustification(
+        CanonicalJustification.from_components(
             justification_id=f"reported:{claim_id}",
             conclusion_claim_id=claim_id,
             rule_kind="reported_claim",
@@ -88,7 +88,7 @@ def _extract_justifications(
         if row.stance_type not in {"supports", "explains"}:
             continue
         justifications.append(
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id=f"{row.stance_type}:{row.claim_id}->{row.target_claim_id}",
                 conclusion_claim_id=row.target_claim_id,
                 premise_claim_ids=(row.claim_id,),

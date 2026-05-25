@@ -150,7 +150,7 @@ def _make_justification(
     rule_strength: str = "defeasible",
 ) -> CanonicalJustification:
     """Build a CanonicalJustification with rule_strength."""
-    return CanonicalJustification(
+    return CanonicalJustification.from_components(
         justification_id=justification_id,
         conclusion_claim_id=conclusion_claim_id,
         premise_claim_ids=premise_claim_ids,
@@ -1459,12 +1459,12 @@ class TestComparisonLinkThreading:
         """
         claims = [_make_claim("cmp_A"), _make_claim("cmp_B")]
         justifications = [
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id="reported:cmp_A",
                 conclusion_claim_id="cmp_A",
                 rule_kind="reported_claim",
             ),
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id="reported:cmp_B",
                 conclusion_claim_id="cmp_B",
                 rule_kind="reported_claim",

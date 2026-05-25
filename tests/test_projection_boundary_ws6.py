@@ -30,7 +30,7 @@ def test_aspic_projection_arguments_expose_typed_source_projection_records() -> 
     csaf = build_bridge_csaf(
         [claim],
         [
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id="reported:claim-a",
                 conclusion_claim_id="claim-a",
                 rule_kind="reported_claim",

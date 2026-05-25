@@ -373,7 +373,7 @@ def test_structured_projection_uses_authored_multi_premise_justification_without
             {"id": "claim_target", "concept_id": "concept_target", "type": "parameter", "value": 3.0},
         ],
         justifications=[
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id="just_multi",
                 conclusion_claim_id="claim_target",
                 premise_claim_ids=("claim_a", "claim_b"),
@@ -416,7 +416,7 @@ def test_structured_projection_suppresses_support_fallback_when_authored_justifi
             }
         ],
         justifications=[
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id="just_authored",
                 conclusion_claim_id="claim_target",
                 premise_claim_ids=("claim_b",),
@@ -459,14 +459,14 @@ def test_structured_projection_authored_targeted_undercut_hits_only_named_defeas
             }
         ],
         justifications=[
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id="just_weak",
                 conclusion_claim_id="claim_target",
                 premise_claim_ids=("claim_weak",),
                 rule_kind="methodological_inference",
                 rule_strength="defeasible",
             ),
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id="just_strict",
                 conclusion_claim_id="claim_target",
                 premise_claim_ids=("claim_strict",),

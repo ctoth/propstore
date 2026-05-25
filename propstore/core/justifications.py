@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -37,7 +37,7 @@ class Justification(FamilyModel):
             for key in ("source_relation_type", "source_claim_id")
             if getattr(self, key) is not None
         )
-        return CanonicalJustification(
+        return CanonicalJustification.from_components(
             justification_id=str(self.id),
             conclusion_claim_id=str(self.conclusion_claim_id),
             premise_claim_ids=self.premise_ids,
@@ -61,6 +61,28 @@ class CanonicalJustification:
     def __post_init__(self) -> None:
         object.__setattr__(self, "premise_claim_ids", tuple(str(item) for item in self.premise_claim_ids))
         object.__setattr__(self, "attributes", tuple(self.attributes))
+
+    @classmethod
+    def from_components(
+        cls,
+        *,
+        justification_id: str,
+        conclusion_claim_id: str,
+        premise_claim_ids: Iterable[str] = (),
+        rule_kind: str = "reported_claim",
+        rule_strength: str = "defeasible",
+        provenance: ProvenanceRecord | None = None,
+        attributes: Iterable[tuple[str, Any]] = (),
+    ) -> CanonicalJustification:
+        return cls(
+            justification_id=str(justification_id),
+            conclusion_claim_id=str(conclusion_claim_id),
+            premise_claim_ids=tuple(str(item) for item in premise_claim_ids),
+            rule_kind=str(rule_kind),
+            rule_strength=str(rule_strength),
+            provenance=provenance,
+            attributes=tuple(attributes),
+        )
 
     def to_dict(self) -> dict[str, Any]:
         data: dict[str, Any] = {
@@ -87,7 +109,7 @@ class CanonicalJustification:
             if isinstance(raw_attributes, Mapping)
             else ()
         )
-        return cls(
+        return cls.from_components(
             justification_id=str(data["justification_id"]),
             conclusion_claim_id=str(data["conclusion_claim_id"]),
             premise_claim_ids=tuple(str(item) for item in data.get("premise_claim_ids") or ()),
@@ -113,7 +135,7 @@ def claim_justifications_from_active_graph(
     }
 
     justifications: list[CanonicalJustification] = [
-        CanonicalJustification(
+        CanonicalJustification.from_components(
             justification_id=f"reported:{claim_id}",
             conclusion_claim_id=claim_id,
             rule_kind="reported_claim",
@@ -128,7 +150,7 @@ def claim_justifications_from_active_graph(
         if relation.relation_type not in {"supports", "explains"}:
             continue
         justifications.append(
-            CanonicalJustification(
+            CanonicalJustification.from_components(
                 justification_id=(
                     f"{relation.relation_type}:{relation.source_id}->{relation.target_id}"
                 ),

@@ -43,7 +43,7 @@ def _make_justification(
     rule_kind: str = "supports",
     rule_strength: str = "defeasible",
 ) -> CanonicalJustification:
-    return CanonicalJustification(
+    return CanonicalJustification.from_components(
         justification_id=justification_id,
         conclusion_claim_id=conclusion_claim_id,
         premise_claim_ids=premise_claim_ids,

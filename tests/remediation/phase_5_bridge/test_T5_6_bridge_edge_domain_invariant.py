@@ -32,7 +32,7 @@ def test_build_bridge_csaf_rejects_attack_outside_argument_domain(monkeypatch) -
                 )
             ],
             [
-                CanonicalJustification(
+                CanonicalJustification.from_components(
                     justification_id="reported:claim-a",
                     conclusion_claim_id="claim-a",
                     premise_claim_ids=(),

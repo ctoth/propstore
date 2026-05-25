@@ -54,7 +54,7 @@ def claim_algorithm_variable_payload(
     return data
 
 
-def _claim_algorithm_variable_from_payload(
+def parse_claim_algorithm_variable_entry(
     entry: Mapping[object, object],
 ) -> ClaimAlgorithmVariable:
     values: dict[str, str] = {}
@@ -111,7 +111,7 @@ def parse_claim_algorithm_variables(
         for entry in loaded:
             if not isinstance(entry, Mapping):
                 continue
-            variables.append(_claim_algorithm_variable_from_payload(entry))
+            variables.append(parse_claim_algorithm_variable_entry(entry))
         return tuple(variables)
     return ()
 

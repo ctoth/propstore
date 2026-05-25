@@ -37,7 +37,7 @@ def _claim(claim_id: str) -> Claim:
 
 
 def _reported(claim_id: str) -> CanonicalJustification:
-    return CanonicalJustification(
+    return CanonicalJustification.from_components(
         justification_id=f"reported:{claim_id}",
         conclusion_claim_id=claim_id,
         rule_kind="reported_claim",

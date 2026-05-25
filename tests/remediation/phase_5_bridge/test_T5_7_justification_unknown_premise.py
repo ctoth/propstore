@@ -21,7 +21,7 @@ def test_justifications_to_rules_rejects_unknown_premise() -> None:
     with pytest.raises(ValueError, match="unknown premise.*missing-premise"):
         justifications_to_rules(
             [
-                CanonicalJustification(
+                CanonicalJustification.from_components(
                     justification_id="support:missing->conclusion",
                     conclusion_claim_id="conclusion",
                     premise_claim_ids=("missing-premise",),

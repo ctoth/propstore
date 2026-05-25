@@ -82,7 +82,7 @@ def _claim(
 
 
 def _reported(claim_id: str) -> CanonicalJustification:
-    return CanonicalJustification(
+    return CanonicalJustification.from_components(
         justification_id=f"reported:{claim_id}",
         conclusion_claim_id=claim_id,
         premise_claim_ids=(),
@@ -98,7 +98,7 @@ def _support(
     *,
     strength: str = "defeasible",
 ) -> CanonicalJustification:
-    return CanonicalJustification(
+    return CanonicalJustification.from_components(
         justification_id=justification_id,
         conclusion_claim_id=conclusion,
         premise_claim_ids=premises,
