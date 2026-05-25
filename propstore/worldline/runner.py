@@ -11,6 +11,7 @@ from propstore.core.id_types import (
 )
 from propstore.families.claims.declaration import Claim
 from propstore.policies import policy_profile_from_render_policy
+from propstore.world.value_resolver import ClaimValueResolver
 from propstore.worldline.argumentation import capture_argumentation_state
 from propstore.worldline.definition import WorldlineDefinition, WorldlineResult
 from propstore.worldline.hashing import compute_worldline_content_hash
@@ -32,7 +33,6 @@ from propstore.worldline.result_types import (
 from propstore.worldline.resolution import (
     ResolutionContext,
     concept_name as _concept_name,
-    display_claim_id as _display_claim_id,
     pre_resolve_conflicts as _pre_resolve_conflicts,
     resolve_target as _resolve_target,
 )
@@ -143,7 +143,7 @@ def run_worldline(
     lifting_rules, blocked_exceptions = _lifting_dependencies(bound, world, context_id)
     dependencies = WorldlineDependencies(
         claims=tuple(sorted(
-            _display_claim_id(world, str(claim_id)) or str(claim_id)
+            ClaimValueResolver.display_claim_id(world, str(claim_id)) or str(claim_id)
             for claim_id in trace.dependency_claims
         )),
         stances=tuple(stance_dependencies),

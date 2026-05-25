@@ -21,6 +21,7 @@ from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
 from propstore.world.assignment_selection_policy import resolve_assignment_selection_merge
+from propstore.world.value_resolver import ClaimValueResolver
 from propstore.world.types import (
     ArgumentationSemantics,
     BeliefSpace,
@@ -130,18 +131,6 @@ def _claim_id(claim: Claim) -> ClaimId:
     return ClaimId(claim.id)
 
 
-def _claim_value(claim: Claim) -> float | str | None:
-    numeric_payload = claim.numeric_payload
-    value = None if numeric_payload is None else numeric_payload.value
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    if isinstance(value, str):
-        return value
-    return None
-
-
 def _claim_sample_size(claim: Claim) -> int | None:
     numeric_payload = claim.numeric_payload
     value = None if numeric_payload is None else numeric_payload.sample_size
@@ -163,7 +152,7 @@ def _claim_provenance(claim: Claim) -> ClaimProvenance | None:
 def _resolution_claim_view(claim: Claim) -> _ResolutionClaimView:
     return _ResolutionClaimView(
         id=_claim_id(claim),
-        value=_claim_value(claim),
+        value=ClaimValueResolver.claim_value(claim),
         provenance=_claim_provenance(claim),
         sample_size=_claim_sample_size(claim),
         opinion_belief=None,

@@ -14,6 +14,7 @@ from ast_equiv import AlgorithmParseError, compare as ast_compare
 from propstore.families.claims.types import ClaimType
 from propstore.core.exactness_types import Exactness
 from propstore.core.id_types import ConceptId
+from propstore.core.environment import WorldStore
 from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Parameterization
 from propstore.propagation import rewrite_parameterization_symbols
@@ -55,35 +56,31 @@ def _comparison_from_equivalence(equivalent: object) -> _AlgorithmComparison:
 
 
 @dataclass(frozen=True)
-class _ClaimValueView:
+class ClaimVariableValue:
+    name: str | None
+    symbol: str | None
+    concept_id: str | None
+
+
+@dataclass(frozen=True)
+class ClaimValuePayload:
+    value: float | str | None
+    claim_type: ClaimType
+    statement: str | None
+    expression: str | None
+    name: str | None
+    body: str | None
+    canonical_ast: str | None
+    variables: tuple[ClaimVariableValue, ...]
+
+
+@dataclass(frozen=True)
+class ClaimValueView:
     claim: Claim
     claim_id: str | None
     claim_type: ClaimType | None
     value: float | str | None
     body: str | None
-
-
-def _claim_value(claim: Claim) -> float | str | None:
-    numeric_payload = claim.numeric_payload
-    value = None if numeric_payload is None else numeric_payload.value
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    if isinstance(value, str):
-        return value
-    return None
-
-
-def _claim_value_view(claim: Claim) -> _ClaimValueView:
-    algorithm_payload = claim.algorithm_payload
-    return _ClaimValueView(
-        claim=claim,
-        claim_id=str(claim.id),
-        claim_type=None if claim.type is None else ClaimType(claim.type),
-        value=_claim_value(claim),
-        body=None if algorithm_payload is None else algorithm_payload.body,
-    )
 
 
 def _parameterization_concept_ids(param: Parameterization) -> tuple[ConceptId, ...]:
@@ -112,7 +109,7 @@ def collect_known_values(
         normalized_cid = ConceptId(cid)
         vr = value_of(normalized_cid)
         if vr.status is ValueStatus.DETERMINED and vr.claims:
-            val = _claim_value(vr.claims[0])
+            val = ClaimValueResolver.claim_value(vr.claims[0])
             if val is not None:
                 try:
                     known[normalized_cid] = float(val)
@@ -142,6 +139,75 @@ class ClaimValueResolver:
         self._collect_known_values = collect_known_values
         self._extract_bindings = extract_bindings
         self._concept_symbol_candidates = concept_symbol_candidates or (lambda _concept_id: ())
+
+    @staticmethod
+    def claim_value(claim: Claim) -> float | str | None:
+        numeric_payload = claim.numeric_payload
+        value = None if numeric_payload is None else numeric_payload.value
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int | float):
+            return float(value)
+        if isinstance(value, str):
+            return value
+        return None
+
+    @classmethod
+    def claim_value_view(cls, claim: Claim) -> ClaimValueView:
+        algorithm_payload = claim.algorithm_payload
+        return ClaimValueView(
+            claim=claim,
+            claim_id=str(claim.id),
+            claim_type=None if claim.type is None else ClaimType(claim.type),
+            value=cls.claim_value(claim),
+            body=None if algorithm_payload is None else algorithm_payload.body,
+        )
+
+    @classmethod
+    def claim_payload(cls, claim: Claim) -> ClaimValuePayload:
+        text_payload = claim.text_payload
+        algorithm_payload = claim.algorithm_payload
+        return ClaimValuePayload(
+            value=cls.claim_value(claim),
+            claim_type=ClaimType(claim.type),
+            statement=None if text_payload is None else text_payload.statement,
+            expression=None if text_payload is None else text_payload.expression,
+            name=None if text_payload is None else text_payload.name,
+            body=None if algorithm_payload is None else algorithm_payload.body,
+            canonical_ast=None if algorithm_payload is None else algorithm_payload.canonical_ast,
+            variables=tuple(
+                ClaimVariableValue(
+                    name=variable.name,
+                    symbol=variable.symbol,
+                    concept_id=None if variable.concept_id is None else str(variable.concept_id),
+                )
+                for variable in claim.variables
+            ),
+        )
+
+    @staticmethod
+    def display_claim_id(world: WorldStore | None, claim_id: str | None) -> str | None:
+        if claim_id is None:
+            return None
+        if world is None:
+            return claim_id
+        claim = world.get_claim(claim_id)
+        if claim is not None:
+            if not isinstance(claim, Claim):
+                raise TypeError("get_claim() must return typed Claim objects")
+            primary_logical_id = claim.primary_logical_id
+            if isinstance(primary_logical_id, str) and primary_logical_id:
+                return primary_logical_id
+        return claim_id
+
+    @classmethod
+    def value_result_claim_value(cls, result: ValueResult) -> float | str | None:
+        claim = result.claims[0] if result.claims else None
+        if claim is None:
+            return None
+        if not isinstance(claim, Claim):
+            raise TypeError("ValueResult.claims must contain typed Claim objects")
+        return cls.claim_value(claim)
 
     def derived_value(
         self,
@@ -212,7 +278,7 @@ class ClaimValueResolver:
         if not active_claims:
             return ValueResult(concept_id=typed_concept_id, status=ValueStatus.NO_CLAIMS)
 
-        active_views = tuple(_claim_value_view(claim) for claim in active_claims)
+        active_views = tuple(self.claim_value_view(claim) for claim in active_claims)
         algo_claims = [claim for claim in active_views if claim.claim_type is ClaimType.ALGORITHM]
         value_claims = [claim for claim in active_views if claim.claim_type is not ClaimType.ALGORITHM]
 
@@ -342,7 +408,7 @@ class ClaimValueResolver:
 
             value_result = self._value_of(input_id)
             if value_result.status is ValueStatus.DETERMINED:
-                value = _claim_value(value_result.claims[0]) if value_result.claims else None
+                value = self.value_result_claim_value(value_result)
                 if value is None:
                     return DerivedResult(concept_id=concept_id, status=ValueStatus.UNDERSPECIFIED)
                 input_values[input_id] = float(value)
@@ -508,7 +574,7 @@ class ClaimValueResolver:
 
     def _algorithm_matches_direct_value(
         self,
-        claim: _ClaimValueView,
+        claim: ClaimValueView,
         direct_value: float | str | None,
     ) -> _AlgorithmComparison:
         body = claim.body
@@ -548,11 +614,11 @@ class ClaimValueResolver:
 
     def _all_algorithms_equivalent(
         self,
-        algo_claims: Sequence[_ClaimValueView | Claim],
+        algo_claims: Sequence[ClaimValueView | Claim],
         known_values: Mapping[ConceptId, float],
     ) -> _AlgorithmComparison:
         normalized_claims = [
-            claim if isinstance(claim, _ClaimValueView) else _claim_value_view(claim)
+            claim if isinstance(claim, ClaimValueView) else self.claim_value_view(claim)
             for claim in algo_claims
         ]
         for i in range(len(normalized_claims)):

@@ -15,7 +15,7 @@ import pytest
 
 from propstore.families.claims.types import ClaimType
 from propstore.world.types import ValueResultReason, ValueStatus
-from propstore.world.value_resolver import ClaimValueResolver, _claim_value_view
+from propstore.world.value_resolver import ClaimValueResolver
 from tests.typed_family_fixtures import claim_from_payload
 
 
@@ -257,7 +257,7 @@ def test_ast_compare_none_equivalence_is_benign_inconclusive():
         return_value=_Comparison(),
     ):
         comparison = resolver._algorithm_matches_direct_value(
-            _claim_value_view(claim_from_payload(claim)),
+            ClaimValueResolver.claim_value_view(claim_from_payload(claim)),
             10.0,
         )
 
