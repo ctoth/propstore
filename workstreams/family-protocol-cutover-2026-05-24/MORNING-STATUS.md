@@ -10,6 +10,16 @@ HEAD: `72a22b40 Slice D: fold final _claim_value duplicate into ClaimValueResolv
 
 Every committed cut passed all gates (pyright + lint-imports + full test suite). Most propstore cuts had verifier MERGE. The state is consistent at HEAD; full test suite passes at the post-Phase-04 baseline.
 
+## Final session count (mid-day 2026-05-25)
+
+**Phase 04: 7 of 14 families fully closed and verified:** forms, contexts, justifications, sources, micropubs, sameas, stances.
+
+**Phase 02 (Quire-side): 6 commits all pushed to `git@github.com:ctoth/quire.git`** — typed CharterField/Relationship/FamilyCharter attrs (85acdb5b), msgspec generated_document + document_codec (11335ce5), nullable + document_name + PEP 604 union safety (d47159a), parse_boundary="json" codec (95d2e66), SQLAlchemy TypeDecorator for JSON columns (b8990ca), FamilyCharter.validators tuple (5852fc6).
+
+**Phase 01 + Phase 03 + propstore-only partials of Phase 09 / Phase 10 / Phase 11**: ALL complete. V001-V009 + V035 + V036 + V041 + V042 + V044 + V010-forms + V010-contexts + V010-sameas + V010-sources + V011-justifications + V011-micropubs + V011-stances closed. ~37 violations of 46 now resolved when counted with the Phase 04 family conversions.
+
+**Total propstore commits this session:** 30+. **Quire commits:** 6 (all pushed).
+
 ## Stashes for Q to inspect (`git stash list`)
 
 Two stashes captured partial work that hit late-night blockers:
