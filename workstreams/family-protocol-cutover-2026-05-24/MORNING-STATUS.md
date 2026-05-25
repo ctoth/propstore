@@ -41,8 +41,9 @@ Use `git stash pop` to restore the Cut #22 work; the family/artifact_family vers
 | sources | DONE | fb97a3fe |
 | micropubs | DONE (Cut #21 added Quire validator hook + retry) | d8247f38 |
 | sameas | DONE (Cut #22 authored declaration.py from scratch) | 4e57e2e5 |
+| stances | DONE (Cut #25 authored declaration.py with str-typed strength/conditions_differ; cast() chain for document_to_payload) | 9a35cfc4 |
 | claims, concepts, rules | BLOCKED on structural multi-charter or behavior methods | n/a |
-| merge, predicates, source_alignment, stances, worldlines | BLOCKED on MISSING CHARTER MODULE (must author declaration.py first) | n/a |
+| merge, predicates, source_alignment, worldlines | BLOCKED on MISSING CHARTER MODULE (must author declaration.py first; audit recommends scope-exclude merge/source_alignment/worldlines as transient artifacts) | n/a |
 
 ## Phase 02 progress: solid foundation
 Quire commits all pushed:
