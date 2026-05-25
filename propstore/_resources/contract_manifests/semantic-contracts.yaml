@@ -328,11 +328,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: same_as_assertion
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.sameas.documents.SameAsAssertionDocument
+    doc_type: propstore.families.sameas.declaration.SameAsAssertionDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -2103,31 +2103,31 @@ contracts:
     module: propstore.families.documents.rules
 - kind: document_schema
   name: SameAsAssertionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
+    - name: artifact_id
+      required: true
+      type: builtins.str
     - name: left_artifact_id
       required: true
-      type: str
+      type: builtins.str
     - name: right_artifact_id
       required: true
-      type: str
+      type: builtins.str
     - name: relation
       required: true
-      type: SameAsRelation
+      type: propstore.families.sameas.declaration.SameAsRelation
     - name: evidence_source
-      required: true
-      type: str
-    - name: artifact_id
       required: true
       type: str | None
     - name: provenance
       required: true
-      type: dict[str, Any]
+      type: dict[str, Any] | None
     - name: confidence
       required: true
-      type: float | int | None
-    module: propstore.families.sameas.documents
+      type: float | None
+    module: propstore.families.sameas.declaration
 - kind: document_schema
   name: SourceAttackTargetDocument
   contract_version: 2026.04.30
@@ -3177,7 +3177,7 @@ contracts:
     - contract_version: 2026.05.21
       key: stances
       name: stances
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.25
       key: sameas
       name: sameas
     - contract_version: 2026.05.04
@@ -3706,12 +3706,12 @@ contracts:
       semantic: true
 - kind: family
   name: sameas
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     accessor: sameas
     artifact_family: same_as_assertion
     artifact_family_contract:
-      doc_type: propstore.families.sameas.documents.SameAsAssertionDocument
+      doc_type: propstore.families.sameas.declaration.SameAsAssertionDocument
       placement:
         branch:
           policy: primary
@@ -3720,7 +3720,7 @@ contracts:
         kind: flat-yaml
         namespace: sameas
         ref_field: artifact_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: sameas
     metadata:

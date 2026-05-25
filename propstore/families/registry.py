@@ -66,7 +66,7 @@ from propstore.families.documents.sources import (
 )
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.documents.worldlines import WorldlineDefinitionDocument
-from propstore.families.sameas.documents import SameAsAssertionDocument
+from propstore.families.sameas.declaration import SameAsAssertionDocument
 from propstore.families.identity.claims import (
     CLAIM_SOURCE_LOCAL_FIELDS,
     CLAIM_VERSION_ID_EXCLUDED_FIELDS,
@@ -232,6 +232,7 @@ if not TYPE_CHECKING:
 
 
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
+SAMEAS_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
 IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
 WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.04")
@@ -983,7 +984,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.SAMEAS,
             name=PropstoreFamily.SAMEAS.value,
-            contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=SAMEAS_FAMILY_CONTRACT_VERSION,
             artifact_name="same_as_assertion",
             doc_type=SameAsAssertionDocument,
             placement=FlatYamlPlacement(
@@ -1295,6 +1296,7 @@ def world_catalog() -> SchemaCatalog:
     micropublications = import_module("propstore.families.micropublications.declaration")
     relations = import_module("propstore.families.relations.declaration")
     rules = import_module("propstore.families.rules.declaration")
+    sameas = import_module("propstore.families.sameas.declaration")
     sources = import_module("propstore.families.sources.declaration")
 
     relation_charters = relations.RELATIONS_CHARTERS
@@ -1312,6 +1314,7 @@ def world_catalog() -> SchemaCatalog:
         relation_charters[1],
         *rules.RULES_CHARTERS,
         claims.JUSTIFICATION_CHARTER,
+        sameas.SAMEAS_CHARTER,
         *micropublications.MICROPUBLICATION_CHARTERS,
         calibration.CALIBRATION_CHARTER,
         *embeddings.EMBEDDING_CHARTERS,

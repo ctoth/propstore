@@ -41,6 +41,7 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.contexts.declaration.ContextReferenceDocument": VersionId("2026.05.25"),
     "propstore.families.micropublications.declaration.MicropublicationDocument": VersionId("2026.05.25"),
     "propstore.families.micropublications.declaration.MicropublicationEvidenceDocument": VersionId("2026.05.25"),
+    "propstore.families.sameas.declaration.SameAsAssertionDocument": VersionId("2026.05.25"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
@@ -149,7 +150,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.contexts import declaration as contexts
     from propstore.families.forms import declaration as forms
     from propstore.families.micropublications import declaration as micropublications
-    from propstore.families.sameas import documents as sameas
+    from propstore.families.sameas import declaration as sameas
 
     modules = (
         claims,

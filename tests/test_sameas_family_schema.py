@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from quire.documents import document_to_payload
+
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PropstoreFamily
-from propstore.families.sameas.documents import (
+from propstore.families.sameas.declaration import (
     SameAsAssertionDocument,
     SameAsRelation,
 )
@@ -25,7 +27,7 @@ def test_sameas_family_schema_exposes_graded_identity_vocab() -> None:
         provenance={"paper": "paper_a", "page": 12},
     )
 
-    assert assertion.to_payload() == {
+    assert document_to_payload(assertion) == {
         "artifact_id": "ps:sameas:edge",
         "left_artifact_id": "ps:claim:left",
         "right_artifact_id": "ps:claim:right",

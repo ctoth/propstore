@@ -197,7 +197,7 @@ def test_claim_family_target_model_is_one_semantic_artifact_per_file() -> None:
 
 
 def test_sameas_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.sameas.documents import SameAsAssertionDocument
+    from propstore.families.sameas.declaration import SameAsAssertionDocument
     from propstore.families.registry import SameAsAssertionRef
 
     canonical = semantic_family_by_name(PropstoreFamily.SAMEAS.value)
