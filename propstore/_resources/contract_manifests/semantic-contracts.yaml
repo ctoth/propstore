@@ -132,11 +132,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: justification
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.justifications.JustificationDocument
+    doc_type: propstore.families.claims.declaration.JustificationDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -1504,6 +1504,36 @@ contracts:
       required: true
       type: AtomicPropositionDocument | IstPropositionDocument
     module: propstore.families.claims.documents
+- kind: document_schema
+  name: JustificationDocument
+  contract_version: 2026.05.25
+  body:
+    fields:
+    - name: id
+      required: true
+      type: str | None
+    - name: rule_kind
+      required: true
+      type: str | None
+    - name: conclusion
+      required: true
+      type: str | None
+    - name: premises
+      required: true
+      type: builtins.tuple
+    - name: provenance
+      required: true
+      type: propstore.families.documents.sources.SourceProvenanceDocument | None
+    - name: rule_strength
+      required: true
+      type: str | None
+    - name: attack_target
+      required: true
+      type: propstore.families.documents.sources.SourceAttackTargetDocument | None
+    - name: artifact_code
+      required: true
+      type: str | None
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: LexicalEntryDocument
   contract_version: 2026.04.30
@@ -3183,7 +3213,7 @@ contracts:
     - contract_version: 2026.05.21
       key: micropubs
       name: micropubs
-    - contract_version: 2026.05.21
+    - contract_version: 2026.05.25
       key: justifications
       name: justifications
     - contract_version: 2026.05.02
@@ -3475,12 +3505,12 @@ contracts:
       semantic: true
 - kind: family
   name: justifications
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     accessor: justifications
     artifact_family: justification
     artifact_family_contract:
-      doc_type: propstore.families.documents.justifications.JustificationDocument
+      doc_type: propstore.families.claims.declaration.JustificationDocument
       placement:
         branch:
           policy: primary
@@ -3489,7 +3519,7 @@ contracts:
         kind: flat-yaml
         namespace: justifications
         ref_field: artifact_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys:
     - many: false
       required: false

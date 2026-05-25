@@ -19,7 +19,8 @@ behavioral change.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from importlib import import_module
+from typing import Any, TypeAlias
 
 from propstore.artifact_codes import stamp_canonical_artifact_codes
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
@@ -51,7 +52,6 @@ from propstore.families.claims.references import resolve_first_claim_reference_i
 from propstore.families.claims.types import ClaimType
 from propstore.families.contexts.stages import parse_context_record_document
 from propstore.families.documents.micropubs import MicropublicationDocument
-from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.forms.stages import parse_form
 from propstore.provenance import (
     Provenance,
@@ -64,7 +64,7 @@ from propstore.source.claim_concepts import (
     normalize_promoted_source_claim_artifact,
     source_concept_ref_requires_mapping,
 )
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, document_to_payload
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceConceptEntryDocument,
@@ -96,6 +96,15 @@ from .reference_indexes import (
     source_claim_index as build_source_claim_index,
 )
 from .stages import SourcePromotionPlan
+
+JustificationDocument: TypeAlias = Any
+
+
+def _justification_document_type() -> type[Any]:
+    return getattr(
+        import_module("propstore.families.claims.declaration"),
+        "JustificationDocument",
+    )
 
 
 @dataclass(frozen=True)
@@ -365,6 +374,7 @@ def _promoted_justification_documents(
     if justifications_doc is None:
         return ()
     promoted: list[JustificationDocument] = []
+    justification_document_type = _justification_document_type()
     for justification in justifications_doc:
         conclusion = justification.conclusion
         if not isinstance(conclusion, str):
@@ -377,7 +387,7 @@ def _promoted_justification_documents(
         ):
             continue
         promoted.append(
-            JustificationDocument(
+            justification_document_type(
                 id=justification.id,
                 conclusion=conclusion,
                 premises=justification.premises,
@@ -493,7 +503,10 @@ def _assemble_source_promotion_plan(
 
     promoted_justification_documents: dict[JustificationRef, JustificationDocument] = {}
     for justification_document in stamped_justification_documents:
-        artifact_id = derive_justification_artifact_id(justification_document.to_payload())
+        justification_payload = document_to_payload(justification_document)
+        if not isinstance(justification_payload, dict):
+            raise TypeError("promoted justification payload must be a mapping")
+        artifact_id = derive_justification_artifact_id(justification_payload)
         promoted_justification_documents[JustificationRef(artifact_id)] = justification_document
 
     promoted_micropub_documents = {

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -16,15 +16,26 @@ if TYPE_CHECKING:
 class Justification(FamilyModel):
     @property
     def premise_ids(self) -> tuple[str, ...]:
-        loaded = json.loads(self.premise_claim_ids)
-        if not isinstance(loaded, list):
+        raw = self.premise_claim_ids
+        if isinstance(raw, str):
+            raw = json.loads(raw)
+        if not isinstance(raw, Sequence) or isinstance(raw, str):
             raise ValueError("justification premise_claim_ids must decode to a list")
-        return tuple(str(item) for item in loaded)
+        return tuple(str(item) for item in raw)
 
     def provenance_record(self) -> ProvenanceRecord | None:
-        if self.provenance_json is None or self.provenance_json == "":
+        raw = self.provenance_json
+        if raw is None or raw == "":
             return None
-        loaded = json.loads(self.provenance_json)
+        if isinstance(raw, str):
+            loaded = json.loads(raw)
+        elif isinstance(raw, Mapping):
+            loaded = raw
+        else:
+            to_payload = getattr(raw, "to_payload", None)
+            if not callable(to_payload):
+                raise ValueError("justification provenance_json must decode to a mapping")
+            loaded = to_payload()
         if not isinstance(loaded, Mapping):
             raise ValueError("justification provenance_json must decode to a mapping")
         from propstore.core.graph_types import ProvenanceRecord

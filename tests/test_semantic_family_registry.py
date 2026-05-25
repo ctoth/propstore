@@ -147,7 +147,7 @@ def test_stance_family_target_model_is_one_semantic_artifact_per_file() -> None:
 
 
 def test_justification_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.documents.justifications import JustificationDocument
+    from propstore.families.claims.declaration import JustificationDocument
     from propstore.families.registry import JustificationRef
 
     canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.JUSTIFICATIONS)

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 from propstore.artifact_codes import (
     claim_artifact_code,
@@ -14,10 +14,11 @@ from propstore.artifact_codes import (
 )
 from propstore.core.labels import Label
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.sources import SourceDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.uri import ni_uri_for_file
+
+JustificationDocument: TypeAlias = Any
 
 if TYPE_CHECKING:
     from propstore.repository import Repository

@@ -26,6 +26,7 @@ from quire.charters import (
     FamilyCharter,
     FamilyModel,
 )
+from quire.documents import document_to_payload
 from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex, ForeignKeySpec, ReferenceKey
 from quire.sqlalchemy_store import DerivedSession
@@ -35,7 +36,6 @@ from propstore.claims import (
     claim_file_stage,
 )
 from propstore.cel_types import CelExpr, to_cel_exprs
-from propstore.compiler.ir import ClaimCompilationBundle
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.claims.types import ClaimType
 from propstore.core.conditions import (
@@ -52,14 +52,6 @@ from propstore.families.claims.references import (
     build_claim_file_reference_index,
 )
 from propstore.families.claims.documents import claim_type_contract_for
-from propstore.families.claims.stages import (
-    ClaimAlgorithmVariable,
-    claim_algorithm_canonical_ast,
-    claim_algorithm_variable_payload,
-    PromotionBlockedClaimFact,
-    RawIdQuarantineRecord,
-    parse_claim_algorithm_variables,
-)
 from propstore.families.claims.sympy_generation import derive_equation_sympy
 from propstore.families.diagnostics.declaration import (
     BuildDiagnostic,
@@ -67,10 +59,16 @@ from propstore.families.diagnostics.declaration import (
     compile_promotion_blocked_diagnostics,
     delete_promotion_blocked_diagnostics,
 )
-from propstore.families.documents.justifications import JustificationDocument
+from propstore.families.documents.sources import (
+    SourceAttackTargetDocument,
+    SourceProvenanceDocument,
+)
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 
 if TYPE_CHECKING:
+    import msgspec
+
+    from propstore.compiler.ir import ClaimCompilationBundle
     from propstore.core.graph_types import ProvenanceRecord
     from propstore.core.justifications import CanonicalJustification
     from propstore.families.sources.declaration import Source
@@ -689,16 +687,76 @@ JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
         ),
         model=Justification,
         fields=(
-            CharterField("id", str, primary_key=True, nullable=False),
-            CharterField("justification_kind", str, nullable=False),
-            CharterField("conclusion_claim_id", str, nullable=False),
-            CharterField("premise_claim_ids", str, nullable=False),
-            CharterField("source_relation_type", str),
-            CharterField("source_claim_id", str),
-            CharterField("provenance_json", str),
-            CharterField("rule_strength", str, nullable=False, default_sql="'defeasible'"),
+            CharterField("id", str, primary_key=True, nullable=True),
+            CharterField(
+                "justification_kind",
+                str,
+                nullable=True,
+                document_name="rule_kind",
+            ),
+            CharterField(
+                "conclusion_claim_id",
+                str,
+                nullable=True,
+                document_name="conclusion",
+            ),
+            CharterField(
+                "premise_claim_ids",
+                tuple[str, ...],
+                parse_boundary="json",
+                nullable=False,
+                document_name="premises",
+                default=(),
+            ),
+            CharterField("source_relation_type", str, document=False),
+            CharterField("source_claim_id", str, document=False),
+            CharterField(
+                "provenance_json",
+                SourceProvenanceDocument,
+                parse_boundary="json",
+                nullable=True,
+                document_name="provenance",
+            ),
+            CharterField(
+                "rule_strength",
+                str,
+                nullable=True,
+                default_sql="'defeasible'",
+            ),
+            CharterField(
+                "attack_target",
+                SourceAttackTargetDocument,
+                parse_boundary="json",
+                nullable=True,
+            ),
+            CharterField("artifact_code", str, nullable=True),
         ),
         semantic_metadata={"semantic": "propstore.world"},
+)
+
+if TYPE_CHECKING:
+
+    class JustificationDocument(msgspec.Struct, forbid_unknown_fields=True):
+        id: str | None = None
+        rule_kind: str | None = None
+        conclusion: str | None = None
+        premises: tuple[str, ...] = ()
+        provenance: SourceProvenanceDocument | None = None
+        rule_strength: str | None = None
+        attack_target: SourceAttackTargetDocument | None = None
+        artifact_code: str | None = None
+
+else:
+    JustificationDocument: Any = JUSTIFICATION_CHARTER.generated_document()
+    JustificationDocument.__module__ = __name__
+
+from propstore.families.claims.stages import (
+    ClaimAlgorithmVariable,
+    PromotionBlockedClaimFact,
+    RawIdQuarantineRecord,
+    claim_algorithm_canonical_ast,
+    claim_algorithm_variable_payload,
+    parse_claim_algorithm_variables,
 )
 
 
@@ -1083,7 +1141,9 @@ def compile_authored_justification_models_with_diagnostics(
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, justification in justification_entries:
-        justification_payload = justification.to_payload()
+        justification_payload = document_to_payload(justification)
+        if not isinstance(justification_payload, dict):
+            raise TypeError("justification document payload must be a mapping")
         justification_id = justification.id
         conclusion = claim_index.resolve_id(justification.conclusion)
         if not isinstance(justification_id, str) or not justification_id:
@@ -1139,24 +1199,19 @@ def compile_authored_justification_models_with_diagnostics(
 
         provenance = justification_payload.get("provenance")
         attack_target = justification_payload.get("attack_target")
-        provenance_payload: dict[str, object] = {}
-        if isinstance(provenance, dict):
-            provenance_payload.update(provenance)
-        if isinstance(attack_target, dict):
-            provenance_payload["attack_target"] = attack_target
 
         models.append(
             Justification(
                 id=justification_id,
                 justification_kind=str(justification.rule_kind or "reported_claim"),
                 conclusion_claim_id=conclusion,
-                premise_claim_ids=json.dumps(resolved_premises),
+                premise_claim_ids=tuple(resolved_premises),
                 source_relation_type=None,
                 source_claim_id=None,
-                provenance_json=json.dumps(provenance_payload)
-                if provenance_payload
-                else None,
+                provenance_json=provenance if isinstance(provenance, dict) else None,
                 rule_strength=str(justification.rule_strength or "defeasible"),
+                attack_target=attack_target if isinstance(attack_target, dict) else None,
+                artifact_code=justification.artifact_code,
             )
         )
     return tuple(models), tuple(diagnostics)

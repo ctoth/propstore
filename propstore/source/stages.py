@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from typing import Any, TypeAlias
 
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
-from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceDocument,
@@ -21,6 +21,8 @@ from propstore.families.registry import (
     MicropublicationRef,
     StanceRef,
 )
+
+JustificationDocument: TypeAlias = Any
 
 @dataclass(frozen=True)
 class SourcePromotionPlan:

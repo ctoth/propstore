@@ -1,15 +1,22 @@
 from __future__ import annotations
 
 import copy
+from importlib import import_module
 from typing import Any
 
 from quire.documents import convert_document_value
 
 from propstore.artifact_codes import justification_artifact_code
-from propstore.families.documents.justifications import JustificationDocument
 from propstore.json_types import JsonObject
 
 JUSTIFICATION_VERSION_ID_EXCLUDED_FIELDS = ("artifact_code",)
+
+
+def _justification_document_type() -> type[Any]:
+    return getattr(
+        import_module("propstore.families.claims.declaration"),
+        "JustificationDocument",
+    )
 
 
 def canonicalize_justification_for_identity(justification: JsonObject) -> JsonObject:
@@ -28,7 +35,7 @@ def derive_justification_artifact_id(justification: JsonObject) -> str:
         return artifact_id
     document = convert_document_value(
         canonicalize_justification_for_identity(justification),
-        JustificationDocument,
+        _justification_document_type(),
         source="justification-identity",
     )
     return justification_artifact_code(document)

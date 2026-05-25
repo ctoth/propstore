@@ -51,7 +51,6 @@ from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.declaration import CONTEXT_CHARTER
 from propstore.families.forms.declaration import FORM_CHARTER
-from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
@@ -241,8 +240,15 @@ FORM_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 FORM_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONTEXT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONTEXT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+JUSTIFICATION_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+JUSTIFICATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+
 CONTEXT_DOCUMENT_TYPE = CONTEXT_CHARTER.generated_document()
 FORM_DOCUMENT_TYPE = FORM_CHARTER.generated_document()
+JustificationDocument = getattr(
+    import_module("propstore.families.claims.declaration"),
+    "JustificationDocument",
+)
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
 
@@ -1009,9 +1015,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.JUSTIFICATIONS,
             name=PropstoreFamily.JUSTIFICATIONS.value,
-            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
+            contract_version=JUSTIFICATION_FAMILY_CONTRACT_VERSION,
             artifact_name="justification",
-            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_contract_version=JUSTIFICATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
             doc_type=JustificationDocument,
             placement=FlatYamlPlacement(
                 "justifications",

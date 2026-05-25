@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Sequence
-from typing import Any, Protocol
+from importlib import import_module
+from typing import Any, Protocol, TypeAlias
 
 from quire import canonical_json_sha256
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, document_to_payload
 
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceDocument,
@@ -20,13 +20,22 @@ from propstore.families.documents.sources import (
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.claims import canonicalize_claim_for_version
 
+JustificationDocument: TypeAlias = Any
+
 
 class _PayloadDocument(Protocol):
     def to_payload(self) -> Any: ...
 
 
-def _payload(document: _PayloadDocument) -> Any:
-    return document.to_payload()
+def _justification_document_type() -> type[Any]:
+    return getattr(
+        import_module("propstore.families.claims.declaration"),
+        "JustificationDocument",
+    )
+
+
+def _payload(document: _PayloadDocument | object) -> Any:
+    return document_to_payload(document)
 
 
 def _hash_payload(payload: object) -> str:
@@ -124,7 +133,7 @@ def _stamp_justification(
     payload["artifact_code"] = artifact_code
     return convert_document_value(
         payload,
-        JustificationDocument,
+        _justification_document_type(),
         source="artifact-codes:canonical-justification",
     )
 

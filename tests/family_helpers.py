@@ -28,7 +28,7 @@ from propstore.families.documents.sources import (
     SourceTrustDocument,
 )
 from propstore.compiler.context import build_compilation_context_from_loaded
-from propstore.families.documents.justifications import JustificationDocument
+from propstore.families.claims.declaration import JustificationDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.justifications import derive_justification_artifact_id

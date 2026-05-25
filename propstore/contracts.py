@@ -22,7 +22,7 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.worldlines.WorldlineRevisionQueryDocument": VersionId("2026.05.22"),
     "propstore.families.documents.sources.SourceStanceEntryDocument": VersionId("2026.05.01"),
     "propstore.families.documents.sources.SourceTrustDocument": VersionId("2026.05.01"),
-    "propstore.families.documents.justifications.JustificationDocument": VersionId("2026.05.11"),
+    "propstore.families.claims.declaration.JustificationDocument": VersionId("2026.05.25"),
     "propstore.families.documents.stances.StanceDocument": VersionId("2026.05.11"),
     "propstore.families.documents.rules.AtomDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RuleDocument": VersionId("2026.05.12"),
@@ -142,6 +142,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         stances,
         worldlines,
     )
+    from propstore.families.claims import declaration as claims_declaration
     from propstore.families.claims import documents as claims
     from propstore.families.concepts import documents as concepts
     from propstore.families.contexts import declaration as contexts
@@ -150,6 +151,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
 
     modules = (
         claims,
+        claims_declaration,
         concepts,
         contexts,
         forms,
