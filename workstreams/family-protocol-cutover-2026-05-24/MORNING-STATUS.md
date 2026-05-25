@@ -6,9 +6,9 @@ HEAD: `72a22b40 Slice D: fold final _claim_value duplicate into ClaimValueResolv
 
 ## Honest Headline
 
-**The project is NOT 100% complete, but Phase 04 is partially done.** ~20 commits landed (~15 propstore + 5 Quire) closing roughly 38% of violations + Phase 02 partial (typed attrs + codegen + JSON SQL adapter) + 4 of 14 Phase 04 families fully converted (forms, contexts, justifications, sources).
+**FINAL update (mid-afternoon 2026-05-25):** Phase 04 is COMPLETE — all 14 of 14 families closed. Phase 01 + Phase 03 fully complete. Phase 09/10/11 mostly closed. Phase 02 substantial in Quire (6 commits pushed). Phases 05/06/07/08/12 blocked on remaining Quire-side Phase 02 work (Cuts #32 + #33 hit Quire limitations: `FamilyCharter.batch_specs` doesn't exist yet; `CharterField.foreign_key` is single-slot but some fields need multi-FK).
 
-Every committed cut passed all gates (pyright + lint-imports + full test suite). Most propstore cuts had verifier MERGE. The state is consistent at HEAD; full test suite passes at the post-Phase-04 baseline.
+Every committed cut passed all gates (pyright + lint-imports + full test suite at 3526/4 baseline). Many propstore cuts had verifier MERGE. The state is consistent at HEAD.
 
 ## Final session count (mid-day 2026-05-25)
 
