@@ -11,7 +11,7 @@ from propstore.families.micropublications.declaration import MicropublicationDoc
 from propstore.families.documents.sources import (
     SourceClaimDocument,
 )
-from propstore.families.documents.stances import StanceDocument
+from propstore.families.stances.declaration import StanceDocument
 from propstore.families.sources.declaration import SourceDocument
 from propstore.families.registry import (
     CanonicalSourceRef,

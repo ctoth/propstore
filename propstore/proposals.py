@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Any, cast
 from quire.documents import encode_document
 from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, PROPOSAL_STANCE_BRANCH, PropstoreFamily
 from propstore.families.registry import StanceRef
-from propstore.families.documents.stances import StanceDocument
+from propstore.families.stances.declaration import StanceDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.proposal_promotion import (
     PlannedCanonicalArtifact,
@@ -178,6 +178,7 @@ def promote_stance_proposals(
                 PlannedCanonicalArtifact(
                     ref,
                     StanceDocument(
+                        artifact_id=item.artifact_id,
                         source_claim=proposal_document.source_claim,
                         perspective_source_claim_id=proposal_document.perspective_source_claim_id,
                         target=proposal_document.target,

@@ -21,7 +21,7 @@ from propstore.families.documents.sources import (
     SourceTrustDocument,
 )
 from propstore.families.sources.declaration import SourceDocument
-from propstore.families.documents.stances import StanceDocument
+from propstore.families.stances.declaration import StanceDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import world_schema
 from propstore.repository import Repository
@@ -127,9 +127,11 @@ def test_authoring_lints_cover_sources_claims_and_stances() -> None:
         ),
     )
     stance_file = StanceDocument(
+        artifact_id="ps:stance:lint",
         source_claim="claim3",
         target="claim4",
         type=StanceType.UNDERCUTS,
+        artifact_code="ps:stance:lint",
     )
 
     diagnostics = collect_authoring_lints(

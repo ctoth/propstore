@@ -127,7 +127,7 @@ def test_semantic_family_contract_includes_path_schema() -> None:
 
 
 def test_stance_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.documents.stances import StanceDocument
+    from propstore.families.stances.declaration import StanceDocument
     from propstore.families.registry import StanceRef
 
     canonical = semantic_family_by_name(PropstoreFamily.STANCES.value)

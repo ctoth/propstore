@@ -18,7 +18,7 @@ from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.claims.types import ClaimType
 from propstore.core.exactness_types import Exactness
 from propstore.core.source_types import SourceOriginType
-from quire.documents import DocumentStruct
+from quire.documents import DocumentStruct, document_to_payload
 from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
 from propstore.stances import StanceType
@@ -318,7 +318,7 @@ class SourceClaimDocument(DocumentStruct):
         if self.stage is not None:
             payload["stage"] = str(self.stage)
         if self.stances:
-            payload["stances"] = [stance.to_payload() for stance in self.stances]
+            payload["stances"] = [document_to_payload(stance) for stance in self.stances]
         if self.statement is not None:
             payload["statement"] = self.statement
         if self.sympy is not None:

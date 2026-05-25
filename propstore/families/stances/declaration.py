@@ -1,0 +1,96 @@
+"""Stance charter and generated document type."""
+
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Any
+
+import msgspec
+from quire.artifacts import ArtifactFamily, FlatYamlPlacement
+from quire.charters import CharterField, FamilyCharter, FamilyModel
+from quire.families import FamilyDefinition
+from quire.versions import VersionId
+
+from propstore.stances import StanceType
+
+
+_STANCE_WORLD_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False)
+
+
+class Stance(FamilyModel):
+    pass
+
+
+STANCE_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="stance",
+        name="stance",
+        contract_version=_STANCE_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-stance",
+            contract_version=_STANCE_WORLD_CONTRACT_VERSION,
+            doc_type=Stance,
+            placement=FlatYamlPlacement(".derived/stance", str),
+        ),
+        identity_field="id",
+    ),
+    model=Stance,
+    fields=(
+        CharterField(
+            "id",
+            str,
+            primary_key=True,
+            nullable=False,
+            document_name="artifact_id",
+        ),
+        CharterField("source_claim", str, nullable=False),
+        CharterField("target", str, nullable=False),
+        CharterField(
+            "type",
+            StanceType,
+            nullable=False,
+            enum_type=StanceType,
+        ),
+        CharterField("artifact_code", str, nullable=False),
+        CharterField("perspective_source_claim_id", str, nullable=True),
+        CharterField("strength", str, nullable=True),
+        CharterField("note", str, nullable=True),
+        CharterField("conditions_differ", str, nullable=True),
+        CharterField(
+            "resolution",
+            dict[str, Any],
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField("target_justification_id", str, nullable=True),
+        CharterField("classification_model", str, nullable=True),
+        CharterField("classification_date", str, nullable=True),
+        CharterField("promoted_from_sha", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+STANCE_CHARTERS: tuple[FamilyCharter, ...] = (STANCE_CHARTER,)
+
+if TYPE_CHECKING:
+
+    class StanceDocument(msgspec.Struct, forbid_unknown_fields=True):
+        artifact_id: str
+        source_claim: str
+        target: str
+        type: StanceType
+        artifact_code: str
+        perspective_source_claim_id: str | None = None
+        strength: str | None = None
+        note: str | None = None
+        conditions_differ: str | None = None
+        resolution: dict[str, Any] | None = None
+        target_justification_id: str | None = None
+        classification_model: str | None = None
+        classification_date: str | None = None
+        promoted_from_sha: str | None = None
+
+else:
+    StanceDocument: Any = STANCE_CHARTER.generated_document()
+    StanceDocument.__name__ = "StanceDocument"
+    StanceDocument.__qualname__ = "StanceDocument"
+    StanceDocument.__module__ = __name__

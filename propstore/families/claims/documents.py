@@ -10,7 +10,7 @@ from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.types import ClaimType
-from quire.documents import DocumentStruct
+from quire.documents import DocumentStruct, document_to_payload
 from quire.versions import VersionId
 from propstore.families.contexts.declaration import ContextReferenceDocument
 from propstore.provenance import Provenance
@@ -664,7 +664,7 @@ class ClaimDocument(DocumentStruct):
         if self.stage is not None:
             payload["stage"] = str(self.stage)
         if self.stances:
-            payload["stances"] = [stance.to_payload() for stance in self.stances]
+            payload["stances"] = [document_to_payload(stance) for stance in self.stances]
         if self.statement is not None:
             payload["statement"] = self.statement
         if self.sympy is not None:

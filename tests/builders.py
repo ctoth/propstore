@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from quire.documents import document_to_payload
+
 from tests.conftest import TEST_CONTEXT_ID
 
 
@@ -104,5 +106,5 @@ def source_stances_document(
 ) -> dict[str, object]:
     return {
         "source": {"paper": paper},
-        "stances": [stance.to_payload() for stance in stances],
+        "stances": [document_to_payload(stance) for stance in stances],
     }

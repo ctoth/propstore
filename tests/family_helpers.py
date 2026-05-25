@@ -29,10 +29,10 @@ from propstore.families.documents.sources import (
 from propstore.families.sources.declaration import SourceDocument
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.families.claims.declaration import JustificationDocument
-from propstore.families.documents.stances import StanceDocument
+from propstore.families.stances.declaration import StanceDocument
 from propstore.families.identity.claims import normalize_claim_file_payload
 from propstore.families.identity.justifications import derive_justification_artifact_id
-from propstore.families.identity.stances import derive_stance_artifact_id
+from propstore.families.identity.stances import derive_stance_artifact_id, stamp_stance_artifact_id
 from propstore.families.registry import CanonicalSourceRef, ClaimRef
 from propstore.families.registry import JustificationRef, StanceRef
 from propstore.provenance import ProvenanceStatus
@@ -188,9 +188,10 @@ def stance_artifact_commit_payload(
     repo: Repository,
     stance_payload: Mapping[str, object],
 ) -> dict[str, bytes]:
-    artifact_id = derive_stance_artifact_id(dict(stance_payload))
+    payload = stamp_stance_artifact_id(dict(stance_payload))
+    artifact_id = derive_stance_artifact_id(payload)
     document = convert_document_value(
-        stance_payload,
+        payload,
         StanceDocument,
         source=artifact_id,
     )

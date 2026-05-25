@@ -23,7 +23,7 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.sources.SourceStanceEntryDocument": VersionId("2026.05.01"),
     "propstore.families.documents.sources.SourceTrustDocument": VersionId("2026.05.01"),
     "propstore.families.claims.declaration.JustificationDocument": VersionId("2026.05.25"),
-    "propstore.families.documents.stances.StanceDocument": VersionId("2026.05.11"),
+    "propstore.families.stances.declaration.StanceDocument": VersionId("2026.05.25"),
     "propstore.families.documents.rules.AtomDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RuleDocument": VersionId("2026.05.12"),
     "propstore.families.documents.predicates.PredicateDeclaration": VersionId("2026.05.01"),
@@ -141,7 +141,6 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         rules,
         source_alignment,
         sources,
-        stances,
         worldlines,
     )
     from propstore.families.claims import declaration as claims_declaration
@@ -151,6 +150,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.forms import declaration as forms
     from propstore.families.micropublications import declaration as micropublications
     from propstore.families.sameas import declaration as sameas
+    from propstore.families.stances import declaration as stances
 
     modules = (
         claims,
@@ -235,7 +235,7 @@ def _document_contract(document_type: type[msgspec.Struct]) -> ContractEntry:
 
 def _document_contract_name(document_type: type[msgspec.Struct]) -> str:
     if (
-        document_type.__module__ == "propstore.families.documents.stances"
+        document_type.__module__ == "propstore.families.stances.declaration"
         and document_type.__name__ == "StanceDocument"
     ):
         return f"{document_type.__module__}.{document_type.__name__}"

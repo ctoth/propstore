@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from propstore.families.batch_specs import SOURCE_JUSTIFICATION_BATCH_SPEC, SOURCE_STANCE_BATCH_SPEC
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository, retry_live_branch_update
-from quire.documents import convert_document_value, decode_document_batch_bytes
+from quire.documents import (
+    convert_document_value,
+    decode_document_batch_bytes,
+    document_to_payload,
+)
 from quire.references import FamilyReferenceIndex
 from propstore.stances import StanceType, coerce_stance_type
 
@@ -158,7 +162,7 @@ def normalize_source_stances_payload(
     for index, stance in enumerate(data, start=1):
         if stance.source_claim is None:
             raise ValueError("stance source_claim must be a non-empty string")
-        normalized = stance.to_payload()
+        normalized = cast(dict[str, Any], document_to_payload(stance))
         normalized["source_claim"] = claim_index.require_id(stance.source_claim)
         target = resolve_first_claim_reference_id(
             stance.target,
@@ -223,7 +227,7 @@ def commit_source_stances_batch(
         raw = tuple(
             convert_document_value(
                 {
-                    **stance.to_payload(),
+                    **cast(dict[str, Any], document_to_payload(stance)),
                     "produced_by": provenance.to_payload(),
                 },
                 SourceStanceEntryDocument,
@@ -367,13 +371,13 @@ def commit_source_stance_proposal(
         )
         if strength is not None:
             stance = convert_document_value(
-                {**stance.to_payload(), "strength": strength},
+                {**cast(dict[str, Any], document_to_payload(stance)), "strength": strength},
                 SourceStanceEntryDocument,
                 source=f"{branch}:stances proposal",
             )
         if note is not None:
             stance = convert_document_value(
-                {**stance.to_payload(), "note": note},
+                {**cast(dict[str, Any], document_to_payload(stance)), "note": note},
                 SourceStanceEntryDocument,
                 source=f"{branch}:stances proposal",
             )

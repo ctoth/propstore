@@ -3,13 +3,13 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from quire.documents import convert_document_value
+from quire import canonical_json_sha256
 
-from propstore.artifact_codes import stance_artifact_code
-from propstore.families.documents.stances import StanceDocument
 from propstore.json_types import JsonObject
+from propstore.stances import StanceType
 
 STANCE_VERSION_ID_EXCLUDED_FIELDS = (
+    "artifact_id",
     "artifact_code",
     "classification_date",
     "classification_model",
@@ -21,6 +21,12 @@ def canonicalize_stance_for_identity(stance: JsonObject) -> JsonObject:
     canonical = copy.deepcopy(stance)
     for field in STANCE_VERSION_ID_EXCLUDED_FIELDS:
         canonical.pop(field, None)
+    for field in tuple(canonical):
+        if canonical[field] is None:
+            canonical.pop(field)
+    stance_type = canonical.get("type")
+    if isinstance(stance_type, StanceType):
+        canonical["type"] = stance_type.value
     return canonical
 
 
@@ -28,15 +34,12 @@ def derive_stance_artifact_id(stance: JsonObject) -> str:
     artifact_id = stance.get("artifact_code")
     if isinstance(artifact_id, str) and artifact_id:
         return artifact_id
-    document = convert_document_value(
-        canonicalize_stance_for_identity(stance),
-        StanceDocument,
-        source="stance-identity",
-    )
-    return stance_artifact_code(document)
+    return canonical_json_sha256(canonicalize_stance_for_identity(stance))
 
 
 def stamp_stance_artifact_id(stance: dict[str, Any]) -> JsonObject:
     stamped: JsonObject = copy.deepcopy(stance)
-    stamped["artifact_code"] = derive_stance_artifact_id(stamped)
+    artifact_id = derive_stance_artifact_id(stamped)
+    stamped["artifact_code"] = artifact_id
+    stamped["artifact_id"] = artifact_id
     return stamped

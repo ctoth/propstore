@@ -34,7 +34,7 @@ from propstore.families.claims.references import (
     claim_reference_keys,
 )
 from propstore.families.contexts.declaration import ContextReferenceDocument
-from propstore.families.documents.stances import StanceDocument
+from propstore.families.stances.declaration import StanceDocument
 from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus
 
@@ -339,6 +339,7 @@ class TestSidecarPopulatesOpinionColumns:
         stances_dir = tmp_path / "stances"
         stances_dir.mkdir()
         stance_data = {
+            "artifact_id": "ps:stance:opinion",
             "source_claim": "c1",
             "classification_model": "test",
             "classification_date": "2026-01-01",
@@ -346,6 +347,7 @@ class TestSidecarPopulatesOpinionColumns:
             "type": "supports",
             "strength": "strong",
             "note": "test",
+            "artifact_code": "ps:stance:opinion",
             "resolution": {
                 "method": "nli",
                 "model": "test",
@@ -385,6 +387,7 @@ class TestSidecarHandlesResolutionWithoutOpinion:
         stances_dir = tmp_path / "stances"
         stances_dir.mkdir()
         stance_data = {
+            "artifact_id": "ps:stance:no-opinion",
             "source_claim": "c1",
             "classification_model": "test",
             "classification_date": "2026-01-01",
@@ -392,6 +395,7 @@ class TestSidecarHandlesResolutionWithoutOpinion:
             "type": "supports",
             "strength": "strong",
             "note": "old format test",
+            "artifact_code": "ps:stance:no-opinion",
             "resolution": {
                 "method": "nli_first_pass",
                 "model": "test",

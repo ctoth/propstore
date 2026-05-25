@@ -264,11 +264,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: proposal_stance
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.stances.StanceDocument
+    doc_type: propstore.families.stances.declaration.StanceDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -549,11 +549,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: stance
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.stances.StanceDocument
+    doc_type: propstore.families.stances.declaration.StanceDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -3104,22 +3104,28 @@ contracts:
       type: str | None
     module: propstore.families.documents.worldlines
 - kind: document_schema
-  name: propstore.families.documents.stances.StanceDocument
-  contract_version: 2026.05.11
+  name: propstore.families.stances.declaration.StanceDocument
+  contract_version: 2026.05.25
   body:
     fields:
+    - name: artifact_id
+      required: true
+      type: builtins.str
     - name: source_claim
       required: true
-      type: str | None
+      type: builtins.str
+    - name: target
+      required: true
+      type: builtins.str
+    - name: type
+      required: true
+      type: propstore.stances.StanceType
+    - name: artifact_code
+      required: true
+      type: builtins.str
     - name: perspective_source_claim_id
       required: true
       type: str | None
-    - name: target
-      required: true
-      type: str | None
-    - name: type
-      required: true
-      type: StanceType | None
     - name: strength
       required: true
       type: str | None
@@ -3131,11 +3137,8 @@ contracts:
       type: str | None
     - name: resolution
       required: true
-      type: ResolutionDocument | None
+      type: dict[str, Any] | None
     - name: target_justification_id
-      required: true
-      type: str | None
-    - name: artifact_code
       required: true
       type: str | None
     - name: classification_model
@@ -3147,7 +3150,7 @@ contracts:
     - name: promoted_from_sha
       required: true
       type: str | None
-    module: propstore.families.documents.stances
+    module: propstore.families.stances.declaration
 - kind: family-registry
   name: propstore
   contract_version: 2026.05.25
@@ -3174,7 +3177,7 @@ contracts:
     - contract_version: 2026.05.11
       key: rule_superiority
       name: rule_superiority
-    - contract_version: 2026.05.21
+    - contract_version: 2026.05.25
       key: stances
       name: stances
     - contract_version: 2026.05.25
@@ -3219,7 +3222,7 @@ contracts:
     - contract_version: 2026.05.02
       key: source_finalize_reports
       name: source_finalize_reports
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.25
       key: proposal_stances
       name: proposal_stances
     - contract_version: 2026.05.11
@@ -3636,12 +3639,12 @@ contracts:
     key: proposal_rules
 - kind: family
   name: proposal_stances
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     accessor: proposal_stances
     artifact_family: proposal_stance
     artifact_family_contract:
-      doc_type: propstore.families.documents.stances.StanceDocument
+      doc_type: propstore.families.stances.declaration.StanceDocument
       placement:
         branch:
           fixed_branch: proposal/stances
@@ -3651,7 +3654,7 @@ contracts:
         kind: flat-yaml
         namespace: stances
         ref_field: artifact_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: proposal_stances
 - kind: family
@@ -3933,12 +3936,12 @@ contracts:
     key: sources
 - kind: family
   name: stances
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     accessor: stances
     artifact_family: stance
     artifact_family_contract:
-      doc_type: propstore.families.documents.stances.StanceDocument
+      doc_type: propstore.families.stances.declaration.StanceDocument
       placement:
         branch:
           policy: primary
@@ -3947,7 +3950,7 @@ contracts:
         kind: flat-yaml
         namespace: stances
         ref_field: artifact_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys:
     - many: false
       required: false

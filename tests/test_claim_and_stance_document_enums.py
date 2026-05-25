@@ -4,7 +4,7 @@ from propstore.families.claims.documents import ClaimDocument, StanceDocument
 from propstore.families.claims.types import ClaimType
 from quire.documents import DocumentSchemaError, convert_document_value
 from propstore.families.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
-from propstore.families.documents.stances import StanceDocument as CanonicalStanceDocument
+from propstore.families.stances.declaration import StanceDocument as CanonicalStanceDocument
 from propstore.stances import StanceType
 
 import pytest
@@ -72,7 +72,13 @@ def test_source_documents_decode_claim_and_stance_enums() -> None:
         source="source-stance",
     )
     canonical_stance = convert_document_value(
-        {"source_claim": "claim1", "target": "claim2", "type": "undercuts"},
+        {
+            "artifact_id": "ps:stance:test",
+            "source_claim": "claim1",
+            "target": "claim2",
+            "type": "undercuts",
+            "artifact_code": "ps:stance:test",
+        },
         CanonicalStanceDocument,
         source="stance-entry",
     )

@@ -64,9 +64,9 @@ from propstore.families.documents.sources import (
     SourceJustificationDocument,
     SourceStanceEntryDocument,
 )
-from propstore.families.documents.stances import StanceDocument
 from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 from propstore.families.sameas.declaration import SameAsAssertionDocument
+from propstore.families.stances.declaration import StanceDocument
 from propstore.families.identity.claims import (
     CLAIM_SOURCE_LOCAL_FIELDS,
     CLAIM_VERSION_ID_EXCLUDED_FIELDS,
@@ -233,6 +233,7 @@ if not TYPE_CHECKING:
 
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
 SAMEAS_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+STANCE_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
 IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
 WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.04")
@@ -966,9 +967,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.STANCES,
             name=PropstoreFamily.STANCES.value,
-            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
+            contract_version=STANCE_FAMILY_CONTRACT_VERSION,
             artifact_name="stance",
-            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_contract_version=STANCE_FAMILY_CONTRACT_VERSION,
             doc_type=StanceDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.STANCES.value,
@@ -1164,7 +1165,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.PROPOSAL_STANCES,
             name=PropstoreFamily.PROPOSAL_STANCES.value,
-            contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=STANCE_FAMILY_CONTRACT_VERSION,
             artifact_name="proposal_stance",
             doc_type=StanceDocument,
             placement=FlatYamlPlacement(
@@ -1298,6 +1299,7 @@ def world_catalog() -> SchemaCatalog:
     rules = import_module("propstore.families.rules.declaration")
     sameas = import_module("propstore.families.sameas.declaration")
     sources = import_module("propstore.families.sources.declaration")
+    stances = import_module("propstore.families.stances.declaration")
 
     relation_charters = relations.RELATIONS_CHARTERS
     return charter_catalog(
@@ -1315,6 +1317,7 @@ def world_catalog() -> SchemaCatalog:
         *rules.RULES_CHARTERS,
         claims.JUSTIFICATION_CHARTER,
         sameas.SAMEAS_CHARTER,
+        stances.STANCE_CHARTER,
         *micropublications.MICROPUBLICATION_CHARTERS,
         calibration.CALIBRATION_CHARTER,
         *embeddings.EMBEDDING_CHARTERS,

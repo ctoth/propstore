@@ -16,7 +16,7 @@ from propstore.families.documents.sources import (
     SourceJustificationDocument,
     SourceStanceEntryDocument,
 )
-from propstore.families.documents.stances import StanceDocument
+from propstore.families.stances.declaration import StanceDocument
 from propstore.families.sources.declaration import SourceDocument, source_document_payload
 from propstore.families.identity.claims import canonicalize_claim_for_version
 
@@ -64,7 +64,11 @@ def justification_artifact_code(
 
 def stance_artifact_code(stance: StanceDocument | SourceStanceEntryDocument) -> str:
     canonical = _payload(stance)
+    canonical.pop("artifact_id", None)
     canonical.pop("artifact_code", None)
+    for field in tuple(canonical):
+        if canonical[field] is None:
+            canonical.pop(field)
     return _hash_payload(canonical)
 
 

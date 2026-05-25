@@ -6,7 +6,7 @@ import copy
 from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from propstore.families.claims.documents import (
     ClaimDocument,
@@ -14,7 +14,7 @@ from propstore.families.claims.documents import (
 )
 from propstore.core.conditions import check_condition_ir
 from propstore.core.conditions.checked import CheckedCondition, checked_condition_set
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, document_to_payload
 from propstore.claims import (
     LoadedClaimsFile,
     claim_file_claims,
@@ -148,7 +148,7 @@ def _bind_claim(
     if claim.stances:
         rewritten_stances: list[object] = []
         for stance in claim.stances:
-            updated = stance.to_payload()
+            updated = cast(dict[str, Any], document_to_payload(stance))
             target_ref = context.claim_index.resolve(
                 stance.target,
                 match_kind=compiler_claim_match_kind,
@@ -156,7 +156,9 @@ def _bind_claim(
             if target_ref is None:
                 rewritten_stances.append(updated)
                 continue
-            updated["target"] = target_ref.resolved_id or target_ref.raw_text
+            updated_dict = cast(dict[str, Any], updated)
+            updated_dict["target"] = target_ref.resolved_id or target_ref.raw_text
+            updated = updated_dict
             semantic_stances.append(
                 SemanticStance(
                     document=convert_document_value(

@@ -5,7 +5,9 @@ import hashlib
 import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
+
+from quire.documents import document_to_payload
 
 from propstore.core.id_types import (
     ClaimId,
@@ -356,7 +358,7 @@ def _inline_stance_rows(active_claims: list[MergeClaim]) -> list[Stance]:
     rows: list[Stance] = []
     for claim in active_claims:
         for stance in claim.document.stances:
-            row = _stance_row_from_mapping(ClaimId(claim.artifact_id), stance.to_payload())
+            row = _stance_row_from_mapping(ClaimId(claim.artifact_id), cast(dict[str, Any], document_to_payload(stance)))
             if row is not None:
                 rows.append(row)
     return rows
@@ -373,7 +375,7 @@ def _file_stance_rows(snapshot: RepositorySnapshot, commit: str | None) -> list[
         )
         if source_claim is None:
             continue
-        row = _stance_row_from_mapping(ClaimId(source_claim), data.to_payload())
+        row = _stance_row_from_mapping(ClaimId(source_claim), cast(dict[str, Any], document_to_payload(data)))
         if row is not None:
             rows.append(row)
     return rows

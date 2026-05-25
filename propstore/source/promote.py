@@ -74,9 +74,9 @@ from propstore.families.documents.sources import (
 )
 from propstore.families.sources.declaration import SourceDocument, source_document_payload
 from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
-from propstore.families.documents.stances import StanceDocument
+from propstore.families.stances.declaration import StanceDocument
 from propstore.families.identity.justifications import derive_justification_artifact_id
-from propstore.families.identity.stances import derive_stance_artifact_id
+from propstore.families.identity.stances import derive_stance_artifact_id, stamp_stance_artifact_id
 
 from .common import (
     load_source_claims_document,
@@ -349,18 +349,29 @@ def _promoted_stance_documents(
         )
         if target is None or not reference_resolves_to_promoted_or_primary(target):
             continue
+        promoted_payload = stamp_stance_artifact_id(
+            {
+                "source_claim": source_claim,
+                "perspective_source_claim_id": stance.perspective_source_claim_id,
+                "target": target,
+                "type": stance.type,
+                "strength": stance.strength,
+                "note": stance.note,
+                "conditions_differ": stance.conditions_differ,
+                "resolution": (
+                    None
+                    if stance.resolution is None
+                    else document_to_payload(stance.resolution)
+                ),
+                "target_justification_id": stance.target_justification_id,
+                "artifact_code": stance.artifact_code,
+            }
+        )
         promoted.append(
-            StanceDocument(
-                source_claim=source_claim,
-                perspective_source_claim_id=stance.perspective_source_claim_id,
-                target=target,
-                type=stance.type,
-                strength=stance.strength,
-                note=stance.note,
-                conditions_differ=stance.conditions_differ,
-                resolution=stance.resolution,
-                target_justification_id=stance.target_justification_id,
-                artifact_code=stance.artifact_code,
+            convert_document_value(
+                promoted_payload,
+                StanceDocument,
+                source=f"promoted-stance:{promoted_payload['artifact_id']}",
             )
         )
     return tuple(promoted)
@@ -498,7 +509,10 @@ def _assemble_source_promotion_plan(
 
     promoted_stance_documents: dict[StanceRef, StanceDocument] = {}
     for stance_document in stamped_stance_documents:
-        artifact_id = derive_stance_artifact_id(stance_document.to_payload())
+        stance_payload = document_to_payload(stance_document)
+        if not isinstance(stance_payload, dict):
+            raise TypeError("promoted stance payload must be a mapping")
+        artifact_id = derive_stance_artifact_id(stance_payload)
         promoted_stance_documents[StanceRef(artifact_id)] = stance_document
 
     promoted_justification_documents: dict[JustificationRef, JustificationDocument] = {}
