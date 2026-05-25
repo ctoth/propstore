@@ -12,7 +12,7 @@ Every committed cut passed all gates (pyright + lint-imports + full test suite).
 
 ## Final session count (mid-day 2026-05-25)
 
-**Phase 04: 12 of 14 families fully closed and verified:** forms, contexts, justifications, sources, micropubs, sameas, stances, merge, source_alignment, worldlines, predicates, rules.
+**Phase 04: 13 of 14 families fully closed and verified:** forms, contexts, justifications, sources, micropubs, sameas, stances, merge, source_alignment, worldlines, predicates, rules, concepts.
 
 **Phase 02 (Quire-side): 6 commits all pushed to `git@github.com:ctoth/quire.git`** — typed CharterField/Relationship/FamilyCharter attrs (85acdb5b), msgspec generated_document + document_codec (11335ce5), nullable + document_name + PEP 604 union safety (d47159a), parse_boundary="json" codec (95d2e66), SQLAlchemy TypeDecorator for JSON columns (b8990ca), FamilyCharter.validators tuple (5852fc6).
 
