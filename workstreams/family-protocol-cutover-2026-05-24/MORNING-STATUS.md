@@ -10,6 +10,20 @@ HEAD: `72a22b40 Slice D: fold final _claim_value duplicate into ClaimValueResolv
 
 Every committed cut passed all gates (pyright + lint-imports + full test suite). Most propstore cuts had verifier MERGE. The state is consistent at HEAD; full test suite passes at the post-Phase-04 baseline.
 
+## Stashed work for Q to inspect
+
+`git stash list` shows one stash: **"On master: Cut #22 sameas Phase 04 attempt (H-D contract-manifest version bump)"**. Contains a partial sameas family conversion:
+- Authored `propstore/families/sameas/declaration.py` with SAMEAS_CHARTER (7 CharterFields)
+- Deleted `propstore/families/sameas/documents.py`
+- Updated 4 importers (registry, contracts, 2 test files)
+- Registered in world_catalog()
+
+H-D'd on `tests/test_contract_manifest.py::test_contract_manifest_changes_require_version_bumps_against_head`. The contract-manifest checker rejects the changed body for `artifact_family:same_as_assertion` + `family:sameas` because the manifest at HEAD already had these entries with `contract_version: 2026.04.27`. Cut #22 changed the body (new doc_type module path: `families.sameas.documents.SameAsAssertionDocument` → `families.sameas.declaration.SameAsAssertionDocument`) without bumping the version.
+
+Foreman tried bumping the global `ARTIFACT_FAMILY_CONTRACT_VERSION` at `propstore/families/registry.py:234` from `2026.04.27` to `2026.05.25` but the test still failed — manifest version isn't being read from that constant for sameas. Deeper investigation needed.
+
+Use `git stash pop` to restore the Cut #22 work; the family/artifact_family version bump issue likely needs a per-family override or a different version-resolution path.
+
 ## Phase 04 progress: 5 of 14 families closed
 | Family | Status | Commit |
 |---|---|---|
