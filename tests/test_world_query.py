@@ -9,6 +9,7 @@ TDD tests:
 - Feature 4: chain_query (multi-step binding chains)
 """
 
+from collections.abc import Mapping
 import json
 import sqlite3
 import pytest
@@ -21,6 +22,7 @@ from propstore.conflict_detector import ConflictClass
 from propstore.core.reasoning import ArgumentationSemantics
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.families.claims.declaration import Claim
 from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import (
     ConflictWitness,
@@ -67,7 +69,7 @@ from propstore.world.queries import (
     query_world_concept,
 )
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
-from tests.claim_model_helpers import make_claim
+from tests.claim_model_helpers import claim_concept_link, make_claim
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -117,34 +119,133 @@ def _normalize_local_concept_ref(value: object) -> object:
     return _concept_artifact(value)
 
 
+def _required_claim_fixture_id(claim: Mapping[str, object]) -> str:
+    claim_id = claim.get("artifact_id") or claim.get("id")
+    if not isinstance(claim_id, str):
+        raise AssertionError("normalized claim fixture is missing a typed claim id")
+    return claim_id
+
+
+def _claim_fixture_type(claim: Mapping[str, object]) -> ClaimType:
+    claim_type = claim.get("type")
+    if isinstance(claim_type, ClaimType):
+        return claim_type
+    if isinstance(claim_type, str):
+        return ClaimType(claim_type)
+    return ClaimType.UNKNOWN
+
+
+def _normalized_claim_fixture_concept(value: object, *, field: str) -> str:
+    normalized = _normalize_local_concept_ref(value)
+    if not isinstance(normalized, str):
+        raise AssertionError(f"{field} must be a string concept reference")
+    return normalized
+
+
+def _typed_claim_fixture(claim: Mapping[str, object]) -> Claim:
+    claim_id = _required_claim_fixture_id(claim)
+    links = []
+    output_concept = claim.get("output_concept")
+    if isinstance(output_concept, str):
+        links.append(
+            claim_concept_link(
+                claim_id=claim_id,
+                concept_id=_normalized_claim_fixture_concept(
+                    output_concept,
+                    field="output_concept",
+                ),
+                role=ClaimConceptLinkRole.OUTPUT,
+            )
+        )
+
+    target_concept = claim.get("target_concept")
+    typed_target_concept = (
+        _normalized_claim_fixture_concept(target_concept, field="target_concept")
+        if isinstance(target_concept, str)
+        else None
+    )
+    if typed_target_concept is not None:
+        links.append(
+            claim_concept_link(
+                claim_id=claim_id,
+                concept_id=typed_target_concept,
+                role=ClaimConceptLinkRole.TARGET,
+            )
+        )
+
+    concepts = claim.get("concepts")
+    if isinstance(concepts, list):
+        for ordinal, concept in enumerate(concepts):
+            links.append(
+                claim_concept_link(
+                    claim_id=claim_id,
+                    concept_id=_normalized_claim_fixture_concept(
+                        concept,
+                        field="concepts",
+                    ),
+                    role=ClaimConceptLinkRole.ABOUT,
+                    ordinal=ordinal,
+                )
+            )
+
+    return make_claim(
+        claim_id,
+        claim_type=_claim_fixture_type(claim),
+        concept_links=links,
+        target_concept=typed_target_concept,
+        value=None,
+    )
+
+
+def _claim_payload_from_typed_fixture(claim: Mapping[str, object]) -> dict[str, object]:
+    typed_claim = _typed_claim_fixture(claim)
+    payload = {
+        key: value
+        for key, value in claim.items()
+        if key not in {"concept", "output_concept", "target_concept", "concepts", "version_id"}
+    }
+    if typed_claim.output_concept_id is not None:
+        payload["output_concept"] = typed_claim.output_concept_id
+    if typed_claim.target_concept is not None:
+        payload["target_concept"] = typed_claim.target_concept
+    if typed_claim.about_concept_ids:
+        payload["concepts"] = list(typed_claim.about_concept_ids)
+    typed_claim.version_id = compute_claim_version_id(payload)
+    payload["version_id"] = typed_claim.version_id
+    return payload
+
+
 def _normalize_claim_concept_refs(payload: dict) -> dict:
     normalized = normalize_claims_payload(payload)
     source = normalized.get("source")
-    paper = source.get("paper") if isinstance(source, dict) and isinstance(source.get("paper"), str) else "test"
+    paper = "test"
+    if isinstance(source, dict):
+        source_paper = source.get("paper")
+        if isinstance(source_paper, str):
+            paper = source_paper
     claims = normalized.get("claims")
     if not isinstance(claims, list):
         return normalized
+    normalized_claims = []
     for claim in claims:
         if not isinstance(claim, dict):
+            normalized_claims.append(claim)
             continue
-        claim_type = claim.get("type")
-        concept = claim.get("concept")
-        if isinstance(concept, str):
-            concept = _normalize_local_concept_ref(concept)
-            if claim_type in {"parameter", "algorithm"}:
-                claim["output_concept"] = concept
-                claim.pop("concept", None)
-            else:
-                claim["concept"] = concept
         target_concept = claim.get("target_concept")
         if isinstance(target_concept, str):
-            claim["target_concept"] = _normalize_local_concept_ref(target_concept)
+            claim = {
+                **claim,
+                "target_concept": _normalize_local_concept_ref(target_concept),
+            }
         concepts = claim.get("concepts")
         if isinstance(concepts, list):
-            claim["concepts"] = [
-                _normalize_local_concept_ref(value)
-                for value in concepts
-            ]
+            claim = {
+                **claim,
+                "concepts": [
+                    _normalize_local_concept_ref(value)
+                    for value in concepts
+                ],
+            }
         variables = claim.get("variables")
         if isinstance(variables, list):
             for variable in variables:
@@ -169,7 +270,8 @@ def _normalize_claim_concept_refs(payload: dict) -> dict:
                 target = stance.get("target")
                 if isinstance(target, str) and target.startswith("claim") and ":" not in target:
                     stance["target"] = make_claim_identity(target, namespace=paper)["artifact_id"]
-        claim["version_id"] = compute_claim_version_id(claim)
+        normalized_claims.append(_claim_payload_from_typed_fixture(claim))
+    normalized["claims"] = normalized_claims
     return normalized
 
 
