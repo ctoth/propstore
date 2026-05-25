@@ -10,8 +10,10 @@ from propstore.families.meta.declaration import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
 )
+from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.families.documents.sources import SourceOriginDocument, SourceTrustDocument
 from propstore.families.registry import world_schema
-from propstore.families.sources.declaration import SourceOrigin, SourceTrust
+from propstore.provenance import ProvenanceStatus
 
 
 def build_world_projection_schema(conn: Connection) -> None:
@@ -75,8 +77,11 @@ def insert_minimal_source(
             {
                 "slug": slug,
                 "source_id": source_id or slug,
-                "kind": kind,
-                "origin": SourceOrigin(type=origin_type, value=origin_value),
-                "trust": SourceTrust(status=trust_status),
+                "kind": SourceKind(kind),
+                "origin": SourceOriginDocument(
+                    type=SourceOriginType(origin_type),
+                    value=origin_value,
+                ),
+                "trust": SourceTrustDocument(status=ProvenanceStatus(trust_status)),
             },
         )

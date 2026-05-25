@@ -17,10 +17,10 @@ from quire.documents import DocumentSchemaError
 from propstore.claims import loaded_claim_file_from_payload
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.documents.sources import (
-    SourceDocument,
     SourceOriginDocument,
     SourceTrustDocument,
 )
+from propstore.families.sources.declaration import SourceDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import world_schema

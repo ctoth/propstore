@@ -4,7 +4,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from quire.family_store import DocumentFamilyStore
-
 from propstore.families.registry import (
     SourceRef,
     ClaimRef,
@@ -19,6 +18,7 @@ from propstore.families.documents.sources import (
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
 )
+from propstore.families.sources.declaration import source_document_payload
 from propstore.worldline import WorldlineDefinition
 
 
@@ -66,7 +66,7 @@ def test_artifact_store_roundtrips_source_document(tmp_path: Path) -> None:
 
     assert commit_sha
     loaded = repo.families.source_documents.require(SourceRef("demo"))
-    assert loaded.to_payload() == source_doc.to_payload()
+    assert source_document_payload(loaded) == source_document_payload(source_doc)
     assert loaded.kind is SourceKind.ACADEMIC_PAPER
     assert loaded.origin.type is SourceOriginType.MANUAL
 
@@ -111,7 +111,7 @@ def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -
     assert commit_sha
     loaded_source = repo.families.source_documents.require(SourceRef("demo"))
     loaded_report = repo.families.source_finalize_reports.require(SourceRef("demo"))
-    assert loaded_source.to_payload() == source_doc.to_payload()
+    assert source_document_payload(loaded_source) == source_document_payload(source_doc)
     assert loaded_report.to_payload() == report.to_payload()
 
 

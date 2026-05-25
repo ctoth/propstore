@@ -14,10 +14,10 @@ from quire.documents import convert_document_value, decode_document_batch_bytes,
 from propstore.artifact_codes import stamp_source_artifact_codes
 from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import (
-    SourceDocument,
     SourceJustificationDocument,
     SourceStanceEntryDocument,
 )
+from propstore.families.sources.declaration import SourceDocument
 from propstore.families.registry import ClaimRef
 from propstore.cli import cli
 from propstore.repository import Repository

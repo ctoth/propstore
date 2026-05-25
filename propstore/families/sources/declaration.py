@@ -3,41 +3,24 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyModel
 from quire.families import FamilyDefinition
 from quire.versions import VersionId
 
-from propstore.families.documents.sources import SourceDocument
+from propstore.core.source_types import SourceKind
+from propstore.families.documents.sources import (
+    SourceMetadataDocument,
+    SourceOriginDocument,
+    SourceTrustDocument,
+    SourceTrustQualityDocument,
+)
 
 
-_SOURCE_CONTRACT_VERSION = VersionId("2026.05.20", allow_placeholder=False)
-
-
-@dataclass(frozen=True)
-class SourceOrigin:
-    type: str
-    value: str
-    retrieved: str | None = None
-    content_ref: str | None = None
-
-
-@dataclass(frozen=True)
-class SourceTrust:
-    status: str
-    prior_base_rate: dict[str, float] | None = None
-
-
-@dataclass(frozen=True)
-class SourceQuality:
-    status: str
-    b: float
-    d: float
-    u: float
-    a: float
+_SOURCE_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False)
 
 
 class Source(FamilyModel):
@@ -59,18 +42,72 @@ SOURCE_CHARTER: FamilyCharter = FamilyCharter(
         ),
         model=Source,
         fields=(
-            CharterField("slug", str, primary_key=True, nullable=False),
-            CharterField("source_id", str, nullable=False),
-            CharterField("kind", str, nullable=False),
-            CharterField("origin", SourceOrigin, json_value_object=True),
-            CharterField("trust", SourceTrust, json_value_object=True),
-            CharterField("quality", SourceQuality, json_value_object=True),
-            CharterField("derived_from", list, json_value_object=True),
-            CharterField("artifact_code", str),
+            CharterField("slug", str, primary_key=True, nullable=False, document=False),
+            CharterField("source_id", str, nullable=False, document_name="id"),
+            CharterField("kind", SourceKind, nullable=False),
+            CharterField("origin", SourceOriginDocument, parse_boundary="json"),
+            CharterField("trust", SourceTrustDocument, parse_boundary="json"),
+            CharterField(
+                "metadata",
+                SourceMetadataDocument,
+                parse_boundary="json",
+                nullable=True,
+            ),
+            CharterField(
+                "quality",
+                SourceTrustQualityDocument,
+                parse_boundary="json",
+                nullable=True,
+                document=False,
+            ),
+            CharterField(
+                "derived_from",
+                list,
+                parse_boundary="json",
+                nullable=True,
+                document=False,
+            ),
+            CharterField("artifact_code", str, nullable=True),
         ),
         indexes=(CharterIndex("idx_source_source_id", ("source_id",)),),
         semantic_metadata={"semantic": "propstore.world"},
     )
+
+if TYPE_CHECKING:
+
+    class SourceDocument(msgspec.Struct, forbid_unknown_fields=True):
+        id: str
+        kind: SourceKind
+        origin: SourceOriginDocument
+        trust: SourceTrustDocument
+        metadata: SourceMetadataDocument | None = None
+        artifact_code: str | None = None
+
+else:
+    SourceDocument: Any = SOURCE_CHARTER.generated_document()
+    SourceDocument.__module__ = __name__
+
+
+def source_document_payload(source_doc: SourceDocument) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "id": source_doc.id,
+        "kind": source_doc.kind.value,
+        "origin": source_doc.origin.to_payload(),
+        "trust": source_doc.trust.to_payload(),
+    }
+    if source_doc.metadata is not None:
+        payload["metadata"] = source_doc.metadata.to_payload()
+    if source_doc.artifact_code is not None:
+        payload["artifact_code"] = source_doc.artifact_code
+    return payload
+
+
+def encode_source_document(source_doc: SourceDocument) -> bytes:
+    return msgspec.yaml.encode(source_document_payload(source_doc))
+
+
+def render_source_document(source_doc: SourceDocument) -> str:
+    return encode_source_document(source_doc).decode("utf-8").rstrip()
 
 
 def compile_source_models(
@@ -85,40 +122,16 @@ def compile_source_models(
                 slug=slug,
                 source_id=str(source_doc.id or slug),
                 kind=source_doc.kind.value,
-                origin=SourceOrigin(
-                    type=origin.type.value,
-                    value=origin.value,
-                    retrieved=origin.retrieved,
-                    content_ref=origin.content_ref,
-                ),
-                trust=SourceTrust(
-                    status=trust.status.value,
-                    prior_base_rate=_opinion_payload(trust.prior_base_rate),
-                ),
+                origin=origin,
+                trust=trust,
+                metadata=source_doc.metadata,
                 quality=(
                     None
                     if trust.quality is None
-                    else SourceQuality(
-                        status=trust.quality.status.value,
-                        b=float(trust.quality.b),
-                        d=float(trust.quality.d),
-                        u=float(trust.quality.u),
-                        a=float(trust.quality.a),
-                    )
+                    else trust.quality
                 ),
                 derived_from=list(trust.derived_from) if trust.derived_from else None,
                 artifact_code=source_doc.artifact_code,
             )
         )
     return tuple(source_models)
-
-
-def _opinion_payload(opinion: Any) -> dict[str, float] | None:
-    if opinion is None:
-        return None
-    return {
-        "b": float(opinion.b),
-        "d": float(opinion.d),
-        "u": float(opinion.u),
-        "a": float(opinion.a),
-    }

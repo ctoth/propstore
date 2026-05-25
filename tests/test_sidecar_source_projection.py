@@ -5,7 +5,6 @@ from pathlib import Path
 from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.documents.sources import (
-    SourceDocument,
     SourceOriginDocument,
     SourceTrustDocument,
     SourceTrustQualityDocument,
@@ -14,9 +13,7 @@ from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
 from propstore.families.sources.declaration import (
     Source,
-    SourceOrigin,
-    SourceQuality,
-    SourceTrust,
+    SourceDocument,
     compile_source_models,
 )
 from propstore.families.registry import world_schema
@@ -55,23 +52,9 @@ def test_source_models_round_trip_through_charter_session(tmp_path: Path) -> Non
     assert compiled.slug == "alpha"
     assert compiled.source_id == "source-alpha"
     assert compiled.kind == "academic_paper"
-    assert compiled.origin == SourceOrigin(
-        type="doi",
-        value="10.1000/example",
-        retrieved="2026-05-14",
-        content_ref="sha256:abc",
-    )
-    assert compiled.trust == SourceTrust(
-        status="stated",
-        prior_base_rate={"a": 0.5, "b": 0.2, "d": 0.1, "u": 0.7},
-    )
-    assert compiled.quality == SourceQuality(
-        status="stated",
-        b=0.8,
-        d=0.05,
-        u=0.15,
-        a=0.5,
-    )
+    assert compiled.origin == source.origin
+    assert compiled.trust == source.trust
+    assert compiled.quality == source.trust.quality
     assert compiled.derived_from == ["seed-a", "seed-b"]
     assert compiled.artifact_code == "sha256:source-alpha"
 
@@ -87,21 +70,7 @@ def test_source_models_round_trip_through_charter_session(tmp_path: Path) -> Non
 
     assert stored is not None
     assert stored.artifact_code == "sha256:source-alpha"
-    assert stored.origin == SourceOrigin(
-        type="doi",
-        value="10.1000/example",
-        retrieved="2026-05-14",
-        content_ref="sha256:abc",
-    )
-    assert stored.trust == SourceTrust(
-        status="stated",
-        prior_base_rate={"a": 0.5, "b": 0.2, "d": 0.1, "u": 0.7},
-    )
-    assert stored.quality == SourceQuality(
-        status="stated",
-        b=0.8,
-        d=0.05,
-        u=0.15,
-        a=0.5,
-    )
+    assert stored.origin == source.origin
+    assert stored.trust == source.trust
+    assert stored.quality == source.trust.quality
     assert stored.derived_from == ["seed-a", "seed-b"]

@@ -23,10 +23,10 @@ from propstore.claims import (
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.documents.sources import (
-    SourceDocument,
     SourceOriginDocument,
     SourceTrustDocument,
 )
+from propstore.families.sources.declaration import SourceDocument
 from propstore.compiler.context import build_compilation_context_from_loaded
 from propstore.families.claims.declaration import JustificationDocument
 from propstore.families.documents.stances import StanceDocument

@@ -5,13 +5,13 @@ package:
 contracts:
 - kind: artifact_family
   name: canonical_source
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.sources.SourceDocument
-    document_payload: null
-    encode_document: null
+    doc_type: propstore.families.sources.declaration.SourceDocument
+    document_payload: propstore.families.sources.declaration.source_document_payload
+    encode_document: propstore.families.sources.declaration.encode_source_document
     normalize_for_write: null
     placement:
       branch:
@@ -21,7 +21,7 @@ contracts:
       kind: flat-yaml
       namespace: sources
       ref_field: name
-    render_document: null
+    render_document: propstore.families.sources.declaration.render_source_document
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
@@ -393,13 +393,13 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_document
-  contract_version: 2026.05.02
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.sources.SourceDocument
-    document_payload: null
-    encode_document: null
+    doc_type: propstore.families.sources.declaration.SourceDocument
+    document_payload: propstore.families.sources.declaration.source_document_payload
+    encode_document: propstore.families.sources.declaration.encode_source_document
     normalize_for_write: null
     placement:
       branch:
@@ -410,7 +410,7 @@ contracts:
         template: source/{stem}
       filename: source.yaml
       kind: fixed-file
-    render_document: null
+    render_document: propstore.families.sources.declaration.render_source_document
     scan_type: null
     validate_for_write: null
 - kind: artifact_family
@@ -2345,30 +2345,6 @@ contracts:
       type: str | None
     module: propstore.families.documents.sources
 - kind: document_schema
-  name: SourceDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: id
-      required: true
-      type: str
-    - name: kind
-      required: true
-      type: SourceKind
-    - name: origin
-      required: true
-      type: SourceOriginDocument
-    - name: trust
-      required: true
-      type: SourceTrustDocument
-    - name: metadata
-      required: true
-      type: SourceMetadataDocument | None
-    - name: artifact_code
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
   name: SourceFinalizeCalibrationDocument
   contract_version: 2026.04.30
   body:
@@ -3207,7 +3183,7 @@ contracts:
     - contract_version: 2026.05.04
       key: worldlines
       name: worldlines
-    - contract_version: 2026.05.21
+    - contract_version: 2026.05.25
       key: sources
       name: sources
     - contract_version: 2026.05.21
@@ -3216,7 +3192,7 @@ contracts:
     - contract_version: 2026.05.25
       key: justifications
       name: justifications
-    - contract_version: 2026.05.02
+    - contract_version: 2026.05.25
       key: source_documents
       name: source_documents
     - contract_version: 2026.05.02
@@ -3795,12 +3771,12 @@ contracts:
     key: source_concepts
 - kind: family
   name: source_documents
-  contract_version: 2026.05.02
+  contract_version: 2026.05.25
   body:
     accessor: source_documents
     artifact_family: source_document
     artifact_family_contract:
-      doc_type: propstore.families.documents.sources.SourceDocument
+      doc_type: propstore.families.sources.declaration.SourceDocument
       placement:
         branch:
           codec: safe_slug
@@ -3810,7 +3786,7 @@ contracts:
           template: source/{stem}
         filename: source.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.05.02
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: source_documents
 - kind: family
@@ -3937,12 +3913,12 @@ contracts:
     key: source_stances
 - kind: family
   name: sources
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     accessor: sources
     artifact_family: canonical_source
     artifact_family_contract:
-      doc_type: propstore.families.documents.sources.SourceDocument
+      doc_type: propstore.families.sources.declaration.SourceDocument
       placement:
         branch:
           policy: primary
@@ -3951,7 +3927,7 @@ contracts:
         kind: flat-yaml
         namespace: sources
         ref_field: name
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     identity_field: id
     key: sources

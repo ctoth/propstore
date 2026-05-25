@@ -6,9 +6,9 @@ from collections.abc import Iterable, Sequence
 
 from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_filename
 from propstore.families.claims.stages import ClaimStage
-from propstore.families.documents.sources import SourceDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.registry import PropstoreFamily
+from propstore.families.sources.declaration import SourceDocument
 from propstore.semantic_passes.types import PassDiagnostic
 from propstore.stances import StanceType
 

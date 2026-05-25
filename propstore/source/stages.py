@@ -10,9 +10,9 @@ from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
-    SourceDocument,
 )
 from propstore.families.documents.stances import StanceDocument
+from propstore.families.sources.declaration import SourceDocument
 from propstore.families.registry import (
     CanonicalSourceRef,
     ClaimRef,

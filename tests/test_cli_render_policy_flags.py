@@ -45,11 +45,11 @@ from propstore.families.claims.documents import (
 )
 from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
 from propstore.families.documents.sources import (
-    SourceDocument,
     SourceJustificationDocument,
     SourceOriginDocument,
     SourceTrustDocument,
 )
+from propstore.families.sources.declaration import SourceDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.justifications import stamp_justification_artifact_id
 from propstore.families.identity.stances import stamp_stance_artifact_id

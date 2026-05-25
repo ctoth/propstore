@@ -15,7 +15,6 @@ from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceConceptEntryDocument,
-    SourceDocument,
     SourceFinalizeReportDocument,
     SourceMetadataDocument,
     SourceOriginDocument,
@@ -24,6 +23,7 @@ from propstore.families.documents.sources import (
     SourceTrustDocument,
 )
 from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.sources.declaration import SourceDocument
 
 TDocument = TypeVar("TDocument")
 

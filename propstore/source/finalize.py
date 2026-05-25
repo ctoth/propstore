@@ -24,13 +24,13 @@ from .common import (
 )
 from propstore.families.documents.sources import (
     SourceClaimDocument,
-    SourceDocument,
     SourceFinalizeReportDocument,
 )
 from propstore.families.documents.micropubs import (
     MicropublicationDocument,
     MicropublicationEvidenceDocument,
 )
+from propstore.families.sources.declaration import SourceDocument
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
     source_claim_index as build_source_claim_index,

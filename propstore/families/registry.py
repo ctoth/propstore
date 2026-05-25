@@ -59,7 +59,6 @@ from propstore.families.documents.source_alignment import ConceptAlignmentArtifa
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceConceptEntryDocument,
-    SourceDocument,
     SourceFinalizeReportDocument,
     SourceJustificationDocument,
     SourceStanceEntryDocument,
@@ -74,6 +73,12 @@ from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
     normalize_canonical_claim_payload,
+)
+from propstore.families.sources.declaration import (
+    SourceDocument,
+    encode_source_document,
+    render_source_document,
+    source_document_payload,
 )
 from propstore.families.identity.concepts import (
     CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
@@ -229,6 +234,8 @@ ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
 CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
 IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
 WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.04")
+SOURCE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+SOURCE_DOCUMENT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
@@ -236,6 +243,7 @@ INTENTIONAL_SET_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.25")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION = VersionId("2026.05.21")
+SOURCE_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 FORM_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 FORM_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONTEXT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
@@ -340,9 +348,12 @@ CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocume
 
 CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, SourceDocument](
     name="canonical_source",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=SOURCE_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=SourceDocument,
     placement=CANONICAL_SOURCE_PLACEMENT,
+    encode_document=encode_source_document,
+    render_document=render_source_document,
+    document_payload=source_document_payload,
 )
 
 
@@ -1000,7 +1011,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.SOURCES,
             name=PropstoreFamily.SOURCES.value,
-            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
+            contract_version=SOURCE_FAMILY_CONTRACT_VERSION,
             artifact_family=CANONICAL_SOURCE_FAMILY,
             identity_field="id",
         ),
@@ -1033,10 +1044,13 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.SOURCE_DOCUMENTS,
             name=PropstoreFamily.SOURCE_DOCUMENTS.value,
-            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=SOURCE_DOCUMENT_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_document",
             doc_type=SourceDocument,
             placement=FixedFilePlacement("source.yaml", branch=SOURCE_BRANCH),
+            encode_document=encode_source_document,
+            render_document=render_source_document,
+            document_payload=source_document_payload,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_NOTES,

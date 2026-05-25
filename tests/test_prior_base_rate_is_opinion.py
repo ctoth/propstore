@@ -5,8 +5,11 @@ from quire.documents import convert_document_value
 from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
-from propstore.families.documents.sources import SourceDocument
-from propstore.families.sources.declaration import compile_source_models
+from propstore.families.sources.declaration import (
+    SourceDocument,
+    compile_source_models,
+    source_document_payload,
+)
 from propstore.opinion import Opinion
 from propstore.praf.engine import p_arg_from_claim
 from propstore.provenance import ProvenanceStatus
@@ -37,7 +40,7 @@ def test_source_document_prior_base_rate_is_opinion() -> None:
     )
 
     assert source_doc.trust.prior_base_rate == Opinion(**PRIOR_PAYLOAD)
-    assert source_doc.to_payload()["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
+    assert source_document_payload(source_doc)["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
 
 
 def test_source_model_serializes_prior_base_rate_as_opinion_payload() -> None:
@@ -48,7 +51,7 @@ def test_source_model_serializes_prior_base_rate_as_opinion_payload() -> None:
     )
 
     models = compile_source_models([("demo", source_doc)])
-    prior_payload = models[0].trust.prior_base_rate
+    prior_payload = models[0].trust.to_payload()["prior_base_rate"]
 
     assert prior_payload == PRIOR_PAYLOAD
 

@@ -17,7 +17,7 @@ from propstore.cel_types import CelExpr
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.claims.types import ClaimType
 from propstore.core.exactness_types import Exactness
-from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.core.source_types import SourceOriginType
 from quire.documents import DocumentStruct
 from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
@@ -86,28 +86,6 @@ class SourceMetadataDocument(DocumentStruct):
 
     def to_payload(self) -> dict[str, Any]:
         return {"name": self.name}
-
-
-class SourceDocument(DocumentStruct):
-    id: str
-    kind: SourceKind
-    origin: SourceOriginDocument
-    trust: SourceTrustDocument
-    metadata: SourceMetadataDocument | None = None
-    artifact_code: str | None = None
-
-    def to_payload(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {
-            "id": self.id,
-            "kind": self.kind.value,
-            "origin": self.origin.to_payload(),
-            "trust": self.trust.to_payload(),
-        }
-        if self.metadata is not None:
-            payload["metadata"] = self.metadata.to_payload()
-        if self.artifact_code is not None:
-            payload["artifact_code"] = self.artifact_code
-        return payload
 
 
 class SourceConceptAliasDocument(DocumentStruct):

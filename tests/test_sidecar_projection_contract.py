@@ -12,7 +12,10 @@ from quire.sqlalchemy_store import create_sqlalchemy_store, validate_sqlalchemy_
 from propstore.families.registry import (
     world_schema,
 )
-from propstore.families.sources.declaration import Source, SourceTrust
+from propstore.core.source_types import SourceKind
+from propstore.families.documents.sources import SourceTrustDocument
+from propstore.families.sources.declaration import Source
+from propstore.provenance import ProvenanceStatus
 
 
 def test_world_charter_generates_deterministic_tables_and_indexes() -> None:
@@ -56,8 +59,8 @@ def test_world_charter_maps_models_and_round_trips_rows(tmp_path: Path) -> None:
                     {
                         "slug": "paper-a",
                         "source_id": "source:paper-a",
-                        "kind": "paper",
-                        "trust": SourceTrust(status="stated"),
+                        "kind": SourceKind.ACADEMIC_PAPER,
+                        "trust": SourceTrustDocument(status=ProvenanceStatus.STATED),
                     }
                 ],
             )
@@ -69,8 +72,8 @@ def test_world_charter_maps_models_and_round_trips_rows(tmp_path: Path) -> None:
     assert isinstance(row, Source)
     assert row.slug == "paper-a"
     assert row.source_id == "source:paper-a"
-    assert row.kind == "paper"
-    assert row.trust == SourceTrust(status="stated")
+    assert row.kind == SourceKind.ACADEMIC_PAPER
+    assert row.trust == SourceTrustDocument(status=ProvenanceStatus.STATED)
 
 
 def test_world_charter_store_validation_reports_missing_tables_and_columns(tmp_path: Path) -> None:

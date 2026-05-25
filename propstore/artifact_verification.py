@@ -14,8 +14,8 @@ from propstore.artifact_codes import (
 )
 from propstore.core.labels import Label
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.documents.sources import SourceDocument
 from propstore.families.documents.stances import StanceDocument
+from propstore.families.sources.declaration import SourceDocument, source_document_payload
 from propstore.uri import ni_uri_for_file
 
 JustificationDocument: TypeAlias = Any
@@ -265,7 +265,7 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
     origin_verification = _verify_origin(
         repo,
         source_slug,
-        {} if origin_source_doc is None else origin_source_doc.to_payload(),
+        {} if origin_source_doc is None else source_document_payload(origin_source_doc),
     )
 
     return {

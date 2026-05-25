@@ -13,11 +13,11 @@ from quire.documents import convert_document_value, document_to_payload
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
-    SourceDocument,
     SourceJustificationDocument,
     SourceStanceEntryDocument,
 )
 from propstore.families.documents.stances import StanceDocument
+from propstore.families.sources.declaration import SourceDocument, source_document_payload
 from propstore.families.identity.claims import canonicalize_claim_for_version
 
 JustificationDocument: TypeAlias = Any
@@ -43,7 +43,7 @@ def _hash_payload(payload: object) -> str:
 
 
 def source_artifact_code(source_doc: SourceDocument) -> str:
-    canonical = _payload(source_doc)
+    canonical = source_document_payload(source_doc)
     canonical.pop("artifact_code", None)
     return _hash_payload(canonical)
 
@@ -93,7 +93,7 @@ def claim_artifact_code(
 
 
 def _stamp_source_doc(source_doc: SourceDocument, artifact_code: str) -> SourceDocument:
-    payload = _payload(source_doc)
+    payload = source_document_payload(source_doc)
     payload["artifact_code"] = artifact_code
     return convert_document_value(
         payload,
