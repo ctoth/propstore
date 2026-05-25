@@ -6,16 +6,15 @@ commands render these reports and map failures to Click errors.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
+from importlib import import_module
+from typing import Any
 from sqlalchemy import select
 from quire.derived_store import DerivedStoreHandle
 
-from propstore.families.diagnostics.declaration import (
-    source_status_diagnostics,
-)
-from propstore.families.registry import SOURCE_BRANCH, SourceRef
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import SOURCE_BRANCH, SourceRef, world_schema
 
 
 class SourceStatusState(str, Enum):
@@ -44,6 +43,11 @@ class SourceStatusReport:
     rows: tuple[SourceStatusRow, ...] = ()
 
 
+def _source_status_diagnostics(*args: object, **kwargs: object) -> Iterable[Any]:
+    diagnostics = import_module("propstore.families.diagnostics.declaration")
+    return diagnostics.source_status_diagnostics(*args, **kwargs)
+
+
 def _escape_sql_like(value: str) -> str:
     return value.replace("!", "!!").replace("%", "!%").replace("_", "!_")
 
@@ -51,7 +55,7 @@ def _escape_sql_like(value: str) -> str:
 def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatusReport:
     branch = SOURCE_BRANCH.branch_name(handle, SourceRef(name))
 
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with handle.readonly_session(schema) as derived:
         claim_core = derived.schema.table("claim_core")
         claim_rows = tuple(
@@ -69,7 +73,7 @@ def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatus
         if claim_rows:
             like_pattern = f"{_escape_sql_like(branch)}:%"
             claim_ids = [claim_id for claim_id, _promotion_status in claim_rows]
-            diag_rows = source_status_diagnostics(
+            diag_rows = _source_status_diagnostics(
                 derived,
                 claim_ids=claim_ids,
                 like_pattern=like_pattern,

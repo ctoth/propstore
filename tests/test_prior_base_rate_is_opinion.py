@@ -58,12 +58,7 @@ def test_praf_uses_prior_opinion_without_float_coercion() -> None:
         ClaimNode(
             claim_id=ClaimId("test_claim"),
             claim_type=ClaimType.OBSERVATION,
-            attributes=(
-                (
-                    "source",
-                    {"trust": {"prior_base_rate": PRIOR_PAYLOAD}},
-                ),
-            ),
+            source_prior_opinion=Opinion(**PRIOR_PAYLOAD),
         )
     )
 

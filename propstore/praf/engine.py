@@ -18,8 +18,6 @@ from argumentation.probabilistic import (
 )
 
 from propstore.core.graph_types import ClaimNode
-from propstore.families.claims.declaration import Claim
-from propstore.families.claims.metadata import claim_metadata_value
 from propstore.opinion import Opinion, W
 from propstore.probabilistic_relations import ProbabilisticRelation, relation_from_row
 from propstore.provenance import Provenance, ProvenanceStatus
@@ -184,14 +182,13 @@ def _source_prior_opinion(raw: object) -> Opinion | None:
     )
 
 
-def p_arg_from_claim(claim: Claim | ClaimNode) -> Opinion | NoCalibration:
+def p_arg_from_claim(claim: ClaimNode) -> Opinion | NoCalibration:
     """Derive argument-existence opinion from a calibrated claim row."""
-    if not isinstance(claim, Claim | ClaimNode):
-        raise TypeError("p_arg_from_claim requires a typed claim")
+    if not isinstance(claim, ClaimNode):
+        raise TypeError("p_arg_from_claim requires a ClaimNode")
 
     claim_opinion = _opinion_from_typed_claim(
         claim,
-        prefix="opinion_",
         operation="claim_opinion_columns",
     )
     if claim_opinion is not None:
@@ -199,29 +196,22 @@ def p_arg_from_claim(claim: Claim | ClaimNode) -> Opinion | NoCalibration:
             return claim_opinion
         return claim_opinion
 
-    source = claim_metadata_value(claim, "source")
-    source_trust = source.get("trust") if isinstance(source, dict) else None
-    prior_base_rate = claim_metadata_value(claim, "source_prior_base_rate")
-    if prior_base_rate is None and isinstance(source_trust, dict):
-        prior_base_rate = source_trust.get("prior_base_rate")
-
-    claim_probability = claim_metadata_value(claim, "claim_probability")
-    effective_sample_size = claim_metadata_value(claim, "effective_sample_size")
-    confidence = claim_metadata_value(claim, "confidence")
-    sample_size = claim_metadata_value(claim, "sample_size")
+    prior_base_rate = claim.source_prior_opinion
+    claim_probability = claim.claim_probability
+    effective_sample_size = claim.effective_sample_size
+    confidence = claim.confidence
+    sample_size = claim.sample_size
     if claim_probability is None and confidence is not None:
         claim_probability = confidence
     if effective_sample_size is None and sample_size is not None:
         effective_sample_size = sample_size
 
-    quality_payload = claim_metadata_value(claim, "source_quality_opinion")
-    if quality_payload is None and isinstance(source_trust, dict):
-        quality_payload = source_trust.get("quality")
+    quality_opinion = claim.source_quality_opinion
 
     has_structured_fields = (
         prior_base_rate is not None
         or claim_probability is not None
-        or quality_payload is not None
+        or quality_opinion is not None
     )
     if not has_structured_fields:
         return _missing_calibration(
@@ -246,49 +236,17 @@ def p_arg_from_claim(claim: Claim | ClaimNode) -> Opinion | NoCalibration:
     else:
         omega_claim = omega_prior
 
-    if quality_payload is None:
+    if quality_opinion is None:
         return omega_claim
-    if not isinstance(quality_payload, dict):
-        raise ValueError("source_quality_opinion must be a mapping with b/d/u/a")
-    required = {"b", "d", "u", "a"}
-    if not required.issubset(quality_payload):
-        raise ValueError("source_quality_opinion must contain b, d, u, and a")
-    omega_source_quality = Opinion(
-        float(quality_payload["b"]),
-        float(quality_payload["d"]),
-        float(quality_payload["u"]),
-        float(quality_payload["a"]),
-        _praf_provenance(ProvenanceStatus.CALIBRATED, "source_quality"),
-    )
-    return omega_source_quality.discount(omega_claim)
+    return quality_opinion.discount(omega_claim)
 
 
 def _opinion_from_typed_claim(
-    claim: Claim | ClaimNode,
+    claim: ClaimNode,
     *,
-    prefix: str,
     operation: str,
 ) -> Opinion | NoCalibration | None:
-    b = claim_metadata_value(claim, f"{prefix}belief")
-    d = claim_metadata_value(claim, f"{prefix}disbelief")
-    u = claim_metadata_value(claim, f"{prefix}uncertainty")
-    if b is None or d is None or u is None:
-        return None
-    a = claim_metadata_value(claim, f"{prefix}base_rate")
-    if a is None:
-        return _missing_calibration("missing_base_rate", f"{prefix}base_rate")
-    belief = float(b)
-    disbelief = float(d)
-    uncertainty = float(u)
-    base_rate = float(a)
-    return Opinion(
-        belief,
-        disbelief,
-        uncertainty,
-        base_rate,
-        _praf_provenance(ProvenanceStatus.STATED, operation),
-        allow_dogmatic=uncertainty <= 1e-9,
-    )
+    return claim.opinion
 
 
 def p_relation_from_stance(stance: dict) -> Opinion | NoCalibration:

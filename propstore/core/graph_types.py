@@ -26,6 +26,8 @@ from propstore.core.id_types import (
     ConceptId,
 )
 from propstore.core.labels import EnvironmentKey, Label
+from propstore.opinion import Opinion
+from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
 
 def _mapping_items(value: Any) -> list[tuple[Any, Any]]:
@@ -155,6 +157,100 @@ def _condition_set_from_dicts(
     )
 
 
+def _provenance_to_dict(provenance: Provenance | None) -> dict[str, Any] | None:
+    if provenance is None:
+        return None
+    return provenance.to_payload()
+
+
+def _provenance_from_dict(data: object) -> Provenance | None:
+    if data is None:
+        return None
+    if not isinstance(data, Mapping):
+        raise ValueError("opinion provenance must be a mapping")
+    payload = cast(Mapping[str, object], data)
+    status = payload.get("status")
+    if not isinstance(status, str) or not status:
+        raise ValueError("opinion provenance requires status")
+    raw_witnesses = payload.get("witnesses") or ()
+    if not isinstance(raw_witnesses, list | tuple):
+        raise ValueError("opinion provenance witnesses must be a sequence")
+    witnesses: list[ProvenanceWitness] = []
+    for raw_witness in cast(tuple[object, ...] | list[object], raw_witnesses):
+        if not isinstance(raw_witness, Mapping):
+            raise ValueError("opinion provenance witness must be a mapping")
+        witness = cast(Mapping[str, object], raw_witness)
+        witnesses.append(
+            ProvenanceWitness(
+                asserter=str(witness["asserter"]),
+                timestamp=str(witness["timestamp"]),
+                source_artifact_code=str(witness["source_artifact_code"]),
+                method=str(witness["method"]),
+            )
+        )
+    graph_name = payload.get("graph_name")
+    raw_derived_from = payload.get("derived_from") or ()
+    raw_operations = payload.get("operations") or ()
+    if not isinstance(raw_derived_from, list | tuple):
+        raise ValueError("opinion provenance derived_from must be a sequence")
+    if not isinstance(raw_operations, list | tuple):
+        raise ValueError("opinion provenance operations must be a sequence")
+    return Provenance(
+        status=ProvenanceStatus(status),
+        witnesses=tuple(witnesses),
+        graph_name=(None if graph_name is None else str(graph_name)),
+        derived_from=tuple(
+            str(value)
+            for value in cast(tuple[object, ...] | list[object], raw_derived_from)
+        ),
+        operations=tuple(
+            str(value)
+            for value in cast(tuple[object, ...] | list[object], raw_operations)
+        ),
+    )
+
+
+def _opinion_to_dict(opinion: Opinion | None) -> dict[str, Any] | None:
+    if opinion is None:
+        return None
+    return {
+        "b": opinion.b,
+        "d": opinion.d,
+        "u": opinion.u,
+        "a": opinion.a,
+        "provenance": _provenance_to_dict(opinion.provenance),
+    }
+
+
+def _float_payload_value(data: Mapping[str, object], key: str) -> float:
+    value = data[key]
+    if isinstance(value, bool) or not isinstance(value, int | float | str):
+        raise ValueError(f"opinion field {key!r} must be numeric")
+    return float(value)
+
+
+def _opinion_from_dict(data: object) -> Opinion | None:
+    if data is None:
+        return None
+    if isinstance(data, Opinion):
+        return data
+    if not isinstance(data, Mapping):
+        raise ValueError("opinion field must be a mapping")
+    payload = cast(Mapping[str, object], data)
+    belief = _float_payload_value(payload, "b")
+    disbelief = _float_payload_value(payload, "d")
+    uncertainty = _float_payload_value(payload, "u")
+    base_rate = _float_payload_value(payload, "a")
+    return Opinion(
+        belief,
+        disbelief,
+        uncertainty,
+        base_rate,
+        _provenance_from_dict(payload.get("provenance")),
+        allow_dogmatic=uncertainty <= 1e-9,
+    )
+
+
 @dataclass(frozen=True, order=True)
 class ConceptNode:
     concept_id: ConceptId
@@ -259,6 +355,12 @@ class ClaimNode:
     uncertainty: float | None = None
     uncertainty_type: str | None = None
     sample_size: int | None = None
+    opinion: Opinion | None = field(default=None, compare=False)
+    confidence: float | None = None
+    claim_probability: float | None = None
+    effective_sample_size: float | None = None
+    source_prior_opinion: Opinion | None = field(default=None, compare=False)
+    source_quality_opinion: Opinion | None = field(default=None, compare=False)
     unit: str | None = None
     value_si: float | None = None
     lower_bound_si: float | None = None
@@ -304,6 +406,9 @@ class ClaimNode:
             "uncertainty",
             "uncertainty_type",
             "sample_size",
+            "confidence",
+            "claim_probability",
+            "effective_sample_size",
             "unit",
             "value_si",
             "lower_bound_si",
@@ -317,6 +422,10 @@ class ClaimNode:
                 _condition_to_dict(condition)
                 for condition in self.checked_conditions.conditions
             ]
+        for key in ("opinion", "source_prior_opinion", "source_quality_opinion"):
+            opinion_data = _opinion_to_dict(getattr(self, key))
+            if opinion_data is not None:
+                data[key] = opinion_data
         if self.provenance is not None:
             data["provenance"] = self.provenance.to_dict()
         if self.label is not None:
@@ -353,6 +462,12 @@ class ClaimNode:
             sample_size=(
                 None if data.get("sample_size") is None else int(data["sample_size"])
             ),
+            opinion=_opinion_from_dict(data.get("opinion")),
+            confidence=data.get("confidence"),
+            claim_probability=data.get("claim_probability"),
+            effective_sample_size=data.get("effective_sample_size"),
+            source_prior_opinion=_opinion_from_dict(data.get("source_prior_opinion")),
+            source_quality_opinion=_opinion_from_dict(data.get("source_quality_opinion")),
             unit=(None if data.get("unit") is None else str(data["unit"])),
             value_si=data.get("value_si"),
             lower_bound_si=data.get("lower_bound_si"),

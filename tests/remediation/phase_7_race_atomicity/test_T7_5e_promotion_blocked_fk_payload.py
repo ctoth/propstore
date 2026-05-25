@@ -22,7 +22,7 @@ from propstore.families.claims.stages import (
     PromotionBlockedClaimFact,
     PromotionBlockedReason,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from quire.sqlalchemy_store import readonly_session, writable_session
 from tests.remediation.phase_7_race_atomicity.promotion_blocked_helpers import (
     create_world_store,
@@ -35,7 +35,7 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
 ):
     sidecar_path = tmp_path / "propstore.sqlite"
     create_world_store(sidecar_path)
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with writable_session(sidecar_path, schema) as derived:
         # Seed a claim_core row as a sibling branch would have produced
         # it, with all three payload child tables populated. This is

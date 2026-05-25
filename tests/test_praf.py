@@ -13,10 +13,19 @@ from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.opinion import Opinion
+from propstore.provenance import Provenance, ProvenanceStatus
 from tests.typed_family_fixtures import claim_from_payload, stance_from_payload
 
 
 _TEST_BASE_RATE = 0.5
+
+
+def _test_provenance(operation: str) -> Provenance:
+    return Provenance(
+        status=ProvenanceStatus.STATED,
+        witnesses=(),
+        operations=(operation,),
+    )
 
 
 def from_probability(p: float, n: float) -> Opinion:
@@ -30,10 +39,31 @@ def _probability(value: float | Opinion) -> float:
 
 
 def _claim_with_metadata(**metadata: object) -> ClaimNode:
+    opinion = None
+    opinion_keys = {
+        "opinion_belief",
+        "opinion_disbelief",
+        "opinion_uncertainty",
+        "opinion_base_rate",
+    }
+    if opinion_keys.issubset(metadata):
+        opinion = Opinion(
+            float(metadata["opinion_belief"]),
+            float(metadata["opinion_disbelief"]),
+            float(metadata["opinion_uncertainty"]),
+            float(metadata["opinion_base_rate"]),
+            _test_provenance("test_claim_opinion"),
+        )
+    attributes = tuple(
+        (key, value)
+        for key, value in metadata.items()
+        if key not in opinion_keys
+    )
     return ClaimNode(
         claim_id=ClaimId("test_claim"),
         claim_type=ClaimType.OBSERVATION,
-        attributes=tuple((key, value) for key, value in metadata.items()),
+        opinion=opinion,
+        attributes=attributes,
     )
 
 
@@ -483,8 +513,7 @@ def test_p_arg_from_claim_requires_base_rate_for_opinion_columns():
     )
 
     assert isinstance(result, NoCalibration)
-    assert result.reason == "missing_base_rate"
-    assert result.missing_fields == ("opinion_base_rate",)
+    assert result.reason == "missing_claim_calibration"
 
 
 # ---------------------------------------------------------------------------

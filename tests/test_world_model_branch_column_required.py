@@ -29,7 +29,7 @@ from pathlib import Path
 import pytest
 from tests.family_helpers import world_query_from_sqlite_path
 
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.world.model import WorldQuery
 
 
@@ -73,7 +73,7 @@ def _build_legacy_sidecar(path: Path) -> None:
 def _required_columns_by_table() -> dict[str, frozenset[str]]:
     return {
         table_name: frozenset(table.c.keys())
-        for table_name, table in world_sqlalchemy_schema().tables.items()
+        for table_name, table in world_schema().tables.items()
     }
 
 

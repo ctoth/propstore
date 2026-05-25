@@ -7,10 +7,13 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from quire.charters import FamilyModel
+from quire.artifacts import ArtifactFamily, FlatYamlPlacement
+from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyModel
+from quire.families import FamilyDefinition
 from sqlalchemy import delete, select
 
 from quire.sqlalchemy_store import DerivedSession
+from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 
 if TYPE_CHECKING:
     from propstore.families.claims.stages import PromotionBlockedClaimFact
@@ -19,6 +22,42 @@ if TYPE_CHECKING:
 
 class BuildDiagnostic(FamilyModel):
     pass
+
+
+def diagnostics_charter() -> FamilyCharter:
+    return FamilyCharter(
+        family=FamilyDefinition(
+            key="build_diagnostics",
+            name="build_diagnostics",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-build_diagnostics",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                doc_type=BuildDiagnostic,
+                placement=FlatYamlPlacement(".derived/build_diagnostics", str),
+            ),
+            identity_field="id",
+        ),
+        model=BuildDiagnostic,
+        fields=(
+            CharterField("id", int, primary_key=True, nullable=False),
+            CharterField("claim_id", str),
+            CharterField("source_kind", str, nullable=False),
+            CharterField("source_ref", str),
+            CharterField("diagnostic_kind", str, nullable=False),
+            CharterField("severity", str, nullable=False),
+            CharterField("blocking", int, nullable=False),
+            CharterField("message", str, nullable=False),
+            CharterField("file", str),
+            CharterField("detail_json", str),
+        ),
+        indexes=(
+            CharterIndex("idx_build_diagnostics_claim", ("claim_id",)),
+            CharterIndex("idx_build_diagnostics_kind", ("diagnostic_kind",)),
+            CharterIndex("idx_build_diagnostics_source", ("source_kind", "source_ref")),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    )
 
 
 @dataclass(frozen=True)

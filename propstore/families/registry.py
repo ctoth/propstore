@@ -3,8 +3,13 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
+from importlib import import_module
 from typing import TYPE_CHECKING, Any
 
+from quire.charters import charter_catalog
+from quire.schema_catalog import SchemaCatalog
+from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.artifacts import (
     ArtifactFamily,
     BranchPlacement,
@@ -1245,3 +1250,49 @@ def semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
 def semantic_address_path(name: str, repo: Repository, ref: object) -> SemanticFamilyAddress:
     family = semantic_family_by_name(name).artifact_family
     return SemanticFamilyAddress(family.address_for(repo, ref).require_path())
+
+
+@lru_cache(maxsize=1)
+def world_catalog() -> SchemaCatalog:
+    calibration = import_module("propstore.families.calibration.declaration")
+    claims = import_module("propstore.families.claims.declaration")
+    concepts = import_module("propstore.families.concepts.declaration")
+    contexts = import_module("propstore.families.contexts.declaration")
+    diagnostics = import_module("propstore.families.diagnostics.declaration")
+    embeddings = import_module("propstore.families.embeddings.declaration")
+    forms = import_module("propstore.families.forms.declaration")
+    meta = import_module("propstore.families.meta.declaration")
+    micropublications = import_module("propstore.families.micropublications.declaration")
+    relations = import_module("propstore.families.relations.declaration")
+    rules = import_module("propstore.families.rules.declaration")
+    sources = import_module("propstore.families.sources.declaration")
+
+    relation_charters = relations.relations_charters()
+    return charter_catalog(
+        meta.world_meta_charter(),
+        sources.source_charter(),
+        *concepts.concept_charters(),
+        relation_charters[0],
+        *forms.forms_charters(),
+        *contexts.context_charters(),
+        claims.claim_core_charter(),
+        claims.claim_concept_link_charter(),
+        *claims.claim_payload_charters(),
+        claims.claim_source_assertion_charter(),
+        relation_charters[1],
+        *rules.rules_charters(),
+        claims.justification_charter(),
+        *micropublications.micropublication_charters(),
+        calibration.calibration_charter(),
+        *embeddings.embedding_charters(),
+        diagnostics.diagnostics_charter(),
+        metadata={
+            "projection": "propstore.world",
+            "schema_version": meta.PROPSTORE_WORLD_SCHEMA_VERSION,
+        },
+    )
+
+
+@lru_cache(maxsize=1)
+def world_schema() -> SqlAlchemySchema:
+    return build_sqlalchemy_schema(world_catalog())

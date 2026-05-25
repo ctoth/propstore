@@ -9,15 +9,15 @@ from propstore.families.claims.declaration import (
     PromotionBlockedModels,
     write_promotion_blocked_models,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def create_world_store(path: Path) -> None:
-    create_sqlalchemy_store(path, world_sqlalchemy_schema())
+    create_sqlalchemy_store(path, world_schema())
 
 
 def flush_promotion_blocked(path: Path, rows: PromotionBlockedModels) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     handle = DerivedStoreHandle(
         projection_id="propstore.world",
         source_commit="test",

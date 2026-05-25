@@ -28,7 +28,7 @@ from pathlib import Path
 
 import pytest
 
-from propstore.families.world_charters import (
+from propstore.families.meta.declaration import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
 )

@@ -20,7 +20,6 @@ from propstore.core.id_types import (
 from propstore.families.claims.declaration import Claim
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.core.labels import Label, SupportQuality
-from propstore.families.claims.metadata import claim_metadata_value
 from propstore.world.assignment_selection_policy import resolve_assignment_selection_merge
 from propstore.world.types import (
     ArgumentationSemantics,
@@ -589,15 +588,26 @@ def _resolve_praf(
         decision_values: dict[str, float | None] = {}
         for cid in best_claims:
             claim = claim_lookup.get(cid)
-            dv = apply_decision_criterion(
-                None if claim is None else claim_metadata_value(claim, "opinion_belief"),
-                None if claim is None else claim_metadata_value(claim, "opinion_disbelief"),
-                None if claim is None else claim_metadata_value(claim, "opinion_uncertainty"),
-                None if claim is None else claim_metadata_value(claim, "opinion_base_rate"),
-                None if claim is None else claim_metadata_value(claim, "confidence"),
-                criterion=decision_criterion,
-                pessimism_index=pessimism_index,
-            )
+            if claim is None or claim.opinion is None:
+                dv = apply_decision_criterion(
+                    None,
+                    None,
+                    None,
+                    None,
+                    None,
+                    criterion=decision_criterion,
+                    pessimism_index=pessimism_index,
+                )
+            else:
+                dv = apply_decision_criterion(
+                    claim.opinion.b,
+                    claim.opinion.d,
+                    claim.opinion.u,
+                    claim.opinion.a,
+                    claim.confidence,
+                    criterion=decision_criterion,
+                    pessimism_index=pessimism_index,
+                )
             # Unpack the tagged DecisionValue for numeric tiebreaking. The
             # provenance tag (.source) is intentionally discarded here:
             # tiebreaker arithmetic does not care whether the value came

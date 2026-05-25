@@ -14,7 +14,7 @@ from propstore.core.assertions.refs import ContextReference
 from propstore.families.contexts.declaration import (
     compile_context_lifting_materializations,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.core.conditions.solver import SolverSat, SolverUnknown, SolverUnknownReason
 
@@ -99,7 +99,7 @@ def test_sidecar_materialization_rows_are_recomputed_inspection_records() -> Non
 
 
 def test_context_lifting_materialization_round_trips_through_sqlalchemy(tmp_path) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     assertion = IstProposition(
         context=ContextReference("ctx_source"),
         proposition_id="claim_alpha",

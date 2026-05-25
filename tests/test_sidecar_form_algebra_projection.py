@@ -7,11 +7,11 @@ from sqlalchemy.orm import Session
 from quire.sqlalchemy_store import create_sqlalchemy_store
 from propstore.families.forms.stages import Form, FormAlgebra
 from propstore.families.concepts.declaration import ConceptWriteModels
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def test_form_algebra_models_round_trip_with_explicit_id(tmp_path) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     rows = ConceptWriteModels(
         form_rows=(
             Form(

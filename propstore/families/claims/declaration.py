@@ -16,8 +16,18 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
-from quire.charters import FamilyModel
-from quire.references import FamilyReferenceIndex
+from quire.artifacts import ArtifactFamily, FlatYamlPlacement
+from quire.charters import (
+    CharterField,
+    CharterFtsIndex,
+    CharterIndex,
+    CharterRelationship,
+    CharterVectorCache,
+    FamilyCharter,
+    FamilyModel,
+)
+from quire.families import FamilyDefinition
+from quire.references import FamilyReferenceIndex, ForeignKeySpec, ReferenceKey
 from quire.sqlalchemy_store import DerivedSession
 from sqlalchemy import delete, select
 from propstore.claims import (
@@ -58,6 +68,7 @@ from propstore.families.diagnostics.declaration import (
     delete_promotion_blocked_diagnostics,
 )
 from propstore.families.documents.justifications import JustificationDocument
+from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import ProvenanceRecord
@@ -243,6 +254,457 @@ class ClaimAlgorithmPayload(FamilyModel):
 
 class ClaimSourceAssertion(FamilyModel):
     pass
+
+
+def claim_core_charter() -> FamilyCharter:
+    return FamilyCharter(
+        family=FamilyDefinition(
+            key="claim_core",
+            name="claim_core",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-claim_core",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                doc_type=Claim,
+                placement=FlatYamlPlacement(".derived/claim_core", str),
+            ),
+            identity_field="id",
+            reference_keys=(
+                ReferenceKey.field("primary_logical_id"),
+                ReferenceKey.field("logical_ids[].value"),
+                ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+            ),
+        ),
+        model=Claim,
+        fields=(
+            CharterField("id", str, primary_key=True, nullable=False),
+            CharterField("primary_logical_id", str, nullable=False, default_sql="''"),
+            CharterField("logical_ids_json", str, nullable=False, default_sql="'[]'"),
+            CharterField("version_id", str, nullable=False, default_sql="''"),
+            CharterField("content_hash", str, nullable=False, default_sql="''"),
+            CharterField("seq", int, nullable=False),
+            CharterField("type", ClaimType, nullable=False),
+            CharterField("target_concept", str),
+            CharterField(
+                "source_slug",
+                str,
+                foreign_key=ForeignKeySpec(
+                    name="claim_source",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    source_family="claim_core",
+                    source_field="source_slug",
+                    target_family="source",
+                    target_field="slug",
+                    required=False,
+                ),
+            ),
+            CharterField("source_paper", str, nullable=False),
+            CharterField("provenance_page", int, nullable=False),
+            CharterField("provenance_json", str),
+            CharterField("context_id", str),
+            CharterField("premise_kind", str, nullable=False, default_sql="'ordinary'"),
+            CharterField("branch", str),
+            CharterField("build_status", str, nullable=False, default_sql="'ingested'"),
+            CharterField("stage", str),
+            CharterField("promotion_status", str),
+        ),
+        indexes=(
+            CharterIndex("idx_claim_core_target", ("target_concept",)),
+            CharterIndex("idx_claim_core_type", ("type",)),
+            CharterIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)),
+            CharterIndex("idx_claim_core_build_status", ("build_status",)),
+            CharterIndex("idx_claim_core_stage", ("stage",)),
+            CharterIndex("idx_claim_core_promotion_status", ("promotion_status",)),
+        ),
+        fts_indexes=(
+            CharterFtsIndex(
+                "claim_fts",
+                "claim_id",
+                ("statement", "conditions", "expression"),
+                source_query=_CLAIM_FTS_SOURCE_QUERY,
+            ),
+        ),
+        vector_caches=(
+            CharterVectorCache(
+                "claim_embeddings",
+                table="claim_vec_{model_identity_hash}_{dimensions}",
+                entity_id_field="id",
+                source_seq_field="seq",
+                source_content_hash_field="content_hash",
+                status_table="embedding_status",
+            ),
+        ),
+        relationships=(
+            CharterRelationship(
+                "concept_links",
+                target_family="claim_concept_link",
+                foreign_key="claim_id",
+                back_populates="claim",
+                association_object=True,
+                order_by=("ordinal",),
+            ),
+            CharterRelationship(
+                "source",
+                target_family="source",
+                foreign_key="source_slug",
+                uselist=False,
+            ),
+            CharterRelationship(
+                "numeric_payload",
+                target_family="claim_numeric_payload",
+                foreign_key="claim_id",
+                back_populates="claim",
+                uselist=False,
+            ),
+            CharterRelationship(
+                "text_payload",
+                target_family="claim_text_payload",
+                foreign_key="claim_id",
+                back_populates="claim",
+                uselist=False,
+            ),
+            CharterRelationship(
+                "algorithm_payload",
+                target_family="claim_algorithm_payload",
+                foreign_key="claim_id",
+                back_populates="claim",
+                uselist=False,
+            ),
+            CharterRelationship(
+                "source_assertions",
+                target_family="claim_source_assertion",
+                foreign_key="claim_id",
+                back_populates="claim",
+                association_object=True,
+                order_by=("ordinal",),
+            ),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    )
+
+
+def claim_concept_link_charter() -> FamilyCharter:
+    return FamilyCharter(
+        family=FamilyDefinition(
+            key="claim_concept_link",
+            name="claim_concept_link",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-claim_concept_link",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                doc_type=ClaimConceptLink,
+                placement=FlatYamlPlacement(".derived/claim_concept_link", str),
+            ),
+            identity_field="claim_id",
+        ),
+        model=ClaimConceptLink,
+        fields=(
+            CharterField(
+                "claim_id",
+                str,
+                primary_key=True,
+                nullable=False,
+                foreign_key=ForeignKeySpec(
+                    name="claim_concept_link_claim",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    source_family="claim_concept_link",
+                    source_field="claim_id",
+                    target_family="claim_core",
+                    target_field="id",
+                    required=True,
+                ),
+            ),
+            CharterField(
+                "concept_id",
+                str,
+                primary_key=True,
+                nullable=False,
+                foreign_key=ForeignKeySpec(
+                    name="claim_concept_link_concept",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    source_family="claim_concept_link",
+                    source_field="concept_id",
+                    target_family="concept",
+                    target_field="id",
+                    required=True,
+                ),
+            ),
+            CharterField("role", ClaimConceptLinkRole, primary_key=True, nullable=False),
+            CharterField("ordinal", int, primary_key=True, nullable=False),
+            CharterField("binding_name", str),
+        ),
+        indexes=(
+            CharterIndex("idx_claim_concept_link_claim", ("claim_id",)),
+            CharterIndex("idx_claim_concept_link_concept", ("concept_id",)),
+            CharterIndex("idx_claim_concept_link_role", ("role",)),
+        ),
+        relationships=(
+            CharterRelationship(
+                "claim",
+                target_family="claim_core",
+                foreign_key="claim_id",
+                back_populates="concept_links",
+                uselist=False,
+            ),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    )
+
+
+def claim_payload_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter]:
+    return (
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="claim_numeric_payload",
+                name="claim_numeric_payload",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-claim_numeric_payload",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=ClaimNumericPayload,
+                    placement=FlatYamlPlacement(".derived/claim_numeric_payload", str),
+                ),
+                identity_field="claim_id",
+            ),
+            model=ClaimNumericPayload,
+            fields=(
+                CharterField(
+                    "claim_id",
+                    str,
+                    primary_key=True,
+                    nullable=False,
+                    foreign_key=ForeignKeySpec(
+                        name="claim_numeric_payload_claim",
+                        contract_version=_WORLD_CONTRACT_VERSION,
+                        source_family="claim_numeric_payload",
+                        source_field="claim_id",
+                        target_family="claim_core",
+                        target_field="id",
+                        required=True,
+                    ),
+                ),
+                CharterField("value", float),
+                CharterField("lower_bound", float),
+                CharterField("upper_bound", float),
+                CharterField("uncertainty", float),
+                CharterField("uncertainty_type", str),
+                CharterField("sample_size", int),
+                CharterField("confidence", float),
+                CharterField("unit", str),
+                CharterField("value_si", float),
+                CharterField("lower_bound_si", float),
+                CharterField("upper_bound_si", float),
+            ),
+            relationships=(
+                CharterRelationship(
+                    "claim",
+                    target_family="claim_core",
+                    foreign_key="claim_id",
+                    back_populates="numeric_payload",
+                    uselist=False,
+                ),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="claim_text_payload",
+                name="claim_text_payload",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-claim_text_payload",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=ClaimTextPayload,
+                    placement=FlatYamlPlacement(".derived/claim_text_payload", str),
+                ),
+                identity_field="claim_id",
+            ),
+            model=ClaimTextPayload,
+            fields=(
+                CharterField(
+                    "claim_id",
+                    str,
+                    primary_key=True,
+                    nullable=False,
+                    foreign_key=ForeignKeySpec(
+                        name="claim_text_payload_claim",
+                        contract_version=_WORLD_CONTRACT_VERSION,
+                        source_family="claim_text_payload",
+                        source_field="claim_id",
+                        target_family="claim_core",
+                        target_field="id",
+                        required=True,
+                    ),
+                ),
+                CharterField("conditions_cel", str),
+                CharterField("conditions_ir", str),
+                CharterField("statement", str),
+                CharterField("expression", str),
+                CharterField("sympy_generated", str),
+                CharterField("sympy_error", str),
+                CharterField("name", str),
+                CharterField("measure", str),
+                CharterField("listener_population", str),
+                CharterField("methodology", str),
+                CharterField("notes", str),
+                CharterField("description", str),
+                CharterField("auto_summary", str),
+            ),
+            relationships=(
+                CharterRelationship(
+                    "claim",
+                    target_family="claim_core",
+                    foreign_key="claim_id",
+                    back_populates="text_payload",
+                    uselist=False,
+                ),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="claim_algorithm_payload",
+                name="claim_algorithm_payload",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-claim_algorithm_payload",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=ClaimAlgorithmPayload,
+                    placement=FlatYamlPlacement(".derived/claim_algorithm_payload", str),
+                ),
+                identity_field="claim_id",
+            ),
+            model=ClaimAlgorithmPayload,
+            fields=(
+                CharterField(
+                    "claim_id",
+                    str,
+                    primary_key=True,
+                    nullable=False,
+                    foreign_key=ForeignKeySpec(
+                        name="claim_algorithm_payload_claim",
+                        contract_version=_WORLD_CONTRACT_VERSION,
+                        source_family="claim_algorithm_payload",
+                        source_field="claim_id",
+                        target_family="claim_core",
+                        target_field="id",
+                        required=True,
+                    ),
+                ),
+                CharterField("body", str),
+                CharterField("canonical_ast", str),
+                CharterField("variables_json", str),
+                CharterField(
+                    "algorithm_stage",
+                    str,
+                    metadata={"semantic_type": "propstore.core.algorithm_stage.AlgorithmStage"},
+                ),
+            ),
+            indexes=(CharterIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
+            relationships=(
+                CharterRelationship(
+                    "claim",
+                    target_family="claim_core",
+                    foreign_key="claim_id",
+                    back_populates="algorithm_payload",
+                    uselist=False,
+                ),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+    )
+
+
+def claim_source_assertion_charter() -> FamilyCharter:
+    return FamilyCharter(
+        family=FamilyDefinition(
+            key="claim_source_assertion",
+            name="claim_source_assertion",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-claim_source_assertion",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                doc_type=ClaimSourceAssertion,
+                placement=FlatYamlPlacement(".derived/claim_source_assertion", str),
+            ),
+            identity_field="claim_id",
+        ),
+        model=ClaimSourceAssertion,
+        fields=(
+            CharterField(
+                "claim_id",
+                str,
+                primary_key=True,
+                nullable=False,
+                foreign_key=ForeignKeySpec(
+                    name="claim_source_assertion_claim",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    source_family="claim_source_assertion",
+                    source_field="claim_id",
+                    target_family="claim_core",
+                    target_field="id",
+                    required=True,
+                ),
+            ),
+            CharterField("source_assertion_id", str, nullable=False),
+            CharterField("ordinal", int, primary_key=True, nullable=False),
+        ),
+        indexes=(
+            CharterIndex("idx_claim_source_assertion_claim", ("claim_id",)),
+            CharterIndex("idx_claim_source_assertion_source", ("source_assertion_id",)),
+        ),
+        relationships=(
+            CharterRelationship(
+                "claim",
+                target_family="claim_core",
+                foreign_key="claim_id",
+                back_populates="source_assertions",
+                uselist=False,
+            ),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    )
+
+
+def justification_charter() -> FamilyCharter:
+    return FamilyCharter(
+        family=FamilyDefinition(
+            key="justification",
+            name="justification",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily(
+                name="propstore-world-justification",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                doc_type=Justification,
+                placement=FlatYamlPlacement(".derived/justification", str),
+            ),
+            identity_field="id",
+        ),
+        model=Justification,
+        fields=(
+            CharterField("id", str, primary_key=True, nullable=False),
+            CharterField("justification_kind", str, nullable=False),
+            CharterField("conclusion_claim_id", str, nullable=False),
+            CharterField("premise_claim_ids", str, nullable=False),
+            CharterField("source_relation_type", str),
+            CharterField("source_claim_id", str),
+            CharterField("provenance_json", str),
+            CharterField("rule_strength", str, nullable=False, default_sql="'defeasible'"),
+        ),
+        semantic_metadata={"semantic": "propstore.world"},
+    )
+
+
+_CLAIM_FTS_SOURCE_QUERY = """
+    SELECT
+        c.id AS claim_id,
+        COALESCE(t.statement, '') AS statement,
+        COALESCE((SELECT group_concat(value, ' ') FROM json_each(t.conditions_cel)), '') AS conditions,
+        COALESCE(t.expression, '') AS expression
+    FROM claim_core c
+    JOIN claim_text_payload t ON t.claim_id = c.id
+    ORDER BY c.seq
+"""
 
 
 @dataclass(frozen=True)

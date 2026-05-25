@@ -4,11 +4,11 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from quire.sqlalchemy_store import create_sqlalchemy_store
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def test_relation_edge_models_round_trip_without_concept_populator(tmp_path) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     relation_edge_model = schema.model("relation_edge")
     relation_edge = relation_edge_model(
         source_kind="concept",

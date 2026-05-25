@@ -16,7 +16,7 @@ from sqlalchemy import text
 from propstore.merge.merge_commit import create_merge_commit
 from propstore.repository import Repository
 from propstore.compiler.workflows import write_repository_world_store as build_sidecar
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from tests.git_store_helpers import init_store
 from propstore.storage.snapshot import RepositorySnapshot
 from tests.ws_l_merge_helpers import claim_payloads
@@ -174,7 +174,7 @@ class FullRaceMachine(RuleBasedStateMachine):
         sidecar_path = repo.root / ".tmp-race-suite.sqlite"
         assert sidecar_path.exists()
         assert sidecar_path.with_suffix(".hash").exists()
-        with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        with readonly_session(sidecar_path, world_schema()) as derived:
             schema_version = derived.session.execute(
                 text("SELECT schema_version FROM meta WHERE key = 'sidecar'")
             ).fetchone()

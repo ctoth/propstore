@@ -81,7 +81,7 @@ class TestInit:
             claim_type=claim_types.ClaimType.PARAMETER,
             sample_size=10,
             uncertainty=0.2,
-            attributes=(("confidence", 0.8),),
+            confidence=0.8,
         )
 
         assert preference.claim_strength(claim).dimensions == (

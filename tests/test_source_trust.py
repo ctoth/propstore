@@ -15,10 +15,11 @@ from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.families.registry import ClaimRef
 from propstore.opinion import Opinion
 from propstore.praf import NoCalibration, p_arg_from_claim
+from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.source.common import initial_source_document
 from tests.family_helpers import materialized_world_store_path
 from propstore.cli import cli
@@ -31,11 +32,60 @@ def _prior_payload(a: float = 0.62) -> dict[str, float]:
     return {"b": 0.0, "d": 0.0, "u": 1.0, "a": a}
 
 
+def _test_provenance(operation: str) -> Provenance:
+    return Provenance(
+        status=ProvenanceStatus.STATED,
+        witnesses=(),
+        operations=(operation,),
+    )
+
+
+def _opinion_from_payload(payload: object, operation: str) -> Opinion:
+    if isinstance(payload, Opinion):
+        return payload
+    if not isinstance(payload, dict):
+        raise ValueError(f"{operation} must be an opinion mapping")
+    required = {"b", "d", "u", "a"}
+    if not required.issubset(payload):
+        raise ValueError(f"{operation} must contain b, d, u, and a")
+    return Opinion(
+        float(payload["b"]),
+        float(payload["d"]),
+        float(payload["u"]),
+        float(payload["a"]),
+        _test_provenance(operation),
+    )
+
+
 def _claim_with_metadata(**metadata: object) -> ClaimNode:
+    typed_keys = {
+        "source_prior_base_rate",
+        "source_quality_opinion",
+        "claim_probability",
+        "effective_sample_size",
+        "confidence",
+        "sample_size",
+    }
     return ClaimNode(
         claim_id=ClaimId("test_claim"),
         claim_type=ClaimType.OBSERVATION,
-        attributes=tuple((key, value) for key, value in metadata.items()),
+        source_prior_opinion=(
+            _opinion_from_payload(metadata["source_prior_base_rate"], "source_prior_base_rate")
+            if "source_prior_base_rate" in metadata
+            else None
+        ),
+        source_quality_opinion=(
+            _opinion_from_payload(metadata["source_quality_opinion"], "source_quality_opinion")
+            if "source_quality_opinion" in metadata
+            else None
+        ),
+        claim_probability=metadata.get("claim_probability"),
+        effective_sample_size=metadata.get("effective_sample_size"),
+        confidence=metadata.get("confidence"),
+        sample_size=metadata.get("sample_size"),
+        attributes=tuple(
+            (key, value) for key, value in metadata.items() if key not in typed_keys
+        ),
     )
 
 
@@ -105,7 +155,7 @@ def test_p_arg_from_claim_discounts_claim_by_source_quality() -> None:
     assert actual.provenance is not None
 
 
-def test_p_arg_from_claim_uses_source_trust_mapping() -> None:
+def test_p_arg_from_claim_ignores_source_trust_mapping() -> None:
     claim = _claim_with_metadata(
         source={
             "trust": {
@@ -121,12 +171,9 @@ def test_p_arg_from_claim_uses_source_trust_mapping() -> None:
         claim_probability=0.8,
         effective_sample_size=10,
     )
-    expected_claim = Opinion.from_probability(0.8, 10, 0.62)
-    expected = Opinion(0.7, 0.1, 0.2, 0.5).discount(expected_claim)
     actual = p_arg_from_claim(claim)
-    assert isinstance(actual, Opinion)
-    assert actual == expected
-    assert actual.provenance is not None
+    assert isinstance(actual, NoCalibration)
+    assert actual.reason == "missing_base_rate"
 
 
 def test_p_arg_from_claim_invalid_typed_input_propagates() -> None:
@@ -398,7 +445,7 @@ def test_world_query_claim_source_does_not_fabricate_source_prior(tmp_path: Path
     wm = WorldQuery(repo)
     try:
         claim = wm.get_claim(claim_id)
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         source_model = schema.model("source")
         with wm._derived_store.readonly_session(schema) as derived:
             source = derived.execute(

@@ -8,7 +8,7 @@ from quire.derived_store import DerivedStoreHandle
 from quire.sqlalchemy_store import create_sqlalchemy_store
 from sqlalchemy import select
 from propstore.core.store_results import ConceptSimilarityHit
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.app.concepts import (
     ConceptEmbedRequest,
     ConceptSearchRequest,
@@ -34,7 +34,7 @@ def test_search_concepts_uses_quire_fts_session(
 ) -> None:
     repo = _repo_with_sidecar(tmp_path)
     calls: list[tuple[str, int]] = []
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     concept_model = schema.model("concept")
     store_path = tmp_path / "search-sidecar.sqlite"
     create_sqlalchemy_store(store_path, schema)

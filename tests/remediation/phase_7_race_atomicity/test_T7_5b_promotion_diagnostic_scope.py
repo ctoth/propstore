@@ -11,7 +11,7 @@ from propstore.families.claims.stages import (
 )
 from quire.sqlalchemy_store import readonly_session, writable_session
 from sqlalchemy import text
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from tests.remediation.phase_7_race_atomicity.promotion_blocked_helpers import (
     create_world_store,
     flush_promotion_blocked,
@@ -21,7 +21,7 @@ from tests.remediation.phase_7_race_atomicity.promotion_blocked_helpers import (
 def test_promotion_blocked_diagnostic_delete_is_scoped_to_source_branch(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
     create_world_store(sidecar_path)
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with writable_session(sidecar_path, schema) as derived:
         derived.session.execute(
             text(

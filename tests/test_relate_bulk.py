@@ -14,7 +14,7 @@ from propstore.families.claims.sidecar_runtime import (
     claim_text_by_id,
     claim_texts_by_id,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 FIXTURE_CLAIMS = (
@@ -29,7 +29,7 @@ FIXTURE_CLAIMS = (
 @pytest.fixture
 def handle(tmp_path: Path) -> DerivedStoreHandle:
     sqlite_path = tmp_path / "sidecar.sqlite"
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     create_sqlalchemy_store(sqlite_path, schema)
     handle = DerivedStoreHandle(
         projection_id="propstore.world.test",

@@ -8,7 +8,7 @@ def test_sidecar_cache_key_document_contains_derived_inputs() -> None:
     key_inputs = {
         "source_revision": "rev-a",
         "sidecar_schema_version": build_module.PROPSTORE_WORLD_SCHEMA_VERSION,
-        "generated_schema_version": build_module.world_sqlalchemy_schema().catalog_hash,
+        "generated_schema_version": build_module.world_schema().catalog_hash,
         "passes": build_module._semantic_pass_versions(),
         "family_contract_versions": build_module._family_contract_versions(),
         "dependency_pins": build_module.read_dependency_pins(

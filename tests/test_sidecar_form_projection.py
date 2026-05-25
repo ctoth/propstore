@@ -8,11 +8,11 @@ from quire.sqlalchemy_store import create_sqlalchemy_store
 from propstore.core.conditions.registry import KindType
 from propstore.families.forms.stages import Form, FormDefinition
 from propstore.families.concepts.declaration import compile_concept_sidecar_rows
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def test_form_models_are_typed_and_round_trip_dimensions(tmp_path) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     rows = compile_concept_sidecar_rows(
         concepts=[],
         form_registry={

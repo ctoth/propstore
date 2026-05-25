@@ -41,7 +41,7 @@ from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.stances import StanceType
 from tests.conftest import make_claim_identity, write_test_context
 from tests.sidecar_schema_helpers import build_world_projection_schema, insert_minimal_source
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.world import (
     WorldStore,
     BeliefSpace,
@@ -2864,7 +2864,7 @@ def _phase6_bound_world(tmp_path, policy: RenderPolicy) -> BoundWorld:
     try:
         build_world_projection_schema(conn)
         insert_minimal_source(conn, slug="paper1", source_id="paper1")
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         engine = create_engine("sqlite://", creator=lambda: conn)
         with engine.begin() as sql_conn:
             sql_conn.execute(

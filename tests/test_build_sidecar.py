@@ -23,7 +23,7 @@ from propstore.families.documents.sources import (
 )
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.repository import Repository
 from propstore.provenance import ProvenanceStatus
 from propstore.families.diagnostics.authoring_lints import collect_authoring_lints
@@ -1944,7 +1944,7 @@ class TestConceptFormMetadata:
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         assert "is_dimensionless" in {
-            column.name for column in world_sqlalchemy_schema().table("concept").columns
+            column.name for column in world_schema().table("concept").columns
         }
 
     def test_frequency_concept_not_dimensionless(self, concept_dir, knowledge_reader, sidecar_path):
@@ -1967,7 +1967,7 @@ class TestConceptFormMetadata:
         self._setup_forms(concept_dir)
         build_sidecar(knowledge_reader, sidecar_path, force=True)
         assert "unit_symbol" in {
-            column.name for column in world_sqlalchemy_schema().table("concept").columns
+            column.name for column in world_schema().table("concept").columns
         }
 
     def test_frequency_concept_unit_symbol(self, concept_dir, knowledge_reader, sidecar_path):

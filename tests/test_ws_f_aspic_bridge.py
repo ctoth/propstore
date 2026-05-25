@@ -44,7 +44,9 @@ from propstore.core.graph_types import WorldActivationGraph, ClaimNode, Compiled
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import claim_key
 from propstore.grounding.bundle import GroundedRulesBundle
+from propstore.opinion import Opinion
 from propstore.probabilistic_relations import ClaimGraphRelations
+from propstore.provenance import Provenance, ProvenanceStatus
 from propstore.structured_projection import (
     StructuredProjection,
     compute_structured_justified_arguments,
@@ -484,7 +486,17 @@ def _minimal_praf_shared_input() -> SharedAnalyzerInput:
     claim_a = ClaimNode(
         claim_id="claim_a",
         claim_type="observation",
-        attributes={"source_prior_base_rate": prior},
+        source_prior_opinion=Opinion(
+            prior["b"],
+            prior["d"],
+            prior["u"],
+            prior["a"],
+            Provenance(
+                status=ProvenanceStatus.STATED,
+                witnesses=(),
+                operations=("test_fixture",),
+            ),
+        ),
     )
     active_graph = WorldActivationGraph(
         compiled=CompiledWorldGraph(

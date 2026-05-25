@@ -8,7 +8,7 @@ from typing import Any
 from sqlalchemy import select
 
 from quire.derived_store import DerivedStoreHandle
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def embed_claims_for_request(
@@ -74,7 +74,7 @@ def claim_texts_by_id(
 ) -> dict[str, dict[str, Any]]:
     if not claim_ids:
         return {}
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     claim = schema.model("claim_core")
     with derived_store.readonly_session(schema) as derived:
         rows = tuple(
@@ -112,7 +112,7 @@ def claim_text_by_id(
 
 
 def all_claim_ids(derived_store: DerivedStoreHandle) -> tuple[str, ...]:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     claim = schema.model("claim_core")
     with derived_store.readonly_session(schema) as derived:
         return tuple(

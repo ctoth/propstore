@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def _required_columns_by_table() -> dict[str, frozenset[str]]:
     return {
         table_name: frozenset(table.c.keys())
-        for table_name, table in world_sqlalchemy_schema().tables.items()
+        for table_name, table in world_schema().tables.items()
     }
 
 

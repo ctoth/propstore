@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any
 
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
-from propstore import dimensions as dimension_api
+import propstore.dimensions as dimension_api
 from propstore.core.conditions.registry import KindType
 from propstore.families.forms.documents import FormDocument
 from propstore.propagation import rewrite_parameterization_symbols

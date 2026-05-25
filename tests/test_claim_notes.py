@@ -17,7 +17,7 @@ from quire.sqlalchemy_store import readonly_session
 from tests.family_helpers import build_sidecar
 from tests.family_helpers import load_claim_files
 from tests.family_helpers import world_query_from_sqlite_path
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.families.claims.passes import validate_claims
 from tests.conftest import (
     TEST_CONTEXT_ID,
@@ -207,7 +207,7 @@ class TestClaimNotesSidecar:
 
         build_sidecar(knowledge, sidecar_path, force=True)
 
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         text_payload = schema.model("claim_text_payload")
         assert "notes" in {
             column.name for column in schema.table("claim_text_payload").columns
@@ -337,7 +337,7 @@ class TestClaimNotesProperties:
             sidecar_path = tmp_path / "sidecar" / "propstore.sqlite"
             build_sidecar(knowledge, sidecar_path, force=True)
 
-            schema = world_sqlalchemy_schema()
+            schema = world_schema()
             text_payload = schema.model("claim_text_payload")
             with readonly_session(sidecar_path, schema) as derived:
                 row = derived.execute(

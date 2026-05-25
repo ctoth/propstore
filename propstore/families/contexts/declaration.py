@@ -6,8 +6,10 @@ import json
 from collections.abc import Mapping, Sequence
 
 from sqlalchemy import select
-from quire.charters import FamilyModel
+from quire.artifacts import ArtifactFamily, FlatYamlPlacement
+from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyModel
 from quire.derived_store import DerivedStoreHandle
+from quire.families import FamilyDefinition
 
 from propstore.context_lifting import (
     IstProposition,
@@ -24,6 +26,7 @@ from propstore.families.contexts.stages import (
     LoadedContext,
     loaded_contexts_to_lifting_system,
 )
+from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 
 
 class Context(FamilyModel):
@@ -45,6 +48,114 @@ class ContextLiftingMaterialization(FamilyModel):
         if not isinstance(loaded, Mapping):
             raise TypeError("context lifting provenance must be a JSON object")
         return dict(loaded)
+
+
+def context_charters() -> tuple[FamilyCharter, ...]:
+    return (
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="context",
+                name="context",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-context",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=Context,
+                    placement=FlatYamlPlacement(".derived/context", str),
+                ),
+                identity_field="id",
+            ),
+            model=Context,
+            fields=(
+                CharterField("id", str, primary_key=True, nullable=False),
+                CharterField("name", str, nullable=False),
+                CharterField("description", str),
+                CharterField("parameters_json", str),
+                CharterField("perspective", str),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="context_assumption",
+                name="context_assumption",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-context_assumption",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=ContextAssumption,
+                    placement=FlatYamlPlacement(".derived/context_assumption", str),
+                ),
+                identity_field="context_id",
+            ),
+            model=ContextAssumption,
+            fields=(
+                CharterField("context_id", str, nullable=False),
+                CharterField("assumption_cel", str, nullable=False),
+                CharterField("seq", int, nullable=False),
+            ),
+            indexes=(CharterIndex("idx_context_assumption_context_id", ("context_id",)),),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="context_lifting_rule",
+                name="context_lifting_rule",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-context_lifting_rule",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=ContextLiftingRule,
+                    placement=FlatYamlPlacement(".derived/context_lifting_rule", str),
+                ),
+                identity_field="id",
+            ),
+            model=ContextLiftingRule,
+            fields=(
+                CharterField("id", str, primary_key=True, nullable=False),
+                CharterField("source_context_id", str, nullable=False),
+                CharterField("target_context_id", str, nullable=False),
+                CharterField("conditions_cel", str),
+                CharterField("mode", str, nullable=False),
+                CharterField("justification", str),
+            ),
+            indexes=(
+                CharterIndex("idx_context_lifting_rule_source_context_id", ("source_context_id",)),
+                CharterIndex("idx_context_lifting_rule_target_context_id", ("target_context_id",)),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="context_lifting_materialization",
+                name="context_lifting_materialization",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-context_lifting_materialization",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=ContextLiftingMaterialization,
+                    placement=FlatYamlPlacement(".derived/context_lifting_materialization", str),
+                ),
+                identity_field="id",
+            ),
+            model=ContextLiftingMaterialization,
+            fields=(
+                CharterField("id", int, primary_key=True, nullable=False),
+                CharterField("rule_id", str, nullable=False),
+                CharterField("source_context_id", str, nullable=False),
+                CharterField("target_context_id", str, nullable=False),
+                CharterField("proposition_id", str, nullable=False),
+                CharterField("status", str, nullable=False),
+                CharterField("exception_id", str),
+                CharterField("provenance_json", str, nullable=False),
+            ),
+            indexes=(
+                CharterIndex("idx_context_lifting_materialization_source_context_id", ("source_context_id",)),
+                CharterIndex("idx_context_lifting_materialization_target_context_id", ("target_context_id",)),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+    )
 
 
 ContextModelBatches = tuple[
@@ -185,9 +296,9 @@ def compile_context_lifting_materializations(
 
 
 def load_lifting_system(derived_store: DerivedStoreHandle) -> LiftingSystem | None:
-    from propstore.families.world_charters import world_sqlalchemy_schema
+    from propstore.families.registry import world_schema
 
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     context_model = schema.model("context")
     assumption_model = schema.model("context_assumption")
     lifting_rule_model = schema.model("context_lifting_rule")

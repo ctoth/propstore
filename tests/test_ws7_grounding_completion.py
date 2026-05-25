@@ -199,16 +199,16 @@ def test_ws7_sidecar_runtime_bundle_preserves_four_statuses(tmp_path: Path) -> N
         load_grounded_sections,
         persist_grounded_bundle,
     )
-    from propstore.families.world_charters import world_sqlalchemy_schema
+    from propstore.families.registry import world_schema
 
     sidecar_path = tmp_path / "ws7-grounding.sqlite"
-    create_sqlalchemy_store(sidecar_path, world_sqlalchemy_schema())
+    create_sqlalchemy_store(sidecar_path, world_schema())
     bundle = _bundle_with_four_statuses()
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         persist_grounded_bundle(derived, bundle)
         derived.session.commit()
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         restored = load_grounded_sections(derived)
 
     assert restored == bundle.sections
@@ -220,16 +220,18 @@ def test_ws7_world_model_reads_grounding_bundle_from_sidecar(
     from propstore.families.rules.declaration import (
         persist_grounded_bundle,
     )
-    from propstore.families.world_charters import (
+    from propstore.families.meta.declaration import (
         PROPSTORE_WORLD_META_KEY,
         PROPSTORE_WORLD_SCHEMA_VERSION,
         WorldMeta,
-        world_sqlalchemy_schema,
+    )
+    from propstore.families.registry import (
+        world_schema,
     )
 
     sidecar_path = tmp_path / "propstore.sqlite"
-    create_sqlalchemy_store(sidecar_path, world_sqlalchemy_schema())
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    create_sqlalchemy_store(sidecar_path, world_schema())
+    with writable_session(sidecar_path, world_schema()) as derived:
         derived.add(
             WorldMeta(
                 key=PROPSTORE_WORLD_META_KEY,

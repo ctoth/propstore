@@ -6,16 +6,16 @@ from sqlite3 import Connection
 
 from sqlalchemy import create_engine, insert, text
 
-from propstore.families.sources.declaration import SourceOrigin, SourceTrust
-from propstore.families.world_charters import (
+from propstore.families.meta.declaration import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
-    world_sqlalchemy_schema,
 )
+from propstore.families.registry import world_schema
+from propstore.families.sources.declaration import SourceOrigin, SourceTrust
 
 
 def build_world_projection_schema(conn: Connection) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     engine = create_engine("sqlite://", creator=lambda: conn)
     schema.metadata.create_all(engine)
     with engine.begin() as sql_conn:
@@ -67,7 +67,7 @@ def insert_minimal_source(
     origin_value: str = "fixture",
     trust_status: str = "stated",
 ) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     engine = create_engine("sqlite://", creator=lambda: conn)
     with engine.begin() as sql_conn:
         sql_conn.execute(

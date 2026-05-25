@@ -19,7 +19,7 @@ from propstore.families.sources.declaration import (
     SourceTrust,
     compile_source_models,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def test_source_models_round_trip_through_charter_session(tmp_path: Path) -> None:
@@ -47,7 +47,7 @@ def test_source_models_round_trip_through_charter_session(tmp_path: Path) -> Non
         artifact_code="sha256:source-alpha",
     )
 
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     sources = compile_source_models((("alpha", source),))
 
     assert len(sources) == 1

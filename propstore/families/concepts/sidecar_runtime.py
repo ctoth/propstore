@@ -6,7 +6,7 @@ from collections.abc import Callable
 from typing import Any
 
 from quire.derived_store import DerivedStoreHandle
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def embed_concepts_for_request(
@@ -29,7 +29,7 @@ def embed_concepts_for_request(
     reports: list[tuple[str, Any]] = []
     ids = None
     if concept_id:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         try:
             with derived_store.readonly_session(schema) as derived:
                 resolved = schema.require_reference_id(

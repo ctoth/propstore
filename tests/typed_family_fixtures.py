@@ -13,18 +13,57 @@ from propstore.families.claims.declaration import (
     ClaimTextPayload,
 )
 from propstore.families.relations.declaration import Stance
+from propstore.opinion import Opinion
+from propstore.provenance import Provenance, ProvenanceStatus
 
 _CLAIM_GRAPH_METADATA_KEYS = (
-    "confidence",
-    "claim_probability",
-    "effective_sample_size",
-    "source_prior_base_rate",
-    "source_quality_opinion",
-    "opinion_belief",
-    "opinion_disbelief",
-    "opinion_uncertainty",
-    "opinion_base_rate",
 )
+
+
+def _test_provenance(operation: str) -> Provenance:
+    return Provenance(
+        status=ProvenanceStatus.STATED,
+        witnesses=(),
+        operations=(operation,),
+    )
+
+
+def _opinion_from_payload(value: Any, operation: str) -> Opinion:
+    if isinstance(value, Opinion):
+        return value
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{operation} must be an opinion mapping")
+    required = {"b", "d", "u", "a"}
+    if not required.issubset(value):
+        raise ValueError(f"{operation} must contain b, d, u, and a")
+    return Opinion(
+        float(value["b"]),
+        float(value["d"]),
+        float(value["u"]),
+        float(value["a"]),
+        _test_provenance(operation),
+    )
+
+
+def _claim_opinion_from_payload(payload: Mapping[str, Any]) -> Opinion | None:
+    if "opinion" in payload:
+        return _opinion_from_payload(payload["opinion"], "claim_opinion_columns")
+    keys = (
+        "opinion_belief",
+        "opinion_disbelief",
+        "opinion_uncertainty",
+        "opinion_base_rate",
+    )
+    if not all(key in payload for key in keys):
+        return None
+    return Opinion(
+        float(payload["opinion_belief"]),
+        float(payload["opinion_disbelief"]),
+        float(payload["opinion_uncertainty"]),
+        float(payload["opinion_base_rate"]),
+        _test_provenance("claim_opinion_columns"),
+        allow_dogmatic=float(payload["opinion_uncertainty"]) <= 1e-9,
+    )
 
 
 def claim_from_payload(payload: Mapping[str, Any]) -> Claim:
@@ -114,6 +153,26 @@ def claim_node_from_payload(payload: Mapping[str, Any]) -> ClaimNode:
         uncertainty=node.uncertainty,
         uncertainty_type=node.uncertainty_type,
         sample_size=node.sample_size,
+        opinion=_claim_opinion_from_payload(payload),
+        confidence=node.confidence,
+        claim_probability=payload.get("claim_probability"),
+        effective_sample_size=payload.get("effective_sample_size"),
+        source_prior_opinion=(
+            _opinion_from_payload(
+                payload["source_prior_base_rate"],
+                "source_prior_base_rate",
+            )
+            if "source_prior_base_rate" in payload
+            else None
+        ),
+        source_quality_opinion=(
+            _opinion_from_payload(
+                payload["source_quality_opinion"],
+                "source_quality_opinion",
+            )
+            if "source_quality_opinion" in payload
+            else None
+        ),
         unit=node.unit,
         value_si=node.value_si,
         lower_bound_si=node.lower_bound_si,

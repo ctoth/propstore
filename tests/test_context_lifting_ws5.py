@@ -18,7 +18,7 @@ from propstore.families.contexts.declaration import (
     compile_context_models,
 )
 from propstore.families.contexts.stages import LoadedContext
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from propstore.core.conditions.solver import (
@@ -238,7 +238,7 @@ def test_bound_world_projection_honors_local_lifting_exception() -> None:
 
 
 def test_sidecar_stores_lifting_materialization_provenance(tmp_path) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     source = ContextReference("ctx_source")
     target = ContextReference("ctx_target")
     system = LiftingSystem(

@@ -27,10 +27,10 @@ def test_sidecar_embedding_registry_stores_typed_identity_rows(tmp_path: Path) -
     from quire.sqlalchemy_store import create_sqlalchemy_store, writable_session
 
     from propstore.families.embeddings.declaration import EmbeddingModel
-    from propstore.families.world_charters import world_sqlalchemy_schema
+    from propstore.families.registry import world_schema
     from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
 
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     store_path = tmp_path / "embedding-models.sqlite"
     create_sqlalchemy_store(store_path, schema)
 

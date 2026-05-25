@@ -9,14 +9,14 @@ from sqlalchemy.orm import Session
 
 from quire.sqlalchemy_store import create_sqlalchemy_store, validate_sqlalchemy_store
 
-from propstore.families.world_charters import (
-    world_sqlalchemy_schema,
+from propstore.families.registry import (
+    world_schema,
 )
 from propstore.families.sources.declaration import Source, SourceTrust
 
 
 def test_world_charter_generates_deterministic_tables_and_indexes() -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     table = schema.table("claim_concept_link")
 
     assert tuple(table.primary_key.columns.keys()) == (
@@ -44,7 +44,7 @@ def test_world_charter_generates_deterministic_tables_and_indexes() -> None:
 
 def test_world_charter_maps_models_and_round_trips_rows(tmp_path: Path) -> None:
     db_path = tmp_path / "world.sqlite"
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
 
     create_sqlalchemy_store(db_path, schema)
     engine = create_engine(f"sqlite:///{db_path.as_posix()}", future=True)
@@ -74,7 +74,7 @@ def test_world_charter_maps_models_and_round_trips_rows(tmp_path: Path) -> None:
 
 
 def test_world_charter_store_validation_reports_missing_tables_and_columns(tmp_path: Path) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     db_path = tmp_path / "world.sqlite"
 
     create_sqlalchemy_store(db_path, schema)
@@ -97,7 +97,7 @@ def test_world_charter_store_validation_reports_missing_tables_and_columns(tmp_p
 
 
 def test_world_charter_fts_indexes_are_generated_from_source_queries() -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     concept_fts = schema.fts_index("concept_fts")
     claim_fts = schema.fts_index("claim_fts")
 
@@ -126,7 +126,7 @@ def test_world_charter_fts_indexes_are_generated_from_source_queries() -> None:
 
 
 def test_world_charter_schema_hash_material_is_deterministic() -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
 
     assert schema.catalog.schema_hash() == schema.catalog.schema_hash()
     assert schema.catalog_hash == schema.catalog.schema_hash()
@@ -137,7 +137,7 @@ def test_world_charter_schema_hash_material_is_deterministic() -> None:
 
 
 def test_world_charter_maps_no_database_primary_key_tables() -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     table = schema.table("relationship")
     model = schema.model("relationship")
 
@@ -148,7 +148,7 @@ def test_world_charter_maps_no_database_primary_key_tables() -> None:
 
 def test_world_charter_store_creates_schema_catalog(tmp_path: Path) -> None:
     db_path = tmp_path / "world.sqlite"
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
 
     create_sqlalchemy_store(db_path, schema)
     engine = create_engine(f"sqlite:///{db_path.as_posix()}", future=True)
@@ -167,7 +167,7 @@ def test_world_charter_store_creates_schema_catalog(tmp_path: Path) -> None:
 
 def test_world_charter_schema_catalog_hash_is_persisted(tmp_path: Path) -> None:
     db_path = tmp_path / "world.sqlite"
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
 
     create_sqlalchemy_store(db_path, schema)
     conn = sqlite3.connect(db_path)

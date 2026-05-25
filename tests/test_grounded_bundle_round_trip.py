@@ -17,8 +17,8 @@ from propstore.families.rules.declaration import (
     load_grounded_bundle,
     persist_grounded_bundle,
 )
-from propstore.families.world_charters import (
-    world_sqlalchemy_schema,
+from propstore.families.registry import (
+    world_schema,
 )
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
@@ -26,7 +26,7 @@ from propstore.grounding.predicates import PredicateRegistry
 
 def _fresh_store(tmp_path: Path) -> Path:
     sidecar_path = tmp_path / "propstore.sqlite"
-    create_sqlalchemy_store(sidecar_path, world_sqlalchemy_schema())
+    create_sqlalchemy_store(sidecar_path, world_schema())
     return sidecar_path
 
 
@@ -55,11 +55,11 @@ def test_grounded_bundle_rehydrates_inputs_and_arguments(tmp_path: Path) -> None
     bundle = _birds_fly_bundle()
     sidecar_path = _fresh_store(tmp_path)
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         persist_grounded_bundle(derived, bundle)
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         restored = load_grounded_bundle(derived)
 
     assert restored.source_rules == bundle.source_rules
@@ -75,11 +75,11 @@ def test_grounded_bundle_persists_gunray_arguments_without_pickle(
     bundle = _birds_fly_bundle()
     sidecar_path = _fresh_store(tmp_path)
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         persist_grounded_bundle(derived, bundle)
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         table = derived.schema.table("grounded_bundle_input")
         stored_payloads = derived.session.execute(
             select(GroundedBundleInput)

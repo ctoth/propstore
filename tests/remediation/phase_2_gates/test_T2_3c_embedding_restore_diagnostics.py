@@ -11,7 +11,7 @@ import yaml
 
 from propstore.repository import Repository
 from propstore.compiler.workflows import write_repository_world_store as build_sidecar
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 @pytest.mark.parametrize(
@@ -57,7 +57,7 @@ def test_embedding_restore_failures_write_diagnostics(
     ):
         assert build_sidecar(repo, sidecar_path, force=True) is True
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         rows = derived.session.execute(
             text(
                 """

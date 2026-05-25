@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import dataclasses
 from collections.abc import Callable, Sequence
+from importlib import import_module
 from pathlib import Path
+from typing import Any, TypeAlias
 
-from quire.charters import FamilyModel
+from quire.artifacts import ArtifactFamily, FlatYamlPlacement
+from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyModel
 from quire.derived_store import DerivedStoreHandle
+from quire.families import FamilyDefinition
 from sqlalchemy import select
 from quire.sqlalchemy_store import readonly_session
 from quire.sqlite_vec_store import (
@@ -29,14 +33,10 @@ from propstore.core.id_types import (
     ConceptId,
 )
 from propstore.core.store_results import ClaimSimilarityHit, ConceptSimilarityHit
-from propstore.heuristic.embed import (
-    _embed_entities,
-    _find_similar_agree_generic,
-    _find_similar_disagree_generic,
-    _find_similar_entities,
-)
-from propstore.heuristic.embedding_identity import EmbeddingModelIdentity
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
+from propstore.families.registry import world_schema
+
+EmbeddingModelIdentity: TypeAlias = Any
 
 
 class EmbeddingModel(FamilyModel):
@@ -49,6 +49,86 @@ class EmbeddingStatus(FamilyModel):
 
 class ConceptEmbeddingStatus(FamilyModel):
     pass
+
+
+def _heuristic_embed() -> Any:
+    return import_module("propstore.heuristic.embed")
+
+
+def embedding_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter]:
+    return (
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="embedding_model",
+                name="embedding_model",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-embedding_model",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=EmbeddingModel,
+                    placement=FlatYamlPlacement(".derived/embedding_model", str),
+                ),
+                identity_field="model_identity_hash",
+            ),
+            model=EmbeddingModel,
+            fields=(
+                CharterField("model_identity_hash", str, primary_key=True, nullable=False),
+                CharterField("provider", str, nullable=False),
+                CharterField("model_name", str, nullable=False),
+                CharterField("model_version", str, nullable=False, default_sql="''"),
+                CharterField("content_digest", str, nullable=False),
+                CharterField("dimensions", int, nullable=False),
+                CharterField("created_at", str, nullable=False),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="embedding_status",
+                name="embedding_status",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-embedding_status",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=EmbeddingStatus,
+                    placement=FlatYamlPlacement(".derived/embedding_status", str),
+                ),
+                identity_field="model_identity_hash",
+            ),
+            model=EmbeddingStatus,
+            fields=(
+                CharterField("model_identity_hash", str, primary_key=True, nullable=False),
+                CharterField("claim_id", str, primary_key=True, nullable=False),
+                CharterField("content_hash", str, nullable=False),
+                CharterField("embedded_at", str, nullable=False),
+            ),
+            indexes=(CharterIndex("idx_embedding_status_model_identity", ("model_identity_hash",)),),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="concept_embedding_status",
+                name="concept_embedding_status",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-concept_embedding_status",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=ConceptEmbeddingStatus,
+                    placement=FlatYamlPlacement(".derived/concept_embedding_status", str),
+                ),
+                identity_field="model_identity_hash",
+            ),
+            model=ConceptEmbeddingStatus,
+            fields=(
+                CharterField("model_identity_hash", str, primary_key=True, nullable=False),
+                CharterField("concept_id", str, primary_key=True, nullable=False),
+                CharterField("content_hash", str, nullable=False),
+                CharterField("embedded_at", str, nullable=False),
+            ),
+            indexes=(CharterIndex("idx_concept_embedding_status_model_identity", ("model_identity_hash",)),),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+    )
 
 
 @dataclasses.dataclass
@@ -104,7 +184,7 @@ def _load_claim_embedding_entities(
     derived_store: DerivedStoreHandle,
     entity_ids: Sequence[str] | None = None,
 ) -> list[EmbeddingEntity]:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     claim = schema.model("claim_core")
     entities: list[EmbeddingEntity] = []
     with derived_store.readonly_session(schema) as derived:
@@ -130,7 +210,7 @@ def _load_concept_embedding_entities(
     derived_store: DerivedStoreHandle,
     entity_ids: Sequence[str] | None = None,
 ) -> list[EmbeddingEntity]:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     concept = schema.model("concept")
     alias = schema.model("alias")
     entities: list[EmbeddingEntity] = []
@@ -173,7 +253,7 @@ def _existing_content_hashes(
     cache_name: str,
     model_identity: EmbeddingModelIdentity,
 ) -> dict[str, str]:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with derived_store.readonly_session(schema) as derived:
         return SqlAlchemyVecEntityStore(
             derived.session.connection(),
@@ -188,7 +268,7 @@ def _prepare_model(
     dimensions: int,
     created_at: str,
 ) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with derived_store.writable_session(schema) as derived:
         SqlAlchemyVecEntityStore(
             derived.session.connection(),
@@ -209,7 +289,7 @@ def _save_embedding(
     vector_blob: bytes,
     embedded_at: str,
 ) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with derived_store.writable_session(schema) as derived:
         SqlAlchemyVecEntityStore(
             derived.session.connection(),
@@ -230,7 +310,7 @@ def _embedding_entity_key(
     family_name: str,
     entity_id: str,
 ) -> tuple[str, int]:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     model = schema.model(family_name)
     with derived_store.readonly_session(schema) as derived:
         resolved_id = schema.require_reference_id(
@@ -253,7 +333,7 @@ def _vector_for(
     model_identity: EmbeddingModelIdentity,
     seq: int,
 ) -> bytes | None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with derived_store.readonly_session(schema) as derived:
         return SqlAlchemyVecEntityStore(
             derived.session.connection(),
@@ -268,7 +348,7 @@ def _similar_vector_rows(
     query_vector: bytes,
     k: int,
 ) -> list[dict]:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with derived_store.readonly_session(schema) as derived:
         return SqlAlchemyVecEntityStore(
             derived.session.connection(),
@@ -287,7 +367,7 @@ def _claim_similarity_hits(
     entity_ids = tuple(str(row["entity_id"]) for row in rows)
     if not entity_ids:
         return []
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     claim = schema.model("claim_core")
     concept_link = schema.model("claim_concept_link")
     with derived_store.readonly_session(schema) as derived:
@@ -336,7 +416,7 @@ def _concept_similarity_hits(
     entity_ids = tuple(str(row["entity_id"]) for row in rows)
     if not entity_ids:
         return []
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     concept = schema.model("concept")
     with derived_store.readonly_session(schema) as derived:
         concepts = {
@@ -366,7 +446,7 @@ def _concept_similarity_hits(
 def get_registered_models(derived_store: DerivedStoreHandle) -> list[dict]:
     """Return all registered embedding models."""
 
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with derived_store.readonly_session(schema) as derived:
         return SqlAlchemyVecRegistry(derived.session.connection()).get_registered_models()
 
@@ -380,7 +460,7 @@ def embed_claims(
 ) -> dict:
     """Generate and store embeddings for claims."""
 
-    return _embed_entities(
+    return _heuristic_embed()._embed_entities(
         _load_claim_embedding_entities(derived_store, claim_ids),
         model_name,
         existing_content_hashes=lambda model_identity: _existing_content_hashes(
@@ -419,7 +499,7 @@ def embed_concepts(
 ) -> dict:
     """Generate and store embeddings for concepts."""
 
-    return _embed_entities(
+    return _heuristic_embed()._embed_entities(
         _load_concept_embedding_entities(derived_store, concept_ids),
         model_name,
         existing_content_hashes=lambda model_identity: _existing_content_hashes(
@@ -457,7 +537,7 @@ def find_similar(
 ) -> list[ClaimSimilarityHit]:
     """Find top-k most similar claims by embedding distance."""
 
-    rows = _find_similar_entities(
+    rows = _heuristic_embed()._find_similar_entities(
         claim_id,
         model_name,
         resolve_entity=lambda entity_id: _embedding_entity_key(
@@ -493,7 +573,7 @@ def find_similar_concepts(
 ) -> list[ConceptSimilarityHit]:
     """Find top-k most similar concepts by embedding distance."""
 
-    rows = _find_similar_entities(
+    rows = _heuristic_embed()._find_similar_entities(
         concept_id,
         model_name,
         resolve_entity=lambda entity_id: _embedding_entity_key(
@@ -528,7 +608,7 @@ def find_similar_agree(
 ) -> list[ClaimSimilarityHit]:
     """Claims similar under all stored models."""
 
-    rows = _find_similar_agree_generic(
+    rows = _heuristic_embed()._find_similar_agree_generic(
         claim_id,
         get_registered_models(derived_store),
         resolve_entity=lambda entity_id: _embedding_entity_key(
@@ -563,7 +643,7 @@ def find_similar_disagree(
 ) -> list[ClaimSimilarityHit]:
     """Claims similar under some stored models but not others."""
 
-    rows = _find_similar_disagree_generic(
+    rows = _heuristic_embed()._find_similar_disagree_generic(
         claim_id,
         get_registered_models(derived_store),
         resolve_entity=lambda entity_id: _embedding_entity_key(
@@ -598,7 +678,7 @@ def find_similar_concepts_agree(
 ) -> list[ConceptSimilarityHit]:
     """Concepts similar under all stored models."""
 
-    rows = _find_similar_agree_generic(
+    rows = _heuristic_embed()._find_similar_agree_generic(
         concept_id,
         get_registered_models(derived_store),
         resolve_entity=lambda entity_id: _embedding_entity_key(
@@ -633,7 +713,7 @@ def find_similar_concepts_disagree(
 ) -> list[ConceptSimilarityHit]:
     """Concepts similar under some stored models but not others."""
 
-    rows = _find_similar_disagree_generic(
+    rows = _heuristic_embed()._find_similar_disagree_generic(
         concept_id,
         get_registered_models(derived_store),
         resolve_entity=lambda entity_id: _embedding_entity_key(
@@ -669,7 +749,7 @@ def extract_embedding_snapshot(
     if not sidecar.exists():
         return None
     try:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         with readonly_session(sidecar, schema) as derived:
             snapshot = SqlAlchemyVecSnapshotStore(
                 derived.session.connection(),

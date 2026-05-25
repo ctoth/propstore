@@ -37,7 +37,7 @@ from propstore.families.contexts.stages import (
 from propstore.families.contexts.declaration import (
     compile_context_models,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from tests.conftest import make_compilation_context
@@ -319,7 +319,7 @@ class TestLiftingSystem:
 
 class TestContextSidecar:
     def test_context_charter_uses_lifting_rule_table(self, tmp_path: Path) -> None:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         sidecar_path = tmp_path / "propstore.sqlite"
         create_sqlalchemy_store(sidecar_path, schema)
         conn = sqlite3.connect(sidecar_path)
@@ -335,7 +335,7 @@ class TestContextSidecar:
         assert "context_exclusion" not in tables
 
     def test_context_models_store_structure_and_lifting_rules(self, tmp_path: Path) -> None:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         contexts = [
             loaded_context("source", None, make_context("ctx_source", "Source")),
             loaded_context(

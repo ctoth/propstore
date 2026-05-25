@@ -15,7 +15,7 @@ from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.micropublications.declaration import (
     compile_micropublication_models_with_diagnostics,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from quire.sqlalchemy_store import readonly_session, writable_session
 
 
@@ -36,7 +36,7 @@ def _micropub(shared_id: str) -> MicropublicationDocument:
 
 
 def _seed_claim_and_context(sidecar_path) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with writable_session(sidecar_path, schema) as derived:
         derived.session.execute(
             text("INSERT INTO context (id, name) VALUES ('ctx:default', 'default')")
@@ -61,7 +61,7 @@ def _seed_claim_and_context(sidecar_path) -> None:
 
 def test_duplicate_micropublication_models_and_links_persist_once(tmp_path):
     sidecar_path = tmp_path / "propstore.sqlite"
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     create_sqlalchemy_store(sidecar_path, schema)
     _seed_claim_and_context(sidecar_path)
 

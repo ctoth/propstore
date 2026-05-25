@@ -6,7 +6,15 @@ import json
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from quire.charters import FamilyModel
+from quire.artifacts import ArtifactFamily, FlatYamlPlacement
+from quire.charters import (
+    CharterField,
+    CharterIndex,
+    CharterPolymorphicModel,
+    FamilyCharter,
+    FamilyModel,
+)
+from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex
 
 from propstore.claims import LoadedClaimsFile
@@ -21,6 +29,7 @@ from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.diagnostics.declaration import QuarantineDiagnostic
 from propstore.families.claims.documents import ResolutionDocument
 from propstore.families.documents.stances import StanceDocument
+from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 from propstore.stances import StanceType, coerce_stance_type
 from propstore.stances import VALID_STANCE_TYPES
 
@@ -98,6 +107,91 @@ class ConflictWitness(FamilyModel):
             if value is not None:
                 data[key] = value
         return data
+
+
+def relations_charters() -> tuple[FamilyCharter, FamilyCharter]:
+    return (
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="relation_edge",
+                name="relation_edge",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-relation_edge",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=RelationEdge,
+                    placement=FlatYamlPlacement(".derived/relation_edge", str),
+                ),
+                identity_field="id",
+            ),
+            model=RelationEdge,
+            fields=(
+                CharterField("id", int, primary_key=True, nullable=False, generated=True),
+                CharterField("source_kind", str, nullable=False),
+                CharterField("source_id", str, nullable=False),
+                CharterField("relation_type", str, nullable=False),
+                CharterField("target_kind", str, nullable=False),
+                CharterField("target_id", str, nullable=False),
+                CharterField("perspective_source_claim_id", str),
+                CharterField("target_justification_id", str),
+                CharterField("conditions_cel", str),
+                CharterField("strength", str),
+                CharterField("conditions_differ", str),
+                CharterField("note", str),
+                CharterField("resolution_method", str),
+                CharterField("resolution_model", str),
+                CharterField("embedding_model", str),
+                CharterField("embedding_distance", float),
+                CharterField("pass_number", int),
+                CharterField("confidence", float),
+                CharterField("opinion_belief", float),
+                CharterField("opinion_disbelief", float),
+                CharterField("opinion_uncertainty", float),
+                CharterField("opinion_base_rate", float),
+            ),
+            indexes=(
+                CharterIndex("idx_relation_edge_source", ("source_kind", "source_id")),
+                CharterIndex("idx_relation_edge_target", ("target_kind", "target_id")),
+                CharterIndex("idx_relation_edge_type", ("relation_type",)),
+            ),
+            polymorphic_on="source_kind",
+            polymorphic_identity="edge",
+            polymorphic_models=(
+                CharterPolymorphicModel(Stance, "claim"),
+                CharterPolymorphicModel(ConceptRelation, "concept"),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="conflict_witness",
+                name="conflict_witness",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-conflict_witness",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=ConflictWitness,
+                    placement=FlatYamlPlacement(".derived/conflict_witness", str),
+                ),
+                identity_field="id",
+            ),
+            model=ConflictWitness,
+            fields=(
+                CharterField("id", int, primary_key=True, nullable=False, generated=True),
+                CharterField("claim_a_id", str, nullable=False),
+                CharterField("claim_b_id", str, nullable=False),
+                CharterField("concept_id", str, nullable=False),
+                CharterField("warning_class", str, nullable=False),
+                CharterField("conditions_a", str),
+                CharterField("conditions_b", str),
+                CharterField("value_a", str),
+                CharterField("value_b", str),
+                CharterField("derivation_chain", str),
+            ),
+            indexes=(CharterIndex("idx_conflict_witness_concept", ("concept_id",)),),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+    )
 
 
 def _resolution_attributes(resolution: ResolutionDocument | None) -> dict[str, object]:

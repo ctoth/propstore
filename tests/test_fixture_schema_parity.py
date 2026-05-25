@@ -8,7 +8,7 @@ import tests.conftest as project_conftest
 
 from sqlalchemy import create_engine
 
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
 
@@ -36,7 +36,7 @@ def _table_names(conn: Connection) -> set[str]:
     return {str(row[0]) for row in rows}
 
 
-def test_world_query_fixture_schema_is_built_from_world_sqlalchemy_schema() -> None:
+def test_world_query_fixture_schema_is_built_from_world_schema() -> None:
     assert not hasattr(project_conftest, "create_world_model_schema")
     assert not (Path(__file__).parents[1] / "propstore" / "sidecar" / "schema.py").exists()
 
@@ -46,7 +46,7 @@ def test_minimal_world_model_schema_matches_production_builders() -> None:
     production_conn = sqlite3.connect(":memory:")
 
     build_world_projection_schema(fixture_conn)
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     engine = create_engine("sqlite://", creator=lambda: production_conn)
     schema.metadata.create_all(engine)
     production_conn.execute(

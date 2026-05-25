@@ -104,6 +104,7 @@ def _make_claim(
         claim_id=claim_id,
         sample_size=sample_size,
         uncertainty=uncertainty,
+        confidence=confidence,
     )
     if sample_size is not None:
         claim.sample_size = sample_size

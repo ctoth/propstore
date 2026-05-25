@@ -8,7 +8,7 @@ from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
 from propstore.families.registry import ContextRef, PredicateRef, RuleRef
 from propstore.compiler.workflows import write_repository_world_store as build_sidecar
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.repository import Repository
 from propstore.source import promote_source_branch
 from quire.sqlalchemy_store import create_sqlalchemy_store
@@ -218,7 +218,7 @@ def test_sidecar_build_serializes_with_source_promote(
 
     def locked_build(repo_arg, target, **kwargs) -> None:
         build_entered.set()
-        create_sqlalchemy_store(target, world_sqlalchemy_schema())
+        create_sqlalchemy_store(target, world_schema())
         release_build.wait(timeout=5)
 
     monkeypatch.setattr(build_module, "_write_repository_world_store_file", locked_build)

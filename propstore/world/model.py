@@ -50,11 +50,11 @@ from propstore.families.concepts.declaration import (
     ConceptSearchQuerySyntaxError,
     Parameterization,
 )
-from propstore.families.world_charters import (
+from propstore.families.meta.declaration import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
-    world_sqlalchemy_schema,
 )
+from propstore.families.registry import world_schema
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, TreePath as KnowledgePath
 from propstore.core.conditions.solver import ConditionSolver
 
@@ -197,13 +197,13 @@ class WorldQuery(WorldStore):
             from propstore.families.rules.declaration import load_grounded_bundle
 
             with self._derived_store.readonly_session(
-                world_sqlalchemy_schema()
+                world_schema()
             ) as derived:
                 self._grounding_bundle_cache = load_grounded_bundle(derived)
         return self._grounding_bundle_cache
 
     def _validate_schema(self) -> None:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         validate_sqlalchemy_store(self._derived_store_path, schema)
         meta_model = schema.model("meta")
         with self._derived_store.readonly_session(schema) as derived:
@@ -233,7 +233,7 @@ class WorldQuery(WorldStore):
     def _build_registry(self) -> dict[str, ConceptInfo]:
         if self._registry is not None:
             return self._registry
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         concept = schema.model("concept")
         with self._derived_store.readonly_session(schema) as derived:
             normalized_rows = list(derived.execute(select(concept)).scalars())
@@ -257,7 +257,7 @@ class WorldQuery(WorldStore):
     # ── Unbound queries ──────────────────────────────────────────────
 
     def get_concept(self, concept_id: str) -> Concept | None:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         concept_model = schema.model("concept")
         with self._derived_store.readonly_session(schema) as derived:
             resolved_concept_id = (
@@ -285,7 +285,7 @@ class WorldQuery(WorldStore):
         }
 
     def get_claim(self, claim_id: str) -> Claim | None:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         claim = schema.model("claim_core")
         with self._derived_store.readonly_session(schema) as derived:
             resolved_claim_id = (
@@ -309,7 +309,7 @@ class WorldQuery(WorldStore):
             if concept_id is None
             else str(concept.id) if concept is not None else concept_id
         )
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         claim = schema.model("claim_core")
         link = schema.model("claim_concept_link")
         with self._derived_store.readonly_session(schema) as derived:
@@ -330,7 +330,7 @@ class WorldQuery(WorldStore):
             if concept_id is None
             else str(concept.id) if concept is not None else concept_id
         )
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         claim = schema.model("claim_core")
         link = schema.model("claim_concept_link")
         with self._derived_store.readonly_session(schema) as derived:
@@ -407,7 +407,7 @@ class WorldQuery(WorldStore):
             if concept_id is None
             else str(concept.id) if concept is not None else concept_id
         )
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         claim = schema.model("claim_core")
         link = schema.model("claim_concept_link")
         with self._derived_store.readonly_session(schema) as derived:
@@ -445,13 +445,13 @@ class WorldQuery(WorldStore):
         """
         if not policy.show_quarantined:
             return []
-        with self._derived_store.readonly_session(world_sqlalchemy_schema()) as derived:
+        with self._derived_store.readonly_session(world_schema()) as derived:
             return build_diagnostics(derived)
 
     def claims_by_ids(self, claim_ids: set[str]) -> dict[str, Claim]:
         if not claim_ids:
             return {}
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         claim = schema.model("claim_core")
         with self._derived_store.readonly_session(schema) as derived:
             resolved_ids = {
@@ -519,7 +519,7 @@ class WorldQuery(WorldStore):
     def stances_between(self, claim_ids: set[str]) -> list[Stance]:
         if not claim_ids:
             return []
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         stance_model = schema.polymorphic_model("relation_edge", "claim")
         with self._derived_store.readonly_session(schema) as derived:
             resolved_ids = {
@@ -540,7 +540,7 @@ class WorldQuery(WorldStore):
             return list(derived.execute(statement).scalars())
 
     def conflicts(self, concept_id: str | None = None) -> list[ConflictWitness]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         conflict = schema.model("conflict_witness")
         with self._derived_store.readonly_session(schema) as derived:
             statement = select(conflict).order_by(conflict.claim_a_id, conflict.claim_b_id)
@@ -549,19 +549,19 @@ class WorldQuery(WorldStore):
             return list(derived.execute(statement).scalars())
 
     def all_concepts(self) -> list[Concept]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         concept = schema.model("concept")
         with self._derived_store.readonly_session(schema) as derived:
             return list(derived.execute(select(concept)).scalars())
 
     def all_parameterizations(self) -> list[Parameterization]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         parameterization = schema.model("parameterization")
         with self._derived_store.readonly_session(schema) as derived:
             return list(derived.execute(select(parameterization)).scalars())
 
     def all_relationships(self) -> list[ConceptRelation]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         relation = schema.polymorphic_model("relation_edge", "concept")
         with self._derived_store.readonly_session(schema) as derived:
             statement = select(relation).order_by(
@@ -572,7 +572,7 @@ class WorldQuery(WorldStore):
             return list(derived.execute(statement).scalars())
 
     def all_claim_stances(self) -> list[Stance]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         stance = schema.polymorphic_model("relation_edge", "claim")
         with self._derived_store.readonly_session(schema) as derived:
             statement = select(stance).order_by(
@@ -583,7 +583,7 @@ class WorldQuery(WorldStore):
             return list(derived.execute(statement).scalars())
 
     def all_authored_justifications(self) -> tuple[CanonicalJustification, ...]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         justification = schema.model("justification")
         with self._derived_store.readonly_session(schema) as derived:
             rows = derived.execute(select(justification).order_by(justification.id))
@@ -598,7 +598,7 @@ class WorldQuery(WorldStore):
     ) -> tuple[CanonicalJustification, ...]:
         if not claim_ids:
             return ()
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         with self._derived_store.readonly_session(schema) as derived:
             resolved_ids = {
                 schema.resolve_reference_id(
@@ -624,7 +624,7 @@ class WorldQuery(WorldStore):
         focus_claim_id: str,
         policy: RenderPolicy,
     ) -> list[Stance]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         relation = schema.model("relation_edge")
         claim = schema.model("claim_core")
         source_claim = aliased(claim)
@@ -671,7 +671,7 @@ class WorldQuery(WorldStore):
             return list(derived.execute(statement).scalars())
 
     def all_micropublications(self) -> list[Micropublication]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         micropublication = schema.model("micropublication")
         with self._derived_store.readonly_session(schema) as derived:
             statement = (
@@ -682,7 +682,7 @@ class WorldQuery(WorldStore):
             return list(derived.execute(statement).scalars())
 
     def concept_ids_for_group(self, group_id: int) -> set[str]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         parameterization_group = schema.model("parameterization_group")
         with self._derived_store.readonly_session(schema) as derived:
             rows = derived.execute(
@@ -693,7 +693,7 @@ class WorldQuery(WorldStore):
             return {str(row[0]) for row in rows}
 
     def search(self, query: str) -> list[ConceptSearchHit]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         concept = schema.model("concept")
         with self._derived_store.readonly_session(schema) as derived:
             try:
@@ -794,7 +794,7 @@ class WorldQuery(WorldStore):
 
     def form_algebra_for(self, form_name: str) -> list[dict]:
         """Get all algebra decompositions that produce *form_name*."""
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         form_algebra = schema.model("form_algebra")
         with self._derived_store.readonly_session(schema) as derived:
             rows = derived.execute(
@@ -816,7 +816,7 @@ class WorldQuery(WorldStore):
         return results
 
     def _all_form_rows(self) -> list[dict[str, object]]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         form = schema.model("form")
         with self._derived_store.readonly_session(schema) as derived:
             return [
@@ -825,7 +825,7 @@ class WorldQuery(WorldStore):
             ]
 
     def _all_form_algebra_rows(self) -> list[dict[str, object]]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         form_algebra = schema.model("form_algebra")
         with self._derived_store.readonly_session(schema) as derived:
             return [
@@ -835,14 +835,14 @@ class WorldQuery(WorldStore):
 
     @staticmethod
     def _model_row(table_name: str, row: object) -> dict[str, object]:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         return {
             column.name: getattr(row, column.name)
             for column in schema.table(table_name).columns
         }
 
     def stats(self) -> WorldStoreStats:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         concept = schema.model("concept")
         claim = schema.model("claim_core")
         with self._derived_store.readonly_session(schema) as derived:
@@ -852,7 +852,7 @@ class WorldQuery(WorldStore):
             claims = int(
                 derived.execute(select(func.count()).select_from(claim)).scalar_one()
             )
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         conflict = schema.model("conflict_witness")
         with self._derived_store.readonly_session(schema) as derived:
             conflicts = int(
@@ -865,7 +865,7 @@ class WorldQuery(WorldStore):
         )
 
     def authored_justification_count(self) -> int:
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         justification = schema.model("justification")
         with self._derived_store.readonly_session(schema) as derived:
             return int(
@@ -880,7 +880,7 @@ class WorldQuery(WorldStore):
         """Get parameterization rows where output_concept_id matches."""
         concept = self.get_concept(concept_id)
         resolved_concept_id = str(concept.id) if concept is not None else concept_id
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         parameterization = schema.model("parameterization")
         with self._derived_store.readonly_session(schema) as derived:
             return list(
@@ -931,7 +931,7 @@ class WorldQuery(WorldStore):
         """Get all concept_ids in the same parameterization group."""
         concept = self.get_concept(concept_id)
         resolved_concept_id = str(concept.id) if concept is not None else concept_id
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         parameterization_group = schema.model("parameterization_group")
         with self._derived_store.readonly_session(schema) as derived:
             group_row = derived.execute(
@@ -955,7 +955,7 @@ class WorldQuery(WorldStore):
 
     def explain(self, claim_id: str) -> list[Stance]:
         """Walk normalized claim relation edges breadth-first from claim_id."""
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         stance = schema.polymorphic_model("relation_edge", "claim")
         result: list[Stance] = []
         queue = [claim_id]

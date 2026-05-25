@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-
-from propstore.families.claims.declaration import Claim
-from propstore.families.concepts.declaration import Concept
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -19,7 +17,7 @@ class EmbeddingEntity:
     text: str
 
 
-def claim_embedding_text(claim: Claim) -> str:
+def claim_embedding_text(claim: Any) -> str:
     """Return the text representation used for claim embeddings."""
 
     text_payload = claim.text_payload
@@ -37,7 +35,7 @@ def claim_embedding_text(claim: Claim) -> str:
 
 
 def concept_embedding_text(
-    concept: Concept,
+    concept: Any,
     aliases: Sequence[str] = (),
 ) -> str:
     """Return the text representation used for concept embeddings."""

@@ -8,8 +8,20 @@ from typing import Any
 
 from propstore.core.conditions.registry import ConceptInfo, KindType
 from propstore.families.concepts.stages import ConceptRecord
-from propstore.families.concepts.declaration import Concept
 from propstore.families.forms.stages import kind_type_from_form_name
+
+
+def _is_concept_row(row: object) -> bool:
+    return all(
+        hasattr(row, attr)
+        for attr in (
+            "concept_id",
+            "canonical_name",
+            "kind_type",
+            "form",
+            "form_parameters",
+        )
+    )
 
 
 def _category_metadata(form_parameters: Mapping[str, Any]) -> tuple[list[str], bool]:
@@ -69,14 +81,24 @@ def concept_info_from_concept_record(record: ConceptRecord) -> ConceptInfo:
     )
 
 
-def concept_info_from_concept_row(row: Concept) -> ConceptInfo:
+def concept_info_from_concept_row(row: Any) -> ConceptInfo:
     concept_id = str(row.concept_id)
     if not concept_id:
         raise ValueError("concept row must define a non-empty concept_id")
     if not isinstance(row.canonical_name, str) or not row.canonical_name:
         raise ValueError("concept row must define a non-empty canonical_name")
-    kind = _kind_type_from_optional_fields(kind_type=row.kind_type, form=row.form)
-    form_parameters = _parse_row_form_parameters(row.form_parameters)
+    kind_type = row.kind_type
+    form = row.form
+    form_parameters_payload = row.form_parameters
+    kind = _kind_type_from_optional_fields(
+        kind_type=kind_type if isinstance(kind_type, str | KindType) or kind_type is None else None,
+        form=form if isinstance(form, str) or form is None else None,
+    )
+    form_parameters = _parse_row_form_parameters(
+        form_parameters_payload
+        if isinstance(form_parameters_payload, str) or form_parameters_payload is None
+        else None
+    )
     category_values, category_extensible = _category_metadata(form_parameters)
     return ConceptInfo(
         id=concept_id,
@@ -137,12 +159,12 @@ def build_canonical_cel_registry(
 
 
 def build_store_cel_registry(
-    rows: Iterable[Concept],
+    rows: Iterable[Any],
 ) -> dict[str, ConceptInfo]:
-    typed_rows: list[Concept] = []
+    typed_rows: list[Any] = []
     for row in rows:
-        if not isinstance(row, Concept):
-            raise TypeError("build_store_cel_registry expects Iterable[Concept]")
+        if not _is_concept_row(row):
+            raise TypeError("build_store_cel_registry expects Iterable[ConceptRow]")
         typed_rows.append(row)
     return _build_registry(
         concept_info_from_concept_row(row)

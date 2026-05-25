@@ -7,7 +7,7 @@ from sqlalchemy import text
 import yaml
 
 from propstore.compiler.workflows import build_repository
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.repository import Repository
 from tests.conftest import normalize_concept_payloads
 
@@ -63,7 +63,7 @@ def test_build_repository_context_lifting_error_quarantines_not_raises(
     sidecar_path = Path(report.derived_store.path)
     assert sidecar_path.exists()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         context_ids = {
             str(row[0])
             for row in derived.session.execute(text("SELECT id FROM context")).fetchall()

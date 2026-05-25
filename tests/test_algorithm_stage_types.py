@@ -8,12 +8,12 @@ from propstore.families.claims.documents import ClaimDocument
 from tests.family_helpers import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.documents.sources import SourceClaimDocument
-from propstore.families.world_charters import world_charter_catalog
+from propstore.families.registry import world_catalog
 from tests.claim_model_helpers import claim_model
 
 
 def _schema_object(name: str):
-    for schema_object in world_charter_catalog().objects:
+    for schema_object in world_catalog().objects:
         if schema_object.name == name:
             return schema_object
     raise AssertionError(f"missing schema object {name}")

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy import text
 
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.repository import Repository
 from propstore.families.registry import SOURCE_BRANCH, SourceRef
 from propstore.source.status import inspect_source_status
@@ -17,7 +17,7 @@ def test_source_status_escapes_underscore_in_branch_like_pattern(tmp_path):
     assert alien_branch != target_branch
 
     handle = materialized_world_store(repo, force=True)
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with writable_session(handle.path, schema) as derived:
         derived.session.execute(
             text(

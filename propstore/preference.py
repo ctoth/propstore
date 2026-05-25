@@ -8,7 +8,6 @@ from datetime import datetime, timezone
 
 from propstore.core.graph_types import ClaimNode
 from propstore.families.claims.declaration import Claim
-from propstore.families.claims.metadata import claim_metadata_value
 from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
@@ -76,13 +75,23 @@ def metadata_strength_vector(
       [1] inverse_uncertainty: 1/uncertainty
       [2] confidence: direct value
     """
-    sample_size = claim_metadata_value(claim, "sample_size")
-    uncertainty = claim_metadata_value(claim, "uncertainty")
-    confidence = claim_metadata_value(claim, "confidence")
+    sample_size = (
+        claim.sample_size
+        if isinstance(claim, ClaimNode)
+        else (claim.numeric_payload.sample_size if claim.numeric_payload is not None else None)
+    )
+    uncertainty = (
+        claim.uncertainty
+        if isinstance(claim, ClaimNode)
+        else (claim.numeric_payload.uncertainty if claim.numeric_payload is not None else None)
+    )
+    confidence = (
+        claim.confidence
+        if isinstance(claim, ClaimNode)
+        else (claim.numeric_payload.confidence if claim.numeric_payload is not None else None)
+    )
     source_artifact_code = str(
-        claim_metadata_value(claim, "artifact_id")
-        or claim_metadata_value(claim, "id")
-        or claim_metadata_value(claim, "claim_id")
+        (claim.claim_id if isinstance(claim, ClaimNode) else claim.id)
         or "claim_metadata"
     )
 

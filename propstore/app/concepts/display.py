@@ -27,7 +27,7 @@ from .mutation import (
 )
 from propstore.app.repository_views import repository_view_label
 from propstore.compiler.workflows import build_repository_world_store
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -47,7 +47,7 @@ def search_concepts(
     derived_store, _rebuilt = build_repository_world_store(repo)
     if not derived_store.path.exists():
         raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     concept = schema.model("concept")
     try:
         with derived_store.readonly_session(schema) as derived:

@@ -59,11 +59,14 @@ import gunray
 import msgspec
 from argumentation.aspic import Scalar
 from argumentation.aspic import GroundAtom as AspicGroundAtom
-from quire.charters import FamilyModel
+from quire.artifacts import ArtifactFamily, FlatYamlPlacement
+from quire.charters import CharterField, FamilyCharter, FamilyModel
+from quire.families import FamilyDefinition
 from quire.sqlalchemy_store import DerivedSession
 from sqlalchemy import select
 
 from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
+from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.grounder import ground
 from propstore.grounding.predicates import PredicateRegistry
@@ -92,6 +95,73 @@ class GroundedFactEmptyPredicate(FamilyModel):
 
 class GroundedBundleInput(FamilyModel):
     pass
+
+
+def rules_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter]:
+    return (
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="grounded_fact",
+                name="grounded_fact",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-grounded_fact",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=GroundedFact,
+                    placement=FlatYamlPlacement(".derived/grounded_fact", str),
+                ),
+                identity_field="predicate",
+            ),
+            model=GroundedFact,
+            fields=(
+                CharterField("predicate", str, primary_key=True, nullable=False),
+                CharterField("arguments", str, primary_key=True, nullable=False),
+                CharterField("section", str, primary_key=True, nullable=False),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="grounded_fact_empty_predicate",
+                name="grounded_fact_empty_predicate",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-grounded_fact_empty_predicate",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=GroundedFactEmptyPredicate,
+                    placement=FlatYamlPlacement(".derived/grounded_fact_empty_predicate", str),
+                ),
+                identity_field="section",
+            ),
+            model=GroundedFactEmptyPredicate,
+            fields=(
+                CharterField("section", str, primary_key=True, nullable=False),
+                CharterField("predicate", str, primary_key=True, nullable=False),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+        FamilyCharter(
+            family=FamilyDefinition(
+                key="grounded_bundle_input",
+                name="grounded_bundle_input",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                artifact_family=ArtifactFamily(
+                    name="propstore-world-grounded_bundle_input",
+                    contract_version=_WORLD_CONTRACT_VERSION,
+                    doc_type=GroundedBundleInput,
+                    placement=FlatYamlPlacement(".derived/grounded_bundle_input", str),
+                ),
+                identity_field="kind",
+            ),
+            model=GroundedBundleInput,
+            fields=(
+                CharterField("kind", str, primary_key=True, nullable=False),
+                CharterField("position", int, primary_key=True, nullable=False),
+                CharterField("payload", bytes, nullable=False),
+            ),
+            semantic_metadata={"semantic": "propstore.world"},
+        ),
+    )
 
 
 def persist_grounded_bundle(

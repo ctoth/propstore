@@ -21,7 +21,7 @@ from propstore.families.claims.stages import (
     PromotionBlockedClaimFact,
     PromotionBlockedReason,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from quire.sqlalchemy_store import readonly_session
 from tests.remediation.phase_7_race_atomicity.promotion_blocked_helpers import (
     create_world_store,
@@ -77,7 +77,7 @@ def test_promotion_blocked_mirror_tolerates_prior_row_from_different_branch(
         ),
     )
 
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     with readonly_session(sidecar_path, schema) as derived:
         core_rows = derived.session.execute(
             text(

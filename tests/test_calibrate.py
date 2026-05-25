@@ -396,12 +396,12 @@ class TestCalibrationCountsInfrastructure:
             CalibrationCount,
             calibration_counts_by_key,
         )
-        from propstore.families.world_charters import (
-            world_sqlalchemy_schema,
+        from propstore.families.registry import (
+            world_schema,
         )
 
         sidecar_path = tmp_path / "propstore.sqlite"
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         create_sqlalchemy_store(sidecar_path, schema)
         with writable_session(sidecar_path, schema) as derived:
             derived.session.add(
@@ -436,10 +436,10 @@ class TestCalibrationCountsInfrastructure:
         """
         from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session
         from propstore.families.calibration.declaration import calibration_counts_by_key
-        from propstore.families.world_charters import world_sqlalchemy_schema
+        from propstore.families.registry import world_schema
 
         sidecar_path = tmp_path / "propstore.sqlite"
-        schema = world_sqlalchemy_schema()
+        schema = world_schema()
         create_sqlalchemy_store(sidecar_path, schema)
 
         with readonly_session(sidecar_path, schema) as derived:

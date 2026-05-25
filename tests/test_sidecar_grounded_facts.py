@@ -18,13 +18,13 @@ from propstore.families.rules.declaration import (
     load_grounded_sections,
     persist_grounded_bundle,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 from propstore.grounding.bundle import GroundedRulesBundle
 
 
 def _fresh_store(tmp_path: Path) -> Path:
     sidecar_path = tmp_path / "propstore.sqlite"
-    create_sqlalchemy_store(sidecar_path, world_sqlalchemy_schema())
+    create_sqlalchemy_store(sidecar_path, world_schema())
     return sidecar_path
 
 
@@ -104,7 +104,7 @@ def _sections_as_plain_dict(
 
 
 def test_grounded_fact_tables_are_declared_by_world_charter() -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
 
     assert set(schema.table("grounded_fact").c.keys()) == {
         "predicate",
@@ -127,7 +127,7 @@ def test_grounded_fact_primary_key_uniqueness(tmp_path: Path) -> None:
     bundle = _make_bundle({"yes": {"bird": frozenset({("tweety",)})}})
 
     with pytest.raises(IntegrityError):
-        with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        with writable_session(sidecar_path, world_schema()) as derived:
             persist_grounded_bundle(derived, bundle)
             persist_grounded_bundle(derived, bundle)
             derived.session.commit()
@@ -136,11 +136,11 @@ def test_grounded_fact_primary_key_uniqueness(tmp_path: Path) -> None:
 def test_persist_empty_bundle_inserts_zero_facts(tmp_path: Path) -> None:
     sidecar_path = _fresh_store(tmp_path)
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         inserted = persist_grounded_bundle(derived, _make_bundle({}))
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         grounded_fact = derived.schema.table("grounded_fact")
         count = derived.session.execute(select(func.count()).select_from(grounded_fact)).scalar_one()
 
@@ -152,11 +152,11 @@ def test_persist_single_fact_one_section(tmp_path: Path) -> None:
     sidecar_path = _fresh_store(tmp_path)
     bundle = _make_bundle({"yes": {"bird": frozenset({("tweety",)})}})
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         inserted = persist_grounded_bundle(derived, bundle)
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         grounded_fact = derived.schema.table("grounded_fact")
         rows = derived.session.execute(select(grounded_fact)).mappings().all()
 
@@ -175,11 +175,11 @@ def test_persist_same_atom_multiple_sections(tmp_path: Path) -> None:
         }
     )
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         inserted = persist_grounded_bundle(derived, bundle)
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         grounded_fact = derived.schema.table("grounded_fact")
         sections = {
             row["section"]
@@ -205,11 +205,11 @@ def test_persist_all_four_sections(tmp_path: Path) -> None:
         }
     )
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         inserted = persist_grounded_bundle(derived, bundle)
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         grounded_fact = derived.schema.table("grounded_fact")
         rows = derived.session.execute(
             select(grounded_fact.c.section, func.count())
@@ -243,11 +243,11 @@ def test_persisted_row_count_matches_section_content(
             for inner in section_map.values()
         )
 
-        with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        with writable_session(sidecar_path, world_schema()) as derived:
             inserted = persist_grounded_bundle(derived, bundle)
             derived.session.commit()
 
-        with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        with readonly_session(sidecar_path, world_schema()) as derived:
             grounded_fact = derived.schema.table("grounded_fact")
             actual = derived.session.execute(select(func.count()).select_from(grounded_fact)).scalar_one()
 
@@ -258,11 +258,11 @@ def test_persisted_row_count_matches_section_content(
 def test_round_trip_empty_bundle(tmp_path: Path) -> None:
     sidecar_path = _fresh_store(tmp_path)
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         persist_grounded_bundle(derived, _make_bundle({}))
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         result = load_grounded_sections(derived)
 
     assert set(result.keys()) == {"yes", "no", "undecided", "unknown"}
@@ -273,11 +273,11 @@ def test_round_trip_single_fact(tmp_path: Path) -> None:
     sidecar_path = _fresh_store(tmp_path)
     bundle = _make_bundle({"yes": {"bird": frozenset({("tweety",)})}})
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         persist_grounded_bundle(derived, bundle)
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         result = load_grounded_sections(derived)
 
     assert dict(result["yes"].items()) == {"bird": frozenset({("tweety",)})}
@@ -298,11 +298,11 @@ def test_round_trip_arbitrary_bundle(
     with TemporaryDirectory() as temp_dir:
         sidecar_path = _fresh_store(Path(temp_dir))
 
-        with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        with writable_session(sidecar_path, world_schema()) as derived:
             persist_grounded_bundle(derived, bundle)
             derived.session.commit()
 
-        with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+        with readonly_session(sidecar_path, world_schema()) as derived:
             result = load_grounded_sections(derived)
 
     expected = _sections_as_plain_dict(bundle)
@@ -321,11 +321,11 @@ def test_round_trip_delp_birds_fly_tweety(tmp_path: Path) -> None:
         }
     )
 
-    with writable_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with writable_session(sidecar_path, world_schema()) as derived:
         inserted = persist_grounded_bundle(derived, bundle)
         derived.session.commit()
 
-    with readonly_session(sidecar_path, world_sqlalchemy_schema()) as derived:
+    with readonly_session(sidecar_path, world_schema()) as derived:
         result = load_grounded_sections(derived)
 
     assert inserted == 2

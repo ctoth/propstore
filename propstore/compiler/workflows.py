@@ -71,7 +71,7 @@ from propstore.families.relations.declaration import (
     compile_conflict_witness_models,
 )
 from propstore.families.registry import PropstoreFamily
-from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
+from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY, world_schema
 from propstore.families.sources.declaration import compile_source_models
 from propstore.families.diagnostics.declaration import (
     build_authoring_diagnostics,
@@ -85,11 +85,10 @@ from propstore.families.embeddings.declaration import (
     extract_embedding_snapshot,
     restore_embedding_snapshot_to_session,
 )
-from propstore.families.world_charters import (
+from propstore.families.meta.declaration import (
     PROPSTORE_WORLD_META_KEY,
     PROPSTORE_WORLD_SCHEMA_VERSION,
     WorldMeta,
-    world_sqlalchemy_schema,
 )
 from propstore.grounding.loading import build_grounded_bundle
 from propstore.repository import Repository
@@ -285,7 +284,7 @@ def write_repository_world_store(
 
 
 def _world_store_content_hash(repo: Repository, source_revision: str) -> str:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     dependencies = read_dependency_pins(
         _repo_root() / "uv.lock",
         _WORLD_STORE_CACHE_DEPENDENCIES,
@@ -592,7 +591,7 @@ def _write_repository_world_store_file(
         output_path,
         on_snapshot=on_embedding_snapshot,
     )
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
 
     def write(target_path: Path) -> None:
         create_sqlalchemy_store(target_path, schema)

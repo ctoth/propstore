@@ -8,11 +8,11 @@ from propstore.families.concepts.declaration import (
     ConceptWriteModels,
     ParameterizationGroup,
 )
-from propstore.families.world_charters import world_sqlalchemy_schema
+from propstore.families.registry import world_schema
 
 
 def test_parameterization_group_models_are_typed_and_round_trip(tmp_path) -> None:
-    schema = world_sqlalchemy_schema()
+    schema = world_schema()
     rows = ConceptWriteModels(
         form_rows=(),
         concept_rows=(),
