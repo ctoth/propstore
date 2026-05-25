@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 import msgspec
 
 from quire.documents import decode_document_bytes
-from propstore.families.documents.worldlines import WorldlineDefinitionDocument
+from propstore.families.worldlines.declaration import WorldlineDefinitionDocument
 from propstore.families.registry import WorldlineRef
 from propstore.support_revision.history import JournalOperator, TransitionJournal
 from propstore.support_revision.state import EpistemicState

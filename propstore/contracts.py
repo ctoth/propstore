@@ -18,8 +18,6 @@ PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.02")
 DOCUMENT_SCHEMA_CONTRACT_VERSION = VersionId("2026.04.30")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
 DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
-    "propstore.families.documents.worldlines.WorldlineDefinitionDocument": VersionId("2026.05.04"),
-    "propstore.families.documents.worldlines.WorldlineRevisionQueryDocument": VersionId("2026.05.22"),
     "propstore.families.documents.sources.SourceStanceEntryDocument": VersionId("2026.05.01"),
     "propstore.families.documents.sources.SourceTrustDocument": VersionId("2026.05.01"),
     "propstore.families.claims.declaration.JustificationDocument": VersionId("2026.05.25"),
@@ -52,6 +50,21 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.source_alignment.declaration.AlignmentFrameworkDocument": VersionId("2026.05.25"),
     "propstore.families.source_alignment.declaration.AlignmentQueriesDocument": VersionId("2026.05.25"),
     "propstore.families.source_alignment.declaration.ConceptAlignmentArtifactDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineAssumptionDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineDefinitionDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineDependenciesDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineInputSourceDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineInputsDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineJournalDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlinePolicyDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineResultDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineRevisionAtomDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineRevisionQueryDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineRevisionResultDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineRevisionStateDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineStepDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineTargetValueDocument": VersionId("2026.05.25"),
+    "propstore.families.worldlines.declaration.WorldlineVariableRefDocument": VersionId("2026.05.25"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
@@ -149,7 +162,6 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         predicates,
         rules,
         sources,
-        worldlines,
     )
     from propstore.families.claims import declaration as claims_declaration
     from propstore.families.claims import documents as claims
@@ -161,6 +173,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.sameas import declaration as sameas
     from propstore.families.source_alignment import declaration as source_alignment
     from propstore.families.stances import declaration as stances
+    from propstore.families.worldlines import declaration as worldlines
 
     modules = (
         claims,

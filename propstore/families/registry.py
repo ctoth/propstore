@@ -66,13 +66,16 @@ from propstore.families.documents.sources import (
     SourceJustificationDocument,
     SourceStanceEntryDocument,
 )
-from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 from propstore.families.sameas.declaration import SameAsAssertionDocument
 from propstore.families.source_alignment.declaration import (
     SOURCE_ALIGNMENT_FAMILY_CONTRACT_VERSION,
     ConceptAlignmentArtifactDocument,
 )
 from propstore.families.stances.declaration import StanceDocument
+from propstore.families.worldlines.declaration import (
+    WORLDLINES_FAMILY_CONTRACT_VERSION,
+    WorldlineDefinitionDocument,
+)
 from propstore.families.identity.claims import (
     CLAIM_SOURCE_LOCAL_FIELDS,
     CLAIM_VERSION_ID_EXCLUDED_FIELDS,
@@ -242,7 +245,6 @@ SAMEAS_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 STANCE_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
 IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
-WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.04")
 SOURCE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 SOURCE_DOCUMENT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
@@ -1006,8 +1008,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.WORLDLINES,
             name=PropstoreFamily.WORLDLINES.value,
-            contract_version=WORLDLINE_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
             artifact_name="worldline",
+            artifact_contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
             doc_type=WorldlineDefinitionDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.WORLDLINES.value,
@@ -1309,6 +1312,7 @@ def world_catalog() -> SchemaCatalog:
     source_alignment = import_module("propstore.families.source_alignment.declaration")
     sources = import_module("propstore.families.sources.declaration")
     stances = import_module("propstore.families.stances.declaration")
+    worldlines = import_module("propstore.families.worldlines.declaration")
 
     relation_charters = relations.RELATIONS_CHARTERS
     return charter_catalog(
@@ -1328,6 +1332,7 @@ def world_catalog() -> SchemaCatalog:
         sameas.SAMEAS_CHARTER,
         stances.STANCE_CHARTER,
         source_alignment.CONCEPT_ALIGNMENT_ARTIFACT_CHARTER,
+        *worldlines.WORLDLINE_CHARTERS,
         merge.MERGE_MANIFEST_CHARTER,
         *micropublications.MICROPUBLICATION_CHARTERS,
         calibration.CALIBRATION_CHARTER,

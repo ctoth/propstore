@@ -25,7 +25,7 @@ from propstore.app.contexts import (
 from propstore.app.forms import FormAddRequest, add_form
 from propstore.cli import cli
 from propstore.families.documents.sources import SourceClaimDocument
-from propstore.families.documents.worldlines import (
+from propstore.families.worldlines.declaration import (
     WorldlineDefinitionDocument,
     WorldlineInputsDocument,
 )

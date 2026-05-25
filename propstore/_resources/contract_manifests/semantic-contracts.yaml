@@ -570,11 +570,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: worldline
-  contract_version: 2026.05.04
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.worldlines.WorldlineDefinitionDocument
+    doc_type: propstore.families.worldlines.declaration.WorldlineDefinitionDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -2682,7 +2682,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: WorldlineAssumptionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: assumption_id
@@ -2697,43 +2697,44 @@ contracts:
     - name: cel
       required: true
       type: CelExpr
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineDefinitionDocument
-  contract_version: 2026.05.04
+  contract_version: 2026.05.25
   body:
     fields:
     - name: id
       required: true
-      type: str
+      type: builtins.str
     - name: targets
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
     - name: name
       required: true
-      type: str
+      type: builtins.str
     - name: created
       required: true
-      type: str
+      type: builtins.str
     - name: inputs
       required: true
-      type: WorldlineInputsDocument | None
+      type: propstore.families.worldlines.declaration.WorldlineInputsDocument | None
     - name: policy
       required: true
-      type: WorldlinePolicyDocument | None
+      type: propstore.families.worldlines.declaration.WorldlinePolicyDocument | None
     - name: revision
       required: true
-      type: WorldlineRevisionQueryDocument | None
+      type: propstore.families.worldlines.declaration.WorldlineRevisionQueryDocument
+        | None
     - name: journal
       required: true
-      type: WorldlineJournalDocument | None
+      type: propstore.families.worldlines.declaration.WorldlineJournalDocument | None
     - name: results
       required: true
-      type: WorldlineResultDocument | None
-    module: propstore.families.documents.worldlines
+      type: propstore.families.worldlines.declaration.WorldlineResultDocument | None
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineDependenciesDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: claims
@@ -2745,10 +2746,10 @@ contracts:
     - name: contexts
       required: true
       type: tuple[str, ...]
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineInputSourceDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: source
@@ -2772,10 +2773,10 @@ contracts:
     - name: inputs_used
       required: true
       type: dict[str, WorldlineInputSourceDocument]
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineInputsDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: bindings
@@ -2793,22 +2794,22 @@ contracts:
     - name: overrides
       required: true
       type: dict[str, float | str]
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineJournalDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: schema_version
       required: true
-      type: str
+      type: builtins.str
     - name: entries
       required: true
-      type: tuple[dict[str, Any], ...]
-    module: propstore.families.documents.worldlines
+      type: builtins.tuple
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlinePolicyDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: reasoning_backend
@@ -2874,27 +2875,27 @@ contracts:
     - name: concept_strategies
       required: true
       type: dict[str, str]
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineResultDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: computed
       required: true
-      type: str
+      type: builtins.str
     - name: content_hash
       required: true
-      type: str
+      type: builtins.str
     - name: values
       required: true
-      type: dict[str, WorldlineTargetValueDocument]
+      type: builtins.dict
     - name: dependencies
       required: true
-      type: WorldlineDependenciesDocument
+      type: propstore.families.worldlines.declaration.WorldlineDependenciesDocument
     - name: steps
       required: true
-      type: tuple[WorldlineStepDocument, ...]
+      type: builtins.tuple
     - name: sensitivity
       required: true
       type: dict[str, Any] | None
@@ -2903,11 +2904,12 @@ contracts:
       type: dict[str, Any] | None
     - name: revision
       required: true
-      type: WorldlineRevisionStateDocument | None
-    module: propstore.families.documents.worldlines
+      type: propstore.families.worldlines.declaration.WorldlineRevisionStateDocument
+        | None
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineRevisionAtomDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: kind
@@ -2922,10 +2924,10 @@ contracts:
     - name: value
       required: true
       type: float | str | None
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineRevisionQueryDocument
-  contract_version: 2026.05.22
+  contract_version: 2026.05.25
   body:
     fields:
     - name: operation
@@ -2958,10 +2960,10 @@ contracts:
     - name: max_alphabet_size
       required: true
       type: int | None
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineRevisionResultDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: accepted_atom_ids
@@ -2976,24 +2978,25 @@ contracts:
     - name: explanation
       required: true
       type: dict[str, Any] | None
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineRevisionStateDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: operation
       required: true
-      type: str
+      type: builtins.str
     - name: input_atom_id
       required: true
       type: str | None
     - name: target_atom_ids
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
     - name: result
       required: true
-      type: WorldlineRevisionResultDocument | None
+      type: propstore.families.worldlines.declaration.WorldlineRevisionResultDocument
+        | None
     - name: state
       required: true
       type: dict[str, Any] | None
@@ -3003,10 +3006,10 @@ contracts:
     - name: error
       required: true
       type: str | None
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineStepDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: concept
@@ -3030,10 +3033,10 @@ contracts:
     - name: formula
       required: true
       type: str | None
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineTargetValueDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: status
@@ -3084,10 +3087,10 @@ contracts:
     - name: inputs_used
       required: true
       type: dict[str, WorldlineInputSourceDocument]
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineVariableRefDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: name
@@ -3102,7 +3105,7 @@ contracts:
     - name: value
       required: true
       type: str | None
-    module: propstore.families.documents.worldlines
+    module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: propstore.families.stances.declaration.StanceDocument
   contract_version: 2026.05.25
@@ -3183,7 +3186,7 @@ contracts:
     - contract_version: 2026.05.25
       key: sameas
       name: sameas
-    - contract_version: 2026.05.04
+    - contract_version: 2026.05.25
       key: worldlines
       name: worldlines
     - contract_version: 2026.05.25
@@ -3980,12 +3983,12 @@ contracts:
       semantic: true
 - kind: family
   name: worldlines
-  contract_version: 2026.05.04
+  contract_version: 2026.05.25
   body:
     accessor: worldlines
     artifact_family: worldline
     artifact_family_contract:
-      doc_type: propstore.families.documents.worldlines.WorldlineDefinitionDocument
+      doc_type: propstore.families.worldlines.declaration.WorldlineDefinitionDocument
       placement:
         branch:
           policy: current
@@ -3994,7 +3997,7 @@ contracts:
         kind: flat-yaml
         namespace: worldlines
         ref_field: name
-    artifact_family_contract_version: 2026.05.04
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: worldlines
     metadata:

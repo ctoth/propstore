@@ -6,7 +6,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from propstore.families.documents.worldlines import (
+from propstore.families.worldlines.declaration import (
     WorldlineDefinitionDocument,
     WorldlineInputsDocument,
     WorldlineRevisionQueryDocument,
