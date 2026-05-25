@@ -113,9 +113,9 @@ The right fix is restructuring `propstore/__init__.py`'s lazy-export mechanism s
 
 V005a passes Phase 03's literal-search gates (the listed deletion targets are literal source-code fragments; `schema.schema_object("claim_core")` is not in that list). Cut #2 verifier returned MERGE-WITH-CONCERN reflecting this.
 
-## Bonus finding from Cut #10 verifier
+## Bonus finding from Cut #10 verifier (now corrected)
 
-While confirming `def _claim_value` zero-hit in `propstore/world` + `propstore/worldline` + tests, verifier found **one additional `def _claim_value` at `propstore/app/claim_views.py`**. This was outside V035's enumeration (which scope was world+worldline) but is structurally identical to the four duplicates V035 named. Worth folding into ClaimValueResolver in a future tiny cut. Left in place per spec.
+Verifier flagged `propstore/app/claim_views.py::_claim_value` as a possibly-foldable additional `def _claim_value`. Cut #11 attempted the fold and Codex correctly halted under H-B: the app-side function is **presentation-layer**, signature `(claim, concept) -> ClaimViewValue` with state/value/unit/value_si/canonical_unit/sentence fields. NOT structurally identical to V035's data extractor. Marker commit `901055d5` records the halt. V035 IS fully closed across all four named duplicates; the app/claim_views finding was a name-match false positive.
 
 ## All Gates At HEAD `9e187d4c`
 
