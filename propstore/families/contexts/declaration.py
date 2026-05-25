@@ -12,6 +12,7 @@ from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyModel
 from quire.derived_store import DerivedStoreHandle
 from quire.families import FamilyDefinition
+from quire.references import ReferenceKey
 from quire.versions import VersionId
 
 from ...context_lifting import (
@@ -93,6 +94,7 @@ CONTEXT_LIFTING_RULE_CHARTER: FamilyCharter = FamilyCharter(
             placement=FlatYamlPlacement(".derived/context_lifting_rule", str),
         ),
         identity_field="id",
+        reference_keys=(ReferenceKey.field("name"),),
     ),
     model=ContextLiftingRule,
     fields=(

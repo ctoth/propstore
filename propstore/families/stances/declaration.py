@@ -7,13 +7,16 @@ from typing import TYPE_CHECKING, Any
 import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, FamilyCharter, FamilyModel
+from quire.documents import DocumentBatchSpec
 from quire.families import FamilyDefinition
+from quire.references import ForeignKeySpec
 from quire.versions import VersionId
 
 from propstore.stances import StanceType
 
 
 _STANCE_WORLD_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False)
+SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 
 
 class Stance(FamilyModel):
@@ -42,8 +45,32 @@ STANCE_CHARTER: FamilyCharter = FamilyCharter(
             nullable=False,
             document_name="artifact_id",
         ),
-        CharterField("source_claim", str, nullable=False),
-        CharterField("target", str, nullable=False),
+        CharterField(
+            "source_claim",
+            str,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="stance_source_claim",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="stances",
+                source_field="source_claim",
+                target_family="claims",
+                required=False,
+            ),
+        ),
+        CharterField(
+            "target",
+            str,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="stance_target_claim",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="stances",
+                source_field="target",
+                target_family="claims",
+                required=False,
+            ),
+        ),
         CharterField(
             "type",
             StanceType,
@@ -61,7 +88,19 @@ STANCE_CHARTER: FamilyCharter = FamilyCharter(
             parse_boundary="json",
             nullable=True,
         ),
-        CharterField("target_justification_id", str, nullable=True),
+        CharterField(
+            "target_justification_id",
+            str,
+            nullable=True,
+            foreign_key=ForeignKeySpec(
+                name="stance_target_justification",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="stances",
+                source_field="target_justification_id",
+                target_family="justifications",
+                required=False,
+            ),
+        ),
         CharterField("classification_model", str, nullable=True),
         CharterField("classification_date", str, nullable=True),
         CharterField("promoted_from_sha", str, nullable=True),
@@ -94,3 +133,18 @@ else:
     StanceDocument.__name__ = "StanceDocument"
     StanceDocument.__qualname__ = "StanceDocument"
     StanceDocument.__module__ = __name__
+
+
+from propstore.families.documents.sources import SourceStanceEntryDocument
+
+SOURCE_STANCE_BATCH_SPEC = DocumentBatchSpec(
+    batch_name="source-stances",
+    item_type=SourceStanceEntryDocument,
+    items_field="stances",
+    inherited_item_fields=("source", "produced_by"),
+)
+object.__setattr__(
+    STANCE_CHARTER,
+    "batch_specs",
+    (SOURCE_STANCE_BATCH_SPEC,),
+)

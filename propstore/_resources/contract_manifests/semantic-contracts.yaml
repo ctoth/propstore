@@ -784,194 +784,74 @@ contracts:
       upper_bound_field: upper_bound
       value_field: value
 - kind: document_schema
-  name: AlignmentArgumentDocument
-  contract_version: 2026.05.25
+  name: AliasDocument
+  contract_version: 2026.05.20
+  body:
+    fields:
+    - name: concept_id
+      required: true
+      type: builtins.str
+    - name: alias_name
+      required: true
+      type: builtins.str
+    - name: source
+      required: true
+      type: builtins.str
+    module: propstore.families.concepts.declaration
+- kind: document_schema
+  name: Build_diagnosticsDocument
+  contract_version: 2026.05.20
   body:
     fields:
     - name: id
       required: true
-      type: str
-    - name: source
+      type: builtins.int
+    - name: claim_id
       required: true
-      type: str
-    - name: local_handle
+      type: builtins.str
+    - name: source_kind
       required: true
-      type: str
-    - name: proposed_name
+      type: builtins.str
+    - name: source_ref
       required: true
-      type: str
-    - name: proposed_uri
+      type: builtins.str
+    - name: diagnostic_kind
       required: true
-      type: str
-    - name: definition
+      type: builtins.str
+    - name: severity
       required: true
-      type: str
-    - name: form
+      type: builtins.str
+    - name: blocking
       required: true
-      type: str
-    module: propstore.families.source_alignment.declaration
+      type: builtins.int
+    - name: message
+      required: true
+      type: builtins.str
+    - name: file
+      required: true
+      type: builtins.str
+    - name: detail_json
+      required: true
+      type: builtins.str
+    module: propstore.families.diagnostics.declaration
 - kind: document_schema
-  name: AlignmentDecisionDocument
-  contract_version: 2026.05.25
+  name: Calibration_countsDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: status
+    - name: pass_number
       required: true
-      type: str
-    - name: accepted
+      type: builtins.int
+    - name: category
       required: true
-      type: tuple[str, ...]
-    - name: rejected
+      type: builtins.str
+    - name: correct_count
       required: true
-      type: tuple[str, ...]
-    - name: promoted_concept
+      type: builtins.int
+    - name: total_count
       required: true
-      type: str | None
-    module: propstore.families.source_alignment.declaration
-- kind: document_schema
-  name: AlignmentFrameworkDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: attacks
-      required: true
-      type: tuple[tuple[str, str], ...]
-    - name: ignorance
-      required: true
-      type: tuple[tuple[str, str], ...]
-    - name: non_attacks
-      required: true
-      type: tuple[tuple[str, str], ...]
-    module: propstore.families.source_alignment.declaration
-- kind: document_schema
-  name: AlignmentQueriesDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: skeptical_acceptance
-      required: true
-      type: tuple[str, ...]
-    - name: credulous_acceptance
-      required: true
-      type: tuple[str, ...]
-    - name: operator_scores
-      required: true
-      type: dict[str, dict[str, int]]
-    module: propstore.families.source_alignment.declaration
-- kind: document_schema
-  name: AtomDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: predicate
-      required: true
-      type: str
-    - name: terms
-      required: true
-      type: tuple[TermDocument, ...]
-    - name: negated
-      required: true
-      type: bool
-    module: propstore.families.rules.declaration
-- kind: document_schema
-  name: AtomicPropositionDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: type
-      required: true
-      type: ClaimType
-    - name: body
-      required: true
-      type: str | None
-    - name: concepts
-      required: true
-      type: tuple[str, ...]
-    - name: conditions
-      required: true
-      type: tuple[CelExpr, ...]
-    - name: confidence
-      required: true
-      type: float | int | None
-    - name: equations
-      required: true
-      type: tuple[str, ...]
-    - name: expression
-      required: true
-      type: str | None
-    - name: fit
-      required: true
-      type: FitStatisticsDocument | None
-    - name: listener_population
-      required: true
-      type: str | None
-    - name: lower_bound
-      required: true
-      type: float | int | None
-    - name: measure
-      required: true
-      type: str | None
-    - name: methodology
-      required: true
-      type: str | None
-    - name: name
-      required: true
-      type: str | None
-    - name: notes
-      required: true
-      type: str | None
-    - name: output_concept
-      required: true
-      type: str | None
-    - name: parameters
-      required: true
-      type: tuple[ParameterBindingDocument, ...]
-    - name: sample_size
-      required: true
-      type: int | None
-    - name: stage
-      required: true
-      type: AlgorithmStage | None
-    - name: statement
-      required: true
-      type: str | None
-    - name: sympy
-      required: true
-      type: str | None
-    - name: target_concept
-      required: true
-      type: str | None
-    - name: uncertainty
-      required: true
-      type: float | int | None
-    - name: uncertainty_type
-      required: true
-      type: str | None
-    - name: unit
-      required: true
-      type: str | None
-    - name: upper_bound
-      required: true
-      type: float | int | None
-    - name: value
-      required: true
-      type: float | int | None
-    - name: variables
-      required: true
-      type: tuple[VariableBindingDocument, ...]
-    module: propstore.families.claims.declaration
-- kind: document_schema
-  name: BodyLiteralDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: kind
-      required: true
-      type: BodyLiteralKind
-    - name: atom
-      required: true
-      type: AtomDocument
-    module: propstore.families.rules.declaration
+      type: builtins.int
+    module: propstore.families.calibration.declaration
 - kind: document_schema
   name: ClaimDocument
   contract_version: 2026.05.25
@@ -1091,56 +971,212 @@ contracts:
       type: builtins.tuple
     module: propstore.families.claims.declaration
 - kind: document_schema
-  name: ClaimLogicalIdDocument
-  contract_version: 2026.05.25
+  name: Claim_algorithm_payloadDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: namespace
+    - name: claim_id
       required: true
-      type: str
+      type: builtins.str
+    - name: body
+      required: true
+      type: builtins.str
+    - name: canonical_ast
+      required: true
+      type: builtins.str
+    - name: variables_json
+      required: true
+      type: builtins.str
+    - name: algorithm_stage
+      required: true
+      type: builtins.str
+    module: propstore.families.claims.declaration
+- kind: document_schema
+  name: Claim_concept_linkDocument
+  contract_version: 2026.05.20
+  body:
+    fields:
+    - name: claim_id
+      required: true
+      type: builtins.str
+    - name: concept_id
+      required: true
+      type: builtins.str
+    - name: role
+      required: true
+      type: propstore.core.relations.ClaimConceptLinkRole
+    - name: ordinal
+      required: true
+      type: builtins.int
+    - name: binding_name
+      required: true
+      type: builtins.str
+    module: propstore.families.claims.declaration
+- kind: document_schema
+  name: Claim_coreDocument
+  contract_version: 2026.05.20
+  body:
+    fields:
+    - name: id
+      required: true
+      type: builtins.str
+    - name: primary_logical_id
+      required: true
+      type: builtins.str
+    - name: logical_ids_json
+      required: true
+      type: builtins.str
+    - name: version_id
+      required: true
+      type: builtins.str
+    - name: content_hash
+      required: true
+      type: builtins.str
+    - name: seq
+      required: true
+      type: builtins.int
+    - name: type
+      required: true
+      type: propstore.families.claims.types.ClaimType
+    - name: target_concept
+      required: true
+      type: builtins.str
+    - name: source_slug
+      required: true
+      type: builtins.str
+    - name: source_paper
+      required: true
+      type: builtins.str
+    - name: provenance_page
+      required: true
+      type: builtins.int
+    - name: provenance_json
+      required: true
+      type: builtins.str
+    - name: context_id
+      required: true
+      type: builtins.str
+    - name: premise_kind
+      required: true
+      type: builtins.str
+    - name: branch
+      required: true
+      type: builtins.str
+    - name: build_status
+      required: true
+      type: builtins.str
+    - name: stage
+      required: true
+      type: builtins.str
+    - name: promotion_status
+      required: true
+      type: builtins.str
+    module: propstore.families.claims.declaration
+- kind: document_schema
+  name: Claim_numeric_payloadDocument
+  contract_version: 2026.05.20
+  body:
+    fields:
+    - name: claim_id
+      required: true
+      type: builtins.str
     - name: value
       required: true
-      type: str
+      type: builtins.float
+    - name: lower_bound
+      required: true
+      type: builtins.float
+    - name: upper_bound
+      required: true
+      type: builtins.float
+    - name: uncertainty
+      required: true
+      type: builtins.float
+    - name: uncertainty_type
+      required: true
+      type: builtins.str
+    - name: sample_size
+      required: true
+      type: builtins.int
     - name: confidence
       required: true
-      type: float | int | None
-    - name: pass_number
+      type: builtins.float
+    - name: unit
       required: true
-      type: int | None
+      type: builtins.str
+    - name: value_si
+      required: true
+      type: builtins.float
+    - name: lower_bound_si
+      required: true
+      type: builtins.float
+    - name: upper_bound_si
+      required: true
+      type: builtins.float
     module: propstore.families.claims.declaration
 - kind: document_schema
-  name: ClaimSourceDocument
-  contract_version: 2026.05.25
+  name: Claim_source_assertionDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: paper
+    - name: claim_id
       required: true
-      type: str
-    - name: extraction_date
+      type: builtins.str
+    - name: source_assertion_id
       required: true
-      type: str | None
-    - name: extraction_model
+      type: builtins.str
+    - name: ordinal
       required: true
-      type: str | None
-    - name: extraction_prompt_hash
-      required: true
-      type: str | None
+      type: builtins.int
     module: propstore.families.claims.declaration
 - kind: document_schema
-  name: ConceptAliasDocument
-  contract_version: 2026.05.25
+  name: Claim_text_payloadDocument
+  contract_version: 2026.05.20
   body:
     fields:
+    - name: claim_id
+      required: true
+      type: builtins.str
+    - name: conditions_cel
+      required: true
+      type: builtins.str
+    - name: conditions_ir
+      required: true
+      type: builtins.str
+    - name: statement
+      required: true
+      type: builtins.str
+    - name: expression
+      required: true
+      type: builtins.str
+    - name: sympy_generated
+      required: true
+      type: builtins.str
+    - name: sympy_error
+      required: true
+      type: builtins.str
     - name: name
       required: true
-      type: str
-    - name: source
+      type: builtins.str
+    - name: measure
       required: true
-      type: str | None
-    - name: note
+      type: builtins.str
+    - name: listener_population
       required: true
-      type: str | None
-    module: propstore.families.concepts.declaration
+      type: builtins.str
+    - name: methodology
+      required: true
+      type: builtins.str
+    - name: notes
+      required: true
+      type: builtins.str
+    - name: description
+      required: true
+      type: builtins.str
+    - name: auto_summary
+      required: true
+      type: builtins.str
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: ConceptAlignmentArtifactDocument
   contract_version: 2026.05.25
@@ -1170,131 +1206,121 @@ contracts:
     module: propstore.families.source_alignment.declaration
 - kind: document_schema
   name: ConceptDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: status
-      required: true
-      type: propstore.families.concepts.types.ConceptStatus
-    - name: ontology_reference
-      required: true
-      type: propstore.families.concepts.declaration.OntologyReferenceDocument
-    - name: lexical_entry
-      required: true
-      type: propstore.families.concepts.declaration.LexicalEntryDocument
-    - name: artifact_id
-      required: true
-      type: str | None
-    - name: logical_ids
-      required: true
-      type: builtins.tuple
-    - name: version_id
-      required: true
-      type: str | None
-    - name: aliases
-      required: true
-      type: builtins.tuple
-    - name: created_date
-      required: true
-      type: str | None
-    - name: definition_source
-      required: true
-      type: str | None
-    - name: domain
-      required: true
-      type: str | None
-    - name: form_parameters
-      required: true
-      type: propstore.families.concepts.declaration.ConceptFormParametersDocument
-        | None
-    - name: last_modified
-      required: true
-      type: str | None
-    - name: notes
-      required: true
-      type: str | None
-    - name: parameterization_relationships
-      required: true
-      type: builtins.tuple
-    - name: range
-      required: true
-      type: tuple[float, float] | None
-    - name: relationships
-      required: true
-      type: builtins.tuple
-    - name: replaced_by
-      required: true
-      type: str | None
-    module: propstore.families.concepts.declaration
-- kind: document_schema
-  name: ConceptFormParametersDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: construction
-      required: true
-      type: str | None
-    - name: extensible
-      required: true
-      type: bool | None
-    - name: note
-      required: true
-      type: str | None
-    - name: reference
-      required: true
-      type: str | None
-    - name: values
-      required: true
-      type: tuple[str, ...] | None
-    module: propstore.families.concepts.declaration
-- kind: document_schema
-  name: ConceptIdScanDocument
-  contract_version: 2026.05.25
+  contract_version: 2026.05.20
   body:
     fields:
     - name: id
       required: true
-      type: str | None
-    - name: artifact_id
+      type: builtins.str
+    - name: primary_logical_id
       required: true
-      type: str | None
-    - name: logical_ids
+      type: builtins.str
+    - name: logical_ids_json
       required: true
-      type: tuple[ConceptLogicalIdDocument, ...]
+      type: builtins.str
+    - name: version_id
+      required: true
+      type: builtins.str
+    - name: content_hash
+      required: true
+      type: builtins.str
+    - name: seq
+      required: true
+      type: builtins.int
+    - name: canonical_name
+      required: true
+      type: builtins.str
+    - name: status
+      required: true
+      type: builtins.str
+    - name: domain
+      required: true
+      type: builtins.str
+    - name: definition
+      required: true
+      type: builtins.str
+    - name: kind_type
+      required: true
+      type: builtins.str
+    - name: form
+      required: true
+      type: builtins.str
+    - name: form_parameters
+      required: true
+      type: builtins.str
+    - name: range_min
+      required: true
+      type: builtins.float
+    - name: range_max
+      required: true
+      type: builtins.float
+    - name: is_dimensionless
+      required: true
+      type: builtins.int
+    - name: unit_symbol
+      required: true
+      type: builtins.str
+    - name: created_date
+      required: true
+      type: builtins.str
+    - name: last_modified
+      required: true
+      type: builtins.str
     module: propstore.families.concepts.declaration
 - kind: document_schema
-  name: ConceptLogicalIdDocument
-  contract_version: 2026.05.25
+  name: Concept_embedding_statusDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: namespace
+    - name: model_identity_hash
       required: true
-      type: str
-    - name: value
+      type: builtins.str
+    - name: concept_id
       required: true
-      type: str
-    module: propstore.families.concepts.declaration
+      type: builtins.str
+    - name: content_hash
+      required: true
+      type: builtins.str
+    - name: embedded_at
+      required: true
+      type: builtins.str
+    module: propstore.families.embeddings.declaration
 - kind: document_schema
-  name: ConceptRelationshipDocument
-  contract_version: 2026.05.25
+  name: Conflict_witnessDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: type
+    - name: id
       required: true
-      type: ConceptRelationshipType
-    - name: target
+      type: builtins.int
+    - name: claim_a_id
       required: true
-      type: str
-    - name: source
+      type: builtins.str
+    - name: claim_b_id
       required: true
-      type: str | None
-    - name: conditions
+      type: builtins.str
+    - name: concept_id
       required: true
-      type: tuple[str, ...]
-    - name: note
+      type: builtins.str
+    - name: warning_class
       required: true
-      type: str | None
-    module: propstore.families.concepts.declaration
+      type: builtins.str
+    - name: conditions_a
+      required: true
+      type: builtins.str
+    - name: conditions_b
+      required: true
+      type: builtins.str
+    - name: value_a
+      required: true
+      type: builtins.str
+    - name: value_b
+      required: true
+      type: builtins.str
+    - name: derivation_chain
+      required: true
+      type: builtins.str
+    module: propstore.families.relations.declaration
 - kind: document_schema
   name: ContextDocument
   contract_version: 2026.05.25
@@ -1324,17 +1350,8 @@ contracts:
         ...] | None
     module: propstore.families.contexts.declaration
 - kind: document_schema
-  name: ContextReferenceDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: id
-      required: true
-      type: str
-    module: propstore.families.contexts.declaration
-- kind: document_schema
   name: Context_assumptionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: context_id
@@ -1348,8 +1365,38 @@ contracts:
       type: builtins.int
     module: propstore.families.contexts.declaration
 - kind: document_schema
+  name: Context_lifting_materializationDocument
+  contract_version: 2026.05.25
+  body:
+    fields:
+    - name: id
+      required: true
+      type: builtins.int
+    - name: rule_id
+      required: true
+      type: builtins.str
+    - name: source_context_id
+      required: true
+      type: builtins.str
+    - name: target_context_id
+      required: true
+      type: builtins.str
+    - name: proposition_id
+      required: true
+      type: builtins.str
+    - name: status
+      required: true
+      type: builtins.str
+    - name: exception_id
+      required: true
+      type: builtins.str
+    - name: provenance_json
+      required: true
+      type: builtins.str
+    module: propstore.families.contexts.declaration
+- kind: document_schema
   name: Context_lifting_ruleDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: id
@@ -1372,68 +1419,53 @@ contracts:
       type: str | None
     module: propstore.families.contexts.declaration
 - kind: document_schema
-  name: ExtractionProvenanceDocument
-  contract_version: 2026.04.30
+  name: Embedding_modelDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: reader
+    - name: model_identity_hash
       required: true
-      type: str | None
-    - name: method
+      type: builtins.str
+    - name: provider
       required: true
-      type: str | None
-    - name: timestamp
+      type: builtins.str
+    - name: model_name
       required: true
-      type: str | None
-    module: propstore.families.documents.sources
+      type: builtins.str
+    - name: model_version
+      required: true
+      type: builtins.str
+    - name: content_digest
+      required: true
+      type: builtins.str
+    - name: dimensions
+      required: true
+      type: builtins.int
+    - name: created_at
+      required: true
+      type: builtins.str
+    module: propstore.families.embeddings.declaration
 - kind: document_schema
-  name: FitStatisticsDocument
-  contract_version: 2026.05.25
+  name: Embedding_statusDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: r
+    - name: model_identity_hash
       required: true
-      type: float | int | None
-    - name: r_sd
+      type: builtins.str
+    - name: claim_id
       required: true
-      type: float | int | None
-    - name: slope
+      type: builtins.str
+    - name: content_hash
       required: true
-      type: float | int | None
-    - name: slope_sd
+      type: builtins.str
+    - name: embedded_at
       required: true
-      type: float | int | None
-    module: propstore.families.claims.declaration
-- kind: document_schema
-  name: FormAlternativeDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: unit
-      required: true
-      type: str
-    - name: type
-      required: true
-      type: str
-    - name: multiplier
-      required: true
-      type: float
-    - name: offset
-      required: true
-      type: float
-    - name: base
-      required: true
-      type: float
-    - name: divisor
-      required: true
-      type: float
-    - name: reference
-      required: true
-      type: float
-    module: propstore.families.forms.declaration
+      type: builtins.str
+    module: propstore.families.embeddings.declaration
 - kind: document_schema
   name: FormDocument
-  contract_version: 2026.05.25
+  contract_version: 2026.05.20
   body:
     fields:
     - name: name
@@ -1483,47 +1515,77 @@ contracts:
       type: float | None
     module: propstore.families.forms.models
 - kind: document_schema
-  name: FormExtraUnitDocument
-  contract_version: 2026.05.25
+  name: Form_algebraDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: symbol
+    - name: id
       required: true
-      type: str
-    - name: dimensions
+      type: builtins.int
+    - name: output_form
       required: true
-      type: dict[str, int]
-    module: propstore.families.forms.declaration
+      type: builtins.str
+    - name: input_forms
+      required: true
+      type: builtins.str
+    - name: operation
+      required: true
+      type: builtins.str
+    - name: source_concept_id
+      required: true
+      type: builtins.str
+    - name: source_formula
+      required: true
+      type: builtins.str
+    - name: dim_verified
+      required: true
+      type: builtins.int
+    module: propstore.families.forms.models
 - kind: document_schema
-  name: IstPropositionDocument
-  contract_version: 2026.05.25
+  name: Grounded_bundle_inputDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: context
+    - name: kind
       required: true
-      type: ContextReferenceDocument
-    - name: proposition
+      type: builtins.str
+    - name: position
       required: true
-      type: AtomicPropositionDocument | IstPropositionDocument
-    module: propstore.families.claims.declaration
+      type: builtins.int
+    - name: payload
+      required: true
+      type: builtins.bytes
+    module: propstore.families.rules.declaration
 - kind: document_schema
-  name: JustificationAttackTargetDocument
-  contract_version: 2026.04.30
+  name: Grounded_factDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: target_claim
+    - name: predicate
       required: true
-      type: str | None
-    - name: target_justification_id
+      type: builtins.str
+    - name: arguments
       required: true
-      type: str | None
-    - name: target_premise_index
+      type: builtins.str
+    - name: section
       required: true
-      type: int | None
-    module: propstore.families.claims.declaration
+      type: builtins.str
+    module: propstore.families.rules.declaration
+- kind: document_schema
+  name: Grounded_fact_empty_predicateDocument
+  contract_version: 2026.05.20
+  body:
+    fields:
+    - name: section
+      required: true
+      type: builtins.str
+    - name: predicate
+      required: true
+      type: builtins.str
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: JustificationDocument
-  contract_version: 2026.05.25
+  contract_version: 2026.05.20
   body:
     fields:
     - name: id
@@ -1554,117 +1616,6 @@ contracts:
       type: str | None
     module: propstore.families.claims.declaration
 - kind: document_schema
-  name: JustificationProvenanceDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: paper
-      required: true
-      type: str | None
-    - name: page
-      required: true
-      type: int | None
-    - name: figure
-      required: true
-      type: str | None
-    - name: quote_fragment
-      required: true
-      type: str | None
-    - name: section
-      required: true
-      type: str | None
-    - name: table
-      required: true
-      type: str | None
-    module: propstore.families.claims.declaration
-- kind: document_schema
-  name: LexicalEntryDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: identifier
-      required: true
-      type: str
-    - name: canonical_form
-      required: true
-      type: LexicalFormDocument
-    - name: senses
-      required: true
-      type: tuple[LexicalSenseDocument, ...]
-    - name: physical_dimension_form
-      required: true
-      type: str
-    - name: other_forms
-      required: true
-      type: tuple[LexicalFormDocument, ...]
-    module: propstore.families.concepts.declaration
-- kind: document_schema
-  name: LexicalFormDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: written_rep
-      required: true
-      type: str
-    - name: language
-      required: true
-      type: str
-    - name: phonetic_rep
-      required: true
-      type: str | None
-    module: propstore.families.concepts.declaration
-- kind: document_schema
-  name: LexicalSenseDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: reference
-      required: true
-      type: OntologyReferenceDocument
-    - name: usage
-      required: true
-      type: str | None
-    - name: provenance
-      required: true
-      type: Provenance | None
-    - name: qualia
-      required: true
-      type: QualiaStructure | None
-    - name: description_kind
-      required: true
-      type: DescriptionKind | None
-    - name: role_bundles
-      required: true
-      type: dict[str, ProtoRoleBundle] | None
-    module: propstore.families.concepts.declaration
-- kind: document_schema
-  name: MergeManifestArgumentDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: assertion_id
-      required: true
-      type: str
-    - name: artifact_id
-      required: true
-      type: str
-    - name: logical_id
-      required: true
-      type: str
-    - name: canonical_claim_id
-      required: true
-      type: str | None
-    - name: branch_origins
-      required: true
-      type: tuple[str, ...]
-    - name: witness_basis
-      required: true
-      type: tuple[MergeManifestWitnessDocument, ...]
-    - name: materialized
-      required: true
-      type: bool
-    module: propstore.families.merge.declaration
-- kind: document_schema
   name: MergeManifestDocument
   contract_version: 2026.05.25
   body:
@@ -1674,89 +1625,20 @@ contracts:
       type: propstore.families.merge.declaration.MergeManifestPayloadDocument
     module: propstore.families.merge.declaration
 - kind: document_schema
-  name: MergeManifestPayloadDocument
-  contract_version: 2026.05.25
+  name: MetaDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: branch_a
+    - name: key
       required: true
-      type: str
-    - name: branch_b
+      type: builtins.str
+    - name: schema_version
       required: true
-      type: str
-    - name: arguments
-      required: true
-      type: tuple[MergeManifestArgumentDocument, ...]
-    - name: semantic_candidates
-      required: true
-      type: tuple[tuple[str, ...], ...]
-    - name: semantic_candidate_details
-      required: true
-      type: tuple[MergeSemanticCandidateDetailDocument, ...]
-    module: propstore.families.merge.declaration
-- kind: document_schema
-  name: MergeManifestWitnessDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: source_artifact_id
-      required: true
-      type: str
-    - name: source_paper
-      required: true
-      type: str | None
-    - name: source_page
-      required: true
-      type: int | None
-    - name: branch_origin
-      required: true
-      type: str | None
-    - name: rule_chain
-      required: true
-      type: tuple[str, ...]
-    module: propstore.families.merge.declaration
-- kind: document_schema
-  name: MergeSemanticCandidateArgumentDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: assertion_id
-      required: true
-      type: str
-    - name: logical_id
-      required: true
-      type: str
-    - name: artifact_id
-      required: true
-      type: str
-    - name: branch_origins
-      required: true
-      type: tuple[str, ...]
-    - name: source_paper
-      required: true
-      type: str | None
-    module: propstore.families.merge.declaration
-- kind: document_schema
-  name: MergeSemanticCandidateDetailDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: assertion_ids
-      required: true
-      type: tuple[str, ...]
-    - name: logical_ids
-      required: true
-      type: tuple[str, ...]
-    - name: artifact_ids
-      required: true
-      type: tuple[str, ...]
-    - name: arguments
-      required: true
-      type: tuple[MergeSemanticCandidateArgumentDocument, ...]
-    module: propstore.families.merge.declaration
+      type: builtins.int
+    module: propstore.families.meta.declaration
 - kind: document_schema
   name: MicropublicationDocument
-  contract_version: 2026.05.25
+  contract_version: 2026.05.20
   body:
     fields:
     - name: artifact_id
@@ -1788,100 +1670,58 @@ contracts:
       type: str | None
     module: propstore.families.micropublications.declaration
 - kind: document_schema
-  name: MicropublicationEvidenceDocument
-  contract_version: 2026.05.25
+  name: Micropublication_claimDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: kind
+    - name: micropublication_id
       required: true
-      type: str
-    - name: reference
+      type: builtins.str
+    - name: claim_id
       required: true
-      type: str
+      type: builtins.str
+    - name: seq
+      required: true
+      type: builtins.int
     module: propstore.families.micropublications.declaration
 - kind: document_schema
-  name: OntologyReferenceDocument
-  contract_version: 2026.05.25
+  name: ParameterizationDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: uri
+    - name: output_concept_id
       required: true
-      type: str
-    - name: label
+      type: builtins.str
+    - name: concept_ids
       required: true
-      type: str | None
-    module: propstore.families.concepts.declaration
-- kind: document_schema
-  name: OpinionDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: b
-      required: true
-      type: float | int
-    - name: d
-      required: true
-      type: float | int
-    - name: u
-      required: true
-      type: float | int
-    - name: a
-      required: true
-      type: float | int
-    - name: provenance
-      required: true
-      type: Provenance
-    module: propstore.families.claims.declaration
-- kind: document_schema
-  name: ParameterBindingDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: name
-      required: true
-      type: str
-    - name: concept
-      required: true
-      type: str
-    - name: note
-      required: true
-      type: str | None
-    module: propstore.families.claims.declaration
-- kind: document_schema
-  name: ParameterizationRelationshipDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: inputs
-      required: true
-      type: tuple[str, ...]
+      type: builtins.str
     - name: formula
       required: true
-      type: str | None
-    - name: exactness
-      required: true
-      type: Exactness | None
-    - name: source
-      required: true
-      type: str | None
-    - name: bidirectional
-      required: true
-      type: bool | None
+      type: builtins.str
     - name: sympy
       required: true
-      type: str | None
-    - name: conditions
+      type: builtins.str
+    - name: exactness
       required: true
-      type: tuple[str, ...]
-    - name: note
+      type: builtins.str
+    - name: conditions_cel
       required: true
-      type: str | None
-    - name: canonical_claim
+      type: builtins.str
+    - name: conditions_ir
       required: true
-      type: str | None
-    - name: fit_statistics
+      type: builtins.str
+    module: propstore.families.concepts.declaration
+- kind: document_schema
+  name: Parameterization_groupDocument
+  contract_version: 2026.05.20
+  body:
+    fields:
+    - name: concept_id
       required: true
-      type: str | None
+      type: builtins.str
+    - name: group_id
+      required: true
+      type: builtins.int
     module: propstore.families.concepts.declaration
 - kind: document_schema
   name: PredicateDeclaration
@@ -1929,107 +1769,98 @@ contracts:
       type: str | None
     module: propstore.families.predicates.declaration
 - kind: document_schema
-  name: PredicateExtractionProvenance
-  contract_version: 2026.05.25
+  name: Relation_edgeDocument
+  contract_version: 2026.05.20
   body:
     fields:
-    - name: operations
+    - name: id
       required: true
-      type: tuple[str, ...]
-    - name: agent
+      type: builtins.int
+    - name: source_kind
       required: true
-      type: str
-    - name: model
+      type: builtins.str
+    - name: source_id
       required: true
-      type: str
-    - name: prompt_sha
+      type: builtins.str
+    - name: relation_type
       required: true
-      type: str
-    - name: notes_sha
+      type: builtins.str
+    - name: target_kind
       required: true
-      type: str
-    - name: status
+      type: builtins.str
+    - name: target_id
       required: true
-      type: str
-    module: propstore.families.predicates.declaration
-- kind: document_schema
-  name: PredicateProposalDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: source_paper
+      type: builtins.str
+    - name: perspective_source_claim_id
       required: true
-      type: str
-    - name: proposed_declarations
+      type: builtins.str
+    - name: target_justification_id
       required: true
-      type: tuple[PredicateDeclaration, ...]
-    - name: extraction_provenance
+      type: builtins.str
+    - name: conditions_cel
       required: true
-      type: PredicateExtractionProvenance
-    - name: extraction_date
+      type: builtins.str
+    - name: strength
       required: true
-      type: str
-    - name: promoted_from_sha
+      type: builtins.str
+    - name: conditions_differ
       required: true
-      type: str | None
-    module: propstore.families.predicates.declaration
-- kind: document_schema
-  name: ProvenanceDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: page
+      type: builtins.str
+    - name: note
       required: true
-      type: int
-    - name: paper
+      type: builtins.str
+    - name: resolution_method
       required: true
-      type: str | None
-    - name: branch_origin
+      type: builtins.str
+    - name: resolution_model
       required: true
-      type: str | None
-    - name: date
-      required: true
-      type: str | None
-    - name: figure
-      required: true
-      type: str | None
-    - name: quote_fragment
-      required: true
-      type: str | None
-    - name: section
-      required: true
-      type: str | None
-    - name: table
-      required: true
-      type: str | None
-    module: propstore.families.claims.declaration
-- kind: document_schema
-  name: ResolutionDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: method
-      required: true
-      type: str
-    - name: embedding_distance
-      required: true
-      type: float | int | None
+      type: builtins.str
     - name: embedding_model
       required: true
-      type: str | None
-    - name: model
+      type: builtins.str
+    - name: embedding_distance
       required: true
-      type: str | None
+      type: builtins.float
     - name: pass_number
       required: true
-      type: int | None
+      type: builtins.int
     - name: confidence
       required: true
-      type: float | int | None
-    - name: opinion
+      type: builtins.float
+    - name: opinion_belief
       required: true
-      type: OpinionDocument | None
-    module: propstore.families.claims.declaration
+      type: builtins.float
+    - name: opinion_disbelief
+      required: true
+      type: builtins.float
+    - name: opinion_uncertainty
+      required: true
+      type: builtins.float
+    - name: opinion_base_rate
+      required: true
+      type: builtins.float
+    module: propstore.families.relations.declaration
+- kind: document_schema
+  name: RelationshipDocument
+  contract_version: 2026.05.20
+  body:
+    fields:
+    - name: source_id
+      required: true
+      type: builtins.str
+    - name: type
+      required: true
+      type: builtins.str
+    - name: target_id
+      required: true
+      type: builtins.str
+    - name: conditions_cel
+      required: true
+      type: builtins.str
+    - name: note
+      required: true
+      type: builtins.str
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: RuleDocument
   contract_version: 2026.05.25
@@ -2064,33 +1895,6 @@ contracts:
       type: str | None
     module: propstore.families.rules.declaration
 - kind: document_schema
-  name: RuleExtractionProvenance
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: operations
-      required: true
-      type: tuple[str, ...]
-    - name: agent
-      required: true
-      type: str
-    - name: model
-      required: true
-      type: str
-    - name: prompt_sha
-      required: true
-      type: str
-    - name: notes_sha
-      required: true
-      type: str
-    - name: predicates_sha
-      required: true
-      type: str
-    - name: status
-      required: true
-      type: str
-    module: propstore.families.rules.declaration
-- kind: document_schema
   name: RuleProposalDocument
   contract_version: 2026.05.25
   body:
@@ -2122,15 +1926,6 @@ contracts:
     - name: promoted_from_sha
       required: true
       type: str | None
-    module: propstore.families.rules.declaration
-- kind: document_schema
-  name: RuleSourceDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: paper
-      required: true
-      type: str
     module: propstore.families.rules.declaration
 - kind: document_schema
   name: RuleSuperiorityDocument
@@ -2181,575 +1976,29 @@ contracts:
       type: float | None
     module: propstore.families.sameas.declaration
 - kind: document_schema
-  name: SourceAttackTargetDocument
-  contract_version: 2026.04.30
+  name: SourceDocument
+  contract_version: 2026.05.25
   body:
     fields:
-    - name: target_claim
-      required: true
-      type: str | None
-    - name: target_justification_id
-      required: true
-      type: str | None
-    - name: target_premise_index
-      required: true
-      type: int | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceClaimDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: source
-      required: true
-      type: ClaimSourceDocument | None
-    - name: produced_by
-      required: true
-      type: ExtractionProvenanceDocument | None
-    - name: artifact_id
-      required: true
-      type: str | None
-    - name: logical_ids
-      required: true
-      type: tuple[ClaimLogicalIdDocument, ...]
-    - name: version_id
-      required: true
-      type: str | None
-    - name: type
-      required: true
-      type: ClaimType | None
-    - name: provenance
-      required: true
-      type: SourceProvenanceDocument | None
     - name: id
       required: true
-      type: str | None
-    - name: body
-      required: true
-      type: str | None
-    - name: concept
-      required: true
-      type: str | None
-    - name: concepts
-      required: true
-      type: tuple[str, ...]
-    - name: conditions
-      required: true
-      type: tuple[CelExpr, ...]
-    - name: context
-      required: true
-      type: str | None
-    - name: equations
-      required: true
-      type: tuple[str, ...]
-    - name: expression
-      required: true
-      type: str | None
-    - name: fit
-      required: true
-      type: FitStatisticsDocument | None
-    - name: listener_population
-      required: true
-      type: str | None
-    - name: lower_bound
-      required: true
-      type: float | int | None
-    - name: measure
-      required: true
-      type: str | None
-    - name: methodology
-      required: true
-      type: str | None
-    - name: name
-      required: true
-      type: str | None
-    - name: notes
-      required: true
-      type: str | None
-    - name: parameters
-      required: true
-      type: tuple[ParameterBindingDocument, ...]
-    - name: sample_size
-      required: true
-      type: int | None
-    - name: stage
-      required: true
-      type: AlgorithmStage | None
-    - name: stances
-      required: true
-      type: tuple[StanceDocument, ...]
-    - name: statement
-      required: true
-      type: str | None
-    - name: sympy
-      required: true
-      type: str | None
-    - name: target_concept
-      required: true
-      type: str | None
-    - name: uncertainty
-      required: true
-      type: float | int | None
-    - name: uncertainty_type
-      required: true
-      type: str | None
-    - name: unit
-      required: true
-      type: str | None
-    - name: upper_bound
-      required: true
-      type: float | int | None
-    - name: value
-      required: true
-      type: float | int | None
-    - name: variables
-      required: true
-      type: tuple[VariableBindingDocument, ...]
-    - name: source_local_id
-      required: true
-      type: str | None
-    - name: artifact_code
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceConceptAliasDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: name
-      required: true
-      type: str
-    - name: source
-      required: true
-      type: str | None
-    - name: note
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceConceptEntryDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: local_name
-      required: true
-      type: str | None
-    - name: proposed_name
-      required: true
-      type: str | None
-    - name: definition
-      required: true
-      type: str | None
-    - name: form
-      required: true
-      type: str | None
-    - name: aliases
-      required: true
-      type: tuple[SourceConceptAliasDocument, ...]
-    - name: form_parameters
-      required: true
-      type: SourceConceptFormParametersDocument | None
-    - name: parameterization_relationships
-      required: true
-      type: tuple[SourceParameterizationRelationshipDocument, ...]
-    - name: status
-      required: true
-      type: str | None
-    - name: registry_match
-      required: true
-      type: SourceConceptRegistryMatchDocument | None
-    - name: artifact_code
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceConceptFormParametersDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: construction
-      required: true
-      type: str | None
-    - name: extensible
-      required: true
-      type: bool | None
-    - name: note
-      required: true
-      type: str | None
-    - name: reference
-      required: true
-      type: str | None
-    - name: values
-      required: true
-      type: tuple[str, ...] | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceConceptRegistryMatchDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: artifact_id
-      required: true
-      type: str
-    - name: canonical_name
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceFinalizeCalibrationDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: prior_base_rate_status
-      required: true
-      type: str
-    - name: source_quality_status
-      required: true
-      type: str
-    - name: fallback_to_default_base_rate
-      required: true
-      type: bool
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceFinalizeReportDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
+      type: builtins.str
     - name: kind
       required: true
-      type: str
-    - name: source
+      type: propstore.core.source_types.SourceKind
+    - name: origin
       required: true
-      type: str
-    - name: status
+      type: propstore.families.documents.sources.SourceOriginDocument
+    - name: trust
       required: true
-      type: str
-    - name: artifact_code_status
+      type: propstore.families.documents.sources.SourceTrustDocument
+    - name: metadata
       required: true
-      type: str
-    - name: calibration
-      required: true
-      type: SourceFinalizeCalibrationDocument
-    - name: micropub_status
-      required: true
-      type: str
-    - name: claim_reference_errors
-      required: true
-      type: tuple[str, ...]
-    - name: micropub_coverage_errors
-      required: true
-      type: tuple[str, ...]
-    - name: justification_reference_errors
-      required: true
-      type: tuple[str, ...]
-    - name: stance_reference_errors
-      required: true
-      type: tuple[str, ...]
-    - name: concept_alignment_candidates
-      required: true
-      type: tuple[str, ...]
-    - name: parameterization_group_merges
-      required: true
-      type: tuple[SourceParameterizationGroupMergeDocument, ...]
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceJustificationDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: source
-      required: true
-      type: ClaimSourceDocument | None
-    - name: produced_by
-      required: true
-      type: ExtractionProvenanceDocument | None
-    - name: id
-      required: true
-      type: str | None
-    - name: conclusion
-      required: true
-      type: str | None
-    - name: premises
-      required: true
-      type: tuple[str, ...]
-    - name: rule_kind
-      required: true
-      type: str | None
-    - name: rule_strength
-      required: true
-      type: str | None
-    - name: provenance
-      required: true
-      type: SourceProvenanceDocument | None
-    - name: attack_target
-      required: true
-      type: SourceAttackTargetDocument | None
+      type: propstore.families.documents.sources.SourceMetadataDocument | None
     - name: artifact_code
       required: true
       type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceMetadataDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: name
-      required: true
-      type: str
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceOriginDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: type
-      required: true
-      type: SourceOriginType
-    - name: value
-      required: true
-      type: str
-    - name: retrieved
-      required: true
-      type: str | None
-    - name: content_ref
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceParameterizationGroupMergeDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: merged_group
-      required: true
-      type: tuple[str, ...]
-    - name: previous_groups
-      required: true
-      type: tuple[tuple[str, ...], ...]
-    - name: introduced_by
-      required: true
-      type: tuple[str, ...]
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceParameterizationRelationshipDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: inputs
-      required: true
-      type: tuple[str, ...]
-    - name: formula
-      required: true
-      type: str | None
-    - name: sympy
-      required: true
-      type: str | None
-    - name: exactness
-      required: true
-      type: Exactness | None
-    - name: source
-      required: true
-      type: str | None
-    - name: bidirectional
-      required: true
-      type: bool | None
-    - name: conditions
-      required: true
-      type: tuple[CelExpr, ...]
-    - name: note
-      required: true
-      type: str | None
-    - name: canonical_claim
-      required: true
-      type: str | None
-    - name: fit_statistics
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceProvenanceDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: paper
-      required: true
-      type: str | None
-    - name: page
-      required: true
-      type: int | None
-    - name: figure
-      required: true
-      type: str | None
-    - name: quote_fragment
-      required: true
-      type: str | None
-    - name: section
-      required: true
-      type: str | None
-    - name: table
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceStanceEntryDocument
-  contract_version: 2026.05.01
-  body:
-    fields:
-    - name: source
-      required: true
-      type: ClaimSourceDocument | None
-    - name: produced_by
-      required: true
-      type: ExtractionProvenanceDocument | None
-    - name: source_claim
-      required: true
-      type: str | None
-    - name: perspective_source_claim_id
-      required: true
-      type: str | None
-    - name: target
-      required: true
-      type: str | None
-    - name: type
-      required: true
-      type: StanceType | None
-    - name: strength
-      required: true
-      type: str | None
-    - name: note
-      required: true
-      type: str | None
-    - name: conditions_differ
-      required: true
-      type: str | None
-    - name: resolution
-      required: true
-      type: ResolutionDocument | None
-    - name: target_justification_id
-      required: true
-      type: str | None
-    - name: artifact_code
-      required: true
-      type: str | None
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceTrustDocument
-  contract_version: 2026.05.01
-  body:
-    fields:
-    - name: status
-      required: true
-      type: ProvenanceStatus
-    - name: prior_base_rate
-      required: true
-      type: Opinion | None
-    - name: quality
-      required: true
-      type: SourceTrustQualityDocument | None
-    - name: derived_from
-      required: true
-      type: tuple[str, ...]
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: SourceTrustQualityDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: status
-      required: true
-      type: ProvenanceStatus
-    - name: b
-      required: true
-      type: float | int
-    - name: d
-      required: true
-      type: float | int
-    - name: u
-      required: true
-      type: float | int
-    - name: a
-      required: true
-      type: float | int
-    module: propstore.families.documents.sources
-- kind: document_schema
-  name: StanceDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: type
-      required: true
-      type: StanceType
-    - name: target
-      required: true
-      type: str
-    - name: conditions_differ
-      required: true
-      type: str | None
-    - name: note
-      required: true
-      type: str | None
-    - name: resolution
-      required: true
-      type: ResolutionDocument | None
-    - name: strength
-      required: true
-      type: str | None
-    - name: target_justification_id
-      required: true
-      type: str | None
-    module: propstore.families.claims.declaration
-- kind: document_schema
-  name: TermDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: kind
-      required: true
-      type: TermKind
-    - name: name
-      required: true
-      type: str | None
-    - name: value
-      required: true
-      type: str | int | float | bool | None
-    module: propstore.families.rules.declaration
-- kind: document_schema
-  name: VariableBindingDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: concept
-      required: true
-      type: str
-    - name: symbol
-      required: true
-      type: str | None
-    - name: role
-      required: true
-      type: str | None
-    - name: name
-      required: true
-      type: str | None
-    module: propstore.families.claims.declaration
-- kind: document_schema
-  name: WorldlineAssumptionDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: assumption_id
-      required: true
-      type: str
-    - name: kind
-      required: true
-      type: str
-    - name: source
-      required: true
-      type: str
-    - name: cel
-      required: true
-      type: CelExpr
-    module: propstore.families.worldlines.declaration
+    module: propstore.families.sources.declaration
 - kind: document_schema
   name: WorldlineDefinitionDocument
   contract_version: 2026.05.25
@@ -2785,69 +2034,6 @@ contracts:
       type: propstore.families.worldlines.declaration.WorldlineResultDocument | None
     module: propstore.families.worldlines.declaration
 - kind: document_schema
-  name: WorldlineDependenciesDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: claims
-      required: true
-      type: tuple[str, ...]
-    - name: stances
-      required: true
-      type: tuple[str, ...]
-    - name: contexts
-      required: true
-      type: tuple[str, ...]
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
-  name: WorldlineInputSourceDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: source
-      required: true
-      type: str
-    - name: value
-      required: true
-      type: float | str | None
-    - name: claim_id
-      required: true
-      type: str | None
-    - name: formula
-      required: true
-      type: str | None
-    - name: reason
-      required: true
-      type: str | None
-    - name: strategy
-      required: true
-      type: str | None
-    - name: inputs_used
-      required: true
-      type: dict[str, WorldlineInputSourceDocument]
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
-  name: WorldlineInputsDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: bindings
-      required: true
-      type: dict[str, Any]
-    - name: context_id
-      required: true
-      type: str | None
-    - name: effective_assumptions
-      required: true
-      type: tuple[CelExpr, ...]
-    - name: assumptions
-      required: true
-      type: tuple[WorldlineAssumptionDocument, ...]
-    - name: overrides
-      required: true
-      type: dict[str, float | str]
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
   name: WorldlineJournalDocument
   contract_version: 2026.05.25
   body:
@@ -2858,75 +2044,6 @@ contracts:
     - name: entries
       required: true
       type: builtins.tuple
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
-  name: WorldlinePolicyDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: reasoning_backend
-      required: true
-      type: str | None
-    - name: strategy
-      required: true
-      type: str | None
-    - name: semantics
-      required: true
-      type: str | None
-    - name: comparison
-      required: true
-      type: str | None
-    - name: link
-      required: true
-      type: str | None
-    - name: decision_criterion
-      required: true
-      type: str | None
-    - name: pessimism_index
-      required: true
-      type: float | None
-    - name: show_uncertainty_interval
-      required: true
-      type: bool | None
-    - name: praf_strategy
-      required: true
-      type: str | None
-    - name: praf_mc_epsilon
-      required: true
-      type: float | None
-    - name: praf_mc_confidence
-      required: true
-      type: float | None
-    - name: praf_treewidth_cutoff
-      required: true
-      type: int | None
-    - name: praf_mc_seed
-      required: true
-      type: int | None
-    - name: merge_operator
-      required: true
-      type: str | None
-    - name: branch_filter
-      required: true
-      type: tuple[str, ...] | None
-    - name: branch_weights
-      required: true
-      type: dict[str, float] | None
-    - name: integrity_constraints
-      required: true
-      type: tuple[dict[str, Any], ...]
-    - name: future_queryables
-      required: true
-      type: tuple[str, ...]
-    - name: future_limit
-      required: true
-      type: int | None
-    - name: overrides
-      required: true
-      type: dict[str, str]
-    - name: concept_strategies
-      required: true
-      type: dict[str, str]
     module: propstore.families.worldlines.declaration
 - kind: document_schema
   name: WorldlineResultDocument
@@ -2960,78 +2077,6 @@ contracts:
         | None
     module: propstore.families.worldlines.declaration
 - kind: document_schema
-  name: WorldlineRevisionAtomDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: kind
-      required: true
-      type: str
-    - name: id
-      required: true
-      type: str | None
-    - name: atom_id
-      required: true
-      type: str | None
-    - name: value
-      required: true
-      type: float | str | None
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
-  name: WorldlineRevisionQueryDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: operation
-      required: true
-      type: str
-    - name: atom
-      required: true
-      type: WorldlineRevisionAtomDocument | None
-    - name: target
-      required: true
-      type: str | None
-    - name: conflicts
-      required: true
-      type: dict[str, tuple[str, ...]]
-    - name: operator
-      required: true
-      type: str | None
-    - name: merge_operator
-      required: true
-      type: str | None
-    - name: profile_atom_ids
-      required: true
-      type: tuple[tuple[str, ...], ...]
-    - name: integrity_constraint
-      required: true
-      type: dict[str, Any] | None
-    - name: merge_parent_commits
-      required: true
-      type: tuple[str, ...]
-    - name: max_alphabet_size
-      required: true
-      type: int | None
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
-  name: WorldlineRevisionResultDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: accepted_atom_ids
-      required: true
-      type: tuple[str, ...]
-    - name: rejected_atom_ids
-      required: true
-      type: tuple[str, ...]
-    - name: incision_set
-      required: true
-      type: tuple[str, ...]
-    - name: explanation
-      required: true
-      type: dict[str, Any] | None
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
   name: WorldlineRevisionStateDocument
   contract_version: 2026.05.25
   body:
@@ -3056,105 +2101,6 @@ contracts:
       required: true
       type: str | None
     - name: error
-      required: true
-      type: str | None
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
-  name: WorldlineStepDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: concept
-      required: true
-      type: str
-    - name: source
-      required: true
-      type: str
-    - name: value
-      required: true
-      type: float | str | None
-    - name: claim_id
-      required: true
-      type: str | None
-    - name: strategy
-      required: true
-      type: str | None
-    - name: reason
-      required: true
-      type: str | None
-    - name: formula
-      required: true
-      type: str | None
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
-  name: WorldlineTargetValueDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: status
-      required: true
-      type: str
-    - name: value
-      required: true
-      type: float | str | None
-    - name: source
-      required: true
-      type: str | None
-    - name: reason
-      required: true
-      type: str | None
-    - name: claim_id
-      required: true
-      type: str | None
-    - name: winning_claim_id
-      required: true
-      type: str | None
-    - name: claim_type
-      required: true
-      type: str | None
-    - name: statement
-      required: true
-      type: str | None
-    - name: expression
-      required: true
-      type: str | None
-    - name: body
-      required: true
-      type: str | None
-    - name: name
-      required: true
-      type: str | None
-    - name: canonical_ast
-      required: true
-      type: str | None
-    - name: variables
-      required: true
-      type: tuple[WorldlineVariableRefDocument, ...] | dict[str, str]
-    - name: formula
-      required: true
-      type: str | None
-    - name: strategy
-      required: true
-      type: str | None
-    - name: inputs_used
-      required: true
-      type: dict[str, WorldlineInputSourceDocument]
-    module: propstore.families.worldlines.declaration
-- kind: document_schema
-  name: WorldlineVariableRefDocument
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: name
-      required: true
-      type: str | None
-    - name: symbol
-      required: true
-      type: str | None
-    - name: concept_id
-      required: true
-      type: str | None
-    - name: value
       required: true
       type: str | None
     module: propstore.families.worldlines.declaration
@@ -3311,10 +2257,10 @@ contracts:
     artifact_family_contract_version: 2026.05.25
     foreign_keys:
     - many: false
-      required: false
+      required: true
       source_family: claims
-      source_field: output_concept
-      target_family: concepts
+      source_field: context.id
+      target_family: contexts
       target_field: id
     - many: true
       required: false
@@ -3325,7 +2271,7 @@ contracts:
     - many: false
       required: false
       source_family: claims
-      source_field: variables[].concept
+      source_field: output_concept
       target_family: concepts
       target_field: id
     - many: false
@@ -3337,20 +2283,20 @@ contracts:
     - many: false
       required: false
       source_family: claims
+      source_field: stances[].target
+      target_family: claims
+      target_field: id
+    - many: false
+      required: false
+      source_family: claims
       source_field: target_concept
       target_family: concepts
       target_field: id
     - many: false
       required: false
       source_family: claims
-      source_field: stances[].target
-      target_family: claims
-      target_field: id
-    - many: false
-      required: true
-      source_family: claims
-      source_field: context.id
-      target_family: contexts
+      source_field: variables[].concept
+      target_family: concepts
       target_field: id
     identity_field: artifact_id
     identity_policy:
@@ -3423,6 +2369,12 @@ contracts:
         ref_field: name
     artifact_family_contract_version: 2026.05.25
     foreign_keys:
+    - many: false
+      required: true
+      source_family: concepts
+      source_field: lexical_entry.physical_dimension_form
+      target_family: forms
+      target_field: id
     - many: true
       required: false
       source_family: concepts
@@ -3435,12 +2387,6 @@ contracts:
       source_field: parameterization_relationships[].canonical_claim
       target_family: claims
       target_field: id
-    - many: false
-      required: false
-      source_family: concepts
-      source_field: replaced_by
-      target_family: concepts
-      target_field: id
     - many: true
       required: false
       source_family: concepts
@@ -3448,10 +2394,10 @@ contracts:
       target_family: concepts
       target_field: id
     - many: false
-      required: true
+      required: false
       source_family: concepts
-      source_field: lexical_entry.physical_dimension_form
-      target_family: forms
+      source_field: replaced_by
+      target_family: concepts
       target_field: id
     identity_field: artifact_id
     identity_policy:
@@ -3509,9 +2455,6 @@ contracts:
       importable: true
       init_directory: true
       semantic: true
-    reference_keys:
-    - field: name
-      kind: field
 - kind: family
   name: forms
   contract_version: 2026.05.25
@@ -4427,3 +3370,15 @@ compatible_changes:
   contract_version: 2026.05.25
   reason: Context family document ownership moved to generated declaration types with
     context family and artifact contracts version-bumped in the same registry version.
+- contract: family:claims
+  contract_version: 2026.05.25
+  reason: Claim foreign-key and source batch declarations moved from registry tables
+    onto claim family charter metadata without changing authored claim YAML fields.
+- contract: family:concepts
+  contract_version: 2026.05.25
+  reason: Concept foreign-key and source batch declarations moved from registry tables
+    onto concept family charter metadata without changing authored concept YAML fields.
+- contract: family:contexts
+  contract_version: 2026.05.25
+  reason: Context reference-key declaration moved from registry construction onto
+    context family metadata without changing authored context YAML fields.

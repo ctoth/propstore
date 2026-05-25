@@ -8,6 +8,7 @@ from typing import Any, TYPE_CHECKING
 import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, CharterIndex, CharterRelationship, FamilyCharter, FamilyModel
+from quire.documents import DocumentBatchSpec
 from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex, ForeignKeySpec
 from quire.versions import VersionId
@@ -24,6 +25,7 @@ _MICROPUBLICATION_WORLD_CONTRACT_VERSION = VersionId(
     "2026.05.20",
     allow_placeholder=False,
 )
+SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 
 
 class MicropublicationEvidenceDocument(msgspec.Struct, forbid_unknown_fields=True):
@@ -76,6 +78,13 @@ MICROPUBLICATION_CHARTER: FamilyCharter = FamilyCharter(
                     ContextReferenceDocument,
                     nullable=False,
                     document_name="context",
+                    foreign_key=ForeignKeySpec(
+                        name="micropub_context",
+                        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                        source_family="micropubs",
+                        source_field="context.id",
+                        target_family="contexts",
+                    ),
                 ),
                 CharterField(
                     "claims",
@@ -83,6 +92,14 @@ MICROPUBLICATION_CHARTER: FamilyCharter = FamilyCharter(
                     parse_boundary="json",
                     nullable=False,
                     default=(),
+                    foreign_key=ForeignKeySpec(
+                        name="micropub_claims",
+                        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                        source_family="micropubs",
+                        source_field="claims[]",
+                        target_family="claims",
+                        many=True,
+                    ),
                 ),
                 CharterField("version_id", str, nullable=True),
                 CharterField(
@@ -204,6 +221,19 @@ if TYPE_CHECKING:
 
 else:
     MicropublicationDocument: Any = MICROPUBLICATION_CHARTER.generated_document()
+
+
+SOURCE_MICROPUBLICATION_BATCH_SPEC = DocumentBatchSpec(
+    batch_name="source-micropublications",
+    item_type=MicropublicationDocument,
+    items_field="micropublications",
+    inherited_item_fields=("source",),
+)
+object.__setattr__(
+    MICROPUBLICATION_CHARTER,
+    "batch_specs",
+    (SOURCE_MICROPUBLICATION_BATCH_SPEC,),
+)
 
 
 MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (

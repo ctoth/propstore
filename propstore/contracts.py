@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import inspect
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -15,83 +14,7 @@ if TYPE_CHECKING:
     from propstore.families.claims.declaration import ClaimTypeContract
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.02")
-DOCUMENT_SCHEMA_CONTRACT_VERSION = VersionId("2026.04.30")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
-DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
-    "propstore.families.documents.sources.SourceStanceEntryDocument": VersionId("2026.05.01"),
-    "propstore.families.documents.sources.SourceTrustDocument": VersionId("2026.05.01"),
-    "propstore.families.claims.declaration.JustificationDocument": VersionId("2026.05.25"),
-    "propstore.families.stances.declaration.StanceDocument": VersionId("2026.05.25"),
-    "propstore.families.rules.declaration.AtomDocument": VersionId("2026.05.25"),
-    "propstore.families.rules.declaration.BodyLiteralDocument": VersionId("2026.05.25"),
-    "propstore.families.rules.declaration.RuleDocument": VersionId("2026.05.25"),
-    "propstore.families.rules.declaration.RuleSourceDocument": VersionId("2026.05.25"),
-    "propstore.families.rules.declaration.RuleSuperiorityDocument": VersionId("2026.05.25"),
-    "propstore.families.rules.declaration.TermDocument": VersionId("2026.05.25"),
-    "propstore.families.predicates.declaration.PredicateDeclaration": VersionId("2026.05.25"),
-    "propstore.families.predicates.declaration.PredicateDocument": VersionId("2026.05.25"),
-    "propstore.families.predicates.declaration.PredicateExtractionProvenance": VersionId("2026.05.25"),
-    "propstore.families.predicates.declaration.PredicateProposalDocument": VersionId("2026.05.25"),
-    "propstore.families.rules.declaration.RuleExtractionProvenance": VersionId("2026.05.25"),
-    "propstore.families.rules.declaration.RuleProposalDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.ClaimDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.ClaimLogicalIdDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.ClaimSourceDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.ProvenanceDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.FitStatisticsDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.VariableBindingDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.ParameterBindingDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.OpinionDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.ResolutionDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.StanceDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.AtomicPropositionDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.declaration.IstPropositionDocument": VersionId("2026.05.25"),
-    "propstore.families.merge.declaration.MergeManifestArgumentDocument": VersionId("2026.05.25"),
-    "propstore.families.merge.declaration.MergeManifestDocument": VersionId("2026.05.25"),
-    "propstore.families.merge.declaration.MergeManifestPayloadDocument": VersionId("2026.05.25"),
-    "propstore.families.merge.declaration.MergeManifestWitnessDocument": VersionId("2026.05.25"),
-    "propstore.families.merge.declaration.MergeSemanticCandidateArgumentDocument": VersionId("2026.05.25"),
-    "propstore.families.merge.declaration.MergeSemanticCandidateDetailDocument": VersionId("2026.05.25"),
-    "propstore.families.forms.declaration.FormAlternativeDocument": VersionId("2026.05.25"),
-    "propstore.families.forms.declaration.FormExtraUnitDocument": VersionId("2026.05.25"),
-    "propstore.families.forms.models.FormDocument": VersionId("2026.05.25"),
-    "propstore.families.contexts.declaration.ContextDocument": VersionId("2026.05.25"),
-    "propstore.families.contexts.declaration.ContextReferenceDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.ConceptAliasDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.ConceptDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.ConceptFormParametersDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.ConceptIdScanDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.ConceptLogicalIdDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.ConceptRelationshipDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.LexicalEntryDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.LexicalFormDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.LexicalSenseDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.OntologyReferenceDocument": VersionId("2026.05.25"),
-    "propstore.families.concepts.declaration.ParameterizationRelationshipDocument": VersionId("2026.05.25"),
-    "propstore.families.micropublications.declaration.MicropublicationDocument": VersionId("2026.05.25"),
-    "propstore.families.micropublications.declaration.MicropublicationEvidenceDocument": VersionId("2026.05.25"),
-    "propstore.families.sameas.declaration.SameAsAssertionDocument": VersionId("2026.05.25"),
-    "propstore.families.source_alignment.declaration.AlignmentArgumentDocument": VersionId("2026.05.25"),
-    "propstore.families.source_alignment.declaration.AlignmentDecisionDocument": VersionId("2026.05.25"),
-    "propstore.families.source_alignment.declaration.AlignmentFrameworkDocument": VersionId("2026.05.25"),
-    "propstore.families.source_alignment.declaration.AlignmentQueriesDocument": VersionId("2026.05.25"),
-    "propstore.families.source_alignment.declaration.ConceptAlignmentArtifactDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineAssumptionDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineDefinitionDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineDependenciesDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineInputSourceDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineInputsDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineJournalDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlinePolicyDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineResultDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineRevisionAtomDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineRevisionQueryDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineRevisionResultDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineRevisionStateDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineStepDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineTargetValueDocument": VersionId("2026.05.25"),
-    "propstore.families.worldlines.declaration.WorldlineVariableRefDocument": VersionId("2026.05.25"),
-}
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
     / "_resources"
@@ -183,52 +106,31 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
     )
 
 
-def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
-    from propstore.families.documents import sources
-    from propstore.families.claims import declaration as claims
-    from propstore.families.concepts import declaration as concepts
-    from propstore.families.contexts import declaration as contexts
-    from propstore.families.forms import declaration as forms
-    from propstore.families.merge import declaration as merge
-    from propstore.families.micropublications import declaration as micropublications
-    from propstore.families.predicates import declaration as predicates
-    from propstore.families.rules import declaration as rules
-    from propstore.families.sameas import declaration as sameas
-    from propstore.families.source_alignment import declaration as source_alignment
-    from propstore.families.stances import declaration as stances
-    from propstore.families.worldlines import declaration as worldlines
+def _iter_charter_document_schemas() -> tuple[tuple[type[msgspec.Struct], VersionId], ...]:
+    from propstore.families.registry import world_charters
 
-    modules = (
-        claims,
-        concepts,
-        contexts,
-        forms,
-        merge,
-        micropublications,
-        predicates,
-        rules,
-        sameas,
-        source_alignment,
-        sources,
-        stances,
-        worldlines,
+    document_schemas: dict[str, tuple[type[msgspec.Struct], VersionId]] = {}
+    for charter in world_charters():
+        document_type = charter.generated_document()
+        key = f"{document_type.__module__}.{document_type.__name__}"
+        version = (
+            VersionId(str(charter.document_contract_version), allow_placeholder=False)
+            if charter.document_contract_version is not None
+            else charter.family.contract_version
+        )
+        document_schemas[key] = (document_type, version)
+    return tuple(
+        item
+        for _, item in sorted(document_schemas.items(), key=lambda entry: entry[0])
     )
-    schema_types: list[type[msgspec.Struct]] = [forms.FORM_CHARTER.generated_document()]
-    for module in modules:
-        for value in vars(module).values():
-            if not inspect.isclass(value):
-                continue
-            if not issubclass(value, msgspec.Struct):
-                continue
-            if value.__module__ != module.__name__:
-                continue
-            schema_types.append(value)
-    return tuple(sorted(schema_types, key=lambda item: f"{item.__module__}.{item.__name__}"))
 
 
 def build_propstore_contract_manifest() -> ContractManifest:
     contracts: list[ContractEntry] = []
-    contracts.extend(_document_contract(document_type) for document_type in iter_document_schema_types())
+    contracts.extend(
+        _document_contract(document_type, contract_version=contract_version)
+        for document_type, contract_version in _iter_charter_document_schemas()
+    )
     from propstore.families.registry import PROPSTORE_FAMILY_REGISTRY
 
     contracts.extend(PROPSTORE_FAMILY_REGISTRY.contract_entries())
@@ -272,11 +174,42 @@ def build_propstore_contract_manifest() -> ContractManifest:
                     "changing the micropublication YAML fields."
                 ),
             ),
+            quire_contracts.CompatibilityMarker(
+                contract="family:claims",
+                contract_version=VersionId("2026.05.25"),
+                reason=(
+                    "Claim foreign-key and source batch declarations moved "
+                    "from registry tables onto claim family charter metadata "
+                    "without changing authored claim YAML fields."
+                ),
+            ),
+            quire_contracts.CompatibilityMarker(
+                contract="family:concepts",
+                contract_version=VersionId("2026.05.25"),
+                reason=(
+                    "Concept foreign-key and source batch declarations moved "
+                    "from registry tables onto concept family charter metadata "
+                    "without changing authored concept YAML fields."
+                ),
+            ),
+            quire_contracts.CompatibilityMarker(
+                contract="family:contexts",
+                contract_version=VersionId("2026.05.25"),
+                reason=(
+                    "Context reference-key declaration moved from registry "
+                    "construction onto context family metadata without "
+                    "changing authored context YAML fields."
+                ),
+            ),
         ),
     )
 
 
-def _document_contract(document_type: type[msgspec.Struct]) -> ContractEntry:
+def _document_contract(
+    document_type: type[msgspec.Struct],
+    *,
+    contract_version: VersionId,
+) -> ContractEntry:
     fields = []
     annotations = getattr(document_type, "__annotations__", {})
     for name in getattr(document_type, "__struct_fields__", ()):
@@ -288,7 +221,7 @@ def _document_contract(document_type: type[msgspec.Struct]) -> ContractEntry:
     return ContractEntry(
         kind="document_schema",
         name=_document_contract_name(document_type),
-        contract_version=_document_contract_version(document_type),
+        contract_version=contract_version,
         body={
             "module": document_type.__module__,
             "fields": tuple(fields),
@@ -303,14 +236,6 @@ def _document_contract_name(document_type: type[msgspec.Struct]) -> str:
     ):
         return f"{document_type.__module__}.{document_type.__name__}"
     return document_type.__name__
-
-
-def _document_contract_version(document_type: type[msgspec.Struct]) -> VersionId:
-    key = f"{document_type.__module__}.{document_type.__name__}"
-    return DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES.get(
-        key,
-        DOCUMENT_SCHEMA_CONTRACT_VERSION,
-    )
 
 
 def _family_contract(family: ArtifactFamily[Any, Any, Any]) -> ContractEntry:

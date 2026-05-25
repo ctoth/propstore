@@ -17,8 +17,9 @@ from quire.charters import (
     FamilyCharter,
     FamilyModel,
 )
+from quire.documents import DocumentBatchSpec
 from quire.families import FamilyDefinition
-from quire.references import ReferenceKey
+from quire.references import ForeignKeySpec, ReferenceKey
 from quire.versions import VersionId
 
 from propstore.core.conditions import (
@@ -49,6 +50,7 @@ if TYPE_CHECKING:
 
 AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 _CONCEPT_WORLD_CONTRACT_VERSION = VersionId("2026.05.20", allow_placeholder=False)
+SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 
 
 class ConceptLogicalIdDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -147,6 +149,12 @@ AUTHORED_CONCEPT_CHARTER: FamilyCharter = FamilyCharter(
             placement=FlatYamlPlacement(".derived/authored_concept", str),
         ),
         identity_field="id",
+        reference_keys=(
+            ReferenceKey.field("artifact_id"),
+            ReferenceKey.field("logical_ids[].value"),
+            ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+            ReferenceKey.field("aliases[].name"),
+        ),
     ),
     model=AuthoredConcept,
     fields=(
@@ -172,6 +180,13 @@ AUTHORED_CONCEPT_CHARTER: FamilyCharter = FamilyCharter(
             parse_boundary="json",
             nullable=False,
             document_order=2,
+            foreign_key=ForeignKeySpec(
+                name="concept_form",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="concepts",
+                source_field="lexical_entry.physical_dimension_form",
+                target_family="forms",
+            ),
         ),
         CharterField(
             "logical_ids",
@@ -208,6 +223,25 @@ AUTHORED_CONCEPT_CHARTER: FamilyCharter = FamilyCharter(
             nullable=False,
             default=(),
             default_sql="'[]'",
+            foreign_keys=(
+                ForeignKeySpec(
+                    name="concept_parameterization_input",
+                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                    source_family="concepts",
+                    source_field="parameterization_relationships[].inputs[]",
+                    target_family="concepts",
+                    many=True,
+                    required=False,
+                ),
+                ForeignKeySpec(
+                    name="concept_parameterization_canonical_claim",
+                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                    source_family="concepts",
+                    source_field="parameterization_relationships[].canonical_claim",
+                    target_family="claims",
+                    required=False,
+                ),
+            ),
         ),
         CharterField(
             "range",
@@ -222,8 +256,29 @@ AUTHORED_CONCEPT_CHARTER: FamilyCharter = FamilyCharter(
             nullable=False,
             default=(),
             default_sql="'[]'",
+            foreign_key=ForeignKeySpec(
+                name="concept_relationship_target",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="concepts",
+                source_field="relationships[].target",
+                target_family="concepts",
+                many=True,
+                required=False,
+            ),
         ),
-        CharterField("replaced_by", str, nullable=True),
+        CharterField(
+            "replaced_by",
+            str,
+            nullable=True,
+            foreign_key=ForeignKeySpec(
+                name="concept_replaced_by",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="concepts",
+                source_field="replaced_by",
+                target_family="concepts",
+                required=False,
+            ),
+        ),
     ),
     semantic_metadata={"semantic": "propstore.world"},
     validators=(_validate_lexical_entry_has_sense,),
@@ -256,6 +311,20 @@ else:
     ConceptDocument.__name__ = "ConceptDocument"
     ConceptDocument.__qualname__ = "ConceptDocument"
     ConceptDocument.__module__ = __name__
+
+
+from propstore.families.documents.sources import SourceConceptEntryDocument
+
+SOURCE_CONCEPT_BATCH_SPEC = DocumentBatchSpec(
+    batch_name="source-concepts",
+    item_type=SourceConceptEntryDocument,
+    items_field="concepts",
+)
+object.__setattr__(
+    AUTHORED_CONCEPT_CHARTER,
+    "batch_specs",
+    (SOURCE_CONCEPT_BATCH_SPEC,),
+)
 
 
 @dataclass(frozen=True)

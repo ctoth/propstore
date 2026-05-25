@@ -29,7 +29,7 @@ from quire.charters import (
     FamilyCharter,
     FamilyModel,
 )
-from quire.documents import document_to_payload
+from quire.documents import DocumentBatchSpec, document_to_payload
 from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex, ForeignKeySpec, ReferenceKey
 from quire.sqlalchemy_store import DerivedSession
@@ -73,6 +73,7 @@ def _require_claim_type(value: object) -> ClaimType:
 
 CLAIM_TYPE_CONTRACT_VERSION = VersionId("2026.05.25")
 AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 
 
 @dataclass(frozen=True)
@@ -506,6 +507,11 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
             placement=FlatYamlPlacement(".derived/authored_claim", str),
         ),
         identity_field="id",
+        reference_keys=(
+            ReferenceKey.field("artifact_id"),
+            ReferenceKey.field("logical_ids[].value"),
+            ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+        ),
     ),
     model=AuthoredClaim,
     fields=(
@@ -523,6 +529,13 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
             parse_boundary="json",
             nullable=False,
             document_order=0,
+            foreign_key=ForeignKeySpec(
+                name="claim_context",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claims",
+                source_field="context.id",
+                target_family="contexts",
+            ),
         ),
         CharterField(
             "proposition",
@@ -564,6 +577,15 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
             nullable=False,
             default=(),
             default_sql="'[]'",
+            foreign_key=ForeignKeySpec(
+                name="claim_concepts",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claims",
+                source_field="concepts[]",
+                target_family="concepts",
+                many=True,
+                required=False,
+            ),
         ),
         CharterField(
             "conditions",
@@ -595,7 +617,19 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
         CharterField("methodology", str, nullable=True),
         CharterField("name", str, nullable=True),
         CharterField("notes", str, nullable=True),
-        CharterField("output_concept", str, nullable=True),
+        CharterField(
+            "output_concept",
+            str,
+            nullable=True,
+            foreign_key=ForeignKeySpec(
+                name="claim_output_concept",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claims",
+                source_field="output_concept",
+                target_family="concepts",
+                required=False,
+            ),
+        ),
         CharterField(
             "parameters",
             tuple[ParameterBindingDocument, ...],
@@ -603,6 +637,14 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
             nullable=False,
             default=(),
             default_sql="'[]'",
+            foreign_key=ForeignKeySpec(
+                name="claim_parameter_concept",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claims",
+                source_field="parameters[].concept",
+                target_family="concepts",
+                required=False,
+            ),
         ),
         CharterField("sample_size", int, nullable=True),
         CharterField("stage", AlgorithmStage | None, nullable=True),
@@ -613,10 +655,30 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
             nullable=False,
             default=(),
             default_sql="'[]'",
+            foreign_key=ForeignKeySpec(
+                name="claim_stance_target",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claims",
+                source_field="stances[].target",
+                target_family="claims",
+                required=False,
+            ),
         ),
         CharterField("statement", str, nullable=True),
         CharterField("sympy", str, nullable=True),
-        CharterField("target_concept", str, nullable=True),
+        CharterField(
+            "target_concept",
+            str,
+            nullable=True,
+            foreign_key=ForeignKeySpec(
+                name="claim_measurement_target_concept",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claims",
+                source_field="target_concept",
+                target_family="concepts",
+                required=False,
+            ),
+        ),
         CharterField("uncertainty", float | int | None, nullable=True),
         CharterField("uncertainty_type", str, nullable=True),
         CharterField("unit", str, nullable=True),
@@ -629,6 +691,14 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
             nullable=False,
             default=(),
             default_sql="'[]'",
+            foreign_key=ForeignKeySpec(
+                name="claim_variable_concept",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="claims",
+                source_field="variables[].concept",
+                target_family="concepts",
+                required=False,
+            ),
         ),
     ),
     semantic_metadata={"semantic": "propstore.world"},
@@ -1343,6 +1413,7 @@ JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
                 placement=FlatYamlPlacement(".derived/justification", str),
             ),
             identity_field="id",
+            reference_keys=(ReferenceKey.field("id"),),
         ),
         model=Justification,
         fields=(
@@ -1358,6 +1429,14 @@ JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
                 str,
                 nullable=True,
                 document_name="conclusion",
+                foreign_key=ForeignKeySpec(
+                    name="justification_conclusion",
+                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                    source_family="justifications",
+                    source_field="conclusion",
+                    target_family="claims",
+                    required=False,
+                ),
             ),
             CharterField(
                 "premise_claim_ids",
@@ -1366,6 +1445,15 @@ JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
                 nullable=False,
                 document_name="premises",
                 default=(),
+                foreign_key=ForeignKeySpec(
+                    name="justification_premises",
+                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                    source_family="justifications",
+                    source_field="premises[]",
+                    target_family="claims",
+                    many=True,
+                    required=False,
+                ),
             ),
             CharterField("source_relation_type", str, document=False),
             CharterField("source_claim_id", str, document=False),
@@ -1426,6 +1514,39 @@ if not TYPE_CHECKING:
     JustificationProvenanceDocument.to_payload = _claim_bound_payload
     JustificationAttackTargetDocument.to_payload = _claim_bound_payload
     JustificationDocument.to_payload = justification_document_to_payload
+
+
+from propstore.families.documents.sources import SourceClaimDocument, SourceJustificationDocument
+
+CLAIM_BATCH_SPEC = DocumentBatchSpec(
+    batch_name="claims",
+    item_type=ClaimDocument,
+    items_field="claims",
+    inherited_item_fields=("source",),
+)
+SOURCE_CLAIM_BATCH_SPEC = DocumentBatchSpec(
+    batch_name="source-claims",
+    item_type=SourceClaimDocument,
+    items_field="claims",
+    inherited_item_fields=("source", "produced_by"),
+)
+SOURCE_JUSTIFICATION_BATCH_SPEC = DocumentBatchSpec(
+    batch_name="source-justifications",
+    item_type=SourceJustificationDocument,
+    items_field="justifications",
+    inherited_item_fields=("source", "produced_by"),
+)
+object.__setattr__(
+    AUTHORED_CLAIM_CHARTER,
+    "batch_specs",
+    (CLAIM_BATCH_SPEC, SOURCE_CLAIM_BATCH_SPEC),
+)
+object.__setattr__(
+    JUSTIFICATION_CHARTER,
+    "batch_specs",
+    (SOURCE_JUSTIFICATION_BATCH_SPEC,),
+)
+
 
 @dataclass(frozen=True)
 class ClaimWriteModels:
