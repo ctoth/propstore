@@ -25,7 +25,8 @@ Propstore (`C:/Users/Q/code/propstore`):
 | `fd1c2a8b` | Pin Quire to 85acdb5b (Phase 02 partial: typed charter attributes) | MERGE (combined Phase 02 verifier) |
 | `8ed53968` | Pin Quire to 11335ce (Phase 02 msgspec codegen) | MERGE (combined Phase 02 verifier) |
 | `e16644a7` | Report Phase 04 pilot forms hard-stop (documentation-only commit, marker) | n/a |
-| `72a22b40` | Slice D: fold final _claim_value duplicate into ClaimValueResolver (V035 4/4) | verifier in flight |
+| `72a22b40` | Slice D: fold final _claim_value duplicate into ClaimValueResolver (V035 4/4) | MERGE |
+| `9e187d4c` | Add morning status report (this file) | n/a |
 
 Quire (`C:/Users/Q/code/quire`) — pushed to `git@github.com:ctoth/quire.git`:
 
@@ -112,7 +113,11 @@ The right fix is restructuring `propstore/__init__.py`'s lazy-export mechanism s
 
 V005a passes Phase 03's literal-search gates (the listed deletion targets are literal source-code fragments; `schema.schema_object("claim_core")` is not in that list). Cut #2 verifier returned MERGE-WITH-CONCERN reflecting this.
 
-## All Gates At HEAD `72a22b40`
+## Bonus finding from Cut #10 verifier
+
+While confirming `def _claim_value` zero-hit in `propstore/world` + `propstore/worldline` + tests, verifier found **one additional `def _claim_value` at `propstore/app/claim_views.py`**. This was outside V035's enumeration (which scope was world+worldline) but is structurally identical to the four duplicates V035 named. Worth folding into ClaimValueResolver in a future tiny cut. Left in place per spec.
+
+## All Gates At HEAD `9e187d4c`
 
 - `uv run pyright propstore` → 0 errors, 0 warnings, 0 informations
 - `uv run lint-imports` → Contracts: 1 kept, 0 broken
