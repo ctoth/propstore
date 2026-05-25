@@ -222,8 +222,8 @@ def source_status_diagnostics(
 ) -> tuple[BuildDiagnostic, ...]:
     if not claim_ids:
         return ()
-    table = derived.schema.table("build_diagnostics")
-    model = derived.schema.model("build_diagnostics")
+    table = derived.schema.table(DIAGNOSTICS_CHARTER.family.name)
+    model = derived.schema.model(DIAGNOSTICS_CHARTER.family.name)
     rows = derived.session.scalars(
         select(model)
         .where(table.c.source_kind == "claim")
@@ -237,8 +237,8 @@ def source_status_diagnostics(
 
 
 def build_diagnostics(derived: DerivedSession) -> list[dict[str, Any]]:
-    table = derived.schema.table("build_diagnostics")
-    model = derived.schema.model("build_diagnostics")
+    table = derived.schema.table(DIAGNOSTICS_CHARTER.family.name)
+    model = derived.schema.model(DIAGNOSTICS_CHARTER.family.name)
     rows = derived.session.scalars(select(model).order_by(table.c.id))
     return [
         {
@@ -261,7 +261,7 @@ def delete_promotion_blocked_diagnostics(
     derived: DerivedSession,
     claim_id: str,
 ) -> None:
-    table = derived.schema.table("build_diagnostics")
+    table = derived.schema.table(DIAGNOSTICS_CHARTER.family.name)
     derived.session.execute(
         delete(table).where(
             table.c.claim_id == claim_id,

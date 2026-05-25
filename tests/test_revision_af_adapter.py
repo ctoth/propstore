@@ -11,7 +11,7 @@ from propstore.claim_graph import build_argumentation_framework
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.structured_projection import SupportQuality
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 from tests.test_revision_bound_world import _atom_id_for_claim, _operator_bound
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
@@ -49,7 +49,7 @@ def test_project_epistemic_state_builds_structured_inputs_with_exact_support_met
 
     store = _RevisionStore(
         claims=[
-            claim_model(
+            make_claim(
                 claim_id="claim_exact",
                 concept_id="concept_exact",
                 value=1.0,

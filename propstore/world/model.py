@@ -35,7 +35,7 @@ from propstore.core.store_results import (
     ConceptSearchHit,
     ConceptSimilarityHit,
 )
-from propstore.families.claims.declaration import Claim
+from propstore.families.claims.declaration import CLAIM_CORE_CHARTER, Claim
 from propstore.families.diagnostics.declaration import (
     build_diagnostics,
 )
@@ -46,6 +46,7 @@ from propstore.families.relations.declaration import (
 )
 from propstore.families.micropublications.declaration import Micropublication
 from propstore.families.concepts.declaration import (
+    CONCEPT_CHARTER,
     Concept,
     ConceptSearchQuerySyntaxError,
     Parameterization,
@@ -234,7 +235,7 @@ class WorldQuery(WorldStore):
         if self._registry is not None:
             return self._registry
         schema = world_schema()
-        concept = schema.model("concept")
+        concept = schema.model(CONCEPT_CHARTER.family.name)
         with self._derived_store.readonly_session(schema) as derived:
             normalized_rows = list(derived.execute(select(concept)).scalars())
         registry = with_standard_synthetic_bindings(
@@ -258,7 +259,7 @@ class WorldQuery(WorldStore):
 
     def get_concept(self, concept_id: str) -> Concept | None:
         schema = world_schema()
-        concept_model = schema.model("concept")
+        concept_model = schema.model(CONCEPT_CHARTER.family.name)
         with self._derived_store.readonly_session(schema) as derived:
             resolved_concept_id = (
                 schema.resolve_reference_id(derived.session, "concept", concept_id)
@@ -286,7 +287,7 @@ class WorldQuery(WorldStore):
 
     def get_claim(self, claim_id: str) -> Claim | None:
         schema = world_schema()
-        claim = schema.model("claim_core")
+        claim = schema.model(CLAIM_CORE_CHARTER.family.name)
         with self._derived_store.readonly_session(schema) as derived:
             resolved_claim_id = (
                 schema.resolve_reference_id(
@@ -310,7 +311,7 @@ class WorldQuery(WorldStore):
             else str(concept.id) if concept is not None else concept_id
         )
         schema = world_schema()
-        claim = schema.model("claim_core")
+        claim = schema.model(CLAIM_CORE_CHARTER.family.name)
         link = schema.model("claim_concept_link")
         with self._derived_store.readonly_session(schema) as derived:
             statement = select(claim).order_by(claim.id)
@@ -331,7 +332,7 @@ class WorldQuery(WorldStore):
             else str(concept.id) if concept is not None else concept_id
         )
         schema = world_schema()
-        claim = schema.model("claim_core")
+        claim = schema.model(CLAIM_CORE_CHARTER.family.name)
         link = schema.model("claim_concept_link")
         with self._derived_store.readonly_session(schema) as derived:
             statement = select(claim).order_by(claim.id)
@@ -408,7 +409,7 @@ class WorldQuery(WorldStore):
             else str(concept.id) if concept is not None else concept_id
         )
         schema = world_schema()
-        claim = schema.model("claim_core")
+        claim = schema.model(CLAIM_CORE_CHARTER.family.name)
         link = schema.model("claim_concept_link")
         with self._derived_store.readonly_session(schema) as derived:
             statement = select(claim).order_by(claim.id)
@@ -452,7 +453,7 @@ class WorldQuery(WorldStore):
         if not claim_ids:
             return {}
         schema = world_schema()
-        claim = schema.model("claim_core")
+        claim = schema.model(CLAIM_CORE_CHARTER.family.name)
         with self._derived_store.readonly_session(schema) as derived:
             resolved_ids = {
                 schema.resolve_reference_id(
@@ -550,7 +551,7 @@ class WorldQuery(WorldStore):
 
     def all_concepts(self) -> list[Concept]:
         schema = world_schema()
-        concept = schema.model("concept")
+        concept = schema.model(CONCEPT_CHARTER.family.name)
         with self._derived_store.readonly_session(schema) as derived:
             return list(derived.execute(select(concept)).scalars())
 
@@ -626,7 +627,7 @@ class WorldQuery(WorldStore):
     ) -> list[Stance]:
         schema = world_schema()
         relation = schema.model("relation_edge")
-        claim = schema.model("claim_core")
+        claim = schema.model(CLAIM_CORE_CHARTER.family.name)
         source_claim = aliased(claim)
         target_claim = aliased(claim)
         with self._derived_store.readonly_session(schema) as derived:
@@ -694,7 +695,7 @@ class WorldQuery(WorldStore):
 
     def search(self, query: str) -> list[ConceptSearchHit]:
         schema = world_schema()
-        concept = schema.model("concept")
+        concept = schema.model(CONCEPT_CHARTER.family.name)
         with self._derived_store.readonly_session(schema) as derived:
             try:
                 hits = search_fts_index(derived, "concept_fts", query)
@@ -843,8 +844,8 @@ class WorldQuery(WorldStore):
 
     def stats(self) -> WorldStoreStats:
         schema = world_schema()
-        concept = schema.model("concept")
-        claim = schema.model("claim_core")
+        concept = schema.model(CONCEPT_CHARTER.family.name)
+        claim = schema.model(CLAIM_CORE_CHARTER.family.name)
         with self._derived_store.readonly_session(schema) as derived:
             concepts = int(
                 derived.execute(select(func.count()).select_from(concept)).scalar_one()

@@ -14,7 +14,7 @@ from propstore.support_revision.explanation_types import EntrenchmentReason
 from propstore.support_revision.iterated import iterated_revise, make_epistemic_state
 from propstore.support_revision.snapshot_types import belief_atom_to_canonical_dict
 from propstore.support_revision.state import BeliefBase, EpistemicState
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
 from tests.test_revision_iterated import _history_sensitive_base
 
@@ -153,7 +153,7 @@ def _changed_semantic_state(state: EpistemicState, legacy_id: str) -> EpistemicS
         if atom.atom_id != legacy_id:
             changed_atoms.append(atom)
             continue
-        source_claim = claim_model(
+        source_claim = make_claim(
             claim_id="claim_legacy_updated",
             claim_type=ClaimType.PARAMETER,
             concept_id="concept_legacy",

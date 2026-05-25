@@ -25,7 +25,7 @@ from propstore.families.claims.declaration import Claim, ClaimConceptLink
 from propstore.families.concepts.declaration import Concept
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
-from tests.claim_model_helpers import claim_concept_link, claim_model
+from tests.claim_model_helpers import claim_concept_link, make_claim
 
 
 class _World:
@@ -133,7 +133,7 @@ def _claim(
                 ordinal=0,
             ),
         )
-    return claim_model(
+    return make_claim(
         claim_id,
         claim_type=claim_type,
         concept_links=concept_links,

@@ -33,7 +33,7 @@ def claim_concept_link(
     )
 
 
-def claim_model(
+def make_claim(
     claim_id: str = "claim1",
     *,
     claim_type: ClaimType = ClaimType.PARAMETER,
@@ -157,7 +157,7 @@ def claim_model(
     return claim
 
 
-def claim_model_from_test_payload(row: Mapping[str, object]) -> Claim:
+def claim_from_test_payload(row: Mapping[str, object]) -> Claim:
     raw_links = row.get("concept_links")
     links: list[ClaimConceptLink] = []
     if isinstance(raw_links, Sequence) and not isinstance(raw_links, str):
@@ -178,7 +178,7 @@ def claim_model_from_test_payload(row: Mapping[str, object]) -> Claim:
                 )
             )
     concept_id = str(row.get("concept_id") or row.get("target_concept") or "concept1")
-    return claim_model(
+    return make_claim(
         claim_id=str(row["id"]),
         claim_type=ClaimType(str(row.get("type", ClaimType.PARAMETER.value))),
         concept_id=concept_id,

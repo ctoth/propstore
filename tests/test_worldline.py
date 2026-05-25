@@ -25,7 +25,7 @@ from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
 from propstore.families.claims.types import ClaimType
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 from tests.family_helpers import (
     claim_artifact_commit_payloads,
     materialized_world_store_path,
@@ -681,7 +681,7 @@ class TestWorldlineRunner:
         class FakeBound:
             def __init__(self, context_id):
                 self._context_id = context_id
-                self._claim = claim_model(
+                self._claim = make_claim(
                     "ctx_claim",
                     concept_id="concept1",
                     value=42.0,
@@ -814,13 +814,13 @@ class TestWorldlineDependencyLiveness:
         class FakeWorld:
             def __init__(self, older_claim_date):
                 self._claims = {
-                    "claim_old": claim_model(
+                    "claim_old": make_claim(
                         "claim_old",
                         concept_id="concept1",
                         value=10.0,
                         provenance_json={"date": older_claim_date},
                     ),
-                    "claim_new": claim_model(
+                    "claim_new": make_claim(
                         "claim_new",
                         concept_id="concept1",
                         value=20.0,
@@ -888,8 +888,8 @@ class TestWorldlineDependencyLiveness:
                 self._winner_id = winner_id
                 self._stance_type = stance_type
                 self._claims = {
-                    "claim_a": claim_model("claim_a", concept_id="concept1", value=10.0),
-                    "claim_b": claim_model("claim_b", concept_id="concept1", value=20.0),
+                    "claim_a": make_claim("claim_a", concept_id="concept1", value=10.0),
+                    "claim_b": make_claim("claim_b", concept_id="concept1", value=20.0),
                 }
 
             def bind(self, environment=None, *, policy=None, **conditions):
@@ -992,7 +992,7 @@ class TestWorldlineDependencyLiveness:
                 self._context_id = context_id
                 self._active = active
                 self._bindings = {}
-                self._claim = claim_model(
+                self._claim = make_claim(
                     "ctx_claim",
                     concept_id="concept1",
                     value=42.0,
@@ -1031,7 +1031,7 @@ class TestWorldlineDependencyLiveness:
 
             def get_claim(self, claim_id):
                 if self._active and claim_id == "ctx_claim":
-                    return claim_model(
+                    return make_claim(
                         "ctx_claim",
                         concept_id="concept1",
                         value=42.0,
@@ -1065,7 +1065,7 @@ class TestWorldlineDependencyLiveness:
         class MinimalBound:
             def __init__(self):
                 self._bindings = {}
-                self._claim = claim_model("claim1", concept_id="concept1", value=42.0)
+                self._claim = make_claim("claim1", concept_id="concept1", value=42.0)
 
             def value_of(self, concept_id):
                 return ValueResult(
@@ -1091,7 +1091,7 @@ class TestWorldlineDependencyLiveness:
 
             def get_claim(self, claim_id):
                 if claim_id == "claim1":
-                    return claim_model("claim1", concept_id="concept1", value=42.0)
+                    return make_claim("claim1", concept_id="concept1", value=42.0)
                 return None
 
             def has_table(self, name):
@@ -1116,8 +1116,8 @@ class TestSemanticCorePhase7Worldlines:
         )
 
         claims = {
-            "claim_a": claim_model("claim_a", concept_id="concept1", value=10.0),
-            "claim_b": claim_model("claim_b", concept_id="concept1", value=20.0),
+            "claim_a": make_claim("claim_a", concept_id="concept1", value=10.0),
+            "claim_b": make_claim("claim_b", concept_id="concept1", value=20.0),
         }
         compiled = CompiledWorldGraph(
             claims=(
@@ -1365,8 +1365,8 @@ class TestSemanticCorePhase7Worldlines:
         class _Bound:
             def __init__(self):
                 self._claims = {
-                    "claim_a": claim_model("claim_a", concept_id="concept1", value=10.0),
-                    "claim_b": claim_model("claim_b", concept_id="concept1", value=20.0),
+                    "claim_a": make_claim("claim_a", concept_id="concept1", value=10.0),
+                    "claim_b": make_claim("claim_b", concept_id="concept1", value=20.0),
                 }
 
             def value_of(self, concept_id):
@@ -1532,7 +1532,7 @@ class TestWorldlineFailureModes:
         class FakeBound:
             def __init__(self):
                 self._bindings = {}
-                self._claim = claim_model(
+                self._claim = make_claim(
                     "algo1",
                     claim_type=ClaimType.ALGORITHM,
                     concept_id="concept1",

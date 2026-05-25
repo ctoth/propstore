@@ -23,7 +23,7 @@ from propstore.families.concepts.declaration import Concept
 from propstore.families.relations.declaration import Stance
 from propstore.repository import Repository
 from propstore.world import RenderPolicy
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 
 
 class _World:
@@ -93,7 +93,7 @@ def _repo() -> Repository:
 
 
 def _claim(claim_id: str, *, concept_id: str = "concept1") -> Claim:
-    return claim_model(
+    return make_claim(
         claim_id,
         claim_type=ClaimType.PARAMETER,
         concept_id=concept_id,

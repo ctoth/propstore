@@ -334,166 +334,177 @@ _CONCEPT_FTS_SOURCE_QUERY = """
 """
 
 
+CONCEPT_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="concept",
+        name="concept",
+        contract_version=_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-concept",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            doc_type=Concept,
+            placement=FlatYamlPlacement(".derived/concept", str),
+        ),
+        identity_field="id",
+        reference_keys=(
+            ReferenceKey.field("primary_logical_id"),
+            ReferenceKey.field("logical_ids[].value"),
+            ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+            ReferenceKey.field("canonical_name"),
+        ),
+    ),
+    model=Concept,
+    fields=(
+        CharterField("id", str, primary_key=True, nullable=False),
+        CharterField("primary_logical_id", str, nullable=False, default_sql="''"),
+        CharterField("logical_ids_json", str, nullable=False, default_sql="'[]'"),
+        CharterField("version_id", str, nullable=False, default_sql="''"),
+        CharterField("content_hash", str, nullable=False),
+        CharterField("seq", int, nullable=False),
+        CharterField("canonical_name", str, nullable=False),
+        CharterField("status", str, nullable=False),
+        CharterField("domain", str),
+        CharterField("definition", str, nullable=False),
+        CharterField("kind_type", str, nullable=False),
+        CharterField("form", str, nullable=False),
+        CharterField("form_parameters", str),
+        CharterField("range_min", float),
+        CharterField("range_max", float),
+        CharterField("is_dimensionless", int, nullable=False, default_sql="0"),
+        CharterField("unit_symbol", str),
+        CharterField("created_date", str),
+        CharterField("last_modified", str),
+    ),
+    indexes=(CharterIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
+    fts_indexes=(
+        CharterFtsIndex(
+            "concept_fts",
+            "concept_id",
+            ("canonical_name", "aliases", "definition", "conditions"),
+            source_query=_CONCEPT_FTS_SOURCE_QUERY,
+        ),
+    ),
+    vector_caches=(
+        CharterVectorCache(
+            "concept_embeddings",
+            table="concept_vec_{model_identity_hash}_{dimensions}",
+            entity_id_field="id",
+            source_seq_field="seq",
+            source_content_hash_field="content_hash",
+            status_table="concept_embedding_status",
+        ),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+ALIAS_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="alias",
+        name="alias",
+        contract_version=_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-alias",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            doc_type=ConceptAlias,
+            placement=FlatYamlPlacement(".derived/alias", str),
+        ),
+        identity_field="concept_id",
+        reference_keys=(ReferenceKey.field("alias_name"),),
+    ),
+    model=ConceptAlias,
+    fields=(
+        CharterField("concept_id", str, nullable=False),
+        CharterField("alias_name", str, nullable=False),
+        CharterField("source", str, nullable=False),
+    ),
+    indexes=(
+        CharterIndex("idx_alias_name", ("alias_name",)),
+        CharterIndex("idx_alias_concept", ("concept_id",)),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+PARAMETERIZATION_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="parameterization",
+        name="parameterization",
+        contract_version=_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-parameterization",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            doc_type=Parameterization,
+            placement=FlatYamlPlacement(".derived/parameterization", str),
+        ),
+        identity_field="output_concept_id",
+    ),
+    model=Parameterization,
+    fields=(
+        CharterField("output_concept_id", str, nullable=False),
+        CharterField("concept_ids", str, nullable=False),
+        CharterField("formula", str, nullable=False),
+        CharterField("sympy", str),
+        CharterField("exactness", str, nullable=False),
+        CharterField("conditions_cel", str),
+        CharterField("conditions_ir", str),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+PARAMETERIZATION_GROUP_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="parameterization_group",
+        name="parameterization_group",
+        contract_version=_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-parameterization_group",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            doc_type=ParameterizationGroup,
+            placement=FlatYamlPlacement(".derived/parameterization_group", str),
+        ),
+        identity_field="concept_id",
+    ),
+    model=ParameterizationGroup,
+    fields=(
+        CharterField("concept_id", str, nullable=False),
+        CharterField("group_id", int, nullable=False),
+    ),
+    indexes=(CharterIndex("idx_param_group", ("group_id",)),),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+RELATIONSHIP_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="relationship",
+        name="relationship",
+        contract_version=_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-relationship",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            doc_type=ConceptRelationship,
+            placement=FlatYamlPlacement(".derived/relationship", str),
+        ),
+        identity_field="source_id",
+    ),
+    model=ConceptRelationship,
+    fields=(
+        CharterField("source_id", str, nullable=False),
+        CharterField("type", str, nullable=False),
+        CharterField("target_id", str, nullable=False),
+        CharterField("conditions_cel", str),
+        CharterField("note", str),
+    ),
+    indexes=(
+        CharterIndex("idx_rel_source", ("source_id",)),
+        CharterIndex("idx_rel_target", ("target_id",)),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+
 CONCEPT_CHARTERS: tuple[FamilyCharter, ...] = (
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="concept",
-                name="concept",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-concept",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=Concept,
-                    placement=FlatYamlPlacement(".derived/concept", str),
-                ),
-                identity_field="id",
-                reference_keys=(
-                    ReferenceKey.field("primary_logical_id"),
-                    ReferenceKey.field("logical_ids[].value"),
-                    ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
-                    ReferenceKey.field("canonical_name"),
-                ),
-            ),
-            model=Concept,
-            fields=(
-                CharterField("id", str, primary_key=True, nullable=False),
-                CharterField("primary_logical_id", str, nullable=False, default_sql="''"),
-                CharterField("logical_ids_json", str, nullable=False, default_sql="'[]'"),
-                CharterField("version_id", str, nullable=False, default_sql="''"),
-                CharterField("content_hash", str, nullable=False),
-                CharterField("seq", int, nullable=False),
-                CharterField("canonical_name", str, nullable=False),
-                CharterField("status", str, nullable=False),
-                CharterField("domain", str),
-                CharterField("definition", str, nullable=False),
-                CharterField("kind_type", str, nullable=False),
-                CharterField("form", str, nullable=False),
-                CharterField("form_parameters", str),
-                CharterField("range_min", float),
-                CharterField("range_max", float),
-                CharterField("is_dimensionless", int, nullable=False, default_sql="0"),
-                CharterField("unit_symbol", str),
-                CharterField("created_date", str),
-                CharterField("last_modified", str),
-            ),
-            indexes=(CharterIndex("idx_concept_primary_logical_id", ("primary_logical_id",)),),
-            fts_indexes=(
-                CharterFtsIndex(
-                    "concept_fts",
-                    "concept_id",
-                    ("canonical_name", "aliases", "definition", "conditions"),
-                    source_query=_CONCEPT_FTS_SOURCE_QUERY,
-                ),
-            ),
-            vector_caches=(
-                CharterVectorCache(
-                    "concept_embeddings",
-                    table="concept_vec_{model_identity_hash}_{dimensions}",
-                    entity_id_field="id",
-                    source_seq_field="seq",
-                    source_content_hash_field="content_hash",
-                    status_table="concept_embedding_status",
-                ),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-        ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="alias",
-                name="alias",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-alias",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=ConceptAlias,
-                    placement=FlatYamlPlacement(".derived/alias", str),
-                ),
-                identity_field="concept_id",
-                reference_keys=(ReferenceKey.field("alias_name"),),
-            ),
-            model=ConceptAlias,
-            fields=(
-                CharterField("concept_id", str, nullable=False),
-                CharterField("alias_name", str, nullable=False),
-                CharterField("source", str, nullable=False),
-            ),
-            indexes=(
-                CharterIndex("idx_alias_name", ("alias_name",)),
-                CharterIndex("idx_alias_concept", ("concept_id",)),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-        ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="parameterization",
-                name="parameterization",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-parameterization",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=Parameterization,
-                    placement=FlatYamlPlacement(".derived/parameterization", str),
-                ),
-                identity_field="output_concept_id",
-            ),
-            model=Parameterization,
-            fields=(
-                CharterField("output_concept_id", str, nullable=False),
-                CharterField("concept_ids", str, nullable=False),
-                CharterField("formula", str, nullable=False),
-                CharterField("sympy", str),
-                CharterField("exactness", str, nullable=False),
-                CharterField("conditions_cel", str),
-                CharterField("conditions_ir", str),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-        ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="parameterization_group",
-                name="parameterization_group",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-parameterization_group",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=ParameterizationGroup,
-                    placement=FlatYamlPlacement(".derived/parameterization_group", str),
-                ),
-                identity_field="concept_id",
-            ),
-            model=ParameterizationGroup,
-            fields=(
-                CharterField("concept_id", str, nullable=False),
-                CharterField("group_id", int, nullable=False),
-            ),
-            indexes=(CharterIndex("idx_param_group", ("group_id",)),),
-            semantic_metadata={"semantic": "propstore.world"},
-        ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="relationship",
-                name="relationship",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-relationship",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=ConceptRelationship,
-                    placement=FlatYamlPlacement(".derived/relationship", str),
-                ),
-                identity_field="source_id",
-            ),
-            model=ConceptRelationship,
-            fields=(
-                CharterField("source_id", str, nullable=False),
-                CharterField("type", str, nullable=False),
-                CharterField("target_id", str, nullable=False),
-                CharterField("conditions_cel", str),
-                CharterField("note", str),
-            ),
-            indexes=(
-                CharterIndex("idx_rel_source", ("source_id",)),
-                CharterIndex("idx_rel_target", ("target_id",)),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-        ),
+    CONCEPT_CHARTER,
+    ALIAS_CHARTER,
+    PARAMETERIZATION_CHARTER,
+    PARAMETERIZATION_GROUP_CHARTER,
+    RELATIONSHIP_CHARTER,
 )

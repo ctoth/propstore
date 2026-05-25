@@ -16,7 +16,7 @@ from tests.atms_helpers import (
     condition_registry_for_rows,
     leaf_lifting_system,
 )
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 
 
 class _RevisionStore:
@@ -125,13 +125,13 @@ def test_project_belief_base_includes_exact_support_claims_and_active_assumption
 
     store = _RevisionStore(
         claims=[
-            claim_model(
+            make_claim(
                 claim_id="claim_exact",
                 concept_id="concept_exact",
                 value=1.0,
                 conditions_cel=json.dumps(["x == 1"]),
             ),
-            claim_model(
+            make_claim(
                 claim_id="claim_semantic_only",
                 concept_id="concept_semantic",
                 value=2.0,
@@ -157,13 +157,13 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
 
     store = _RevisionStore(
         claims=[
-            claim_model(
+            make_claim(
                 claim_id="claim_unconditional",
                 concept_id="concept_base",
                 value=1.0,
                 conditions_cel=None,
             ),
-            claim_model(
+            make_claim(
                 claim_id="claim_override_target",
                 concept_id="concept_focus",
                 value=2.0,
@@ -195,7 +195,7 @@ def test_compute_entrenchment_allows_explicit_overrides_to_outrank_default_suppo
 def test_bound_world_revision_phase1_delegates_to_revision_package() -> None:
     store = _RevisionStore(
         claims=[
-            claim_model(
+            make_claim(
                 claim_id="claim_exact",
                 concept_id="concept_exact",
                 value=1.0,

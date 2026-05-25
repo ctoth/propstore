@@ -33,6 +33,8 @@ from propstore.core.id_types import (
     ConceptId,
 )
 from propstore.core.store_results import ClaimSimilarityHit, ConceptSimilarityHit
+from propstore.families.claims.declaration import CLAIM_CORE_CHARTER
+from propstore.families.concepts.declaration import ALIAS_CHARTER, CONCEPT_CHARTER
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 from propstore.families.registry import world_schema
 
@@ -184,7 +186,7 @@ def _load_claim_embedding_entities(
     entity_ids: Sequence[str] | None = None,
 ) -> list[EmbeddingEntity]:
     schema = world_schema()
-    claim = schema.model("claim_core")
+    claim = schema.model(CLAIM_CORE_CHARTER.family.name)
     entities: list[EmbeddingEntity] = []
     with derived_store.readonly_session(schema) as derived:
         stmt = select(claim)
@@ -210,8 +212,8 @@ def _load_concept_embedding_entities(
     entity_ids: Sequence[str] | None = None,
 ) -> list[EmbeddingEntity]:
     schema = world_schema()
-    concept = schema.model("concept")
-    alias = schema.model("alias")
+    concept = schema.model(CONCEPT_CHARTER.family.name)
+    alias = schema.model(ALIAS_CHARTER.family.name)
     entities: list[EmbeddingEntity] = []
     with derived_store.readonly_session(schema) as derived:
         stmt = select(concept)
@@ -367,7 +369,7 @@ def _claim_similarity_hits(
     if not entity_ids:
         return []
     schema = world_schema()
-    claim = schema.model("claim_core")
+    claim = schema.model(CLAIM_CORE_CHARTER.family.name)
     concept_link = schema.model("claim_concept_link")
     with derived_store.readonly_session(schema) as derived:
         claims = {
@@ -416,7 +418,7 @@ def _concept_similarity_hits(
     if not entity_ids:
         return []
     schema = world_schema()
-    concept = schema.model("concept")
+    concept = schema.model(CONCEPT_CHARTER.family.name)
     with derived_store.readonly_session(schema) as derived:
         concepts = {
             model.id: model

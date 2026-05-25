@@ -1224,7 +1224,7 @@ def write_promotion_blocked_models(
     }
     diagnostic_objects = tuple(rows.diagnostics)
     if claim_objects_by_id:
-        claim_core = derived.schema.table("claim_core")
+        claim_core = derived.schema.table(CLAIM_CORE_CHARTER.family.name)
         existing_rows = derived.session.execute(
             select(claim_core.c.id, claim_core.c.promotion_status).where(
                 claim_core.c.id.in_(tuple(claim_objects_by_id))

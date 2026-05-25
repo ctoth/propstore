@@ -57,7 +57,7 @@ def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatus
 
     schema = world_schema()
     with handle.readonly_session(schema) as derived:
-        claim_core = derived.schema.table("claim_core")
+        claim_core = derived.schema.table(schema.schema_object("claim_core").family_name)
         claim_rows = tuple(
             (
                 str(row.id),

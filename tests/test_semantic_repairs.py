@@ -10,7 +10,7 @@ from propstore.world import ResolutionStrategy, WorldQuery, resolve
 from propstore.world.queries import world_claim_display_id
 from propstore.world.value_resolver import ClaimValueResolver
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads, write_test_context
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 
 
 def _build_world(tmp_path, concepts: list[dict], claim_docs: list[dict]) -> WorldQuery:
@@ -286,12 +286,12 @@ def test_mixed_direct_and_multistatement_algorithm_uses_ast_equivalence():
     )
 
     active = [
-        claim_model(
+        make_claim(
             "direct",
             claim_type=ClaimType.PARAMETER,
             value=10.0,
         ),
-        claim_model(
+        make_claim(
             "algo",
             claim_type=ClaimType.ALGORITHM,
             value=None,

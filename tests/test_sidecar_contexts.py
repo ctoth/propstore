@@ -12,6 +12,7 @@ from propstore.context_lifting import (
 )
 from propstore.core.assertions.refs import ContextReference
 from propstore.families.contexts.declaration import (
+    CONTEXT_LIFTING_MATERIALIZATION_CHARTER,
     compile_context_lifting_materializations,
 )
 from propstore.families.registry import world_schema
@@ -118,7 +119,7 @@ def test_context_lifting_materialization_round_trips_through_sqlalchemy(tmp_path
         session.add_all(rows)
         session.commit()
 
-    model = schema.model("context_lifting_materialization")
+    model = schema.model(CONTEXT_LIFTING_MATERIALIZATION_CHARTER.family.name)
     with readonly_session(db_path, schema) as session:
         stored = session.execute(select(model)).scalars().one()
 

@@ -8,7 +8,7 @@ from propstore.core.labels import compile_environment_assumptions
 from propstore.families.concepts.declaration import Concept, Parameterization
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from tests.atms_helpers import condition_registry_for_rows, rows_with_condition_ir
-from tests.claim_model_helpers import claim_model_from_test_payload
+from tests.claim_model_helpers import claim_from_test_payload
 
 
 class _Store:
@@ -37,7 +37,7 @@ class _Store:
         ]
         self._condition_registry = condition_registry_for_rows(all_rows)
         self._claims = [
-            claim_model_from_test_payload(row)
+            claim_from_test_payload(row)
             for row in rows_with_condition_ir(claims, self._condition_registry)
         ]
         self._parameterizations = {

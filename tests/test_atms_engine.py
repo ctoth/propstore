@@ -45,7 +45,7 @@ from tests.atms_helpers import (
     condition_sources_from_json,
     leaf_lifting_system,
 )
-from tests.claim_model_helpers import claim_concept_link, claim_model
+from tests.claim_model_helpers import claim_concept_link, make_claim
 
 
 def test_atms_bind_workflow_applies_atms_policy_and_context() -> None:
@@ -96,7 +96,7 @@ class _ATMSStore:
                 self._condition_registry,
             )
             self._claims.append(
-                claim_model(
+                make_claim(
                     claim_id=str(claim["id"]),
                     concept_id=str(claim["concept_id"]),
                     value=claim.get("value"),
@@ -302,7 +302,7 @@ class _GraphOnlyATMSRuntime:
                     role=ClaimConceptLinkRole.OUTPUT,
                 )
             )
-        return claim_model(
+        return make_claim(
             claim_id=str(claim_node.claim_id),
             claim_type=claim_node.claim_type,
             concept_links=concept_links,
@@ -1163,7 +1163,7 @@ def test_world_extensions_cli_rejects_atms_backend_explicitly(monkeypatch) -> No
 
     class FakeBound:
         def active_claims(self, concept_id: str | None = None) -> list[Claim]:
-            return [claim_model("claim_exact", concept_id="concept1", value=1.0)]
+            return [make_claim("claim_exact", concept_id="concept1", value=1.0)]
 
     class FakeWorldQuery:
         def __init__(self, repo) -> None:

@@ -11,26 +11,26 @@ from tests.support_revision.formal_realization_helpers import (
     revise_via_formal_decision,
 )
 from tests.support_revision.revision_assertion_helpers import make_assertion_atom
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 
 def _operator_bound():
     store = _RevisionStore(
         claims=[
-            claim_model(
+            make_claim(
                 claim_id="legacy",
                 concept_id="concept_legacy",
                 value=1.0,
                 conditions_cel=json.dumps(["x == 1", "y == 2"]),
             ),
-            claim_model(
+            make_claim(
                 claim_id="dependent",
                 concept_id="concept_dependent",
                 value=2.0,
                 conditions_cel=json.dumps(["y == 2"]),
             ),
-            claim_model(
+            make_claim(
                 claim_id="independent",
                 concept_id="concept_independent",
                 value=3.0,

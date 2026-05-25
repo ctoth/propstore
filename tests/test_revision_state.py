@@ -3,14 +3,14 @@ from __future__ import annotations
 import json
 
 from propstore.support_revision.projection import project_belief_base
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 from tests.test_revision_phase1 import _RevisionStore, _make_bound
 
 
 def test_project_belief_base_exposes_support_sets_for_assertion_atoms() -> None:
     store = _RevisionStore(
         claims=[
-            claim_model(
+            make_claim(
                 claim_id="claim_exact",
                 concept_id="concept_exact",
                 value=1.0,
@@ -31,7 +31,7 @@ def test_project_belief_base_exposes_support_sets_for_assertion_atoms() -> None:
 def test_project_belief_base_exposes_essential_support_for_assertion_atoms() -> None:
     store = _RevisionStore(
         claims=[
-            claim_model(
+            make_claim(
                 claim_id="claim_exact",
                 concept_id="concept_exact",
                 value=1.0,
@@ -51,13 +51,13 @@ def test_project_belief_base_exposes_essential_support_for_assertion_atoms() -> 
 
 def test_projected_support_metadata_is_deterministic_under_claim_order_variation() -> None:
     claims = [
-        claim_model(
+        make_claim(
             claim_id="claim_b",
             concept_id="concept_b",
             value=2.0,
             conditions_cel=json.dumps(["x == 1"]),
         ),
-        claim_model(
+        make_claim(
             claim_id="claim_a",
             concept_id="concept_a",
             value=1.0,

@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from sqlite3 import Connection
 
 from propstore.families.relations.declaration import ConflictWitness, Stance
-from tests.claim_model_helpers import claim_model_from_test_payload
+from tests.claim_model_helpers import claim_from_test_payload
 
 
 class SQLiteArgumentationStore:
@@ -58,7 +58,7 @@ class SQLiteArgumentationStore:
             list(claim_ids),
         )
         return {
-            str(row["id"]): claim_model_from_test_payload(row)
+            str(row["id"]): claim_from_test_payload(row)
             for row in rows
         }
 

@@ -44,7 +44,7 @@ from propstore.support_revision.state import (
     EpistemicState,
     RevisionScope,
 )
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim as make_claim_model
 
 
 _DEFAULT_POLICY: Mapping[str, str] = {
@@ -61,7 +61,7 @@ _DEFAULT_POLICY: Mapping[str, str] = {
 def make_claim(claim_local_id: str) -> Claim:
     """Return a typed ``Claim`` with deterministic identity for tests."""
     artifact_id = f"propstore:claim:test/{claim_local_id}"
-    return claim_model(
+    return make_claim_model(
         claim_id=artifact_id,
         concept_id=f"concept:{claim_local_id}",
         value=None,

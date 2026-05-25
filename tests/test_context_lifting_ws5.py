@@ -14,6 +14,7 @@ from propstore.context_lifting import (
 )
 from propstore.core.assertions.refs import ContextReference
 from propstore.families.contexts.declaration import (
+    CONTEXT_LIFTING_MATERIALIZATION_CHARTER,
     compile_context_lifting_materializations,
     compile_context_models,
 )
@@ -30,7 +31,7 @@ from propstore.core.conditions.solver import (
     Z3TranslationError,
 )
 from propstore.core.conditions.registry import ConceptInfo, KindType
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 
 
 class _ConditionSolver:
@@ -185,12 +186,12 @@ def test_bound_world_projection_honors_local_lifting_exception() -> None:
         def __init__(self) -> None:
             self._solver = ConditionSolver({})
             self._claims = [
-                claim_model(
+                make_claim(
                     claim_id="claim_alpha",
                     concept_id="c1",
                     context_id="ctx_source",
                 ),
-                claim_model(
+                make_claim(
                     claim_id="claim_local",
                     concept_id="c1",
                     context_id="ctx_target",
@@ -260,7 +261,7 @@ def test_sidecar_stores_lifting_materialization_provenance(tmp_path) -> None:
         session.add_all(materialization_rows)
         session.commit()
 
-    model = schema.model("context_lifting_materialization")
+    model = schema.model(CONTEXT_LIFTING_MATERIALIZATION_CHARTER.family.name)
     with readonly_session(sidecar_path, schema) as session:
         row = session.execute(select(model)).scalars().one()
 

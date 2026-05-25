@@ -27,6 +27,7 @@ from .mutation import (
 )
 from propstore.app.repository_views import repository_view_label
 from propstore.compiler.workflows import build_repository_world_store
+from propstore.families.concepts.declaration import CONCEPT_CHARTER
 from propstore.families.registry import world_schema
 
 if TYPE_CHECKING:
@@ -48,7 +49,7 @@ def search_concepts(
     if not derived_store.path.exists():
         raise ConceptSidecarMissingError("sidecar not found. Run 'pks build' first.")
     schema = world_schema()
-    concept = schema.model("concept")
+    concept = schema.model(CONCEPT_CHARTER.family.name)
     try:
         with derived_store.readonly_session(schema) as derived:
             hits = search_fts_index(

@@ -9,7 +9,7 @@ from propstore.core.labels import compile_environment_assumptions
 from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.world.types import Environment
-from tests.claim_model_helpers import claim_model_from_test_payload
+from tests.claim_model_helpers import claim_from_test_payload
 
 
 class _JustificationStore:
@@ -19,7 +19,7 @@ class _JustificationStore:
             {"id": "claim_b", "concept_id": "c2", "type": "parameter", "value": 2.0},
             {"id": "claim_c", "concept_id": "c3", "type": "parameter", "value": 3.0},
         ]
-        self._claim_models = [claim_model_from_test_payload(claim) for claim in self._claims]
+        self._claim_models = [claim_from_test_payload(claim) for claim in self._claims]
         self._stances = [
             Stance(
                 source_kind="claim",

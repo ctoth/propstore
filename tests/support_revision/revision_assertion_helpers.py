@@ -4,7 +4,7 @@ from propstore.core.id_types import AssumptionId
 from propstore.core.labels import AssumptionRef, Label
 from propstore.support_revision.projection import situated_assertion_from_claim
 from propstore.support_revision.state import AssertionAtom, AssumptionAtom
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 
 
 def make_assertion_atom(
@@ -16,7 +16,7 @@ def make_assertion_atom(
     label: Label | None = None,
 ) -> AssertionAtom:
     paper = "paper1" if source_paper is None else source_paper
-    claim = claim_model(
+    claim = make_claim(
         claim_id=f"claim_{name}",
         concept_id=f"concept_{name}" if concept_id is None else concept_id,
         value=float(value) if isinstance(value, int | float) else None,

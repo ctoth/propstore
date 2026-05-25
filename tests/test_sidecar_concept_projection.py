@@ -6,7 +6,11 @@ from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 
 from quire.sqlalchemy_store import create_sqlalchemy_store
-from propstore.families.concepts.declaration import Concept, ConceptWriteModels
+from propstore.families.concepts.declaration import (
+    CONCEPT_CHARTER,
+    Concept,
+    ConceptWriteModels,
+)
 from propstore.families.registry import world_schema
 
 
@@ -52,7 +56,9 @@ def test_concept_models_are_typed_and_round_trip(tmp_path) -> None:
         with Session(engine) as session:
             session.add_all(rows.concept_rows)
             session.commit()
-            stored = session.execute(select(schema.model("concept"))).scalar_one()
+            stored = session.execute(
+                select(schema.model(CONCEPT_CHARTER.family.name))
+            ).scalar_one()
     finally:
         engine.dispose()
 

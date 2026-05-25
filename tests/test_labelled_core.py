@@ -18,7 +18,7 @@ from propstore.families.relations.declaration import ConflictWitness, Stance
 from propstore.families.concepts.declaration import Concept, Parameterization
 from propstore.world.types import DerivedResult, Environment, ValueResult, ValueStatus
 from propstore.worldline import WorldlineDefinition, run_worldline
-from tests.claim_model_helpers import claim_model_from_test_payload
+from tests.claim_model_helpers import claim_from_test_payload
 
 from tests.atms_helpers import (
     condition_registry_for_rows,
@@ -79,7 +79,7 @@ class _StubStore:
         ]
         self._condition_registry = condition_registry_for_rows(all_rows)
         self._claims = [
-            claim_model_from_test_payload(row)
+            claim_from_test_payload(row)
             for row in rows_with_condition_ir(claims, self._condition_registry)
         ]
         self._parameterizations = {
@@ -379,7 +379,7 @@ def test_derived_value_combines_input_labels() -> None:
 
 
 def test_worldline_outputs_do_not_serialize_internal_labels() -> None:
-    claim = claim_model_from_test_payload({"id": "claim1", "concept_id": "concept1", "value": 42.0})
+    claim = claim_from_test_payload({"id": "claim1", "concept_id": "concept1", "value": 42.0})
 
     class FakeBound:
         def value_of(self, concept_id: str) -> ValueResult:

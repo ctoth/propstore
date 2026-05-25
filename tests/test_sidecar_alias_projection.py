@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from quire.sqlalchemy_store import create_sqlalchemy_store
 from propstore.families.concepts.declaration import (
+    ALIAS_CHARTER,
     ConceptAlias,
     ConceptWriteModels,
 )
@@ -37,7 +38,9 @@ def test_alias_models_are_typed_and_round_trip(tmp_path) -> None:
         with Session(engine) as session:
             session.add_all(rows.alias_rows)
             session.commit()
-            stored = session.execute(select(schema.model("alias"))).scalar_one()
+            stored = session.execute(
+                select(schema.model(ALIAS_CHARTER.family.name))
+            ).scalar_one()
     finally:
         engine.dispose()
 

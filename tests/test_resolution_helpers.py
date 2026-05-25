@@ -30,7 +30,7 @@ from propstore.world.types import (
     WorldStore,
 )
 from propstore.world.types import IntegrityConstraint, IntegrityConstraintKind
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 
 
 def test_assignment_selection_policy_adapter_surface_exists() -> None:
@@ -52,7 +52,7 @@ def _claim(
     value: float = 1.0,
     branch: str | None = None,
 ) -> Claim:
-    return claim_model(claim_id, concept_id=concept_id, value=value, branch=branch)
+    return make_claim(claim_id, concept_id=concept_id, value=value, branch=branch)
 
 
 def _claim_concept_id(claim: Claim) -> str | None:

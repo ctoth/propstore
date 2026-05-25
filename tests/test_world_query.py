@@ -67,7 +67,7 @@ from propstore.world.queries import (
     query_world_concept,
 )
 from tests.conftest import normalize_claims_payload, normalize_concept_payloads
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 
 
 def _concept_artifact(local_id: str) -> str:
@@ -1666,8 +1666,8 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolution_claim_view, _resolve_recency
 
         claims = [
-            _resolution_claim_view(claim_model("a", provenance_json={"date": "2025-01-01"})),
-            _resolution_claim_view(claim_model("b", provenance_json={"date": "2025-01-01"})),
+            _resolution_claim_view(make_claim("a", provenance_json={"date": "2025-01-01"})),
+            _resolution_claim_view(make_claim("b", provenance_json={"date": "2025-01-01"})),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id is None, (
@@ -1680,9 +1680,9 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolution_claim_view, _resolve_recency
 
         claims = [
-            _resolution_claim_view(claim_model("a", provenance_json={"date": "2025-01-01"})),
-            _resolution_claim_view(claim_model("b", provenance_json={"date": "2024-06-01"})),
-            _resolution_claim_view(claim_model("c", provenance_json={"date": "2024-06-01"})),
+            _resolution_claim_view(make_claim("a", provenance_json={"date": "2025-01-01"})),
+            _resolution_claim_view(make_claim("b", provenance_json={"date": "2024-06-01"})),
+            _resolution_claim_view(make_claim("c", provenance_json={"date": "2024-06-01"})),
         ]
         winner_id, reason = _resolve_recency(claims)
         assert winner_id == "a"
@@ -1692,8 +1692,8 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
 
         claims = [
-            _resolution_claim_view(claim_model("a", sample_size=50)),
-            _resolution_claim_view(claim_model("b", sample_size=50)),
+            _resolution_claim_view(make_claim("a", sample_size=50)),
+            _resolution_claim_view(make_claim("b", sample_size=50)),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id is None, (
@@ -1706,9 +1706,9 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
 
         claims = [
-            _resolution_claim_view(claim_model("a", sample_size=100)),
-            _resolution_claim_view(claim_model("b", sample_size=50)),
-            _resolution_claim_view(claim_model("c", sample_size=50)),
+            _resolution_claim_view(make_claim("a", sample_size=100)),
+            _resolution_claim_view(make_claim("b", sample_size=50)),
+            _resolution_claim_view(make_claim("c", sample_size=50)),
         ]
         winner_id, reason = _resolve_sample_size(claims)
         assert winner_id == "a"
@@ -1719,10 +1719,10 @@ class TestConflictResolution:
 
         tied_claims = [
             _resolution_claim_view(
-                claim_model("claim1", value=200.0, provenance_json={"date": "2025-01-01"})
+                make_claim("claim1", value=200.0, provenance_json={"date": "2025-01-01"})
             ),
             _resolution_claim_view(
-                claim_model("claim2", value=350.0, provenance_json={"date": "2025-01-01"})
+                make_claim("claim2", value=350.0, provenance_json={"date": "2025-01-01"})
             ),
         ]
         # Test the helper directly — resolve() returns "conflicted" when
@@ -1738,8 +1738,8 @@ class TestConflictResolution:
         from propstore.world.resolution import _resolution_claim_view, _resolve_sample_size
 
         tied_claims = [
-            _resolution_claim_view(claim_model("claim1", value=200.0, sample_size=50)),
-            _resolution_claim_view(claim_model("claim2", value=350.0, sample_size=50)),
+            _resolution_claim_view(make_claim("claim1", value=200.0, sample_size=50)),
+            _resolution_claim_view(make_claim("claim2", value=350.0, sample_size=50)),
         ]
         winner_id, reason = _resolve_sample_size(tied_claims)
         assert winner_id is None
@@ -2621,8 +2621,8 @@ class TestFloatEqualityBugs:
 
         # Two target claims competing for the same concept
         target_claims = [
-            claim_model("claim_x", concept_id="concept2", value=800.0),
-            claim_model("claim_y", concept_id="concept2", value=810.0),
+            make_claim("claim_x", concept_id="concept2", value=800.0),
+            make_claim("claim_y", concept_id="concept2", value=810.0),
         ]
         active_claims = target_claims[:]
 

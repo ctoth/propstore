@@ -9,7 +9,7 @@ from tests.family_helpers import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.documents.sources import SourceClaimDocument
 from propstore.families.registry import world_catalog
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 
 
 def _schema_object(name: str):
@@ -29,7 +29,7 @@ def test_algorithm_stage_annotations_cover_runtime_path() -> None:
 
 def test_typed_claim_carries_algorithm_stage() -> None:
     stage = AlgorithmStage("excitation")
-    claim = claim_model(
+    claim = make_claim(
         claim_id="ps:claim:test",
         algorithm_stage=stage,
     )

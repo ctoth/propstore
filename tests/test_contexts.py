@@ -28,6 +28,11 @@ from propstore.context_lifting import (
 )
 from propstore.core.assertions.refs import ContextReference
 from propstore.families.contexts import load_contexts
+from propstore.families.contexts.declaration import (
+    CONTEXT_ASSUMPTION_CHARTER,
+    CONTEXT_CHARTER,
+    CONTEXT_LIFTING_RULE_CHARTER,
+)
 from propstore.families.contexts.passes import run_context_pipeline
 from propstore.families.contexts.stages import (
     LoadedContext,
@@ -41,7 +46,7 @@ from propstore.families.registry import world_schema
 from propstore.world.bound import BoundWorld
 from propstore.world.types import Environment
 from tests.conftest import make_compilation_context
-from tests.claim_model_helpers import claim_model
+from tests.claim_model_helpers import make_claim
 from tests.family_helpers import world_query_from_sqlite_path
 from tests.sidecar_schema_helpers import build_world_projection_schema
 
@@ -368,9 +373,9 @@ class TestContextSidecar:
             session.add_all(lifting_rule_rows)
             session.commit()
 
-        context_model = schema.model("context")
-        assumption_model = schema.model("context_assumption")
-        rule_model = schema.model("context_lifting_rule")
+        context_model = schema.model(CONTEXT_CHARTER.family.name)
+        assumption_model = schema.model(CONTEXT_ASSUMPTION_CHARTER.family.name)
+        rule_model = schema.model(CONTEXT_LIFTING_RULE_CHARTER.family.name)
         with readonly_session(sidecar_path, schema) as session:
             rows = {
                 str(row.id): row
@@ -409,10 +414,10 @@ class TestBoundWorldContextLifting:
 
     def test_bound_world_uses_explicit_lifting_visibility(self) -> None:
         claims = [
-            claim_model(claim_id="claim_root", concept_id="c1", context_id="ctx_root"),
-            claim_model(claim_id="claim_child", concept_id="c1", context_id="ctx_child"),
-            claim_model(claim_id="claim_other", concept_id="c1", context_id="ctx_other"),
-            claim_model(claim_id="claim_unscoped", concept_id="c1", context_id=None),
+            make_claim(claim_id="claim_root", concept_id="c1", context_id="ctx_root"),
+            make_claim(claim_id="claim_child", concept_id="c1", context_id="ctx_child"),
+            make_claim(claim_id="claim_other", concept_id="c1", context_id="ctx_other"),
+            make_claim(claim_id="claim_unscoped", concept_id="c1", context_id=None),
         ]
         system = LiftingSystem(
             contexts=(
@@ -442,8 +447,8 @@ class TestBoundWorldContextLifting:
 
     def test_bound_world_without_lifting_rule_does_not_see_parent_by_name(self) -> None:
         claims = [
-            claim_model(claim_id="claim_root", concept_id="c1", context_id="ctx_root"),
-            claim_model(claim_id="claim_child", concept_id="c1", context_id="ctx_child"),
+            make_claim(claim_id="claim_root", concept_id="c1", context_id="ctx_root"),
+            make_claim(claim_id="claim_child", concept_id="c1", context_id="ctx_child"),
         ]
         system = LiftingSystem(
             contexts=(ContextReference("ctx_root"), ContextReference("ctx_child")),
