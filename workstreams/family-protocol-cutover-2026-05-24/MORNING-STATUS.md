@@ -127,6 +127,23 @@ While confirming `def _claim_value` zero-hit in `propstore/world` + `propstore/w
 - Zero string-keyed `schema.model("X")` / `derived.schema.table("X")` in propstore production code
 - Zero shim/alias/re-export across all V001-V009 + V035 + V036 + V041 + V042 + V044 surfaces
 
+## Phase 04 field-coverage audit — concrete morning checklist
+
+Scout audit at `reports/scout-phase04-field-coverage-audit.md` enumerates all 14 handwritten document modules:
+- **0 of 14 families READY** for Phase 04 as-is.
+- **5 families NEEDS-AUGMENTATION** (additive CharterField work, no spec change): `contexts`, `forms`, `justifications`, `micropubs`, `sources` (`SourceDocument`).
+- **9 families BLOCKED** on:
+  - **MISSING CHARTER MODULE** (no `declaration.py` exists for the family): `sameas`, `merge`, `predicates`, `source_alignment`, `stances`, `worldlines` (6).
+  - **Structural shape mismatch / behavior-bearing methods**: `claims`, `concepts`, `rules` (3).
+- `JUSTIFICATION_CHARTER` is currently at the wrong path (`families/claims/declaration.py:677` instead of a `families/justifications/declaration.py` that doesn't exist).
+- Authored DeLP rules are blob-stored as `grounded_bundle_input.payload: bytes` — no authored-rule charter family exists, only a grounded-runtime one.
+- Several "missing module" families have very narrow import surface (`merge` 1 importer, `source_alignment` 2, `worldlines` 5) — may not warrant charter authoring at all; needs Q scope decision.
+
+**Audit-recommended morning order:**
+1. `contexts` → `forms` → `justifications` (additive only, no design call).
+2. Q scope decision on whether `merge` / `source_alignment` / `sameas` etc. actually need charter modules or should be deleted differently.
+3. `claims`, `concepts`, `rules` last (behavior-bearing methods or structural changes).
+
 ## Recommendation for Q (when you wake)
 
 1. **Decide on Phase 04 charter-augmentation pre-work.** The Phase 04 + downstream block is real. Either accept the per-family charter-field augmentation cost (~10 fields × 14 families) as a single hour-long mechanical cut, or revise Phase 04's principle to say "documents are richer than charters, that's fine" and Phase 04 becomes about something else.
