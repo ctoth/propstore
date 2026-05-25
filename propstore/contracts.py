@@ -47,6 +47,11 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.micropublications.declaration.MicropublicationDocument": VersionId("2026.05.25"),
     "propstore.families.micropublications.declaration.MicropublicationEvidenceDocument": VersionId("2026.05.25"),
     "propstore.families.sameas.declaration.SameAsAssertionDocument": VersionId("2026.05.25"),
+    "propstore.families.source_alignment.declaration.AlignmentArgumentDocument": VersionId("2026.05.25"),
+    "propstore.families.source_alignment.declaration.AlignmentDecisionDocument": VersionId("2026.05.25"),
+    "propstore.families.source_alignment.declaration.AlignmentFrameworkDocument": VersionId("2026.05.25"),
+    "propstore.families.source_alignment.declaration.AlignmentQueriesDocument": VersionId("2026.05.25"),
+    "propstore.families.source_alignment.declaration.ConceptAlignmentArtifactDocument": VersionId("2026.05.25"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
@@ -143,7 +148,6 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import (
         predicates,
         rules,
-        source_alignment,
         sources,
         worldlines,
     )
@@ -155,6 +159,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.merge import declaration as merge
     from propstore.families.micropublications import declaration as micropublications
     from propstore.families.sameas import declaration as sameas
+    from propstore.families.source_alignment import declaration as source_alignment
     from propstore.families.stances import declaration as stances
 
     modules = (

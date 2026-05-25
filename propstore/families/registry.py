@@ -59,7 +59,6 @@ from propstore.families.merge.declaration import (
 from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
 from propstore.families.documents.rules import RuleDocument, RuleProposalDocument, RuleSuperiorityDocument
-from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceConceptEntryDocument,
@@ -69,6 +68,10 @@ from propstore.families.documents.sources import (
 )
 from propstore.families.documents.worldlines import WorldlineDefinitionDocument
 from propstore.families.sameas.declaration import SameAsAssertionDocument
+from propstore.families.source_alignment.declaration import (
+    SOURCE_ALIGNMENT_FAMILY_CONTRACT_VERSION,
+    ConceptAlignmentArtifactDocument,
+)
 from propstore.families.stances.declaration import StanceDocument
 from propstore.families.identity.claims import (
     CLAIM_SOURCE_LOCAL_FIELDS,
@@ -1210,8 +1213,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.CONCEPT_ALIGNMENTS,
             name=PropstoreFamily.CONCEPT_ALIGNMENTS.value,
-            contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=SOURCE_ALIGNMENT_FAMILY_CONTRACT_VERSION,
             artifact_name="concept_alignment",
+            artifact_contract_version=SOURCE_ALIGNMENT_FAMILY_CONTRACT_VERSION,
             doc_type=ConceptAlignmentArtifactDocument,
             placement=FlatYamlPlacement(
                 "merge/concepts",
@@ -1302,6 +1306,7 @@ def world_catalog() -> SchemaCatalog:
     relations = import_module("propstore.families.relations.declaration")
     rules = import_module("propstore.families.rules.declaration")
     sameas = import_module("propstore.families.sameas.declaration")
+    source_alignment = import_module("propstore.families.source_alignment.declaration")
     sources = import_module("propstore.families.sources.declaration")
     stances = import_module("propstore.families.stances.declaration")
 
@@ -1322,6 +1327,7 @@ def world_catalog() -> SchemaCatalog:
         claims.JUSTIFICATION_CHARTER,
         sameas.SAMEAS_CHARTER,
         stances.STANCE_CHARTER,
+        source_alignment.CONCEPT_ALIGNMENT_ARTIFACT_CHARTER,
         merge.MERGE_MANIFEST_CHARTER,
         *micropublications.MICROPUBLICATION_CHARTERS,
         calibration.CALIBRATION_CHARTER,

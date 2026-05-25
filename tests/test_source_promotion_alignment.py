@@ -16,7 +16,7 @@ from propstore.families.registry import (
 )
 from propstore.cli import cli
 from propstore.repository import Repository
-from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
+from quire.documents import convert_document_value, decode_document_batch_bytes, document_to_payload, encode_yaml_value
 from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC, SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
@@ -166,7 +166,7 @@ def test_align_and_promote_alignment_use_artifact_store(tmp_path: Path) -> None:
     stored = repo.families.concept_alignments.require(
         ConceptAlignmentRef(slug),
     )
-    assert stored.to_payload() == artifact.to_payload()
+    assert document_to_payload(stored) == document_to_payload(artifact)
 
     decided = decide_alignment(repo, artifact.id, accept=[artifact.arguments[0].id], reject=[])
     assert decided.decision.status == "decided"

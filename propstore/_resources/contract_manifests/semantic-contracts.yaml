@@ -47,11 +47,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: concept_alignment
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.source_alignment.ConceptAlignmentArtifactDocument
+    doc_type: propstore.families.source_alignment.declaration.ConceptAlignmentArtifactDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -785,7 +785,7 @@ contracts:
       value_field: value
 - kind: document_schema
   name: AlignmentArgumentDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: id
@@ -809,10 +809,10 @@ contracts:
     - name: form
       required: true
       type: str
-    module: propstore.families.documents.source_alignment
+    module: propstore.families.source_alignment.declaration
 - kind: document_schema
   name: AlignmentDecisionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: status
@@ -827,10 +827,10 @@ contracts:
     - name: promoted_concept
       required: true
       type: str | None
-    module: propstore.families.documents.source_alignment
+    module: propstore.families.source_alignment.declaration
 - kind: document_schema
   name: AlignmentFrameworkDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: attacks
@@ -842,10 +842,10 @@ contracts:
     - name: non_attacks
       required: true
       type: tuple[tuple[str, str], ...]
-    module: propstore.families.documents.source_alignment
+    module: propstore.families.source_alignment.declaration
 - kind: document_schema
   name: AlignmentQueriesDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: skeptical_acceptance
@@ -857,7 +857,7 @@ contracts:
     - name: operator_scores
       required: true
       type: dict[str, dict[str, int]]
-    module: propstore.families.documents.source_alignment
+    module: propstore.families.source_alignment.declaration
 - kind: document_schema
   name: AtomDocument
   contract_version: 2026.05.01
@@ -1142,31 +1142,31 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: ConceptAlignmentArtifactDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: kind
       required: true
-      type: str
+      type: builtins.str
     - name: id
       required: true
-      type: str
+      type: builtins.str
     - name: sources
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
     - name: arguments
       required: true
-      type: tuple[AlignmentArgumentDocument, ...]
+      type: builtins.tuple
     - name: framework
       required: true
-      type: AlignmentFrameworkDocument
+      type: propstore.families.source_alignment.declaration.AlignmentFrameworkDocument
     - name: queries
       required: true
-      type: AlignmentQueriesDocument
+      type: propstore.families.source_alignment.declaration.AlignmentQueriesDocument
     - name: decision
       required: true
-      type: AlignmentDecisionDocument
-    module: propstore.families.documents.source_alignment
+      type: propstore.families.source_alignment.declaration.AlignmentDecisionDocument
+    module: propstore.families.source_alignment.declaration
 - kind: document_schema
   name: ConceptDocument
   contract_version: 2026.04.30
@@ -3231,7 +3231,7 @@ contracts:
     - contract_version: 2026.05.11
       key: proposal_rules
       name: proposal_rules
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.25
       key: concept_alignments
       name: concept_alignments
     - contract_version: 2026.05.25
@@ -3331,12 +3331,12 @@ contracts:
       kind: field
 - kind: family
   name: concept_alignments
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     accessor: concept_alignments
     artifact_family: concept_alignment
     artifact_family_contract:
-      doc_type: propstore.families.documents.source_alignment.ConceptAlignmentArtifactDocument
+      doc_type: propstore.families.source_alignment.declaration.ConceptAlignmentArtifactDocument
       placement:
         branch:
           fixed_branch: proposal/concepts
@@ -3346,7 +3346,7 @@ contracts:
         kind: flat-yaml
         namespace: merge/concepts
         ref_field: slug
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: concept_alignments
 - kind: family

@@ -20,7 +20,7 @@ from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_batch_bytes
 from argumentation.partial_af import PartialArgumentationFramework
 from argumentation.partial_af import credulously_accepted_arguments, skeptically_accepted_arguments
-from propstore.families.documents.source_alignment import (
+from propstore.families.source_alignment.declaration import (
     AlignmentArgumentDocument,
     AlignmentDecisionDocument,
     AlignmentFrameworkDocument,
