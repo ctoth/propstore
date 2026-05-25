@@ -29,6 +29,8 @@ class Justification(FamilyModel):
             return None
         if isinstance(raw, str):
             loaded = json.loads(raw)
+            if isinstance(loaded, str):
+                loaded = json.loads(loaded)
         elif isinstance(raw, Mapping):
             loaded = raw
         else:

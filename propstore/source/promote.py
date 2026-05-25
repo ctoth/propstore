@@ -47,7 +47,7 @@ from propstore.families.concepts.stages import (
     LoadedConcept,
     parse_concept_record_document,
 )
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.claims.types import ClaimType
 from propstore.families.contexts.stages import parse_context_record_document

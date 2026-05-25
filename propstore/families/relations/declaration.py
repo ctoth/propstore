@@ -27,7 +27,7 @@ from propstore.core.id_types import (
 from propstore.core.diagnostics import QuarantineDiagnostic
 from propstore.compiler.ir import SemanticClaim
 from propstore.families.claims.references import ClaimReferenceRecord
-from propstore.families.claims.documents import ResolutionDocument
+from propstore.families.claims.declaration import ResolutionDocument
 from propstore.families.stances.declaration import StanceDocument
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 from propstore.stances import StanceType, coerce_stance_type

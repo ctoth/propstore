@@ -9,7 +9,7 @@ from quire.references import ReferenceResolution as ResolvedReference
 
 from propstore.claims import LoadedClaimsFile
 from propstore.core.conditions.checked import CheckedConditionSet
-from propstore.families.claims.documents import (
+from propstore.families.claims.declaration import (
     ClaimDocument,
     StanceDocument as ClaimStanceDocument,
 )

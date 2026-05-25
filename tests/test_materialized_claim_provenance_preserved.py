@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import yaml
 
+from quire.documents import document_to_payload
+
 from propstore.claims import claim_file_claims
 from propstore.merge.merge_commit import create_merge_commit
 from tests.git_store_helpers import init_store
@@ -38,7 +40,7 @@ def test_rival_materialized_claims_keep_artifact_id_and_full_provenance(tmp_path
     canonical_artifact_ids = {row["artifact_id"] for row in manifest["merge"]["arguments"]}
     claim_files = load_claim_files(kr.tree(commit=merge_sha) / "claims")
     materialized = [
-        claim.to_payload()
+        document_to_payload(claim)
         for claim_file in claim_files
         for claim in claim_file_claims(claim_file)
         if claim.artifact_id in canonical_artifact_ids

@@ -26,12 +26,12 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: claim
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.claims.documents.ClaimDocument
-    document_payload: null
+    doc_type: propstore.families.claims.declaration.ClaimDocument
+    document_payload: propstore.families.claims.declaration.claim_document_to_payload
     encode_document: null
     normalize_for_write: null
     placement:
@@ -591,7 +591,7 @@ contracts:
     validate_for_write: null
 - kind: claim_type_contract
   name: algorithm
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: algorithm
     concept_links:
@@ -611,15 +611,15 @@ contracts:
     - body
     - output_concept
     semantic_checks:
-    - class: propstore.families.claims.documents.AlgorithmParseCheck
+    - class: propstore.families.claims.declaration.AlgorithmParseCheck
       name: algorithm_parse
-    - class: propstore.families.claims.documents.AlgorithmUnboundNamesCheck
+    - class: propstore.families.claims.declaration.AlgorithmUnboundNamesCheck
       name: algorithm_unbound_names
     unit_policy: null
     value_group: null
 - kind: claim_type_contract
   name: comparison
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: comparison
     concept_links:
@@ -637,7 +637,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: equation
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: equation
     concept_links:
@@ -651,15 +651,15 @@ contracts:
     required_fields:
     - expression
     semantic_checks:
-    - class: propstore.families.claims.documents.SympyGenerationCheck
+    - class: propstore.families.claims.declaration.SympyGenerationCheck
       name: sympy_generation
-    - class: propstore.families.claims.documents.DimensionalConsistencyCheck
+    - class: propstore.families.claims.declaration.DimensionalConsistencyCheck
       name: dimensional_consistency
     unit_policy: null
     value_group: null
 - kind: claim_type_contract
   name: limitation
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: limitation
     concept_links:
@@ -677,7 +677,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: measurement
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: measurement
     concept_links:
@@ -703,7 +703,7 @@ contracts:
       value_field: value
 - kind: claim_type_contract
   name: mechanism
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: mechanism
     concept_links:
@@ -721,7 +721,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: model
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: model
     concept_links:
@@ -740,7 +740,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: observation
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: observation
     concept_links:
@@ -758,7 +758,7 @@ contracts:
     value_group: null
 - kind: claim_type_contract
   name: parameter
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     claim_type: parameter
     concept_links:
@@ -771,7 +771,7 @@ contracts:
     required_fields:
     - output_concept
     semantic_checks:
-    - class: propstore.families.claims.documents.UnitFormCompatibilityCheck
+    - class: propstore.families.claims.declaration.UnitFormCompatibilityCheck
       name: unit_form_compatibility
     unit_policy:
       dimensionless_default_unit: '1'
@@ -875,7 +875,7 @@ contracts:
     module: propstore.families.rules.declaration
 - kind: document_schema
   name: AtomicPropositionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: type
@@ -959,7 +959,7 @@ contracts:
     - name: variables
       required: true
       type: tuple[VariableBindingDocument, ...]
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: BodyLiteralDocument
   contract_version: 2026.05.25
@@ -974,18 +974,19 @@ contracts:
     module: propstore.families.rules.declaration
 - kind: document_schema
   name: ClaimDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: context
       required: true
-      type: ContextReferenceDocument
+      type: propstore.families.contexts.declaration.ContextReferenceDocument
     - name: proposition
       required: true
-      type: AtomicPropositionDocument | IstPropositionDocument | None
+      type: propstore.families.claims.declaration.AtomicPropositionDocument | propstore.families.claims.declaration.IstPropositionDocument
+        | None
     - name: source
       required: true
-      type: ClaimSourceDocument | None
+      type: propstore.families.claims.declaration.ClaimSourceDocument | None
     - name: artifact_id
       required: true
       type: str | None
@@ -994,16 +995,16 @@ contracts:
       type: str | None
     - name: logical_ids
       required: true
-      type: tuple[ClaimLogicalIdDocument, ...]
+      type: builtins.tuple
     - name: version_id
       required: true
       type: str | None
     - name: type
       required: true
-      type: ClaimType | None
+      type: propstore.families.claims.types.ClaimType | None
     - name: provenance
       required: true
-      type: ProvenanceDocument | None
+      type: propstore.families.claims.declaration.ProvenanceDocument | None
     - name: id
       required: true
       type: str | None
@@ -1012,22 +1013,22 @@ contracts:
       type: str | None
     - name: concepts
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
     - name: conditions
       required: true
-      type: tuple[CelExpr, ...]
+      type: builtins.tuple
     - name: confidence
       required: true
       type: float | int | None
     - name: equations
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
     - name: expression
       required: true
       type: str | None
     - name: fit
       required: true
-      type: FitStatisticsDocument | None
+      type: propstore.families.claims.declaration.FitStatisticsDocument | None
     - name: listener_population
       required: true
       type: str | None
@@ -1051,16 +1052,16 @@ contracts:
       type: str | None
     - name: parameters
       required: true
-      type: tuple[ParameterBindingDocument, ...]
+      type: builtins.tuple
     - name: sample_size
       required: true
       type: int | None
     - name: stage
       required: true
-      type: AlgorithmStage | None
+      type: typing.Optional
     - name: stances
       required: true
-      type: tuple[StanceDocument, ...]
+      type: builtins.tuple
     - name: statement
       required: true
       type: str | None
@@ -1087,11 +1088,11 @@ contracts:
       type: float | int | None
     - name: variables
       required: true
-      type: tuple[VariableBindingDocument, ...]
-    module: propstore.families.claims.documents
+      type: builtins.tuple
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: ClaimLogicalIdDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: namespace
@@ -1106,10 +1107,10 @@ contracts:
     - name: pass_number
       required: true
       type: int | None
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: ClaimSourceDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: paper
@@ -1124,7 +1125,7 @@ contracts:
     - name: extraction_prompt_hash
       required: true
       type: str | None
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: ConceptAliasDocument
   contract_version: 2026.05.25
@@ -1387,7 +1388,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: FitStatisticsDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: r
@@ -1402,7 +1403,7 @@ contracts:
     - name: slope_sd
       required: true
       type: float | int | None
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: FormAlternativeDocument
   contract_version: 2026.05.25
@@ -1495,7 +1496,7 @@ contracts:
     module: propstore.families.forms.declaration
 - kind: document_schema
   name: IstPropositionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: context
@@ -1504,7 +1505,22 @@ contracts:
     - name: proposition
       required: true
       type: AtomicPropositionDocument | IstPropositionDocument
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
+- kind: document_schema
+  name: JustificationAttackTargetDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: target_claim
+      required: true
+      type: str | None
+    - name: target_justification_id
+      required: true
+      type: str | None
+    - name: target_premise_index
+      required: true
+      type: int | None
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: JustificationDocument
   contract_version: 2026.05.25
@@ -1524,14 +1540,40 @@ contracts:
       type: builtins.tuple
     - name: provenance
       required: true
-      type: propstore.families.documents.sources.SourceProvenanceDocument | None
+      type: propstore.families.claims.declaration.JustificationProvenanceDocument
+        | None
     - name: rule_strength
       required: true
       type: str | None
     - name: attack_target
       required: true
-      type: propstore.families.documents.sources.SourceAttackTargetDocument | None
+      type: propstore.families.claims.declaration.JustificationAttackTargetDocument
+        | None
     - name: artifact_code
+      required: true
+      type: str | None
+    module: propstore.families.claims.declaration
+- kind: document_schema
+  name: JustificationProvenanceDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: paper
+      required: true
+      type: str | None
+    - name: page
+      required: true
+      type: int | None
+    - name: figure
+      required: true
+      type: str | None
+    - name: quote_fragment
+      required: true
+      type: str | None
+    - name: section
+      required: true
+      type: str | None
+    - name: table
       required: true
       type: str | None
     module: propstore.families.claims.declaration
@@ -1740,7 +1782,7 @@ contracts:
       type: str | None
     - name: provenance
       required: true
-      type: propstore.families.claims.documents.ProvenanceDocument | None
+      type: propstore.families.claims.declaration.ProvenanceDocument | None
     - name: source
       required: true
       type: str | None
@@ -1771,7 +1813,7 @@ contracts:
     module: propstore.families.concepts.declaration
 - kind: document_schema
   name: OpinionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: b
@@ -1789,10 +1831,10 @@ contracts:
     - name: provenance
       required: true
       type: Provenance
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: ParameterBindingDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: name
@@ -1804,7 +1846,7 @@ contracts:
     - name: note
       required: true
       type: str | None
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: ParameterizationRelationshipDocument
   contract_version: 2026.05.25
@@ -1933,7 +1975,7 @@ contracts:
     module: propstore.families.predicates.declaration
 - kind: document_schema
   name: ProvenanceDocument
-  contract_version: 2026.05.01
+  contract_version: 2026.05.25
   body:
     fields:
     - name: page
@@ -1960,10 +2002,10 @@ contracts:
     - name: table
       required: true
       type: str | None
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: ResolutionDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: method
@@ -1987,7 +2029,7 @@ contracts:
     - name: opinion
       required: true
       type: OpinionDocument | None
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: RuleDocument
   contract_version: 2026.05.25
@@ -2632,7 +2674,7 @@ contracts:
     module: propstore.families.documents.sources
 - kind: document_schema
   name: StanceDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: type
@@ -2656,7 +2698,7 @@ contracts:
     - name: target_justification_id
       required: true
       type: str | None
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: TermDocument
   contract_version: 2026.05.25
@@ -2674,7 +2716,7 @@ contracts:
     module: propstore.families.rules.declaration
 - kind: document_schema
   name: VariableBindingDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: concept
@@ -2689,7 +2731,7 @@ contracts:
     - name: name
       required: true
       type: str | None
-    module: propstore.families.claims.documents
+    module: propstore.families.claims.declaration
 - kind: document_schema
   name: WorldlineAssumptionDocument
   contract_version: 2026.05.25
@@ -3169,7 +3211,7 @@ contracts:
   contract_version: 2026.05.25
   body:
     families:
-    - contract_version: 2026.05.21
+    - contract_version: 2026.05.25
       key: claims
       name: claims
     - contract_version: 2026.05.25
@@ -3252,12 +3294,12 @@ contracts:
       name: merge_manifests
 - kind: family
   name: claims
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     accessor: claims
     artifact_family: claim
     artifact_family_contract:
-      doc_type: propstore.families.claims.documents.ClaimDocument
+      doc_type: propstore.families.claims.declaration.ClaimDocument
       placement:
         branch:
           policy: primary
@@ -3266,7 +3308,7 @@ contracts:
         kind: flat-yaml
         namespace: claims
         ref_field: artifact_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys:
     - many: false
       required: false
@@ -3338,10 +3380,11 @@ contracts:
     reference_keys:
     - field: artifact_id
       kind: field
-    - field: logical_ids[].formatted
-      kind: field
     - field: logical_ids[].value
       kind: field
+    - from_field: logical_ids[]
+      kind: format
+      template: '{namespace}:{value}'
 - kind: family
   name: concept_alignments
   contract_version: 2026.05.25
@@ -4372,6 +4415,14 @@ registry:
   name: propstore
   contract_version: 2026.05.25
 compatible_changes:
+- contract: document_schema:JustificationDocument
+  contract_version: 2026.05.25
+  reason: Claim family cutover moved justification nested document types into the
+    claim declaration module without changing the authored YAML fields.
+- contract: document_schema:MicropublicationDocument
+  contract_version: 2026.05.25
+  reason: Claim family cutover moved claim provenance document ownership into the
+    claim declaration module without changing the micropublication YAML fields.
 - contract: family-registry:propstore
   contract_version: 2026.05.25
   reason: Context family document ownership moved to generated declaration types with

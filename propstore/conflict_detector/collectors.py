@@ -5,9 +5,10 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import replace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from eq_equiv import equation_signature
+from quire.documents import document_to_payload
 
 from propstore.claims import LoadedClaimsFile, claim_file_claims, claim_file_source_paper
 
@@ -91,7 +92,7 @@ def conflict_claims_from_claim_files(
         source_paper = claim_file_source_paper(claim_file)
         for claim_document in claim_file_claims(claim_file):
             claim = conflict_claim_from_payload(
-                claim_document.to_payload(),
+                cast(Mapping[str, Any], document_to_payload(claim_document)),
                 source_paper=source_paper,
             )
             if claim is None:

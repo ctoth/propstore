@@ -3,16 +3,21 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import Any, cast
 
 from propstore.canonical_namespaces import assert_namespace_not_reserved
 from propstore.core.conditions.registry import ConceptInfo
-from propstore.families.claims.documents import ClaimLogicalIdDocument, ClaimSourceDocument
+from propstore.families.claims.declaration import ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.registry import SourceRef
 from propstore.families.claims.types import ClaimType
 from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository, retry_live_branch_update
-from quire.documents import convert_document_value, decode_document_batch_bytes
+from quire.documents import (
+    convert_document_value,
+    decode_document_batch_bytes,
+    document_to_payload,
+)
 from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
@@ -30,7 +35,7 @@ from propstore.families.documents.sources import ExtractionProvenanceDocument, S
 
 
 def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:
-    canonical = claim.to_payload()
+    canonical = cast(dict[str, Any], document_to_payload(claim))
     canonical.pop("id", None)
     canonical.pop("artifact_id", None)
     canonical.pop("version_id", None)
@@ -99,7 +104,7 @@ def normalize_source_claims_payload(
     assert_namespace_not_reserved(namespace, context="source claims namespace")
 
     for index, claim in enumerate(data, start=1):
-        normalized = claim.to_payload()
+        normalized = cast(dict[str, Any], document_to_payload(claim))
         raw_local_id = claim.source_local_id or claim.id
         stable_value = stable_claim_logical_value(claim, source_uri=source_uri)
         normalized["id"] = stable_value
@@ -118,7 +123,7 @@ def normalize_source_claims_payload(
         normalized["version_id"] = compute_claim_version_id(
             {
                 **normalized,
-                "logical_ids": [logical_id.to_payload() for logical_id in logical_ids],
+                "logical_ids": [document_to_payload(logical_id) for logical_id in logical_ids],
             }
         )
         normalized_claims.append(
@@ -412,7 +417,7 @@ def commit_source_claims_batch(
             if claim.context is not None and claim.context != "":
                 injected.append(claim)
                 continue
-            payload = claim.to_payload()
+            payload = cast(dict[str, Any], document_to_payload(claim))
             payload["context"] = default_context
             injected.append(
                 convert_document_value(
@@ -430,8 +435,8 @@ def commit_source_claims_batch(
         )
         stamped: list[SourceClaimDocument] = []
         for claim in raw:
-            payload = claim.to_payload()
-            payload["produced_by"] = produced_by.to_payload()
+            payload = cast(dict[str, Any], document_to_payload(claim))
+            payload["produced_by"] = document_to_payload(produced_by)
             stamped.append(convert_document_value(payload, SourceClaimDocument, source=source_name))
         raw = tuple(stamped)
     validate_source_claim_concepts(repo, source_name, raw)
@@ -486,7 +491,11 @@ def commit_source_claim_proposal(
         for claim in claims:
             if claim.source_local_id == claim_id or claim.id == claim_id:
                 continue
-            restored_claim = {key: value for key, value in claim.to_payload().items() if key not in norm_keys}
+            restored_claim = {
+                key: value
+                for key, value in cast(dict[str, Any], document_to_payload(claim)).items()
+                if key not in norm_keys
+            }
             local_id = claim.source_local_id
             if local_id:
                 restored_claim["id"] = local_id
@@ -500,7 +509,9 @@ def commit_source_claim_proposal(
         claims = restored
 
         claim_payload: dict[str, object] = {
-            "source": ClaimSourceDocument(paper=normalize_source_slug(source_name)).to_payload(),
+            "source": document_to_payload(
+                ClaimSourceDocument(paper=normalize_source_slug(source_name))
+            ),
             "id": claim_id,
             "type": normalized_claim_type.value,
             "context": context,

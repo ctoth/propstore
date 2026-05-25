@@ -1150,7 +1150,7 @@ def test_promote_commits(tmp_path):
     """Promoting proposal-branch stance files creates a master commit."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.families.claims.documents import ClaimDocument
+    from propstore.families.claims.declaration import ClaimDocument
     from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
     from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
@@ -1207,7 +1207,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     """Promotion must not change master if the promote commit fails."""
     from click.testing import CliRunner
     from propstore.cli import cli
-    from propstore.families.claims.documents import ClaimDocument
+    from propstore.families.claims.declaration import ClaimDocument
     from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
     from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository

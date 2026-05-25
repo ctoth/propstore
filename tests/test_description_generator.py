@@ -8,7 +8,7 @@ import pytest
 
 from propstore.families.claims.types import ClaimType
 from propstore.description_generator import generate_description, _format_conditions_prose
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.contexts.declaration import ContextReferenceDocument
 
 

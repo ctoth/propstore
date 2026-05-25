@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from propstore.families.claims.documents import (
+from propstore.families.claims.declaration import (
     ClaimLogicalIdDocument,
     ClaimSourceDocument,
     FitStatisticsDocument,
@@ -268,19 +268,22 @@ class SourceClaimDocument(DocumentStruct):
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
         if self.source is not None:
-            payload["source"] = self.source.to_payload()
+            payload["source"] = document_to_payload(self.source)
         if self.produced_by is not None:
             payload["produced_by"] = self.produced_by.to_payload()
         if self.artifact_id is not None:
             payload["artifact_id"] = self.artifact_id
         if self.logical_ids:
-            payload["logical_ids"] = [logical_id.to_payload() for logical_id in self.logical_ids]
+            payload["logical_ids"] = [
+                document_to_payload(logical_id)
+                for logical_id in self.logical_ids
+            ]
         if self.version_id is not None:
             payload["version_id"] = self.version_id
         if self.type is not None:
             payload["type"] = self.type.value
         if self.provenance is not None:
-            payload["provenance"] = self.provenance.to_payload()
+            payload["provenance"] = document_to_payload(self.provenance)
         if self.id is not None:
             payload["id"] = self.id
         if self.body is not None:
@@ -298,7 +301,7 @@ class SourceClaimDocument(DocumentStruct):
         if self.expression is not None:
             payload["expression"] = self.expression
         if self.fit is not None:
-            payload["fit"] = self.fit.to_payload()
+            payload["fit"] = document_to_payload(self.fit)
         if self.listener_population is not None:
             payload["listener_population"] = self.listener_population
         if self.lower_bound is not None:
@@ -312,7 +315,10 @@ class SourceClaimDocument(DocumentStruct):
         if self.notes is not None:
             payload["notes"] = self.notes
         if self.parameters:
-            payload["parameters"] = [parameter.to_payload() for parameter in self.parameters]
+            payload["parameters"] = [
+                document_to_payload(parameter)
+                for parameter in self.parameters
+            ]
         if self.sample_size is not None:
             payload["sample_size"] = self.sample_size
         if self.stage is not None:
@@ -336,7 +342,10 @@ class SourceClaimDocument(DocumentStruct):
         if self.value is not None:
             payload["value"] = self.value
         if self.variables:
-            payload["variables"] = [variable.to_payload() for variable in self.variables]
+            payload["variables"] = [
+                document_to_payload(variable)
+                for variable in self.variables
+            ]
         if self.source_local_id is not None:
             payload["source_local_id"] = self.source_local_id
         if self.artifact_code is not None:
@@ -400,7 +409,7 @@ class SourceJustificationDocument(DocumentStruct):
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
         if self.source is not None:
-            payload["source"] = self.source.to_payload()
+            payload["source"] = document_to_payload(self.source)
         if self.produced_by is not None:
             payload["produced_by"] = self.produced_by.to_payload()
         if self.id is not None:
@@ -439,7 +448,7 @@ class SourceStanceEntryDocument(DocumentStruct):
     def to_payload(self) -> dict[str, Any]:
         payload: dict[str, Any] = {}
         if self.source is not None:
-            payload["source"] = self.source.to_payload()
+            payload["source"] = document_to_payload(self.source)
         if self.produced_by is not None:
             payload["produced_by"] = self.produced_by.to_payload()
         if self.source_claim is not None:
@@ -457,7 +466,7 @@ class SourceStanceEntryDocument(DocumentStruct):
         if self.conditions_differ is not None:
             payload["conditions_differ"] = self.conditions_differ
         if self.resolution is not None:
-            payload["resolution"] = self.resolution.to_payload()
+            payload["resolution"] = document_to_payload(self.resolution)
         if self.target_justification_id is not None:
             payload["target_justification_id"] = self.target_justification_id
         if self.artifact_code is not None:

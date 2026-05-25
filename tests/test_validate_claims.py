@@ -17,7 +17,7 @@ import yaml
 
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from propstore.families.identity.logical_ids import parse_claim_id
-from quire.documents import DocumentSchemaError
+from quire.documents import DocumentSchemaError, document_to_payload
 from propstore.claims import loaded_claim_file_from_payload
 from tests.family_helpers import load_claim_files
 from propstore.families.claims.passes import (
@@ -107,7 +107,7 @@ def write_single_claim_artifact(claims_dir, filename, data):
         data=data,
         knowledge_root=claims_dir,
     )
-    path.write_text(yaml.dump(loaded.document.to_payload(), default_flow_style=False))
+    path.write_text(yaml.dump(document_to_payload(loaded.document), default_flow_style=False))
     return path
 
 

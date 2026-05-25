@@ -4,7 +4,9 @@ from __future__ import annotations
 import time
 from collections import Counter
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
+
+from quire.documents import document_to_payload
 
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.families.registry import ClaimRef, MergeManifestRef
@@ -36,7 +38,7 @@ def _safe_ref_part(value: str) -> str:
 
 
 def _materialized_claim_payload(argument: MergeArgument, *, has_rivals: bool) -> dict:
-    payload = argument.claim.to_payload()
+    payload = cast(dict[str, Any], document_to_payload(argument.claim))
     if has_rivals:
         payload["artifact_id"] = argument.assertion_id
     provenance = payload.get("provenance")

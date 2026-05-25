@@ -9,7 +9,7 @@ from dulwich.repo import MemoryRepo
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.families.claims.documents import OpinionDocument, ResolutionDocument
+from propstore.families.claims.declaration import OpinionDocument, ResolutionDocument
 from propstore.families.documents.sources import (
     SourceTrustDocument,
     SourceTrustQualityDocument,

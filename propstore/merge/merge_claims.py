@@ -5,13 +5,15 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
+
+from quire.documents import document_to_payload
 
 from propstore.core.assertions.refs import ConditionRef, ContextReference, ProvenanceGraphRef
 from propstore.core.assertions.situated import SituatedAssertion
 from propstore.core.id_types import AssertionId, ContextId, ProvenanceGraphId
 from propstore.core.relations import RelationConceptRef, RoleBinding, RoleBindingSet
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.identity.logical_ids import format_logical_id
 
 
@@ -57,7 +59,11 @@ class MergeClaim:
         return tuple(
             formatted
             for logical_id in self.document.logical_ids
-            if (formatted := format_logical_id(logical_id.to_payload())) is not None
+            if (
+                formatted := format_logical_id(
+                    cast(dict[str, Any], document_to_payload(logical_id))
+                )
+            ) is not None
         )
 
     @property
@@ -100,7 +106,7 @@ class MergeClaim:
         provenance = (
             {}
             if self.document.provenance is None
-            else dict(self.document.provenance.to_payload())
+            else cast(dict[str, Any], document_to_payload(self.document.provenance))
         )
         if self.branch_origin is not None:
             provenance["branch_origin"] = self.branch_origin
@@ -112,18 +118,21 @@ class MergeClaim:
         include_branch_origin: bool = True,
         include_id_alias: bool = False,
     ) -> dict[str, Any]:
-        payload = self.document.to_payload()
+        payload = cast(dict[str, Any], document_to_payload(self.document))
         if include_id_alias and "id" not in payload and self.document.artifact_id is not None:
             payload["id"] = self.document.artifact_id
         if include_branch_origin:
             payload["provenance"] = self.provenance_payload()
         elif self.document.provenance is not None:
-            payload["provenance"] = dict(self.document.provenance.to_payload())
+            payload["provenance"] = cast(
+                dict[str, Any],
+                document_to_payload(self.document.provenance),
+            )
         return payload
 
 
 def _semantic_payload(document: ClaimDocument) -> dict[str, Any]:
-    payload = document.to_payload()
+    payload = cast(dict[str, Any], document_to_payload(document))
     for key in (
         "artifact_id",
         "artifact_code",

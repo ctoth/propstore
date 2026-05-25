@@ -13,7 +13,7 @@ from propstore.artifact_codes import (
     stance_artifact_code,
 )
 from propstore.core.labels import Label
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.stances.declaration import StanceDocument
 from propstore.families.sources.declaration import SourceDocument, source_document_payload
 from propstore.uri import ni_uri_for_file

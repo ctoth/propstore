@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from quire.documents import LoadedDocument
+from quire.documents import LoadedDocument, document_to_payload
 
 from propstore.claims import loaded_claim_file_from_payload
 from propstore.compiler.ir import (
@@ -11,7 +11,7 @@ from propstore.compiler.ir import (
     SemanticClaimFile,
 )
 from propstore.families.claims.declaration import compile_claim_models
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 
 
 def _make_claim_entry(
@@ -37,7 +37,7 @@ def _make_claim_entry(
 
 
 def _semantic_claim(entry: LoadedDocument[ClaimDocument]) -> SemanticClaim:
-    payload = entry.document.to_payload()
+    payload = dict(document_to_payload(entry.document))
     artifact_id = payload["artifact_id"]
     claim_type = payload["type"]
     source = payload["source"]

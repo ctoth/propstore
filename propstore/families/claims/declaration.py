@@ -14,8 +14,11 @@ import json
 import sqlite3
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from enum import Enum
+from importlib import import_module
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
+import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import (
     CharterField,
@@ -30,11 +33,8 @@ from quire.documents import document_to_payload
 from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex, ForeignKeySpec, ReferenceKey
 from quire.sqlalchemy_store import DerivedSession
+from quire.versions import VersionId
 from sqlalchemy import delete, select
-from propstore.claims import (
-    claim_file_filename,
-    claim_file_stage,
-)
 from propstore.cel_types import CelExpr, to_cel_exprs
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.claims.types import ClaimType
@@ -44,40 +44,672 @@ from propstore.core.conditions import (
     checked_condition_set_to_json,
 )
 from propstore.core.diagnostics import QuarantineDiagnostic
-from propstore.core.justifications import Justification
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.dimensions import DimensionalForm, normalize_to_si
-from propstore.description_generator import generate_description
-from propstore.families.claims.references import (
-    ClaimReferenceRecord,
-    build_claim_file_reference_index,
-)
-from propstore.families.claims.documents import claim_type_contract_for
+from propstore.families.contexts.declaration import ContextReferenceDocument
 from propstore.families.claims.sympy_generation import derive_equation_sympy
-from propstore.families.diagnostics.declaration import (
-    BuildDiagnostic,
-    compile_promotion_blocked_diagnostics,
-    delete_promotion_blocked_diagnostics,
-)
-from propstore.families.documents.sources import (
-    SourceAttackTargetDocument,
-    SourceProvenanceDocument,
-)
-from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
+from propstore.provenance import Provenance
+from propstore.stances import StanceType
 
 if TYPE_CHECKING:
     import msgspec
 
     from propstore.compiler.ir import ClaimCompilationBundle
-    from propstore.core.graph_types import ProvenanceRecord
-    from propstore.core.justifications import CanonicalJustification
-    from propstore.families.sources.declaration import Source
+    from propstore.families.claims.references import ClaimReferenceRecord
+    from propstore.families.claims.stages import (
+        ClaimAlgorithmVariable,
+    )
+
+
+_WORLD_CONTRACT_VERSION = VersionId("2026.05.20", allow_placeholder=False)
+Justification: Any = import_module("propstore.core.justifications").Justification
 
 
 def _require_claim_type(value: object) -> ClaimType:
     if not isinstance(value, str):
         raise KeyError('claim_type')
     return ClaimType(value)
+
+
+CLAIM_TYPE_CONTRACT_VERSION = VersionId("2026.05.25")
+AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+
+
+@dataclass(frozen=True)
+class ClaimConceptLinkDeclaration:
+    field: str
+    role: ClaimConceptLinkRole
+    target_family: str = "concept"
+    source: str = "scalar"
+    message_subject: str | None = None
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "field": self.field,
+            "role": self.role.value,
+            "target_family": self.target_family,
+            "source": self.source,
+            "message_subject": self.message_subject,
+        }
+
+
+@dataclass(frozen=True)
+class ClaimValueGroupDeclaration:
+    value_field: str = "value"
+    lower_bound_field: str = "lower_bound"
+    upper_bound_field: str = "upper_bound"
+    uncertainty_field: str = "uncertainty"
+    uncertainty_type_field: str = "uncertainty_type"
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "value_field": self.value_field,
+            "lower_bound_field": self.lower_bound_field,
+            "upper_bound_field": self.upper_bound_field,
+            "uncertainty_field": self.uncertainty_field,
+            "uncertainty_type_field": self.uncertainty_type_field,
+        }
+
+
+@dataclass(frozen=True)
+class ClaimUnitPolicyDeclaration:
+    required: bool = True
+    dimensionless_default_unit: str | None = None
+    form_concept_field: str | None = None
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "required": self.required,
+            "dimensionless_default_unit": self.dimensionless_default_unit,
+            "form_concept_field": self.form_concept_field,
+        }
+
+
+class ClaimSemanticCheck:
+    name: ClassVar[str]
+
+    @classmethod
+    def contract_body(cls) -> dict[str, str]:
+        return {
+            "name": cls.name,
+            "class": f"{cls.__module__}.{cls.__qualname__}",
+        }
+
+
+class UnitFormCompatibilityCheck(ClaimSemanticCheck):
+    name = "unit_form_compatibility"
+
+
+class SympyGenerationCheck(ClaimSemanticCheck):
+    name = "sympy_generation"
+
+
+class DimensionalConsistencyCheck(ClaimSemanticCheck):
+    name = "dimensional_consistency"
+
+
+class AlgorithmParseCheck(ClaimSemanticCheck):
+    name = "algorithm_parse"
+
+
+class AlgorithmUnboundNamesCheck(ClaimSemanticCheck):
+    name = "algorithm_unbound_names"
+
+
+@dataclass(frozen=True)
+class ClaimTypeContract:
+    claim_type: ClaimType
+    required_fields: tuple[str, ...] = ()
+    nonempty_fields: tuple[str, ...] = ()
+    concept_links: tuple[ClaimConceptLinkDeclaration, ...] = ()
+    value_group: ClaimValueGroupDeclaration | None = None
+    unit_policy: ClaimUnitPolicyDeclaration | None = None
+    semantic_checks: tuple[type[ClaimSemanticCheck], ...] = ()
+    contract_version: VersionId = CLAIM_TYPE_CONTRACT_VERSION
+
+    def contract_body(self) -> dict[str, object]:
+        return {
+            "claim_type": self.claim_type.value,
+            "required_fields": self.required_fields,
+            "nonempty_fields": self.nonempty_fields,
+            "concept_links": tuple(link.contract_body() for link in self.concept_links),
+            "value_group": (
+                None if self.value_group is None else self.value_group.contract_body()
+            ),
+            "unit_policy": (
+                None if self.unit_policy is None else self.unit_policy.contract_body()
+            ),
+            "semantic_checks": tuple(
+                semantic_check.contract_body()
+                for semantic_check in self.semantic_checks
+            ),
+        }
+
+
+_ABOUT_CONCEPT_LINK = ClaimConceptLinkDeclaration(
+    field="concepts",
+    role=ClaimConceptLinkRole.ABOUT,
+    source="list",
+)
+_VARIABLE_INPUT_LINK = ClaimConceptLinkDeclaration(
+    field="variables",
+    role=ClaimConceptLinkRole.INPUT,
+    source="bindings",
+    message_subject="variable",
+)
+_PARAMETER_INPUT_LINK = ClaimConceptLinkDeclaration(
+    field="parameters",
+    role=ClaimConceptLinkRole.INPUT,
+    source="bindings",
+    message_subject="parameter",
+)
+_VALUE_GROUP = ClaimValueGroupDeclaration()
+
+
+CLAIM_TYPE_CONTRACTS: dict[ClaimType, ClaimTypeContract] = {
+    ClaimType.PARAMETER: ClaimTypeContract(
+        claim_type=ClaimType.PARAMETER,
+        required_fields=("output_concept",),
+        concept_links=(
+            ClaimConceptLinkDeclaration(
+                field="output_concept",
+                role=ClaimConceptLinkRole.OUTPUT,
+            ),
+        ),
+        value_group=_VALUE_GROUP,
+        unit_policy=ClaimUnitPolicyDeclaration(
+            dimensionless_default_unit="1",
+            form_concept_field="output_concept",
+        ),
+        semantic_checks=(UnitFormCompatibilityCheck,),
+    ),
+    ClaimType.EQUATION: ClaimTypeContract(
+        claim_type=ClaimType.EQUATION,
+        required_fields=("expression",),
+        nonempty_fields=("variables",),
+        concept_links=(_VARIABLE_INPUT_LINK,),
+        semantic_checks=(SympyGenerationCheck, DimensionalConsistencyCheck),
+    ),
+    ClaimType.OBSERVATION: ClaimTypeContract(
+        claim_type=ClaimType.OBSERVATION,
+        required_fields=("statement",),
+        nonempty_fields=("concepts",),
+        concept_links=(_ABOUT_CONCEPT_LINK,),
+    ),
+    ClaimType.MECHANISM: ClaimTypeContract(
+        claim_type=ClaimType.MECHANISM,
+        required_fields=("statement",),
+        nonempty_fields=("concepts",),
+        concept_links=(_ABOUT_CONCEPT_LINK,),
+    ),
+    ClaimType.COMPARISON: ClaimTypeContract(
+        claim_type=ClaimType.COMPARISON,
+        required_fields=("statement",),
+        nonempty_fields=("concepts",),
+        concept_links=(_ABOUT_CONCEPT_LINK,),
+    ),
+    ClaimType.LIMITATION: ClaimTypeContract(
+        claim_type=ClaimType.LIMITATION,
+        required_fields=("statement",),
+        nonempty_fields=("concepts",),
+        concept_links=(_ABOUT_CONCEPT_LINK,),
+    ),
+    ClaimType.MODEL: ClaimTypeContract(
+        claim_type=ClaimType.MODEL,
+        required_fields=("name",),
+        nonempty_fields=("equations", "parameters"),
+        concept_links=(_PARAMETER_INPUT_LINK,),
+    ),
+    ClaimType.MEASUREMENT: ClaimTypeContract(
+        claim_type=ClaimType.MEASUREMENT,
+        required_fields=("target_concept", "measure"),
+        concept_links=(
+            ClaimConceptLinkDeclaration(
+                field="target_concept",
+                role=ClaimConceptLinkRole.TARGET,
+            ),
+        ),
+        value_group=_VALUE_GROUP,
+        unit_policy=ClaimUnitPolicyDeclaration(),
+    ),
+    ClaimType.ALGORITHM: ClaimTypeContract(
+        claim_type=ClaimType.ALGORITHM,
+        required_fields=("body", "output_concept"),
+        nonempty_fields=("variables",),
+        concept_links=(
+            ClaimConceptLinkDeclaration(
+                field="output_concept",
+                role=ClaimConceptLinkRole.OUTPUT,
+            ),
+            _VARIABLE_INPUT_LINK,
+        ),
+        semantic_checks=(AlgorithmParseCheck, AlgorithmUnboundNamesCheck),
+    ),
+}
+
+
+def claim_type_contract_for(claim_type: object) -> ClaimTypeContract | None:
+    try:
+        normalized = ClaimType(str(claim_type))
+    except ValueError:
+        return None
+    return CLAIM_TYPE_CONTRACTS.get(normalized)
+
+
+def iter_claim_type_contracts() -> tuple[ClaimTypeContract, ...]:
+    return tuple(
+        CLAIM_TYPE_CONTRACTS[claim_type]
+        for claim_type in sorted(CLAIM_TYPE_CONTRACTS, key=lambda item: item.value)
+    )
+
+
+class ClaimLogicalIdDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    namespace: str
+    value: str
+    confidence: float | int | None = None
+    pass_number: int | None = None
+
+
+class ClaimSourceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    paper: str
+    extraction_date: str | None = None
+    extraction_model: str | None = None
+    extraction_prompt_hash: str | None = None
+
+
+class ProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    page: int
+    paper: str | None = None
+    branch_origin: str | None = None
+    date: str | None = None
+    figure: str | None = None
+    quote_fragment: str | None = None
+    section: str | None = None
+    table: str | None = None
+
+
+class FitStatisticsDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    r: float | int | None = None
+    r_sd: float | int | None = None
+    slope: float | int | None = None
+    slope_sd: float | int | None = None
+
+
+class VariableBindingDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    concept: str
+    symbol: str | None = None
+    role: str | None = None
+    name: str | None = None
+
+
+class ParameterBindingDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    name: str
+    concept: str
+    note: str | None = None
+
+
+class OpinionDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    b: float | int
+    d: float | int
+    u: float | int
+    a: float | int
+    provenance: Provenance
+
+    def __post_init__(self) -> None:
+        for name, value in (("b", self.b), ("d", self.d), ("u", self.u)):
+            if value < -1e-9 or value > 1.0 + 1e-9:
+                raise ValueError(f"{name}={value} not in [0, 1]")
+        if self.a <= 0.0 or self.a >= 1.0:
+            raise ValueError(f"a={self.a} not in (0, 1)")
+        total = float(self.b) + float(self.d) + float(self.u)
+        if abs(total - 1.0) > 1e-9:
+            raise ValueError(f"b + d + u = {total}, expected 1.0")
+
+
+class ResolutionDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    method: str
+    embedding_distance: float | int | None = None
+    embedding_model: str | None = None
+    model: str | None = None
+    pass_number: int | None = None
+    confidence: float | int | None = None
+    opinion: OpinionDocument | None = None
+
+
+class StanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    type: StanceType
+    target: str
+    conditions_differ: str | None = None
+    note: str | None = None
+    resolution: ResolutionDocument | None = None
+    strength: str | None = None
+    target_justification_id: str | None = None
+
+
+class AtomicPropositionDocument(
+    msgspec.Struct,
+    tag="atomic",
+    tag_field="kind",
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    type: ClaimType
+    body: str | None = None
+    concepts: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
+    confidence: float | int | None = None
+    equations: tuple[str, ...] = ()
+    expression: str | None = None
+    fit: FitStatisticsDocument | None = None
+    listener_population: str | None = None
+    lower_bound: float | int | None = None
+    measure: str | None = None
+    methodology: str | None = None
+    name: str | None = None
+    notes: str | None = None
+    output_concept: str | None = None
+    parameters: tuple[ParameterBindingDocument, ...] = ()
+    sample_size: int | None = None
+    stage: AlgorithmStage | None = None
+    statement: str | None = None
+    sympy: str | None = None
+    target_concept: str | None = None
+    uncertainty: float | int | None = None
+    uncertainty_type: str | None = None
+    unit: str | None = None
+    upper_bound: float | int | None = None
+    value: float | int | None = None
+    variables: tuple[VariableBindingDocument, ...] = ()
+
+
+class IstPropositionDocument(
+    msgspec.Struct,
+    tag="ist",
+    tag_field="kind",
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    context: ContextReferenceDocument
+    proposition: AtomicPropositionDocument | IstPropositionDocument
+
+
+def claim_logical_id_formatted(logical_id: ClaimLogicalIdDocument) -> str:
+    return f"{logical_id.namespace}:{logical_id.value}"
+
+
+def claim_primary_logical_id(claim: object) -> str | None:
+    logical_ids = getattr(claim, "logical_ids", ())
+    if not logical_ids:
+        return None
+    return claim_logical_id_formatted(logical_ids[0])
+
+
+def variable_binding_name(variable: VariableBindingDocument) -> str | None:
+    if variable.name is not None:
+        return variable.name
+    return variable.symbol
+
+
+def _claim_payload_value(value: object) -> object:
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Mapping):
+        payload: dict[str, object] = {}
+        for key, item in value.items():
+            encoded = _claim_payload_value(item)
+            if encoded is None or encoded == []:
+                continue
+            payload[str(key)] = encoded
+        return payload
+    if isinstance(value, tuple | list):
+        return [
+            _claim_payload_value(item)
+            for item in value
+        ]
+    to_payload = getattr(value, "to_payload", None)
+    if callable(to_payload) and not isinstance(value, msgspec.Struct):
+        return _claim_payload_value(to_payload())
+    return value
+
+
+def _claim_struct_payload(document: msgspec.Struct) -> dict[str, Any]:
+    payload = _claim_payload_value(msgspec.to_builtins(document))
+    if not isinstance(payload, dict):
+        raise TypeError("claim document payload must be a mapping")
+    return cast(dict[str, Any], payload)
+
+
+def claim_document_to_payload(document: ClaimDocument) -> dict[str, Any]:
+    return _claim_struct_payload(document)
+
+
+class AuthoredClaim(FamilyModel):
+    pass
+
+
+def _validate_claim_type_contract(document: msgspec.Struct) -> None:
+    claim_type = getattr(document, "type")
+    if claim_type is None:
+        return
+    claim_type_contract_for(claim_type)
+
+
+AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="authored_claim",
+        name="authored_claim",
+        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-authored_claim",
+            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+            doc_type=AuthoredClaim,
+            placement=FlatYamlPlacement(".derived/authored_claim", str),
+        ),
+        identity_field="id",
+    ),
+    model=AuthoredClaim,
+    fields=(
+        CharterField(
+            "id",
+            str | None,
+            primary_key=True,
+            nullable=True,
+            document_name="artifact_id",
+            document_order=3,
+        ),
+        CharterField(
+            "context",
+            ContextReferenceDocument,
+            parse_boundary="json",
+            nullable=False,
+            document_order=0,
+        ),
+        CharterField(
+            "proposition",
+            AtomicPropositionDocument | IstPropositionDocument,
+            parse_boundary="json",
+            nullable=True,
+            document_order=1,
+        ),
+        CharterField(
+            "source",
+            ClaimSourceDocument,
+            parse_boundary="json",
+            nullable=True,
+            document_order=2,
+        ),
+        CharterField("artifact_code", str, nullable=True),
+        CharterField(
+            "logical_ids",
+            tuple[ClaimLogicalIdDocument, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("version_id", str, nullable=True),
+        CharterField("type", ClaimType, nullable=True),
+        CharterField(
+            "provenance",
+            ProvenanceDocument,
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField("source_local_id", str, document_name="id", nullable=True),
+        CharterField("body", str, nullable=True),
+        CharterField(
+            "concepts",
+            tuple[str, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField(
+            "conditions",
+            tuple[CelExpr, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("confidence", float | int | None, nullable=True),
+        CharterField(
+            "equations",
+            tuple[str, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("expression", str, nullable=True),
+        CharterField(
+            "fit",
+            FitStatisticsDocument,
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField("listener_population", str, nullable=True),
+        CharterField("lower_bound", float | int | None, nullable=True),
+        CharterField("measure", str, nullable=True),
+        CharterField("methodology", str, nullable=True),
+        CharterField("name", str, nullable=True),
+        CharterField("notes", str, nullable=True),
+        CharterField("output_concept", str, nullable=True),
+        CharterField(
+            "parameters",
+            tuple[ParameterBindingDocument, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("sample_size", int, nullable=True),
+        CharterField("stage", AlgorithmStage | None, nullable=True),
+        CharterField(
+            "stances",
+            tuple[StanceDocument, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("statement", str, nullable=True),
+        CharterField("sympy", str, nullable=True),
+        CharterField("target_concept", str, nullable=True),
+        CharterField("uncertainty", float | int | None, nullable=True),
+        CharterField("uncertainty_type", str, nullable=True),
+        CharterField("unit", str, nullable=True),
+        CharterField("upper_bound", float | int | None, nullable=True),
+        CharterField("value", float | int | None, nullable=True),
+        CharterField(
+            "variables",
+            tuple[VariableBindingDocument, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+    validators=(_validate_claim_type_contract,),
+)
+
+
+if TYPE_CHECKING:
+
+    class ClaimDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        context: ContextReferenceDocument
+        proposition: AtomicPropositionDocument | IstPropositionDocument | None = None
+        source: ClaimSourceDocument | None = None
+        artifact_id: str | None = None
+        artifact_code: str | None = None
+        logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
+        version_id: str | None = None
+        type: ClaimType | None = None
+        provenance: ProvenanceDocument | None = None
+        id: str | None = None
+        body: str | None = None
+        concepts: tuple[str, ...] = ()
+        conditions: tuple[CelExpr, ...] = ()
+        confidence: float | int | None = None
+        equations: tuple[str, ...] = ()
+        expression: str | None = None
+        fit: FitStatisticsDocument | None = None
+        listener_population: str | None = None
+        lower_bound: float | int | None = None
+        measure: str | None = None
+        methodology: str | None = None
+        name: str | None = None
+        notes: str | None = None
+        output_concept: str | None = None
+        parameters: tuple[ParameterBindingDocument, ...] = ()
+        sample_size: int | None = None
+        stage: AlgorithmStage | None = None
+        stances: tuple[StanceDocument, ...] = ()
+        statement: str | None = None
+        sympy: str | None = None
+        target_concept: str | None = None
+        uncertainty: float | int | None = None
+        uncertainty_type: str | None = None
+        unit: str | None = None
+        upper_bound: float | int | None = None
+        value: float | int | None = None
+        variables: tuple[VariableBindingDocument, ...] = ()
+
+        @property
+        def primary_logical_id(self) -> str | None: ...
+
+        def to_payload(self) -> dict[str, Any]: ...
+
+else:
+    ClaimDocument: Any = AUTHORED_CLAIM_CHARTER.generated_document()
+    ClaimDocument.__name__ = "ClaimDocument"
+    ClaimDocument.__qualname__ = "ClaimDocument"
+    ClaimDocument.__module__ = __name__
+    ClaimDocument.primary_logical_id = property(claim_primary_logical_id)
+    ClaimDocument.to_payload = claim_document_to_payload
+
+    def _claim_bound_payload(document: msgspec.Struct) -> dict[str, Any]:
+        return _claim_struct_payload(document)
+
+    for _claim_payload_type in (
+        ClaimLogicalIdDocument,
+        ClaimSourceDocument,
+        ProvenanceDocument,
+        FitStatisticsDocument,
+        VariableBindingDocument,
+        ParameterBindingDocument,
+        OpinionDocument,
+        ResolutionDocument,
+        StanceDocument,
+        AtomicPropositionDocument,
+        IstPropositionDocument,
+    ):
+        _claim_payload_type.to_payload = _claim_bound_payload
+    del _claim_payload_type
+    ClaimLogicalIdDocument.formatted = property(claim_logical_id_formatted)
+    VariableBindingDocument.binding_name = property(variable_binding_name)
 
 
 class Claim(FamilyModel):
@@ -148,6 +780,8 @@ class Claim(FamilyModel):
 
     @property
     def variables(self) -> tuple[ClaimAlgorithmVariable, ...]:
+        from propstore.families.claims.stages import parse_claim_algorithm_variables
+
         algorithm_payload = self.algorithm_payload
         if algorithm_payload is None:
             return ()
@@ -171,6 +805,8 @@ class Claim(FamilyModel):
         )
 
     def variable_payload(self) -> list[dict[str, Any]] | None:
+        from propstore.families.claims.stages import claim_algorithm_variable_payload
+
         if not self.variables:
             return None
         return [claim_algorithm_variable_payload(variable) for variable in self.variables]
@@ -672,6 +1308,29 @@ CLAIM_SOURCE_ASSERTION_CHARTER: FamilyCharter = FamilyCharter(
     )
 
 
+class JustificationProvenanceDocument(
+    msgspec.Struct,
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    paper: str | None = None
+    page: int | None = None
+    figure: str | None = None
+    quote_fragment: str | None = None
+    section: str | None = None
+    table: str | None = None
+
+
+class JustificationAttackTargetDocument(
+    msgspec.Struct,
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    target_claim: str | None = None
+    target_justification_id: str | None = None
+    target_premise_index: int | None = None
+
+
 JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="justification",
@@ -712,7 +1371,7 @@ JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
             CharterField("source_claim_id", str, document=False),
             CharterField(
                 "provenance_json",
-                SourceProvenanceDocument,
+                JustificationProvenanceDocument,
                 parse_boundary="json",
                 nullable=True,
                 document_name="provenance",
@@ -725,7 +1384,7 @@ JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
             ),
             CharterField(
                 "attack_target",
-                SourceAttackTargetDocument,
+                JustificationAttackTargetDocument,
                 parse_boundary="json",
                 nullable=True,
             ),
@@ -741,24 +1400,32 @@ if TYPE_CHECKING:
         rule_kind: str | None = None
         conclusion: str | None = None
         premises: tuple[str, ...] = ()
-        provenance: SourceProvenanceDocument | None = None
+        provenance: JustificationProvenanceDocument | None = None
         rule_strength: str | None = None
-        attack_target: SourceAttackTargetDocument | None = None
+        attack_target: JustificationAttackTargetDocument | None = None
         artifact_code: str | None = None
 
 else:
     JustificationDocument: Any = JUSTIFICATION_CHARTER.generated_document()
     JustificationDocument.__module__ = __name__
 
-from propstore.families.claims.stages import (
-    ClaimAlgorithmVariable,
-    PromotionBlockedClaimFact,
-    RawIdQuarantineRecord,
-    claim_algorithm_canonical_ast,
-    claim_algorithm_variable_payload,
-    parse_claim_algorithm_variables,
-)
 
+def justification_document_to_payload(document: JustificationDocument) -> dict[str, Any]:
+    payload = _claim_struct_payload(document)
+    for key in ("provenance", "attack_target"):
+        value = payload.get(key)
+        if isinstance(value, str):
+            loaded = json.loads(value)
+            if not isinstance(loaded, dict):
+                raise TypeError(f"justification {key} payload must decode to a mapping")
+            payload[key] = loaded
+    return payload
+
+
+if not TYPE_CHECKING:
+    JustificationProvenanceDocument.to_payload = _claim_bound_payload
+    JustificationAttackTargetDocument.to_payload = _claim_bound_payload
+    JustificationDocument.to_payload = justification_document_to_payload
 
 @dataclass(frozen=True)
 class ClaimWriteModels:
@@ -774,13 +1441,13 @@ class ClaimWriteModels:
 @dataclass(frozen=True)
 class RawIdQuarantineModels:
     claims: tuple[Claim, ...]
-    diagnostics: tuple[BuildDiagnostic, ...]
+    diagnostics: tuple[Any, ...]
 
 
 @dataclass(frozen=True)
 class PromotionBlockedModels:
     claims: tuple[Claim, ...]
-    diagnostics: tuple[BuildDiagnostic, ...]
+    diagnostics: tuple[Any, ...]
 
 
 def _numeric_si_value(
@@ -833,6 +1500,11 @@ def compile_claim_models(
     form_registry: Mapping[str, DimensionalForm] | None = None,
     source_slugs: Collection[str] = (),
 ) -> ClaimWriteModels:
+    from propstore.claims import claim_file_filename, claim_file_stage
+    from propstore.description_generator import generate_description
+    from propstore.families.claims.references import build_claim_file_reference_index
+    from propstore.families.claims.stages import claim_algorithm_canonical_ast
+
     claim_seq = 0
     claim_models: list[Claim] = []
     numeric_payloads: list[ClaimNumericPayload] = []
@@ -860,7 +1532,11 @@ def compile_claim_models(
             claim_seq += 1
             claim_doc = semantic_claim.resolved_claim
             provenance = claim_doc.provenance
-            provenance_payload = None if provenance is None else provenance.to_payload()
+            provenance_payload = (
+                None
+                if provenance is None
+                else document_to_payload(provenance)
+            )
             conditions_ir = (
                 json.dumps(
                     checked_condition_set_to_json(semantic_claim.checked_conditions),
@@ -870,7 +1546,7 @@ def compile_claim_models(
                 else None
             )
             logical_ids_payload = [
-                logical_id.to_payload()
+                document_to_payload(logical_id)
                 for logical_id in claim_doc.logical_ids
             ]
             source_slug = (
@@ -880,7 +1556,7 @@ def compile_claim_models(
             )
             claim_values: dict[str, object] = {
                 "id": semantic_claim.artifact_id or claim_doc.artifact_id,
-                "primary_logical_id": claim_doc.primary_logical_id or "",
+                "primary_logical_id": claim_primary_logical_id(claim_doc) or "",
                 "logical_ids_json": json.dumps(logical_ids_payload),
                 "version_id": claim_doc.version_id or "",
                 "seq": claim_seq,
@@ -1009,7 +1685,7 @@ def compile_claim_models(
                 ),
                 "variables_json": (
                     json.dumps([
-                        variable.to_payload()
+                        document_to_payload(variable)
                         for variable in claim_doc.variables
                     ])
                     if claim_doc.variables
@@ -1075,7 +1751,7 @@ def compile_claim_models(
                     elif declaration.source == "bindings":
                         if declaration.field == "variables":
                             linked_concepts = tuple(
-                                (variable.concept, variable.binding_name)
+                                (variable.concept, variable_binding_name(variable))
                                 for variable in claim_doc.variables
                             )
                         elif declaration.field == "parameters":
@@ -1122,7 +1798,7 @@ def compile_claim_models(
 def compile_authored_justification_models(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[Justification, ...]:
+) -> tuple[Any, ...]:
     models, diagnostics = compile_authored_justification_models_with_diagnostics(
         justification_entries,
         claim_index,
@@ -1135,13 +1811,13 @@ def compile_authored_justification_models(
 def compile_authored_justification_models_with_diagnostics(
     justification_entries: Iterable[tuple[str, JustificationDocument]],
     claim_index: FamilyReferenceIndex[ClaimReferenceRecord],
-) -> tuple[tuple[Justification, ...], tuple[QuarantineDiagnostic, ...]]:
+) -> tuple[tuple[Any, ...], tuple[QuarantineDiagnostic, ...]]:
     valid_claims = set(claim_index.ids())
-    models: list[Justification] = []
+    models: list[Any] = []
     diagnostics: list[QuarantineDiagnostic] = []
 
     for filename, justification in justification_entries:
-        justification_payload = document_to_payload(justification)
+        justification_payload = justification_document_to_payload(justification)
         if not isinstance(justification_payload, dict):
             raise TypeError("justification document payload must be a mapping")
         justification_id = justification.id
@@ -1218,9 +1894,13 @@ def compile_authored_justification_models_with_diagnostics(
 
 
 def compile_raw_id_quarantine_models(
-    records: Sequence[RawIdQuarantineRecord],
+    records: Sequence[Any],
 ) -> RawIdQuarantineModels:
-    diagnostics: list[BuildDiagnostic] = []
+    BuildDiagnostic = import_module(
+        "propstore.families.diagnostics.declaration"
+    ).BuildDiagnostic
+
+    diagnostics: list[Any] = []
 
     for record in records:
         diagnostics.append(
@@ -1244,8 +1924,12 @@ def compile_raw_id_quarantine_models(
 
 
 def compile_promotion_blocked_models(
-    facts: Sequence[PromotionBlockedClaimFact],
+    facts: Sequence[Any],
 ) -> PromotionBlockedModels:
+    compile_promotion_blocked_diagnostics = import_module(
+        "propstore.families.diagnostics.declaration"
+    ).compile_promotion_blocked_diagnostics
+
     claims = tuple(
         Claim(
             id=fact.artifact_id,
@@ -1273,6 +1957,10 @@ def write_promotion_blocked_models(
     derived: DerivedSession,
     rows: PromotionBlockedModels,
 ) -> None:
+    delete_promotion_blocked_diagnostics = import_module(
+        "propstore.families.diagnostics.declaration"
+    ).delete_promotion_blocked_diagnostics
+
     claim_objects_by_id = {
         str(getattr(row, "id")): row
         for row in rows.claims

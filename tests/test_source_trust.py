@@ -14,7 +14,7 @@ from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.registry import world_schema
 from propstore.families.registry import ClaimRef
 from propstore.opinion import Opinion

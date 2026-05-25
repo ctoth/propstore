@@ -10,7 +10,7 @@ from typing import Any, Protocol, TypeAlias
 from quire import canonical_json_sha256
 from quire.documents import convert_document_value, document_to_payload
 
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceJustificationDocument,

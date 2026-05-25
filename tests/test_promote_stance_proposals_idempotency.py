@@ -8,7 +8,7 @@ from propstore.proposals import (
     plan_stance_proposal_promotion,
     promote_stance_proposals,
 )
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
 from propstore.families.registry import ClaimRef, ContextRef, StanceRef
 from propstore.repository import Repository

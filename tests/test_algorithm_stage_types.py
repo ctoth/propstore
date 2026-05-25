@@ -4,7 +4,7 @@ from typing import get_type_hints
 
 import yaml
 
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from tests.family_helpers import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage
 from propstore.families.documents.sources import SourceClaimDocument

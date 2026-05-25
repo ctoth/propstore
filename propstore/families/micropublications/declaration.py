@@ -13,7 +13,7 @@ from quire.references import FamilyReferenceIndex, ForeignKeySpec
 from quire.versions import VersionId
 
 from ...core.diagnostics import QuarantineDiagnostic
-from ..claims.documents import ProvenanceDocument
+from ..claims.declaration import ProvenanceDocument
 from ..contexts.declaration import ContextReferenceDocument
 
 if TYPE_CHECKING:

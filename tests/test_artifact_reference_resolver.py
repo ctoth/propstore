@@ -4,7 +4,7 @@ import pytest
 
 from quire.references import AmbiguousReferenceError, FamilyReferenceIndex
 
-from propstore.families.claims.documents import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument
+from propstore.families.claims.declaration import ClaimDocument, ClaimLogicalIdDocument, ClaimSourceDocument
 from propstore.families.contexts.declaration import ContextDocument
 from propstore.families.contexts.declaration import ContextReferenceDocument
 from propstore.families.registry import ClaimRef, ContextRef, SourceRef

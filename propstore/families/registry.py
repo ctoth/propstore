@@ -48,7 +48,12 @@ from propstore.families.batch_specs import (
     SOURCE_MICROPUBLICATION_BATCH_SPEC,
     SOURCE_STANCE_BATCH_SPEC,
 )
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import (
+    AUTHORED_CLAIM_CHARTER,
+    AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+    ClaimDocument,
+    claim_document_to_payload,
+)
 from propstore.families.concepts.declaration import (
     AUTHORED_CONCEPT_CHARTER,
     AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
@@ -253,7 +258,8 @@ if not TYPE_CHECKING:
     MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
 
 
-ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
+ARTIFACT_FAMILY_CONTRACT_VERSION = AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION
+CLAIM_FAMILY_CONTRACT_VERSION = AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION
 SAMEAS_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 STANCE_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION
@@ -360,6 +366,7 @@ CLAIM_FAMILY = ArtifactFamily["Repository", ClaimRef, ClaimDocument](
     contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=ClaimDocument,
     placement=CLAIM_PLACEMENT,
+    document_payload=claim_document_to_payload,
 )
 
 CONCEPT_FILE_FAMILY = ArtifactFamily["Repository", ConceptFileRef, ConceptDocument](
@@ -566,8 +573,8 @@ MICROPUBLICATION_FOREIGN_KEYS = (
 
 CLAIM_REFERENCE_KEYS = (
     ReferenceKey.field("artifact_id"),
-    ReferenceKey.field("logical_ids[].formatted"),
     ReferenceKey.field("logical_ids[].value"),
+    ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
 )
 
 CONCEPT_REFERENCE_KEYS = (
@@ -721,7 +728,7 @@ def source_claims_document_payload(
     document: tuple[SourceClaimDocument, ...],
 ) -> dict[str, object]:
     return {
-        "claims": [entry.to_payload() for entry in document],
+        "claims": [document_to_payload(entry) for entry in document],
     }
 
 
@@ -879,7 +886,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.CLAIMS,
             name=PropstoreFamily.CLAIMS.value,
-            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
+            contract_version=CLAIM_FAMILY_CONTRACT_VERSION,
             artifact_family=CLAIM_FAMILY,
             foreign_keys=CLAIM_FOREIGN_KEYS,
             identity_policy=CLAIM_IDENTITY_POLICY,
@@ -1338,6 +1345,7 @@ def world_catalog() -> SchemaCatalog:
         relation_charters[0],
         *forms.FORMS_CHARTERS,
         *contexts.CONTEXT_CHARTERS,
+        AUTHORED_CLAIM_CHARTER,
         claims.CLAIM_CORE_CHARTER,
         claims.CLAIM_CONCEPT_LINK_CHARTER,
         *claims.CLAIM_PAYLOAD_CHARTERS,

@@ -14,7 +14,10 @@ from propstore.claims import (
     claim_file_filename,
     claim_file_source_paper,
 )
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import (
+    ClaimDocument,
+    claim_logical_id_formatted,
+)
 from propstore.families.identity.claims import derive_claim_artifact_id
 from propstore.families.identity.logical_ids import (
     normalize_identity_namespace,
@@ -56,7 +59,7 @@ def claim_reference_keys(record: ClaimReferenceRecord) -> tuple[str, ...]:
             f"{normalize_logical_value(raw_id)}"
         )
     for logical_id in record.claim.logical_ids:
-        keys.append(logical_id.formatted)
+        keys.append(claim_logical_id_formatted(logical_id))
         keys.append(logical_id.value)
     return tuple(keys)
 

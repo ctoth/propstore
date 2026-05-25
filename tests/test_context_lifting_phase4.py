@@ -4,9 +4,9 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from propstore.families.claims.documents import ClaimDocument, IstPropositionDocument
+from propstore.families.claims.declaration import ClaimDocument, IstPropositionDocument
 from propstore.families.contexts.declaration import ContextDocument
-from quire.documents import DocumentSchemaError, convert_document_value
+from quire.documents import DocumentSchemaError, convert_document_value, document_to_payload
 
 
 def test_context_document_rejects_visibility_inheritance_fields() -> None:
@@ -119,7 +119,9 @@ def test_claim_document_parses_nested_ist_proposition() -> None:
     inner = claim.proposition.proposition
     assert isinstance(inner, IstPropositionDocument)
     assert inner.context.id == "ctx_inner"
-    assert claim.to_payload()["proposition"]["proposition"]["context"]["id"] == "ctx_inner"
+    payload = document_to_payload(claim)
+    assert isinstance(payload, dict)
+    assert payload["proposition"]["proposition"]["context"]["id"] == "ctx_inner"
 
 
 @pytest.mark.property
@@ -149,7 +151,7 @@ def test_nested_ist_proposition_round_trips_context_stack(context_ids: list[str]
         source="claims/nested-ist-property.yaml",
     )
     reparsed = convert_document_value(
-        claim.to_payload(),
+        document_to_payload(claim),
         ClaimDocument,
         source="claims/nested-ist-property-roundtrip.yaml",
     )

@@ -11,7 +11,7 @@ import re
 from collections.abc import Mapping, Sequence
 
 from propstore.families.claims.types import ClaimType
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 
 
 ConceptDescriptionRegistry = Mapping[str, Mapping[str, object]]

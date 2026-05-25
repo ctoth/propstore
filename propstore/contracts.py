@@ -12,7 +12,7 @@ from quire.references import ForeignKeySpec
 from quire.versions import VersionId
 
 if TYPE_CHECKING:
-    from propstore.families.claims.documents import ClaimTypeContract
+    from propstore.families.claims.declaration import ClaimTypeContract
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.02")
 DOCUMENT_SCHEMA_CONTRACT_VERSION = VersionId("2026.04.30")
@@ -34,7 +34,18 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.predicates.declaration.PredicateProposalDocument": VersionId("2026.05.25"),
     "propstore.families.rules.declaration.RuleExtractionProvenance": VersionId("2026.05.25"),
     "propstore.families.rules.declaration.RuleProposalDocument": VersionId("2026.05.25"),
-    "propstore.families.claims.documents.ProvenanceDocument": VersionId("2026.05.01"),
+    "propstore.families.claims.declaration.ClaimDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.ClaimLogicalIdDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.ClaimSourceDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.ProvenanceDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.FitStatisticsDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.VariableBindingDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.ParameterBindingDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.OpinionDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.ResolutionDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.StanceDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.AtomicPropositionDocument": VersionId("2026.05.25"),
+    "propstore.families.claims.declaration.IstPropositionDocument": VersionId("2026.05.25"),
     "propstore.families.merge.declaration.MergeManifestArgumentDocument": VersionId("2026.05.25"),
     "propstore.families.merge.declaration.MergeManifestDocument": VersionId("2026.05.25"),
     "propstore.families.merge.declaration.MergeManifestPayloadDocument": VersionId("2026.05.25"),
@@ -106,7 +117,7 @@ def iter_semantic_foreign_keys() -> tuple[ForeignKeySpec, ...]:
 
 
 def iter_claim_type_contracts() -> tuple["ClaimTypeContract", ...]:
-    from propstore.families.claims.documents import (
+    from propstore.families.claims.declaration import (
         iter_claim_type_contracts as iter_contracts,
     )
 
@@ -174,8 +185,7 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
 
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import sources
-    from propstore.families.claims import declaration as claims_declaration
-    from propstore.families.claims import documents as claims
+    from propstore.families.claims import declaration as claims
     from propstore.families.concepts import declaration as concepts
     from propstore.families.contexts import declaration as contexts
     from propstore.families.forms import declaration as forms
@@ -190,7 +200,6 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
 
     modules = (
         claims,
-        claims_declaration,
         concepts,
         contexts,
         forms,
@@ -243,6 +252,24 @@ def build_propstore_contract_manifest() -> ContractManifest:
                     "Context family document ownership moved to generated "
                     "declaration types with context family and artifact "
                     "contracts version-bumped in the same registry version."
+                ),
+            ),
+            quire_contracts.CompatibilityMarker(
+                contract="document_schema:JustificationDocument",
+                contract_version=VersionId("2026.05.25"),
+                reason=(
+                    "Claim family cutover moved justification nested document "
+                    "types into the claim declaration module without changing "
+                    "the authored YAML fields."
+                ),
+            ),
+            quire_contracts.CompatibilityMarker(
+                contract="document_schema:MicropublicationDocument",
+                contract_version=VersionId("2026.05.25"),
+                reason=(
+                    "Claim family cutover moved claim provenance document "
+                    "ownership into the claim declaration module without "
+                    "changing the micropublication YAML fields."
                 ),
             ),
         ),

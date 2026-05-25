@@ -28,7 +28,7 @@ from propstore.heuristic.calibrate import (
     categorical_to_opinion,
 )
 from propstore.core.base_rates import BaseRateUnresolved
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.claims.references import (
     ClaimReferenceRecord,
     claim_reference_keys,

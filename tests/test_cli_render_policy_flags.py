@@ -37,7 +37,7 @@ from propstore.app.predicates import PredicateAddRequest, add_predicate
 from propstore.app.rules import RuleAddRequest, add_rule
 from propstore.families.claims.types import ClaimType
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.claims.documents import (
+from propstore.families.claims.declaration import (
     ClaimDocument,
     ClaimLogicalIdDocument,
     ClaimSourceDocument,

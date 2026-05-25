@@ -181,7 +181,7 @@ def test_micropub_family_target_model_is_one_semantic_artifact_per_file() -> Non
 
 
 def test_claim_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.claims.documents import ClaimDocument
+    from propstore.families.claims.declaration import ClaimDocument
     from propstore.families.registry import ClaimRef
 
     canonical = semantic_family_by_name(PropstoreFamily.CLAIMS.value)
@@ -324,7 +324,7 @@ def test_propstore_registry_is_the_semantic_schema_surface() -> None:
 
 
 def test_typed_family_handles_preserve_ref_and_document_types(tmp_path: Path) -> None:
-    from propstore.families.claims.documents import ClaimDocument
+    from propstore.families.claims.declaration import ClaimDocument
     from propstore.families.contexts.declaration import ContextDocument
     from propstore.families.contexts.declaration import ContextReferenceDocument
     from propstore.families.micropublications.declaration import MicropublicationDocument

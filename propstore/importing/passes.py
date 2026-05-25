@@ -12,7 +12,7 @@ from quire.families import FamilyRegistry
 from quire.references import AmbiguousReferenceError
 
 from propstore.families.addresses import SemanticFamilyAddress
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.claims.references import (
     ImportedClaimReference,
     imported_claim_reference_index,

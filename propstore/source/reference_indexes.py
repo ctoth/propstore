@@ -8,13 +8,12 @@ from propstore.families.documents.sources import SourceClaimDocument
 from propstore.families.registry import SourceRef
 
 if TYPE_CHECKING:
-    from propstore.families.claims.documents import ClaimDocument
+    from propstore.families.claims.declaration import ClaimDocument
     from propstore.repository import Repository
 
 
 SOURCE_CLAIM_REFERENCE_KEYS = (
     ReferenceKey.field("source_local_id"),
-    ReferenceKey.field("logical_ids[].formatted"),
     ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
 )
 

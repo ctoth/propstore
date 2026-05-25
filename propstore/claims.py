@@ -6,11 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from propstore.families.batch_specs import CLAIM_BATCH_SPEC
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from quire.documents import (
     convert_document_value,
     decode_document_batch_bytes,
     decode_yaml_mapping,
+    document_to_payload,
     encode_yaml_value,
     load_document,
 )
@@ -158,4 +159,7 @@ def claim_file_stage(claim_file: LoadedClaimsFile) -> str | None:
 
 
 def claim_file_payload(claim_file: LoadedClaimsFile) -> dict[str, Any]:
-    return claim_file.document.to_payload()
+    payload = document_to_payload(claim_file.document)
+    if not isinstance(payload, dict):
+        raise TypeError("claim document payload must be a mapping")
+    return payload

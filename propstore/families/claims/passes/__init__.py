@@ -8,7 +8,7 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
-from propstore.families.claims.documents import (
+from propstore.families.claims.declaration import (
     ClaimDocument,
     StanceDocument as ClaimStanceDocument,
 )
@@ -66,7 +66,7 @@ def _bind_claim(
     source_paper: str,
     context: CompilationContext,
 ) -> SemanticClaim:
-    authored_claim = claim.to_payload()
+    authored_claim = cast(dict[str, Any], document_to_payload(claim))
     resolved_claim = copy.deepcopy(authored_claim)
 
     output_concept_ref = context.concept_index.resolve(
@@ -118,7 +118,7 @@ def _bind_claim(
         else:
             rewritten_variables_list: list[object] = []
             for variable in claim.variables:
-                updated = variable.to_payload()
+                updated = cast(dict[str, Any], document_to_payload(variable))
                 binding = context.concept_index.resolve(
                     variable.concept,
                     match_kind=compiler_concept_match_kind,
@@ -133,7 +133,7 @@ def _bind_claim(
     if claim.parameters:
         rewritten_parameters: list[object] = []
         for parameter in claim.parameters:
-            updated = parameter.to_payload()
+            updated = cast(dict[str, Any], document_to_payload(parameter))
             binding = context.concept_index.resolve(
                 parameter.concept,
                 match_kind=compiler_concept_match_kind,
@@ -260,7 +260,10 @@ def compile_claim_files(
                 context=effective_context,
             )
             semantic_claims.append(semantic_claim)
-            resolved_claim = semantic_claim.resolved_claim.to_payload()
+            resolved_claim = cast(
+                dict[str, Any],
+                document_to_payload(semantic_claim.resolved_claim),
+            )
 
             cid = resolved_claim.get("artifact_id")
 

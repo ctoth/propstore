@@ -9,7 +9,7 @@ from propstore.families.identity.micropubs import (
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value
-from propstore.families.claims.documents import ProvenanceDocument
+from propstore.families.claims.declaration import ProvenanceDocument
 from propstore.families.contexts.declaration import ContextReferenceDocument
 
 from .common import (

@@ -5,9 +5,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, document_to_payload
 
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.documents.sources import SourceClaimDocument
 from propstore.families.identity.claims import (
     normalize_canonical_claim_payload,
@@ -154,7 +154,10 @@ def normalize_promoted_source_claim_artifact(
 
 def _claim_payload(claim: ClaimConceptSource) -> dict[str, Any]:
     if isinstance(claim, ClaimDocument | SourceClaimDocument):
-        return claim.to_payload()
+        payload = document_to_payload(claim)
+        if not isinstance(payload, dict):
+            raise TypeError("claim payload must be a mapping")
+        return payload
     return copy.deepcopy(dict(claim))
 
 

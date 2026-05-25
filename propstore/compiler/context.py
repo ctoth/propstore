@@ -17,6 +17,7 @@ from propstore.families.claims.references import (
     ClaimReferenceRecord,
     build_claim_file_reference_index,
 )
+from propstore.families.claims.declaration import claim_logical_id_formatted
 from propstore.families.concepts.stages import (
     ConceptRecord,
     LoadedConcept,
@@ -101,7 +102,7 @@ def compiler_claim_match_kind(
     if record is None:
         return None, None
     for logical_id in record.claim.logical_ids:
-        if logical_id.formatted == raw_text:
+        if claim_logical_id_formatted(logical_id) == raw_text:
             return "logical_id", raw_text
         if logical_id.value == raw_text:
             return "logical_value", raw_text

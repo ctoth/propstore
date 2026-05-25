@@ -5,9 +5,9 @@ from typing import Any
 
 import msgspec.yaml
 import pytest
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, document_to_payload
 
-from propstore.families.claims.documents import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.documents.sources import SourceClaimDocument
 
 
@@ -66,7 +66,7 @@ def test_claim_yaml_fixture_round_trips(
     document = _load_fixture(filename, document_type)
 
     reparsed_payload = convert_document_value(
-        document.to_payload(),
+        document_to_payload(document),
         document_type,
         source=f"{filename}:payload-roundtrip",
     )
