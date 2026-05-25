@@ -55,8 +55,7 @@ def _heuristic_embed() -> Any:
     return import_module("propstore.heuristic.embed")
 
 
-def embedding_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter]:
-    return (
+EMBEDDING_CHARTERS: tuple[FamilyCharter, FamilyCharter, FamilyCharter] = (
         FamilyCharter(
             family=FamilyDefinition(
                 key="embedding_model",

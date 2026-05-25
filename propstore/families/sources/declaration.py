@@ -44,8 +44,7 @@ class Source(FamilyModel):
     pass
 
 
-def source_charter() -> FamilyCharter:
-    return FamilyCharter(
+SOURCE_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="source",
             name="source",

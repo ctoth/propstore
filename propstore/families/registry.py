@@ -1267,25 +1267,25 @@ def world_catalog() -> SchemaCatalog:
     rules = import_module("propstore.families.rules.declaration")
     sources = import_module("propstore.families.sources.declaration")
 
-    relation_charters = relations.relations_charters()
+    relation_charters = relations.RELATIONS_CHARTERS
     return charter_catalog(
-        meta.world_meta_charter(),
-        sources.source_charter(),
-        *concepts.concept_charters(),
+        meta.WORLD_META_CHARTER,
+        sources.SOURCE_CHARTER,
+        *concepts.CONCEPT_CHARTERS,
         relation_charters[0],
-        *forms.forms_charters(),
-        *contexts.context_charters(),
-        claims.claim_core_charter(),
-        claims.claim_concept_link_charter(),
-        *claims.claim_payload_charters(),
-        claims.claim_source_assertion_charter(),
+        *forms.FORMS_CHARTERS,
+        *contexts.CONTEXT_CHARTERS,
+        claims.CLAIM_CORE_CHARTER,
+        claims.CLAIM_CONCEPT_LINK_CHARTER,
+        *claims.CLAIM_PAYLOAD_CHARTERS,
+        claims.CLAIM_SOURCE_ASSERTION_CHARTER,
         relation_charters[1],
-        *rules.rules_charters(),
-        claims.justification_charter(),
-        *micropublications.micropublication_charters(),
-        calibration.calibration_charter(),
-        *embeddings.embedding_charters(),
-        diagnostics.diagnostics_charter(),
+        *rules.RULES_CHARTERS,
+        claims.JUSTIFICATION_CHARTER,
+        *micropublications.MICROPUBLICATION_CHARTERS,
+        calibration.CALIBRATION_CHARTER,
+        *embeddings.EMBEDDING_CHARTERS,
+        diagnostics.DIAGNOSTICS_CHARTER,
         metadata={
             "projection": "propstore.world",
             "schema_version": meta.PROPSTORE_WORLD_SCHEMA_VERSION,

@@ -17,8 +17,7 @@ class CalibrationCount(FamilyModel):
     pass
 
 
-def calibration_charter() -> FamilyCharter:
-    return FamilyCharter(
+CALIBRATION_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="calibration_counts",
             name="calibration_counts",

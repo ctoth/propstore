@@ -29,8 +29,7 @@ class MicropublicationClaimLink(FamilyModel):
     pass
 
 
-def micropublication_charters() -> tuple[FamilyCharter, FamilyCharter]:
-    return (
+MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
         FamilyCharter(
             family=FamilyDefinition(
                 key="micropublication",

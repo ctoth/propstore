@@ -10,8 +10,7 @@ from propstore.families.forms.stages import Form, FormAlgebra
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 
 
-def forms_charters() -> tuple[FamilyCharter, FamilyCharter]:
-    return (
+FORMS_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
         FamilyCharter(
             family=FamilyDefinition(
                 key="form",

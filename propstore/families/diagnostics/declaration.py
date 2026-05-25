@@ -24,8 +24,7 @@ class BuildDiagnostic(FamilyModel):
     pass
 
 
-def diagnostics_charter() -> FamilyCharter:
-    return FamilyCharter(
+DIAGNOSTICS_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="build_diagnostics",
             name="build_diagnostics",

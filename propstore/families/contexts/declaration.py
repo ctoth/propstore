@@ -50,8 +50,7 @@ class ContextLiftingMaterialization(FamilyModel):
         return dict(loaded)
 
 
-def context_charters() -> tuple[FamilyCharter, ...]:
-    return (
+CONTEXT_CHARTERS: tuple[FamilyCharter, ...] = (
         FamilyCharter(
             family=FamilyDefinition(
                 key="context",

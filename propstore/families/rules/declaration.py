@@ -97,8 +97,7 @@ class GroundedBundleInput(FamilyModel):
     pass
 
 
-def rules_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter]:
-    return (
+RULES_CHARTERS: tuple[FamilyCharter, FamilyCharter, FamilyCharter] = (
         FamilyCharter(
             family=FamilyDefinition(
                 key="grounded_fact",

@@ -17,8 +17,7 @@ class WorldMeta(FamilyModel):
     pass
 
 
-def world_meta_charter() -> FamilyCharter:
-    return FamilyCharter(
+WORLD_META_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="meta",
             name="meta",

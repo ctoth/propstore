@@ -318,8 +318,23 @@ class ConceptSearchQuerySyntaxError(ValueError):
     pass
 
 
-def concept_charters() -> tuple[FamilyCharter, ...]:
-    return (
+_CONCEPT_FTS_SOURCE_QUERY = """
+    SELECT
+        c.id AS concept_id,
+        c.canonical_name AS canonical_name,
+        COALESCE((SELECT group_concat(a.alias_name, ' ') FROM alias a WHERE a.concept_id = c.id), '') AS aliases,
+        c.definition AS definition,
+        COALESCE((SELECT group_concat(value, ' ') FROM (
+            SELECT rel_condition.value AS value FROM relationship r, json_each(r.conditions_cel) AS rel_condition WHERE r.source_id = c.id AND r.conditions_cel IS NOT NULL
+            UNION ALL
+            SELECT param_condition.value AS value FROM parameterization p, json_each(p.conditions_cel) AS param_condition WHERE p.output_concept_id = c.id AND p.conditions_cel IS NOT NULL
+        )), '') AS conditions
+    FROM concept c
+    ORDER BY c.seq
+"""
+
+
+CONCEPT_CHARTERS: tuple[FamilyCharter, ...] = (
         FamilyCharter(
             family=FamilyDefinition(
                 key="concept",
@@ -481,20 +496,4 @@ def concept_charters() -> tuple[FamilyCharter, ...]:
             ),
             semantic_metadata={"semantic": "propstore.world"},
         ),
-    )
-
-
-_CONCEPT_FTS_SOURCE_QUERY = """
-    SELECT
-        c.id AS concept_id,
-        c.canonical_name AS canonical_name,
-        COALESCE((SELECT group_concat(a.alias_name, ' ') FROM alias a WHERE a.concept_id = c.id), '') AS aliases,
-        c.definition AS definition,
-        COALESCE((SELECT group_concat(value, ' ') FROM (
-            SELECT rel_condition.value AS value FROM relationship r, json_each(r.conditions_cel) AS rel_condition WHERE r.source_id = c.id AND r.conditions_cel IS NOT NULL
-            UNION ALL
-            SELECT param_condition.value AS value FROM parameterization p, json_each(p.conditions_cel) AS param_condition WHERE p.output_concept_id = c.id AND p.conditions_cel IS NOT NULL
-        )), '') AS conditions
-    FROM concept c
-    ORDER BY c.seq
-"""
+)

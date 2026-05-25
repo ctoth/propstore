@@ -256,8 +256,19 @@ class ClaimSourceAssertion(FamilyModel):
     pass
 
 
-def claim_core_charter() -> FamilyCharter:
-    return FamilyCharter(
+_CLAIM_FTS_SOURCE_QUERY = """
+    SELECT
+        c.id AS claim_id,
+        COALESCE(t.statement, '') AS statement,
+        COALESCE((SELECT group_concat(value, ' ') FROM json_each(t.conditions_cel)), '') AS conditions,
+        COALESCE(t.expression, '') AS expression
+    FROM claim_core c
+    JOIN claim_text_payload t ON t.claim_id = c.id
+    ORDER BY c.seq
+"""
+
+
+CLAIM_CORE_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="claim_core",
             name="claim_core",
@@ -383,8 +394,7 @@ def claim_core_charter() -> FamilyCharter:
     )
 
 
-def claim_concept_link_charter() -> FamilyCharter:
-    return FamilyCharter(
+CLAIM_CONCEPT_LINK_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="claim_concept_link",
             name="claim_concept_link",
@@ -451,8 +461,7 @@ def claim_concept_link_charter() -> FamilyCharter:
     )
 
 
-def claim_payload_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharter]:
-    return (
+CLAIM_PAYLOAD_CHARTERS: tuple[FamilyCharter, FamilyCharter, FamilyCharter] = (
         FamilyCharter(
             family=FamilyDefinition(
                 key="claim_numeric_payload",
@@ -615,8 +624,7 @@ def claim_payload_charters() -> tuple[FamilyCharter, FamilyCharter, FamilyCharte
     )
 
 
-def claim_source_assertion_charter() -> FamilyCharter:
-    return FamilyCharter(
+CLAIM_SOURCE_ASSERTION_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="claim_source_assertion",
             name="claim_source_assertion",
@@ -666,8 +674,7 @@ def claim_source_assertion_charter() -> FamilyCharter:
     )
 
 
-def justification_charter() -> FamilyCharter:
-    return FamilyCharter(
+JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
         family=FamilyDefinition(
             key="justification",
             name="justification",
@@ -692,19 +699,7 @@ def justification_charter() -> FamilyCharter:
             CharterField("rule_strength", str, nullable=False, default_sql="'defeasible'"),
         ),
         semantic_metadata={"semantic": "propstore.world"},
-    )
-
-
-_CLAIM_FTS_SOURCE_QUERY = """
-    SELECT
-        c.id AS claim_id,
-        COALESCE(t.statement, '') AS statement,
-        COALESCE((SELECT group_concat(value, ' ') FROM json_each(t.conditions_cel)), '') AS conditions,
-        COALESCE(t.expression, '') AS expression
-    FROM claim_core c
-    JOIN claim_text_payload t ON t.claim_id = c.id
-    ORDER BY c.seq
-"""
+)
 
 
 @dataclass(frozen=True)

@@ -109,8 +109,7 @@ class ConflictWitness(FamilyModel):
         return data
 
 
-def relations_charters() -> tuple[FamilyCharter, FamilyCharter]:
-    return (
+RELATIONS_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
         FamilyCharter(
             family=FamilyDefinition(
                 key="relation_edge",
