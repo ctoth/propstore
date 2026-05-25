@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.families.documents.rules import RuleDocument, RuleSourceDocument
+from propstore.families.rules.declaration import RuleDocument, RuleSourceDocument
 from propstore.families.registry import RuleProposalRef, RuleRef
 from propstore.proposals import UnknownProposalPath
 from propstore.proposal_promotion import (

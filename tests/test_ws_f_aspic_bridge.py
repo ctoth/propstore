@@ -356,7 +356,7 @@ def test_projection_preserves_attack_without_defeat_and_rejects_unprojected_atta
 
 
 def test_defeater_rule_with_named_rule_head_emits_undercutter() -> None:
-    from propstore.families.documents.rules import (
+    from propstore.families.rules.declaration import (
         AtomDocument,
         BodyLiteralDocument,
         RuleDocument,

@@ -47,7 +47,7 @@ from types import MappingProxyType
 import gunray
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
+from propstore.families.rules.declaration import RuleDocument, RuleSuperiorityDocument
 from propstore.grounding.bundle import GroundedRulesBundle, GroundingProjectionFrame
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import translate_to_theory

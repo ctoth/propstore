@@ -78,7 +78,7 @@ if TYPE_CHECKING:
     from argumentation.aspic import Literal, Rule
     from propstore.core.literal_keys import LiteralKey
     from propstore.grounding.bundle import GroundedRulesBundle
-    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
+    from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +95,7 @@ def _var(name: str):
     constants drawn from the fact base.
     """
 
-    from propstore.families.documents.rules import TermDocument
+    from propstore.families.rules.declaration import TermDocument
 
     return TermDocument(kind="var", name=name, value=None)
 
@@ -108,7 +108,7 @@ def _const(value):
     bool`` (cf. ``argumentation.aspic.Scalar``).
     """
 
-    from propstore.families.documents.rules import TermDocument
+    from propstore.families.rules.declaration import TermDocument
 
     return TermDocument(kind="const", name=None, value=value)
 
@@ -120,7 +120,7 @@ def _atom(predicate: str, terms=()):
     to a term tuple (arity ≥ 0). Strong negation is left unset here.
     """
 
-    from propstore.families.documents.rules import AtomDocument
+    from propstore.families.rules.declaration import AtomDocument
 
     return AtomDocument(predicate=predicate, terms=tuple(terms), negated=False)
 
@@ -134,7 +134,7 @@ def _rule_doc(rule_id: str, kind: str, head, body=()):
     deliberately rejects ``strict`` and ``defeater`` variants.
     """
 
-    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
+    from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
     return RuleDocument(
         id=rule_id,

@@ -14,7 +14,7 @@ from propstore.app.rules import (
     remove_rule_superiority,
 )
 from propstore.cli import cli
-from propstore.families.documents.rules import RuleSuperiorityDocument
+from propstore.families.rules.declaration import RuleSuperiorityDocument
 from propstore.families.registry import RuleSuperiorityRef
 from propstore.repository import Repository
 
@@ -170,7 +170,7 @@ def test_rule_superiority_cli_add_list_remove(tmp_path) -> None:
 
 
 def test_translate_to_theory_consumes_rule_superiority_artifacts() -> None:
-    from propstore.families.documents.rules import AtomDocument, RuleDocument
+    from propstore.families.rules.declaration import AtomDocument, RuleDocument
     from propstore.grounding.predicates import PredicateRegistry
     from propstore.grounding.translator import translate_to_theory
 

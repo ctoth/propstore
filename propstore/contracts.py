@@ -22,14 +22,18 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.sources.SourceTrustDocument": VersionId("2026.05.01"),
     "propstore.families.claims.declaration.JustificationDocument": VersionId("2026.05.25"),
     "propstore.families.stances.declaration.StanceDocument": VersionId("2026.05.25"),
-    "propstore.families.documents.rules.AtomDocument": VersionId("2026.05.01"),
-    "propstore.families.documents.rules.RuleDocument": VersionId("2026.05.12"),
+    "propstore.families.rules.declaration.AtomDocument": VersionId("2026.05.25"),
+    "propstore.families.rules.declaration.BodyLiteralDocument": VersionId("2026.05.25"),
+    "propstore.families.rules.declaration.RuleDocument": VersionId("2026.05.25"),
+    "propstore.families.rules.declaration.RuleSourceDocument": VersionId("2026.05.25"),
+    "propstore.families.rules.declaration.RuleSuperiorityDocument": VersionId("2026.05.25"),
+    "propstore.families.rules.declaration.TermDocument": VersionId("2026.05.25"),
     "propstore.families.predicates.declaration.PredicateDeclaration": VersionId("2026.05.25"),
     "propstore.families.predicates.declaration.PredicateDocument": VersionId("2026.05.25"),
     "propstore.families.predicates.declaration.PredicateExtractionProvenance": VersionId("2026.05.25"),
     "propstore.families.predicates.declaration.PredicateProposalDocument": VersionId("2026.05.25"),
-    "propstore.families.documents.rules.RuleExtractionProvenance": VersionId("2026.05.01"),
-    "propstore.families.documents.rules.RuleProposalDocument": VersionId("2026.05.01"),
+    "propstore.families.rules.declaration.RuleExtractionProvenance": VersionId("2026.05.25"),
+    "propstore.families.rules.declaration.RuleProposalDocument": VersionId("2026.05.25"),
     "propstore.families.claims.documents.ProvenanceDocument": VersionId("2026.05.01"),
     "propstore.families.merge.declaration.MergeManifestArgumentDocument": VersionId("2026.05.25"),
     "propstore.families.merge.declaration.MergeManifestDocument": VersionId("2026.05.25"),
@@ -158,10 +162,7 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
 
 
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
-    from propstore.families.documents import (
-        rules,
-        sources,
-    )
+    from propstore.families.documents import sources
     from propstore.families.claims import declaration as claims_declaration
     from propstore.families.claims import documents as claims
     from propstore.families.concepts import documents as concepts
@@ -170,6 +171,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.merge import declaration as merge
     from propstore.families.micropublications import declaration as micropublications
     from propstore.families.predicates import declaration as predicates
+    from propstore.families.rules import declaration as rules
     from propstore.families.sameas import declaration as sameas
     from propstore.families.source_alignment import declaration as source_alignment
     from propstore.families.stances import declaration as stances

@@ -42,7 +42,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 from argumentation.aspic import GroundAtom, Scalar
-from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
+from propstore.families.rules.declaration import RuleDocument, RuleSuperiorityDocument
 
 if TYPE_CHECKING:
     from gunray import Argument, GroundingInspection

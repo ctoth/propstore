@@ -7,7 +7,7 @@ from dataclasses import dataclass
 import gunray
 from argumentation.aspic import GroundAtom, Scalar
 
-from propstore.families.documents.rules import RuleDocument
+from propstore.families.rules.declaration import RuleDocument
 from propstore.grounding.predicates import PredicateRegistry
 from propstore.grounding.translator import translate_to_theory
 

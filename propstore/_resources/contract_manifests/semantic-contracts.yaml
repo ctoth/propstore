@@ -240,11 +240,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: proposal_rules
-  contract_version: 2026.05.11
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.rules.RuleProposalDocument
+    doc_type: propstore.families.rules.declaration.RuleProposalDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -286,11 +286,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: rule
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.rules.RuleDocument
+    doc_type: propstore.families.rules.declaration.RuleDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -307,11 +307,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: rule_superiority
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.rules.RuleSuperiorityDocument
+    doc_type: propstore.families.rules.declaration.RuleSuperiorityDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -860,7 +860,7 @@ contracts:
     module: propstore.families.source_alignment.declaration
 - kind: document_schema
   name: AtomDocument
-  contract_version: 2026.05.01
+  contract_version: 2026.05.25
   body:
     fields:
     - name: predicate
@@ -872,7 +872,7 @@ contracts:
     - name: negated
       required: true
       type: bool
-    module: propstore.families.documents.rules
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: AtomicPropositionDocument
   contract_version: 2026.04.30
@@ -962,16 +962,16 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: BodyLiteralDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: kind
       required: true
-      type: Literal['positive', 'default_negated']
+      type: BodyLiteralKind
     - name: atom
       required: true
       type: AtomDocument
-    module: propstore.families.documents.rules
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: ClaimDocument
   contract_version: 2026.04.30
@@ -1989,34 +1989,40 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: RuleDocument
-  contract_version: 2026.05.12
+  contract_version: 2026.05.25
   body:
     fields:
     - name: id
       required: true
-      type: str
+      type: builtins.str
     - name: kind
       required: true
-      type: Literal['strict', 'defeasible', 'proper_defeater', 'blocking_defeater']
+      type: typing.Literal
     - name: head
       required: true
-      type: AtomDocument
+      type: propstore.families.rules.declaration.AtomDocument
     - name: body
       required: true
-      type: tuple[BodyLiteralDocument, ...]
+      type: builtins.tuple
+    - name: strength
+      required: true
+      type: builtins.str
     - name: source
       required: true
-      type: RuleSourceDocument | None
+      type: propstore.families.rules.declaration.RuleSourceDocument | None
+    - name: provenance
+      required: true
+      type: dict[str, Any] | None
     - name: authoring_group
       required: true
       type: str | None
     - name: promoted_from_sha
       required: true
       type: str | None
-    module: propstore.families.documents.rules
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: RuleExtractionProvenance
-  contract_version: 2026.05.01
+  contract_version: 2026.05.25
   body:
     fields:
     - name: operations
@@ -2040,67 +2046,70 @@ contracts:
     - name: status
       required: true
       type: str
-    module: propstore.families.documents.rules
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: RuleProposalDocument
-  contract_version: 2026.05.01
+  contract_version: 2026.05.25
   body:
     fields:
     - name: source_paper
       required: true
-      type: str
+      type: builtins.str
     - name: rule_id
       required: true
-      type: str
+      type: builtins.str
     - name: proposed_rule
       required: true
-      type: RuleDocument
+      type: propstore.families.rules.declaration.RuleDocument
     - name: predicates_referenced
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
     - name: extraction_provenance
       required: true
-      type: RuleExtractionProvenance
+      type: propstore.families.rules.declaration.RuleExtractionProvenance
     - name: extraction_date
       required: true
-      type: str
+      type: builtins.str
+    - name: proposal_state
+      required: true
+      type: builtins.str
     - name: page_reference
       required: true
       type: str | None
     - name: promoted_from_sha
       required: true
       type: str | None
-    module: propstore.families.documents.rules
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: RuleSourceDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: paper
       required: true
       type: str
-    module: propstore.families.documents.rules
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: RuleSuperiorityDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: superior_rule_id
       required: true
-      type: str
+      type: builtins.str
     - name: inferior_rule_id
       required: true
-      type: str
+      type: builtins.str
     - name: source
       required: true
-      type: RuleSourceDocument | None
+      type: propstore.families.rules.declaration.RuleSourceDocument | None
     - name: authoring_group
       required: true
       type: str | None
     - name: promoted_from_sha
       required: true
       type: str | None
-    module: propstore.families.documents.rules
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: SameAsAssertionDocument
   contract_version: 2026.05.25
@@ -2649,19 +2658,19 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: TermDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: kind
       required: true
-      type: Literal['var', 'const']
+      type: TermKind
     - name: name
       required: true
       type: str | None
     - name: value
       required: true
       type: str | int | float | bool | None
-    module: propstore.families.documents.rules
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: VariableBindingDocument
   contract_version: 2026.04.30
@@ -3174,10 +3183,10 @@ contracts:
     - contract_version: 2026.05.25
       key: predicates
       name: predicates
-    - contract_version: 2026.05.11
+    - contract_version: 2026.05.25
       key: rules
       name: rules
-    - contract_version: 2026.05.11
+    - contract_version: 2026.05.25
       key: rule_superiority
       name: rule_superiority
     - contract_version: 2026.05.25
@@ -3231,7 +3240,7 @@ contracts:
     - contract_version: 2026.05.25
       key: proposal_predicates
       name: proposal_predicates
-    - contract_version: 2026.05.11
+    - contract_version: 2026.05.25
       key: proposal_rules
       name: proposal_rules
     - contract_version: 2026.05.25
@@ -3620,12 +3629,12 @@ contracts:
     key: proposal_predicates
 - kind: family
   name: proposal_rules
-  contract_version: 2026.05.11
+  contract_version: 2026.05.25
   body:
     accessor: proposal_rules
     artifact_family: proposal_rules
     artifact_family_contract:
-      doc_type: propstore.families.documents.rules.RuleProposalDocument
+      doc_type: propstore.families.rules.declaration.RuleProposalDocument
       placement:
         branch:
           fixed_branch: proposal/rules
@@ -3637,7 +3646,7 @@ contracts:
         namespace: rules
         stem_codec: stem
         stem_ref_field: rule_id
-    artifact_family_contract_version: 2026.05.11
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: proposal_rules
 - kind: family
@@ -3662,12 +3671,12 @@ contracts:
     key: proposal_stances
 - kind: family
   name: rule_superiority
-  contract_version: 2026.05.11
+  contract_version: 2026.05.25
   body:
     accessor: rule_superiority
     artifact_family: rule_superiority
     artifact_family_contract:
-      doc_type: propstore.families.documents.rules.RuleSuperiorityDocument
+      doc_type: propstore.families.rules.declaration.RuleSuperiorityDocument
       placement:
         branch:
           policy: primary
@@ -3676,7 +3685,7 @@ contracts:
         kind: flat-yaml
         namespace: rule_superiority
         ref_field: artifact_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: rule_superiority
     metadata:
@@ -3687,12 +3696,12 @@ contracts:
       semantic: true
 - kind: family
   name: rules
-  contract_version: 2026.05.11
+  contract_version: 2026.05.25
   body:
     accessor: rules
     artifact_family: rule
     artifact_family_contract:
-      doc_type: propstore.families.documents.rules.RuleDocument
+      doc_type: propstore.families.rules.declaration.RuleDocument
       placement:
         branch:
           policy: primary
@@ -3701,7 +3710,7 @@ contracts:
         kind: flat-yaml
         namespace: rules
         ref_field: rule_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: rules
     metadata:

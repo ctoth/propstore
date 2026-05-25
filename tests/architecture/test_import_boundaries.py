@@ -90,7 +90,7 @@ def test_relations_public_surface_includes_claim_link_roles() -> None:
 
 
 def test_rule_predicate_bucket_document_symbols_are_not_public() -> None:
-    rule_documents = importlib.import_module("propstore.families.documents.rules")
+    rule_documents = importlib.import_module("propstore.families.rules.declaration")
     predicate_documents = importlib.import_module("propstore.families.predicates.declaration")
 
     assert "RulesFileDocument" not in vars(rule_documents)
@@ -107,7 +107,7 @@ def test_rule_predicate_bucket_refs_and_families_are_not_public() -> None:
 
 
 def test_rule_document_does_not_hide_superiority_bucket_entries() -> None:
-    rules = importlib.import_module("propstore.families.documents.rules")
+    rules = importlib.import_module("propstore.families.rules.declaration")
 
     assert "superiority" not in rules.RuleDocument.__struct_fields__
     assert "RuleSuperiorityDocument" in vars(rules)

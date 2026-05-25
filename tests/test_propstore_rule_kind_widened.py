@@ -11,7 +11,7 @@ from __future__ import annotations
 import msgspec
 import msgspec.yaml
 
-from propstore.families.documents.rules import (
+from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,

@@ -64,7 +64,7 @@ import gunray
 
 from argumentation.aspic import GroundAtom
 from argumentation.preference import strict_partial_order_closure
-from propstore.families.documents.rules import (
+from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,
@@ -114,7 +114,7 @@ def translate_to_theory(
 
     Args:
         rules: Sequence of ``RuleDocument`` artifacts
-            (``propstore.families.documents.rules``).
+            (``propstore.families.rules.declaration``).
         facts: Tuple of ``GroundAtom`` values as produced by
             ``propstore.grounding.facts.extract_facts`` — ground atoms
             ``p(c_1,...,c_n)`` drawn from the propstore concept graph

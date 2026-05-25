@@ -4,7 +4,7 @@ from itertools import chain
 
 from argumentation.aspic import GroundAtom
 
-from propstore.families.documents.rules import (
+from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,

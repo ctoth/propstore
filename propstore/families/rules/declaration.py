@@ -53,7 +53,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal
 
 import gunray
 import msgspec
@@ -63,16 +63,8 @@ from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, FamilyCharter, FamilyModel
 from quire.families import FamilyDefinition
 from quire.sqlalchemy_store import DerivedSession
+from quire.versions import VersionId
 from sqlalchemy import select
-
-from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
-from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
-from propstore.grounding.bundle import GroundedRulesBundle
-from propstore.grounding.grounder import ground
-from propstore.grounding.predicates import PredicateRegistry
-
-if TYPE_CHECKING:
-    from propstore.repository import Repository
 
 # Garcia & Simari 2004 §4 (p.25): the four-valued answer system. The
 # tuple order is the deterministic iteration order used when persisting
@@ -82,6 +74,253 @@ _SECTION_NAMES: tuple[str, ...] = (
     "no",
     "undecided",
     "unknown",
+)
+
+AUTHORED_RULES_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+_WORLD_CONTRACT_VERSION = VersionId("2026.05.20", allow_placeholder=False)
+
+
+RuleKind = Literal["strict", "defeasible", "proper_defeater", "blocking_defeater"]
+BodyLiteralKind = Literal["positive", "default_negated"]
+TermKind = Literal["var", "const"]
+
+
+class TermDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    kind: TermKind
+    name: str | None = None
+    value: str | int | float | bool | None = None
+
+
+class AtomDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    predicate: str
+    terms: tuple[TermDocument, ...] = ()
+    negated: bool = False
+
+
+class BodyLiteralDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    kind: BodyLiteralKind
+    atom: AtomDocument
+
+
+class RuleSourceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    paper: str
+
+
+class RuleExtractionProvenance(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    operations: tuple[str, ...]
+    agent: str
+    model: str
+    prompt_sha: str
+    notes_sha: str
+    predicates_sha: str
+    status: str
+
+
+class AuthoredRule(FamilyModel):
+    pass
+
+
+class AuthoredRuleProposal(FamilyModel):
+    pass
+
+
+class RuleSuperiority(FamilyModel):
+    pass
+
+
+AUTHORED_RULE_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="authored_rule",
+        name="authored_rule",
+        contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-authored_rule",
+            contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
+            doc_type=AuthoredRule,
+            placement=FlatYamlPlacement(".derived/authored_rule", str),
+        ),
+        identity_field="id",
+    ),
+    model=AuthoredRule,
+    fields=(
+        CharterField("id", str, primary_key=True, nullable=False),
+        CharterField(
+            "kind",
+            RuleKind,
+            nullable=False,
+        ),
+        CharterField(
+            "head_atom",
+            AtomDocument,
+            document_name="head",
+            parse_boundary="json",
+            nullable=False,
+        ),
+        CharterField(
+            "body_literals",
+            tuple[BodyLiteralDocument, ...],
+            document_name="body",
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("strength", str, nullable=False, default="", default_sql="''"),
+        CharterField(
+            "source",
+            RuleSourceDocument,
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField(
+            "provenance",
+            dict[str, Any],
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField("authoring_group", str, nullable=True),
+        CharterField("promoted_from_sha", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+
+RULE_SUPERIORITY_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="rule_superiority",
+        name="rule_superiority",
+        contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-rule_superiority",
+            contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
+            doc_type=RuleSuperiority,
+            placement=FlatYamlPlacement(".derived/rule_superiority", str),
+        ),
+        identity_field="superior_rule_id",
+    ),
+    model=RuleSuperiority,
+    fields=(
+        CharterField("superior_rule_id", str, primary_key=True, nullable=False),
+        CharterField("inferior_rule_id", str, primary_key=True, nullable=False),
+        CharterField(
+            "source",
+            RuleSourceDocument,
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField("authoring_group", str, nullable=True),
+        CharterField("promoted_from_sha", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+
+if TYPE_CHECKING:
+
+    class RuleDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        id: str
+        kind: RuleKind
+        head: AtomDocument
+        body: tuple[BodyLiteralDocument, ...] = ()
+        strength: str = ""
+        source: RuleSourceDocument | None = None
+        provenance: dict[str, Any] | None = None
+        authoring_group: str | None = None
+        promoted_from_sha: str | None = None
+
+    class RuleSuperiorityDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        superior_rule_id: str
+        inferior_rule_id: str
+        source: RuleSourceDocument | None = None
+        authoring_group: str | None = None
+        promoted_from_sha: str | None = None
+
+else:
+    RuleDocument: Any = AUTHORED_RULE_CHARTER.generated_document()
+    RuleDocument.__name__ = "RuleDocument"
+    RuleDocument.__qualname__ = "RuleDocument"
+    RuleDocument.__module__ = __name__
+
+    RuleSuperiorityDocument: Any = RULE_SUPERIORITY_CHARTER.generated_document()
+    RuleSuperiorityDocument.__name__ = "RuleSuperiorityDocument"
+    RuleSuperiorityDocument.__qualname__ = "RuleSuperiorityDocument"
+    RuleSuperiorityDocument.__module__ = __name__
+
+
+AUTHORED_RULE_PROPOSAL_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="authored_rule_proposal",
+        name="authored_rule_proposal",
+        contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-authored_rule_proposal",
+            contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
+            doc_type=AuthoredRuleProposal,
+            placement=FlatYamlPlacement(".derived/authored_rule_proposal", str),
+        ),
+        identity_field="rule_id",
+    ),
+    model=AuthoredRuleProposal,
+    fields=(
+        CharterField("source_paper", str, primary_key=True, nullable=False),
+        CharterField("rule_id", str, primary_key=True, nullable=False),
+        CharterField(
+            "proposed_rule",
+            RuleDocument,
+            parse_boundary="json",
+            nullable=False,
+        ),
+        CharterField(
+            "predicates_referenced",
+            tuple[str, ...],
+            parse_boundary="json",
+            nullable=False,
+        ),
+        CharterField(
+            "extraction_provenance",
+            RuleExtractionProvenance,
+            parse_boundary="json",
+            nullable=False,
+        ),
+        CharterField("extraction_date", str, nullable=False),
+        CharterField(
+            "proposal_state",
+            str,
+            nullable=False,
+            default="proposed",
+            default_sql="'proposed'",
+        ),
+        CharterField("page_reference", str, nullable=True),
+        CharterField("promoted_from_sha", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+
+if TYPE_CHECKING:
+
+    class RuleProposalDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        source_paper: str
+        rule_id: str
+        proposed_rule: RuleDocument
+        predicates_referenced: tuple[str, ...]
+        extraction_provenance: RuleExtractionProvenance
+        extraction_date: str
+        proposal_state: str = "proposed"
+        page_reference: str | None = None
+        promoted_from_sha: str | None = None
+
+else:
+    RuleProposalDocument: Any = AUTHORED_RULE_PROPOSAL_CHARTER.generated_document()
+    RuleProposalDocument.__name__ = "RuleProposalDocument"
+    RuleProposalDocument.__qualname__ = "RuleProposalDocument"
+    RuleProposalDocument.__module__ = __name__
+
+
+AUTHORED_RULE_CHARTERS: tuple[FamilyCharter, ...] = (
+    AUTHORED_RULE_CHARTER,
+    AUTHORED_RULE_PROPOSAL_CHARTER,
+    RULE_SUPERIORITY_CHARTER,
 )
 
 
@@ -165,7 +404,7 @@ RULES_CHARTERS: tuple[FamilyCharter, FamilyCharter, FamilyCharter] = (
 
 def persist_grounded_bundle(
     derived: DerivedSession,
-    bundle: GroundedRulesBundle,
+    bundle: Any,
 ) -> int:
     """Persist every ground atom in ``bundle.sections`` through typed models.
 
@@ -241,7 +480,7 @@ def persist_grounded_bundle(
     return inserted
 
 
-def _grounded_bundle_input_models(bundle: GroundedRulesBundle) -> tuple[GroundedBundleInput, ...]:
+def _grounded_bundle_input_models(bundle: Any) -> tuple[GroundedBundleInput, ...]:
     rows = (
         ("source_rule", bundle.source_rules),
         ("source_superiority", bundle.source_superiority),
@@ -468,7 +707,7 @@ def _rule_key(rule: gunray.GroundDefeasibleRule) -> tuple[str, str, str]:
     return (rule.rule_id, rule.kind, repr(rule.head))
 
 
-def load_grounded_bundle(derived: DerivedSession) -> GroundedRulesBundle:
+def load_grounded_bundle(derived: DerivedSession) -> Any:
     """Rehydrate a runtime grounding bundle from persisted grounding inputs.
 
     The sidecar persists the source rule/fact inputs and the materialized
@@ -476,6 +715,9 @@ def load_grounded_bundle(derived: DerivedSession) -> GroundedRulesBundle:
     Gunray inspection frame required by ASPIC projection, then verifies that
     the recomputed sections match the stored materialization.
     """
+
+    from ...grounding.grounder import ground
+    from ...grounding.predicates import PredicateRegistry
 
     stored_sections = load_grounded_sections(derived)
     bundle = ground(
@@ -491,13 +733,13 @@ def load_grounded_bundle(derived: DerivedSession) -> GroundedRulesBundle:
 
 
 def build_runtime_grounded_bundle(
-    repo: Repository,
+    repo: Any,
     *,
     commit_hash: str | None = None,
-) -> GroundedRulesBundle:
+) -> Any:
     """Build the runtime grounding bundle for a repository snapshot."""
 
-    from propstore.grounding.loading import build_grounded_bundle
+    from ...grounding.loading import build_grounded_bundle
 
     return build_grounded_bundle(
         repo,

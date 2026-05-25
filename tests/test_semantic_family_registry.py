@@ -60,7 +60,7 @@ def test_semantic_registry_exposes_artifact_families_for_rules_and_predicates() 
 
 
 def test_rule_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.documents.rules import RuleDocument
+    from propstore.families.rules.declaration import RuleDocument
     from propstore.families.registry import RuleRef
 
     canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.RULES)
@@ -76,7 +76,7 @@ def test_rule_family_target_model_is_one_semantic_artifact_per_file() -> None:
 
 
 def test_rule_superiority_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.documents.rules import RuleSuperiorityDocument
+    from propstore.families.rules.declaration import RuleSuperiorityDocument
     from propstore.families.registry import RuleSuperiorityRef
 
     canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.RULE_SUPERIORITY)
@@ -329,7 +329,7 @@ def test_typed_family_handles_preserve_ref_and_document_types(tmp_path: Path) ->
     from propstore.families.contexts.declaration import ContextReferenceDocument
     from propstore.families.micropublications.declaration import MicropublicationDocument
     from propstore.families.predicates.declaration import PredicateDocument
-    from propstore.families.documents.rules import AtomDocument, RuleDocument
+    from propstore.families.rules.declaration import AtomDocument, RuleDocument
     from propstore.families.registry import ClaimRef, ContextRef, MicropublicationRef, PredicateRef, RuleRef
 
     repo = Repository.init(tmp_path / "knowledge")

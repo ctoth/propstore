@@ -20,7 +20,7 @@ def test_proposal_rules_family_is_registered(tmp_path) -> None:
 
 
 def test_rule_proposal_document_is_typed() -> None:
-    from propstore.families.documents.rules import (
+    from propstore.families.rules.declaration import (
         AtomDocument,
         RuleDocument,
         RuleExtractionProvenance,

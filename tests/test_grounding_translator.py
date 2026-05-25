@@ -106,7 +106,7 @@ def _build_term_var(name: str):
     identifiers that the Herbrand grounding pass will substitute.
     """
 
-    from propstore.families.documents.rules import TermDocument
+    from propstore.families.rules.declaration import TermDocument
 
     return TermDocument(kind="var", name=name, value=None)
 
@@ -119,7 +119,7 @@ def _build_term_const(value):
     bool``.
     """
 
-    from propstore.families.documents.rules import TermDocument
+    from propstore.families.rules.declaration import TermDocument
 
     return TermDocument(kind="const", name=None, value=value)
 
@@ -131,7 +131,7 @@ def _build_atom(predicate: str, terms):
     gunray schema consumes after stringification.
     """
 
-    from propstore.families.documents.rules import AtomDocument
+    from propstore.families.rules.declaration import AtomDocument
 
     return AtomDocument(predicate=predicate, terms=tuple(terms), negated=False)
 
@@ -149,7 +149,7 @@ def _build_rule_document(
     translator only accepts ``kind == "defeasible"``.
     """
 
-    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
+    from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
     body_literals = tuple(
         BodyLiteralDocument(kind="positive", atom=atom)

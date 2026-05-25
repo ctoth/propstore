@@ -194,7 +194,7 @@ def _build_var(name: str):
     constants drawn from the fact base.
     """
 
-    from propstore.families.documents.rules import TermDocument
+    from propstore.families.rules.declaration import TermDocument
 
     return TermDocument(kind="var", name=name, value=None)
 
@@ -207,7 +207,7 @@ def _build_atom(predicate: str, terms):
     stringification.
     """
 
-    from propstore.families.documents.rules import AtomDocument
+    from propstore.families.rules.declaration import AtomDocument
 
     return AtomDocument(
         predicate=predicate,
@@ -223,7 +223,7 @@ def _build_defeasible_rule(rule_id: str, head, body):
     ``-<`` arrow.
     """
 
-    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
+    from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
     return RuleDocument(
         id=rule_id,

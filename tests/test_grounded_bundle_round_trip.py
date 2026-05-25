@@ -6,7 +6,7 @@ from argumentation.aspic import GroundAtom
 from sqlalchemy import select
 
 from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
-from propstore.families.documents.rules import (
+from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,

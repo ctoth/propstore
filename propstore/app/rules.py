@@ -9,7 +9,7 @@ from threading import Lock
 
 from quire.documents import convert_document_value, encode_document
 
-from propstore.families.documents.rules import (
+from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,

@@ -62,7 +62,12 @@ from propstore.families.predicates.declaration import (
     PredicateDocument,
     PredicateProposalDocument,
 )
-from propstore.families.documents.rules import RuleDocument, RuleProposalDocument, RuleSuperiorityDocument
+from propstore.families.rules.declaration import (
+    AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
+    RuleDocument,
+    RuleProposalDocument,
+    RuleSuperiorityDocument,
+)
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceConceptEntryDocument,
@@ -942,9 +947,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.RULES,
             name=PropstoreFamily.RULES.value,
-            contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
+            contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             artifact_name="rule",
-            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             doc_type=RuleDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.RULES.value,
@@ -960,9 +965,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.RULE_SUPERIORITY,
             name=PropstoreFamily.RULE_SUPERIORITY.value,
-            contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
+            contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             artifact_name="rule_superiority",
-            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            artifact_contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             doc_type=RuleSuperiorityDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.RULE_SUPERIORITY.value,
@@ -1206,8 +1211,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.PROPOSAL_RULES,
             name=PropstoreFamily.PROPOSAL_RULES.value,
-            contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             artifact_name="proposal_rules",
+            artifact_contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             doc_type=RuleProposalDocument,
             placement=NestedFlatYamlPlacement(
                 namespace="rules",
@@ -1333,6 +1339,7 @@ def world_catalog() -> SchemaCatalog:
         claims.CLAIM_SOURCE_ASSERTION_CHARTER,
         relation_charters[1],
         *predicates.PREDICATE_CHARTERS,
+        *rules.AUTHORED_RULE_CHARTERS,
         *rules.RULES_CHARTERS,
         claims.JUSTIFICATION_CHARTER,
         sameas.SAMEAS_CHARTER,

@@ -485,19 +485,19 @@ class TestConflictInterventions:
 
 
 def _var(name: str):
-    from propstore.families.documents.rules import TermDocument
+    from propstore.families.rules.declaration import TermDocument
 
     return TermDocument(kind="var", name=name)
 
 
 def _atom(predicate: str, terms=(), *, negated: bool = False):
-    from propstore.families.documents.rules import AtomDocument
+    from propstore.families.rules.declaration import AtomDocument
 
     return AtomDocument(predicate=predicate, terms=tuple(terms), negated=negated)
 
 
 def _rule_doc(rule_id: str, kind: str, head, *, body=()):
-    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
+    from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
     return RuleDocument(
         id=rule_id,

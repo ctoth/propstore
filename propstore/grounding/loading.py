@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 from argumentation.aspic import GroundAtom
 from propstore.claims import LoadedClaimsFile
-from propstore.families.documents.rules import RuleDocument, RuleSuperiorityDocument
+from propstore.families.rules.declaration import RuleDocument, RuleSuperiorityDocument
 from propstore.families.concepts.stages import LoadedConcept, parse_concept_record_document
 from propstore.grounding.bundle import GroundedRulesBundle
 from propstore.grounding.facts import GroundingFactInputs, extract_facts

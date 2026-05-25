@@ -339,7 +339,7 @@ def _assert_sections(
 
 
 def _build_term_document(term: Variable | Constant):
-    from propstore.families.documents.rules import TermDocument
+    from propstore.families.rules.declaration import TermDocument
 
     if isinstance(term, Variable):
         return TermDocument(kind="var", name=term.name, value=None)
@@ -349,7 +349,7 @@ def _build_term_document(term: Variable | Constant):
 
 
 def _build_atom_document(atom_text: str):
-    from propstore.families.documents.rules import AtomDocument
+    from propstore.families.rules.declaration import AtomDocument
 
     parsed = parse_atom_text(atom_text)
     predicate, negated = _decode_gunray_predicate_token(parsed.predicate)
@@ -361,7 +361,7 @@ def _build_atom_document(atom_text: str):
 
 
 def _build_rule_document(rule: SuiteRule, *, kind: str):
-    from propstore.families.documents.rules import BodyLiteralDocument, RuleDocument
+    from propstore.families.rules.declaration import BodyLiteralDocument, RuleDocument
 
     return RuleDocument(
         id=rule.id,
@@ -378,7 +378,7 @@ def _build_rule_document(rule: SuiteRule, *, kind: str):
 
 
 def _build_rule_documents(theory: SuiteTheory):
-    from propstore.families.documents.rules import RuleSuperiorityDocument
+    from propstore.families.rules.declaration import RuleSuperiorityDocument
 
     rule_documents = [
         *(_build_rule_document(rule, kind="strict") for rule in theory.strict_rules),

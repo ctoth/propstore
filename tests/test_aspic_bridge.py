@@ -772,7 +772,7 @@ class TestPreferenceConfig:
         Garcia & Simari's DeLP superiority relation; ASPIC+ stores
         ``(weaker, stronger)`` pairs in ``PreferenceConfig.rule_order``.
         """
-        from propstore.families.documents.rules import (
+        from propstore.families.rules.declaration import (
             AtomDocument,
             BodyLiteralDocument,
             RuleDocument,

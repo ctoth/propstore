@@ -12,7 +12,7 @@ from typing import Any
 
 from quire.documents import convert_document_value
 
-from propstore.families.documents.rules import (
+from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,

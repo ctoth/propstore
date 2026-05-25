@@ -1,7 +1,7 @@
 """Property tests for rule and rule-superiority artifact YAML schemas.
 
 These tests describe the contract for the DeLP-style rule artifact document
-types in `propstore.families.documents.rules`.
+types in `propstore.families.rules.declaration`.
 
 Theoretical source:
     Garcia, A. J. & Simari, G. R. (2004). Defeasible Logic Programming:
@@ -34,7 +34,7 @@ from hypothesis import strategies as st
 #
 # Strategies live in this file per the chunk 1.1a constraint: no
 # conftest.py, no shared helper module. Every strategy closes over
-# deferred imports so the file parses without `propstore.families.documents.rules`.
+# deferred imports so the file parses without `propstore.families.rules.declaration`.
 
 
 _VARIABLE_NAMES = st.sampled_from(["X", "Y", "Z", "W", "U", "V"])
@@ -58,7 +58,7 @@ def term_documents() -> st.SearchStrategy:
     constants. Constants here are the propstore `Scalar` union:
     ``str | int | float | bool`` (cf. ``argumentation.aspic.Scalar``).
     """
-    from propstore.families.documents.rules import TermDocument  # noqa: E402
+    from propstore.families.rules.declaration import TermDocument  # noqa: E402
 
     var_strategy = _VARIABLE_NAMES.map(
         lambda name: TermDocument(kind="var", name=name)
@@ -81,7 +81,7 @@ def atom_documents(
     The ``negated`` boolean captures strong negation; the ``terms`` tuple
     carries arity ≥ 0 term documents.
     """
-    from propstore.families.documents.rules import AtomDocument, TermDocument  # noqa: E402
+    from propstore.families.rules.declaration import AtomDocument, TermDocument  # noqa: E402
 
     if variables is not None:
         var_term_strategy = variables.map(
@@ -113,7 +113,7 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
     body atoms over any subset of that pool, then building the head over
     the subset of variables actually used in the body.
     """
-    from propstore.families.documents.rules import (  # noqa: E402
+    from propstore.families.rules.declaration import (  # noqa: E402
         AtomDocument,
         BodyLiteralDocument,
         RuleDocument,
@@ -181,7 +181,7 @@ def rule_documents(*, max_body_size: int = 3) -> st.SearchStrategy:
 
 def rule_superiority_documents() -> st.SearchStrategy:
     """Strategy producing first-class rule-superiority artifacts."""
-    from propstore.families.documents.rules import (  # noqa: E402
+    from propstore.families.rules.declaration import (  # noqa: E402
         RuleSourceDocument,
         RuleSuperiorityDocument,
     )
@@ -223,7 +223,7 @@ def test_rule_document_yaml_round_trip(doc) -> None:
     positive body, and default-negation body (Garcia & Simari 2004 §3,
     §6.1 p.29).
     """
-    from propstore.families.documents.rules import RuleDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=RuleDocument, strict=True)
@@ -235,7 +235,7 @@ def test_rule_document_yaml_round_trip(doc) -> None:
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_rule_superiority_document_yaml_round_trip(doc) -> None:
     """Encoding then decoding a RuleSuperiorityDocument is idempotent."""
-    from propstore.families.documents.rules import RuleSuperiorityDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleSuperiorityDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=RuleSuperiorityDocument, strict=True)
@@ -279,7 +279,7 @@ def test_rule_document_unknown_kind_rejected() -> None:
     Any other kind string is an authoring error and must be rejected
     by strict msgspec decoding.
     """
-    from propstore.families.documents.rules import RuleDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleDocument  # noqa: E402
 
     invalid_yaml = b"""
 id: rule:invalid
@@ -309,7 +309,7 @@ def test_rule_document_forbids_unknown_fields() -> None:
     A rule document carrying a mystery field is an authoring error and
     must be rejected by strict decoding.
     """
-    from propstore.families.documents.rules import RuleDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleDocument  # noqa: E402
 
     yaml_with_extra = b"""
 id: rule:birds-fly
@@ -339,7 +339,7 @@ def test_rule_document_example_delp_birds_fly() -> None:
     (p.3-5). This test pins the YAML shape against a concrete parseable
     document so the authored-file surface does not drift.
     """
-    from propstore.families.documents.rules import RuleDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleDocument  # noqa: E402
 
     yaml_text = b"""
 id: rule:birds-fly
@@ -376,7 +376,7 @@ def test_rule_document_example_delp_penguin_strict() -> None:
     ``kind: strict`` discriminator must parse and the atom shape must
     match the defeasible example above.
     """
-    from propstore.families.documents.rules import RuleDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleDocument  # noqa: E402
 
     yaml_text = b"""
 id: rule:penguin-is-bird
@@ -408,7 +408,7 @@ def test_rule_document_example_delp_strong_negation_head() -> None:
     is the canonical rebutter to ``flies(X) -< bird(X)`` (Fig around §3).
     ``negated: true`` on the head atom must round-trip cleanly.
     """
-    from propstore.families.documents.rules import RuleDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleDocument  # noqa: E402
 
     yaml_text = b"""
 id: rule:penguins-do-not-fly
@@ -433,7 +433,7 @@ body:
 
 def test_rule_superiority_document_preserves_authored_pair() -> None:
     """Authored priority pairs round-trip as first-class artifacts."""
-    from propstore.families.documents.rules import (  # noqa: E402
+    from propstore.families.rules.declaration import (  # noqa: E402
         RuleSourceDocument,
         RuleSuperiorityDocument,
     )
@@ -454,7 +454,7 @@ def test_rule_superiority_document_preserves_authored_pair() -> None:
 
 def test_rule_superiority_document_rejects_unknown_fields() -> None:
     """Rule-superiority artifacts do not carry hidden bucket fields."""
-    from propstore.families.documents.rules import RuleSuperiorityDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleSuperiorityDocument  # noqa: E402
 
     invalid_yaml = b"""
 superior_rule_id: r2
@@ -473,7 +473,7 @@ def test_rule_document_fact_is_strict_rule_with_empty_body() -> None:
     body." The document schema must admit ``kind: strict`` together with
     ``body: []`` and round-trip it cleanly.
     """
-    from propstore.families.documents.rules import RuleDocument  # noqa: E402
+    from propstore.families.rules.declaration import RuleDocument  # noqa: E402
 
     yaml_text = b"""
 id: rule:tweety-is-a-bird

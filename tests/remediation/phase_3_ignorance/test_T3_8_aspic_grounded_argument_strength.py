@@ -3,7 +3,7 @@ from __future__ import annotations
 from argumentation.aspic import GroundAtom
 
 from propstore.aspic_bridge import build_bridge_csaf, csaf_to_projection
-from propstore.families.documents.rules import (
+from propstore.families.rules.declaration import (
     AtomDocument,
     BodyLiteralDocument,
     RuleDocument,
