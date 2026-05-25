@@ -46,6 +46,17 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.forms.models.FormDocument": VersionId("2026.05.25"),
     "propstore.families.contexts.declaration.ContextDocument": VersionId("2026.05.25"),
     "propstore.families.contexts.declaration.ContextReferenceDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.ConceptAliasDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.ConceptDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.ConceptFormParametersDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.ConceptIdScanDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.ConceptLogicalIdDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.ConceptRelationshipDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.LexicalEntryDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.LexicalFormDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.LexicalSenseDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.OntologyReferenceDocument": VersionId("2026.05.25"),
+    "propstore.families.concepts.declaration.ParameterizationRelationshipDocument": VersionId("2026.05.25"),
     "propstore.families.micropublications.declaration.MicropublicationDocument": VersionId("2026.05.25"),
     "propstore.families.micropublications.declaration.MicropublicationEvidenceDocument": VersionId("2026.05.25"),
     "propstore.families.sameas.declaration.SameAsAssertionDocument": VersionId("2026.05.25"),
@@ -165,7 +176,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import sources
     from propstore.families.claims import declaration as claims_declaration
     from propstore.families.claims import documents as claims
-    from propstore.families.concepts import documents as concepts
+    from propstore.families.concepts import declaration as concepts
     from propstore.families.contexts import declaration as contexts
     from propstore.families.forms import declaration as forms
     from propstore.families.merge import declaration as merge

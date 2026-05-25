@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.concepts.stages import LoadedConcept, load_concepts
 
 __all__ = [

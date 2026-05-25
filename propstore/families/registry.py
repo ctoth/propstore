@@ -49,7 +49,11 @@ from propstore.families.batch_specs import (
     SOURCE_STANCE_BATCH_SPEC,
 )
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.declaration import (
+    AUTHORED_CONCEPT_CHARTER,
+    AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+    ConceptDocument,
+)
 from propstore.families.contexts.declaration import CONTEXT_CHARTER
 from propstore.families.forms.declaration import FORM_CHARTER
 from propstore.families.merge.declaration import (
@@ -252,7 +256,7 @@ if not TYPE_CHECKING:
 ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.27")
 SAMEAS_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 STANCE_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
-CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.04.28")
+CONCEPT_ARTIFACT_FAMILY_CONTRACT_VERSION = AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION
 IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
 SOURCE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 SOURCE_DOCUMENT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
@@ -886,7 +890,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.CONCEPTS,
             name=PropstoreFamily.CONCEPTS.value,
-            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
+            contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
             artifact_family=CONCEPT_FILE_FAMILY,
             foreign_keys=CONCEPT_FOREIGN_KEYS,
             identity_policy=CONCEPT_IDENTITY_POLICY,
@@ -1329,6 +1333,7 @@ def world_catalog() -> SchemaCatalog:
     return charter_catalog(
         meta.WORLD_META_CHARTER,
         sources.SOURCE_CHARTER,
+        AUTHORED_CONCEPT_CHARTER,
         *concepts.CONCEPT_CHARTERS,
         relation_charters[0],
         *forms.FORMS_CHARTERS,

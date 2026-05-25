@@ -42,7 +42,7 @@ from propstore.families.registry import (
     SourceRef,
     StanceRef,
 )
-from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.concepts.stages import (
     LoadedConcept,
     parse_concept_record_document,

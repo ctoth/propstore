@@ -4,7 +4,7 @@ import pytest
 
 from propstore.concept_ids import NamespaceAmbiguity, _numeric_concept_id
 from propstore.families.concepts.types import ConceptStatus
-from propstore.families.concepts.documents import (
+from propstore.families.concepts.declaration import (
     ConceptDocument,
     ConceptLogicalIdDocument,
     LexicalEntryDocument,

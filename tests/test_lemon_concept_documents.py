@@ -4,7 +4,7 @@ import pytest
 
 from quire.documents import DocumentSchemaError, convert_document
 
-from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.declaration import FORM_CHARTER
 from propstore.families.registry import ConceptFileRef, FormRef
 from propstore.families.concepts.stages import concept_document_to_payload, parse_concept_record_document

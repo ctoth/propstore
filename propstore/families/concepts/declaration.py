@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, cast
 
 import json
+import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import (
     CharterField,
@@ -18,6 +19,7 @@ from quire.charters import (
 )
 from quire.families import FamilyDefinition
 from quire.references import ReferenceKey
+from quire.versions import VersionId
 
 from propstore.core.conditions import (
     check_condition_ir,
@@ -25,8 +27,11 @@ from propstore.core.conditions import (
     checked_condition_set_to_json,
 )
 from propstore.core.conditions.registry import ConceptInfo, with_standard_synthetic_bindings
+from propstore.core.exactness_types import Exactness
 from propstore.core.id_types import ConceptId
-from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
+from propstore.core.lemon.description_kinds import DescriptionKind
+from propstore.core.lemon.proto_roles import ProtoRoleBundle
+from propstore.core.lemon.qualia import QualiaStructure
 from propstore.families.forms.stages import (
     Form,
     FormAlgebra,
@@ -35,10 +40,222 @@ from propstore.families.forms.stages import (
     compile_form_models,
     kind_value_from_form_name,
 )
-from propstore.parameterization_groups import build_groups
+from propstore.families.concepts.types import ConceptRelationshipType, ConceptStatus
+from propstore.provenance import Provenance
 
 if TYPE_CHECKING:
     from propstore.families.concepts.stages import ConceptRecord, LoadedConcept
+
+
+AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+_CONCEPT_WORLD_CONTRACT_VERSION = VersionId("2026.05.20", allow_placeholder=False)
+
+
+class ConceptLogicalIdDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    namespace: str
+    value: str
+
+
+class ConceptAliasDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    name: str
+    source: str | None = None
+    note: str | None = None
+
+
+class ConceptRelationshipDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    type: ConceptRelationshipType
+    target: str
+    source: str | None = None
+    conditions: tuple[str, ...] = ()
+    note: str | None = None
+
+
+class ConceptFormParametersDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    construction: str | None = None
+    extensible: bool | None = None
+    note: str | None = None
+    reference: str | None = None
+    values: tuple[str, ...] | None = None
+
+
+class ParameterizationRelationshipDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    inputs: tuple[str, ...]
+    formula: str | None = None
+    exactness: Exactness | None = None
+    source: str | None = None
+    bidirectional: bool | None = None
+    sympy: str | None = None
+    conditions: tuple[str, ...] = ()
+    note: str | None = None
+    canonical_claim: str | None = None
+    fit_statistics: str | None = None
+
+
+class OntologyReferenceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    uri: str
+    label: str | None = None
+
+
+class LexicalFormDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    written_rep: str
+    language: str
+    phonetic_rep: str | None = None
+
+
+class LexicalSenseDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    reference: OntologyReferenceDocument
+    usage: str | None = None
+    provenance: Provenance | None = None
+    qualia: QualiaStructure | None = None
+    description_kind: DescriptionKind | None = None
+    role_bundles: dict[str, ProtoRoleBundle] | None = None
+
+
+class LexicalEntryDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    identifier: str
+    canonical_form: LexicalFormDocument
+    senses: tuple[LexicalSenseDocument, ...]
+    physical_dimension_form: str
+    other_forms: tuple[LexicalFormDocument, ...] = ()
+
+
+class ConceptIdScanDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=False):
+    id: str | None = None
+    artifact_id: str | None = None
+    logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()
+
+
+class AuthoredConcept(FamilyModel):
+    pass
+
+
+def _validate_lexical_entry_has_sense(document: msgspec.Struct) -> None:
+    lexical_entry = getattr(document, "lexical_entry")
+    if not lexical_entry.senses:
+        raise ValueError("lexical_entry requires at least one sense")
+
+
+AUTHORED_CONCEPT_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="authored_concept",
+        name="authored_concept",
+        contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-authored_concept",
+            contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+            doc_type=AuthoredConcept,
+            placement=FlatYamlPlacement(".derived/authored_concept", str),
+        ),
+        identity_field="id",
+    ),
+    model=AuthoredConcept,
+    fields=(
+        CharterField(
+            "id",
+            str | None,
+            primary_key=True,
+            nullable=True,
+            document_name="artifact_id",
+            document_order=3,
+        ),
+        CharterField("status", ConceptStatus, nullable=False, document_order=0),
+        CharterField(
+            "ontology_reference",
+            OntologyReferenceDocument,
+            parse_boundary="json",
+            nullable=False,
+            document_order=1,
+        ),
+        CharterField(
+            "lexical_entry",
+            LexicalEntryDocument,
+            parse_boundary="json",
+            nullable=False,
+            document_order=2,
+        ),
+        CharterField(
+            "logical_ids",
+            tuple[ConceptLogicalIdDocument, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("version_id", str, nullable=True),
+        CharterField(
+            "aliases",
+            tuple[ConceptAliasDocument, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("created_date", str, nullable=True),
+        CharterField("definition_source", str, nullable=True),
+        CharterField("domain", str, nullable=True),
+        CharterField(
+            "form_parameters",
+            ConceptFormParametersDocument,
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField("last_modified", str, nullable=True),
+        CharterField("notes", str, nullable=True),
+        CharterField(
+            "parameterization_relationships",
+            tuple[ParameterizationRelationshipDocument, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField(
+            "range",
+            tuple[float, float],
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField(
+            "relationships",
+            tuple[ConceptRelationshipDocument, ...],
+            parse_boundary="json",
+            nullable=False,
+            default=(),
+            default_sql="'[]'",
+        ),
+        CharterField("replaced_by", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+    validators=(_validate_lexical_entry_has_sense,),
+)
+
+
+if TYPE_CHECKING:
+
+    class ConceptDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        status: ConceptStatus
+        ontology_reference: OntologyReferenceDocument
+        lexical_entry: LexicalEntryDocument
+        artifact_id: str | None = None
+        logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()
+        version_id: str | None = None
+        aliases: tuple[ConceptAliasDocument, ...] = ()
+        created_date: str | None = None
+        definition_source: str | None = None
+        domain: str | None = None
+        form_parameters: ConceptFormParametersDocument | None = None
+        last_modified: str | None = None
+        notes: str | None = None
+        parameterization_relationships: tuple[ParameterizationRelationshipDocument, ...] = ()
+        range: tuple[float, float] | None = None
+        relationships: tuple[ConceptRelationshipDocument, ...] = ()
+        replaced_by: str | None = None
+
+else:
+    ConceptDocument: Any = AUTHORED_CONCEPT_CHARTER.generated_document()
+    ConceptDocument.__name__ = "ConceptDocument"
+    ConceptDocument.__qualname__ = "ConceptDocument"
+    ConceptDocument.__module__ = __name__
 
 
 @dataclass(frozen=True)
@@ -47,7 +264,7 @@ class ConceptWriteModels:
     concept_rows: tuple["Concept", ...]
     alias_rows: tuple["ConceptAlias", ...]
     relationship_rows: tuple["ConceptRelationship", ...]
-    relation_edge_rows: tuple[object, ...]
+    relation_edge_rows: tuple[Mapping[str, object], ...]
     parameterization_rows: tuple["Parameterization", ...]
     parameterization_group_rows: tuple["ParameterizationGroup", ...]
     form_algebra_rows: tuple[FormAlgebra, ...]
@@ -58,13 +275,11 @@ def compile_concept_sidecar_rows(
     form_registry: dict[str, FormDefinition],
     cel_registry: dict[str, ConceptInfo],
 ) -> ConceptWriteModels:
-    from propstore.families.relations.declaration import ConceptRelation
-
     form_rows = compile_form_models(form_registry)
     concept_rows: list[Concept] = []
     alias_rows: list[ConceptAlias] = []
     relationship_rows: list[ConceptRelationship] = []
-    relation_edge_rows: list[object] = []
+    relation_edge_rows: list[Mapping[str, object]] = []
     parameterization_rows: list[Parameterization] = []
     parameterization_group_rows: list[ParameterizationGroup] = []
     condition_registry = with_standard_synthetic_bindings(cel_registry)
@@ -142,15 +357,15 @@ def compile_concept_sidecar_rows(
                 )
             )
             relation_edge_rows.append(
-                ConceptRelation(
-                    source_kind="concept",
-                    source_id=concept_id,
-                    relation_type=str(relationship.relationship_type),
-                    target_kind="concept",
-                    target_id=target_id,
-                    conditions_cel=conditions_json,
-                    note=relationship.note,
-                )
+                {
+                    "source_kind": "concept",
+                    "source_id": concept_id,
+                    "relation_type": str(relationship.relationship_type),
+                    "target_kind": "concept",
+                    "target_id": target_id,
+                    "conditions_cel": conditions_json,
+                    "note": relationship.note,
+                }
             )
 
         for parameterization in record.parameterizations:
@@ -188,6 +403,8 @@ def compile_concept_sidecar_rows(
                     conditions_ir=conditions_ir,
                 )
             )
+
+    from propstore.parameterization_groups import build_groups
 
     groups = build_groups(concepts)
     for group_id, group_members in enumerate(sorted(groups, key=lambda group: min(group))):
@@ -338,10 +555,10 @@ CONCEPT_CHARTER: FamilyCharter = FamilyCharter(
     family=FamilyDefinition(
         key="concept",
         name="concept",
-        contract_version=_WORLD_CONTRACT_VERSION,
+        contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
         artifact_family=ArtifactFamily(
             name="propstore-world-concept",
-            contract_version=_WORLD_CONTRACT_VERSION,
+            contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
             doc_type=Concept,
             placement=FlatYamlPlacement(".derived/concept", str),
         ),
@@ -401,10 +618,10 @@ ALIAS_CHARTER: FamilyCharter = FamilyCharter(
     family=FamilyDefinition(
         key="alias",
         name="alias",
-        contract_version=_WORLD_CONTRACT_VERSION,
+        contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
         artifact_family=ArtifactFamily(
             name="propstore-world-alias",
-            contract_version=_WORLD_CONTRACT_VERSION,
+            contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
             doc_type=ConceptAlias,
             placement=FlatYamlPlacement(".derived/alias", str),
         ),
@@ -428,10 +645,10 @@ PARAMETERIZATION_CHARTER: FamilyCharter = FamilyCharter(
     family=FamilyDefinition(
         key="parameterization",
         name="parameterization",
-        contract_version=_WORLD_CONTRACT_VERSION,
+        contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
         artifact_family=ArtifactFamily(
             name="propstore-world-parameterization",
-            contract_version=_WORLD_CONTRACT_VERSION,
+            contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
             doc_type=Parameterization,
             placement=FlatYamlPlacement(".derived/parameterization", str),
         ),
@@ -454,10 +671,10 @@ PARAMETERIZATION_GROUP_CHARTER: FamilyCharter = FamilyCharter(
     family=FamilyDefinition(
         key="parameterization_group",
         name="parameterization_group",
-        contract_version=_WORLD_CONTRACT_VERSION,
+        contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
         artifact_family=ArtifactFamily(
             name="propstore-world-parameterization_group",
-            contract_version=_WORLD_CONTRACT_VERSION,
+            contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
             doc_type=ParameterizationGroup,
             placement=FlatYamlPlacement(".derived/parameterization_group", str),
         ),
@@ -476,10 +693,10 @@ RELATIONSHIP_CHARTER: FamilyCharter = FamilyCharter(
     family=FamilyDefinition(
         key="relationship",
         name="relationship",
-        contract_version=_WORLD_CONTRACT_VERSION,
+        contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
         artifact_family=ArtifactFamily(
             name="propstore-world-relationship",
-            contract_version=_WORLD_CONTRACT_VERSION,
+            contract_version=_CONCEPT_WORLD_CONTRACT_VERSION,
             doc_type=ConceptRelationship,
             placement=FlatYamlPlacement(".derived/relationship", str),
         ),

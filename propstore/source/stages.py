@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Any, TypeAlias
 
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,

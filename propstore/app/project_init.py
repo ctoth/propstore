@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Mapping
 
 from quire.documents import decode_yaml_mapping
-from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.forms.declaration import FORM_DOCUMENT_TYPE
 from propstore.families.forms.stages import FormDocumentProtocol
 from propstore.families.registry import (

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, cast
 from dulwich.file import FileLocked
 from dulwich.objects import Blob
 
-from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.declaration import ConceptDocument
 from quire.refs import RefName
 
 if TYPE_CHECKING:

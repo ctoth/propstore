@@ -40,7 +40,7 @@ from propstore.families.concepts.stages import (
     parse_concept_record_document,
 )
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.concepts.documents import ConceptDocument
+from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.identity.claims import normalize_canonical_claim_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id

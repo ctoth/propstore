@@ -615,7 +615,7 @@ def _write_repository_world_store_file(
                 derived.add_all(concept_models.concept_rows)
                 derived.add_all(concept_models.alias_rows)
                 derived.add_all(concept_models.relationship_rows)
-                derived.add_all(concept_models.relation_edge_rows)
+                derived.add_family_all("relation_edge", concept_models.relation_edge_rows)
                 derived.add_all(concept_models.parameterization_rows)
                 derived.add_all(concept_models.parameterization_group_rows)
                 derived.add_all(concept_models.form_algebra_rows)

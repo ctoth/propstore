@@ -69,11 +69,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: concept_file
-  contract_version: 2026.04.28
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.concepts.documents.ConceptDocument
+    doc_type: propstore.families.concepts.declaration.ConceptDocument
     document_payload: propstore.families.concepts.stages.concept_document_to_payload
     encode_document: propstore.families.concepts.stages.encode_concept_document
     normalize_for_write: propstore.families.concepts.stages.normalize_concept_document_for_write
@@ -1127,7 +1127,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ConceptAliasDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: name
@@ -1139,7 +1139,7 @@ contracts:
     - name: note
       required: true
       type: str | None
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: ConceptAlignmentArtifactDocument
   contract_version: 2026.05.25
@@ -1169,30 +1169,30 @@ contracts:
     module: propstore.families.source_alignment.declaration
 - kind: document_schema
   name: ConceptDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: status
       required: true
-      type: ConceptStatus
+      type: propstore.families.concepts.types.ConceptStatus
     - name: ontology_reference
       required: true
-      type: OntologyReferenceDocument
+      type: propstore.families.concepts.declaration.OntologyReferenceDocument
     - name: lexical_entry
       required: true
-      type: LexicalEntryDocument
+      type: propstore.families.concepts.declaration.LexicalEntryDocument
     - name: artifact_id
       required: true
       type: str | None
     - name: logical_ids
       required: true
-      type: tuple[ConceptLogicalIdDocument, ...]
+      type: builtins.tuple
     - name: version_id
       required: true
       type: str | None
     - name: aliases
       required: true
-      type: tuple[ConceptAliasDocument, ...]
+      type: builtins.tuple
     - name: created_date
       required: true
       type: str | None
@@ -1204,7 +1204,8 @@ contracts:
       type: str | None
     - name: form_parameters
       required: true
-      type: ConceptFormParametersDocument | None
+      type: propstore.families.concepts.declaration.ConceptFormParametersDocument
+        | None
     - name: last_modified
       required: true
       type: str | None
@@ -1213,20 +1214,20 @@ contracts:
       type: str | None
     - name: parameterization_relationships
       required: true
-      type: tuple[ParameterizationRelationshipDocument, ...]
+      type: builtins.tuple
     - name: range
       required: true
       type: tuple[float, float] | None
     - name: relationships
       required: true
-      type: tuple[ConceptRelationshipDocument, ...]
+      type: builtins.tuple
     - name: replaced_by
       required: true
       type: str | None
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: ConceptFormParametersDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: construction
@@ -1244,10 +1245,10 @@ contracts:
     - name: values
       required: true
       type: tuple[str, ...] | None
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: ConceptIdScanDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: id
@@ -1259,10 +1260,10 @@ contracts:
     - name: logical_ids
       required: true
       type: tuple[ConceptLogicalIdDocument, ...]
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: ConceptLogicalIdDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: namespace
@@ -1271,10 +1272,10 @@ contracts:
     - name: value
       required: true
       type: str
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: ConceptRelationshipDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: type
@@ -1288,11 +1289,11 @@ contracts:
       type: str | None
     - name: conditions
       required: true
-      type: tuple[CelExpr, ...]
+      type: tuple[str, ...]
     - name: note
       required: true
       type: str | None
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: ContextDocument
   contract_version: 2026.05.25
@@ -1536,7 +1537,7 @@ contracts:
     module: propstore.families.claims.declaration
 - kind: document_schema
   name: LexicalEntryDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: identifier
@@ -1554,10 +1555,10 @@ contracts:
     - name: other_forms
       required: true
       type: tuple[LexicalFormDocument, ...]
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: LexicalFormDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: written_rep
@@ -1569,10 +1570,10 @@ contracts:
     - name: phonetic_rep
       required: true
       type: str | None
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: LexicalSenseDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: reference
@@ -1593,7 +1594,7 @@ contracts:
     - name: role_bundles
       required: true
       type: dict[str, ProtoRoleBundle] | None
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: MergeManifestArgumentDocument
   contract_version: 2026.05.25
@@ -1758,7 +1759,7 @@ contracts:
     module: propstore.families.micropublications.declaration
 - kind: document_schema
   name: OntologyReferenceDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: uri
@@ -1767,7 +1768,7 @@ contracts:
     - name: label
       required: true
       type: str | None
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: OpinionDocument
   contract_version: 2026.04.30
@@ -1806,7 +1807,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: ParameterizationRelationshipDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: inputs
@@ -1829,7 +1830,7 @@ contracts:
       type: str | None
     - name: conditions
       required: true
-      type: tuple[CelExpr, ...]
+      type: tuple[str, ...]
     - name: note
       required: true
       type: str | None
@@ -1839,7 +1840,7 @@ contracts:
     - name: fit_statistics
       required: true
       type: str | None
-    module: propstore.families.concepts.documents
+    module: propstore.families.concepts.declaration
 - kind: document_schema
   name: PredicateDeclaration
   contract_version: 2026.05.25
@@ -3171,7 +3172,7 @@ contracts:
     - contract_version: 2026.05.21
       key: claims
       name: claims
-    - contract_version: 2026.05.21
+    - contract_version: 2026.05.25
       key: concepts
       name: concepts
     - contract_version: 2026.05.25
@@ -3363,12 +3364,12 @@ contracts:
     key: concept_alignments
 - kind: family
   name: concepts
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     accessor: concepts
     artifact_family: concept_file
     artifact_family_contract:
-      doc_type: propstore.families.concepts.documents.ConceptDocument
+      doc_type: propstore.families.concepts.declaration.ConceptDocument
       placement:
         branch:
           policy: primary
@@ -3377,7 +3378,7 @@ contracts:
         kind: flat-yaml
         namespace: concepts
         ref_field: name
-    artifact_family_contract_version: 2026.04.28
+    artifact_family_contract_version: 2026.05.25
     foreign_keys:
     - many: true
       required: false

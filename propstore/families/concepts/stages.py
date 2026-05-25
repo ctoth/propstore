@@ -9,7 +9,7 @@ from typing import Any
 import msgspec
 
 from propstore.cel_types import CelExpr, to_cel_exprs
-from propstore.families.concepts.documents import (
+from propstore.families.concepts.declaration import (
     ConceptAliasDocument,
     ConceptDocument,
     ConceptFormParametersDocument,
