@@ -43,7 +43,7 @@ from hypothesis import strategies as st
 #
 # Strategies live in this file per the chunk constraint: no conftest.py,
 # no shared helper module. Every strategy closes over deferred imports so
-# the file parses without `propstore.families.documents.predicates`.
+# the file parses without `propstore.families.predicates.declaration`.
 
 
 _PREDICATE_ID_HEAD = st.sampled_from(
@@ -110,7 +110,7 @@ def predicate_documents() -> st.SearchStrategy:
     ``claim.condition:...``); ``description`` is a free-text annotation.
     """
 
-    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
 
     @st.composite
     def _build(draw: st.DrawFn) -> "PredicateDocument":
@@ -156,7 +156,7 @@ def test_predicate_document_yaml_round_trip(doc) -> None:
     Datalog grounder can rely on the declarations across pipeline runs).
     """
 
-    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
 
     encoded = msgspec.yaml.encode(doc)
     decoded = msgspec.yaml.decode(encoded, type=PredicateDocument, strict=True)
@@ -205,7 +205,7 @@ def test_predicate_document_unknown_field_rejected() -> None:
     silently dropping mystery fields would let typos pass.
     """
 
-    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
 
     yaml_with_extra = b"""
 id: bird
@@ -226,7 +226,7 @@ def test_predicate_document_example_birds() -> None:
     PredicateDocument surface from drifting silently.
     """
 
-    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: bird
@@ -253,7 +253,7 @@ def test_predicate_document_nullary() -> None:
     Datalog programs.
     """
 
-    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: raining
@@ -277,7 +277,7 @@ def test_predicate_document_omits_optional_fields() -> None:
     documentation are layered on top.
     """
 
-    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
 
     yaml_text = b"""
 id: flies
@@ -292,7 +292,7 @@ arg_types: [Bird]
 def test_predicate_document_rejects_bucket_fields() -> None:
     """A predicate artifact is one declaration, not a bucket envelope."""
 
-    from propstore.families.documents.predicates import PredicateDocument  # noqa: E402
+    from propstore.families.predicates.declaration import PredicateDocument  # noqa: E402
 
     yaml_with_bucket_field = b"""
 id: bird

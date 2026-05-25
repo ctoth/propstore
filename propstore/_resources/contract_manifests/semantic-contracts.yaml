@@ -197,11 +197,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: predicate
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.predicates.PredicateDocument
+    doc_type: propstore.families.predicates.declaration.PredicateDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -218,11 +218,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: proposal_predicates
-  contract_version: 2026.05.11
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.predicates.PredicateProposalDocument
+    doc_type: propstore.families.predicates.declaration.PredicateProposalDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -1842,36 +1842,36 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: PredicateDeclaration
-  contract_version: 2026.05.01
+  contract_version: 2026.05.25
   body:
     fields:
     - name: name
       required: true
-      type: str
+      type: builtins.str
     - name: arity
       required: true
-      type: int
+      type: builtins.int
     - name: description
       required: true
-      type: str
+      type: builtins.str
     - name: arg_types
       required: true
-      type: tuple[PredicateArgType, ...]
-    module: propstore.families.documents.predicates
+      type: builtins.tuple
+    module: propstore.families.predicates.declaration
 - kind: document_schema
   name: PredicateDocument
-  contract_version: 2026.05.12
+  contract_version: 2026.05.25
   body:
     fields:
     - name: id
       required: true
-      type: str
+      type: builtins.str
     - name: arity
       required: true
-      type: int
+      type: builtins.int
     - name: arg_types
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
     - name: derived_from
       required: true
       type: str | None
@@ -1884,10 +1884,10 @@ contracts:
     - name: promoted_from_sha
       required: true
       type: str | None
-    module: propstore.families.documents.predicates
+    module: propstore.families.predicates.declaration
 - kind: document_schema
   name: PredicateExtractionProvenance
-  contract_version: 2026.05.01
+  contract_version: 2026.05.25
   body:
     fields:
     - name: operations
@@ -1908,10 +1908,10 @@ contracts:
     - name: status
       required: true
       type: str
-    module: propstore.families.documents.predicates
+    module: propstore.families.predicates.declaration
 - kind: document_schema
   name: PredicateProposalDocument
-  contract_version: 2026.05.01
+  contract_version: 2026.05.25
   body:
     fields:
     - name: source_paper
@@ -1929,7 +1929,7 @@ contracts:
     - name: promoted_from_sha
       required: true
       type: str | None
-    module: propstore.families.documents.predicates
+    module: propstore.families.predicates.declaration
 - kind: document_schema
   name: ProvenanceDocument
   contract_version: 2026.05.01
@@ -3171,7 +3171,7 @@ contracts:
     - contract_version: 2026.05.25
       key: forms
       name: forms
-    - contract_version: 2026.05.11
+    - contract_version: 2026.05.25
       key: predicates
       name: predicates
     - contract_version: 2026.05.11
@@ -3228,7 +3228,7 @@ contracts:
     - contract_version: 2026.05.25
       key: proposal_stances
       name: proposal_stances
-    - contract_version: 2026.05.11
+    - contract_version: 2026.05.25
       key: proposal_predicates
       name: proposal_predicates
     - contract_version: 2026.05.11
@@ -3575,12 +3575,12 @@ contracts:
     key: micropubs
 - kind: family
   name: predicates
-  contract_version: 2026.05.11
+  contract_version: 2026.05.25
   body:
     accessor: predicates
     artifact_family: predicate
     artifact_family_contract:
-      doc_type: propstore.families.documents.predicates.PredicateDocument
+      doc_type: propstore.families.predicates.declaration.PredicateDocument
       placement:
         branch:
           policy: primary
@@ -3589,7 +3589,7 @@ contracts:
         kind: flat-yaml
         namespace: predicates
         ref_field: predicate_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: predicates
     metadata:
@@ -3600,12 +3600,12 @@ contracts:
       semantic: true
 - kind: family
   name: proposal_predicates
-  contract_version: 2026.05.11
+  contract_version: 2026.05.25
   body:
     accessor: proposal_predicates
     artifact_family: proposal_predicates
     artifact_family_contract:
-      doc_type: propstore.families.documents.predicates.PredicateProposalDocument
+      doc_type: propstore.families.predicates.declaration.PredicateProposalDocument
       placement:
         branch:
           fixed_branch: proposal/predicates
@@ -3615,7 +3615,7 @@ contracts:
         kind: subdir-fixed-file
         namespace: predicates
         ref_field: source_paper
-    artifact_family_contract_version: 2026.05.11
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: proposal_predicates
 - kind: family

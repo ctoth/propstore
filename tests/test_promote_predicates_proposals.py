@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.app.predicates import PredicateWorkflowError
-from propstore.families.documents.predicates import (
+from propstore.families.predicates.declaration import (
     PredicateDeclaration,
     PredicateDocument,
     PredicateExtractionProvenance,

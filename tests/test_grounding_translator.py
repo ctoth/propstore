@@ -183,7 +183,7 @@ def _build_predicate_document(
     declaration time.
     """
 
-    from propstore.families.documents.predicates import PredicateDocument
+    from propstore.families.predicates.declaration import PredicateDocument
 
     return PredicateDocument(
         id=predicate_id,

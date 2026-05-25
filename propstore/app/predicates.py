@@ -14,7 +14,7 @@ from threading import Lock
 
 from quire.documents import convert_document_value, encode_document
 
-from propstore.families.documents.predicates import PredicateDocument
+from propstore.families.predicates.declaration import PredicateDocument
 from propstore.families.registry import PredicateRef
 from propstore.repository import Repository
 

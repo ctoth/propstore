@@ -39,7 +39,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from propstore.core.conditions.registry import KindType
-from propstore.families.documents.predicates import PredicateDocument
+from propstore.families.predicates.declaration import PredicateDocument
 
 
 DerivedFromKind = Literal[

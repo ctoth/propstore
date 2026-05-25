@@ -155,7 +155,7 @@ def _build_predicate_document(
     arity and per-position typed arguments.
     """
 
-    from propstore.families.documents.predicates import PredicateDocument
+    from propstore.families.predicates.declaration import PredicateDocument
 
     return PredicateDocument(
         id=predicate_id,

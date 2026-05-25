@@ -1,7 +1,7 @@
 import pytest
 
 from propstore.core.conditions.registry import KindType
-from propstore.families.documents.predicates import PredicateDocument
+from propstore.families.predicates.declaration import PredicateDocument
 from propstore.grounding.predicates import (
     PredicateArgKindError,
     PredicateAtom,

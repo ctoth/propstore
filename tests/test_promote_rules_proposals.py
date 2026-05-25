@@ -9,7 +9,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.app.rules import RuleWorkflowError, parse_atom
-from propstore.families.documents.predicates import PredicateDocument
+from propstore.families.predicates.declaration import PredicateDocument
 from propstore.families.documents.rules import (
     RuleDocument,
     RuleExtractionProvenance,

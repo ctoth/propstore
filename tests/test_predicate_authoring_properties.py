@@ -45,13 +45,23 @@ def test_generated_predicate_add_rejects_global_duplicate_ids(
 
         add_predicate(
             repo,
-            PredicateAddRequest(file=first_file, predicate_id=predicate_id, arity=1),
+            PredicateAddRequest(
+                file=first_file,
+                predicate_id=predicate_id,
+                arity=1,
+                arg_types=("entity",),
+            ),
         )
 
         with pytest.raises(PredicateWorkflowError, match="already declared"):
             add_predicate(
                 repo,
-                PredicateAddRequest(file=second_file, predicate_id=predicate_id, arity=1),
+                PredicateAddRequest(
+                    file=second_file,
+                    predicate_id=predicate_id,
+                    arity=1,
+                    arg_types=("entity",),
+                ),
             )
 
         assert _predicate_ids(repo).count(predicate_id) == 1
@@ -87,7 +97,12 @@ def test_generated_concurrent_predicate_adds_do_not_leave_duplicate_ids(
             try:
                 add_predicate(
                     local_repo,
-                    PredicateAddRequest(file=file_name, predicate_id=predicate_id, arity=1),
+                    PredicateAddRequest(
+                        file=file_name,
+                        predicate_id=predicate_id,
+                        arity=1,
+                        arg_types=("entity",),
+                    ),
                 )
             except (PredicateWorkflowError, HeadMismatchError) as exc:
                 with lock:

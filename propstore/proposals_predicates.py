@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.families.documents.predicates import (
+from propstore.families.predicates.declaration import (
     PredicateDocument,
 )
 from propstore.families.registry import (

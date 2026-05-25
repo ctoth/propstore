@@ -57,7 +57,11 @@ from propstore.families.merge.declaration import (
     MergeManifestDocument,
 )
 from propstore.families.micropublications.declaration import MicropublicationDocument
-from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
+from propstore.families.predicates.declaration import (
+    PREDICATE_FAMILY_CONTRACT_VERSION,
+    PredicateDocument,
+    PredicateProposalDocument,
+)
 from propstore.families.documents.rules import RuleDocument, RuleProposalDocument, RuleSuperiorityDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
@@ -921,9 +925,8 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.PREDICATES,
             name=PropstoreFamily.PREDICATES.value,
-            contract_version=INTENTIONAL_SET_FAMILY_CONTRACT_VERSION,
+            contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
             artifact_name="predicate",
-            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
             doc_type=PredicateDocument,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.PREDICATES.value,
@@ -1188,8 +1191,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.PROPOSAL_PREDICATES,
             name=PropstoreFamily.PROPOSAL_PREDICATES.value,
-            contract_version=PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
             artifact_name="proposal_predicates",
+            artifact_contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
             doc_type=PredicateProposalDocument,
             placement=SubdirFixedFilePlacement(
                 namespace="predicates",
@@ -1306,6 +1310,7 @@ def world_catalog() -> SchemaCatalog:
     meta = import_module("propstore.families.meta.declaration")
     micropublications = import_module("propstore.families.micropublications.declaration")
     merge = import_module("propstore.families.merge.declaration")
+    predicates = import_module("propstore.families.predicates.declaration")
     relations = import_module("propstore.families.relations.declaration")
     rules = import_module("propstore.families.rules.declaration")
     sameas = import_module("propstore.families.sameas.declaration")
@@ -1327,6 +1332,7 @@ def world_catalog() -> SchemaCatalog:
         *claims.CLAIM_PAYLOAD_CHARTERS,
         claims.CLAIM_SOURCE_ASSERTION_CHARTER,
         relation_charters[1],
+        *predicates.PREDICATE_CHARTERS,
         *rules.RULES_CHARTERS,
         claims.JUSTIFICATION_CHARTER,
         sameas.SAMEAS_CHARTER,

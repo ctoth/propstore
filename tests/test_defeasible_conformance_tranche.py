@@ -416,7 +416,7 @@ def _build_fact_atoms(theory: SuiteTheory):
 
 def _build_registry(theory: SuiteTheory):
     from propstore.grounding.predicates import PredicateRegistry
-    from propstore.families.documents.predicates import PredicateDocument
+    from propstore.families.predicates.declaration import PredicateDocument
 
     arities: dict[str, int] = {}
     for predicate, rows in theory.facts.items():

@@ -92,7 +92,7 @@ def test_rule_superiority_family_target_model_is_one_semantic_artifact_per_file(
 
 
 def test_predicate_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.documents.predicates import PredicateDocument
+    from propstore.families.predicates.declaration import PredicateDocument
     from propstore.families.registry import PredicateRef
 
     canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.PREDICATES)
@@ -328,7 +328,7 @@ def test_typed_family_handles_preserve_ref_and_document_types(tmp_path: Path) ->
     from propstore.families.contexts.declaration import ContextDocument
     from propstore.families.contexts.declaration import ContextReferenceDocument
     from propstore.families.micropublications.declaration import MicropublicationDocument
-    from propstore.families.documents.predicates import PredicateDocument
+    from propstore.families.predicates.declaration import PredicateDocument
     from propstore.families.documents.rules import AtomDocument, RuleDocument
     from propstore.families.registry import ClaimRef, ContextRef, MicropublicationRef, PredicateRef, RuleRef
 

@@ -149,7 +149,7 @@ def _build_predicate_document(
 ):
     """Construct a ``PredicateDocument`` with the supplied fields."""
 
-    from propstore.families.documents.predicates import PredicateDocument
+    from propstore.families.predicates.declaration import PredicateDocument
 
     return PredicateDocument(
         id=predicate_id,

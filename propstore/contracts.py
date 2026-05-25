@@ -24,10 +24,10 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.stances.declaration.StanceDocument": VersionId("2026.05.25"),
     "propstore.families.documents.rules.AtomDocument": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RuleDocument": VersionId("2026.05.12"),
-    "propstore.families.documents.predicates.PredicateDeclaration": VersionId("2026.05.01"),
-    "propstore.families.documents.predicates.PredicateDocument": VersionId("2026.05.12"),
-    "propstore.families.documents.predicates.PredicateExtractionProvenance": VersionId("2026.05.01"),
-    "propstore.families.documents.predicates.PredicateProposalDocument": VersionId("2026.05.01"),
+    "propstore.families.predicates.declaration.PredicateDeclaration": VersionId("2026.05.25"),
+    "propstore.families.predicates.declaration.PredicateDocument": VersionId("2026.05.25"),
+    "propstore.families.predicates.declaration.PredicateExtractionProvenance": VersionId("2026.05.25"),
+    "propstore.families.predicates.declaration.PredicateProposalDocument": VersionId("2026.05.25"),
     "propstore.families.documents.rules.RuleExtractionProvenance": VersionId("2026.05.01"),
     "propstore.families.documents.rules.RuleProposalDocument": VersionId("2026.05.01"),
     "propstore.families.claims.documents.ProvenanceDocument": VersionId("2026.05.01"),
@@ -159,7 +159,6 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
 
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import (
-        predicates,
         rules,
         sources,
     )
@@ -170,6 +169,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.forms import declaration as forms
     from propstore.families.merge import declaration as merge
     from propstore.families.micropublications import declaration as micropublications
+    from propstore.families.predicates import declaration as predicates
     from propstore.families.sameas import declaration as sameas
     from propstore.families.source_alignment import declaration as source_alignment
     from propstore.families.stances import declaration as stances

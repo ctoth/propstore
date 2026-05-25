@@ -26,7 +26,7 @@ def test_proposal_predicates_family_is_registered(tmp_path) -> None:
 
 
 def test_predicate_proposal_document_is_typed() -> None:
-    from propstore.families.documents.predicates import (
+    from propstore.families.predicates.declaration import (
         PredicateDeclaration,
         PredicateExtractionProvenance,
         PredicateProposalDocument,
@@ -62,7 +62,7 @@ def test_predicate_proposal_document_is_typed() -> None:
     ["paper_id", "int", "float", "str", "bool", "enum:hot|warm|cold"],
 )
 def test_predicate_arg_type_closed_set_accepts_known_tags(arg_type: str) -> None:
-    from propstore.families.documents.predicates import PredicateDeclaration
+    from propstore.families.predicates.declaration import PredicateDeclaration
 
     declaration = PredicateDeclaration(
         name="typed_predicate",
@@ -75,7 +75,7 @@ def test_predicate_arg_type_closed_set_accepts_known_tags(arg_type: str) -> None
 
 
 def test_predicate_arg_type_closed_set_rejects_unknown_tag() -> None:
-    from propstore.families.documents.predicates import PredicateDeclaration
+    from propstore.families.predicates.declaration import PredicateDeclaration
 
     with pytest.raises(ValueError, match="unsupported predicate arg type"):
         PredicateDeclaration(
@@ -101,7 +101,7 @@ def test_generated_predicate_declaration_roundtrip_preserves_identity_and_proven
     arg_types: list[str],
     source_paper: str,
 ) -> None:
-    from propstore.families.documents.predicates import (
+    from propstore.families.predicates.declaration import (
         PredicateDeclaration,
         PredicateExtractionProvenance,
         PredicateProposalDocument,

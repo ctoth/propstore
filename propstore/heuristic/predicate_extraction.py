@@ -11,7 +11,7 @@ from typing import Any
 
 from quire.documents import convert_document_value
 
-from propstore.families.documents.predicates import (
+from propstore.families.predicates.declaration import (
     PredicateDeclaration,
     PredicateExtractionProvenance,
     PredicateProposalDocument,

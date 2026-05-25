@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from propstore.families.documents.predicates import PredicateDocument
+from propstore.families.predicates.declaration import PredicateDocument
 from propstore.families.registry import PredicateRef, RuleProposalRef
 from propstore.repository import Repository
 
