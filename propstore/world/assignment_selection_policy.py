@@ -28,22 +28,11 @@ from propstore.world.types import (
     IntegrityConstraintKind,
     RenderPolicy,
 )
+from propstore.world.value_resolver import ClaimValueResolver
 
 
 def _claim_id(claim: Claim) -> ClaimId:
     return ClaimId(str(claim.id))
-
-
-def _claim_value(claim: Claim) -> float | str | None:
-    numeric_payload = claim.numeric_payload
-    value = None if numeric_payload is None else numeric_payload.value
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int | float):
-        return float(value)
-    if isinstance(value, str):
-        return value
-    return None
 
 
 def _claim_concept_id(claim: Claim) -> str:
@@ -117,7 +106,7 @@ def _filtered_assignment_selection_claims(
     branch_filter = None if policy is None else policy.branch_filter
     filtered: list[Claim] = []
     for claim in active_claims:
-        value = _claim_value(claim)
+        value = ClaimValueResolver.claim_value(claim)
         if value is None:
             continue
         branch = claim.branch
@@ -352,7 +341,7 @@ def build_assignment_selection_problem(
                 source_id=source_id,
                 assignment=Assignment(
                     values={
-                        concept_id: _claim_value(claim)
+                        concept_id: ClaimValueResolver.claim_value(claim)
                         for concept_id, claim in concept_claims.items()
                     }
                 ),
@@ -414,7 +403,7 @@ def resolve_assignment_selection_merge(
     matching_claims = [
         claim
         for claim in target_claims
-        if _claim_value(claim) == winning_value
+        if ClaimValueResolver.claim_value(claim) == winning_value
     ]
     if len(matching_claims) != 1:
         return None, (
