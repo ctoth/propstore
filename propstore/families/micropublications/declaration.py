@@ -2,18 +2,38 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Iterable
+from typing import Any, TYPE_CHECKING
 
+import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, CharterIndex, CharterRelationship, FamilyCharter, FamilyModel
 from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex, ForeignKeySpec
+from quire.versions import VersionId
 
-from propstore.families.claims.references import ClaimReferenceRecord
-from propstore.families.diagnostics.declaration import QuarantineDiagnostic
-from propstore.families.documents.micropubs import MicropublicationDocument
-from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
+from ...core.diagnostics import QuarantineDiagnostic
+from ..claims.documents import ProvenanceDocument
+from ..contexts.declaration import ContextReferenceDocument
+
+if TYPE_CHECKING:
+    from ..claims.references import ClaimReferenceRecord
+
+
+_MICROPUBLICATION_WORLD_CONTRACT_VERSION = VersionId(
+    "2026.05.20",
+    allow_placeholder=False,
+)
+
+
+class MicropublicationEvidenceDocument(msgspec.Struct, forbid_unknown_fields=True):
+    kind: str
+    reference: str
+
+
+def _micropub_validate_non_empty_claims(document: msgspec.Struct) -> None:
+    if not getattr(document, "claims"):
+        raise ValueError("claims must contain at least one claim reference")
 
 
 class Micropublication(FamilyModel):
@@ -29,15 +49,14 @@ class MicropublicationClaimLink(FamilyModel):
     pass
 
 
-MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
-        FamilyCharter(
+MICROPUBLICATION_CHARTER: FamilyCharter = FamilyCharter(
             family=FamilyDefinition(
                 key="micropublication",
                 name="micropublication",
-                contract_version=_WORLD_CONTRACT_VERSION,
+                contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
                 artifact_family=ArtifactFamily(
                     name="propstore-world-micropublication",
-                    contract_version=_WORLD_CONTRACT_VERSION,
+                    contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
                     doc_type=Micropublication,
                     placement=FlatYamlPlacement(".derived/micropublication", str),
                 ),
@@ -45,13 +64,54 @@ MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
             ),
             model=Micropublication,
             fields=(
-                CharterField("id", str, primary_key=True, nullable=False),
-                CharterField("context_id", str, nullable=False),
-                CharterField("assumptions_json", str, nullable=False, default_sql="'[]'"),
-                CharterField("evidence_json", str, nullable=False, default_sql="'[]'"),
-                CharterField("stance", str),
-                CharterField("provenance_json", str),
-                CharterField("source_slug", str),
+                CharterField(
+                    "id",
+                    str,
+                    primary_key=True,
+                    nullable=False,
+                    document_name="artifact_id",
+                ),
+                CharterField(
+                    "context_id",
+                    ContextReferenceDocument,
+                    nullable=False,
+                    document_name="context",
+                ),
+                CharterField(
+                    "claims",
+                    tuple[str, ...],
+                    parse_boundary="json",
+                    nullable=False,
+                    default=(),
+                ),
+                CharterField("version_id", str, nullable=True),
+                CharterField(
+                    "assumptions_json",
+                    tuple[str, ...],
+                    parse_boundary="json",
+                    nullable=False,
+                    default=(),
+                    default_sql="'[]'",
+                    document_name="assumptions",
+                ),
+                CharterField(
+                    "evidence_json",
+                    tuple[MicropublicationEvidenceDocument, ...],
+                    parse_boundary="json",
+                    nullable=False,
+                    default=(),
+                    default_sql="'[]'",
+                    document_name="evidence",
+                ),
+                CharterField("stance", str, nullable=True),
+                CharterField(
+                    "provenance_json",
+                    ProvenanceDocument,
+                    parse_boundary="json",
+                    nullable=True,
+                    document_name="provenance",
+                ),
+                CharterField("source_slug", str, nullable=True, document_name="source"),
             ),
             indexes=(CharterIndex("idx_micropub_context", ("context_id",)),),
             relationships=(
@@ -65,15 +125,18 @@ MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
                 ),
             ),
             semantic_metadata={"semantic": "propstore.world"},
-        ),
-        FamilyCharter(
+            validators=(_micropub_validate_non_empty_claims,),
+        )
+
+
+MICROPUBLICATION_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
             family=FamilyDefinition(
                 key="micropublication_claim",
                 name="micropublication_claim",
-                contract_version=_WORLD_CONTRACT_VERSION,
+                contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
                 artifact_family=ArtifactFamily(
                     name="propstore-world-micropublication_claim",
-                    contract_version=_WORLD_CONTRACT_VERSION,
+                    contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
                     doc_type=MicropublicationClaimLink,
                     placement=FlatYamlPlacement(".derived/micropublication_claim", str),
                 ),
@@ -88,7 +151,7 @@ MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
                     nullable=False,
                     foreign_key=ForeignKeySpec(
                         name="micropublication_claim_micropublication",
-                        contract_version=_WORLD_CONTRACT_VERSION,
+                        contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
                         source_family="micropublication_claim",
                         source_field="micropublication_id",
                         target_family="micropublication",
@@ -103,7 +166,7 @@ MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
                     nullable=False,
                     foreign_key=ForeignKeySpec(
                         name="micropublication_claim_claim",
-                        contract_version=_WORLD_CONTRACT_VERSION,
+                        contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
                         source_family="micropublication_claim",
                         source_field="claim_id",
                         target_family="claim_core",
@@ -124,8 +187,29 @@ MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
                 ),
             ),
             semantic_metadata={"semantic": "propstore.world"},
-        ),
-    )
+        )
+
+
+if TYPE_CHECKING:
+    class MicropublicationDocument(msgspec.Struct, forbid_unknown_fields=True):
+        artifact_id: str
+        context: ContextReferenceDocument
+        claims: tuple[str, ...]
+        version_id: str | None = None
+        assumptions: tuple[str, ...] = ()
+        evidence: tuple[MicropublicationEvidenceDocument, ...] = ()
+        stance: str | None = None
+        provenance: ProvenanceDocument | None = None
+        source: str | None = None
+
+else:
+    MicropublicationDocument: Any = MICROPUBLICATION_CHARTER.generated_document()
+
+
+MICROPUBLICATION_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
+    MICROPUBLICATION_CHARTER,
+    MICROPUBLICATION_CLAIM_CHARTER,
+)
 
 
 MicropublicationModelBatches = tuple[
@@ -181,22 +265,13 @@ def compile_micropublication_models_with_diagnostics(
             Micropublication(
                 id=micropub.artifact_id,
                 context_id=str(micropub.context.id),
-                assumptions_json=json.dumps(
-                    list(micropub.assumptions),
-                    sort_keys=True,
-                ),
-                evidence_json=json.dumps(
-                    [item.to_payload() for item in micropub.evidence],
-                    sort_keys=True,
-                ),
-                stance=None if micropub.stance is None else micropub.stance.value,
+                assumptions_json=micropub.assumptions,
+                evidence_json=micropub.evidence,
+                stance=None if micropub.stance is None else str(micropub.stance),
                 provenance_json=(
                     None
                     if micropub.provenance is None
-                    else json.dumps(
-                        micropub.provenance.to_payload(),
-                        sort_keys=True,
-                    )
+                    else micropub.provenance
                 ),
                 source_slug=micropub.source,
             )

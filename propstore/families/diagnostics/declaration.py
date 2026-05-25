@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
@@ -13,6 +12,7 @@ from quire.families import FamilyDefinition
 from sqlalchemy import delete, select
 
 from quire.sqlalchemy_store import DerivedSession
+from propstore.core.diagnostics import QuarantineDiagnostic
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
 
 if TYPE_CHECKING:
@@ -57,15 +57,6 @@ DIAGNOSTICS_CHARTER: FamilyCharter = FamilyCharter(
         ),
         semantic_metadata={"semantic": "propstore.world"},
     )
-
-
-@dataclass(frozen=True)
-class QuarantineDiagnostic:
-    artifact_id: str
-    kind: str
-    diagnostic_kind: str
-    message: str
-    file: str | None = None
 
 
 def quarantine_diagnostic(

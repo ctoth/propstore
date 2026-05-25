@@ -3,7 +3,7 @@ from __future__ import annotations
 from quire.documents import DocumentBatchSpec
 
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceConceptEntryDocument,

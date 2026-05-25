@@ -6,8 +6,9 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import MicropublicationDocument
 from quire.documents import convert_document_value
+from quire.documents import document_to_payload
 from propstore.cli import cli
 from propstore.repository import Repository
 from tests.family_helpers import materialized_world_store_path
@@ -62,7 +63,9 @@ def test_micropublication_document_requires_claim_bundle() -> None:
 
     assert micropub.context.id == "ctx_test"
     assert micropub.claims == ("ps:claim:claim1",)
-    assert micropub.to_payload()["evidence"][0]["reference"] == "demo:1"
+    payload = document_to_payload(micropub)
+    assert isinstance(payload, dict)
+    assert payload["evidence"][0]["reference"] == "demo:1"
 
 
 def _init_source_with_claim(tmp_path: Path) -> Repository:

@@ -163,7 +163,7 @@ def test_justification_family_target_model_is_one_semantic_artifact_per_file() -
 
 
 def test_micropub_family_target_model_is_one_semantic_artifact_per_file() -> None:
-    from propstore.families.documents.micropubs import MicropublicationDocument
+    from propstore.families.micropublications.declaration import MicropublicationDocument
     from propstore.families.registry import MicropublicationRef
 
     canonical = PROPSTORE_FAMILY_REGISTRY.by_key(PropstoreFamily.MICROPUBS)
@@ -327,7 +327,7 @@ def test_typed_family_handles_preserve_ref_and_document_types(tmp_path: Path) ->
     from propstore.families.claims.documents import ClaimDocument
     from propstore.families.contexts.declaration import ContextDocument
     from propstore.families.contexts.declaration import ContextReferenceDocument
-    from propstore.families.documents.micropubs import MicropublicationDocument
+    from propstore.families.micropublications.declaration import MicropublicationDocument
     from propstore.families.documents.predicates import PredicateDocument
     from propstore.families.documents.rules import AtomDocument, RuleDocument
     from propstore.families.registry import ClaimRef, ContextRef, MicropublicationRef, PredicateRef, RuleRef

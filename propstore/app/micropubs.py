@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.registry import MicropublicationRef
 from propstore.families.contexts.stages import (
     LoadedContext,

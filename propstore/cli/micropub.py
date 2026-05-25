@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import click
+from quire.documents import document_to_payload
 
 from propstore.cli.output import emit, emit_table, emit_yaml
 
@@ -49,7 +50,7 @@ def show(obj: dict, artifact_id: str) -> None:
         entry = find_micropub(repo, artifact_id)
     except MicropubNotFoundError as exc:
         fail(exc)
-    emit_yaml(entry.document.to_payload())
+    emit_yaml(document_to_payload(entry.document))
 
 
 @micropub.command("lift")

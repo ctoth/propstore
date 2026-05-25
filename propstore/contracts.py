@@ -39,6 +39,8 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.forms.models.FormDocument": VersionId("2026.05.25"),
     "propstore.families.contexts.declaration.ContextDocument": VersionId("2026.05.25"),
     "propstore.families.contexts.declaration.ContextReferenceDocument": VersionId("2026.05.25"),
+    "propstore.families.micropublications.declaration.MicropublicationDocument": VersionId("2026.05.25"),
+    "propstore.families.micropublications.declaration.MicropublicationEvidenceDocument": VersionId("2026.05.25"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
@@ -134,7 +136,6 @@ def iter_semantic_stage_contracts() -> tuple[tuple[str, str, type[Any], tuple[st
 def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.documents import (
         merge,
-        micropubs,
         predicates,
         rules,
         source_alignment,
@@ -147,6 +148,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.concepts import documents as concepts
     from propstore.families.contexts import declaration as contexts
     from propstore.families.forms import declaration as forms
+    from propstore.families.micropublications import declaration as micropublications
     from propstore.families.sameas import documents as sameas
 
     modules = (
@@ -156,7 +158,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         contexts,
         forms,
         merge,
-        micropubs,
+        micropublications,
         predicates,
         rules,
         sameas,

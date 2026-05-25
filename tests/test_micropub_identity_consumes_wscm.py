@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from propstore.families.contexts.declaration import ContextReferenceDocument
-from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.identity.micropubs import micropub_artifact_id
 from propstore.families.identity.micropubs import canonical_micropub_payload
 

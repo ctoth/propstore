@@ -43,6 +43,7 @@ from propstore.core.conditions import (
     checked_condition_set_from_json,
     checked_condition_set_to_json,
 )
+from propstore.core.diagnostics import QuarantineDiagnostic
 from propstore.core.justifications import Justification
 from propstore.core.relations import ClaimConceptLinkRole
 from propstore.dimensions import DimensionalForm, normalize_to_si
@@ -55,7 +56,6 @@ from propstore.families.claims.documents import claim_type_contract_for
 from propstore.families.claims.sympy_generation import derive_equation_sympy
 from propstore.families.diagnostics.declaration import (
     BuildDiagnostic,
-    QuarantineDiagnostic,
     compile_promotion_blocked_diagnostics,
     delete_promotion_blocked_diagnostics,
 )

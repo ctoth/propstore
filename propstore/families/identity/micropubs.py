@@ -14,9 +14,10 @@ import copy
 import json
 from typing import Any
 
-from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.uri import compute_ni_uri
 from quire import canonical_json_sha256
+from quire.documents import document_to_payload
 
 MICROPUB_IDENTITY_EXCLUDED_FIELDS = ("artifact_id", "version_id")
 MICROPUB_SORTED_STRING_LIST_FIELDS = ("claims", "assumptions")
@@ -33,7 +34,10 @@ def canonicalize_micropub_for_identity(
     abstracted away, then verifies by reproducing that abstraction
     (p. 6).
     """
-    canonical = copy.deepcopy(document.to_payload())
+    canonical_payload = document_to_payload(document)
+    if not isinstance(canonical_payload, dict):
+        raise TypeError("micropublication identity payload must be a mapping")
+    canonical = copy.deepcopy(canonical_payload)
     for field in MICROPUB_IDENTITY_EXCLUDED_FIELDS:
         canonical.pop(field, None)
 

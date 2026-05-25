@@ -24,9 +24,9 @@ from propstore.core.id_types import (
     ClaimId,
     JustificationId,
 )
+from propstore.core.diagnostics import QuarantineDiagnostic
 from propstore.compiler.ir import SemanticClaim
 from propstore.families.claims.references import ClaimReferenceRecord
-from propstore.families.diagnostics.declaration import QuarantineDiagnostic
 from propstore.families.claims.documents import ResolutionDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION

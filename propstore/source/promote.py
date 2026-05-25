@@ -51,7 +51,7 @@ from propstore.families.claims.documents import ClaimDocument
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.claims.types import ClaimType
 from propstore.families.contexts.stages import parse_context_record_document
-from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.forms.stages import parse_form
 from propstore.provenance import (
     Provenance,

@@ -108,8 +108,8 @@ def test_promotion_blocked_mirror_replaces_claim_with_existing_payload_children(
             text(
                 """
             INSERT INTO micropublication (
-                id, context_id, assumptions_json, evidence_json
-            ) VALUES ('mp-alpha', 'ctx-alpha', '[]', '[]')
+                id, context_id, claims, assumptions_json, evidence_json
+            ) VALUES ('mp-alpha', 'ctx-alpha', '["claim-1"]', '[]', '[]')
             """
             )
         )

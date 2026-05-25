@@ -171,11 +171,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: micropublication
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.micropubs.MicropublicationDocument
+    doc_type: propstore.families.micropublications.declaration.MicropublicationDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -483,7 +483,7 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_micropubs
-  contract_version: 2026.05.02
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: propstore.families.registry.decode_source_micropubs_document
@@ -501,7 +501,7 @@ contracts:
       filename: micropubs.yaml
       kind: fixed-file
     render_document: propstore.families.registry.render_source_micropubs_document
-    scan_type: propstore.families.documents.micropubs.MicropublicationDocument
+    scan_type: propstore.families.micropublications.declaration.MicropublicationDocument
     validate_for_write: null
 - kind: artifact_family
   name: source_notes
@@ -1713,40 +1713,40 @@ contracts:
     module: propstore.families.documents.merge
 - kind: document_schema
   name: MicropublicationDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: artifact_id
       required: true
-      type: str
+      type: builtins.str
     - name: context
       required: true
-      type: ContextReferenceDocument
+      type: propstore.families.contexts.declaration.ContextReferenceDocument
     - name: claims
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
     - name: version_id
       required: true
       type: str | None
-    - name: evidence
-      required: true
-      type: tuple[MicropublicationEvidenceDocument, ...]
     - name: assumptions
       required: true
-      type: tuple[str, ...]
+      type: builtins.tuple
+    - name: evidence
+      required: true
+      type: builtins.tuple
     - name: stance
       required: true
-      type: StanceType | None
+      type: str | None
     - name: provenance
       required: true
-      type: ProvenanceDocument | None
+      type: propstore.families.claims.documents.ProvenanceDocument | None
     - name: source
       required: true
       type: str | None
-    module: propstore.families.documents.micropubs
+    module: propstore.families.micropublications.declaration
 - kind: document_schema
   name: MicropublicationEvidenceDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: kind
@@ -1755,7 +1755,7 @@ contracts:
     - name: reference
       required: true
       type: str
-    module: propstore.families.documents.micropubs
+    module: propstore.families.micropublications.declaration
 - kind: document_schema
   name: OntologyReferenceDocument
   contract_version: 2026.04.30
@@ -3186,7 +3186,7 @@ contracts:
     - contract_version: 2026.05.25
       key: sources
       name: sources
-    - contract_version: 2026.05.21
+    - contract_version: 2026.05.25
       key: micropubs
       name: micropubs
     - contract_version: 2026.05.25
@@ -3207,7 +3207,7 @@ contracts:
     - contract_version: 2026.05.02
       key: source_claims
       name: source_claims
-    - contract_version: 2026.05.02
+    - contract_version: 2026.05.25
       key: source_micropubs
       name: source_micropubs
     - contract_version: 2026.05.02
@@ -3532,12 +3532,12 @@ contracts:
     key: merge_manifests
 - kind: family
   name: micropubs
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     accessor: micropubs
     artifact_family: micropublication
     artifact_family_contract:
-      doc_type: propstore.families.documents.micropubs.MicropublicationDocument
+      doc_type: propstore.families.micropublications.declaration.MicropublicationDocument
       placement:
         branch:
           policy: primary
@@ -3551,7 +3551,7 @@ contracts:
         kind: hash-scattered-yaml
         namespace: micropubs
         ref_field: artifact_id
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys:
     - many: false
       required: true
@@ -3853,7 +3853,7 @@ contracts:
     key: source_metadata
 - kind: family
   name: source_micropubs
-  contract_version: 2026.05.02
+  contract_version: 2026.05.25
   body:
     accessor: source_micropubs
     artifact_family: source_micropubs
@@ -3868,7 +3868,7 @@ contracts:
           template: source/{stem}
         filename: micropubs.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.05.02
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: source_micropubs
 - kind: family

@@ -22,7 +22,7 @@ from propstore.families.documents.sources import (
     SourceStanceEntryDocument,
     SourceTrustDocument,
 )
-from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.sources.declaration import SourceDocument
 
 TDocument = TypeVar("TDocument")

@@ -11,8 +11,8 @@ from propstore.families.claims.references import (
     ImportedClaimReference,
     imported_claim_reference_index,
 )
-from propstore.families.documents.micropubs import MicropublicationDocument
 from propstore.families.micropublications.declaration import (
+    MicropublicationDocument,
     compile_micropublication_models_with_diagnostics,
 )
 from propstore.families.registry import world_schema

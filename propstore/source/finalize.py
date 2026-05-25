@@ -26,7 +26,7 @@ from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceFinalizeReportDocument,
 )
-from propstore.families.documents.micropubs import (
+from propstore.families.micropublications.declaration import (
     MicropublicationDocument,
     MicropublicationEvidenceDocument,
 )

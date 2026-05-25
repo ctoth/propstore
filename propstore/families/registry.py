@@ -28,6 +28,7 @@ from quire.documents import (
     decode_document_batch_bytes,
     decode_json_mapping,
     decode_text_document,
+    document_to_payload,
     encode_json_mapping,
     encode_text_document,
     identity_json_mapping,
@@ -52,7 +53,7 @@ from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.declaration import CONTEXT_CHARTER
 from propstore.families.forms.declaration import FORM_CHARTER
 from propstore.families.documents.merge import MergeManifestDocument
-from propstore.families.documents.micropubs import MicropublicationDocument
+from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
 from propstore.families.documents.rules import RuleDocument, RuleProposalDocument, RuleSuperiorityDocument
 from propstore.families.documents.source_alignment import ConceptAlignmentArtifactDocument
@@ -240,6 +241,9 @@ SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
 INTENTIONAL_SET_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
+MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+MICROPUBLICATION_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+SOURCE_MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.25")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION = VersionId("2026.05.21")
@@ -359,7 +363,7 @@ CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, Sourc
 
 MICROPUBLICATION_FAMILY = ArtifactFamily["Repository", MicropublicationRef, MicropublicationDocument](
     name="micropublication",
-    contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+    contract_version=MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
     doc_type=MicropublicationDocument,
     placement=MICROPUBLICATION_PLACEMENT,
 )
@@ -817,7 +821,7 @@ def source_micropubs_document_payload(
     document: tuple[MicropublicationDocument, ...],
 ) -> dict[str, object]:
     return {
-        "micropublications": [entry.to_payload() for entry in document],
+        "micropublications": [document_to_payload(entry) for entry in document],
     }
 
 
@@ -1018,7 +1022,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         FamilyDefinition(
             key=PropstoreFamily.MICROPUBS,
             name=PropstoreFamily.MICROPUBS.value,
-            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
+            contract_version=MICROPUBLICATION_FAMILY_CONTRACT_VERSION,
             artifact_family=MICROPUBLICATION_FAMILY,
             foreign_keys=MICROPUBLICATION_FOREIGN_KEYS,
             identity_field="artifact_id",
@@ -1107,7 +1111,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.SOURCE_MICROPUBS,
             name=PropstoreFamily.SOURCE_MICROPUBS.value,
-            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=SOURCE_MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
             artifact_name="source_micropubs",
             doc_type=tuple,
             placement=FixedFilePlacement("micropubs.yaml", branch=SOURCE_BRANCH),
