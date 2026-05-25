@@ -4,14 +4,17 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
+from typing import Any, Protocol
 
+import msgspec
 from sqlalchemy import select
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyModel
 from quire.derived_store import DerivedStoreHandle
 from quire.families import FamilyDefinition
+from quire.versions import VersionId
 
-from propstore.context_lifting import (
+from ...context_lifting import (
     IstProposition,
     LiftedAssertion,
     LiftingDecision,
@@ -19,14 +22,16 @@ from propstore.context_lifting import (
     LiftingRule,
     LiftingSystem,
 )
-from propstore.core.assertions.refs import ContextReference
-from propstore.core.id_types import ContextId
-from propstore.cel_types import to_cel_exprs
-from propstore.families.contexts.stages import (
+from ...core.assertions.refs import ContextReference
+from ...core.id_types import ContextId
+from ...cel_types import CelExpr, to_cel_exprs
+from .stages import (
     LoadedContext,
     loaded_contexts_to_lifting_system,
 )
-from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
+
+
+_CONTEXT_WORLD_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False)
 
 
 class Context(FamilyModel):
@@ -50,14 +55,93 @@ class ContextLiftingMaterialization(FamilyModel):
         return dict(loaded)
 
 
+class LiftingRuleDocumentProtocol(Protocol):
+    id: str
+    source: str
+    target: str
+    conditions: tuple[CelExpr, ...] | None
+    mode: str
+    justification: str | None
+
+
+class ContextDocumentProtocol(Protocol):
+    id: str
+    name: str
+    description: str | None
+    assumptions: tuple[CelExpr, ...] | None
+    parameters: dict[str, str] | None
+    perspective: str | None
+    lifting_rules: tuple[LiftingRuleDocumentProtocol, ...] | None
+
+
+class ContextReferenceDocument(msgspec.Struct, forbid_unknown_fields=True):
+    id: str
+
+    def to_payload(self) -> dict[str, object]:
+        return {"id": self.id}
+
+
+CONTEXT_LIFTING_RULE_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="context_lifting_rule",
+        name="context_lifting_rule",
+        contract_version=_CONTEXT_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-world-context_lifting_rule",
+            contract_version=_CONTEXT_WORLD_CONTRACT_VERSION,
+            doc_type=ContextLiftingRule,
+            placement=FlatYamlPlacement(".derived/context_lifting_rule", str),
+        ),
+        identity_field="id",
+    ),
+    model=ContextLiftingRule,
+    fields=(
+        CharterField("id", str, primary_key=True, nullable=False),
+        CharterField(
+            "source_context_id",
+            str,
+            nullable=False,
+            document_name="source",
+        ),
+        CharterField(
+            "target_context_id",
+            str,
+            nullable=False,
+            document_name="target",
+        ),
+        CharterField(
+            "conditions_cel",
+            tuple[CelExpr, ...],
+            parse_boundary="json",
+            nullable=True,
+            document_name="conditions",
+        ),
+        CharterField(
+            "mode",
+            str,
+            nullable=False,
+            default=LiftingMode.BRIDGE.value,
+        ),
+        CharterField("justification", str, nullable=True),
+    ),
+    indexes=(
+        CharterIndex("idx_context_lifting_rule_source_context_id", ("source_context_id",)),
+        CharterIndex("idx_context_lifting_rule_target_context_id", ("target_context_id",)),
+    ),
+    semantic_metadata={"semantic": "propstore.world"},
+)
+
+LiftingRuleDocument: Any = CONTEXT_LIFTING_RULE_CHARTER.generated_document()
+
+
 CONTEXT_CHARTER: FamilyCharter = FamilyCharter(
     family=FamilyDefinition(
         key="context",
         name="context",
-        contract_version=_WORLD_CONTRACT_VERSION,
+        contract_version=_CONTEXT_WORLD_CONTRACT_VERSION,
         artifact_family=ArtifactFamily(
             name="propstore-world-context",
-            contract_version=_WORLD_CONTRACT_VERSION,
+            contract_version=_CONTEXT_WORLD_CONTRACT_VERSION,
             doc_type=Context,
             placement=FlatYamlPlacement(".derived/context", str),
         ),
@@ -67,21 +151,41 @@ CONTEXT_CHARTER: FamilyCharter = FamilyCharter(
     fields=(
         CharterField("id", str, primary_key=True, nullable=False),
         CharterField("name", str, nullable=False),
-        CharterField("description", str),
-        CharterField("parameters_json", str),
-        CharterField("perspective", str),
+        CharterField("description", str, nullable=True),
+        CharterField(
+            "assumptions",
+            tuple[CelExpr, ...],
+            parse_boundary="json",
+            nullable=True,
+        ),
+        CharterField(
+            "parameters_json",
+            dict[str, str],
+            parse_boundary="json",
+            document_name="parameters",
+            nullable=True,
+        ),
+        CharterField("perspective", str, nullable=True),
+        CharterField(
+            "lifting_rules",
+            tuple[LiftingRuleDocument, ...],
+            parse_boundary="json",
+            nullable=True,
+        ),
     ),
     semantic_metadata={"semantic": "propstore.world"},
 )
+
+ContextDocument: Any = CONTEXT_CHARTER.generated_document()
 
 CONTEXT_ASSUMPTION_CHARTER: FamilyCharter = FamilyCharter(
     family=FamilyDefinition(
         key="context_assumption",
         name="context_assumption",
-        contract_version=_WORLD_CONTRACT_VERSION,
+        contract_version=_CONTEXT_WORLD_CONTRACT_VERSION,
         artifact_family=ArtifactFamily(
             name="propstore-world-context_assumption",
-            contract_version=_WORLD_CONTRACT_VERSION,
+            contract_version=_CONTEXT_WORLD_CONTRACT_VERSION,
             doc_type=ContextAssumption,
             placement=FlatYamlPlacement(".derived/context_assumption", str),
         ),
@@ -97,43 +201,16 @@ CONTEXT_ASSUMPTION_CHARTER: FamilyCharter = FamilyCharter(
     semantic_metadata={"semantic": "propstore.world"},
 )
 
-CONTEXT_LIFTING_RULE_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="context_lifting_rule",
-        name="context_lifting_rule",
-        contract_version=_WORLD_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-context_lifting_rule",
-            contract_version=_WORLD_CONTRACT_VERSION,
-            doc_type=ContextLiftingRule,
-            placement=FlatYamlPlacement(".derived/context_lifting_rule", str),
-        ),
-        identity_field="id",
-    ),
-    model=ContextLiftingRule,
-    fields=(
-        CharterField("id", str, primary_key=True, nullable=False),
-        CharterField("source_context_id", str, nullable=False),
-        CharterField("target_context_id", str, nullable=False),
-        CharterField("conditions_cel", str),
-        CharterField("mode", str, nullable=False),
-        CharterField("justification", str),
-    ),
-    indexes=(
-        CharterIndex("idx_context_lifting_rule_source_context_id", ("source_context_id",)),
-        CharterIndex("idx_context_lifting_rule_target_context_id", ("target_context_id",)),
-    ),
-    semantic_metadata={"semantic": "propstore.world"},
-)
+ContextAssumptionDocument = CONTEXT_ASSUMPTION_CHARTER.generated_document()
 
 CONTEXT_LIFTING_MATERIALIZATION_CHARTER: FamilyCharter = FamilyCharter(
     family=FamilyDefinition(
         key="context_lifting_materialization",
         name="context_lifting_materialization",
-        contract_version=_WORLD_CONTRACT_VERSION,
+        contract_version=_CONTEXT_WORLD_CONTRACT_VERSION,
         artifact_family=ArtifactFamily(
             name="propstore-world-context_lifting_materialization",
-            contract_version=_WORLD_CONTRACT_VERSION,
+            contract_version=_CONTEXT_WORLD_CONTRACT_VERSION,
             doc_type=ContextLiftingMaterialization,
             placement=FlatYamlPlacement(".derived/context_lifting_materialization", str),
         ),
@@ -215,12 +292,20 @@ def compile_context_models(
                 id=context_id,
                 name=record.name or "",
                 description=record.description,
-                parameters_json=(
-                    json.dumps(dict(record.parameters), sort_keys=True)
-                    if record.parameters
-                    else None
-                ),
+                assumptions=tuple(record.assumptions),
+                parameters_json=dict(record.parameters) if record.parameters else None,
                 perspective=record.perspective,
+                lifting_rules=tuple(
+                    LiftingRuleDocument(
+                        id=rule.id,
+                        source=str(rule.source.id),
+                        target=str(rule.target.id),
+                        conditions=tuple(rule.conditions),
+                        mode=rule.mode.value,
+                        justification=rule.justification,
+                    )
+                    for rule in record.lifting_rules
+                ),
             )
         )
 
@@ -239,11 +324,7 @@ def compile_context_models(
                     id=rule.id,
                     source_context_id=str(rule.source.id),
                     target_context_id=str(rule.target.id),
-                    conditions_cel=(
-                        json.dumps(tuple(rule.conditions), sort_keys=True)
-                        if rule.conditions
-                        else None
-                    ),
+                    conditions_cel=tuple(rule.conditions),
                     mode=rule.mode.value,
                     justification=rule.justification,
                 )
@@ -360,13 +441,7 @@ def load_lifting_system_from_models(
 
     rules: list[LiftingRule] = []
     for row in lifting_rules:
-        if row.conditions_cel is None:
-            conditions = ()
-        else:
-            decoded = json.loads(row.conditions_cel)
-            if not isinstance(decoded, Sequence) or isinstance(decoded, str):
-                raise TypeError("expected context lifting condition JSON array")
-            conditions = tuple(str(item) for item in decoded)
+        conditions = _context_lifting_conditions(row.conditions_cel)
         rules.append(
             LiftingRule(
                 id=row.id,
@@ -386,3 +461,15 @@ def load_lifting_system_from_models(
             for context_id, assumptions in assumptions_by_id.items()
         },
     )
+
+
+def _context_lifting_conditions(raw: object) -> tuple[str, ...]:
+    if raw is None:
+        return ()
+    if isinstance(raw, str):
+        decoded = json.loads(raw)
+    else:
+        decoded = raw
+    if not isinstance(decoded, Sequence) or isinstance(decoded, str):
+        raise TypeError("expected context lifting condition JSON array")
+    return tuple(str(item) for item in decoded)

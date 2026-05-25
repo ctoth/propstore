@@ -5,7 +5,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from propstore.families.claims.documents import ClaimDocument, IstPropositionDocument
-from propstore.families.contexts.documents import ContextDocument
+from propstore.families.contexts.declaration import ContextDocument
 from quire.documents import DocumentSchemaError, convert_document_value
 
 
@@ -38,11 +38,9 @@ def test_context_document_accepts_structured_context_and_lifting_rules() -> None
         {
             "id": "ctx_target",
             "name": "Target",
-            "structure": {
-                "assumptions": ["task == 'speech'"],
-                "parameters": {"speaker": "speaker_a"},
-                "perspective": "analyst",
-            },
+            "assumptions": ["task == 'speech'"],
+            "parameters": {"speaker": "speaker_a"},
+            "perspective": "analyst",
             "lifting_rules": [
                 {
                     "id": "lift_source_target",
@@ -58,8 +56,8 @@ def test_context_document_accepts_structured_context_and_lifting_rules() -> None
         source="contexts/ctx_target.yaml",
     )
 
-    assert document.structure.assumptions == ("task == 'speech'",)
-    assert document.structure.parameters["speaker"] == "speaker_a"
+    assert document.assumptions == ("task == 'speech'",)
+    assert document.parameters["speaker"] == "speaker_a"
     assert document.lifting_rules[0].source == "ctx_source"
     assert document.lifting_rules[0].target == "ctx_target"
 

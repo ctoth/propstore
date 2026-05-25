@@ -325,8 +325,8 @@ def test_propstore_registry_is_the_semantic_schema_surface() -> None:
 
 def test_typed_family_handles_preserve_ref_and_document_types(tmp_path: Path) -> None:
     from propstore.families.claims.documents import ClaimDocument
-    from propstore.families.contexts.documents import ContextDocument
-    from propstore.families.contexts.documents import ContextReferenceDocument
+    from propstore.families.contexts.declaration import ContextDocument
+    from propstore.families.contexts.declaration import ContextReferenceDocument
     from propstore.families.documents.micropubs import MicropublicationDocument
     from propstore.families.documents.predicates import PredicateDocument
     from propstore.families.documents.rules import AtomDocument, RuleDocument

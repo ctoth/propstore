@@ -277,16 +277,14 @@ def test_build_rejects_structural_in_cel(tmp_path: Path) -> None:
     repo.git.commit_batch(
         adds={
             "contexts/ctx_broken.yaml": yaml.safe_dump(
-                {
-                    "id": "ctx_broken",
-                    "name": "ctx_broken",
-                    "description": "Direct-edit context with bad CEL.",
-                    "structure": {
+                    {
+                        "id": "ctx_broken",
+                        "name": "ctx_broken",
+                        "description": "Direct-edit context with bad CEL.",
                         "assumptions": ["intention_to_treat == true"],
                     },
-                },
-                sort_keys=False,
-            ).encode("utf-8"),
+                    sort_keys=False,
+                ).encode("utf-8"),
         },
         deletes=[],
         message="Direct edit that bypassed CLI validation",
@@ -301,5 +299,4 @@ def test_build_rejects_structural_in_cel(tmp_path: Path) -> None:
     assert result.exit_code != 0, result.output
     assert "intention_to_treat" in result.output
     assert "Structural concept" in result.output
-
 

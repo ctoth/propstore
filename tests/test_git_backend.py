@@ -500,7 +500,7 @@ def test_load_contexts_from_git_tree(tmp_path):
     context_data = {
         "id": "ctx1",
         "name": "Test Context",
-        "structure": {"assumptions": ["test assumption"]},
+        "assumptions": ["test assumption"],
     }
     kr.commit_files({
         "contexts/test_context.yaml": yaml.dump(context_data).encode(),
@@ -564,9 +564,9 @@ def test_context_add_writes_structured_context_to_git_head(tmp_path):
     assert result.exit_code == 0, result.output
 
     context = yaml.safe_load(git.read_file("contexts/ctx_structured.yaml"))
-    assert context["structure"]["assumptions"] == ["framework == 'general'"]
-    assert context["structure"]["parameters"] == {"domain": "speech"}
-    assert context["structure"]["perspective"] == "local-model"
+    assert context["assumptions"] == ["framework == 'general'"]
+    assert context["parameters"] == {"domain": "speech"}
+    assert context["perspective"] == "local-model"
 
 
 def test_context_list_reads_git_head_not_worktree(tmp_path):
@@ -1151,7 +1151,7 @@ def test_promote_commits(tmp_path):
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.families.claims.documents import ClaimDocument
-    from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
+    from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
     from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
     from propstore.proposals import commit_stance_proposals
@@ -1208,7 +1208,7 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.families.claims.documents import ClaimDocument
-    from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
+    from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
     from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
     from propstore.proposals import commit_stance_proposals, stance_proposal_branch

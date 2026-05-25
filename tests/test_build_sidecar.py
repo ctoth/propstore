@@ -780,7 +780,7 @@ class TestRebuildSkipping:
             {
                 "id": "ctx_root",
                 "name": "Root",
-                "structure": {"assumptions": ["task == 'speech'"]},
+                "assumptions": ["task == 'speech'"],
             },
             default_flow_style=False,
         ))
@@ -791,7 +791,7 @@ class TestRebuildSkipping:
             {
                 "id": "ctx_root",
                 "name": "Root",
-                "structure": {"assumptions": ["task == 'singing'"]},
+                "assumptions": ["task == 'singing'"],
             },
             default_flow_style=False,
         ))
@@ -858,7 +858,7 @@ class TestRebuildSkipping:
             {
                 "id": "ctx_root",
                 "name": "Root",
-                "structure": {"assumptions": [assumption_a]},
+                "assumptions": [assumption_a],
             },
             default_flow_style=False,
         ))
@@ -870,7 +870,7 @@ class TestRebuildSkipping:
             {
                 "id": "ctx_root",
                 "name": "Root",
-                "structure": {"assumptions": [assumption_b]},
+                "assumptions": [assumption_b],
             },
             default_flow_style=False,
         ))

@@ -8,7 +8,7 @@ from click.testing import CliRunner
 from propstore.app.proposals import ProposalPromotionItem, ProposalPromotionPlanReport
 from propstore.cli.proposal import promote
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
+from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
 from propstore.families.registry import ClaimRef, ContextRef
 from propstore.proposals import (
     commit_stance_proposals,

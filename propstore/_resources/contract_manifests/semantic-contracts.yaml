@@ -90,11 +90,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: context
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.contexts.documents.ContextDocument
+    doc_type: propstore.families.contexts.declaration.ContextDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -1295,49 +1295,80 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: ContextDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: id
       required: true
-      type: str
+      type: builtins.str
     - name: name
       required: true
-      type: str
+      type: builtins.str
     - name: description
       required: true
       type: str | None
-    - name: structure
+    - name: assumptions
       required: true
-      type: ContextStructureDocument
+      type: tuple[propstore.cel_types.CelExpr, ...] | None
+    - name: parameters
+      required: true
+      type: dict[str, str] | None
+    - name: perspective
+      required: true
+      type: str | None
     - name: lifting_rules
       required: true
-      type: tuple[LiftingRuleDocument, ...]
-    module: propstore.families.contexts.documents
+      type: tuple[propstore.families.contexts.declaration.Context_lifting_ruleDocument,
+        ...] | None
+    module: propstore.families.contexts.declaration
 - kind: document_schema
   name: ContextReferenceDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: id
       required: true
       type: str
-    module: propstore.families.contexts.documents
+    module: propstore.families.contexts.declaration
 - kind: document_schema
-  name: ContextStructureDocument
+  name: Context_assumptionDocument
   contract_version: 2026.04.30
   body:
     fields:
-    - name: assumptions
+    - name: context_id
       required: true
-      type: tuple[CelExpr, ...]
-    - name: parameters
+      type: builtins.str
+    - name: assumption_cel
       required: true
-      type: Mapping[str, str]
-    - name: perspective
+      type: builtins.str
+    - name: seq
+      required: true
+      type: builtins.int
+    module: propstore.families.contexts.declaration
+- kind: document_schema
+  name: Context_lifting_ruleDocument
+  contract_version: 2026.04.30
+  body:
+    fields:
+    - name: id
+      required: true
+      type: builtins.str
+    - name: source
+      required: true
+      type: builtins.str
+    - name: target
+      required: true
+      type: builtins.str
+    - name: conditions
+      required: true
+      type: tuple[propstore.cel_types.CelExpr, ...] | None
+    - name: mode
+      required: true
+      type: builtins.str
+    - name: justification
       required: true
       type: str | None
-    module: propstore.families.contexts.documents
+    module: propstore.families.contexts.declaration
 - kind: document_schema
   name: ExtractionProvenanceDocument
   contract_version: 2026.04.30
@@ -1533,30 +1564,6 @@ contracts:
       required: true
       type: dict[str, ProtoRoleBundle] | None
     module: propstore.families.concepts.documents
-- kind: document_schema
-  name: LiftingRuleDocument
-  contract_version: 2026.04.30
-  body:
-    fields:
-    - name: id
-      required: true
-      type: str
-    - name: source
-      required: true
-      type: str
-    - name: target
-      required: true
-      type: str
-    - name: conditions
-      required: true
-      type: tuple[CelExpr, ...]
-    - name: mode
-      required: true
-      type: LiftingMode
-    - name: justification
-      required: true
-      type: str | None
-    module: propstore.families.contexts.documents
 - kind: document_schema
   name: MergeManifestArgumentDocument
   contract_version: 2026.05.01
@@ -3146,7 +3153,7 @@ contracts:
     - contract_version: 2026.05.21
       key: concepts
       name: concepts
-    - contract_version: 2026.05.21
+    - contract_version: 2026.05.25
       key: contexts
       name: contexts
     - contract_version: 2026.05.25
@@ -3413,12 +3420,12 @@ contracts:
       kind: field
 - kind: family
   name: contexts
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     accessor: contexts
     artifact_family: context
     artifact_family_contract:
-      doc_type: propstore.families.contexts.documents.ContextDocument
+      doc_type: propstore.families.contexts.declaration.ContextDocument
       placement:
         branch:
           policy: current
@@ -3427,7 +3434,7 @@ contracts:
         kind: flat-yaml
         namespace: contexts
         ref_field: name
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     identity_field: id
     key: contexts
@@ -4342,3 +4349,8 @@ contracts:
 registry:
   name: propstore
   contract_version: 2026.05.25
+compatible_changes:
+- contract: family-registry:propstore
+  contract_version: 2026.05.25
+  reason: Context family document ownership moved to generated declaration types with
+    context family and artifact contracts version-bumped in the same registry version.

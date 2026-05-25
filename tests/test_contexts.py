@@ -16,7 +16,7 @@ from sqlalchemy import select
 
 from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from quire.documents import DocumentSchemaError, convert_document_value
-from propstore.families.contexts.documents import ContextDocument
+from propstore.families.contexts.declaration import ContextDocument
 from propstore.core.conditions.registry import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
@@ -69,15 +69,12 @@ def make_context(
     lifting_rules: list[dict] | None = None,
 ) -> dict:
     payload: dict = {"id": context_id, "name": name, "description": description}
-    structure: dict[str, object] = {}
     if assumptions:
-        structure["assumptions"] = assumptions
+        payload["assumptions"] = assumptions
     if parameters:
-        structure["parameters"] = parameters
+        payload["parameters"] = parameters
     if perspective:
-        structure["perspective"] = perspective
-    if structure:
-        payload["structure"] = structure
+        payload["perspective"] = perspective
     if lifting_rules:
         payload["lifting_rules"] = lifting_rules
     return payload
@@ -100,8 +97,7 @@ def loaded_context(
     (
         ({"id": "ctx", "structure": "not-a-mapping"}, "structure"),
         ({"id": "ctx", "assumptions": "not-a-sequence"}, "assumptions"),
-        ({"id": "ctx", "structure": {"assumptions": "not-a-sequence"}}, "assumptions"),
-        ({"id": "ctx", "structure": {"parameters": "not-a-mapping"}}, "parameters"),
+        ({"id": "ctx", "parameters": "not-a-mapping"}, "parameters"),
     ),
 )
 def test_parse_context_record_rejects_malformed_structured_fields(
@@ -385,12 +381,12 @@ class TestContextSidecar:
             rule = session.execute(select(rule_model)).scalars().one()
 
         row = rows["ctx_target"]
-        assert json.loads(row.parameters_json) == {"domain": "speech"}
+        assert row.parameters_json == {"domain": "speech"}
         assert row.perspective == "local-model"
         assert assumption.assumption_cel == "framework == 'target'"
         assert rule.source_context_id == "ctx_source"
         assert rule.target_context_id == "ctx_target"
-        assert tuple(json.loads(rule.conditions_cel)) == ("variant == 'controlled'",)
+        assert tuple(rule.conditions_cel) == ("variant == 'controlled'",)
         assert rule.mode == "specialization"
 
 
@@ -549,9 +545,9 @@ class TestContextCLIIntegration:
         repo = Repository.find(workspace)
         assert repo.git is not None
         data = yaml.safe_load(repo.git.read_file("contexts/ctx_test.yaml"))
-        assert data["structure"]["assumptions"] == ["framework == 'general'"]
-        assert data["structure"]["parameters"] == {"domain": "speech"}
-        assert data["structure"]["perspective"] == "local-model"
+        assert data["assumptions"] == ["framework == 'general'"]
+        assert data["parameters"] == {"domain": "speech"}
+        assert data["perspective"] == "local-model"
 
     def test_context_add_has_no_inherits_flag(self, tmp_path: Path, monkeypatch) -> None:
         from propstore.cli import cli

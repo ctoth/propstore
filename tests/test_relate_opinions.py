@@ -33,7 +33,7 @@ from propstore.families.claims.references import (
     ClaimReferenceRecord,
     claim_reference_keys,
 )
-from propstore.families.contexts.documents import ContextReferenceDocument
+from propstore.families.contexts.declaration import ContextReferenceDocument
 from propstore.families.documents.stances import StanceDocument
 from propstore.opinion import Opinion
 from propstore.provenance import Provenance, ProvenanceStatus

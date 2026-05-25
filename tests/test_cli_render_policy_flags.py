@@ -43,7 +43,7 @@ from propstore.families.claims.documents import (
     ClaimSourceDocument,
     ProvenanceDocument,
 )
-from propstore.families.contexts.documents import ContextDocument, ContextReferenceDocument
+from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
 from propstore.families.documents.sources import (
     SourceDocument,
     SourceJustificationDocument,

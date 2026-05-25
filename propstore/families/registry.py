@@ -49,7 +49,7 @@ from propstore.families.batch_specs import (
 )
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
-from propstore.families.contexts.documents import ContextDocument
+from propstore.families.contexts.declaration import CONTEXT_CHARTER
 from propstore.families.forms.declaration import FORM_CHARTER
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
@@ -239,6 +239,9 @@ SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION = VersionId("2026.05.21")
 FORM_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 FORM_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+CONTEXT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+CONTEXT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+CONTEXT_DOCUMENT_TYPE = CONTEXT_CHARTER.generated_document()
 FORM_DOCUMENT_TYPE = FORM_CHARTER.generated_document()
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
@@ -854,10 +857,10 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.CONTEXTS,
             name=PropstoreFamily.CONTEXTS.value,
-            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
+            contract_version=CONTEXT_FAMILY_CONTRACT_VERSION,
             artifact_name="context",
-            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-            doc_type=ContextDocument,
+            artifact_contract_version=CONTEXT_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=CONTEXT_DOCUMENT_TYPE,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.CONTEXTS.value,
                 ref_factory=ContextRef,

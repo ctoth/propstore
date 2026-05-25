@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import msgspec
+import quire.contracts as quire_contracts
 from quire.artifacts import ArtifactFamily
 from quire.contracts import ContractEntry, ContractManifest
 from quire.references import ForeignKeySpec
@@ -36,6 +37,8 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.forms.declaration.FormAlternativeDocument": VersionId("2026.05.25"),
     "propstore.families.forms.declaration.FormExtraUnitDocument": VersionId("2026.05.25"),
     "propstore.families.forms.models.FormDocument": VersionId("2026.05.25"),
+    "propstore.families.contexts.declaration.ContextDocument": VersionId("2026.05.25"),
+    "propstore.families.contexts.declaration.ContextReferenceDocument": VersionId("2026.05.25"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
@@ -141,7 +144,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     )
     from propstore.families.claims import documents as claims
     from propstore.families.concepts import documents as concepts
-    from propstore.families.contexts import documents as contexts
+    from propstore.families.contexts import declaration as contexts
     from propstore.families.forms import declaration as forms
     from propstore.families.sameas import documents as sameas
 
@@ -191,6 +194,17 @@ def build_propstore_contract_manifest() -> ContractManifest:
         registry_name=PROPSTORE_FAMILY_REGISTRY.name,
         registry_contract_version=PROPSTORE_FAMILY_REGISTRY.contract_version,
         contracts=tuple(contracts),
+        compatible_changes=(
+            quire_contracts.CompatibilityMarker(
+                contract="family-registry:propstore",
+                contract_version=PROPSTORE_FAMILY_REGISTRY.contract_version,
+                reason=(
+                    "Context family document ownership moved to generated "
+                    "declaration types with context family and artifact "
+                    "contracts version-bumped in the same registry version."
+                ),
+            ),
+        ),
     )
 
 

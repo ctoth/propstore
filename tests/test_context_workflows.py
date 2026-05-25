@@ -56,7 +56,7 @@ def test_add_context_workflow_writes_structured_document(tmp_path) -> None:
     expected_path = repo.root / repo.families.contexts.address(ContextRef("ctx_test")).require_path()
     assert report.created is True
     assert report.filepath == expected_path
-    assert report.document.structure.parameters == {"domain": "speech"}
+    assert report.document.parameters == {"domain": "speech"}
     assert len(items) == 1
     assert items[0].context_id == "ctx_test"
     assert items[0].perspective == "local-model"

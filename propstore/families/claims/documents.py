@@ -12,7 +12,7 @@ from propstore.core.relations import ClaimConceptLinkRole
 from propstore.families.claims.types import ClaimType
 from quire.documents import DocumentStruct
 from quire.versions import VersionId
-from propstore.families.contexts.documents import ContextReferenceDocument
+from propstore.families.contexts.declaration import ContextReferenceDocument
 from propstore.provenance import Provenance
 from propstore.stances import StanceType
 

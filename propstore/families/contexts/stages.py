@@ -5,9 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from propstore.families.contexts.documents import ContextDocument
 from propstore.cel_types import to_cel_exprs
 from propstore.core.assertions.refs import ContextReference
 from propstore.context_lifting import (
@@ -19,6 +18,9 @@ from propstore.core.id_types import ContextId
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 from quire.documents import LoadedDocument
 from enum import StrEnum
+
+if TYPE_CHECKING:
+    from propstore.families.contexts.declaration import ContextDocumentProtocol
 
 
 class ContextStage(StrEnum):
@@ -46,15 +48,12 @@ class ContextRecord:
             payload["name"] = self.name
         if self.description is not None:
             payload["description"] = self.description
-        structure: dict[str, Any] = {}
         if self.assumptions:
-            structure["assumptions"] = list(self.assumptions)
+            payload["assumptions"] = list(self.assumptions)
         if self.parameters:
-            structure["parameters"] = dict(self.parameters)
+            payload["parameters"] = dict(self.parameters)
         if self.perspective is not None:
-            structure["perspective"] = self.perspective
-        if structure:
-            payload["structure"] = structure
+            payload["perspective"] = self.perspective
         if self.lifting_rules:
             payload["lifting_rules"] = [
                 {
@@ -120,7 +119,7 @@ class LoadedContext:
     @classmethod
     def from_loaded_document(
         cls,
-        document: LoadedDocument[ContextDocument],
+        document: LoadedDocument[ContextDocumentProtocol],
     ) -> LoadedContext:
         return cls.from_record(
             filename=document.filename,
@@ -154,6 +153,8 @@ class ContextCheckedGraph:
 
 def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
     payload = {} if data is None else dict(data)
+    if "structure" in payload:
+        raise ValueError("Context record 'structure' is no longer supported")
 
     raw_context_id = payload.get("id")
     context_id = (
@@ -172,41 +173,20 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
         else None
     )
 
-    raw_structure = payload.get("structure")
-    if raw_structure is None:
-        structure: Mapping[str, Any] = {}
-    elif isinstance(raw_structure, Mapping):
-        structure = raw_structure
-    else:
-        raise ValueError("Context record 'structure' must be a mapping when present")
-
-    raw_top_level_assumptions = payload.get("assumptions")
-    if raw_top_level_assumptions is None:
-        top_level_assumptions = ()
-    elif isinstance(raw_top_level_assumptions, Sequence) and not isinstance(raw_top_level_assumptions, str):
-        top_level_assumptions = raw_top_level_assumptions
+    raw_assumptions = payload.get("assumptions")
+    if raw_assumptions is None:
+        raw_assumptions = ()
+    elif isinstance(raw_assumptions, Sequence) and not isinstance(raw_assumptions, str):
+        raw_assumptions = raw_assumptions
     else:
         raise ValueError("Context record 'assumptions' must be a sequence when present")
     assumptions = tuple(
         assumption
-        for assumption in top_level_assumptions
+        for assumption in raw_assumptions
         if isinstance(assumption, str) and assumption
     )
-    if not assumptions:
-        raw_structured_assumptions = structure.get("assumptions")
-        if raw_structured_assumptions is None:
-            structured_assumptions = ()
-        elif isinstance(raw_structured_assumptions, Sequence) and not isinstance(raw_structured_assumptions, str):
-            structured_assumptions = raw_structured_assumptions
-        else:
-            raise ValueError("Context record structure 'assumptions' must be a sequence when present")
-        assumptions = tuple(
-            assumption
-            for assumption in structured_assumptions
-            if isinstance(assumption, str) and assumption
-        )
 
-    raw_parameters = structure.get("parameters")
+    raw_parameters = payload.get("parameters")
     if raw_parameters is None:
         parameters = {}
     elif isinstance(raw_parameters, Mapping):
@@ -215,8 +195,8 @@ def parse_context_record(data: Mapping[str, Any] | None) -> ContextRecord:
             for key, value in raw_parameters.items()
         }
     else:
-        raise ValueError("Context record structure 'parameters' must be a mapping when present")
-    raw_perspective = structure.get("perspective")
+        raise ValueError("Context record 'parameters' must be a mapping when present")
+    raw_perspective = payload.get("perspective")
     perspective = (
         raw_perspective
         if isinstance(raw_perspective, str) and raw_perspective
@@ -284,24 +264,24 @@ def _parse_lifting_rules(raw_rules: object) -> tuple[LiftingRule, ...]:
     return tuple(rules)
 
 
-def parse_context_record_document(data: ContextDocument) -> ContextRecord:
+def parse_context_record_document(data: ContextDocumentProtocol) -> ContextRecord:
     return ContextRecord(
         context_id=ContextId(data.id),
         name=data.name,
         description=data.description,
-        assumptions=tuple(str(assumption) for assumption in data.structure.assumptions),
-        parameters=dict(data.structure.parameters),
-        perspective=data.structure.perspective,
+        assumptions=tuple(str(assumption) for assumption in (data.assumptions or ())),
+        parameters={} if data.parameters is None else dict(data.parameters),
+        perspective=data.perspective,
         lifting_rules=tuple(
             LiftingRule(
                 id=rule.id,
                 source=ContextReference(id=ContextId(rule.source)),
                 target=ContextReference(id=ContextId(rule.target)),
-                conditions=rule.conditions,
+                conditions=rule.conditions or (),
                 mode=LiftingMode(rule.mode),
                 justification=rule.justification,
             )
-            for rule in data.lifting_rules
+            for rule in (data.lifting_rules or ())
         ),
     )
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from quire.documents import load_document_dir
 
-from propstore.families.contexts.documents import ContextDocument
+from propstore.families.contexts.declaration import ContextDocument
 
 from typing import TYPE_CHECKING
 

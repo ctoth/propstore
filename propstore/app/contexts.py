@@ -8,7 +8,12 @@ from pathlib import Path
 
 from propstore.cel_types import to_cel_exprs
 from propstore.context_lifting import LiftingMode
-from propstore.families.contexts.documents import ContextDocument, LiftingRuleDocument
+from propstore.families.contexts.declaration import (
+    ContextDocument,
+    ContextDocumentProtocol,
+    LiftingRuleDocument,
+    LiftingRuleDocumentProtocol,
+)
 from propstore.families.contexts.stages import LoadedContext, parse_context_record_document
 from propstore.families.registry import ContextRef, SourceRef
 from propstore.repository import Repository
@@ -54,7 +59,7 @@ class ContextAddRequest:
 @dataclass(frozen=True)
 class ContextAddReport:
     filepath: Path
-    document: ContextDocument
+    document: ContextDocumentProtocol
     created: bool
 
 
@@ -158,16 +163,13 @@ def _context_document_payload(request: ContextAddRequest) -> dict[str, object]:
         "name": request.name,
         "description": request.description,
     }
-    structure: dict[str, object] = {}
     if request.assumptions:
-        structure["assumptions"] = list(request.assumptions)
+        data["assumptions"] = list(request.assumptions)
     parameters = _parse_parameters(request.parameters)
     if parameters:
-        structure["parameters"] = parameters
+        data["parameters"] = parameters
     if request.perspective:
-        structure["perspective"] = request.perspective
-    if structure:
-        data["structure"] = structure
+        data["perspective"] = request.perspective
     return data
 
 
@@ -366,7 +368,8 @@ def add_context_lifting_rule(
     owner_context_id = _require_context_id(loaded, context_name)
     filepath = repo.root / repo.families.contexts.address(ref).require_path()
     document = repo.families.contexts.require(ref)
-    if any(rule.id == request.rule_id for rule in document.lifting_rules):
+    existing_rules = tuple(document.lifting_rules or ())
+    if any(rule.id == request.rule_id for rule in existing_rules):
         raise ContextWorkflowError(
             f"Context '{context_name}' already defines lifting rule '{request.rule_id}'"
         )
@@ -382,7 +385,7 @@ def add_context_lifting_rule(
     )
     updated = _replace_context_lifting_rules(
         document,
-        (*document.lifting_rules, new_rule),
+        (*existing_rules, new_rule),
     )
     if not dry_run:
         repo.families.contexts.save(
@@ -428,13 +431,21 @@ def update_context_lifting_rule(
             if request.source_context is None
             else request.source_context
         ),
-        conditions=existing.conditions if request.conditions is None else request.conditions,
-        mode=existing.mode if request.mode is None else request.mode,
+        conditions=(
+            existing.conditions or ()
+            if request.conditions is None
+            else request.conditions
+        ),
+        mode=(
+            LiftingMode(existing.mode)
+            if request.mode is None
+            else request.mode
+        ),
         justification=justification,
     )
     updated_rules = tuple(
         updated_rule if rule.id == rule_id else rule
-        for rule in document.lifting_rules
+        for rule in (document.lifting_rules or ())
     )
     updated = _replace_context_lifting_rules(document, updated_rules)
     if not dry_run:
@@ -464,7 +475,7 @@ def remove_context_lifting_rule(
     _require_lifting_rule(document, context_name, rule_id)
     updated_rules = tuple(
         rule
-        for rule in document.lifting_rules
+        for rule in (document.lifting_rules or ())
         if rule.id != rule_id
     )
     updated = _replace_context_lifting_rules(document, updated_rules)
@@ -529,11 +540,11 @@ def _require_existing_context_id(repo: Repository, name: str) -> str:
 
 
 def _require_lifting_rule(
-    document: ContextDocument,
+    document: ContextDocumentProtocol,
     context_name: str,
     rule_id: str,
-) -> LiftingRuleDocument:
-    matches = [rule for rule in document.lifting_rules if rule.id == rule_id]
+) -> LiftingRuleDocumentProtocol:
+    matches = [rule for rule in (document.lifting_rules or ()) if rule.id == rule_id]
     if not matches:
         raise ContextWorkflowError(
             f"Context '{context_name}' does not define lifting rule '{rule_id}'"
@@ -546,15 +557,17 @@ def _require_lifting_rule(
 
 
 def _replace_context_lifting_rules(
-    document: ContextDocument,
-    lifting_rules: tuple[LiftingRuleDocument, ...],
-) -> ContextDocument:
+    document: ContextDocumentProtocol,
+    lifting_rules: tuple[LiftingRuleDocumentProtocol, ...],
+) -> ContextDocumentProtocol:
     return ContextDocument(
         id=document.id,
         name=document.name,
         description=document.description,
-        structure=document.structure,
-        lifting_rules=tuple(lifting_rules),
+        assumptions=document.assumptions,
+        parameters=document.parameters,
+        perspective=document.perspective,
+        lifting_rules=tuple(lifting_rules) or None,
     )
 
 
@@ -568,7 +581,7 @@ def _build_lifting_rule_document(
     conditions: tuple[str, ...],
     mode: LiftingMode,
     justification: str | None,
-) -> LiftingRuleDocument:
+) -> LiftingRuleDocumentProtocol:
     source_context_id = _require_existing_context_id(repo, source_context)
     _validate_lifting_rule_condition_cel(
         repo,
@@ -580,7 +593,7 @@ def _build_lifting_rule_document(
         id=rule_id,
         source=source_context_id,
         target=owner_context_id,
-        conditions=to_cel_exprs(conditions),
+        conditions=to_cel_exprs(conditions) or None,
         mode=mode,
         justification=justification,
     )

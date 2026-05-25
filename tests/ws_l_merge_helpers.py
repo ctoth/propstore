@@ -8,7 +8,7 @@ from quire.git_store import GitStore
 from propstore.claims import claim_file_claims, loaded_claim_file_from_payload
 from propstore.families.claims.types import ClaimType
 from propstore.families.claims.documents import ClaimDocument
-from propstore.families.contexts.documents import ContextReferenceDocument
+from propstore.families.contexts.declaration import ContextReferenceDocument
 from propstore.families.identity.claims import compute_claim_version_id
 from propstore.merge.merge_claims import MergeClaim
 from propstore.repository import Repository
