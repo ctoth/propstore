@@ -52,7 +52,10 @@ from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.declaration import CONTEXT_CHARTER
 from propstore.families.forms.declaration import FORM_CHARTER
-from propstore.families.documents.merge import MergeManifestDocument
+from propstore.families.merge.declaration import (
+    MERGE_MANIFEST_FAMILY_CONTRACT_VERSION,
+    MergeManifestDocument,
+)
 from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.documents.predicates import PredicateDocument, PredicateProposalDocument
 from propstore.families.documents.rules import RuleDocument, RuleProposalDocument, RuleSuperiorityDocument
@@ -1220,7 +1223,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.MERGE_MANIFESTS,
             name=PropstoreFamily.MERGE_MANIFESTS.value,
-            contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
+            contract_version=MERGE_MANIFEST_FAMILY_CONTRACT_VERSION,
             artifact_name="merge_manifest",
             doc_type=MergeManifestDocument,
             placement=SingletonFilePlacement(
@@ -1295,6 +1298,7 @@ def world_catalog() -> SchemaCatalog:
     forms = import_module("propstore.families.forms.declaration")
     meta = import_module("propstore.families.meta.declaration")
     micropublications = import_module("propstore.families.micropublications.declaration")
+    merge = import_module("propstore.families.merge.declaration")
     relations = import_module("propstore.families.relations.declaration")
     rules = import_module("propstore.families.rules.declaration")
     sameas = import_module("propstore.families.sameas.declaration")
@@ -1318,6 +1322,7 @@ def world_catalog() -> SchemaCatalog:
         claims.JUSTIFICATION_CHARTER,
         sameas.SAMEAS_CHARTER,
         stances.STANCE_CHARTER,
+        merge.MERGE_MANIFEST_CHARTER,
         *micropublications.MICROPUBLICATION_CHARTERS,
         calibration.CALIBRATION_CHARTER,
         *embeddings.EMBEDDING_CHARTERS,

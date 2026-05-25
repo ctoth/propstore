@@ -153,11 +153,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: merge_manifest
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.merge.MergeManifestDocument
+    doc_type: propstore.families.merge.declaration.MergeManifestDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -1596,7 +1596,7 @@ contracts:
     module: propstore.families.concepts.documents
 - kind: document_schema
   name: MergeManifestArgumentDocument
-  contract_version: 2026.05.01
+  contract_version: 2026.05.25
   body:
     fields:
     - name: assertion_id
@@ -1620,19 +1620,19 @@ contracts:
     - name: materialized
       required: true
       type: bool
-    module: propstore.families.documents.merge
+    module: propstore.families.merge.declaration
 - kind: document_schema
   name: MergeManifestDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: merge
       required: true
-      type: MergeManifestPayloadDocument
-    module: propstore.families.documents.merge
+      type: propstore.families.merge.declaration.MergeManifestPayloadDocument
+    module: propstore.families.merge.declaration
 - kind: document_schema
   name: MergeManifestPayloadDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: branch_a
@@ -1650,10 +1650,10 @@ contracts:
     - name: semantic_candidate_details
       required: true
       type: tuple[MergeSemanticCandidateDetailDocument, ...]
-    module: propstore.families.documents.merge
+    module: propstore.families.merge.declaration
 - kind: document_schema
   name: MergeManifestWitnessDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: source_artifact_id
@@ -1671,10 +1671,10 @@ contracts:
     - name: rule_chain
       required: true
       type: tuple[str, ...]
-    module: propstore.families.documents.merge
+    module: propstore.families.merge.declaration
 - kind: document_schema
   name: MergeSemanticCandidateArgumentDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: assertion_id
@@ -1692,10 +1692,10 @@ contracts:
     - name: source_paper
       required: true
       type: str | None
-    module: propstore.families.documents.merge
+    module: propstore.families.merge.declaration
 - kind: document_schema
   name: MergeSemanticCandidateDetailDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: assertion_ids
@@ -1710,7 +1710,7 @@ contracts:
     - name: arguments
       required: true
       type: tuple[MergeSemanticCandidateArgumentDocument, ...]
-    module: propstore.families.documents.merge
+    module: propstore.families.merge.declaration
 - kind: document_schema
   name: MicropublicationDocument
   contract_version: 2026.05.25
@@ -3234,7 +3234,7 @@ contracts:
     - contract_version: 2026.04.27
       key: concept_alignments
       name: concept_alignments
-    - contract_version: 2026.04.27
+    - contract_version: 2026.05.25
       key: merge_manifests
       name: merge_manifests
 - kind: family
@@ -3519,18 +3519,18 @@ contracts:
       kind: field
 - kind: family
   name: merge_manifests
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     accessor: merge_manifests
     artifact_family: merge_manifest
     artifact_family_contract:
-      doc_type: propstore.families.documents.merge.MergeManifestDocument
+      doc_type: propstore.families.merge.declaration.MergeManifestDocument
       placement:
         branch:
           policy: primary
         filename: merge/manifest.yaml
         kind: singleton-file
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     key: merge_manifests
 - kind: family
