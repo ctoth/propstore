@@ -8,7 +8,8 @@ from typing import Mapping
 
 from quire.documents import decode_yaml_mapping
 from propstore.families.concepts.documents import ConceptDocument
-from propstore.families.forms.documents import FormDocument
+from propstore.families.forms.declaration import FORM_DOCUMENT_TYPE
+from propstore.families.forms.stages import FormDocumentProtocol
 from propstore.families.registry import (
     ConceptFileRef,
     FormRef,
@@ -50,9 +51,9 @@ def initialize_project(root: Path) -> ProjectInitReport:
     return ProjectInitReport(root=root, initialized=True)
 
 
-def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocument]]:
+def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocumentProtocol]]:
     """Return typed default forms ready for artifact-store persistence."""
-    form_documents: list[tuple[FormRef, FormDocument]] = []
+    form_documents: list[tuple[FormRef, FormDocumentProtocol]] = []
     package_forms_dir = _get_resource("forms")
     if not package_forms_dir.is_dir():
         raise ProjectInitError(
@@ -70,7 +71,7 @@ def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocument]]
         form_documents.append(
             (
                 FormRef(form_path.name.removesuffix(".yaml")),
-                convert_document_value(payload, FormDocument, source=str(form_path)),
+                convert_document_value(payload, FORM_DOCUMENT_TYPE, source=str(form_path)),
             )
         )
     return form_documents
@@ -250,7 +251,7 @@ def _seed_concept_documents(repo: Repository) -> list[tuple[ConceptFileRef, Conc
 
 def _render_seed_form_files(
     repo: Repository,
-    form_documents: list[tuple[FormRef, FormDocument]],
+    form_documents: list[tuple[FormRef, FormDocumentProtocol]],
 ) -> dict[str | Path, bytes]:
     """Render typed seed forms to repo-relative YAML blobs for one commit."""
     rendered: dict[str | Path, bytes] = {}

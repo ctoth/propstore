@@ -10,16 +10,25 @@ from typing import TYPE_CHECKING, Any
 
 from ast_equiv import canonical_dump
 from ast_equiv.canonicalizer import AlgorithmParseError
-import propstore.dimensions as dimension_api
+import propstore.dimensions as form_dimensions
 from propstore.core.conditions.registry import KindType
-from propstore.families.forms.documents import FormDocument
+from propstore.families.forms.models import (
+    Form,
+    FormAlgebra,
+    FormDocumentProtocol,
+)
 from propstore.propagation import rewrite_parameterization_symbols
-from quire.charters import FamilyModel
 from quire.documents import decode_document_path
 from quire.tree_path import TreePath as KnowledgePath, coerce_tree_path as coerce_knowledge_path
 
 if TYPE_CHECKING:
     from propstore.families.concepts.stages import LoadedConcept
+
+
+def _form_document_type() -> type[Any]:
+    from propstore.families.forms.declaration import FORM_DOCUMENT_TYPE
+
+    return FORM_DOCUMENT_TYPE
 
 
 class FormStage(StrEnum):
@@ -31,7 +40,7 @@ class FormStage(StrEnum):
 @dataclass(frozen=True)
 class LoadedForm:
     filename: str
-    document: FormDocument
+    document: FormDocumentProtocol
 
 
 @dataclass
@@ -43,19 +52,13 @@ class FormDefinition:
     is_dimensionless: bool = False
     parameters: dict[str, Any] = field(default_factory=dict)
     dimensions: dict[str, int] | None = None
-    extra_units: tuple[dimension_api.ExtraUnitDefinition, ...] = ()
-    conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
-    delta_conversions: dict[str, dimension_api.UnitConversion] = field(default_factory=dict)
+    extra_units: tuple[form_dimensions.ExtraUnitDefinition, ...] = ()
+    conversions: dict[str, form_dimensions.UnitConversion] = field(default_factory=dict)
+    delta_conversions: dict[str, form_dimensions.UnitConversion] = field(
+        default_factory=dict
+    )
     min: float | None = None
     max: float | None = None
-
-
-class Form(FamilyModel):
-    pass
-
-
-class FormAlgebra(FamilyModel):
-    pass
 
 
 @dataclass(frozen=True)
@@ -97,7 +100,7 @@ def _path_cache_key(forms_dir: Path | KnowledgePath) -> str:
     return forms_dir.cache_key()
 
 
-def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
+def parse_form(form_name: str, data: FormDocumentProtocol) -> FormDefinition:
     raw_kind = data.kind
     if isinstance(raw_kind, str):
         kind = _KIND_MAP.get(raw_kind, KindType.QUANTITY)
@@ -110,18 +113,18 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
 
     allowed = allowed_units_from_form_definition(data)
     extra_units = tuple(
-        dimension_api.ExtraUnitDefinition(
+        form_dimensions.ExtraUnitDefinition(
             symbol=entry.symbol,
             dimensions=dict(entry.dimensions),
         )
-        for entry in data.extra_units
+        for entry in data.extra_units or ()
     )
     for entry in extra_units:
         allowed.add(entry.symbol)
 
-    conversions: dict[str, dimension_api.UnitConversion] = {}
-    for alt in data.common_alternatives:
-        conversions[alt.unit] = dimension_api.UnitConversion(
+    conversions: dict[str, form_dimensions.UnitConversion] = {}
+    for alt in data.common_alternatives or ():
+        conversions[alt.unit] = form_dimensions.UnitConversion(
             unit=alt.unit,
             type=alt.type,
             multiplier=float(alt.multiplier),
@@ -130,9 +133,9 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
             divisor=float(alt.divisor),
             reference=float(alt.reference),
         )
-    delta_conversions: dict[str, dimension_api.UnitConversion] = {}
-    for alt in data.delta_alternatives:
-        delta_conversions[alt.unit] = dimension_api.UnitConversion(
+    delta_conversions: dict[str, form_dimensions.UnitConversion] = {}
+    for alt in data.delta_alternatives or ():
+        delta_conversions[alt.unit] = form_dimensions.UnitConversion(
             unit=alt.unit,
             type=alt.type,
             multiplier=float(alt.multiplier),
@@ -149,7 +152,7 @@ def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
         unit_symbol=unit_symbol,
         allowed_units=allowed,
         is_dimensionless=data.dimensionless,
-        parameters=dict(data.parameters),
+        parameters={} if data.parameters is None else dict(data.parameters),
         dimensions=None if data.dimensions is None else dict(data.dimensions),
         extra_units=extra_units,
         conversions=conversions,
@@ -219,11 +222,7 @@ def compile_form_models(form_registry: dict[str, FormDefinition]) -> tuple[Form,
                 else str(form_definition.kind),
                 unit_symbol=form_definition.unit_symbol,
                 is_dimensionless=1 if form_definition.is_dimensionless else 0,
-                dimensions=(
-                    json.dumps(form_definition.dimensions)
-                    if form_definition.dimensions is not None
-                    else None
-                ),
+                dimensions=form_definition.dimensions,
             )
         )
     return tuple(models)
@@ -300,7 +299,7 @@ def compile_form_algebra(
                 output_fd = form_registry.get(output_form)
                 input_fd_list = [form_registry.get(form_name) for form_name in input_forms]
                 if output_fd is not None and all(fd is not None for fd in input_fd_list):
-                    if not dimension_api.verify_form_algebra_dimensions(
+                    if not form_dimensions.verify_form_algebra_dimensions(
                         output_fd,
                         input_fd_list,  # type: ignore[arg-type]
                         operation,
@@ -358,21 +357,22 @@ def kind_value_from_form_name(form: str | None) -> str:
 def load_form_definition(
     forms_dir: Path | KnowledgePath,
     form_name: str | None,
-) -> FormDocument | None:
+) -> FormDocumentProtocol | None:
     if not isinstance(form_name, str) or not form_name:
         return None
     form_path = coerce_knowledge_path(forms_dir) / f"{form_name}.yaml"
     if not form_path.exists():
         return None
-    return decode_document_path(form_path, FormDocument)
+    document = decode_document_path(form_path, _form_document_type())
+    return document
 
 
-def allowed_units_from_form_definition(form_definition: FormDocument) -> set[str]:
+def allowed_units_from_form_definition(form_definition: FormDocumentProtocol) -> set[str]:
     allowed: set[str] = set()
     unit_symbol = form_definition.unit_symbol
     if unit_symbol:
         allowed.add(unit_symbol)
-    for alt in form_definition.common_alternatives:
+    for alt in form_definition.common_alternatives or ():
         if alt.unit:
             allowed.add(alt.unit)
     return allowed

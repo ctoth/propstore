@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import json
-
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session
 from quire.sqlalchemy_store import create_sqlalchemy_store
@@ -33,7 +31,7 @@ def test_form_models_are_typed_and_round_trip_dimensions(tmp_path) -> None:
     assert form.kind == "quantity"
     assert form.unit_symbol == "m"
     assert form.is_dimensionless == 0
-    assert json.loads(form.dimensions) == {"L": 1}
+    assert form.dimensions == {"L": 1}
 
     db_path = tmp_path / "forms.sqlite"
     create_sqlalchemy_store(db_path, schema)
@@ -51,4 +49,4 @@ def test_form_models_are_typed_and_round_trip_dimensions(tmp_path) -> None:
     assert stored.kind == "quantity"
     assert stored.unit_symbol == "m"
     assert stored.is_dimensionless == 0
-    assert json.loads(stored.dimensions) == {"L": 1}
+    assert stored.dimensions == {"L": 1}

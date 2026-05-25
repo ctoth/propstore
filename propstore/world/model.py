@@ -787,6 +787,11 @@ class WorldQuery(WorldStore):
                     continue  # No dimensions and not dimensionless — skip
             elif isinstance(row_dims_json, str):
                 row_dims = json.loads(row_dims_json)
+            elif isinstance(row_dims_json, Mapping):
+                row_dims = {
+                    str(key): int(value)
+                    for key, value in row_dims_json.items()
+                }
             else:
                 continue
             if dims_equal(row_dims, dims):

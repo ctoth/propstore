@@ -50,7 +50,7 @@ from propstore.families.batch_specs import (
 from propstore.families.claims.documents import ClaimDocument
 from propstore.families.concepts.documents import ConceptDocument
 from propstore.families.contexts.documents import ContextDocument
-from propstore.families.forms.documents import FormDocument
+from propstore.families.forms.declaration import FORM_CHARTER
 from propstore.families.documents.justifications import JustificationDocument
 from propstore.families.documents.merge import MergeManifestDocument
 from propstore.families.documents.micropubs import MicropublicationDocument
@@ -234,9 +234,12 @@ SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
 INTENTIONAL_SET_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
-PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.21")
+PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.25")
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION = VersionId("2026.05.21")
+FORM_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+FORM_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+FORM_DOCUMENT_TYPE = FORM_CHARTER.generated_document()
 PRIMARY_ARTIFACT_BRANCH = BranchPlacement(policy="primary")
 CURRENT_ARTIFACT_BRANCH = BranchPlacement(policy="current")
 
@@ -868,10 +871,10 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
         _family_definition(
             key=PropstoreFamily.FORMS,
             name=PropstoreFamily.FORMS.value,
-            contract_version=REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION,
+            contract_version=FORM_FAMILY_CONTRACT_VERSION,
             artifact_name="form",
-            artifact_contract_version=ARTIFACT_FAMILY_CONTRACT_VERSION,
-            doc_type=FormDocument,
+            artifact_contract_version=FORM_ARTIFACT_FAMILY_CONTRACT_VERSION,
+            doc_type=FORM_DOCUMENT_TYPE,
             placement=FlatYamlPlacement(
                 namespace=PropstoreFamily.FORMS.value,
                 ref_factory=FormRef,

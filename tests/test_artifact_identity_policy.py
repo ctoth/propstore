@@ -3,13 +3,15 @@ from __future__ import annotations
 from quire.documents import convert_document
 
 from propstore.families.concepts.documents import ConceptDocument
-from propstore.families.forms.documents import FormDocument
+from propstore.families.forms.declaration import FORM_CHARTER
 from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,
 )
 from propstore.families.registry import ConceptFileRef, FormRef
 from propstore.repository import Repository
+
+FormDocument = FORM_CHARTER.generated_document()
 
 
 def test_normalize_canonical_concept_payload_preserves_propstore_handle_and_updates_primary_identity() -> None:

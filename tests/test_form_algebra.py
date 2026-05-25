@@ -15,10 +15,13 @@ from pathlib import Path
 
 import pytest
 import yaml
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
 
 from tests.family_helpers import build_sidecar
 from propstore.dimensions import dims_signature
 from propstore.families.identity.concepts import derive_concept_artifact_id
+from propstore.families.registry import world_schema
 from tests.conftest import normalize_concept_payloads
 
 
@@ -274,15 +277,20 @@ class TestFormTable:
         count = conn.execute("SELECT COUNT(*) FROM form").fetchone()[0]
         assert count == 8
 
-    def test_form_dimensions_stored_as_json(self, sidecar_path):
-        """Force form dimensions stored as JSON dict."""
-        conn = sqlite3.connect(sidecar_path)
-        row = conn.execute(
-            "SELECT dimensions FROM form WHERE name = 'force'"
-        ).fetchone()
-        assert row is not None
-        dims = json.loads(row[0])
-        assert dims == {"M": 1, "L": 1, "T": -2}
+    def test_form_dimensions_round_trip_as_typed_dict(self, sidecar_path):
+        """Force form dimensions round-trip as a Python dict through SQLAlchemy."""
+        schema = world_schema()
+        form = schema.model("form")
+        engine = create_engine(f"sqlite:///{sidecar_path.as_posix()}", future=True)
+        try:
+            with Session(engine) as session:
+                row = session.execute(
+                    select(form).where(form.name == "force")
+                ).scalar_one()
+        finally:
+            engine.dispose()
+
+        assert row.dimensions == {"M": 1, "L": 1, "T": -2}
 
     def test_form_unit_symbol_stored(self, sidecar_path):
         conn = sqlite3.connect(sidecar_path)

@@ -33,7 +33,9 @@ DOCUMENT_SCHEMA_CONTRACT_VERSION_OVERRIDES = {
     "propstore.families.documents.rules.RuleProposalDocument": VersionId("2026.05.01"),
     "propstore.families.claims.documents.ProvenanceDocument": VersionId("2026.05.01"),
     "propstore.families.documents.merge.MergeManifestArgumentDocument": VersionId("2026.05.01"),
-    "propstore.families.forms.documents.FormDocument": VersionId("2026.05.04"),
+    "propstore.families.forms.declaration.FormAlternativeDocument": VersionId("2026.05.25"),
+    "propstore.families.forms.declaration.FormExtraUnitDocument": VersionId("2026.05.25"),
+    "propstore.families.forms.models.FormDocument": VersionId("2026.05.25"),
 }
 CONTRACT_MANIFEST_PATH = (
     Path(__file__).resolve().parent
@@ -140,7 +142,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
     from propstore.families.claims import documents as claims
     from propstore.families.concepts import documents as concepts
     from propstore.families.contexts import documents as contexts
-    from propstore.families.forms import documents as forms
+    from propstore.families.forms import declaration as forms
     from propstore.families.sameas import documents as sameas
 
     modules = (
@@ -158,7 +160,7 @@ def iter_document_schema_types() -> tuple[type[msgspec.Struct], ...]:
         stances,
         worldlines,
     )
-    schema_types: list[type[msgspec.Struct]] = []
+    schema_types: list[type[msgspec.Struct]] = [forms.FORM_CHARTER.generated_document()]
     for module in modules:
         for value in vars(module).values():
             if not inspect.isclass(value):

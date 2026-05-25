@@ -5,10 +5,12 @@ import pytest
 from quire.documents import DocumentSchemaError, convert_document
 
 from propstore.families.concepts.documents import ConceptDocument
-from propstore.families.forms.documents import FormDocument
+from propstore.families.forms.declaration import FORM_CHARTER
 from propstore.families.registry import ConceptFileRef, FormRef
 from propstore.families.concepts.stages import concept_document_to_payload, parse_concept_record_document
 from propstore.repository import Repository
+
+FormDocument = FORM_CHARTER.generated_document()
 
 
 def _provenance_payload() -> dict[str, object]:

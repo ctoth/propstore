@@ -19,7 +19,7 @@ def test_form_algebra_models_round_trip_with_explicit_id(tmp_path) -> None:
                 kind="quantity",
                 unit_symbol="N",
                 is_dimensionless=0,
-                dimensions='{"M": 1, "L": 1, "T": -2}',
+                dimensions={"M": 1, "L": 1, "T": -2},
             ),
         ),
         concept_rows=(),

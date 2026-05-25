@@ -9,10 +9,12 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
-from propstore.families.forms.documents import FormDocument
+from propstore.families.forms.declaration import FORM_CHARTER
 from propstore.families.registry import ConceptFileRef, FormRef
 from propstore.repository import Repository
 from propstore.source import build_alignment_artifact, classify_relation
+
+FormDocument = FORM_CHARTER.generated_document()
 
 
 def _seed_structural_form(repo: Repository) -> None:

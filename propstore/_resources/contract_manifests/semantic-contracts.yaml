@@ -111,11 +111,11 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: form
-  contract_version: 2026.04.27
+  contract_version: 2026.05.25
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.forms.documents.FormDocument
+    doc_type: propstore.families.forms.models.FormDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -1373,7 +1373,7 @@ contracts:
     module: propstore.families.claims.documents
 - kind: document_schema
   name: FormAlternativeDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: unit
@@ -1397,22 +1397,28 @@ contracts:
     - name: reference
       required: true
       type: float
-    module: propstore.families.forms.documents
+    module: propstore.families.forms.declaration
 - kind: document_schema
   name: FormDocument
-  contract_version: 2026.05.04
+  contract_version: 2026.05.25
   body:
     fields:
     - name: name
       required: true
-      type: str
+      type: builtins.str
     - name: dimensionless
       required: true
-      type: bool
-    - name: base
+      type: builtins.bool
+    - name: kind
       required: true
       type: str | None
     - name: unit_symbol
+      required: true
+      type: str | None
+    - name: dimensions
+      required: true
+      type: dict[str, int] | None
+    - name: base
       required: true
       type: str | None
     - name: qudt
@@ -1420,35 +1426,32 @@ contracts:
       type: str | None
     - name: parameters
       required: true
-      type: dict[str, Any]
+      type: dict[str, Any] | None
     - name: common_alternatives
       required: true
-      type: tuple[FormAlternativeDocument, ...]
+      type: tuple[propstore.families.forms.declaration.FormAlternativeDocument, ...]
+        | None
     - name: delta_alternatives
       required: true
-      type: tuple[FormAlternativeDocument, ...]
-    - name: kind
-      required: true
-      type: str | None
+      type: tuple[propstore.families.forms.declaration.FormAlternativeDocument, ...]
+        | None
     - name: note
       required: true
       type: str | None
-    - name: dimensions
-      required: true
-      type: dict[str, int] | None
     - name: extra_units
       required: true
-      type: tuple[FormExtraUnitDocument, ...]
+      type: tuple[propstore.families.forms.declaration.FormExtraUnitDocument, ...]
+        | None
     - name: min
       required: true
       type: float | None
     - name: max
       required: true
       type: float | None
-    module: propstore.families.forms.documents
+    module: propstore.families.forms.models
 - kind: document_schema
   name: FormExtraUnitDocument
-  contract_version: 2026.04.30
+  contract_version: 2026.05.25
   body:
     fields:
     - name: symbol
@@ -1457,7 +1460,7 @@ contracts:
     - name: dimensions
       required: true
       type: dict[str, int]
-    module: propstore.families.forms.documents
+    module: propstore.families.forms.declaration
 - kind: document_schema
   name: IstPropositionDocument
   contract_version: 2026.04.30
@@ -3134,7 +3137,7 @@ contracts:
     module: propstore.families.documents.stances
 - kind: family-registry
   name: propstore
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     families:
     - contract_version: 2026.05.21
@@ -3146,7 +3149,7 @@ contracts:
     - contract_version: 2026.05.21
       key: contexts
       name: contexts
-    - contract_version: 2026.05.21
+    - contract_version: 2026.05.25
       key: forms
       name: forms
     - contract_version: 2026.05.11
@@ -3439,12 +3442,12 @@ contracts:
       kind: field
 - kind: family
   name: forms
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
   body:
     accessor: forms
     artifact_family: form
     artifact_family_contract:
-      doc_type: propstore.families.forms.documents.FormDocument
+      doc_type: propstore.families.forms.models.FormDocument
       placement:
         branch:
           policy: current
@@ -3453,7 +3456,7 @@ contracts:
         kind: flat-yaml
         namespace: forms
         ref_field: name
-    artifact_family_contract_version: 2026.04.27
+    artifact_family_contract_version: 2026.05.25
     foreign_keys: []
     identity_field: name
     key: forms
@@ -4338,4 +4341,4 @@ contracts:
     invariants: []
 registry:
   name: propstore
-  contract_version: 2026.05.21
+  contract_version: 2026.05.25
