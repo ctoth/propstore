@@ -42,7 +42,7 @@ Foreman tried bumping the global `ARTIFACT_FAMILY_CONTRACT_VERSION` at `propstor
 
 Use `git stash pop` to restore the Cut #22 work; the family/artifact_family version bump issue likely needs a per-family override or a different version-resolution path.
 
-## Phase 04 progress: 5 of 14 families closed
+## Phase 04 progress: 10 of 14 families closed (~13:45 mid-day update)
 | Family | Status | Commit |
 |---|---|---|
 | forms | DONE | 9da1f1fe |
@@ -51,9 +51,14 @@ Use `git stash pop` to restore the Cut #22 work; the family/artifact_family vers
 | sources | DONE | fb97a3fe |
 | micropubs | DONE (Cut #21 added Quire validator hook + retry) | d8247f38 |
 | sameas | DONE (Cut #22 authored declaration.py from scratch) | 4e57e2e5 |
-| stances | DONE (Cut #25 authored declaration.py with str-typed strength/conditions_differ; cast() chain for document_to_payload) | 9a35cfc4 |
-| claims, concepts, rules | BLOCKED on structural multi-charter or behavior methods | n/a |
-| merge, predicates, source_alignment, worldlines | BLOCKED on MISSING CHARTER MODULE (must author declaration.py first; audit recommends scope-exclude merge/source_alignment/worldlines as transient artifacts) | n/a |
+| stances | DONE (Cut #25 authored declaration.py + cast() chain for document_to_payload) | 9a35cfc4 |
+| merge | DONE (Cut #26 authored MERGE_MANIFEST_CHARTER with JSON-blob nested types) | 32e6f9b3 |
+| source_alignment | DONE (Cut #27 authored CONCEPT_ALIGNMENT_ARTIFACT_CHARTER) | 694af1fc |
+| worldlines | DONE (Cut #28 authored WORLDLINE_* charters; renamed "values" col to "target_values" with document_name="values" to avoid SQL keyword collision) | 6a8008e3 |
+| **claims** | **BLOCKED — multi-charter aggregation: ClaimDocument compiles into 5 sibling charter rows + concept_link rows from ClaimTypeContract. No single charter can replace ClaimDocument. Phase 04 here needs (a) Quire multi-charter combine spec or (b) keep ClaimDocument with explicit compile adapter ownership rule. Spec-level Q decision.** | n/a |
+| **concepts** | **BLOCKED — lemon-shaped authored shape vs compiled charter shape. ConceptDocument has ontology_reference/lexical_entry/qualia/proto-roles with ZERO charter coverage; CONCEPT_CHARTER stores compiled derived shape produced by compile_concept_sidecar_rows. Generated-document replacement would lose the lemon representation entirely. Spec-level Q decision per audit section 3.2.** | n/a |
+| **predicates** | **BLOCKED — app-layer validation (`propstore/app/predicates.py::add_predicate`) rejects empty arg_types before charter even sees the value. Charter-level validator relaxation insufficient; needs deeper redesign of when arity invariant is enforced.** | stashed (Cut #23) |
+| **rules** | **BLOCKED — authored DeLP rules currently blob-stored as JSON inside `grounded_bundle_input.payload: bytes`. Phase 04 here needs a separate authored-rule charter family distinct from the grounded-runtime storage; cascades into the grounded_bundle_input round-trip path. Spec-level Q decision per audit section 3.10.** | n/a |
 
 ## Phase 02 progress: solid foundation
 Quire commits all pushed:
