@@ -61,6 +61,7 @@ from argumentation.aspic import Scalar
 from argumentation.aspic import GroundAtom as AspicGroundAtom
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, FamilyCharter, FamilyModel
+from quire.lifecycle import ConflictPolicy, FamilyState, FamilyTransition
 from quire.families import FamilyDefinition
 from quire.sqlalchemy_store import DerivedSession
 from quire.versions import VersionId
@@ -292,6 +293,19 @@ AUTHORED_RULE_PROPOSAL_CHARTER: FamilyCharter = FamilyCharter(
         ),
         CharterField("page_reference", str, nullable=True),
         CharterField("promoted_from_sha", str, nullable=True),
+    ),
+    states=(
+        FamilyState("proposed", document_label="proposal"),
+        FamilyState("canonical", document_label="canonical", terminal=True),
+    ),
+    transitions=(
+        FamilyTransition(
+            "promote_proposal",
+            source="proposed",
+            target="canonical",
+            materializer="rule_proposal_to_canonical",
+            conflict_policy=ConflictPolicy.REPLACE,
+        ),
     ),
     semantic_metadata={"semantic": "propstore.world"},
 )

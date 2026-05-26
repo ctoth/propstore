@@ -166,9 +166,9 @@ def promote_rules(
 ) -> None:
     """Promote selected rule proposals, or print the plan in review mode."""
     from propstore.families.registry import RuleProposalRef
-    from propstore.proposals_rules import (
+    from propstore.families.rules.lifecycle import (
+        apply_rule_proposal_promotion,
         plan_rule_proposal_promotion,
-        promote_rule_proposals,
     )
 
     repo = ctx.obj["repo"]
@@ -199,5 +199,5 @@ def promote_rules(
             )
         return
 
-    result = promote_rule_proposals(repo, plan)
+    result = apply_rule_proposal_promotion(repo, plan)
     emit_success(f"Promoted {result.moved} rule proposal file(s).")

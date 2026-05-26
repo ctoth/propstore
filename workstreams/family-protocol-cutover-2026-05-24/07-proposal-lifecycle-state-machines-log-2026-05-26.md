@@ -93,3 +93,50 @@ Commit:
 
 Next slice:
 - Rule proposal root workflow.
+
+## Iteration 2 - `rule proposal root workflow`
+
+Slice read:
+- `propstore/proposals_rules.py`
+- `propstore/families/rules/declaration.py`
+- `propstore/families/rules/lifecycle.py`
+- `propstore/cli/proposal.py`
+- rule proposal tests
+
+Surfaces:
+- `propstore/proposals_rules.py`
+  - Disposition: delete
+  - Owner after cleanup: `propstore.families.rules.lifecycle`
+  - Action: Deleted the rule root proposal workflow module.
+  - Evidence: No `propstore.proposals_rules` imports remain.
+- `RuleProposalPromotionPlan`
+  - Disposition: delete
+  - Owner after cleanup: generic `ProposalPromotionPlan[RuleProposalRef]`.
+  - Action: Replaced with shared proposal lifecycle plan/item/result types.
+- `promote_rule_proposals`
+  - Disposition: delete
+  - Owner after cleanup: `apply_rule_proposal_promotion` in the rule-family
+    lifecycle owner.
+  - Action: Rule promotion now runs the `promote_proposal` lifecycle
+    transition on `AUTHORED_RULE_PROPOSAL_CHARTER` and applies emitted
+    `FamilyRecordWrite` records.
+- Rule canonical document copying
+  - Disposition: move
+  - Owner after cleanup: rule-family lifecycle materializer.
+  - Action: Moved proposal-to-canonical rule document construction into
+    `_materialize_rule_proposal`.
+
+Gate results:
+- Pass: `rg -n -F -- "RuleProposalPromotionPlan" propstore tests`
+- Pass: `rg -n -F -- "promote_rule_proposals" propstore tests`
+- Pass: `rg -n -F -- "propstore.proposals_rules" propstore tests`
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label rule-proposal-lifecycle tests/test_promote_rules_proposals.py tests/test_cli_promote_rules_selective.py tests/test_cli_promote_rules_unknown_id.py tests/test_cli_review_no_commit.py tests/test_proposal_promotion.py::test_proposal_promotion_modules_use_shared_transaction_helper`
+  - Evidence: `logs/test-runs/rule-proposal-lifecycle-20260526-004934.log`,
+    7 passed.
+
+Commit:
+- Pending.
+
+Next slice:
+- Predicate proposal root workflow.

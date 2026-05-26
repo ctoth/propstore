@@ -16,6 +16,9 @@ class ProposalPromotionItem(Generic[RefT]):
     target_path: Path
     filename: str
     source_claim: str = ""
+    source_paper: str = ""
+    rule_id: str = ""
+    predicate_id: str = ""
 
 
 @dataclass(frozen=True)

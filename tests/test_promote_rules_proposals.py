@@ -140,14 +140,17 @@ def _seed_direct_rule_proposal(
     return commit_sha
 
 
-def test_promote_rule_proposals_selective_and_idempotent(monkeypatch, tmp_path) -> None:
-    from propstore.proposals_rules import plan_rule_proposal_promotion, promote_rule_proposals
+def test_apply_rule_proposal_promotion_selective_and_idempotent(monkeypatch, tmp_path) -> None:
+    from propstore.families.rules.lifecycle import (
+        apply_rule_proposal_promotion,
+        plan_rule_proposal_promotion,
+    )
 
     repo = Repository.init(tmp_path / "knowledge")
     proposal_sha = _seed_rule_proposals(monkeypatch, repo)
 
     plan = plan_rule_proposal_promotion(repo, source_paper=PAPER, rule_ids=("rule-001",))
-    result = promote_rule_proposals(repo, plan)
+    result = apply_rule_proposal_promotion(repo, plan)
 
     assert result.moved == 1
     promoted = repo.families.rules.require(RuleRef("rule-001"))
@@ -162,7 +165,7 @@ def test_promote_rule_proposals_selective_and_idempotent(monkeypatch, tmp_path) 
 
 
 def test_plan_rule_proposal_unknown_id_raises(monkeypatch, tmp_path) -> None:
-    from propstore.proposals_rules import plan_rule_proposal_promotion
+    from propstore.families.rules.lifecycle import plan_rule_proposal_promotion
 
     repo = Repository.init(tmp_path / "knowledge")
     _seed_rule_proposals(monkeypatch, repo)
@@ -181,9 +184,9 @@ def test_generated_rule_proposal_promotion_rejects_undeclared_predicates(
 ) -> None:
     tmp_dir = tempfile.TemporaryDirectory()
     with tmp_dir:
-        from propstore.proposals_rules import (
+        from propstore.families.rules.lifecycle import (
+            apply_rule_proposal_promotion,
             plan_rule_proposal_promotion,
-            promote_rule_proposals,
         )
 
         repo = Repository.init(Path(tmp_dir.name) / "knowledge")
@@ -197,7 +200,7 @@ def test_generated_rule_proposal_promotion_rejects_undeclared_predicates(
 
         plan = plan_rule_proposal_promotion(repo, source_paper=paper, rule_ids=(rule_id,))
         with pytest.raises(RuleWorkflowError, match="undeclared predicate"):
-            promote_rule_proposals(repo, plan)
+            apply_rule_proposal_promotion(repo, plan)
 
         assert repo.git.branch_sha(repo.git.primary_branch_name()) == master_before
         assert repo.families.rules.load(RuleRef(rule_id)) is None

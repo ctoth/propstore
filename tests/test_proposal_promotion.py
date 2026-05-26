@@ -143,15 +143,15 @@ def test_proposal_promotion_modules_use_shared_transaction_helper() -> None:
     proposal_sources = {
         "stances": Path("propstore/families/stances/lifecycle.py").read_text(encoding="utf-8"),
         "predicates": Path("propstore/proposals_predicates.py").read_text(encoding="utf-8"),
-        "rules": Path("propstore/proposals_rules.py").read_text(encoding="utf-8"),
+        "rules": Path("propstore/families/rules/lifecycle.py").read_text(encoding="utf-8"),
     }
 
     assert "run_transition_batch(" in proposal_sources["stances"]
     assert "FamilyRecordWrite(" in proposal_sources["stances"]
-    for source in (proposal_sources["predicates"], proposal_sources["rules"]):
-        assert "commit_planned_canonical_artifacts(" in source
+    assert "run_transition_batch(" in proposal_sources["rules"]
+    assert "FamilyRecordWrite(" in proposal_sources["rules"]
+    assert "commit_planned_canonical_artifacts(" in proposal_sources["predicates"]
     assert "transaction.predicates.save(" not in proposal_sources["predicates"]
-    assert "transaction.rules.save(" not in proposal_sources["rules"]
 
 
 def test_stance_proposal_promotion_reports_missing_branch(tmp_path) -> None:
