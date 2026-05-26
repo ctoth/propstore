@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.source.alignment import classify_relation
+from propstore.families.concepts.alignment import classify_relation
 
 
 def _proposal(

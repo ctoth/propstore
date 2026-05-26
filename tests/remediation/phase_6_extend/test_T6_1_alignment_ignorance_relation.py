@@ -1,5 +1,5 @@
 from propstore.opinion import Opinion
-from propstore.source.alignment import classify_relation
+from propstore.families.concepts.alignment import classify_relation
 
 
 _TEST_BASE_RATE = 0.5

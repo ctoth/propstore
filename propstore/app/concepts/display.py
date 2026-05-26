@@ -150,7 +150,7 @@ def show_concept(
     repo: Repository,
     request: ConceptShowRequest,
 ) -> ConceptShowReport:
-    from propstore.source import load_alignment_artifact
+    from propstore.families.concepts.alignment import load_alignment_artifact
 
     handle = request.concept_id_or_name
     if handle.startswith("align:"):

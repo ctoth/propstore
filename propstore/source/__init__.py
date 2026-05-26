@@ -1,13 +1,3 @@
-from .alignment import (
-    align_sources,
-    build_alignment_artifact,
-    classify_relation,
-    concept_proposal_branch,
-    decide_alignment,
-    load_alignment_artifact,
-    promote_alignment,
-    save_alignment_artifact,
-)
 from .claims import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
@@ -38,10 +28,6 @@ from .relations import (
 from .status import SourceStatusState, inspect_source_status
 
 __all__ = [
-    "align_sources",
-    "build_alignment_artifact",
-    "classify_relation",
-    "concept_proposal_branch",
     "commit_source_claim_proposal",
     "commit_source_claims_batch",
     "commit_source_concept_proposal",
@@ -52,17 +38,13 @@ __all__ = [
     "commit_source_notes",
     "commit_source_stance_proposal",
     "commit_source_stances_batch",
-    "decide_alignment",
     "finalize_source_branch",
     "init_source_branch",
     "initial_source_document",
-    "load_alignment_artifact",
     "load_finalize_report",
     "normalize_source_concepts_document",
     "normalize_source_slug",
-    "promote_alignment",
     "promote_source_branch",
-    "save_alignment_artifact",
     "source_paper_slug",
     "SourceStatusState",
     "source_tag_uri",

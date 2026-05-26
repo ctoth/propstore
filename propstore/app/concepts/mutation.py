@@ -412,7 +412,7 @@ def show_concept(
     repo: Repository,
     request: ConceptShowRequest,
 ) -> ConceptShowReport:
-    from propstore.source import load_alignment_artifact
+    from propstore.families.concepts.alignment import load_alignment_artifact
 
     handle = request.concept_id_or_name
     if handle.startswith("align:"):
@@ -436,7 +436,7 @@ def build_concept_alignment(
     repo: Repository,
     request: ConceptAlignmentBuildRequest,
 ) -> ConceptAlignmentReport:
-    from propstore.source import align_sources
+    from propstore.families.concepts.alignment import align_sources
 
     artifact = align_sources(repo, list(request.sources))
     return ConceptAlignmentReport(alignment_id=artifact.id)
@@ -446,7 +446,7 @@ def query_concept_alignment(
     repo: Repository,
     request: ConceptAlignmentQueryRequest,
 ) -> ConceptAlignmentQueryReport:
-    from propstore.source import load_alignment_artifact
+    from propstore.families.concepts.alignment import load_alignment_artifact
 
     try:
         _, artifact = load_alignment_artifact(repo, request.cluster_id)
@@ -476,7 +476,7 @@ def decide_concept_alignment(
     repo: Repository,
     request: ConceptAlignmentDecisionRequest,
 ) -> ConceptAlignmentReport:
-    from propstore.source import decide_alignment
+    from propstore.families.concepts.alignment import decide_alignment
 
     updated = decide_alignment(
         repo,
@@ -491,7 +491,7 @@ def promote_concept_alignment(
     repo: Repository,
     cluster_id: str,
 ) -> ConceptAlignmentReport:
-    from propstore.source import promote_alignment
+    from propstore.families.concepts.alignment import promote_alignment
 
     updated = promote_alignment(repo, cluster_id)
     return ConceptAlignmentReport(alignment_id=updated.id)

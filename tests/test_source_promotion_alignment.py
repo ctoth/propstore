@@ -25,14 +25,16 @@ from propstore.families.identity.concepts import (
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.families.claims.lifecycle import normalize_source_claims_payload
-from propstore.source import (
+from propstore.families.concepts.alignment import (
     align_sources,
     concept_proposal_branch,
     decide_alignment,
-    finalize_source_branch,
-    initial_source_document,
     load_alignment_artifact,
     promote_alignment,
+)
+from propstore.source import (
+    finalize_source_branch,
+    initial_source_document,
     promote_source_branch,
 )
 from propstore.families.documents.sources import (
