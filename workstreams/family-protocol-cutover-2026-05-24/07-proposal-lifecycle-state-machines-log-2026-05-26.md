@@ -217,7 +217,7 @@ Gate results:
     5 passed.
 
 Commit:
-- Pending.
+- `b2752b32 Rename rule proposal artifact surface`
 
 Next slice:
 - Predicate proposal document surface.
