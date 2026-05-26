@@ -30,7 +30,6 @@ from propstore.source import (
     inspect_source_status,
     promote_source_branch,
 )
-from propstore.source.common import load_source_document
 from tests.conftest import TEST_CONTEXT_ID, make_test_context_commit_entry, normalize_concept_payloads
 from tests.family_helpers import materialized_world_store
 
@@ -105,7 +104,7 @@ def _save_source_claims_directly(
     source_name: str,
     claims_payload: dict,
 ) -> None:
-    source_doc = load_source_document(repo, source_name)
+    source_doc = repo.families.source_documents.require(SourceRef(source_name))
     raw_claims = decode_document_batch_bytes(
         encode_yaml_value(claims_payload),
         SOURCE_CLAIM_BATCH_SPEC,

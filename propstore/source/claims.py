@@ -20,9 +20,6 @@ from quire.documents import (
 )
 
 from .common import (
-    load_source_claims_document,
-    load_source_concepts_document,
-    load_source_document,
     normalize_source_slug,
     source_tag_uri,
 )
@@ -31,7 +28,7 @@ from propstore.families.documents.sources import ExtractionProvenanceDocument, S
 
 def source_concept_handles(repo: Repository, source_name: str) -> set[str]:
     handles: set[str] = set()
-    concepts_doc = load_source_concepts_document(repo, source_name)
+    concepts_doc = repo.families.source_concepts.load(SourceRef(source_name))
     if concepts_doc is None:
         return handles
     for entry in concepts_doc:
@@ -84,7 +81,7 @@ def _source_branch_cel_concepts(
     """
     from propstore.families.forms.stages import kind_type_from_form_name
 
-    concepts_doc = load_source_concepts_document(repo, source_name)
+    concepts_doc = repo.families.source_concepts.load(SourceRef(source_name))
     if concepts_doc is None:
         return []
     infos: list[ConceptInfo] = []
@@ -199,7 +196,7 @@ def _source_branch_concept_form_map(
     claim can reference either spelling. Entries without a declared
     ``form`` are skipped (they fail later at promote/build).
     """
-    concepts_doc = load_source_concepts_document(repo, source_name)
+    concepts_doc = repo.families.source_concepts.load(SourceRef(source_name))
     if concepts_doc is None:
         return {}
     mapping: dict[str, str] = {}
@@ -333,7 +330,7 @@ def commit_source_claims_batch(
     """
     from datetime import datetime, timezone
 
-    source_doc = load_source_document(repo, source_name)
+    source_doc = repo.families.source_documents.require(SourceRef(source_name))
     raw = decode_document_batch_bytes(
         claims_file.read_bytes(),
         SOURCE_CLAIM_BATCH_SPEC,
@@ -409,11 +406,11 @@ def commit_source_claim_proposal(
     figure: str | None = None,
 ) -> SourceClaimDocument:
     branch = repo.families.source_claims.address(SourceRef(source_name)).branch
-    source_doc = load_source_document(repo, source_name)
+    source_doc = repo.families.source_documents.require(SourceRef(source_name))
     normalized_claim_type = ClaimType(claim_type)
 
     def update(expected_head: str | None) -> tuple[SourceClaimDocument, ...]:
-        existing = load_source_claims_document(repo, source_name) or ()
+        existing = repo.families.source_claims.load(SourceRef(source_name)) or ()
         claims = list(existing)
 
         norm_keys = {"source_local_id", "logical_ids", "artifact_id", "version_id"}

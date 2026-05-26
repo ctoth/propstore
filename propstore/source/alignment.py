@@ -13,6 +13,7 @@ from propstore.families.registry import (
     PropstoreFamily,
     ConceptAlignmentRef,
     ConceptFileRef,
+    SourceRef,
 )
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.families.concepts.declaration import ConceptDocument
@@ -39,7 +40,6 @@ from propstore.opinion import Opinion
 from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 from propstore.uri_authority import TaggingAuthority
 
-from .common import load_source_document
 from propstore.families.concepts.declaration import SOURCE_CONCEPT_BATCH_SPEC
 
 
@@ -226,7 +226,7 @@ def align_sources(
             except FileNotFoundError:
                 concepts_doc = None
         branch_source_name = branch.split("/", 1)[1] if "/" in branch else branch
-        source_doc = load_source_document(repo, branch_source_name)
+        source_doc = repo.families.source_documents.require(SourceRef(branch_source_name))
         source_uri = str(source_doc.id or source_tag_uri(branch_source_name, authority=repo.uri_authority))
         for entry in (() if concepts_doc is None else concepts_doc):
             proposals.append(

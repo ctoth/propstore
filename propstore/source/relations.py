@@ -17,8 +17,6 @@ from quire.documents import (
 from propstore.stances import StanceType, coerce_stance_type
 
 from .common import (
-    load_source_justifications_document,
-    load_source_stances_document,
     normalize_source_slug,
 )
 from propstore.families.documents.sources import (
@@ -186,9 +184,7 @@ def commit_source_justification_proposal(
     def update(expected_head: str | None) -> tuple[SourceJustificationDocument, ...]:
         claim_index = build_source_claim_index(repo, source_name)
         primary_claim_index = build_primary_claim_index(repo)
-        existing = load_source_justifications_document(
-            repo, source_name
-        ) or ()
+        existing = repo.families.source_justifications.load(SourceRef(source_name)) or ()
         justifications = [entry for entry in existing if entry.id != just_id]
 
         justification = SourceJustificationDocument(
@@ -273,8 +269,8 @@ def commit_source_stance_proposal(
     def update(expected_head: str | None) -> tuple[SourceStanceEntryDocument, ...]:
         claim_index = build_source_claim_index(repo, source_name)
         primary_claim_index = build_primary_claim_index(repo)
-        existing = load_source_stances_document(repo, source_name) or ()
-        stances = list(existing)
+        existing = repo.families.source_stances.load(SourceRef(source_name)) or ()
+        stances: list[SourceStanceEntryDocument] = list(existing)
 
         stance = SourceStanceEntryDocument(
             source_claim=source_claim,

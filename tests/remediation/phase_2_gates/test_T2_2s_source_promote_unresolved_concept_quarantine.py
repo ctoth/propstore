@@ -12,7 +12,6 @@ from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.claims.lifecycle import normalize_source_claims_payload
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
-from propstore.source.common import load_source_document
 from tests.conftest import make_test_context_commit_entry
 from tests.family_helpers import materialized_world_store_path
 
@@ -22,7 +21,7 @@ def _save_source_claims_directly(
     source_name: str,
     claims_payload: dict,
 ) -> None:
-    source_doc = load_source_document(repo, source_name)
+    source_doc = repo.families.source_documents.require(SourceRef(source_name))
     branch = repo.families.source_claims.address(SourceRef(source_name)).branch
     raw_claims = decode_document_batch_bytes(
         encode_yaml_value(claims_payload),

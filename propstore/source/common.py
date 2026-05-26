@@ -4,7 +4,6 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import TypeVar
 
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
@@ -13,19 +12,11 @@ from propstore.provenance import ProvenanceStatus
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
 from propstore.families.documents.sources import (
-    SourceClaimDocument,
-    SourceConceptEntryDocument,
-    SourceFinalizeReportDocument,
     SourceMetadataDocument,
     SourceOriginDocument,
-    SourceJustificationDocument,
-    SourceStanceEntryDocument,
     SourceTrustDocument,
 )
-from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.sources.declaration import SourceDocument
-
-TDocument = TypeVar("TDocument")
 
 
 def normalize_source_slug(name: str) -> str:
@@ -105,15 +96,6 @@ def initial_source_document(
     )
 
 
-def load_document_from_branch(
-    repo: Repository,
-    branch: str,
-    relpath: str,
-    document_type: type[TDocument],
-) -> TDocument | None:
-    return repo.snapshot.read_document(relpath, document_type, branch=branch)
-
-
 def init_source_branch(
     repo: Repository,
     name: str,
@@ -160,39 +142,3 @@ def commit_source_metadata(repo: Repository, name: str, metadata_file: Path) -> 
         loaded,
         message=f"Write metadata for {normalize_source_slug(name)}",
     )
-
-
-def load_source_metadata(repo: Repository, name: str) -> dict[str, object] | None:
-    return repo.families.source_metadata.load(SourceRef(name))
-
-
-def load_source_document(repo: Repository, name: str) -> SourceDocument:
-    branch = repo.families.source_documents.address(SourceRef(name)).branch
-    document = repo.families.source_documents.load(SourceRef(name))
-    if document is None:
-        raise ValueError(f"Source branch {branch!r} does not exist")
-    return document
-
-
-def load_source_concepts_document(repo: Repository, name: str) -> tuple[SourceConceptEntryDocument, ...] | None:
-    return repo.families.source_concepts.load(SourceRef(name))
-
-
-def load_source_claims_document(repo: Repository, name: str) -> tuple[SourceClaimDocument, ...] | None:
-    return repo.families.source_claims.load(SourceRef(name))
-
-
-def load_source_micropubs_document(repo: Repository, name: str) -> tuple[MicropublicationDocument, ...] | None:
-    return repo.families.source_micropubs.load(SourceRef(name))
-
-
-def load_source_justifications_document(repo: Repository, name: str) -> tuple[SourceJustificationDocument, ...] | None:
-    return repo.families.source_justifications.load(SourceRef(name))
-
-
-def load_source_stances_document(repo: Repository, name: str) -> tuple[SourceStanceEntryDocument, ...] | None:
-    return repo.families.source_stances.load(SourceRef(name))
-
-
-def load_source_finalize_report(repo: Repository, name: str) -> SourceFinalizeReportDocument | None:
-    return repo.families.source_finalize_reports.load(SourceRef(name))

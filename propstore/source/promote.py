@@ -79,13 +79,6 @@ from propstore.families.identity.justifications import derive_justification_arti
 from propstore.families.identity.stances import derive_stance_artifact_id, stamp_stance_artifact_id
 
 from .common import (
-    load_source_claims_document,
-    load_source_concepts_document,
-    load_source_document,
-    load_source_finalize_report,
-    load_source_justifications_document,
-    load_source_micropubs_document,
-    load_source_stances_document,
     utc_now,
     normalize_source_slug,
     source_paper_slug,
@@ -238,7 +231,7 @@ def _commit_promote_time_trust_calibration(
         source_name,
         world_snapshot=promotion_commit_sha,
     )
-    source_doc = load_source_document(repo, source_name)
+    source_doc = repo.families.source_documents.require(SourceRef(source_name))
     updated_payload = source_document_payload(source_doc)
     updated_payload["trust"] = _source_trust_payload(calibration)
     if updated_payload["trust"] == source_doc.trust.to_payload():
@@ -549,7 +542,7 @@ def resolve_source_concept_promotions(
     repo: Repository,
     source_name: str,
 ) -> SourceConceptPromotionResolution:
-    concepts_doc = load_source_concepts_document(repo, source_name)
+    concepts_doc = repo.families.source_concepts.load(SourceRef(source_name))
     concepts_by_artifact = load_primary_branch_concepts(repo)
     primary_tip = repo.require_git().branch_sha(repo.require_git().primary_branch_name())
     primary_concept_index = (
@@ -689,7 +682,7 @@ def resolve_source_concept_promotions(
 
 
 def load_finalize_report(repo: Repository, source_name: str):
-    return load_source_finalize_report(repo, source_name)
+    return repo.families.source_finalize_reports.load(SourceRef(source_name))
 
 
 def _compute_blocked_claim_artifact_ids(
@@ -776,7 +769,7 @@ def collect_source_promotion_blocked_facts(
     repo: Repository,
     source_name: str,
 ) -> tuple[PromotionBlockedClaimFact, ...]:
-    claims_doc = load_source_claims_document(repo, source_name)
+    claims_doc = repo.families.source_claims.load(SourceRef(source_name))
     if claims_doc is None:
         return ()
     if load_finalize_report(repo, source_name) is None:
@@ -786,8 +779,8 @@ def collect_source_promotion_blocked_facts(
     source_claim_index = build_source_claim_index(repo, source_name)
     blocked_artifact_ids, blocked_reasons = _compute_blocked_claim_artifact_ids(
         claims_doc,
-        load_source_justifications_document(repo, source_name),
-        load_source_stances_document(repo, source_name),
+        repo.families.source_justifications.load(SourceRef(source_name)),
+        repo.families.source_stances.load(SourceRef(source_name)),
         source_claim_index,
         concept_map=concept_resolution.concept_map,
         blocked_concept_refs=concept_resolution.blocked_concept_refs,
@@ -861,11 +854,11 @@ def promote_source_branch(
         )
 
     slug = source_paper_slug(source_name)
-    source_doc = load_source_document(repo, source_name)
-    claims_doc = load_source_claims_document(repo, source_name)
-    micropubs_doc = load_source_micropubs_document(repo, source_name)
-    justifications_doc = load_source_justifications_document(repo, source_name)
-    stances_doc = load_source_stances_document(repo, source_name)
+    source_doc = repo.families.source_documents.require(SourceRef(source_name))
+    claims_doc = repo.families.source_claims.load(SourceRef(source_name))
+    micropubs_doc = repo.families.source_micropubs.load(SourceRef(source_name))
+    justifications_doc = repo.families.source_justifications.load(SourceRef(source_name))
+    stances_doc = repo.families.source_stances.load(SourceRef(source_name))
     concept_resolution = resolve_source_concept_promotions(repo, source_name)
     concept_map = concept_resolution.concept_map
     promoted_concept_documents = concept_resolution.promoted_concept_documents
@@ -883,14 +876,16 @@ def promote_source_branch(
         blocked_concept_refs=concept_resolution.blocked_concept_refs,
     )
 
-    all_claims = tuple(() if claims_doc is None else claims_doc)
-    blocked_claims = [
+    all_claims: tuple[SourceClaimDocument, ...] = tuple(
+        () if claims_doc is None else claims_doc
+    )
+    blocked_claims: list[SourceClaimDocument] = [
         claim
         for claim in all_claims
         if isinstance(claim.artifact_id, str)
         and claim.artifact_id in blocked_artifact_ids
     ]
-    valid_claims = [
+    valid_claims: list[SourceClaimDocument] = [
         claim
         for claim in all_claims
         if isinstance(claim.artifact_id, str)

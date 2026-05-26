@@ -6,7 +6,6 @@ from propstore.repository import Repository, retry_live_branch_update
 from propstore.families.registry import SourceRef
 from quire.documents import decode_document_batch_bytes
 
-from .common import load_source_concepts_document
 from propstore.families.concepts.declaration import SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
@@ -95,7 +94,7 @@ def commit_source_concept_proposal(
 ) -> SourceConceptEntryDocument:
     validate_form_name(form, repo)
     def update(expected_head: str | None) -> tuple[SourceConceptEntryDocument, ...]:
-        existing = load_source_concepts_document(repo, source_name) or ()
+        existing = repo.families.source_concepts.load(SourceRef(source_name)) or ()
         concepts = [entry for entry in existing if entry.local_name != local_name]
         entry = SourceConceptEntryDocument(
             local_name=local_name,

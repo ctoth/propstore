@@ -13,11 +13,6 @@ from propstore.families.claims.declaration import ProvenanceDocument
 from propstore.families.contexts.declaration import ContextReferenceDocument
 
 from .common import (
-    load_source_claims_document,
-    load_source_concepts_document,
-    load_source_document,
-    load_source_justifications_document,
-    load_source_stances_document,
     normalize_source_slug,
     source_paper_slug,
     source_tag_uri,
@@ -109,11 +104,13 @@ def finalize_source_branch(
     source_doc: SourceDocument | None = None,
 ) -> str:
     if source_doc is None:
-        source_doc = load_source_document(repo, source_name)
-    claims_doc = load_source_claims_document(repo, source_name)
-    justifications_doc = load_source_justifications_document(repo, source_name)
-    stances_doc = load_source_stances_document(repo, source_name)
-    concepts_doc = load_source_concepts_document(repo, source_name)
+        source_doc = repo.families.source_documents.require(SourceRef(source_name))
+    if source_doc is None:
+        raise ValueError(f"Source branch {source_name!r} does not exist")
+    claims_doc = repo.families.source_claims.load(SourceRef(source_name))
+    justifications_doc = repo.families.source_justifications.load(SourceRef(source_name))
+    stances_doc = repo.families.source_stances.load(SourceRef(source_name))
+    concepts_doc = repo.families.source_concepts.load(SourceRef(source_name))
 
     source_claim_index = build_source_claim_index(repo, source_name)
     primary_claim_index = build_primary_claim_index(repo)

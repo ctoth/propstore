@@ -210,9 +210,8 @@ def init_source(repo: Repository, request: SourceInitRequest) -> SourceBranchRep
 
 def finalize_source(repo: Repository, request: SourceNamedRequest) -> SourceBranchReport:
     from propstore.source import finalize_source_branch
-    from propstore.source.common import load_source_document
 
-    source_doc = load_source_document(repo, request.name)
+    source_doc = repo.families.source_documents.require(SourceRef(request.name))
     finalize_source_branch(
         repo,
         request.name,
@@ -229,9 +228,6 @@ def promote_source(
     from propstore.compiler.errors import CompilerWorkflowError
     from propstore.compiler.workflows import build_repository
     from propstore.source import promote_source_branch
-    from propstore.source.common import (
-        load_source_claims_document,
-    )
 
     promotion = promote_source_branch(repo, request.name, strict=request.strict)
     build_report = build_repository(repo, force=True)
@@ -248,7 +244,7 @@ def promote_source(
             f"Post-promotion build failed: {len(build_errors)} error(s)",
             build_errors,
         )
-    claims_doc = load_source_claims_document(repo, request.name)
+    claims_doc = repo.families.source_claims.load(SourceRef(request.name))
     total_claims = len(claims_doc) if claims_doc is not None else 0
     blocked_count = len(promotion.blocked_claims)
     promoted_count = max(0, total_claims - blocked_count)
@@ -543,9 +539,8 @@ def propose_source_stance(
 
 def _auto_finalize_source(repo: Repository, name: str) -> SourceBatchReport:
     from propstore.source import finalize_source_branch
-    from propstore.source.common import load_source_document
 
-    source_doc = load_source_document(repo, name)
+    source_doc = repo.families.source_documents.require(SourceRef(name))
     finalize_source_branch(
         repo,
         name,
