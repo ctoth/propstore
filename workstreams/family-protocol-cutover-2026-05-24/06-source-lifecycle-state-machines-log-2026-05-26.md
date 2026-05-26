@@ -192,3 +192,48 @@ Commit:
 
 Next slice:
 - Source concept projection and primary-branch match payload rewriting.
+
+## Iteration 5 - `source concept lifecycle`
+
+Slice read:
+- `propstore/source/registry.py`
+- `propstore/source/concepts.py`
+- `propstore/source/finalize.py`
+- `propstore/source/promote.py`
+- `propstore/families/concepts/stages.py`
+- `tests/test_source_relations.py`
+
+Surfaces:
+- `propstore/source/registry.py`
+  - Disposition: delete
+  - Owner after cleanup: `propstore.families.concepts.lifecycle`
+  - Action: Deleted the source registry helper module and moved primary
+    concept lookup, source concept projection, and parameterization merge
+    preview behavior to the concept-family lifecycle owner.
+  - Evidence: No `propstore.source.registry` or `from .registry` callers remain.
+- Source package concept lifecycle exports
+  - Disposition: delete
+  - Owner after cleanup: `propstore.families.concepts.lifecycle`
+  - Action: Removed `load_primary_branch_concepts`,
+    `load_primary_branch_concept_docs`, `parameterization_group_merge_preview`,
+    `preview_source_parameterization_group_merges`,
+    `primary_branch_concept_match`, and `projected_source_concepts` from the
+    source package export surface.
+  - Evidence: Source workflow modules and tests import the concept-family owner
+    directly.
+
+Gate results:
+- Pass: `rg -n -F -- "propstore.source.registry" propstore tests`
+- Pass: `rg -n -F -- "from .registry" propstore/source`
+- Pass: `rg -n -F -- "from propstore.source import parameterization_group_merge_preview" tests propstore`
+- Pass: `rg -n -F -- "def projected_source_concepts" propstore/source propstore/families`
+  - Remaining definition: `propstore/families/concepts/lifecycle.py`.
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label source-concept-lifecycle tests/test_source_relations.py tests/test_source_promotion_alignment.py::test_promote_source_branch_materializes_blocked_rows_from_source_state tests/test_finalize_micropub_required.py`
+  - Evidence: `logs/test-runs/source-concept-lifecycle-20260525-232459.log`, 13 passed.
+
+Commit:
+- `3079f269 Move source concept lifecycle to concept family`
+
+Next slice:
+- Source loader fanout in `propstore/source/common.py`.
