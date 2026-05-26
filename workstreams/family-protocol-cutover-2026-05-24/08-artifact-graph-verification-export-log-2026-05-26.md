@@ -43,3 +43,6 @@
   export are clean.
 - Focused graph type gate passed:
   `uv run pyright propstore\graph_export.py propstore\world\graph_projection.py propstore\app\world_reasoning.py propstore\support_revision\af_adapter.py propstore\world\assignment_selection_policy.py`.
+- Focused graph pytest passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label graph-family-projection tests/test_graph_export.py`;
+  10 passed, log `logs\test-runs\graph-family-projection-20260526-122501.log`.
