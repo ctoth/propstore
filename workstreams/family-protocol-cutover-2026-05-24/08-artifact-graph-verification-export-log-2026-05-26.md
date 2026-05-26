@@ -24,3 +24,11 @@
 
 - Started on `master` with clean tracked status; only unrelated untracked
   diagnostic files/directories were present.
+- Quire projection payloads now normalize enum values; Propstore is pinned to
+  pushed Quire commit `46cf1c2a84f385a62c39cea272f9590a43b4ee5e`.
+- Deleted the old root artifact code and artifact verification modules from
+  the production path. Search gates for `propstore.artifact_codes`,
+  `propstore.artifact_verification`, `stamp_source_artifact_codes`, and
+  `stamp_canonical_artifact_codes` are clean.
+- Focused type gate passed:
+  `uv run pyright propstore\families\artifacts.py propstore\source\finalize.py propstore\source\promote.py propstore\app\verify.py`.

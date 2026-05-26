@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, cast
 
 from quire.lifecycle import FamilyRecordWrite
-from propstore.artifact_codes import stamp_source_artifact_codes
+from propstore.families.artifacts import stamp_source_artifacts
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.identity.micropubs import (
     micropub_artifact_id,
@@ -243,7 +243,7 @@ def finalize_source_branch(
     )
     writes: list[FamilyRecordWrite] = []
     if ready:
-        updated_source, updated_claims, updated_justifications, updated_stances = stamp_source_artifact_codes(
+        updated_source, updated_claims, updated_justifications, updated_stances = stamp_source_artifacts(
             source_doc,
             claims_doc,
             justifications_doc,

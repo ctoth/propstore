@@ -67,7 +67,7 @@ SOURCE_CHARTER: FamilyCharter = FamilyCharter(
                 nullable=True,
                 document=False,
             ),
-            CharterField("artifact_code", str, nullable=True),
+            CharterField("artifact_code", str, artifact=True, nullable=True),
         ),
         indexes=(CharterIndex("idx_source_source_id", ("source_id",)),),
         semantic_metadata={"semantic": "propstore.world"},

@@ -551,7 +551,7 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
             nullable=True,
             document_order=2,
         ),
-        CharterField("artifact_code", str, nullable=True),
+        CharterField("artifact_code", str, artifact=True, nullable=True),
         CharterField(
             "logical_ids",
             tuple[ClaimLogicalIdDocument, ...],
@@ -1476,7 +1476,7 @@ JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
                 parse_boundary="json",
                 nullable=True,
             ),
-            CharterField("artifact_code", str, nullable=True),
+            CharterField("artifact_code", str, artifact=True, nullable=True),
         ),
         semantic_metadata={"semantic": "propstore.world"},
 )

@@ -23,7 +23,7 @@ from importlib import import_module
 from typing import Any, TypeAlias, cast
 
 from quire.lifecycle import FamilyRecordWrite
-from propstore.artifact_codes import stamp_canonical_artifact_codes
+from propstore.families.artifacts import stamp_canonical_artifacts
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.claims import LoadedClaimsFile
 from propstore.compiler.context import build_compilation_context_from_loaded
@@ -530,7 +530,7 @@ def _assemble_source_promotion_plan(
         stamped_claim_documents,
         stamped_justification_documents,
         stamped_stance_documents,
-    ) = stamp_canonical_artifact_codes(
+    ) = stamp_canonical_artifacts(
         source_doc,
         unstamped_claim_documents,
         unstamped_justification_documents,

@@ -11,7 +11,7 @@ from hypothesis import strategies as st
 
 from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
 
-from propstore.artifact_codes import stamp_source_artifact_codes
+from propstore.families.artifacts import stamp_source_artifacts
 from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import (
     SourceJustificationDocument,
@@ -301,7 +301,7 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
         {"source_claim": "ps:claim:b", "target": "ps:claim:a", "type": "rebuts"},
     ]
 
-    left = stamp_source_artifact_codes(
+    left = stamp_source_artifacts(
         source_doc,
         claims_doc,
         tuple(
@@ -321,7 +321,7 @@ def test_claim_artifact_codes_ignore_justification_and_stance_order(order: tuple
             for i in order
         ),
     )
-    right = stamp_source_artifact_codes(
+    right = stamp_source_artifacts(
         source_doc,
         claims_doc,
         tuple(

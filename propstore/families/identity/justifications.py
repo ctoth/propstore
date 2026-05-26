@@ -6,7 +6,7 @@ from typing import Any
 
 from quire.documents import convert_document_value
 
-from propstore.artifact_codes import justification_artifact_code
+from propstore.families.artifacts import justification_artifact_code
 from propstore.json_types import JsonObject
 
 JUSTIFICATION_VERSION_ID_EXCLUDED_FIELDS = ("artifact_code",)

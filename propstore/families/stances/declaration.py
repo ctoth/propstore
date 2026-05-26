@@ -44,6 +44,7 @@ STANCE_CHARTER: FamilyCharter = FamilyCharter(
             str,
             primary_key=True,
             nullable=False,
+            artifact=True,
             document_name="artifact_id",
         ),
         CharterField(
@@ -78,7 +79,7 @@ STANCE_CHARTER: FamilyCharter = FamilyCharter(
             nullable=False,
             enum_type=StanceType,
         ),
-        CharterField("artifact_code", str, nullable=False),
+        CharterField("artifact_code", str, artifact=True, nullable=False),
         CharterField("perspective_source_claim_id", str, nullable=True),
         CharterField("strength", str, nullable=True),
         CharterField("note", str, nullable=True),
