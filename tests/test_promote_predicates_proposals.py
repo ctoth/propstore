@@ -125,16 +125,16 @@ def test_promote_predicate_proposal_writes_canonical_and_is_idempotent(
     monkeypatch,
     tmp_path,
 ) -> None:
-    from propstore.proposals_predicates import (
+    from propstore.families.predicates.lifecycle import (
+        apply_predicate_proposal_promotion,
         plan_predicate_proposal_promotion,
-        promote_predicate_proposals,
     )
 
     repo = Repository.init(tmp_path / "knowledge")
     proposal_sha = _seed_proposal(monkeypatch, repo)
 
     plan = plan_predicate_proposal_promotion(repo, source_paper=PAPER)
-    result = promote_predicate_proposals(repo, plan)
+    result = apply_predicate_proposal_promotion(repo, plan)
 
     assert result.moved == 4
     for predicate_id in (
@@ -153,7 +153,7 @@ def test_promote_predicate_proposal_writes_canonical_and_is_idempotent(
 
 
 def test_plan_predicate_proposal_unknown_paper_raises(monkeypatch, tmp_path) -> None:
-    from propstore.proposals_predicates import plan_predicate_proposal_promotion
+    from propstore.families.predicates.lifecycle import plan_predicate_proposal_promotion
 
     repo = Repository.init(tmp_path / "knowledge")
     _seed_proposal(monkeypatch, repo)
@@ -174,9 +174,9 @@ def test_generated_predicate_proposal_promotion_rejects_global_duplicates(
         proposed_file = f"{proposed_file}_other"
     tmp_dir = tempfile.TemporaryDirectory()
     with tmp_dir:
-        from propstore.proposals_predicates import (
+        from propstore.families.predicates.lifecycle import (
+            apply_predicate_proposal_promotion,
             plan_predicate_proposal_promotion,
-            promote_predicate_proposals,
         )
 
         repo = Repository.init(Path(tmp_dir.name) / "knowledge")
@@ -190,7 +190,7 @@ def test_generated_predicate_proposal_promotion_rejects_global_duplicates(
 
         plan = plan_predicate_proposal_promotion(repo, source_paper=proposed_file)
         with pytest.raises(PredicateWorkflowError, match="already declared"):
-            promote_predicate_proposals(repo, plan)
+            apply_predicate_proposal_promotion(repo, plan)
 
         assert repo.git.branch_sha(repo.git.primary_branch_name()) == master_before
         assert repo.families.predicates.load(PredicateRef(predicate_id)) is not None

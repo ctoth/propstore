@@ -9,6 +9,7 @@ import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, FamilyCharter, FamilyModel
 from quire.families import FamilyDefinition
+from quire.lifecycle import ConflictPolicy, FamilyState, FamilyTransition
 from quire.versions import VersionId
 
 
@@ -115,6 +116,19 @@ PREDICATE_PROPOSAL_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.world"},
     validators=(_validate_predicate_arity_and_arg_types,),
+    states=(
+        FamilyState("proposed", document_label="proposal"),
+        FamilyState("canonical", document_label="canonical", terminal=True),
+    ),
+    transitions=(
+        FamilyTransition(
+            "promote_proposal",
+            source="proposed",
+            target="canonical",
+            materializer="predicate_proposal_to_canonical",
+            conflict_policy=ConflictPolicy.REPLACE,
+        ),
+    ),
 )
 
 

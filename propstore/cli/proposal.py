@@ -99,9 +99,9 @@ def declare_predicates(
 @click.pass_context
 def promote_predicates(ctx: click.Context, paper: str) -> None:
     """Promote a predicate proposal document."""
-    from propstore.proposals_predicates import (
+    from propstore.families.predicates.lifecycle import (
+        apply_predicate_proposal_promotion,
         plan_predicate_proposal_promotion,
-        promote_predicate_proposals,
     )
 
     repo = ctx.obj["repo"]
@@ -109,7 +109,7 @@ def promote_predicates(ctx: click.Context, paper: str) -> None:
         plan = plan_predicate_proposal_promotion(repo, source_paper=paper)
     except UnknownProposalPath as exc:
         raise click.ClickException(f"UnknownProposalPath: {exc}") from exc
-    result = promote_predicate_proposals(repo, plan)
+    result = apply_predicate_proposal_promotion(repo, plan)
     emit_success(f"Promoted {result.moved} predicate proposal file(s).")
 
 

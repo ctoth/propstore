@@ -89,7 +89,7 @@ Gate results:
     14 passed.
 
 Commit:
-- Pending.
+- `285b84f9 Move stance proposals to lifecycle records`
 
 Next slice:
 - Rule proposal root workflow.
@@ -136,7 +136,56 @@ Gate results:
     7 passed.
 
 Commit:
-- Pending.
+- `398bb3e5 Move rule proposals to lifecycle records`
 
 Next slice:
 - Predicate proposal root workflow.
+
+## Iteration 3 - `predicate proposal root workflow`
+
+Slice read:
+- `propstore/proposals_predicates.py`
+- `propstore/families/predicates/declaration.py`
+- `propstore/families/predicates/lifecycle.py`
+- `propstore/cli/proposal.py`
+- predicate proposal tests
+
+Surfaces:
+- `propstore/proposals_predicates.py`
+  - Disposition: delete
+  - Owner after cleanup: `propstore.families.predicates.lifecycle`
+  - Action: Deleted the predicate root proposal workflow module.
+  - Evidence: No `propstore.proposals_predicates` imports remain.
+- `PredicateProposalPromotionPlan`
+  - Disposition: delete
+  - Owner after cleanup: generic
+    `ProposalPromotionPlan[PredicateProposalRef]`.
+  - Action: Replaced with shared proposal lifecycle plan/item/result types.
+- `promote_predicate_proposals`
+  - Disposition: delete
+  - Owner after cleanup: `apply_predicate_proposal_promotion` in the
+    predicate-family lifecycle owner.
+  - Action: Predicate promotion now runs the `promote_proposal` lifecycle
+    transition on `PREDICATE_PROPOSAL_CHARTER` and applies emitted
+    `FamilyRecordWrite` records.
+- Predicate canonical document copying
+  - Disposition: move
+  - Owner after cleanup: predicate-family lifecycle materializer.
+  - Action: Moved proposal-to-canonical predicate document construction into
+    `_materialize_predicate_proposal`.
+
+Gate results:
+- Pass: `rg -n -F -- "PredicateProposalPromotionPlan" propstore tests`
+- Pass: `rg -n -F -- "promote_predicate_proposals" propstore tests`
+- Pass: `rg -n -F -- "propstore.proposals_predicates" propstore tests`
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label predicate-proposal-lifecycle tests/test_promote_predicates_proposals.py tests/test_proposal_promotion.py::test_proposal_promotion_modules_use_shared_transaction_helper`
+  - Evidence: `logs/test-runs/predicate-proposal-lifecycle-20260526-005646.log`,
+    4 passed.
+
+Commit:
+- Pending.
+
+Next slice:
+- Remove remaining handwritten proposal document shapes once state-conditional
+  generated documents can own them.
