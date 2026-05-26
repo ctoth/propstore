@@ -322,6 +322,46 @@ Commit:
 Next slice:
 - Phase 06 fixed-point search and runtime gates.
 
+## Iteration 9 - `concept alignment lifecycle owner`
+
+Slice read:
+- `propstore/source/alignment.py`
+- `propstore/source/__init__.py`
+- `propstore/app/concepts/alignment.py`
+- `propstore/app/concepts/display.py`
+- `propstore/app/concepts/mutation.py`
+- alignment and source promotion tests
+
+Surfaces:
+- `propstore/source/alignment.py`
+  - Disposition: delete
+  - Owner after cleanup: `propstore.families.concepts.alignment`
+  - Action: Moved concept alignment build/query/decision/promotion behavior to
+    the concept-family owner path.
+  - Evidence: No `propstore.source.alignment` imports remain.
+- Root source package alignment re-exports
+  - Disposition: delete
+  - Owner after cleanup: direct concept-family imports by app/test callers.
+  - Action: Removed `align_sources`, `build_alignment_artifact`,
+    `classify_relation`, `concept_proposal_branch`, `decide_alignment`,
+    `load_alignment_artifact`, `promote_alignment`, and
+    `save_alignment_artifact` from `propstore.source.__all__`.
+
+Gate results:
+- Pass: `rg -n -F -- "propstore.source.alignment" propstore tests`
+- Pass: `rg -n -F -- "from propstore.source import align_sources" propstore tests`
+- Pass: `rg -n -F -- "from propstore.source import load_alignment_artifact" propstore tests`
+- Pass: `rg -n -F -- "from propstore.source import decide_alignment" propstore tests`
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label source-alignment-lifecycle tests/test_alignment_default_classification.py tests/remediation/phase_6_extend/test_T6_1_alignment_ignorance_relation.py tests/test_concept_alignment_cli.py tests/test_source_promotion_alignment.py::test_align_and_promote_alignment_use_artifact_store`
+  - Evidence: `logs/test-runs/source-alignment-lifecycle-20260525-234604.log`, 8 passed.
+
+Commit:
+- `7b0acf72 Move concept alignment lifecycle to concept family`
+
+Next slice:
+- Phase 06 fixed-point search and runtime gates.
+
 ## Iteration 8 - `source finalize plan writes`
 
 Slice read:
