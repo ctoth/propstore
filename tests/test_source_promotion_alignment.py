@@ -24,6 +24,7 @@ from propstore.families.identity.concepts import (
     normalize_canonical_concept_payload,
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.families.claims.lifecycle import normalize_source_claims_payload
 from propstore.source import (
     align_sources,
     concept_proposal_branch,
@@ -31,7 +32,6 @@ from propstore.source import (
     finalize_source_branch,
     initial_source_document,
     load_alignment_artifact,
-    normalize_source_claims_payload,
     promote_alignment,
     promote_source_branch,
 )

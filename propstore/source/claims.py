@@ -1,17 +1,14 @@
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
 from typing import Any, cast
 
-from propstore.canonical_namespaces import assert_namespace_not_reserved
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.families.claims.declaration import (
-    ClaimLogicalIdDocument,
     ClaimSourceDocument,
     SOURCE_CLAIM_BATCH_SPEC,
 )
+from propstore.families.claims.lifecycle import normalize_source_claims_payload
 from propstore.families.registry import SourceRef
 from propstore.families.claims.types import ClaimType
 from propstore.families.documents.sources import SourceProvenanceDocument
@@ -21,11 +18,6 @@ from quire.documents import (
     decode_document_batch_bytes,
     document_to_payload,
 )
-from propstore.families.identity.claims import (
-    compute_claim_version_id,
-    derive_claim_artifact_id,
-)
-from propstore.families.identity.logical_ids import normalize_logical_value
 
 from .common import (
     load_source_claims_document,
@@ -35,23 +27,6 @@ from .common import (
     source_tag_uri,
 )
 from propstore.families.documents.sources import ExtractionProvenanceDocument, SourceClaimDocument
-
-
-def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:
-    canonical = cast(dict[str, Any], document_to_payload(claim))
-    canonical.pop("id", None)
-    canonical.pop("artifact_id", None)
-    canonical.pop("version_id", None)
-    canonical.pop("logical_ids", None)
-    canonical.pop("source_local_id", None)
-    payload = json.dumps(
-        {"source_uri": source_uri, "claim": canonical},
-        sort_keys=True,
-        separators=(",", ":"),
-        ensure_ascii=False,
-    )
-    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
-    return f"claim_{digest}"
 
 
 def source_concept_handles(repo: Repository, source_name: str) -> set[str]:
@@ -93,54 +68,6 @@ def validate_source_claim_concepts(repo: Repository, source_name: str, data: tup
     if unknown:
         formatted = ", ".join(sorted(unknown))
         raise ValueError(f"unknown concept reference(s): {formatted}")
-
-
-def normalize_source_claims_payload(
-    data: tuple[SourceClaimDocument, ...],
-    *,
-    source_uri: str,
-    source_namespace: str,
-) -> tuple[tuple[SourceClaimDocument, ...], dict[str, str]]:
-    normalized_claims: list[SourceClaimDocument] = []
-    local_to_canonical: dict[str, str] = {}
-    namespace = normalize_source_slug(source_namespace)
-    assert_namespace_not_reserved(namespace, context="source claims namespace")
-
-    for index, claim in enumerate(data, start=1):
-        normalized = cast(dict[str, Any], document_to_payload(claim))
-        raw_local_id = claim.source_local_id or claim.id
-        stable_value = stable_claim_logical_value(claim, source_uri=source_uri)
-        normalized["id"] = stable_value
-        normalized.pop("artifact_code", None)
-        logical_ids = [ClaimLogicalIdDocument(namespace=namespace, value=stable_value)]
-        if isinstance(raw_local_id, str) and raw_local_id:
-            normalized["source_local_id"] = raw_local_id
-            local_to_canonical[raw_local_id] = stable_value
-            local_value = normalize_logical_value(raw_local_id)
-            if local_value != stable_value:
-                logical_ids.append(ClaimLogicalIdDocument(namespace=namespace, value=local_value))
-        else:
-            normalized.pop("source_local_id", None)
-        normalized["logical_ids"] = logical_ids
-        normalized["artifact_id"] = derive_claim_artifact_id(namespace, stable_value)
-        normalized["version_id"] = compute_claim_version_id(
-            {
-                **normalized,
-                "logical_ids": [document_to_payload(logical_id) for logical_id in logical_ids],
-            }
-        )
-        normalized_claims.append(
-            convert_document_value(
-                normalized,
-                SourceClaimDocument,
-                source=f"{source_namespace}:claims[{index}]",
-            )
-        )
-
-    return (
-        tuple(normalized_claims),
-        local_to_canonical,
-    )
 
 
 def _source_branch_cel_concepts(

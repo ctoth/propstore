@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, cast
@@ -7,16 +9,20 @@ from typing import Any, cast
 from quire.documents import convert_document_value, document_to_payload
 from quire.references import FamilyReferenceIndex
 
-from propstore.families.claims.declaration import ClaimDocument
+from propstore.canonical_namespaces import assert_namespace_not_reserved
+from propstore.families.claims.declaration import ClaimDocument, ClaimLogicalIdDocument
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceJustificationDocument,
 )
 from propstore.families.identity.claims import (
+    compute_claim_version_id,
+    derive_claim_artifact_id,
     normalize_canonical_claim_payload,
     normalize_claim_file_payload,
 )
+from propstore.families.identity.logical_ids import normalize_logical_value
 
 
 @dataclass(frozen=True)
@@ -32,6 +38,74 @@ class NormalizedPromotedClaimArtifact:
 
 def source_concept_ref_requires_mapping(value: str) -> bool:
     return not (value.startswith("ps:concept:") or value.startswith("tag:"))
+
+
+def stable_claim_logical_value(claim: SourceClaimDocument, *, source_uri: str) -> str:
+    canonical = cast(dict[str, Any], document_to_payload(claim))
+    canonical.pop("id", None)
+    canonical.pop("artifact_id", None)
+    canonical.pop("version_id", None)
+    canonical.pop("logical_ids", None)
+    canonical.pop("source_local_id", None)
+    payload = json.dumps(
+        {"source_uri": source_uri, "claim": canonical},
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return f"claim_{digest}"
+
+
+def normalize_source_claims_payload(
+    data: tuple[SourceClaimDocument, ...],
+    *,
+    source_uri: str,
+    source_namespace: str,
+) -> tuple[tuple[SourceClaimDocument, ...], dict[str, str]]:
+    normalized_claims: list[SourceClaimDocument] = []
+    local_to_canonical: dict[str, str] = {}
+    namespace = _normalize_source_claim_namespace(source_namespace)
+
+    for index, claim in enumerate(data, start=1):
+        normalized = cast(dict[str, Any], document_to_payload(claim))
+        raw_local_id = claim.source_local_id or claim.id
+        stable_value = stable_claim_logical_value(claim, source_uri=source_uri)
+        normalized["id"] = stable_value
+        normalized.pop("artifact_code", None)
+        logical_ids = [ClaimLogicalIdDocument(namespace=namespace, value=stable_value)]
+        if isinstance(raw_local_id, str) and raw_local_id:
+            normalized["source_local_id"] = raw_local_id
+            local_to_canonical[raw_local_id] = stable_value
+            local_value = normalize_logical_value(raw_local_id)
+            if local_value != stable_value:
+                logical_ids.append(
+                    ClaimLogicalIdDocument(namespace=namespace, value=local_value)
+                )
+        else:
+            normalized.pop("source_local_id", None)
+        normalized["logical_ids"] = logical_ids
+        normalized["artifact_id"] = derive_claim_artifact_id(namespace, stable_value)
+        normalized["version_id"] = compute_claim_version_id(
+            {
+                **normalized,
+                "logical_ids": [
+                    document_to_payload(logical_id) for logical_id in logical_ids
+                ],
+            }
+        )
+        normalized_claims.append(
+            convert_document_value(
+                normalized,
+                SourceClaimDocument,
+                source=f"{source_namespace}:claims[{index}]",
+            )
+        )
+
+    return (
+        tuple(normalized_claims),
+        local_to_canonical,
+    )
 
 
 def rewrite_imported_claim_concept_refs(
@@ -188,6 +262,16 @@ def normalize_source_justifications_payload(
             )
         )
     return tuple(normalized_justifications)
+
+
+def _normalize_source_claim_namespace(source_namespace: str) -> str:
+    namespace = "".join(
+        ch if ch.isalnum() or ch in {"_", "-", "."} else "_"
+        for ch in source_namespace.strip()
+    )
+    namespace = namespace.strip("._-") or "source"
+    assert_namespace_not_reserved(namespace, context="source claims namespace")
+    return namespace
 
 
 def _rewrite_claim_concept_payload(

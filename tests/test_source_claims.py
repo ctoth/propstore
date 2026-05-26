@@ -10,9 +10,9 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.cli import cli
+from propstore.families.claims.lifecycle import normalize_source_claims_payload
 from propstore.repository import Repository
 from quire.documents import decode_document_batch_bytes, encode_yaml_value
-from propstore.source import normalize_source_claims_payload
 from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
 
 

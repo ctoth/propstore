@@ -11,7 +11,6 @@ from .alignment import (
 from .claims import (
     commit_source_claim_proposal,
     commit_source_claims_batch,
-    normalize_source_claims_payload,
 )
 from .common import (
     commit_source_metadata,
@@ -71,7 +70,6 @@ __all__ = [
     "load_primary_branch_concept_docs",
     "load_primary_branch_concepts",
     "load_source_document",
-    "normalize_source_claims_payload",
     "normalize_source_concepts_document",
     "normalize_source_slug",
     "parameterization_group_merge_preview",

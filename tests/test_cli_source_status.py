@@ -21,13 +21,13 @@ from quire.documents import decode_document_batch_bytes, encode_yaml_value
 
 from propstore.cli import cli
 from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
+from propstore.families.claims.lifecycle import normalize_source_claims_payload
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.source import (
     SourceStatusState,
     finalize_source_branch,
     inspect_source_status,
-    normalize_source_claims_payload,
     promote_source_branch,
 )
 from propstore.source.common import load_source_document
