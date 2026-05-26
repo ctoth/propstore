@@ -321,3 +321,40 @@ Commit:
 
 Next slice:
 - Phase 06 fixed-point search and runtime gates.
+
+## Iteration 8 - `source finalize plan writes`
+
+Slice read:
+- `propstore/source/finalize.py`
+- `propstore/source/stages.py`
+- `tests/test_finalize_micropub_required.py`
+
+Surfaces:
+- Finalize transaction concrete source-family saves
+  - Disposition: delete from workflow body
+  - Owner after cleanup: Quire `FamilyRecordWrite` transition records applied
+    through a source-finalize write dispatcher.
+  - Action: Added `SourceFinalizePlan` and changed `finalize_source_branch` to
+    build ordered source-branch family writes before opening the transaction.
+  - Evidence: `finalize_source_branch` now applies `for write in
+    finalize_plan.writes`; source-family save calls are isolated inside
+    `_save_finalize_write`.
+- Finalize report write
+  - Disposition: fold into the same write plan
+  - Owner after cleanup: source finalize family write plan.
+  - Action: The finalize report is appended as a `source_finalize_reports`
+    `FamilyRecordWrite`, regardless of ready or blocked status.
+
+Gate results:
+- Pass: `rg -n -F -- "SourceFinalizePlan" propstore/source`
+- Pass: `rg -n -F -- "source_finalize_reports.save" propstore/source/finalize.py`
+  - Remaining hit is the family-write dispatcher only.
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label source-finalize-plan-lifecycle tests/test_finalize_micropub_required.py tests/test_source_promotion_alignment.py tests/test_source_promote_dangling_refs.py`
+  - Evidence: `logs/test-runs/source-finalize-plan-lifecycle-20260525-234217.log`, 15 passed.
+
+Commit:
+- `621c5c9b Convert source finalize to family writes`
+
+Next slice:
+- Phase 06 fixed-point search and runtime gates.
