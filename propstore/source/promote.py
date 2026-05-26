@@ -20,8 +20,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from importlib import import_module
-from typing import Any, TypeAlias
+from typing import Any, TypeAlias, cast
 
+from quire.lifecycle import FamilyRecordWrite
 from propstore.artifact_codes import stamp_canonical_artifact_codes
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.claims import LoadedClaimsFile
@@ -114,6 +115,59 @@ class PromotionResult:
     blocked_diagnostics: dict[str, tuple[tuple[str, str], ...]]
     sidecar_mirror_ok: bool
     sidecar_mirror_error: str | None = None
+
+
+def _promotion_write(
+    family: str,
+    identity: object,
+    record: object,
+) -> FamilyRecordWrite:
+    return FamilyRecordWrite(
+        family=family,
+        identity=str(identity),
+        state="canonical",
+        record=record,
+    )
+
+
+def _save_promotion_write(transaction: Any, write: FamilyRecordWrite) -> None:
+    if write.family == "sources":
+        transaction.sources.save(
+            CanonicalSourceRef(write.identity),
+            cast(SourceDocument, write.record),
+        )
+        return
+    if write.family == "claims":
+        transaction.claims.save(
+            ClaimRef(write.identity),
+            cast(ClaimDocument, write.record),
+        )
+        return
+    if write.family == "micropubs":
+        transaction.micropubs.save(
+            MicropublicationRef(write.identity),
+            cast(MicropublicationDocument, write.record),
+        )
+        return
+    if write.family == "concepts":
+        transaction.concepts.save(
+            ConceptFileRef(write.identity),
+            cast(ConceptDocument, write.record),
+        )
+        return
+    if write.family == "justifications":
+        transaction.justifications.save(
+            JustificationRef(write.identity),
+            write.record,
+        )
+        return
+    if write.family == "stances":
+        transaction.stances.save(
+            StanceRef(write.identity),
+            cast(StanceDocument, write.record),
+        )
+        return
+    raise ValueError(f"unknown source promotion write family: {write.family!r}")
 
 
 def _validate_promoted_claims_before_commit(
@@ -520,19 +574,41 @@ def _assemble_source_promotion_plan(
         MicropublicationRef(micropub.artifact_id): micropub
         for micropub in promoted_micropubs
     }
+    source_ref = CanonicalSourceRef(slug)
+    writes = (
+        _promotion_write("sources", source_ref.name, promoted_source_document),
+        *(
+            _promotion_write("claims", claim_ref.artifact_id, claim_document)
+            for claim_ref, claim_document in promoted_claim_documents.items()
+        ),
+        *(
+            _promotion_write("micropubs", micropub_ref.artifact_id, micropub_document)
+            for micropub_ref, micropub_document in promoted_micropub_documents.items()
+        ),
+        *(
+            _promotion_write("concepts", concept_ref.name, concept_document)
+            for concept_ref, concept_document in promoted_concept_plan_documents.items()
+        ),
+        *(
+            _promotion_write(
+                "justifications",
+                justification_ref.artifact_id,
+                justification_document,
+            )
+            for justification_ref, justification_document in promoted_justification_documents.items()
+        ),
+        *(
+            _promotion_write("stances", stance_ref.artifact_id, stance_document)
+            for stance_ref, stance_document in promoted_stance_documents.items()
+        ),
+    )
     return SourcePromotionPlan(
         source_name=source_name,
         slug=slug,
         source_branch=repo.families.source_documents.address(
             SourceRef(source_name)
         ).branch,
-        source_ref=CanonicalSourceRef(slug),
-        promoted_source_document=promoted_source_document,
-        promoted_claim_documents=promoted_claim_documents,
-        promoted_micropub_documents=promoted_micropub_documents,
-        promoted_concept_documents=promoted_concept_plan_documents,
-        promoted_justification_documents=promoted_justification_documents,
-        promoted_stance_documents=promoted_stance_documents,
+        writes=writes,
         blocked_claims=tuple(blocked_claims),
         blocked_reasons=blocked_reasons,
     )
@@ -935,35 +1011,8 @@ def promote_source_branch(
         raise ValueError("source promotion requires a git-backed repository")
     with git.head_bound_transaction(repo.require_git().primary_branch_name()) as head_txn:
         with head_txn.families_transact(repo.families, message=f"Promote source {slug}") as transaction:
-            transaction.sources.save(
-                promotion_plan.source_ref,
-                promotion_plan.promoted_source_document,
-            )
-            for claim_ref, claim_document in promotion_plan.promoted_claim_documents.items():
-                transaction.claims.save(
-                    claim_ref,
-                    claim_document,
-                )
-            for micropub_ref, micropub_document in promotion_plan.promoted_micropub_documents.items():
-                transaction.micropubs.save(
-                    micropub_ref,
-                    micropub_document,
-                )
-            for concept_ref, concept_document in promotion_plan.promoted_concept_documents.items():
-                transaction.concepts.save(
-                    concept_ref,
-                    concept_document,
-                )
-            for justification_ref, justification_document in promotion_plan.promoted_justification_documents.items():
-                transaction.justifications.save(
-                    justification_ref,
-                    justification_document,
-                )
-            for stance_ref, stance_document in promotion_plan.promoted_stance_documents.items():
-                transaction.stances.save(
-                    stance_ref,
-                    stance_document,
-                )
+            for write in promotion_plan.writes:
+                _save_promotion_write(transaction, write)
         sha = head_txn.commit_sha
     if sha is None:
         raise ValueError("source promotion transaction did not produce a commit")
