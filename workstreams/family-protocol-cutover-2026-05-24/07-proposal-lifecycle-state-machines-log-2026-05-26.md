@@ -279,7 +279,7 @@ Surfaces:
     `Test-Path tests/test_predicate_documents.py` returned `True`.
 
 Commit:
-- Pending.
+- `414c2975 Repair proposal lifecycle gate path`
 
 Next slice:
 - Rerun the corrected required Phase 07 gate.
