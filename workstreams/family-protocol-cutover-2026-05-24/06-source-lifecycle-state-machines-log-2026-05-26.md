@@ -108,3 +108,47 @@ Commit:
 
 Next slice:
 - Source relation normalization for justifications and stances.
+
+## Iteration 3 - `source relation normalization`
+
+Slice read:
+- `propstore/source/relations.py`
+- `propstore/source/__init__.py`
+- `propstore/families/claims/lifecycle.py`
+- `propstore/families/stances/declaration.py`
+- `tests/test_source_promotion_alignment.py`
+- `tests/test_source_promote_dangling_refs.py`
+
+Surfaces:
+- `normalize_source_justifications_payload`
+  - Disposition: move
+  - Owner after cleanup: `propstore.families.claims.lifecycle`
+  - Action: Moved source justification reference normalization to the
+    claim-family lifecycle owner because it resolves claim references for
+    source-local justification records.
+  - Evidence: The function definition exists only under
+    `propstore/families/claims/lifecycle.py`; `propstore/source/relations.py`
+    only calls the owner API from workflow orchestration.
+- `normalize_source_stances_payload`
+  - Disposition: move
+  - Owner after cleanup: `propstore.families.stances.lifecycle`
+  - Action: Moved source stance reference normalization to the stance-family
+    lifecycle owner.
+  - Evidence: The function definition exists only under
+    `propstore/families/stances/lifecycle.py`; the source package no longer
+    exports either relation-normalization helper.
+
+Gate results:
+- Pass: `rg -n -F -- "def normalize_source_justifications_payload" propstore/source propstore/families`
+  - Remaining definition: `propstore/families/claims/lifecycle.py`.
+- Pass: `rg -n -F -- "def normalize_source_stances_payload" propstore/source propstore/families`
+  - Remaining definition: `propstore/families/stances/lifecycle.py`.
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label source-relation-lifecycle tests/test_source_promotion_alignment.py tests/test_source_promote_dangling_refs.py`
+  - Evidence: `logs/test-runs/source-relation-lifecycle-20260525-231703.log`, 14 passed.
+
+Commit:
+- `a45e9faa Move source relation normalization to family lifecycle`
+
+Next slice:
+- Source-local claim identity policy.
