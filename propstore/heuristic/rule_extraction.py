@@ -14,10 +14,10 @@ from quire.documents import convert_document_value
 
 from propstore.families.rules.declaration import (
     AtomDocument,
+    AuthoredRuleProposalArtifact,
     BodyLiteralDocument,
     RuleDocument,
     RuleExtractionProvenance,
-    RuleProposalDocument,
     TermDocument,
 )
 from propstore.families.registry import (
@@ -50,7 +50,7 @@ class RuleProposalResult:
     commit_sha: str | None
     rule_ids: tuple[str, ...]
     relpaths: tuple[str, ...]
-    proposals: tuple[RuleProposalDocument, ...]
+    proposals: tuple[AuthoredRuleProposalArtifact, ...]
     rejections: tuple[RuleRejection, ...]
 
 
@@ -164,7 +164,7 @@ def _proposal_from_raw(
     model_name: str,
     notes_sha: str,
     predicates_sha: str,
-) -> RuleProposalDocument:
+) -> AuthoredRuleProposalArtifact:
     rule_id = str(raw_rule["rule_id"])
     body = tuple(_parse_body_literal(str(item)) for item in raw_rule.get("body", ()))
     rule = RuleDocument(
@@ -174,7 +174,7 @@ def _proposal_from_raw(
         body=body,
     )
     refs = tuple(str(item) for item in raw_rule.get("predicates_referenced", ()))
-    return RuleProposalDocument(
+    return AuthoredRuleProposalArtifact(
         source_paper=source_paper,
         rule_id=rule_id,
         proposed_rule=rule,
@@ -218,7 +218,7 @@ def propose_rules_for_paper(
     if not isinstance(raw_rules, list):
         raise ValueError("rule extraction output requires rules list")
 
-    proposals: list[RuleProposalDocument] = []
+    proposals: list[AuthoredRuleProposalArtifact] = []
     rejections: list[RuleRejection] = []
     notes_sha = _sha(notes)
     for index, item in enumerate(raw_rules, start=1):

@@ -313,7 +313,7 @@ AUTHORED_RULE_PROPOSAL_CHARTER: FamilyCharter = FamilyCharter(
 
 if TYPE_CHECKING:
 
-    class RuleProposalDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    class AuthoredRuleProposalArtifact(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
         source_paper: str
         rule_id: str
         proposed_rule: RuleDocument
@@ -325,10 +325,10 @@ if TYPE_CHECKING:
         promoted_from_sha: str | None = None
 
 else:
-    RuleProposalDocument: Any = AUTHORED_RULE_PROPOSAL_CHARTER.generated_document()
-    RuleProposalDocument.__name__ = "RuleProposalDocument"
-    RuleProposalDocument.__qualname__ = "RuleProposalDocument"
-    RuleProposalDocument.__module__ = __name__
+    AuthoredRuleProposalArtifact: Any = AUTHORED_RULE_PROPOSAL_CHARTER.generated_document()
+    AuthoredRuleProposalArtifact.__name__ = "AuthoredRuleProposalArtifact"
+    AuthoredRuleProposalArtifact.__qualname__ = "AuthoredRuleProposalArtifact"
+    AuthoredRuleProposalArtifact.__module__ = __name__
 
 
 AUTHORED_RULE_CHARTERS: tuple[FamilyCharter, ...] = (

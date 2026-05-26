@@ -11,9 +11,9 @@ from hypothesis import strategies as st
 from propstore.app.rules import RuleWorkflowError, parse_atom
 from propstore.families.predicates.declaration import PredicateDocument
 from propstore.families.rules.declaration import (
+    AuthoredRuleProposalArtifact,
     RuleDocument,
     RuleExtractionProvenance,
-    RuleProposalDocument,
 )
 from propstore.families.registry import PredicateRef, RuleProposalRef, RuleRef
 from propstore.heuristic.rule_extraction import rule_proposal_branch
@@ -109,7 +109,7 @@ def _seed_direct_rule_proposal(
     rule_id: str,
     predicate_id: str,
 ) -> str:
-    document = RuleProposalDocument(
+    document = AuthoredRuleProposalArtifact(
         source_paper=paper,
         rule_id=rule_id,
         proposed_rule=RuleDocument(

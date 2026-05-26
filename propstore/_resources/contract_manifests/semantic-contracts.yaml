@@ -244,7 +244,7 @@ contracts:
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.rules.declaration.RuleProposalDocument
+    doc_type: propstore.families.rules.declaration.AuthoredRuleProposalArtifact
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -1895,7 +1895,7 @@ contracts:
       type: str | None
     module: propstore.families.rules.declaration
 - kind: document_schema
-  name: RuleProposalDocument
+  name: AuthoredRuleProposalArtifact
   contract_version: 2026.05.25
   body:
     fields:
@@ -2621,7 +2621,7 @@ contracts:
     accessor: proposal_rules
     artifact_family: proposal_rules
     artifact_family_contract:
-      doc_type: propstore.families.rules.declaration.RuleProposalDocument
+      doc_type: propstore.families.rules.declaration.AuthoredRuleProposalArtifact
       placement:
         branch:
           fixed_branch: proposal/rules

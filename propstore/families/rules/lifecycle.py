@@ -14,8 +14,8 @@ from propstore.app.rules import _RULE_MUTATION_LOCK, reject_rule_document_confli
 from propstore.families.registry import RuleProposalRef, RuleRef
 from propstore.families.rules.declaration import (
     AUTHORED_RULE_PROPOSAL_CHARTER,
+    AuthoredRuleProposalArtifact,
     RuleDocument,
-    RuleProposalDocument,
     RuleSourceDocument,
 )
 from propstore.proposal_lifecycle import (
@@ -162,7 +162,7 @@ def _materialize_rule_proposal(
     proposal_tip = context.metadata.get("proposal_tip")
     if not isinstance(proposal_tip, str) or not proposal_tip:
         raise ValueError("rule proposal transition requires proposal_tip metadata")
-    proposal = cast(RuleProposalDocument, record)
+    proposal = cast(AuthoredRuleProposalArtifact, record)
     proposed = proposal.proposed_rule
     document = RuleDocument(
         id=proposed.id,

@@ -72,8 +72,8 @@ from propstore.families.predicates.declaration import (
 )
 from propstore.families.rules.declaration import (
     AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
+    AuthoredRuleProposalArtifact,
     RuleDocument,
-    RuleProposalDocument,
     RuleSuperiorityDocument,
 )
 from propstore.families.documents.sources import (
@@ -825,7 +825,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
             artifact_name="proposal_rules",
             artifact_contract_version=AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
-            document_type=RuleProposalDocument,
+            document_type=AuthoredRuleProposalArtifact,
             placement=NestedFlatYamlPlacement(
                 namespace="rules",
                 ref_factory=RuleProposalRef,

@@ -22,9 +22,9 @@ def test_proposal_rules_family_is_registered(tmp_path) -> None:
 def test_rule_proposal_document_is_typed() -> None:
     from propstore.families.rules.declaration import (
         AtomDocument,
+        AuthoredRuleProposalArtifact,
         RuleDocument,
         RuleExtractionProvenance,
-        RuleProposalDocument,
     )
 
     rule = RuleDocument(
@@ -33,7 +33,7 @@ def test_rule_proposal_document_is_typed() -> None:
         head=AtomDocument(predicate="low_trust", terms=()),
         body=(),
     )
-    document = RuleProposalDocument(
+    document = AuthoredRuleProposalArtifact(
         source_paper="Ioannidis_2005_WhyMostPublishedResearch",
         rule_id="rule-001",
         proposed_rule=rule,
