@@ -184,7 +184,7 @@ Gate results:
     4 passed.
 
 Commit:
-- Pending.
+- `f6670880 Move predicate proposals to lifecycle records`
 
 Next slice:
 - Remove remaining handwritten proposal document shapes once state-conditional
