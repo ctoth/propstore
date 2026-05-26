@@ -60,7 +60,7 @@ from propstore.provenance import (
     write_provenance_note,
 )
 from propstore.repository import Repository
-from propstore.source.claim_concepts import (
+from propstore.families.claims.lifecycle import (
     normalize_promoted_source_claim_artifact,
     source_concept_ref_requires_mapping,
 )

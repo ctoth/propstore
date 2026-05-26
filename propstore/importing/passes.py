@@ -30,7 +30,7 @@ from propstore.families.identity.concepts import (
 from propstore.semantic_passes.registry import PipelineRegistry
 from propstore.semantic_passes.runner import run_pipeline
 from propstore.semantic_passes.types import PassResult, PipelineResult
-from propstore.source.claim_concepts import normalize_imported_claim_artifact
+from propstore.families.claims.lifecycle import normalize_imported_claim_artifact
 from propstore.importing.stages import (
     PlannedSemanticWrite,
     SourceImportAuthoredWrites,

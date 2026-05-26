@@ -7,7 +7,10 @@ import pytest
 from quire.documents import convert_document_value
 
 from propstore.families.documents.sources import SourceClaimDocument
-from propstore.source.claim_concepts import rewrite_claim_concept_refs
+from propstore.families.claims.lifecycle import (
+    rewrite_imported_claim_concept_refs,
+    rewrite_source_claim_concept_refs,
+)
 
 
 def _source_claim(payload: dict[str, Any]) -> SourceClaimDocument:
@@ -48,12 +51,12 @@ def test_source_local_concept_placement_is_shared_for_import_and_promotion(
     )
     concept_map = {"local_concept": "ps:concept:mapped"}
 
-    import_payload = rewrite_claim_concept_refs(
+    import_payload = rewrite_imported_claim_concept_refs(
         raw_payload,
         concept_map,
         unresolved=set(),
     )
-    promotion_payload = rewrite_claim_concept_refs(
+    promotion_payload = rewrite_source_claim_concept_refs(
         source_claim,
         concept_map,
         unresolved=set(),
@@ -72,7 +75,7 @@ def test_source_local_concept_placement_is_shared_for_import_and_promotion(
 def test_source_claim_concept_rewrite_updates_nested_variables_and_parameters() -> None:
     unresolved: set[str] = set()
 
-    rewritten = rewrite_claim_concept_refs(
+    rewritten = rewrite_imported_claim_concept_refs(
         {
             "type": "algorithm",
             "context": {"id": "ctx"},
@@ -97,7 +100,7 @@ def test_source_claim_concept_rewrite_updates_nested_variables_and_parameters() 
 def test_source_claim_concept_rewrite_preserves_global_refs_and_reports_unresolved() -> None:
     unresolved: set[str] = set()
 
-    rewritten = rewrite_claim_concept_refs(
+    rewritten = rewrite_imported_claim_concept_refs(
         {
             "type": "observation",
             "context": {"id": "ctx"},

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import copy
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 from quire.documents import convert_document_value, document_to_payload
 
@@ -13,9 +12,6 @@ from propstore.families.identity.claims import (
     normalize_canonical_claim_payload,
     normalize_claim_file_payload,
 )
-
-
-ClaimConceptSource = ClaimDocument | SourceClaimDocument | Mapping[str, Any]
 
 
 @dataclass(frozen=True)
@@ -33,43 +29,33 @@ def source_concept_ref_requires_mapping(value: str) -> bool:
     return not (value.startswith("ps:concept:") or value.startswith("tag:"))
 
 
-def rewrite_claim_concept_refs(
-    claim: ClaimConceptSource,
+def rewrite_imported_claim_concept_refs(
+    payload: Mapping[str, Any],
     concept_map: Mapping[str, str],
     *,
     unresolved: set[str],
 ) -> dict[str, Any]:
-    normalized = _claim_payload(claim)
+    return _rewrite_claim_concept_payload(
+        dict(payload),
+        concept_map,
+        unresolved=unresolved,
+    )
 
-    def resolve(value: object) -> object:
-        if not isinstance(value, str):
-            return value
-        if not source_concept_ref_requires_mapping(value):
-            return value
-        resolved = concept_map.get(value)
-        if resolved is None:
-            unresolved.add(value)
-            return value
-        return resolved
 
-    if "concept" in normalized:
-        concept = resolve(normalized.pop("concept"))
-        _place_source_local_concept(normalized, concept)
-    if "output_concept" in normalized:
-        normalized["output_concept"] = resolve(normalized.get("output_concept"))
-    if "target_concept" in normalized:
-        normalized["target_concept"] = resolve(normalized.get("target_concept"))
-    if isinstance(normalized.get("concepts"), list):
-        normalized["concepts"] = [resolve(value) for value in normalized["concepts"]]
-    if isinstance(normalized.get("variables"), list):
-        for variable in normalized["variables"]:
-            if isinstance(variable, dict):
-                variable["concept"] = resolve(variable.get("concept"))
-    if isinstance(normalized.get("parameters"), list):
-        for parameter in normalized["parameters"]:
-            if isinstance(parameter, dict):
-                parameter["concept"] = resolve(parameter.get("concept"))
-    return normalize_canonical_claim_payload(normalized)
+def rewrite_source_claim_concept_refs(
+    claim: SourceClaimDocument,
+    concept_map: Mapping[str, str],
+    *,
+    unresolved: set[str],
+) -> dict[str, Any]:
+    payload = document_to_payload(claim)
+    if not isinstance(payload, dict):
+        raise TypeError("source claim payload must be a mapping")
+    return _rewrite_claim_concept_payload(
+        cast(dict[str, Any], payload),
+        concept_map,
+        unresolved=unresolved,
+    )
 
 
 def normalize_imported_claim_artifact(
@@ -95,13 +81,17 @@ def normalize_imported_claim_artifact(
     )
     normalized_claims = normalized_payload.get("claims")
     if not isinstance(normalized_claims, list) or len(normalized_claims) != 1:
-        raise ValueError(f"Imported claim path {source!r} did not normalize to one claim artifact")
+        raise ValueError(
+            f"Imported claim path {source!r} did not normalize to one claim artifact"
+        )
     normalized_claim = normalized_claims[0]
     if not isinstance(normalized_claim, dict):
-        raise ValueError(f"Imported claim path {source!r} did not normalize to a claim mapping")
+        raise ValueError(
+            f"Imported claim path {source!r} did not normalize to a claim mapping"
+        )
     if not has_source and default_source is not None:
         normalized_claim["source"] = dict(default_source)
-    rewritten_payload = rewrite_claim_concept_refs(
+    rewritten_payload = rewrite_imported_claim_concept_refs(
         normalized_claim,
         concept_map,
         unresolved=set(),
@@ -124,7 +114,7 @@ def normalize_promoted_source_claim_artifact(
     unresolved: set[str],
     source: str,
 ) -> NormalizedPromotedClaimArtifact:
-    rewritten_payload = rewrite_claim_concept_refs(
+    rewritten_payload = rewrite_source_claim_concept_refs(
         claim,
         concept_map,
         unresolved=unresolved,
@@ -152,25 +142,50 @@ def normalize_promoted_source_claim_artifact(
     )
 
 
-def _claim_payload(claim: ClaimConceptSource) -> dict[str, Any]:
-    if isinstance(claim, ClaimDocument | SourceClaimDocument):
-        payload = document_to_payload(claim)
-        if not isinstance(payload, dict):
-            raise TypeError("claim payload must be a mapping")
-        return payload
-    return copy.deepcopy(dict(claim))
+def _rewrite_claim_concept_payload(
+    payload: dict[str, Any],
+    concept_map: Mapping[str, str],
+    *,
+    unresolved: set[str],
+) -> dict[str, Any]:
+    normalized = dict(payload)
 
+    def resolve(value: object) -> object:
+        if not isinstance(value, str):
+            return value
+        if not source_concept_ref_requires_mapping(value):
+            return value
+        resolved = concept_map.get(value)
+        if resolved is None:
+            unresolved.add(value)
+            return value
+        return resolved
 
-def _place_source_local_concept(claim: dict[str, Any], concept: object) -> None:
-    claim_type = claim.get("type")
-    if claim_type in {"parameter", "algorithm"} and "output_concept" not in claim:
-        claim["output_concept"] = concept
-        return
-    if claim_type == "measurement" and "target_concept" not in claim:
-        claim["target_concept"] = concept
-        return
-    concepts = claim.get("concepts")
-    merged_concepts = list(concepts) if isinstance(concepts, list) else []
-    if concept not in merged_concepts:
-        merged_concepts.insert(0, concept)
-    claim["concepts"] = merged_concepts
+    if "concept" in normalized:
+        concept = resolve(normalized.pop("concept"))
+        claim_type = normalized.get("type")
+        if claim_type in {"parameter", "algorithm"} and "output_concept" not in normalized:
+            normalized["output_concept"] = concept
+        elif claim_type == "measurement" and "target_concept" not in normalized:
+            normalized["target_concept"] = concept
+        else:
+            concepts = normalized.get("concepts")
+            merged_concepts = list(concepts) if isinstance(concepts, list) else []
+            if concept not in merged_concepts:
+                merged_concepts.insert(0, concept)
+            normalized["concepts"] = merged_concepts
+    if "output_concept" in normalized:
+        normalized["output_concept"] = resolve(normalized.get("output_concept"))
+    if "target_concept" in normalized:
+        normalized["target_concept"] = resolve(normalized.get("target_concept"))
+    if isinstance(normalized.get("concepts"), list):
+        normalized["concepts"] = [resolve(value) for value in normalized["concepts"]]
+    if isinstance(normalized.get("variables"), list):
+        for variable in normalized["variables"]:
+            if isinstance(variable, dict):
+                variable["concept"] = resolve(variable.get("concept"))
+    if isinstance(normalized.get("parameters"), list):
+        for parameter in normalized["parameters"]:
+            if isinstance(parameter, dict):
+                parameter["concept"] = resolve(parameter.get("concept"))
+    return normalize_canonical_claim_payload(normalized)
