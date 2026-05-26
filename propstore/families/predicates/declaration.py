@@ -48,8 +48,34 @@ class PredicateDeclarationModel(FamilyModel):
     pass
 
 
-class PredicateProposalDeclarationModel(FamilyModel):
+class PredicateProposalArtifactModel(FamilyModel):
     pass
+
+
+class PredicateDeclaration(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    name: str
+    arity: int
+    description: str
+    arg_types: tuple[PredicateArgType, ...] = ()
+
+    def __post_init__(self) -> None:
+        _validate_predicate_arity_and_arg_types(self)
+
+
+class PredicateExtractionProvenance(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    """Prompt and source provenance for proposed predicate declarations."""
+
+    operations: tuple[str, ...]
+    agent: str
+    model: str
+    prompt_sha: str
+    notes_sha: str
+    status: str
+
+
+def _validate_predicate_proposal_artifact(doc: msgspec.Struct) -> None:
+    for declaration in getattr(doc, "proposed_declarations"):
+        _validate_predicate_arity_and_arg_types(declaration)
 
 
 PREDICATE_DECLARATION_CHARTER: FamilyCharter = FamilyCharter(
@@ -95,27 +121,31 @@ PREDICATE_PROPOSAL_CHARTER: FamilyCharter = FamilyCharter(
         artifact_family=ArtifactFamily(
             name="propstore-world-predicate_proposal",
             contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
-            doc_type=PredicateProposalDeclarationModel,
+            doc_type=PredicateProposalArtifactModel,
             placement=FlatYamlPlacement(".derived/predicate_proposal", str),
         ),
-        identity_field="name",
+        identity_field="source_paper",
     ),
-    model=PredicateProposalDeclarationModel,
+    model=PredicateProposalArtifactModel,
     fields=(
-        CharterField("name", str, primary_key=True, nullable=False),
-        CharterField("arity", int, nullable=False),
-        CharterField("description", str, nullable=False),
+        CharterField("source_paper", str, primary_key=True, nullable=False),
         CharterField(
-            "arg_types",
-            tuple[PredicateArgType, ...],
+            "proposed_declarations",
+            tuple[PredicateDeclaration, ...],
             parse_boundary="json",
             nullable=False,
-            default=(),
-            default_sql="'[]'",
         ),
+        CharterField(
+            "extraction_provenance",
+            PredicateExtractionProvenance,
+            parse_boundary="json",
+            nullable=False,
+        ),
+        CharterField("extraction_date", str, nullable=False),
+        CharterField("promoted_from_sha", str, nullable=True),
     ),
     semantic_metadata={"semantic": "propstore.world"},
-    validators=(_validate_predicate_arity_and_arg_types,),
+    validators=(_validate_predicate_proposal_artifact,),
     states=(
         FamilyState("proposed", document_label="proposal"),
         FamilyState("canonical", document_label="canonical", terminal=True),
@@ -132,17 +162,6 @@ PREDICATE_PROPOSAL_CHARTER: FamilyCharter = FamilyCharter(
 )
 
 
-class PredicateExtractionProvenance(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    """Prompt and source provenance for proposed predicate declarations."""
-
-    operations: tuple[str, ...]
-    agent: str
-    model: str
-    prompt_sha: str
-    notes_sha: str
-    status: str
-
-
 if TYPE_CHECKING:
 
     class PredicateDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -154,11 +173,12 @@ if TYPE_CHECKING:
         authoring_group: str | None = None
         promoted_from_sha: str | None = None
 
-    class PredicateDeclaration(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        name: str
-        arity: int
-        description: str
-        arg_types: tuple[PredicateArgType, ...] = ()
+    class PredicateProposalArtifact(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        source_paper: str
+        proposed_declarations: tuple[PredicateDeclaration, ...]
+        extraction_provenance: PredicateExtractionProvenance
+        extraction_date: str
+        promoted_from_sha: str | None = None
 
 else:
     PredicateDocument: Any = PREDICATE_DECLARATION_CHARTER.generated_document()
@@ -166,20 +186,10 @@ else:
     PredicateDocument.__qualname__ = "PredicateDocument"
     PredicateDocument.__module__ = __name__
 
-    PredicateDeclaration: Any = PREDICATE_PROPOSAL_CHARTER.generated_document()
-    PredicateDeclaration.__name__ = "PredicateDeclaration"
-    PredicateDeclaration.__qualname__ = "PredicateDeclaration"
-    PredicateDeclaration.__module__ = __name__
-
-
-class PredicateProposalDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    """Proposal-branch payload for a paper's predicate vocabulary."""
-
-    source_paper: str
-    proposed_declarations: tuple[PredicateDeclaration, ...]
-    extraction_provenance: PredicateExtractionProvenance
-    extraction_date: str
-    promoted_from_sha: str | None = None
+    PredicateProposalArtifact: Any = PREDICATE_PROPOSAL_CHARTER.generated_document()
+    PredicateProposalArtifact.__name__ = "PredicateProposalArtifact"
+    PredicateProposalArtifact.__qualname__ = "PredicateProposalArtifact"
+    PredicateProposalArtifact.__module__ = __name__
 
 
 PREDICATE_CHARTERS: tuple[FamilyCharter, ...] = (

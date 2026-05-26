@@ -201,6 +201,24 @@ def build_propstore_contract_manifest() -> ContractManifest:
                     "changing authored context YAML fields."
                 ),
             ),
+            quire_contracts.CompatibilityMarker(
+                contract="artifact_family:proposal_predicates",
+                contract_version=VersionId("2026.05.25"),
+                reason=(
+                    "Predicate proposal container moved to a generated "
+                    "charter artifact type without changing proposal YAML "
+                    "fields or placement."
+                ),
+            ),
+            quire_contracts.CompatibilityMarker(
+                contract="family:proposal_predicates",
+                contract_version=VersionId("2026.05.25"),
+                reason=(
+                    "Predicate proposal family now uses the generated "
+                    "charter artifact type for the same proposal YAML "
+                    "fields and placement."
+                ),
+            ),
         ),
     )
 

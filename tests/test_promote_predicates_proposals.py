@@ -13,7 +13,7 @@ from propstore.families.predicates.declaration import (
     PredicateDeclaration,
     PredicateDocument,
     PredicateExtractionProvenance,
-    PredicateProposalDocument,
+    PredicateProposalArtifact,
 )
 from propstore.families.registry import PredicateProposalRef, PredicateRef
 from propstore.heuristic.predicate_extraction import predicate_proposal_branch
@@ -76,7 +76,7 @@ def _seed_proposal(monkeypatch, repo: Repository) -> str:
 
 
 def _seed_direct_proposal(repo: Repository, *, paper: str, predicate_id: str) -> str:
-    document = PredicateProposalDocument(
+    document = PredicateProposalArtifact(
         source_paper=paper,
         proposed_declarations=(
             PredicateDeclaration(

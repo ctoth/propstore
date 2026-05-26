@@ -68,7 +68,7 @@ from propstore.families.micropublications.declaration import (
 from propstore.families.predicates.declaration import (
     PREDICATE_FAMILY_CONTRACT_VERSION,
     PredicateDocument,
-    PredicateProposalDocument,
+    PredicateProposalArtifact,
 )
 from propstore.families.rules.declaration import (
     AUTHORED_RULES_FAMILY_CONTRACT_VERSION,
@@ -810,7 +810,7 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
             artifact_name="proposal_predicates",
             artifact_contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
-            document_type=PredicateProposalDocument,
+            document_type=PredicateProposalArtifact,
             placement=SubdirFixedFilePlacement(
                 namespace="predicates",
                 filename="declarations.yaml",

@@ -14,7 +14,7 @@ from quire.documents import convert_document_value
 from propstore.families.predicates.declaration import (
     PredicateDeclaration,
     PredicateExtractionProvenance,
-    PredicateProposalDocument,
+    PredicateProposalArtifact,
 )
 from propstore.families.registry import (
     PROPOSAL_PREDICATE_BRANCH,
@@ -37,7 +37,7 @@ class PredicateProposalResult:
     commit_sha: str | None
     declarations: tuple[PredicateDeclaration, ...]
     relpath: str
-    document: PredicateProposalDocument
+    document: PredicateProposalArtifact
 
 
 def predicate_proposal_branch() -> str:
@@ -102,8 +102,8 @@ def _proposal_document(
     model_name: str,
     notes_sha: str,
     declarations: tuple[PredicateDeclaration, ...],
-) -> PredicateProposalDocument:
-    return PredicateProposalDocument(
+) -> PredicateProposalArtifact:
+    return PredicateProposalArtifact(
         source_paper=source_paper,
         proposed_declarations=declarations,
         extraction_provenance=PredicateExtractionProvenance(

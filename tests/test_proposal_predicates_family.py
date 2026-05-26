@@ -29,7 +29,7 @@ def test_predicate_proposal_document_is_typed() -> None:
     from propstore.families.predicates.declaration import (
         PredicateDeclaration,
         PredicateExtractionProvenance,
-        PredicateProposalDocument,
+        PredicateProposalArtifact,
     )
 
     declaration = PredicateDeclaration(
@@ -39,7 +39,7 @@ def test_predicate_proposal_document_is_typed() -> None:
         description="Paper-level sample size.",
     )
 
-    document = PredicateProposalDocument(
+    document = PredicateProposalArtifact(
         source_paper="Ioannidis_2005_WhyMostPublishedResearch",
         proposed_declarations=(declaration,),
         extraction_provenance=PredicateExtractionProvenance(
@@ -104,10 +104,10 @@ def test_generated_predicate_declaration_roundtrip_preserves_identity_and_proven
     from propstore.families.predicates.declaration import (
         PredicateDeclaration,
         PredicateExtractionProvenance,
-        PredicateProposalDocument,
+        PredicateProposalArtifact,
     )
 
-    proposal = PredicateProposalDocument(
+    proposal = PredicateProposalArtifact(
         source_paper=source_paper,
         proposed_declarations=(
             PredicateDeclaration(
@@ -130,7 +130,7 @@ def test_generated_predicate_declaration_roundtrip_preserves_identity_and_proven
 
     decoded = msgspec.yaml.decode(
         msgspec.yaml.encode(proposal),
-        type=PredicateProposalDocument,
+        type=PredicateProposalArtifact,
         strict=True,
     )
 

@@ -222,7 +222,7 @@ contracts:
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.predicates.declaration.PredicateProposalDocument
+    doc_type: propstore.families.predicates.declaration.PredicateProposalArtifact
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -798,6 +798,39 @@ contracts:
       required: true
       type: builtins.str
     module: propstore.families.concepts.declaration
+- kind: document_schema
+  name: AuthoredRuleProposalArtifact
+  contract_version: 2026.05.25
+  body:
+    fields:
+    - name: source_paper
+      required: true
+      type: builtins.str
+    - name: rule_id
+      required: true
+      type: builtins.str
+    - name: proposed_rule
+      required: true
+      type: propstore.families.rules.declaration.RuleDocument
+    - name: predicates_referenced
+      required: true
+      type: builtins.tuple
+    - name: extraction_provenance
+      required: true
+      type: propstore.families.rules.declaration.RuleExtractionProvenance
+    - name: extraction_date
+      required: true
+      type: builtins.str
+    - name: proposal_state
+      required: true
+      type: builtins.str
+    - name: page_reference
+      required: true
+      type: str | None
+    - name: promoted_from_sha
+      required: true
+      type: str | None
+    module: propstore.families.rules.declaration
 - kind: document_schema
   name: Build_diagnosticsDocument
   contract_version: 2026.05.20
@@ -1724,24 +1757,6 @@ contracts:
       type: builtins.int
     module: propstore.families.concepts.declaration
 - kind: document_schema
-  name: PredicateDeclaration
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: name
-      required: true
-      type: builtins.str
-    - name: arity
-      required: true
-      type: builtins.int
-    - name: description
-      required: true
-      type: builtins.str
-    - name: arg_types
-      required: true
-      type: builtins.tuple
-    module: propstore.families.predicates.declaration
-- kind: document_schema
   name: PredicateDocument
   contract_version: 2026.05.25
   body:
@@ -1764,6 +1779,27 @@ contracts:
     - name: authoring_group
       required: true
       type: str | None
+    - name: promoted_from_sha
+      required: true
+      type: str | None
+    module: propstore.families.predicates.declaration
+- kind: document_schema
+  name: PredicateProposalArtifact
+  contract_version: 2026.05.25
+  body:
+    fields:
+    - name: source_paper
+      required: true
+      type: builtins.str
+    - name: proposed_declarations
+      required: true
+      type: builtins.tuple
+    - name: extraction_provenance
+      required: true
+      type: propstore.families.predicates.declaration.PredicateExtractionProvenance
+    - name: extraction_date
+      required: true
+      type: builtins.str
     - name: promoted_from_sha
       required: true
       type: str | None
@@ -1888,39 +1924,6 @@ contracts:
       required: true
       type: dict[str, Any] | None
     - name: authoring_group
-      required: true
-      type: str | None
-    - name: promoted_from_sha
-      required: true
-      type: str | None
-    module: propstore.families.rules.declaration
-- kind: document_schema
-  name: AuthoredRuleProposalArtifact
-  contract_version: 2026.05.25
-  body:
-    fields:
-    - name: source_paper
-      required: true
-      type: builtins.str
-    - name: rule_id
-      required: true
-      type: builtins.str
-    - name: proposed_rule
-      required: true
-      type: propstore.families.rules.declaration.RuleDocument
-    - name: predicates_referenced
-      required: true
-      type: builtins.tuple
-    - name: extraction_provenance
-      required: true
-      type: propstore.families.rules.declaration.RuleExtractionProvenance
-    - name: extraction_date
-      required: true
-      type: builtins.str
-    - name: proposal_state
-      required: true
-      type: builtins.str
-    - name: page_reference
       required: true
       type: str | None
     - name: promoted_from_sha
@@ -2601,7 +2604,7 @@ contracts:
     accessor: proposal_predicates
     artifact_family: proposal_predicates
     artifact_family_contract:
-      doc_type: propstore.families.predicates.declaration.PredicateProposalDocument
+      doc_type: propstore.families.predicates.declaration.PredicateProposalArtifact
       placement:
         branch:
           fixed_branch: proposal/predicates
@@ -3358,6 +3361,10 @@ registry:
   name: propstore
   contract_version: 2026.05.25
 compatible_changes:
+- contract: artifact_family:proposal_predicates
+  contract_version: 2026.05.25
+  reason: Predicate proposal container moved to a generated charter artifact type
+    without changing proposal YAML fields or placement.
 - contract: document_schema:JustificationDocument
   contract_version: 2026.05.25
   reason: Claim family cutover moved justification nested document types into the
@@ -3382,3 +3389,7 @@ compatible_changes:
   contract_version: 2026.05.25
   reason: Context reference-key declaration moved from registry construction onto
     context family metadata without changing authored context YAML fields.
+- contract: family:proposal_predicates
+  contract_version: 2026.05.25
+  reason: Predicate proposal family now uses the generated charter artifact type for
+    the same proposal YAML fields and placement.
