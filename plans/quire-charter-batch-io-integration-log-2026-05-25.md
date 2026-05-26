@@ -65,12 +65,44 @@ Next slice:
 ## Iteration 2 - `quire batch_artifact_family`
 
 Slice read:
-- Pending
+- `quire/artifacts.py`
+- `quire/__init__.py`
+- `tests/test_family_store.py`
 
 Surfaces:
 - `batch_artifact_family`
   - Disposition: create
   - Owner after cleanup: `quire.artifacts`
+  - Action: Added a generic `ArtifactFamily` constructor that wires
+    `DocumentBatchCodec` callbacks and sets `scan_type` from the batch spec.
+  - Evidence: The helper uses Quire-owned `DocumentBatchSpec` and
+    `document_batch_codec`, with no Propstore-specific policy or wrapper.
+
+Gate results:
+- Pass: `uv run pytest -vv tests/test_document_batches.py tests/test_families.py tests/test_family_store.py`
+- Pass: `uv run pyright`
+- Pass: `uv run pytest -vv`
+
+Commit:
+- `e8eb5dc Add batch artifact family helper`
+
+Next slice:
+- Propstore Quire pin.
+
+## Iteration 3 - `propstore Quire pin`
+
+Slice read:
+- Pending
+
+Surfaces:
+- `pyproject.toml` Quire dependency
+  - Disposition: rewrite
+  - Owner after cleanup: `pyproject.toml`
+  - Action: Pending
+  - Evidence: Pending
+- `uv.lock` Quire dependency
+  - Disposition: rewrite
+  - Owner after cleanup: `uv.lock`
   - Action: Pending
   - Evidence: Pending
 
@@ -81,4 +113,4 @@ Commit:
 - Pending
 
 Next slice:
-- Propstore Quire pin.
+- Propstore deletion-first batch cutover.
