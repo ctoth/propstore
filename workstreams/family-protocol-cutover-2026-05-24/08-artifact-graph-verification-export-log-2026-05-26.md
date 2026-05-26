@@ -46,3 +46,10 @@
 - Focused graph pytest passed:
   `powershell -File scripts/run_logged_pytest.ps1 -Label graph-family-projection tests/test_graph_export.py`;
   10 passed, log `logs\test-runs\graph-family-projection-20260526-122501.log`.
+- Final Phase 08 search gates passed with no matches.
+- Final type gate passed:
+  `uv run pyright propstore`; 0 errors, 0 warnings, 0 informations.
+- Final pytest gate passed:
+  `powershell -File scripts/run_logged_pytest.ps1 -Label artifact-graph-verification tests/test_graph_export.py tests/test_verify_cli.py tests/test_world_query.py`;
+  165 passed, 29 warnings, log
+  `logs\test-runs\artifact-graph-verification-20260526-122649.log`.
