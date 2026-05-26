@@ -34,12 +34,43 @@ Runtime gates:
 ## Iteration 1 - `quire.documents.batch`
 
 Slice read:
-- Pending
+- `quire/documents/batch.py`
+- `quire/documents/__init__.py`
+- `quire/__init__.py`
+- `tests/test_document_batches.py`
+- `quire/documents/codecs.py`
 
 Surfaces:
 - `DocumentBatchCodec`
   - Disposition: create
   - Owner after cleanup: `quire.documents.batch`
+  - Action: Added a generic batch codec backed by `DocumentBatchSpec`,
+    `decode_document_batch_bytes`, `render_document_batch`, and
+    `document_to_payload`.
+  - Evidence: Quire already owned low-level batch parsing/rendering; the codec
+    binds that owner surface to artifact-family callback shape without
+    Propstore-specific names.
+
+Gate results:
+- Pass: `uv run pytest -vv tests/test_document_batches.py`
+- Pass: `uv run pyright`
+- Pass: `uv run pytest -vv`
+
+Commit:
+- `0218cda Add document batch codec`
+
+Next slice:
+- Quire artifact family helper.
+
+## Iteration 2 - `quire batch_artifact_family`
+
+Slice read:
+- Pending
+
+Surfaces:
+- `batch_artifact_family`
+  - Disposition: create
+  - Owner after cleanup: `quire.artifacts`
   - Action: Pending
   - Evidence: Pending
 
@@ -50,4 +81,4 @@ Commit:
 - Pending
 
 Next slice:
-- Quire artifact family helper.
+- Propstore Quire pin.
