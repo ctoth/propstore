@@ -279,3 +279,45 @@ Commit:
 
 Next slice:
 - Concrete document-class fields in `SourcePromotionPlan`.
+
+## Iteration 7 - `source promotion plan writes`
+
+Slice read:
+- `propstore/source/stages.py`
+- `propstore/source/promote.py`
+- `.venv/Lib/site-packages/quire/lifecycle.py`
+
+Surfaces:
+- `SourcePromotionPlan.promoted_*` concrete document fields
+  - Disposition: delete
+  - Owner after cleanup: Quire `FamilyRecordWrite` transition records
+  - Action: Replaced per-family promoted document fields with one ordered
+    `writes: tuple[FamilyRecordWrite, ...]` plan surface.
+  - Evidence: No `promotion_plan.promoted_*` callers remain.
+- `SourcePromotionPlan.source_ref`
+  - Disposition: delete
+  - Owner after cleanup: source-family write identity in
+    `FamilyRecordWrite.identity`
+  - Action: Promotion assembly now emits the canonical source write together
+    with claim, micropub, concept, justification, and stance writes.
+  - Evidence: No `promotion_plan.source_ref` callers remain.
+- Promotion transaction persistence loops
+  - Disposition: collapse into family-write dispatcher
+  - Owner after cleanup: promotion applies the ordered Quire write plan to the
+    family transaction.
+  - Action: Replaced the six concrete `promotion_plan.promoted_*` save loops
+    with `for write in promotion_plan.writes`.
+
+Gate results:
+- Pass: `rg -n -F -- "promotion_plan.promoted_" propstore/source/promote.py propstore/source/stages.py`
+- Pass: `rg -n -F -- "promotion_plan.source_ref" propstore/source/promote.py propstore/source/stages.py`
+- Pass: `rg -n -F -- "promoted_source_document=" propstore/source/promote.py propstore/source/stages.py`
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label source-promotion-plan-lifecycle tests/test_source_promotion_alignment.py tests/test_source_promote_dangling_refs.py`
+  - Evidence: `logs/test-runs/source-promotion-plan-lifecycle-20260525-233844.log`, 14 passed.
+
+Commit:
+- `bfcd771c Convert source promotion plan to family writes`
+
+Next slice:
+- Phase 06 fixed-point search and runtime gates.
