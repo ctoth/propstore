@@ -283,3 +283,27 @@ Commit:
 
 Next slice:
 - Rerun the corrected required Phase 07 gate.
+
+## Final Phase 07 Gates
+
+Search gates:
+- Pass: `rg -n -F -- "StanceProposalPromotionPlan" propstore tests`
+- Pass: `rg -n -F -- "RuleProposalPromotionPlan" propstore tests`
+- Pass: `rg -n -F -- "PredicateProposalPromotionPlan" propstore tests`
+- Pass: `rg -n -F -- "build_stance_document" propstore tests`
+- Pass: `rg -n -F -- "promote_rule_proposals" propstore tests`
+- Pass: `rg -n -F -- "promote_predicate_proposals" propstore tests`
+- Pass: `rg -n -F -- "PredicateProposalDocument" propstore tests`
+- Pass: `rg -n -F -- "RuleProposalDocument" propstore tests`
+
+Runtime gates:
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label proposal-lifecycle tests/test_proposal_promotion.py tests/test_rule_documents.py tests/test_predicate_documents.py`
+  - Evidence: `logs/test-runs/proposal-lifecycle-20260526-011231.log`,
+    25 passed.
+
+Completion:
+- Phase 07 proposal promotion now runs through family lifecycle owners and
+  Quire transition metadata for stance, rule, and predicate proposals.
+- The old root proposal modules and forbidden proposal document/plan/function
+  surfaces are absent from `propstore` and `tests`.
