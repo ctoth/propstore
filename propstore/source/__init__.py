@@ -30,14 +30,6 @@ from .concepts import (
 )
 from .finalize import finalize_source_branch
 from .promote import load_finalize_report, promote_source_branch
-from .registry import (
-    load_primary_branch_concept_docs,
-    load_primary_branch_concepts,
-    parameterization_group_merge_preview,
-    preview_source_parameterization_group_merges,
-    primary_branch_concept_match,
-    projected_source_concepts,
-)
 from .relations import (
     commit_source_justification_proposal,
     commit_source_justifications_batch,
@@ -67,15 +59,9 @@ __all__ = [
     "initial_source_document",
     "load_alignment_artifact",
     "load_finalize_report",
-    "load_primary_branch_concept_docs",
-    "load_primary_branch_concepts",
     "load_source_document",
     "normalize_source_concepts_document",
     "normalize_source_slug",
-    "parameterization_group_merge_preview",
-    "preview_source_parameterization_group_merges",
-    "primary_branch_concept_match",
-    "projected_source_concepts",
     "promote_alignment",
     "promote_source_branch",
     "save_alignment_artifact",

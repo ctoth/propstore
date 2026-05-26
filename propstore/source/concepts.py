@@ -13,7 +13,7 @@ from propstore.families.documents.sources import (
     SourceConceptFormParametersDocument,
     SourceConceptRegistryMatchDocument,
 )
-from .registry import primary_branch_concept_match
+from propstore.families.concepts.lifecycle import primary_branch_concept_match
 
 
 def get_valid_form_names(repo: Repository) -> list[str] | None:

@@ -35,7 +35,7 @@ from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
     source_claim_index as build_source_claim_index,
 )
-from .registry import preview_source_parameterization_group_merges
+from propstore.families.concepts.lifecycle import preview_source_parameterization_group_merges
 
 
 def _with_micropub_identity(document: MicropublicationDocument) -> MicropublicationDocument:

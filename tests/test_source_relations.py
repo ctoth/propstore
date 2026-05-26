@@ -14,8 +14,8 @@ from hypothesis import strategies as st
 
 from tests.family_helpers import build_sidecar, materialized_world_store_path
 from propstore.cli import cli
+from propstore.families.concepts.lifecycle import parameterization_group_merge_preview
 from propstore.repository import Repository
-from propstore.source import parameterization_group_merge_preview
 from tests.builders import (
     SourceClaimSpec,
     SourceJustificationSpec,

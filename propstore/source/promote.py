@@ -90,7 +90,7 @@ from .common import (
     normalize_source_slug,
     source_paper_slug,
 )
-from .registry import load_primary_branch_concepts
+from propstore.families.concepts.lifecycle import load_primary_branch_concepts
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
     source_claim_index as build_source_claim_index,

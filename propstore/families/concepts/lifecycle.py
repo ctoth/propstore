@@ -8,12 +8,10 @@ from quire.references import FamilyReferenceIndex
 
 from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.concepts.stages import parse_concept_record_document
-from propstore.families.identity.concepts import normalize_canonical_concept_payload
-from propstore.repository import Repository
-from propstore.parameterization_groups import build_groups
-
-from .common import normalize_source_slug
 from propstore.families.documents.sources import SourceConceptEntryDocument
+from propstore.families.identity.concepts import normalize_canonical_concept_payload
+from propstore.parameterization_groups import build_groups
+from propstore.repository import Repository
 
 
 @dataclass(frozen=True)
@@ -22,22 +20,16 @@ class SourceConceptProjectionReference:
     handles: tuple[str, ...]
 
 
-def _source_concept_projection_artifact_id(record: SourceConceptProjectionReference) -> str:
+def _source_concept_projection_artifact_id(
+    record: SourceConceptProjectionReference,
+) -> str:
     return record.artifact_id
 
 
-def _source_concept_projection_handles(record: SourceConceptProjectionReference) -> tuple[str, ...]:
+def _source_concept_projection_handles(
+    record: SourceConceptProjectionReference,
+) -> tuple[str, ...]:
     return record.handles
-
-
-def _derived_concept_artifact_id(handle: str) -> str:
-    artifact_id = normalize_canonical_concept_payload(
-        {"canonical_name": handle},
-        local_handle=normalize_source_slug(handle),
-    )["artifact_id"]
-    if not isinstance(artifact_id, str) or not artifact_id:
-        raise ValueError("normalized concept payload did not produce an artifact_id")
-    return artifact_id
 
 
 def load_primary_branch_concepts(repo: Repository) -> dict[str, dict[str, Any]]:
@@ -46,7 +38,6 @@ def load_primary_branch_concepts(repo: Repository) -> dict[str, dict[str, Any]]:
         return {}
 
     concepts_by_artifact: dict[str, dict[str, Any]] = {}
-
     for handle in repo.families.concepts.iter_handles(commit=primary_tip):
         document = handle.document
         concept = dict(parse_concept_record_document(document).to_payload())
@@ -195,7 +186,10 @@ def parameterization_group_merge_preview(
         primary_by_artifact[artifact_id] = copy.deepcopy(concept)
         primary_ids.add(artifact_id)
 
-    preview_by_artifact = {artifact_id: copy.deepcopy(doc) for artifact_id, doc in primary_by_artifact.items()}
+    preview_by_artifact = {
+        artifact_id: copy.deepcopy(doc)
+        for artifact_id, doc in primary_by_artifact.items()
+    }
     for concept in projected_concepts:
         if not isinstance(concept, dict):
             continue
@@ -235,9 +229,14 @@ def parameterization_group_merge_preview(
                 "merged_group": sorted(group),
                 "previous_groups": [
                     sorted(previous_group)
-                    for previous_group in sorted(collapsed, key=lambda members: tuple(sorted(members)))
+                    for previous_group in sorted(
+                        collapsed,
+                        key=lambda members: tuple(sorted(members)),
+                    )
                 ],
-                "introduced_by": sorted(member for member in group if member in parameterized_artifacts),
+                "introduced_by": sorted(
+                    member for member in group if member in parameterized_artifacts
+                ),
             }
         )
     return merges
@@ -248,9 +247,30 @@ def preview_source_parameterization_group_merges(
     concepts_doc: tuple[SourceConceptEntryDocument, ...] | None,
 ) -> list[dict[str, Any]]:
     primary_branch_concepts = load_primary_branch_concept_docs(repo)
-    projected_concepts, parameterized_artifacts = projected_source_concepts(repo, concepts_doc)
+    projected_concepts, parameterized_artifacts = projected_source_concepts(
+        repo,
+        concepts_doc,
+    )
     return parameterization_group_merge_preview(
         primary_branch_concepts,
         projected_concepts,
         parameterized_artifacts=parameterized_artifacts,
     )
+
+
+def _derived_concept_artifact_id(handle: str) -> str:
+    artifact_id = normalize_canonical_concept_payload(
+        {"canonical_name": handle},
+        local_handle=_safe_source_concept_handle(handle),
+    )["artifact_id"]
+    if not isinstance(artifact_id, str) or not artifact_id:
+        raise ValueError("normalized concept payload did not produce an artifact_id")
+    return artifact_id
+
+
+def _safe_source_concept_handle(handle: str) -> str:
+    cleaned = "".join(
+        ch if ch.isalnum() or ch in {"_", "-", "."} else "_"
+        for ch in handle.strip()
+    )
+    return cleaned.strip("._-") or "source"
