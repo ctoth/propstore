@@ -558,7 +558,10 @@ def relate_claims(
     *,
     on_progress: Callable[[int, int], None] | None = None,
 ) -> ClaimRelateReport:
-    from propstore.proposals import commit_stance_proposals, stance_proposal_branch
+    from propstore.families.stances.lifecycle import (
+        commit_stance_proposals,
+        stance_proposal_branch,
+    )
 
     try:
         repo.require_git().head_sha()

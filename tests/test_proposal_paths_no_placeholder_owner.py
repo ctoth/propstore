@@ -3,11 +3,14 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-from propstore.proposals import stance_proposal_branch, stance_proposal_relpath
+from propstore.families.stances.lifecycle import (
+    stance_proposal_branch,
+    stance_proposal_relpath,
+)
 
 
 def test_proposal_path_helpers_do_not_fabricate_repository_owner() -> None:
-    source = Path("propstore/proposals.py").read_text()
+    source = Path("propstore/families/stances/lifecycle.py").read_text()
     tree = ast.parse(source)
 
     for node in ast.walk(tree):

@@ -17,7 +17,7 @@ from propstore.families.rules.declaration import (
 )
 from propstore.families.registry import PredicateRef, RuleProposalRef, RuleRef
 from propstore.heuristic.rule_extraction import rule_proposal_branch
-from propstore.proposals import UnknownProposalPath
+from propstore.proposal_lifecycle import UnknownProposalPath
 from propstore.repository import Repository
 
 

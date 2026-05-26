@@ -18,7 +18,7 @@ from propstore.app.claims import (
     relate_claims,
 )
 from propstore.core.store_results import ClaimSimilarityHit
-from propstore.proposals import stance_proposal_branch
+from propstore.families.stances.lifecycle import stance_proposal_branch
 from propstore.repository import Repository
 from propstore.world import WorldQuery
 from tests.family_helpers import materialized_world_store_path

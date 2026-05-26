@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 from propstore.families.rules.declaration import RuleDocument, RuleSourceDocument
 from propstore.families.registry import RuleProposalRef, RuleRef
-from propstore.proposals import UnknownProposalPath
+from propstore.proposal_lifecycle import UnknownProposalPath
 from propstore.proposal_promotion import (
     PlannedCanonicalArtifact,
     commit_planned_canonical_artifacts,

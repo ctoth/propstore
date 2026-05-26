@@ -11,7 +11,7 @@ from propstore.app.proposals import (
     promote_proposals,
 )
 from propstore.cli.output import emit, emit_success, emit_table
-from propstore.proposals import UnknownProposalPath
+from propstore.proposal_lifecycle import UnknownProposalPath
 
 
 @click.group()

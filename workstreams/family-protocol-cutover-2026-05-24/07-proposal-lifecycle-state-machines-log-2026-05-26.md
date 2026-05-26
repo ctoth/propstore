@@ -50,33 +50,43 @@ Surfaces:
   - Disposition: delete
   - Owner after cleanup: stance-family lifecycle plus shared proposal
     lifecycle support.
-  - Action: pending.
+  - Action: Deleted the root stance proposal workflow module.
+  - Evidence: No `from propstore.proposals import` callers remain.
 - `UnknownProposalPath`
   - Disposition: move
   - Owner after cleanup: shared proposal lifecycle support.
-  - Action: pending.
+  - Action: Moved to `propstore.proposal_lifecycle`.
 - `ProposalAlreadyPromoted`
   - Disposition: move
   - Owner after cleanup: shared proposal lifecycle support.
-  - Action: pending.
+  - Action: Moved to `propstore.proposal_lifecycle`.
 - Stance proposal branch/path helpers
   - Disposition: move
   - Owner after cleanup: stance-family lifecycle owner using registry
     placement metadata.
-  - Action: pending.
+  - Action: Moved to `propstore.families.stances.lifecycle`.
 - `StanceProposalPromotionPlan`
   - Disposition: delete
   - Owner after cleanup: generic proposal lifecycle plan/result plus Quire
     `FamilyRecordWrite` transition records.
-  - Action: pending.
+  - Action: Replaced with `ProposalPromotionPlan[StanceRef]`,
+    `ProposalPromotionItem[StanceRef]`, `ProposalPromotionResult[StanceRef]`,
+    and a stance `promote_proposal` lifecycle transition.
 - `build_stance_document`
   - Disposition: delete
   - Owner after cleanup: typed stance proposal input converted by the
     stance-family lifecycle owner.
-  - Action: pending.
+  - Action: Replaced with `StanceProposalInput` and
+    `build_stance_proposal_document`.
 
 Gate results:
-- Pending.
+- Pass: `rg -n -F -- "StanceProposalPromotionPlan" propstore tests`
+- Pass: `rg -n -F -- "build_stance_document" propstore tests`
+- Pass: `rg -n -F -- "from propstore.proposals import" propstore tests`
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label stance-proposal-lifecycle tests/test_proposal_promotion.py tests/test_promote_stance_proposals_idempotency.py tests/test_plan_stance_proposal_promotion_typo_path.py tests/test_commit_stance_proposals_empty_input.py tests/test_commit_stance_proposals_commit_sha_inside_with.py tests/test_proposal_paths_no_placeholder_owner.py tests/test_relate_opinions.py::TestStanceYamlRoundTrip tests/test_relate_opinions.py::TestStanceProposalsUseBranchState`
+  - Evidence: `logs/test-runs/stance-proposal-lifecycle-20260526-004255.log`,
+    14 passed.
 
 Commit:
 - Pending.

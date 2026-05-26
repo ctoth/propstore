@@ -3,7 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 
 from propstore.app.claims import ClaimRelateRequest, relate_claims
-from propstore.proposals import commit_stance_proposals, stance_proposal_branch
+from propstore.families.stances.lifecycle import (
+    commit_stance_proposals,
+    stance_proposal_branch,
+)
 from propstore.repository import Repository
 import propstore.app.claims as claims_app
 from tests.family_helpers import materialized_world_store_path
@@ -49,7 +52,7 @@ def test_relate_claims_all_delegates_empty_proposals_to_owner_layer(
         return None, []
 
     monkeypatch.setattr(
-        "propstore.proposals.commit_stance_proposals",
+        "propstore.families.stances.lifecycle.commit_stance_proposals",
         fake_commit_stance_proposals,
     )
 

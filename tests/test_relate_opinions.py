@@ -297,7 +297,11 @@ class TestConfidenceEqualsExpectation:
 
 class TestStanceYamlRoundTrip:
     def test_opinion_fields_survive_yaml(self):
-        from propstore.proposals import build_stance_document, dump_yaml_bytes
+        from quire.documents import encode_document
+        from propstore.families.stances.lifecycle import (
+            StanceProposalInput,
+            build_stance_proposal_document,
+        )
 
         stances = [{
             "target": "claim_b",
@@ -315,7 +319,22 @@ class TestStanceYamlRoundTrip:
             },
         }]
 
-        data = yaml.safe_load(dump_yaml_bytes(build_stance_document("claim_a", stances[0], "test-model")))
+        data = yaml.safe_load(
+            encode_document(
+                build_stance_proposal_document(
+                    "claim_a",
+                    StanceProposalInput(
+                        target=str(stances[0]["target"]),
+                        type=str(stances[0]["type"]),
+                        strength=str(stances[0]["strength"]),
+                        note=str(stances[0]["note"]),
+                        conditions_differ=None,
+                        resolution=stances[0]["resolution"],
+                    ),
+                    "test-model",
+                )
+            )
+        )
 
         res = data["resolution"]
         assert res["opinion"]["b"] == pytest.approx(0.0)
@@ -558,7 +577,10 @@ class TestGenuineNoneStillWorks:
 class TestStanceProposalsUseBranchState:
 
     def test_stance_proposal_path_and_branch_are_git_native(self):
-        from propstore.proposals import stance_proposal_branch, stance_proposal_relpath
+        from propstore.families.stances.lifecycle import (
+            stance_proposal_branch,
+            stance_proposal_relpath,
+        )
 
         assert stance_proposal_branch() == "proposal/stances"
         assert stance_proposal_relpath("ps:stance:abc") == "stances/ps__stance__abc.yaml"

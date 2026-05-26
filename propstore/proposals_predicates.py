@@ -13,7 +13,7 @@ from propstore.families.registry import (
     PredicateProposalRef,
     PredicateRef,
 )
-from propstore.proposals import UnknownProposalPath
+from propstore.proposal_lifecycle import UnknownProposalPath
 from propstore.proposal_promotion import (
     PlannedCanonicalArtifact,
     commit_planned_canonical_artifacts,

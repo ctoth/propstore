@@ -409,7 +409,8 @@ def test_ordinary_app_workflow_modules_do_not_sync_or_materialize_loose_files() 
     ]
     module_paths.extend(
         [
-            root / "propstore" / "proposals.py",
+            root / "propstore" / "proposal_lifecycle.py",
+            root / "propstore" / "families" / "stances" / "lifecycle.py",
         ]
     )
     violations: list[str] = []

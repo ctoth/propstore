@@ -1154,7 +1154,7 @@ def test_promote_commits(tmp_path):
     from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
     from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
-    from propstore.proposals import commit_stance_proposals
+    from propstore.families.stances.lifecycle import commit_stance_proposals
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1211,7 +1211,10 @@ def test_promote_does_not_move_files_before_git_commit_succeeds(tmp_path, monkey
     from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
     from propstore.families.registry import ClaimRef, ContextRef
     from propstore.repository import Repository
-    from propstore.proposals import commit_stance_proposals, stance_proposal_branch
+    from propstore.families.stances.lifecycle import (
+        commit_stance_proposals,
+        stance_proposal_branch,
+    )
 
     root = tmp_path / "knowledge"
     repo = Repository.init(root)
@@ -1269,7 +1272,7 @@ def test_claim_relate_commits_proposals_to_branch(tmp_path, monkeypatch):
     from click.testing import CliRunner
     from propstore.cli import cli
     from propstore.repository import Repository
-    from propstore.proposals import stance_proposal_branch
+    from propstore.families.stances.lifecycle import stance_proposal_branch
     from tests.family_helpers import materialized_world_store_path
     import propstore.app.claims as claims_app
 

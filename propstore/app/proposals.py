@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from propstore.proposals import StanceProposalPromotionPlan
+from propstore.families.registry import StanceRef
+from propstore.proposal_lifecycle import ProposalPromotionPlan
 from propstore.repository import Repository
 
 
@@ -25,7 +26,7 @@ class ProposalPromotionPlanReport:
     branch: str
     has_branch: bool
     items: tuple[ProposalPromotionItem, ...]
-    plan: StanceProposalPromotionPlan
+    plan: ProposalPromotionPlan[StanceRef]
 
 
 @dataclass(frozen=True)
@@ -38,7 +39,7 @@ def plan_proposal_promotion(
     repo: Repository,
     request: ProposalPromotionRequest,
 ) -> ProposalPromotionPlanReport:
-    from propstore.proposals import plan_stance_proposal_promotion
+    from propstore.families.stances.lifecycle import plan_stance_proposal_promotion
 
     plan = plan_stance_proposal_promotion(repo, path=request.path)
     return ProposalPromotionPlanReport(
@@ -60,7 +61,7 @@ def promote_proposals(
     repo: Repository,
     plan_report: ProposalPromotionPlanReport,
 ) -> ProposalPromotionResult:
-    from propstore.proposals import promote_stance_proposals
+    from propstore.families.stances.lifecycle import promote_stance_proposals
 
     result = promote_stance_proposals(repo, plan_report.plan)
     return ProposalPromotionResult(

@@ -9,6 +9,7 @@ from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, FamilyCharter, FamilyModel
 from quire.documents import DocumentBatchSpec
 from quire.families import FamilyDefinition
+from quire.lifecycle import ConflictPolicy, FamilyState, FamilyTransition
 from quire.references import ForeignKeySpec
 from quire.versions import VersionId
 
@@ -104,6 +105,19 @@ STANCE_CHARTER: FamilyCharter = FamilyCharter(
         CharterField("classification_model", str, nullable=True),
         CharterField("classification_date", str, nullable=True),
         CharterField("promoted_from_sha", str, nullable=True),
+    ),
+    states=(
+        FamilyState("proposed", document_label="proposal"),
+        FamilyState("canonical", document_label="canonical", terminal=True),
+    ),
+    transitions=(
+        FamilyTransition(
+            "promote_proposal",
+            source="proposed",
+            target="canonical",
+            materializer="stance_proposal_to_canonical",
+            conflict_policy=ConflictPolicy.REPLACE,
+        ),
     ),
     semantic_metadata={"semantic": "propstore.world"},
 )

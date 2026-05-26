@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def test_commit_stance_proposals_reads_commit_sha_inside_transaction_with() -> None:
-    source_path = Path("propstore/proposals.py")
+    source_path = Path("propstore/families/stances/lifecycle.py")
     module = ast.parse(source_path.read_text(encoding="utf-8"))
     function = next(
         node

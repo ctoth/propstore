@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import pytest
 
-from propstore.proposals import (
-    ProposalAlreadyPromoted,
+from propstore.families.stances.lifecycle import (
     commit_stance_proposals,
     plan_stance_proposal_promotion,
     promote_stance_proposals,
+)
+from propstore.proposal_lifecycle import (
+    ProposalAlreadyPromoted,
 )
 from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument

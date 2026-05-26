@@ -4,11 +4,11 @@ from pathlib import Path
 
 import pytest
 
-from propstore.proposals import (
-    UnknownProposalPath,
+from propstore.families.stances.lifecycle import (
     commit_stance_proposals,
     plan_stance_proposal_promotion,
 )
+from propstore.proposal_lifecycle import UnknownProposalPath
 from propstore.repository import Repository
 
 
