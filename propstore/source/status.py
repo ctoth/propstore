@@ -11,9 +11,9 @@ from dataclasses import dataclass
 from enum import Enum
 from importlib import import_module
 from typing import Any
-from sqlalchemy import select
 from quire.derived_store import DerivedStoreHandle
 
+from propstore.families.claims.declaration import source_branch_promotion_status_rows
 from propstore.families.registry import SOURCE_BRANCH, SourceRef, world_schema
 
 
@@ -57,22 +57,14 @@ def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatus
 
     schema = world_schema()
     with handle.readonly_session(schema) as derived:
-        claim_core = derived.schema.table(schema.schema_object("claim_core").family_name)
-        claim_rows = tuple(
-            (
-                str(row.id),
-                "ready" if row.promotion_status is None else str(row.promotion_status),
-            )
-            for row in derived.session.execute(
-                select(claim_core.c.id, claim_core.c.promotion_status)
-                .where(claim_core.c.branch == branch)
-                .order_by(claim_core.c.seq, claim_core.c.id)
-            )
+        claim_rows = source_branch_promotion_status_rows(
+            derived,
+            branch=branch,
         )
         diagnostics_by_claim: dict[str, list[SourceStatusDiagnostic]] = {}
         if claim_rows:
             like_pattern = f"{_escape_sql_like(branch)}:%"
-            claim_ids = [claim_id for claim_id, _promotion_status in claim_rows]
+            claim_ids = [row.claim_id for row in claim_rows]
             diag_rows = _source_status_diagnostics(
                 derived,
                 claim_ids=claim_ids,
@@ -97,11 +89,11 @@ def inspect_source_status(handle: DerivedStoreHandle, name: str) -> SourceStatus
 
     rows = tuple(
         SourceStatusRow(
-            claim_id=claim_id,
-            promotion_status=promotion_status,
-            diagnostics=tuple(diagnostics_by_claim.get(claim_id, ())),
+            claim_id=row.claim_id,
+            promotion_status=row.promotion_status,
+            diagnostics=tuple(diagnostics_by_claim.get(row.claim_id, ())),
         )
-        for claim_id, promotion_status in claim_rows
+        for row in claim_rows
     )
     return SourceStatusReport(
         branch=branch,

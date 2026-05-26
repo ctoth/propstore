@@ -1571,6 +1571,33 @@ class PromotionBlockedModels:
     diagnostics: tuple[Any, ...]
 
 
+@dataclass(frozen=True)
+class ClaimPromotionStatusRow:
+    claim_id: str
+    promotion_status: str
+
+
+def source_branch_promotion_status_rows(
+    derived: DerivedSession,
+    *,
+    branch: str,
+) -> tuple[ClaimPromotionStatusRow, ...]:
+    claim_core = derived.schema.table(CLAIM_CORE_CHARTER.family.name)
+    return tuple(
+        ClaimPromotionStatusRow(
+            claim_id=str(row.id),
+            promotion_status=(
+                "ready" if row.promotion_status is None else str(row.promotion_status)
+            ),
+        )
+        for row in derived.session.execute(
+            select(claim_core.c.id, claim_core.c.promotion_status)
+            .where(claim_core.c.branch == branch)
+            .order_by(claim_core.c.seq, claim_core.c.id)
+        )
+    )
+
+
 def _numeric_si_value(
     value: object,
     *,
