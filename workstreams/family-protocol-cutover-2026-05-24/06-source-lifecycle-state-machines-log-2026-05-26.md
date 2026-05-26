@@ -237,3 +237,45 @@ Commit:
 
 Next slice:
 - Source loader fanout in `propstore/source/common.py`.
+
+## Iteration 6 - `source loader fanout`
+
+Slice read:
+- `propstore/source/common.py`
+- `propstore/source/claims.py`
+- `propstore/source/concepts.py`
+- `propstore/source/relations.py`
+- `propstore/source/finalize.py`
+- `propstore/source/promote.py`
+- `propstore/source/alignment.py`
+- `propstore/app/sources.py`
+- source lifecycle tests using source document loaders
+
+Surfaces:
+- `load_source_*_document` and `load_source_metadata`
+  - Disposition: delete
+  - Owner after cleanup: generated `repo.families.source_*` family APIs
+  - Action: Deleted the source loader fanout wrappers from
+    `propstore/source/common.py` and updated callers to use generated family
+    `load`/`require` APIs with `SourceRef`.
+  - Evidence: `rg -n -F -- "load_source_" ...` returns zero hits outside the
+    deleted wrapper names; source/app/test callers now use `repo.families`
+    directly.
+- `load_document_from_branch`
+  - Disposition: delete
+  - Owner after cleanup: repository snapshot/document APIs
+  - Action: Deleted the unused generic branch document loader.
+  - Evidence: No callers existed before deletion.
+
+Gate results:
+- Pass: `rg -n -F -- "load_source_" propstore/source propstore/app tests/test_cli_source_status.py tests/test_source_promote_dangling_refs.py tests/remediation/phase_2_gates/test_T2_2s_source_promote_unresolved_concept_quarantine.py`
+- Pass: `rg -n -F -- "from propstore.source.common import load_source" propstore tests`
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label source-lifecycle tests/test_cli_source_status.py tests/test_finalize_micropub_required.py tests/test_source_promotion_alignment.py tests/test_source_promote_dangling_refs.py`
+  - Evidence: `logs/test-runs/source-lifecycle-20260525-233253.log`, 20 passed.
+
+Commit:
+- `47faae67 Delete source loader fanout`
+
+Next slice:
+- Concrete document-class fields in `SourcePromotionPlan`.
