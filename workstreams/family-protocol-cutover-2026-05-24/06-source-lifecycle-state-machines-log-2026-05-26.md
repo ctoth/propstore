@@ -152,3 +152,43 @@ Commit:
 
 Next slice:
 - Source-local claim identity policy.
+
+## Iteration 4 - `source-local claim identity`
+
+Slice read:
+- `propstore/source/claims.py`
+- `propstore/source/__init__.py`
+- `propstore/families/claims/lifecycle.py`
+- source claim/status/promotion tests importing `normalize_source_claims_payload`
+
+Surfaces:
+- `stable_claim_logical_value`
+  - Disposition: move
+  - Owner after cleanup: `propstore.families.claims.lifecycle`
+  - Action: Moved stable source-local claim identity derivation to the
+    claim-family lifecycle owner.
+  - Evidence: `propstore/source/claims.py` no longer owns claim logical value
+    hashing.
+- `normalize_source_claims_payload`
+  - Disposition: move
+  - Owner after cleanup: `propstore.families.claims.lifecycle`
+  - Action: Moved source-local claim ID/logical-ID/artifact-ID stamping to the
+    claim-family lifecycle owner and removed the source package export.
+  - Evidence: The only production definition is
+    `propstore/families/claims/lifecycle.py`; tests import the owner API
+    directly instead of `propstore.source`.
+
+Gate results:
+- Pass: `rg -n -F -- "def normalize_source_claims_payload" propstore/source propstore/families`
+  - Remaining definition: `propstore/families/claims/lifecycle.py`.
+- Pass: `rg -n -F -- "from propstore.source import normalize_source_claims_payload" tests propstore`
+- Pass: `rg -n -F -- "from propstore.source.claims import normalize_source_claims_payload" tests propstore`
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label source-claim-identity-lifecycle tests/test_source_claims.py tests/test_source_cannot_mint_canonical_ids.py tests/test_cli_source_status.py tests/test_source_promotion_alignment.py::test_promote_source_branch_writes_canonical_artifact_families`
+  - Evidence: `logs/test-runs/source-claim-identity-lifecycle-20260525-232134.log`, 18 passed.
+
+Commit:
+- `be1af68b Move source claim identity to claim family`
+
+Next slice:
+- Source concept projection and primary-branch match payload rewriting.
