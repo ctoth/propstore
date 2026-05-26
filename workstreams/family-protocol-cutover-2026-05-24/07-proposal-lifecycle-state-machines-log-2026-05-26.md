@@ -32,7 +32,7 @@ Search gates:
 
 Runtime gates:
 - `uv run pyright propstore`
-- `powershell -File scripts/run_logged_pytest.ps1 -Label proposal-lifecycle tests/test_proposals.py tests/test_rule_documents.py tests/test_predicate_documents.py`
+- `powershell -File scripts/run_logged_pytest.ps1 -Label proposal-lifecycle tests/test_proposal_promotion.py tests/test_rule_documents.py tests/test_predicate_documents.py`
 
 ## Iteration 1 - `stance proposal root workflow`
 
@@ -261,3 +261,25 @@ Commit:
 
 Next slice:
 - Rerun full Phase 07 search gates and required gates.
+
+## Iteration 6 - `phase gate path repair`
+
+Slice read:
+- `workstreams/family-protocol-cutover-2026-05-24/07-proposal-lifecycle-state-machines.md`
+- `tests/`
+
+Surfaces:
+- Required pytest gate
+  - Disposition: rewrite
+  - Owner after cleanup: executable Phase 07 workstream plan.
+  - Action: Replaced nonexistent `tests/test_proposals.py` with existing
+    `tests/test_proposal_promotion.py`.
+  - Evidence: `Test-Path tests/test_proposals.py` returned `False`;
+    `Test-Path tests/test_rule_documents.py` and
+    `Test-Path tests/test_predicate_documents.py` returned `True`.
+
+Commit:
+- Pending.
+
+Next slice:
+- Rerun the corrected required Phase 07 gate.

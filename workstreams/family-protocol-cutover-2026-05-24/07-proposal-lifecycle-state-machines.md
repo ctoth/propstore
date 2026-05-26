@@ -66,7 +66,7 @@ rg -n -F -- "RuleProposalDocument" propstore tests
 
 ```powershell
 uv run pyright propstore
-powershell -File scripts/run_logged_pytest.ps1 -Label proposal-lifecycle tests/test_proposals.py tests/test_rule_documents.py tests/test_predicate_documents.py
+powershell -File scripts/run_logged_pytest.ps1 -Label proposal-lifecycle tests/test_proposal_promotion.py tests/test_rule_documents.py tests/test_predicate_documents.py
 ```
 
 ## Completion
