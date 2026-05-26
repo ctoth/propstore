@@ -3,9 +3,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, cast
 
+from propstore.families.claims.lifecycle import normalize_source_justifications_payload
 from propstore.families.claims.declaration import SOURCE_JUSTIFICATION_BATCH_SPEC
+from propstore.families.stances.lifecycle import normalize_source_stances_payload
 from propstore.families.stances.declaration import SOURCE_STANCE_BATCH_SPEC
-from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository, retry_live_branch_update
 from quire.documents import (
@@ -13,7 +14,6 @@ from quire.documents import (
     decode_document_batch_bytes,
     document_to_payload,
 )
-from quire.references import FamilyReferenceIndex
 from propstore.stances import StanceType, coerce_stance_type
 
 from .common import (
@@ -23,7 +23,6 @@ from .common import (
 )
 from propstore.families.documents.sources import (
     ExtractionProvenanceDocument,
-    SourceClaimDocument,
     SourceAttackTargetDocument,
     SourceJustificationDocument,
     SourceProvenanceDocument,
@@ -66,45 +65,6 @@ def _validate_justification_rule_fields(
     ):
         allowed = ", ".join(sorted(_ALLOWED_JUSTIFICATION_RULE_STRENGTHS))
         raise ValueError(f"rule_strength must be one of: {allowed}")
-
-
-def normalize_source_justifications_payload(
-    data: tuple[SourceJustificationDocument, ...],
-    *,
-    claim_index: FamilyReferenceIndex[SourceClaimDocument],
-    primary_claim_index: FamilyReferenceIndex[Any] | None = None,
-) -> tuple[SourceJustificationDocument, ...]:
-    normalized_justifications: list[SourceJustificationDocument] = []
-    for index, justification in enumerate(data, start=1):
-        if justification.conclusion is None:
-            raise ValueError("justification conclusion must be a non-empty string")
-        normalized = justification.to_payload()
-        normalized["conclusion"] = claim_index.require_id(justification.conclusion)
-        normalized["premises"] = [
-            _require_source_or_primary_claim_id(
-                premise,
-                source=claim_index,
-                primary=primary_claim_index,
-            )
-            for premise in justification.premises
-        ]
-        attack_target = justification.attack_target
-        if attack_target is not None and attack_target.target_claim is not None:
-            updated_target = attack_target.to_payload()
-            updated_target["target_claim"] = _require_source_or_primary_claim_id(
-                attack_target.target_claim,
-                source=claim_index,
-                primary=primary_claim_index,
-            )
-            normalized["attack_target"] = updated_target
-        normalized_justifications.append(
-            convert_document_value(
-                normalized,
-                SourceJustificationDocument,
-                source=f"justifications[{index}]",
-            )
-        )
-    return tuple(normalized_justifications)
 
 
 def commit_source_justifications_batch(
@@ -151,55 +111,6 @@ def commit_source_justifications_batch(
         normalized,
         message=f"Write justifications for {normalize_source_slug(source_name)}",
     )
-
-
-def normalize_source_stances_payload(
-    data: tuple[SourceStanceEntryDocument, ...],
-    *,
-    claim_index: FamilyReferenceIndex[SourceClaimDocument],
-    primary_claim_index: FamilyReferenceIndex[Any] | None = None,
-) -> tuple[SourceStanceEntryDocument, ...]:
-    normalized_stances: list[SourceStanceEntryDocument] = []
-    for index, stance in enumerate(data, start=1):
-        if stance.source_claim is None:
-            raise ValueError("stance source_claim must be a non-empty string")
-        normalized = cast(dict[str, Any], document_to_payload(stance))
-        normalized["source_claim"] = claim_index.require_id(stance.source_claim)
-        target = resolve_first_claim_reference_id(
-            stance.target,
-            claim_index,
-            primary_claim_index,
-        )
-        if target is None:
-            raise ValueError(f"unresolved stance target: {stance.target}")
-        normalized["target"] = target
-        normalized_stances.append(
-            convert_document_value(
-                normalized,
-                SourceStanceEntryDocument,
-                source=f"stances[{index}]",
-            )
-        )
-    return tuple(normalized_stances)
-
-
-def _require_source_or_primary_claim_id(
-    reference: object,
-    *,
-    source: FamilyReferenceIndex[SourceClaimDocument],
-    primary: FamilyReferenceIndex[Any] | None,
-) -> str:
-    resolved = resolve_first_claim_reference_id(
-        reference,
-        source,
-        primary,
-    )
-    if resolved is None:
-        if not isinstance(reference, str) or not reference:
-            raise ValueError("claim reference must be a non-empty string")
-        source.require_id(reference)  # raises Quire's typed missing error
-        raise AssertionError("unreachable")
-    return resolved
 
 
 def commit_source_stances_batch(

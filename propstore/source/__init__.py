@@ -44,8 +44,6 @@ from .relations import (
     commit_source_justifications_batch,
     commit_source_stance_proposal,
     commit_source_stances_batch,
-    normalize_source_justifications_payload,
-    normalize_source_stances_payload,
 )
 from .status import SourceStatusState, inspect_source_status
 
@@ -75,9 +73,7 @@ __all__ = [
     "load_source_document",
     "normalize_source_claims_payload",
     "normalize_source_concepts_document",
-    "normalize_source_justifications_payload",
     "normalize_source_slug",
-    "normalize_source_stances_payload",
     "parameterization_group_merge_preview",
     "preview_source_parameterization_group_merges",
     "primary_branch_concept_match",

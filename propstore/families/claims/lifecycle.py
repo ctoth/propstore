@@ -5,9 +5,14 @@ from dataclasses import dataclass
 from typing import Any, cast
 
 from quire.documents import convert_document_value, document_to_payload
+from quire.references import FamilyReferenceIndex
 
 from propstore.families.claims.declaration import ClaimDocument
-from propstore.families.documents.sources import SourceClaimDocument
+from propstore.families.claims.references import resolve_first_claim_reference_id
+from propstore.families.documents.sources import (
+    SourceClaimDocument,
+    SourceJustificationDocument,
+)
 from propstore.families.identity.claims import (
     normalize_canonical_claim_payload,
     normalize_claim_file_payload,
@@ -142,6 +147,49 @@ def normalize_promoted_source_claim_artifact(
     )
 
 
+def normalize_source_justifications_payload(
+    data: tuple[SourceJustificationDocument, ...],
+    *,
+    claim_index: FamilyReferenceIndex[SourceClaimDocument],
+    primary_claim_index: FamilyReferenceIndex[Any] | None = None,
+) -> tuple[SourceJustificationDocument, ...]:
+    normalized_justifications: list[SourceJustificationDocument] = []
+    for index, justification in enumerate(data, start=1):
+        if justification.conclusion is None:
+            raise ValueError("justification conclusion must be a non-empty string")
+        normalized = justification.to_payload()
+        normalized["conclusion"] = _require_source_or_primary_claim_id(
+            justification.conclusion,
+            source=claim_index,
+            primary=primary_claim_index,
+        )
+        normalized["premises"] = [
+            _require_source_or_primary_claim_id(
+                premise,
+                source=claim_index,
+                primary=primary_claim_index,
+            )
+            for premise in justification.premises
+        ]
+        attack_target = justification.attack_target
+        if attack_target is not None and attack_target.target_claim is not None:
+            updated_target = attack_target.to_payload()
+            updated_target["target_claim"] = _require_source_or_primary_claim_id(
+                attack_target.target_claim,
+                source=claim_index,
+                primary=primary_claim_index,
+            )
+            normalized["attack_target"] = updated_target
+        normalized_justifications.append(
+            convert_document_value(
+                normalized,
+                SourceJustificationDocument,
+                source=f"justifications[{index}]",
+            )
+        )
+    return tuple(normalized_justifications)
+
+
 def _rewrite_claim_concept_payload(
     payload: dict[str, Any],
     concept_map: Mapping[str, str],
@@ -189,3 +237,22 @@ def _rewrite_claim_concept_payload(
             if isinstance(parameter, dict):
                 parameter["concept"] = resolve(parameter.get("concept"))
     return normalize_canonical_claim_payload(normalized)
+
+
+def _require_source_or_primary_claim_id(
+    reference: object,
+    *,
+    source: FamilyReferenceIndex[SourceClaimDocument],
+    primary: FamilyReferenceIndex[Any] | None,
+) -> str:
+    resolved = resolve_first_claim_reference_id(
+        reference,
+        source,
+        primary,
+    )
+    if resolved is None:
+        if not isinstance(reference, str) or not reference:
+            raise ValueError("claim reference must be a non-empty string")
+        source.require_id(reference)
+        raise AssertionError("unreachable")
+    return resolved
