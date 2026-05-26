@@ -126,25 +126,51 @@ Next slice:
 ## Iteration 4 - `propstore source batch helpers`
 
 Slice read:
-- Pending
+- `propstore/families/registry.py`
+- `propstore/families/batch_specs.py`
+- `propstore/claims.py`
+- `propstore/source/claims.py`
+- `propstore/source/concepts.py`
+- `propstore/source/relations.py`
+- `propstore/source/alignment.py`
+- source batch tests importing `propstore.families.batch_specs`
 
 Surfaces:
 - `propstore/families/batch_specs.py`
   - Disposition: delete
   - Owner after cleanup: source family declaration modules
-  - Action: Pending
-  - Evidence: Pending
+  - Action: Deleted the compatibility re-export module and moved callers to
+    owning declaration modules.
+  - Evidence: `rg -n -F -- "propstore.families.batch_specs" propstore tests`
+    returned zero hits.
 - Registry source batch decode/render/payload helpers
   - Disposition: delete
   - Owner after cleanup: Quire `batch_artifact_family`
-  - Action: Pending
-  - Evidence: Pending
+  - Action: Deleted handwritten source batch helpers and rewired source batch
+    family definitions to Quire `batch_artifact_family`.
+  - Evidence: Helper-name search gates returned zero hits; contract manifest
+    was regenerated after required family and artifact-family version bumps.
 
 Gate results:
-- Pending
+- Pass: `rg -n -F -- "propstore.families.batch_specs" propstore tests`
+- Pass: `rg -n -F -- "decode_source_claims_document" propstore tests`
+- Pass: `rg -n -F -- "render_source_claims_document" propstore tests`
+- Pass: `rg -n -F -- "source_claims_document_payload" propstore tests`
+- Pass: `rg -n -F -- "_shared_batch_field" propstore tests`
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label registry-contracts-batches tests/test_semantic_family_registry.py tests/test_quire_consumer_contracts.py tests/test_contract_manifest.py`
+- Fail: `powershell -File scripts/run_logged_pytest.ps1 -Label source-batch-io tests/test_cli_source_status.py tests/test_source_claims.py tests/test_source_promotion_alignment.py tests/test_verify_cli.py`
+  - Failure: 13 tests fail with SQLAlchemy `NoReferencedTableError` while
+    creating the world SQLite schema through `world_schema()`.
+  - Evidence: `logs/test-runs/source-batch-io-20260525-195703.log`.
+  - Scope note: The failure occurs in `create_sqlalchemy_store(...,
+    world_schema())`, after source batch add/finalize paths have already run.
+    I did not prove it is unrelated to the batch cutover; it remains the
+    blocking unfinished gate.
 
 Commit:
-- Pending
+- `ce702224 Cut source batches to Quire helper`
 
 Next slice:
-- Final completion gates.
+- Resolve or isolate the `source-batch-io` world-schema failure, then rerun the
+  final gate.
