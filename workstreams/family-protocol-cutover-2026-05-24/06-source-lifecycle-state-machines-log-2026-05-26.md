@@ -322,6 +322,53 @@ Commit:
 Next slice:
 - Phase 06 fixed-point search and runtime gates.
 
+## Final fixed point
+
+Deletion-target gates:
+- Pass: `rg -n -F -- "ClaimDocument | SourceClaimDocument | Mapping" propstore/source propstore tests`
+  - Zero hits.
+- Pass: `rg -n -F -- "rewrite_claim_concept_refs" propstore/source propstore/families tests`
+  - No production hits; remaining test-local helper is
+    `tests/test_validate_claims.py::_rewrite_claim_concept_refs`.
+- Pass: `rg -n -F -- "load_source_" propstore/source propstore/app tests/test_cli_source_status.py tests/test_source_promote_dangling_refs.py tests/remediation/phase_2_gates/test_T2_2s_source_promote_unresolved_concept_quarantine.py`
+  - Zero hits.
+- Pass: `rg -n -F -- 'derived.schema.table("claim_core")' propstore/source propstore tests`
+  - Zero hits.
+- Pass: `rg -n -F -- "quality_json" propstore tests`
+  - Zero hits.
+- Pass: `rg -n -F -- "derived_from_json" propstore tests`
+  - Zero hits.
+- Pass: `rg -n -F -- "propstore.source.alignment" propstore tests`
+  - Zero hits.
+- Pass: `rg -n -F -- "promotion_plan.promoted_" propstore/source propstore tests`
+  - Zero hits.
+
+Typed-record presence gates:
+- `rg -n -F -- "convert_document_value(" propstore/source propstore/families tests`
+  - Nonzero by design. Remaining production hits are typed source/family record
+    construction and family lifecycle normalization, not the deleted dict
+    conveyor helpers.
+- `rg -n -F -- "SourceClaimDocument" propstore/source propstore tests`
+- `rg -n -F -- "SourceConceptEntryDocument" propstore/source propstore tests`
+- `rg -n -F -- "SourceJustificationDocument" propstore/source propstore tests`
+- `rg -n -F -- "SourceStanceEntryDocument" propstore/source propstore tests`
+- `rg -n -F -- "from propstore.families.documents" propstore/source`
+  - Nonzero by design. Source modules still keep source semantics over typed
+    source-family records; document definitions and normalization owners are in
+    family modules.
+
+Runtime gates:
+- Pass: `uv run pyright propstore`
+- Pass: `powershell -File scripts/run_logged_pytest.ps1 -Label source-lifecycle tests/test_cli_source_status.py tests/test_finalize_micropub_required.py tests/test_source_promotion_alignment.py tests/test_source_promote_dangling_refs.py`
+  - Evidence: `logs/test-runs/source-lifecycle-20260525-234828.log`, 20 passed.
+
+Completion:
+- Phase 06 deletion targets are complete.
+- Source status, claim identity/normalization, relation normalization, concept
+  projection/preview, loader fanout, finalize/promote write planning, and
+  concept alignment ownership now route through family lifecycle/registry
+  owners or Quire `FamilyRecordWrite` plans.
+
 ## Iteration 9 - `concept alignment lifecycle owner`
 
 Slice read:
