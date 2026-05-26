@@ -17,3 +17,10 @@ class SourcePromotionPlan:
     writes: tuple[FamilyRecordWrite, ...] = ()
     blocked_claims: tuple[SourceClaimDocument, ...] = ()
     blocked_reasons: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class SourceFinalizePlan:
+    source_name: str
+    source_branch: str
+    writes: tuple[FamilyRecordWrite, ...] = ()
