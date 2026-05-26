@@ -61,7 +61,7 @@ class RevisionArgumentationStore:
         return [
             claim
             for claim in self._active_claims
-            if _claim_concept_id(claim) == concept_id
+            if _claim_primary_concept_id(claim) == concept_id
         ]
 
     def claims_by_ids(self, claim_ids: set[str]):
@@ -157,7 +157,7 @@ def _revision_event_hashes(state: EpistemicState) -> tuple[str, ...]:
     return tuple(event_hashes)
 
 
-def _claim_concept_id(claim: Claim) -> str | None:
+def _claim_primary_concept_id(claim: Claim) -> str | None:
     for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
         for link in claim.concept_links:
             if link.role == role:

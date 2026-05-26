@@ -282,7 +282,7 @@ def _claim_lines(
 
     lines: list[WorldExtensionsClaimLine] = []
     for claim in active:
-        concept_id = _claim_concept_id(claim)
+        concept_id = _claim_primary_concept_id(claim)
         concept_name = None
         if concept_id:
             concept = world.get_concept(concept_id)
@@ -409,7 +409,7 @@ def _active_graph_for(bound: object) -> WorldActivationGraph | None:
     return None
 
 
-def _claim_concept_id(claim: Claim) -> str | None:
+def _claim_primary_concept_id(claim: Claim) -> str | None:
     for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
         for link in claim.concept_links:
             if link.role == role:

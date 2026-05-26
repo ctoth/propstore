@@ -35,7 +35,7 @@ def _claim_id(claim: Claim) -> ClaimId:
     return ClaimId(str(claim.id))
 
 
-def _claim_concept_id(claim: Claim) -> str:
+def _claim_value_concept_id(claim: Claim) -> str:
     concept_id = None if claim.value_concept_id is None else str(claim.value_concept_id)
     if not isinstance(concept_id, str) or not concept_id:
         raise KeyError("resolution requires each claim to have a non-empty value concept")
@@ -310,7 +310,7 @@ def build_assignment_selection_problem(
         else _enriched_policy_integrity_constraints(world, policy.integrity_constraints)
     )
     concept_ids = {
-        _claim_concept_id(claim)
+        _claim_value_concept_id(claim)
         for claim in active_claims
     }
     concept_ids.add(target_concept_id)
@@ -319,7 +319,7 @@ def build_assignment_selection_problem(
     grouped: dict[str, dict[str, Claim]] = {}
     for claim in active_claims:
         claim_id = _claim_id(claim)
-        concept_id = _claim_concept_id(claim)
+        concept_id = _claim_value_concept_id(claim)
         branch = claim.branch
         source_id = branch if isinstance(branch, str) and branch else claim_id
         per_source = grouped.setdefault(str(source_id), {})

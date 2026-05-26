@@ -55,7 +55,7 @@ def _claim(
     return make_claim(claim_id, concept_id=concept_id, value=value, branch=branch)
 
 
-def _claim_concept_id(claim: Claim) -> str | None:
+def _claim_value_concept_id(claim: Claim) -> str | None:
     concept_id = claim.value_concept_id
     return None if concept_id is None else str(concept_id)
 
@@ -89,7 +89,7 @@ class _AspicView:
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _claim_concept_id(claim) == concept_id]
+        return [claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id]
 
     def claim_support(self, claim: Claim):
         return None, None
@@ -155,13 +155,13 @@ class _GlobalAssignmentSelectionView:
         return ValueResult(
             concept_id=ConceptId(concept_id),
             status=ValueStatus.CONFLICTED,
-            claims=[claim for claim in self._claims if _claim_concept_id(claim) == concept_id],
+            claims=[claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id],
         )
 
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _claim_concept_id(claim) == concept_id]
+        return [claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id]
 
 
 class _DuplicateSourceAssignmentSelectionView:
@@ -176,13 +176,13 @@ class _DuplicateSourceAssignmentSelectionView:
         return ValueResult(
             concept_id=ConceptId(concept_id),
             status=ValueStatus.CONFLICTED,
-            claims=[claim for claim in self._claims if _claim_concept_id(claim) == concept_id],
+            claims=[claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id],
         )
 
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _claim_concept_id(claim) == concept_id]
+        return [claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id]
 
 
 class _AssignmentSelectionView:
@@ -203,7 +203,7 @@ class _AssignmentSelectionView:
     def active_claims(self, concept_id: str | None = None):
         if concept_id is None:
             return list(self._claims)
-        return [claim for claim in self._claims if _claim_concept_id(claim) == concept_id]
+        return [claim for claim in self._claims if _claim_value_concept_id(claim) == concept_id]
 
 
 def test_claim_graph_resolution_distinguishes_skeptical_failure(monkeypatch) -> None:

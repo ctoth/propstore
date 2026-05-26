@@ -1,46 +1,14 @@
-"""Graph export — build a KnowledgeGraph from the sidecar's relational structure.
-
-Exports concept and claim nodes plus parameterization, relationship, stance,
-and claim_of edges.  Supports DOT (via graphviz) and JSON output formats.
-"""
+"""KnowledgeGraph rendering and export request shells."""
 
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Mapping
 
-from propstore.core.environment import Environment, WorldStore
-from propstore.core.relations import ClaimConceptLinkRole
-from propstore.families.claims.declaration import Claim
-from propstore.families.concepts.declaration import Concept, Parameterization
-from propstore.world.types import BeliefSpace
+from propstore.core.environment import Environment
 
 if TYPE_CHECKING:
     from propstore.world.model import WorldQuery
-
-
-def _claim_concept_id(claim: Claim) -> Any:
-    for role in (ClaimConceptLinkRole.OUTPUT, ClaimConceptLinkRole.TARGET):
-        for link in claim.concept_links:
-            if link.role is role:
-                return link.concept_id
-    return claim.target_concept
-
-
-def _display_claim_id(claim: Claim) -> str:
-    if claim.primary_logical_id:
-        return claim.primary_logical_id.split(":", 1)[-1]
-    return str(claim.id)
-
-
-def _display_claim_id_from_store(world: WorldStore, claim_id: str) -> str:
-    getter = getattr(world, "get_claim", None)
-    if callable(getter):
-        claim = getter(claim_id)
-        if isinstance(claim, Claim):
-            return _display_claim_id(claim)
-    return claim_id
 
 
 @dataclass
@@ -138,154 +106,13 @@ def export_knowledge_graph(
     world: WorldQuery,
     request: GraphExportRequest,
 ) -> GraphExportReport:
+    from propstore.world.graph_projection import project_knowledge_graph
+
     bound = (
         world.bind(Environment(bindings=dict(request.bindings)))
         if request.bindings
         else None
     )
     return GraphExportReport(
-        graph=build_knowledge_graph(world, bound=bound, group_id=request.group_id)
+        graph=project_knowledge_graph(world, bound=bound, group_id=request.group_id)
     )
-
-
-def build_knowledge_graph(
-    world: WorldStore,
-    bound: BeliefSpace | None = None,
-    group_id: int | None = None,
-) -> KnowledgeGraph:
-    """Build a KnowledgeGraph from the sidecar database.
-
-    Parameters
-    ----------
-    world : WorldStore
-        The artifact store backed by the sidecar database.
-    bound : BeliefSpace | None
-        If provided, only active claims in this belief space are included.
-    group_id : int | None
-        If provided, only concepts in this parameterization group are included.
-    """
-    graph = KnowledgeGraph()
-    node_ids: set[str] = set()
-
-    # ---- Determine which concept IDs to include ----
-    allowed_concept_ids: set[str] | None = None
-    if group_id is not None:
-        allowed_concept_ids = world.concept_ids_for_group(group_id)
-
-    # ---- 1. Concept nodes ----
-    concept_rows = world.all_concepts()
-    for row in concept_rows:
-        cid = str(row.concept_id)
-        if allowed_concept_ids is not None and cid not in allowed_concept_ids:
-            continue
-        graph.nodes.append(GraphNode(
-            id=cid,
-            label=row.canonical_name,
-            node_type="concept",
-            metadata={
-                "form": row.form,
-                "status": row.status,
-                "domain": row.domain,
-            },
-        ))
-        node_ids.add(cid)
-
-    # ---- 2. Claim nodes ----
-    if bound is not None:
-        claims = bound.active_claims()
-    else:
-        claims = world.claims_for(None)
-
-    claim_rows = list(claims)
-
-    # Filter claims to allowed concepts if group scoping is active
-    if allowed_concept_ids is not None:
-        claim_rows = [c for c in claim_rows if str(_claim_concept_id(c) or "") in allowed_concept_ids]
-
-    # Determine value_of status per concept for metadata
-    concept_statuses: dict[str, str] = {}
-    if bound is not None:
-        for cid in node_ids:
-            vr = bound.value_of(cid)
-            concept_statuses[cid] = vr.status
-
-    for claim in claim_rows:
-        claim_id = _display_claim_id(claim)
-        concept_id = _claim_concept_id(claim)
-        meta: dict[str, Any] = {
-            "type": claim.type,
-            "concept_id": concept_id,
-            "artifact_id": claim.id,
-            "target_concept": claim.target_concept,
-        }
-        if bound is not None and concept_id and concept_id in concept_statuses:
-            meta["status"] = concept_statuses[concept_id]
-
-        label = claim_id
-
-        graph.nodes.append(GraphNode(
-            id=claim_id,
-            label=label,
-            node_type="claim",
-            metadata=meta,
-        ))
-        node_ids.add(claim_id)
-
-    # ---- 3. Parameterization edges ----
-    for row in world.all_parameterizations():
-        output_id = str(row.output_concept_id)
-        if output_id not in node_ids:
-            continue
-        input_ids = json.loads(row.concept_ids)
-        for iid in input_ids:
-            if iid not in node_ids:
-                continue
-            graph.edges.append(GraphEdge(
-                source=iid,
-                target=output_id,
-                edge_type="parameterization",
-                metadata={
-                    "formula": row.formula,
-                    "exactness": row.exactness,
-                },
-            ))
-
-    # ---- 4. Relationship edges ----
-    for row in world.all_relationships():
-        src = row.source_id
-        tgt = row.target_id
-        if src not in node_ids or tgt not in node_ids:
-            continue
-        graph.edges.append(GraphEdge(
-            source=src,
-            target=tgt,
-            edge_type="relationship",
-            metadata={"type": row.relation_type},
-        ))
-
-    # ---- 5. Stance edges ----
-    for row in world.all_claim_stances():
-        cid = _display_claim_id_from_store(world, row.claim_id)
-        tid = _display_claim_id_from_store(world, row.target_claim_id)
-        if cid not in node_ids or tid not in node_ids:
-            continue
-        graph.edges.append(GraphEdge(
-            source=cid,
-            target=tid,
-            edge_type="stance",
-            metadata={"stance_type": row.stance_type},
-        ))
-
-    # ---- 6. Claim-of edges ----
-    for claim in claim_rows:
-        claim_id = _display_claim_id(claim)
-        concept_id = _claim_concept_id(claim)
-        if concept_id and claim_id in node_ids and concept_id in node_ids:
-            graph.edges.append(GraphEdge(
-                source=claim_id,
-                target=concept_id,
-                edge_type="claim_of",
-                metadata={},
-            ))
-
-    return graph

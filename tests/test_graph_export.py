@@ -6,7 +6,8 @@ import pytest
 import yaml
 
 from tests.family_helpers import materialized_world_store_path, world_query_from_sqlite_path
-from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph, build_knowledge_graph
+from propstore.graph_export import GraphEdge, GraphNode, KnowledgeGraph
+from propstore.world.graph_projection import project_knowledge_graph
 from propstore.families.identity.concepts import derive_concept_artifact_id
 from tests.sidecar_schema_helpers import build_world_projection_schema
 from propstore.world import WorldQuery
@@ -316,7 +317,7 @@ def world(concept_dir, repo, claim_files):
 class TestUnboundGraph:
     def test_unbound_graph_has_all_concepts(self, world):
         """All 7 concepts appear as nodes."""
-        graph = build_knowledge_graph(world)
+        graph = project_knowledge_graph(world)
         concept_nodes = [n for n in graph.nodes if n.node_type == "concept"]
         concept_ids = {n.id for n in concept_nodes}
         for i in range(1, 8):
@@ -326,7 +327,7 @@ class TestUnboundGraph:
 
     def test_unbound_graph_has_parameterization_edges(self, world):
         """concept6->concept5 and concept1->concept5 parameterization edges exist."""
-        graph = build_knowledge_graph(world)
+        graph = project_knowledge_graph(world)
         param_edges = [e for e in graph.edges if e.edge_type == "parameterization"]
         # concept5 has inputs [concept6, concept1]
         param_targets = {(e.source, e.target) for e in param_edges}
@@ -341,7 +342,7 @@ class TestUnboundGraph:
 
     def test_unbound_graph_has_relationship_edges(self, world):
         """concept1->concept4 broader edge exists."""
-        graph = build_knowledge_graph(world)
+        graph = project_knowledge_graph(world)
         rel_edges = [e for e in graph.edges if e.edge_type == "relationship"]
         rel_pairs = {(e.source, e.target) for e in rel_edges}
         assert (
@@ -351,7 +352,7 @@ class TestUnboundGraph:
 
     def test_unbound_graph_has_stance_edges(self, world):
         """claim2->claim1 rebuts edge exists."""
-        graph = build_knowledge_graph(world)
+        graph = project_knowledge_graph(world)
         stance_edges = [e for e in graph.edges if e.edge_type == "stance"]
         stance_pairs = {(e.source, e.target) for e in stance_edges}
         assert ("claim2", "claim1") in stance_pairs
@@ -393,7 +394,7 @@ class TestUnboundGraph:
         conn.close()
 
         with world_query_from_sqlite_path(sidecar) as world:
-            graph = build_knowledge_graph(world)
+            graph = project_knowledge_graph(world)
 
         claim_of_edges = [
             edge for edge in graph.edges
@@ -407,7 +408,7 @@ class TestBoundGraph:
     def test_bound_graph_filters_claims(self, world):
         """Under singing binding, only singing claims appear."""
         bound = world.bind(task="singing")
-        graph = build_knowledge_graph(world, bound=bound)
+        graph = project_knowledge_graph(world, bound=bound)
         claim_nodes = [n for n in graph.nodes if n.node_type == "claim"]
         claim_ids = {n.id for n in claim_nodes}
         # claim3 is the singing claim for concept1
@@ -431,7 +432,7 @@ class TestGroupScoping:
         )
         assert gid is not None, "concept5 should be in a parameterization group"
 
-        graph = build_knowledge_graph(world, group_id=gid)
+        graph = project_knowledge_graph(world, group_id=gid)
         concept_nodes = [n for n in graph.nodes if n.node_type == "concept"]
         concept_ids = {n.id for n in concept_nodes}
 
@@ -445,7 +446,7 @@ class TestGroupScoping:
 class TestSerialization:
     def test_to_dot_valid(self, world):
         """Output contains 'digraph', node and edge declarations."""
-        graph = build_knowledge_graph(world)
+        graph = project_knowledge_graph(world)
         dot = graph.to_dot()
         assert "digraph" in dot
         # Should contain at least one node reference
@@ -455,7 +456,7 @@ class TestSerialization:
 
     def test_to_json_structure(self, world):
         """Output has nodes/edges keys, each node has id/label/node_type."""
-        graph = build_knowledge_graph(world)
+        graph = project_knowledge_graph(world)
         result = graph.to_json()
         assert "nodes" in result
         assert "edges" in result
@@ -471,7 +472,7 @@ class TestConflictedClaims:
     def test_conflicted_claims_marked(self, world):
         """Under speech, concept1 claims marked as conflicted."""
         bound = world.bind(task="speech")
-        graph = build_knowledge_graph(world, bound=bound)
+        graph = project_knowledge_graph(world, bound=bound)
         # Find claim nodes for concept1
         concept1_claims = [
             n for n in graph.nodes

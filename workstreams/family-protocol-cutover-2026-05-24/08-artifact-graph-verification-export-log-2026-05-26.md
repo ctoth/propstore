@@ -32,3 +32,14 @@
   `stamp_canonical_artifact_codes` are clean.
 - Focused type gate passed:
   `uv run pyright propstore\families\artifacts.py propstore\source\finalize.py propstore\source\promote.py propstore\app\verify.py`.
+- Quire graph projection now supports typed graph-edge source fields; Propstore
+  is pinned to pushed Quire commit
+  `df5732f48e28fa108bda7b0a5fd540aafc93e992`.
+- Deleted `build_knowledge_graph` discovery from `propstore/graph_export.py`;
+  graph rendering now consumes projection records from
+  `propstore.world.graph_projection`.
+- Search gates for `build_knowledge_graph`, `_claim_concept_id`,
+  `_display_claim_id_from_store`, and `json.loads(row.concept_ids)` in graph
+  export are clean.
+- Focused graph type gate passed:
+  `uv run pyright propstore\graph_export.py propstore\world\graph_projection.py propstore\app\world_reasoning.py propstore\support_revision\af_adapter.py propstore\world\assignment_selection_policy.py`.

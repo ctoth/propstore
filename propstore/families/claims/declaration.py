@@ -993,13 +993,19 @@ CLAIM_CORE_CHARTER: FamilyCharter = FamilyCharter(
         model=Claim,
         fields=(
             CharterField("id", str, primary_key=True, nullable=False),
-            CharterField("primary_logical_id", str, nullable=False, default_sql="''"),
+            CharterField(
+                "primary_logical_id",
+                str,
+                nullable=False,
+                default_sql="''",
+                graph_node_label=True,
+            ),
             CharterField("logical_ids_json", str, nullable=False, default_sql="'[]'"),
             CharterField("version_id", str, nullable=False, default_sql="''"),
             CharterField("content_hash", str, nullable=False, default_sql="''"),
             CharterField("seq", int, nullable=False),
-            CharterField("type", ClaimType, nullable=False),
-            CharterField("target_concept", str),
+            CharterField("type", ClaimType, nullable=False, graph_metadata=True),
+            CharterField("target_concept", str, graph_metadata=True),
             CharterField(
                 "source_slug",
                 str,

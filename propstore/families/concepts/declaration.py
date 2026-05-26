@@ -583,6 +583,14 @@ class ConceptRelationship(FamilyModel):
 
 
 class Parameterization(FamilyModel):
+    @property
+    def input_concept_ids(self) -> tuple[str, ...]:
+        payload = self.conflict_detector_payload()
+        inputs = payload.get("inputs", ())
+        if not isinstance(inputs, list):
+            return ()
+        return tuple(str(item) for item in inputs)
+
     def conflict_detector_payload(self) -> dict[str, Any]:
         return {
             "inputs": json.loads(self.concept_ids) if self.concept_ids else [],
@@ -647,12 +655,12 @@ CONCEPT_CHARTER: FamilyCharter = FamilyCharter(
         CharterField("version_id", str, nullable=False, default_sql="''"),
         CharterField("content_hash", str, nullable=False),
         CharterField("seq", int, nullable=False),
-        CharterField("canonical_name", str, nullable=False),
-        CharterField("status", str, nullable=False),
-        CharterField("domain", str),
+        CharterField("canonical_name", str, nullable=False, graph_node_label=True),
+        CharterField("status", str, nullable=False, graph_metadata=True),
+        CharterField("domain", str, graph_metadata=True),
         CharterField("definition", str, nullable=False),
         CharterField("kind_type", str, nullable=False),
-        CharterField("form", str, nullable=False),
+        CharterField("form", str, nullable=False, graph_metadata=True),
         CharterField("form_parameters", str),
         CharterField("range_min", float),
         CharterField("range_max", float),
