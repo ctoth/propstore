@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
+from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.micropublications.declaration import MicropublicationDocument
 from propstore.families.identity.micropubs import micropub_artifact_id
 from propstore.source import finalize

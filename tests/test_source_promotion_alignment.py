@@ -17,7 +17,8 @@ from propstore.families.registry import (
 from propstore.cli import cli
 from propstore.repository import Repository
 from quire.documents import convert_document_value, decode_document_batch_bytes, document_to_payload, encode_yaml_value
-from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC, SOURCE_CONCEPT_BATCH_SPEC
+from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
+from propstore.families.concepts.declaration import SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,

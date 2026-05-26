@@ -7,7 +7,7 @@ from propstore.families.registry import SourceRef
 from quire.documents import decode_document_batch_bytes
 
 from .common import load_source_concepts_document
-from propstore.families.batch_specs import SOURCE_CONCEPT_BATCH_SPEC
+from propstore.families.concepts.declaration import SOURCE_CONCEPT_BATCH_SPEC
 from propstore.families.documents.sources import (
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,

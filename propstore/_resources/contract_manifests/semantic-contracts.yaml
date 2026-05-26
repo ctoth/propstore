@@ -349,13 +349,13 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_claims
-  contract_version: 2026.05.02
+  contract_version: 2026.05.26
   body:
     coerce_payload: null
-    decode_bytes: propstore.families.registry.decode_source_claims_document
+    decode_bytes: quire.documents.batch.DocumentBatchCodec.decode_bytes
     doc_type: builtins.tuple
-    document_payload: propstore.families.registry.source_claims_document_payload
-    encode_document: propstore.families.registry.encode_source_claims_document
+    document_payload: quire.documents.batch.DocumentBatchCodec.document_payload
+    encode_document: quire.documents.batch.DocumentBatchCodec.encode_document
     normalize_for_write: null
     placement:
       branch:
@@ -366,18 +366,18 @@ contracts:
         template: source/{stem}
       filename: claims.yaml
       kind: fixed-file
-    render_document: propstore.families.registry.render_source_claims_document
+    render_document: quire.documents.batch.DocumentBatchCodec.render_document
     scan_type: propstore.families.documents.sources.SourceClaimDocument
     validate_for_write: null
 - kind: artifact_family
   name: source_concepts
-  contract_version: 2026.05.02
+  contract_version: 2026.05.26
   body:
     coerce_payload: null
-    decode_bytes: propstore.families.registry.decode_source_concepts_document
+    decode_bytes: quire.documents.batch.DocumentBatchCodec.decode_bytes
     doc_type: builtins.tuple
-    document_payload: propstore.families.registry.source_concepts_document_payload
-    encode_document: propstore.families.registry.encode_source_concepts_document
+    document_payload: quire.documents.batch.DocumentBatchCodec.document_payload
+    encode_document: quire.documents.batch.DocumentBatchCodec.encode_document
     normalize_for_write: null
     placement:
       branch:
@@ -388,7 +388,7 @@ contracts:
         template: source/{stem}
       filename: concepts.yaml
       kind: fixed-file
-    render_document: propstore.families.registry.render_source_concepts_document
+    render_document: quire.documents.batch.DocumentBatchCodec.render_document
     scan_type: propstore.families.documents.sources.SourceConceptEntryDocument
     validate_for_write: null
 - kind: artifact_family
@@ -439,13 +439,13 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_justifications
-  contract_version: 2026.05.02
+  contract_version: 2026.05.26
   body:
     coerce_payload: null
-    decode_bytes: propstore.families.registry.decode_source_justifications_document
+    decode_bytes: quire.documents.batch.DocumentBatchCodec.decode_bytes
     doc_type: builtins.tuple
-    document_payload: propstore.families.registry.source_justifications_document_payload
-    encode_document: propstore.families.registry.encode_source_justifications_document
+    document_payload: quire.documents.batch.DocumentBatchCodec.document_payload
+    encode_document: quire.documents.batch.DocumentBatchCodec.encode_document
     normalize_for_write: null
     placement:
       branch:
@@ -456,7 +456,7 @@ contracts:
         template: source/{stem}
       filename: justifications.yaml
       kind: fixed-file
-    render_document: propstore.families.registry.render_source_justifications_document
+    render_document: quire.documents.batch.DocumentBatchCodec.render_document
     scan_type: propstore.families.documents.sources.SourceJustificationDocument
     validate_for_write: null
 - kind: artifact_family
@@ -483,13 +483,13 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_micropubs
-  contract_version: 2026.05.25
+  contract_version: 2026.05.26
   body:
     coerce_payload: null
-    decode_bytes: propstore.families.registry.decode_source_micropubs_document
+    decode_bytes: quire.documents.batch.DocumentBatchCodec.decode_bytes
     doc_type: builtins.tuple
-    document_payload: propstore.families.registry.source_micropubs_document_payload
-    encode_document: propstore.families.registry.encode_source_micropubs_document
+    document_payload: quire.documents.batch.DocumentBatchCodec.document_payload
+    encode_document: quire.documents.batch.DocumentBatchCodec.encode_document
     normalize_for_write: null
     placement:
       branch:
@@ -500,7 +500,7 @@ contracts:
         template: source/{stem}
       filename: micropubs.yaml
       kind: fixed-file
-    render_document: propstore.families.registry.render_source_micropubs_document
+    render_document: quire.documents.batch.DocumentBatchCodec.render_document
     scan_type: propstore.families.micropublications.declaration.MicropublicationDocument
     validate_for_write: null
 - kind: artifact_family
@@ -527,13 +527,13 @@ contracts:
     validate_for_write: null
 - kind: artifact_family
   name: source_stances
-  contract_version: 2026.05.02
+  contract_version: 2026.05.26
   body:
     coerce_payload: null
-    decode_bytes: propstore.families.registry.decode_source_stances_document
+    decode_bytes: quire.documents.batch.DocumentBatchCodec.decode_bytes
     doc_type: builtins.tuple
-    document_payload: propstore.families.registry.source_stances_document_payload
-    encode_document: propstore.families.registry.encode_source_stances_document
+    document_payload: quire.documents.batch.DocumentBatchCodec.document_payload
+    encode_document: quire.documents.batch.DocumentBatchCodec.encode_document
     normalize_for_write: null
     placement:
       branch:
@@ -544,7 +544,7 @@ contracts:
         template: source/{stem}
       filename: stances.yaml
       kind: fixed-file
-    render_document: propstore.families.registry.render_source_stances_document
+    render_document: quire.documents.batch.DocumentBatchCodec.render_document
     scan_type: propstore.families.documents.sources.SourceStanceEntryDocument
     validate_for_write: null
 - kind: artifact_family
@@ -2205,19 +2205,19 @@ contracts:
     - contract_version: 2026.05.02
       key: source_metadata
       name: source_metadata
-    - contract_version: 2026.05.02
+    - contract_version: 2026.05.26
       key: source_concepts
       name: source_concepts
-    - contract_version: 2026.05.02
+    - contract_version: 2026.05.26
       key: source_claims
       name: source_claims
-    - contract_version: 2026.05.25
+    - contract_version: 2026.05.26
       key: source_micropubs
       name: source_micropubs
-    - contract_version: 2026.05.02
+    - contract_version: 2026.05.26
       key: source_justifications
       name: source_justifications
-    - contract_version: 2026.05.02
+    - contract_version: 2026.05.26
       key: source_stances
       name: source_stances
     - contract_version: 2026.05.02
@@ -2733,7 +2733,7 @@ contracts:
       semantic: true
 - kind: family
   name: source_claims
-  contract_version: 2026.05.02
+  contract_version: 2026.05.26
   body:
     accessor: source_claims
     artifact_family: source_claims
@@ -2748,12 +2748,12 @@ contracts:
           template: source/{stem}
         filename: claims.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.05.02
+    artifact_family_contract_version: 2026.05.26
     foreign_keys: []
     key: source_claims
 - kind: family
   name: source_concepts
-  contract_version: 2026.05.02
+  contract_version: 2026.05.26
   body:
     accessor: source_concepts
     artifact_family: source_concepts
@@ -2768,7 +2768,7 @@ contracts:
           template: source/{stem}
         filename: concepts.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.05.02
+    artifact_family_contract_version: 2026.05.26
     foreign_keys: []
     key: source_concepts
 - kind: family
@@ -2815,7 +2815,7 @@ contracts:
     key: source_finalize_reports
 - kind: family
   name: source_justifications
-  contract_version: 2026.05.02
+  contract_version: 2026.05.26
   body:
     accessor: source_justifications
     artifact_family: source_justifications
@@ -2830,7 +2830,7 @@ contracts:
           template: source/{stem}
         filename: justifications.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.05.02
+    artifact_family_contract_version: 2026.05.26
     foreign_keys: []
     key: source_justifications
 - kind: family
@@ -2855,7 +2855,7 @@ contracts:
     key: source_metadata
 - kind: family
   name: source_micropubs
-  contract_version: 2026.05.25
+  contract_version: 2026.05.26
   body:
     accessor: source_micropubs
     artifact_family: source_micropubs
@@ -2870,7 +2870,7 @@ contracts:
           template: source/{stem}
         filename: micropubs.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.05.25
+    artifact_family_contract_version: 2026.05.26
     foreign_keys: []
     key: source_micropubs
 - kind: family
@@ -2895,7 +2895,7 @@ contracts:
     key: source_notes
 - kind: family
   name: source_stances
-  contract_version: 2026.05.02
+  contract_version: 2026.05.26
   body:
     accessor: source_stances
     artifact_family: source_stances
@@ -2910,7 +2910,7 @@ contracts:
           template: source/{stem}
         filename: stances.yaml
         kind: fixed-file
-    artifact_family_contract_version: 2026.05.02
+    artifact_family_contract_version: 2026.05.26
     foreign_keys: []
     key: source_stances
 - kind: family

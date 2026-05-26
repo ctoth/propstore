@@ -5,8 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from propstore.families.batch_specs import CLAIM_BATCH_SPEC
-from propstore.families.claims.declaration import ClaimDocument
+from propstore.families.claims.declaration import CLAIM_BATCH_SPEC, ClaimDocument
 from quire.documents import (
     convert_document_value,
     decode_document_batch_bytes,

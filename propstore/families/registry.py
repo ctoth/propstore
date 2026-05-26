@@ -20,20 +20,18 @@ from quire.artifacts import (
     SingletonFilePlacement,
     SubdirFixedFilePlacement,
     TemplateFilePlacement,
+    batch_artifact_family,
 )
 from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
 from quire.documents import (
     coerce_json_mapping,
     coerce_text_document,
-    decode_document_batch_bytes,
     decode_json_mapping,
     decode_text_document,
-    document_to_payload,
     encode_json_mapping,
     encode_text_document,
     identity_json_mapping,
     identity_text_document,
-    render_document_batch,
     render_json_mapping,
 )
 from quire.references import ForeignKeySpec, ReferenceKey
@@ -272,15 +270,17 @@ IDENTITY_POLICY_FAMILY_CONTRACT_VERSION = VersionId("2026.04.29")
 SOURCE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 SOURCE_DOCUMENT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
+SOURCE_BATCH_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.26")
 SOURCE_SIDE_FILE_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.02")
 PROPOSAL_DECLARATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
 INTENTIONAL_SET_FAMILY_CONTRACT_VERSION = VersionId("2026.05.11")
 MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 MICROPUBLICATION_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
-SOURCE_MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+SOURCE_MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.26")
 PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.25")
 REFERENCE_VALIDATED_FAMILY_CONTRACT_VERSION = VersionId("2026.05.21")
 SOURCE_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+SOURCE_BATCH_FAMILY_CONTRACT_VERSION = VersionId("2026.05.26")
 FORM_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 FORM_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONTEXT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
@@ -487,229 +487,6 @@ def _charter_foreign_keys(charter: FamilyCharter) -> tuple[ForeignKeySpec, ...]:
 
 def _charter_reference_keys(charter: FamilyCharter) -> tuple[ReferenceKey, ...]:
     return charter.family.reference_keys
-
-
-# NOTE: Quire currently projects FamilyCharter.batch_specs but does not yet bind
-# them into ArtifactFamily generic batch encode/decode/payload callbacks. Keep
-# these registry callbacks until generic batch IO can replace them directly.
-def decode_source_concepts_document(
-    payload: bytes,
-    source: str,
-) -> tuple[SourceConceptEntryDocument, ...]:
-    return decode_document_batch_bytes(
-        payload,
-        SOURCE_CONCEPT_BATCH_SPEC,
-        source=source,
-    )
-
-
-def encode_source_concepts_document(
-    document: tuple[SourceConceptEntryDocument, ...],
-) -> bytes:
-    return render_source_concepts_document(document).encode("utf-8")
-
-
-def render_source_concepts_document(
-    document: tuple[SourceConceptEntryDocument, ...],
-) -> str:
-    return render_document_batch(document, SOURCE_CONCEPT_BATCH_SPEC)
-
-
-def source_concepts_document_payload(
-    document: tuple[SourceConceptEntryDocument, ...],
-) -> dict[str, object]:
-    return {
-        "concepts": [entry.to_payload() for entry in document],
-    }
-
-
-def decode_source_claims_document(
-    payload: bytes,
-    source: str,
-) -> tuple[SourceClaimDocument, ...]:
-    return decode_document_batch_bytes(
-        payload,
-        SOURCE_CLAIM_BATCH_SPEC,
-        source=source,
-    )
-
-
-def encode_source_claims_document(
-    document: tuple[SourceClaimDocument, ...],
-) -> bytes:
-    return render_source_claims_document(document).encode("utf-8")
-
-
-def render_source_claims_document(
-    document: tuple[SourceClaimDocument, ...],
-) -> str:
-    source = _shared_batch_field(document, "source")
-    produced_by = _shared_batch_field(document, "produced_by")
-    inherited: dict[str, object] = {}
-    if source is not None:
-        inherited["source"] = _batch_field_payload(source)
-    if produced_by is not None:
-        inherited["produced_by"] = _batch_field_payload(produced_by)
-    return render_document_batch(
-        document,
-        SOURCE_CLAIM_BATCH_SPEC,
-        inherited_item_values=inherited,
-    )
-
-
-def source_claims_document_payload(
-    document: tuple[SourceClaimDocument, ...],
-) -> dict[str, object]:
-    return {
-        "claims": [document_to_payload(entry) for entry in document],
-    }
-
-
-def decode_source_justifications_document(
-    payload: bytes,
-    source: str,
-) -> tuple[SourceJustificationDocument, ...]:
-    return decode_document_batch_bytes(
-        payload,
-        SOURCE_JUSTIFICATION_BATCH_SPEC,
-        source=source,
-    )
-
-
-def encode_source_justifications_document(
-    document: tuple[SourceJustificationDocument, ...],
-) -> bytes:
-    return render_source_justifications_document(document).encode("utf-8")
-
-
-def render_source_justifications_document(
-    document: tuple[SourceJustificationDocument, ...],
-) -> str:
-    source = _shared_batch_field(document, "source")
-    produced_by = _shared_batch_field(document, "produced_by")
-    inherited: dict[str, object] = {}
-    if source is not None:
-        inherited["source"] = _batch_field_payload(source)
-    if produced_by is not None:
-        inherited["produced_by"] = _batch_field_payload(produced_by)
-    return render_document_batch(
-        document,
-        SOURCE_JUSTIFICATION_BATCH_SPEC,
-        inherited_item_values=inherited,
-    )
-
-
-def source_justifications_document_payload(
-    document: tuple[SourceJustificationDocument, ...],
-) -> dict[str, object]:
-    return {
-        "justifications": [entry.to_payload() for entry in document],
-    }
-
-
-def decode_source_stances_document(
-    payload: bytes,
-    source: str,
-) -> tuple[SourceStanceEntryDocument, ...]:
-    return decode_document_batch_bytes(
-        payload,
-        SOURCE_STANCE_BATCH_SPEC,
-        source=source,
-    )
-
-
-def encode_source_stances_document(
-    document: tuple[SourceStanceEntryDocument, ...],
-) -> bytes:
-    return render_source_stances_document(document).encode("utf-8")
-
-
-def render_source_stances_document(
-    document: tuple[SourceStanceEntryDocument, ...],
-) -> str:
-    source = _shared_batch_field(document, "source")
-    produced_by = _shared_batch_field(document, "produced_by")
-    inherited: dict[str, object] = {}
-    if source is not None:
-        inherited["source"] = _batch_field_payload(source)
-    if produced_by is not None:
-        inherited["produced_by"] = _batch_field_payload(produced_by)
-    return render_document_batch(
-        document,
-        SOURCE_STANCE_BATCH_SPEC,
-        inherited_item_values=inherited,
-    )
-
-
-def source_stances_document_payload(
-    document: tuple[SourceStanceEntryDocument, ...],
-) -> dict[str, object]:
-    return {
-        "stances": [entry.to_payload() for entry in document],
-    }
-
-
-def decode_source_micropubs_document(
-    payload: bytes,
-    source: str,
-) -> tuple[MicropublicationDocument, ...]:
-    return decode_document_batch_bytes(
-        payload,
-        SOURCE_MICROPUBLICATION_BATCH_SPEC,
-        source=source,
-    )
-
-
-def encode_source_micropubs_document(
-    document: tuple[MicropublicationDocument, ...],
-) -> bytes:
-    return render_source_micropubs_document(document).encode("utf-8")
-
-
-def render_source_micropubs_document(
-    document: tuple[MicropublicationDocument, ...],
-) -> str:
-    source = _shared_batch_field(document, "source")
-    inherited: dict[str, object] = {}
-    if source is not None:
-        inherited["source"] = _batch_field_payload(source)
-    return render_document_batch(
-        document,
-        SOURCE_MICROPUBLICATION_BATCH_SPEC,
-        inherited_item_values=inherited,
-    )
-
-
-def source_micropubs_document_payload(
-    document: tuple[MicropublicationDocument, ...],
-) -> dict[str, object]:
-    return {
-        "micropublications": [document_to_payload(entry) for entry in document],
-    }
-
-
-def _shared_batch_field(
-    document: tuple[object, ...],
-    field: str,
-) -> object | None:
-    values = [
-        getattr(item, field)
-        for item in document
-        if getattr(item, field, None) is not None
-    ]
-    if not values:
-        return None
-    first = values[0]
-    if all(value == first for value in values):
-        return first
-    return None
-
-
-def _batch_field_payload(value: object) -> object:
-    to_payload = getattr(value, "to_payload", None)
-    if callable(to_payload):
-        return to_payload()
-    return value
 
 
 PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
@@ -945,70 +722,60 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             render_document=render_json_mapping,
             document_payload=identity_json_mapping,
         ),
-        _family_definition(
+        FamilyDefinition(
             key=PropstoreFamily.SOURCE_CONCEPTS,
             name=PropstoreFamily.SOURCE_CONCEPTS.value,
-            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-            artifact_name="source_concepts",
-            document_type=tuple,
-            placement=FixedFilePlacement("concepts.yaml", branch=SOURCE_BRANCH),
-            decode_bytes=decode_source_concepts_document,
-            encode_document=encode_source_concepts_document,
-            render_document=render_source_concepts_document,
-            document_payload=source_concepts_document_payload,
-            scan_type=SourceConceptEntryDocument,
+            contract_version=SOURCE_BATCH_FAMILY_CONTRACT_VERSION,
+            artifact_family=batch_artifact_family(
+                name="source_concepts",
+                contract_version=SOURCE_BATCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+                placement=FixedFilePlacement("concepts.yaml", branch=SOURCE_BRANCH),
+                batch_spec=SOURCE_CONCEPT_BATCH_SPEC,
+            ),
         ),
-        _family_definition(
+        FamilyDefinition(
             key=PropstoreFamily.SOURCE_CLAIMS,
             name=PropstoreFamily.SOURCE_CLAIMS.value,
-            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-            artifact_name="source_claims",
-            document_type=tuple,
-            placement=FixedFilePlacement("claims.yaml", branch=SOURCE_BRANCH),
-            decode_bytes=decode_source_claims_document,
-            encode_document=encode_source_claims_document,
-            render_document=render_source_claims_document,
-            document_payload=source_claims_document_payload,
-            scan_type=SourceClaimDocument,
+            contract_version=SOURCE_BATCH_FAMILY_CONTRACT_VERSION,
+            artifact_family=batch_artifact_family(
+                name="source_claims",
+                contract_version=SOURCE_BATCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+                placement=FixedFilePlacement("claims.yaml", branch=SOURCE_BRANCH),
+                batch_spec=SOURCE_CLAIM_BATCH_SPEC,
+            ),
         ),
-        _family_definition(
+        FamilyDefinition(
             key=PropstoreFamily.SOURCE_MICROPUBS,
             name=PropstoreFamily.SOURCE_MICROPUBS.value,
             contract_version=SOURCE_MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
-            artifact_name="source_micropubs",
-            document_type=tuple,
-            placement=FixedFilePlacement("micropubs.yaml", branch=SOURCE_BRANCH),
-            decode_bytes=decode_source_micropubs_document,
-            encode_document=encode_source_micropubs_document,
-            render_document=render_source_micropubs_document,
-            document_payload=source_micropubs_document_payload,
-            scan_type=MicropublicationDocument,
+            artifact_family=batch_artifact_family(
+                name="source_micropubs",
+                contract_version=SOURCE_MICROPUBLICATION_ARTIFACT_FAMILY_CONTRACT_VERSION,
+                placement=FixedFilePlacement("micropubs.yaml", branch=SOURCE_BRANCH),
+                batch_spec=SOURCE_MICROPUBLICATION_BATCH_SPEC,
+            ),
         ),
-        _family_definition(
+        FamilyDefinition(
             key=PropstoreFamily.SOURCE_JUSTIFICATIONS,
             name=PropstoreFamily.SOURCE_JUSTIFICATIONS.value,
-            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-            artifact_name="source_justifications",
-            document_type=tuple,
-            placement=FixedFilePlacement("justifications.yaml", branch=SOURCE_BRANCH),
-            decode_bytes=decode_source_justifications_document,
-            encode_document=encode_source_justifications_document,
-            render_document=render_source_justifications_document,
-            document_payload=source_justifications_document_payload,
-            scan_type=SourceJustificationDocument,
+            contract_version=SOURCE_BATCH_FAMILY_CONTRACT_VERSION,
+            artifact_family=batch_artifact_family(
+                name="source_justifications",
+                contract_version=SOURCE_BATCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+                placement=FixedFilePlacement("justifications.yaml", branch=SOURCE_BRANCH),
+                batch_spec=SOURCE_JUSTIFICATION_BATCH_SPEC,
+            ),
         ),
-        _family_definition(
+        FamilyDefinition(
             key=PropstoreFamily.SOURCE_STANCES,
             name=PropstoreFamily.SOURCE_STANCES.value,
-            contract_version=SOURCE_BRANCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
-            artifact_name="source_stances",
-            document_type=tuple,
-            placement=FixedFilePlacement("stances.yaml", branch=SOURCE_BRANCH),
-            decode_bytes=decode_source_stances_document,
-            encode_document=encode_source_stances_document,
-            render_document=render_source_stances_document,
-            document_payload=source_stances_document_payload,
-            scan_type=SourceStanceEntryDocument,
+            contract_version=SOURCE_BATCH_FAMILY_CONTRACT_VERSION,
+            artifact_family=batch_artifact_family(
+                name="source_stances",
+                contract_version=SOURCE_BATCH_ARTIFACT_FAMILY_CONTRACT_VERSION,
+                placement=FixedFilePlacement("stances.yaml", branch=SOURCE_BRANCH),
+                batch_spec=SOURCE_STANCE_BATCH_SPEC,
+            ),
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_FINALIZE_REPORTS,

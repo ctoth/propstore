@@ -7,10 +7,13 @@ from typing import Any, cast
 
 from propstore.canonical_namespaces import assert_namespace_not_reserved
 from propstore.core.conditions.registry import ConceptInfo
-from propstore.families.claims.declaration import ClaimLogicalIdDocument, ClaimSourceDocument
+from propstore.families.claims.declaration import (
+    ClaimLogicalIdDocument,
+    ClaimSourceDocument,
+    SOURCE_CLAIM_BATCH_SPEC,
+)
 from propstore.families.registry import SourceRef
 from propstore.families.claims.types import ClaimType
-from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository, retry_live_branch_update
 from quire.documents import (

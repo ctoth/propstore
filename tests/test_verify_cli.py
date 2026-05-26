@@ -12,7 +12,7 @@ from hypothesis import strategies as st
 from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
 
 from propstore.artifact_codes import stamp_source_artifact_codes
-from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
+from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.documents.sources import (
     SourceJustificationDocument,
     SourceStanceEntryDocument,

@@ -3,7 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, cast
 
-from propstore.families.batch_specs import SOURCE_JUSTIFICATION_BATCH_SPEC, SOURCE_STANCE_BATCH_SPEC
+from propstore.families.claims.declaration import SOURCE_JUSTIFICATION_BATCH_SPEC
+from propstore.families.stances.declaration import SOURCE_STANCE_BATCH_SPEC
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository, retry_live_branch_update

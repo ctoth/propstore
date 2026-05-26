@@ -40,7 +40,7 @@ from propstore.uri import DEFAULT_URI_AUTHORITY, concept_tag_uri, source_tag_uri
 from propstore.uri_authority import TaggingAuthority
 
 from .common import load_source_document
-from propstore.families.batch_specs import SOURCE_CONCEPT_BATCH_SPEC
+from propstore.families.concepts.declaration import SOURCE_CONCEPT_BATCH_SPEC
 
 
 def _serialized_alignment_mutation(function):

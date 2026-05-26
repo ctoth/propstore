@@ -20,7 +20,7 @@ from click.testing import CliRunner
 from quire.documents import decode_document_batch_bytes, encode_yaml_value
 
 from propstore.cli import cli
-from propstore.families.batch_specs import SOURCE_CLAIM_BATCH_SPEC
+from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.source import (
