@@ -92,17 +92,51 @@ Next slice:
 ## Iteration 3 - `propstore Quire pin`
 
 Slice read:
-- Pending
+- `pyproject.toml`
+- `uv.lock`
 
 Surfaces:
 - `pyproject.toml` Quire dependency
   - Disposition: rewrite
   - Owner after cleanup: `pyproject.toml`
-  - Action: Pending
-  - Evidence: Pending
+  - Action: Pinned Quire to pushed commit
+    `e8eb5dc31163316bd59d1abd0e7c6a890763baab`.
+  - Evidence: `git ls-remote origin refs/heads/master` in Quire returned the
+    pinned SHA.
 - `uv.lock` Quire dependency
   - Disposition: rewrite
   - Owner after cleanup: `uv.lock`
+  - Action: Refreshed the lockfile with `uv lock`.
+  - Evidence: Lock entries resolve the remote Quire Git dependency at the
+    same pushed SHA.
+
+Gate results:
+- Pass: `rg -n -F -- "file://" pyproject.toml uv.lock`
+- Pass: `rg -n -F -- "path =" pyproject.toml uv.lock`
+- Pass: `rg -n -F -- "C:\\" pyproject.toml uv.lock`
+- Pass: `rg -n -F -- "C:/" pyproject.toml uv.lock`
+- Pass: `uv run pyright propstore`
+
+Commit:
+- `e1176324 Pin Quire batch artifact helper`
+
+Next slice:
+- Propstore deletion-first batch cutover.
+
+## Iteration 4 - `propstore source batch helpers`
+
+Slice read:
+- Pending
+
+Surfaces:
+- `propstore/families/batch_specs.py`
+  - Disposition: delete
+  - Owner after cleanup: source family declaration modules
+  - Action: Pending
+  - Evidence: Pending
+- Registry source batch decode/render/payload helpers
+  - Disposition: delete
+  - Owner after cleanup: Quire `batch_artifact_family`
   - Action: Pending
   - Evidence: Pending
 
@@ -113,4 +147,4 @@ Commit:
 - Pending
 
 Next slice:
-- Propstore deletion-first batch cutover.
+- Final completion gates.
