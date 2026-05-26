@@ -4,7 +4,7 @@ import json
 
 from quire.sqlalchemy_store import create_sqlalchemy_store, readonly_session, writable_session
 from sqlalchemy import select
-from propstore.context_lifting import (
+from propstore.families.contexts.lifting import (
     IstProposition,
     LiftingDecisionStatus,
     LiftingRule,

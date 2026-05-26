@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import click
 
-from propstore.context_lifting import LiftingMode
+from propstore.families.contexts.lifting import LiftingMode
 from propstore.cli.output import emit, emit_success
 
 from quire.documents import encode_document

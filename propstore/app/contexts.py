@@ -7,7 +7,7 @@ from functools import wraps
 from pathlib import Path
 
 from propstore.cel_types import to_cel_exprs
-from propstore.context_lifting import LiftingMode
+from propstore.families.contexts.lifting import LiftingMode
 from propstore.families.contexts.declaration import (
     ContextDocument,
     ContextDocumentProtocol,

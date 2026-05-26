@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from quire.sqlalchemy_store import readonly_session
-from sqlalchemy import text
+from sqlalchemy import select, text
 import yaml
 
 from propstore.compiler.workflows import build_repository
@@ -63,16 +63,17 @@ def test_build_repository_context_lifting_error_quarantines_not_raises(
     sidecar_path = Path(report.derived_store.path)
     assert sidecar_path.exists()
 
-    with readonly_session(sidecar_path, world_schema()) as derived:
+    schema = world_schema()
+    context_model = schema.model("context")
+    lifting_rule_model = schema.model("context_lifting_rule")
+    with readonly_session(sidecar_path, schema) as derived:
         context_ids = {
-            str(row[0])
-            for row in derived.session.execute(text("SELECT id FROM context")).fetchall()
+            str(row.id)
+            for row in derived.session.execute(select(context_model)).scalars()
         }
         lifting_rule_ids = {
-            str(row[0])
-            for row in derived.session.execute(
-                text("SELECT id FROM context_lifting_rule")
-            ).fetchall()
+            str(row.id)
+            for row in derived.session.execute(select(lifting_rule_model)).scalars()
         }
         diagnostic_rows = derived.session.execute(
             text(

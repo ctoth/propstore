@@ -17,7 +17,7 @@ from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.core.conditions.registry import ConceptInfo
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
 
 
 def detect_measurement_conflicts(

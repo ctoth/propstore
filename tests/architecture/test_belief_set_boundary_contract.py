@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 PROHIBITED_SUBTREES = (
-    Path("propstore/context_lifting.py"),
+    Path("propstore/families/contexts/lifting.py"),
     Path("propstore/aspic_bridge"),
     Path("propstore/grounding"),
 )

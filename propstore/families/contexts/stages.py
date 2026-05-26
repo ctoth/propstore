@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any
 
 from propstore.cel_types import to_cel_exprs
 from propstore.core.assertions.refs import ContextReference
-from propstore.context_lifting import (
+from propstore.families.contexts.lifting import (
     LiftingSystem,
     LiftingMode,
     LiftingRule,

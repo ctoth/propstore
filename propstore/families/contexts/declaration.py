@@ -15,7 +15,7 @@ from quire.families import FamilyDefinition
 from quire.references import ReferenceKey
 from quire.versions import VersionId
 
-from ...context_lifting import (
+from .lifting import (
     IstProposition,
     LiftedAssertion,
     LiftingDecision,

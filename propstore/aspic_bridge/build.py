@@ -24,7 +24,7 @@ from argumentation.aspic import (
     transposition_closure,
 )
 from argumentation.datalog_grounding import GroundRuleOrigin
-from propstore.context_lifting import LiftingDecision
+from propstore.families.contexts.lifting import LiftingDecision
 from propstore.core.justifications import CanonicalJustification
 from propstore.core.literal_keys import LiteralKey
 from propstore.families.claims.declaration import Claim

@@ -317,7 +317,7 @@ def test_single_hop_conflict_carries_derived_conditions():
 
 
 def test_single_hop_conflict_requires_lifted_contexts():
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
     from propstore.core.assertions.refs import ContextReference
 
     concept_in_id, concept_in = _concept("concept_in", form="frequency")

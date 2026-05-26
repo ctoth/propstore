@@ -83,7 +83,7 @@ from propstore.support_revision.realization import realize_formal_decision
 
 if TYPE_CHECKING:
     from propstore.core.graph_types import WorldActivationGraph
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
     from propstore.world.atms import ATMSEngine
 
 @runtime_checkable

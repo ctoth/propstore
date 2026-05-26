@@ -14,7 +14,7 @@ from propstore.core.environment import Environment
 from propstore.core.labels import binding_condition_to_cel
 
 if TYPE_CHECKING:
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
 
 
 def _binding_conditions(environment: Environment) -> tuple[CelExpr, ...]:
@@ -42,7 +42,7 @@ def _claim_projected_into_environment(
     if claim_context_id == str(environment.context_id):
         return True
 
-    from propstore.context_lifting import LiftingDecisionStatus
+    from propstore.families.contexts.lifting import LiftingDecisionStatus
 
     materializations = claim_lifting_materializations(
         claim_context_id=claim_context_id,
@@ -71,7 +71,7 @@ def claim_lifting_materializations(
     if claim_context_id == str(environment.context_id):
         return ()
 
-    from propstore.context_lifting import (
+    from propstore.families.contexts.lifting import (
         IstProposition,
     )
     from propstore.core.assertions.refs import ContextReference

@@ -25,7 +25,6 @@ FORBIDDEN_IMPORT_PREFIXES = (
     "propstore.heuristic.calibrate",
     "propstore.cli",
     "propstore.condition_classifier",
-    "propstore.context_lifting",
     "propstore.grounding",
     "propstore.opinion",
     "propstore.praf",

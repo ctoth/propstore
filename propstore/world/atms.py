@@ -101,7 +101,7 @@ from propstore.world.types import (
 )
 
 if TYPE_CHECKING:
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
     from propstore.world.bound import BoundWorld
 
 

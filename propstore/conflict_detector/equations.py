@@ -21,7 +21,7 @@ from .models import ConflictClaim, ConflictClass, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.core.conditions.registry import ConceptInfo
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
 
 
 _LOGGER = logging.getLogger(__name__)

@@ -20,7 +20,7 @@ from propstore.families.contexts.declaration import ContextDocument
 from propstore.core.conditions.registry import synthetic_category_concept
 from propstore.conflict_detector import ConflictClass
 from propstore.conflict_detector.context import _classify_pair_context
-from propstore.context_lifting import (
+from propstore.families.contexts.lifting import (
     IstProposition,
     LiftingDecisionStatus,
     LiftingRule,

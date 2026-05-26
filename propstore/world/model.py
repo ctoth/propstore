@@ -63,7 +63,7 @@ if TYPE_CHECKING:
     from propstore.support_revision.history import TransitionJournal
     from propstore.repository import Repository
     from propstore.world.bound import BoundWorld
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
     from propstore.core.graph_types import WorldActivationGraph
     from propstore.world.scm import Value
 from propstore.world.resolution import resolve

@@ -26,7 +26,7 @@ from .parameter_claims import detect_parameter_conflicts
 from .parameterization_conflicts import _detect_parameterization_conflicts
 
 if TYPE_CHECKING:
-    from propstore.context_lifting import LiftingRule, LiftingSystem
+    from propstore.families.contexts.lifting import LiftingRule, LiftingSystem
 
 
 class SyntheticConceptCollision(ValueError):

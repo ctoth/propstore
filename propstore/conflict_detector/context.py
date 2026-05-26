@@ -9,13 +9,13 @@ from propstore.cel_types import CelExpr
 from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
-    from propstore.context_lifting import LiftingDecision, LiftingSystem
+    from propstore.families.contexts.lifting import LiftingDecision, LiftingSystem
 
 
 def _lifted_decisions(
     decisions: tuple[LiftingDecision, ...],
 ) -> tuple[LiftingDecision, ...]:
-    from propstore.context_lifting import LiftingDecisionStatus
+    from propstore.families.contexts.lifting import LiftingDecisionStatus
 
     return tuple(
         decision

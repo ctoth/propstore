@@ -250,7 +250,10 @@ def _lifting_dependencies(
     environment = bound.environment
     lifting_system = bound.lifting_system
 
-    from propstore.context_lifting import IstProposition, LiftingDecisionStatus
+    from propstore.families.contexts.lifting import (
+        IstProposition,
+        LiftingDecisionStatus,
+    )
     from propstore.core.assertions.refs import ContextReference
 
     rule_ids: set[str] = set()

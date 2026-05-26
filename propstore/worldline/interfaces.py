@@ -9,7 +9,7 @@ from propstore.support_revision.input_normalization import RevisionInput
 from propstore.world.types import BeliefSpace, RenderPolicy
 
 if TYPE_CHECKING:
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
     from propstore.support_revision.explanation_types import RevisionExplanation
     from propstore.support_revision.state import EpistemicState, RevisionResult
 

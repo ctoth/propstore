@@ -1025,7 +1025,7 @@ class TestTransitiveContextSemantics:
     def test_transitive_conflicts_in_unrelated_contexts_are_context_phi_nodes(self):
         """Unrelated contexts require an explicit lifting rule before conflict."""
         from propstore.conflict_detector import detect_transitive_conflicts
-        from propstore.context_lifting import LiftingSystem
+        from propstore.families.contexts.lifting import LiftingSystem
         from propstore.core.assertions.refs import ContextReference
 
         concept_out = make_concept_identity(
@@ -1111,7 +1111,7 @@ class TestTransitiveContextSemantics:
 
     def test_unrelated_contexts_classify_direct_conflicts_as_context_phi(self):
         """Claims in unrelated contexts need authored lifting to interact."""
-        from propstore.context_lifting import LiftingSystem
+        from propstore.families.contexts.lifting import LiftingSystem
         from propstore.core.assertions.refs import ContextReference
 
         claims = [
@@ -1141,7 +1141,7 @@ class TestTransitiveContextSemantics:
     def test_lifting_rules_project_claims_into_shared_target_context(self):
         """A lift-selected shared target context can convert cross-paper PHI nodes into conflicts."""
         from propstore.core.assertions.refs import ContextReference
-        from propstore.context_lifting import (
+        from propstore.families.contexts.lifting import (
             LiftingRule,
             LiftingSystem,
         )
@@ -1217,7 +1217,7 @@ class TestTransitiveContextSemantics:
     def test_lifting_rules_project_claims_through_authored_paths(self):
         """Shared target conflicts should emerge through multi-hop authored lifting paths."""
         from propstore.core.assertions.refs import ContextReference
-        from propstore.context_lifting import (
+        from propstore.families.contexts.lifting import (
             LiftingRule,
             LiftingSystem,
         )
@@ -1295,7 +1295,7 @@ class TestTransitiveContextSemantics:
     def test_lifting_rules_require_claims_to_satisfy_selector_conditions(self):
         """Lift selectors should not apply when the claim only remains compatible by omission."""
         from propstore.core.assertions.refs import ContextReference
-        from propstore.context_lifting import (
+        from propstore.families.contexts.lifting import (
             LiftingRule,
             LiftingSystem,
         )

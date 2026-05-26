@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from propstore.context_lifting import (
+from propstore.families.contexts.lifting import (
     LiftingException,
     LiftingRule,
     LiftingSystem,

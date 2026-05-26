@@ -7,7 +7,11 @@ from collections.abc import Mapping, Sequence
 
 from argumentation.aspic import GroundAtom, Literal, Rule
 
-from propstore.context_lifting import LiftingDecision, LiftingDecisionStatus, LiftingMode
+from propstore.families.contexts.lifting import (
+    LiftingDecision,
+    LiftingDecisionStatus,
+    LiftingMode,
+)
 from propstore.core.id_types import (
     ClaimId,
     ContextId,

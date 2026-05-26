@@ -24,7 +24,7 @@ from .models import ConflictClass, ConflictClaim, ConflictRecord
 
 if TYPE_CHECKING:
     from propstore.families.forms.stages import FormDefinition
-    from propstore.context_lifting import LiftingSystem
+    from propstore.families.contexts.lifting import LiftingSystem
 
 
 @dataclass(frozen=True)
@@ -182,7 +182,7 @@ def _merge_contexts_for_derivation(
     if lifting_system is None:
         return contexts[0] if len(set(contexts)) == 1 else None
 
-    from propstore.context_lifting import LiftingDecisionStatus
+    from propstore.families.contexts.lifting import LiftingDecisionStatus
 
     candidates = [
         candidate

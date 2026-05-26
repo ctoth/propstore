@@ -6,7 +6,7 @@ import json
 import re
 from collections.abc import Iterable, Mapping
 
-from propstore.context_lifting import LiftingSystem
+from propstore.families.contexts.lifting import LiftingSystem
 from propstore.core.assertions.refs import ContextReference
 from propstore.core.conditions import (
     ConditionSolver,

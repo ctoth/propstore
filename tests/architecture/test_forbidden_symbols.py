@@ -10,7 +10,7 @@ ASSERTION_SITUATED = Path("propstore/core/assertions/situated.py")
 ASSERTION_CODEC = Path("propstore/core/assertions/codec.py")
 CONDITION_IR = Path("propstore/core/conditions/ir.py")
 CONDITION_CHECKED = Path("propstore/core/conditions/checked.py")
-CONTEXT_LIFTING = Path("propstore/context_lifting.py")
+CONTEXT_LIFTING = Path("propstore/families/contexts/lifting.py")
 PROVENANCE_CARRIER = Path("propstore/provenance/__init__.py")
 PROVENANCE_RECORDS = Path("propstore/provenance/records.py")
 STRUCTURED_MERGE = Path("propstore/merge/structured_merge.py")
@@ -168,7 +168,7 @@ def test_assertion_refs_do_not_store_raw_conditions_or_provenance_blobs() -> Non
 
 
 def test_context_lifting_does_not_define_or_export_context_reference() -> None:
-    import propstore.context_lifting as context_lifting
+    import propstore.families.contexts.lifting as context_lifting
 
     tree = _context_lifting_tree()
 

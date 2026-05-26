@@ -31,7 +31,7 @@ from propstore.app.world_reasoning import (
     _praf_extensions,
 )
 from propstore.aspic_bridge.build import compile_bridge_context
-from propstore.context_lifting import (
+from propstore.families.contexts.lifting import (
     IstProposition,
     LiftingException,
     LiftingDecisionStatus,

@@ -7,7 +7,7 @@ from pathlib import Path
 RUNTIME_MODULES = (
     Path("propstore/core/activation.py"),
     Path("propstore/condition_classifier.py"),
-    Path("propstore/context_lifting.py"),
+    Path("propstore/families/contexts/lifting.py"),
     Path("propstore/world/model.py"),
     Path("propstore/world/bound.py"),
     Path("propstore/world/assignment_selection_policy.py"),

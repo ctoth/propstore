@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import fields, is_dataclass
 
-import propstore.context_lifting as context_lifting
+import propstore.families.contexts.lifting as context_lifting
 
 
 def test_lifting_decision_status_has_lifted_blocked_and_unknown() -> None:
