@@ -37,9 +37,11 @@ from propstore.source import (
     initial_source_document,
     promote_source_branch,
 )
-from propstore.families.documents.sources import (
+from propstore.families.sources.declaration import (
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
+)
+from propstore.families.stances.declaration import (
     SourceStanceEntryDocument,
 )
 from propstore.source.promote import load_finalize_report
