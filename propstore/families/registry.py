@@ -46,6 +46,8 @@ from propstore.families.claims.declaration import (
     JUSTIFICATION_CHARTER,
     SOURCE_CLAIM_BATCH_SPEC,
     SOURCE_JUSTIFICATION_BATCH_SPEC,
+    SourceClaimDocument,
+    SourceJustificationDocument,
     claim_document_to_payload,
 )
 from propstore.families.concepts.declaration import (
@@ -53,6 +55,7 @@ from propstore.families.concepts.declaration import (
     AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
     ConceptDocument,
     SOURCE_CONCEPT_BATCH_SPEC,
+    SourceConceptEntryDocument,
 )
 from propstore.families.contexts.declaration import CONTEXT_CHARTER
 from propstore.families.forms.declaration import FORM_CHARTER
@@ -76,21 +79,16 @@ from propstore.families.rules.declaration import (
     RuleDocument,
     RuleSuperiorityDocument,
 )
-from propstore.families.documents.sources import (
-    SourceClaimDocument,
-    SourceConceptEntryDocument,
-    SourceFinalizeReportDocument,
-    SourceJustificationDocument,
-    SourceStanceEntryDocument,
-)
 from propstore.families.sameas.declaration import SameAsAssertionDocument
 from propstore.families.source_alignment.declaration import (
     SOURCE_ALIGNMENT_FAMILY_CONTRACT_VERSION,
     ConceptAlignmentArtifactDocument,
 )
+from propstore.families.sources.declaration import SourceFinalizeReportDocument
 from propstore.families.stances.declaration import (
     SOURCE_STANCE_BATCH_SPEC,
     STANCE_CHARTER,
+    SourceStanceEntryDocument,
     StanceDocument,
 )
 from propstore.families.worldlines.declaration import (
