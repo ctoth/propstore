@@ -409,6 +409,7 @@ def _promoted_stance_documents(
                 "strength": stance.strength,
                 "note": stance.note,
                 "conditions_differ": stance.conditions_differ,
+                "opinion": stance.opinion,
                 "resolution": (
                     None
                     if stance.resolution is None
