@@ -35,7 +35,6 @@ from propstore.preference import claim_strength
 from propstore.probabilistic_relations import (
     ClaimGraphRelations,
     ProbabilisticRelation,
-    relation_from_row,
     relation_map,
 )
 from propstore.core.environment import (
@@ -69,7 +68,7 @@ class SharedAnalyzerInput:
     active_graph: WorldActivationGraph
     comparison: str
     claims_by_id: dict[str, ClaimNode]
-    stance_rows: tuple[dict, ...]
+    stance_rows: tuple[RelationEdge, ...]
     relations: ClaimGraphRelations
     argumentation_framework: ArgumentationFramework
     bipolar_framework: BipolarArgumentationFramework
@@ -131,33 +130,6 @@ def _cayrol_derived_defeats(
     supports: set[tuple[str, str]],
 ) -> set[tuple[str, str]]:
     return set(_cayrol_derived_defeats_impl(frozenset(defeats), frozenset(supports)))
-
-
-def _row_identity_from_provenance(provenance: ProvenanceRecord | None) -> tuple[tuple[str, str], ...]:
-    if provenance is None:
-        return ()
-    raw = dict(provenance.extras).get("row_identity")
-    if isinstance(raw, tuple):
-        return tuple((str(key), str(value)) for key, value in raw)
-    return ()
-
-
-def _stance_row_from_edge(edge: RelationEdge) -> dict:
-    data = {
-        "claim_id": edge.source_id,
-        "target_claim_id": edge.target_id,
-        "stance_type": edge.relation_type,
-    }
-    data.update(dict(edge.attributes))
-    if edge.provenance is not None:
-        if edge.provenance.source_table is not None:
-            data.setdefault("source_table", edge.provenance.source_table)
-        if edge.provenance.source_id is not None:
-            data.setdefault("source_id", edge.provenance.source_id)
-        row_identity = _row_identity_from_provenance(edge.provenance)
-        for key, value in row_identity:
-            data.setdefault(key, value)
-    return data
 
 
 def _conflict_row_from_witness(conflict: GraphConflictWitness) -> dict:
@@ -270,10 +242,10 @@ def _graph_claim_rows(active_graph: WorldActivationGraph) -> dict[str, ClaimNode
     }
 
 
-def _graph_stance_rows(active_graph: WorldActivationGraph) -> list[dict]:
+def _graph_stance_edges(active_graph: WorldActivationGraph) -> list[RelationEdge]:
     active_ids = _active_claim_ids(active_graph)
     return [
-        _stance_row_from_edge(edge)
+        edge
         for edge in active_graph.compiled.relations
         if edge.relation_type in _GRAPH_RELATION_TYPES
         and edge.source_id in active_ids
@@ -295,31 +267,25 @@ def _collect_claim_graph_relations(
     active_graph: WorldActivationGraph,
     *,
     comparison: str,
-) -> tuple[dict[str, ClaimNode], tuple[dict, ...], ClaimGraphRelations]:
-    from propstore.praf import NoCalibration, p_relation_from_stance
-
+) -> tuple[dict[str, ClaimNode], tuple[RelationEdge, ...], ClaimGraphRelations]:
     active_ids = _active_claim_ids(active_graph)
     claims_by_id = _graph_claim_rows(active_graph)
-    stances = list(_graph_stance_rows(active_graph))
+    stances = list(_graph_stance_edges(active_graph))
     conflicts = _graph_conflict_rows(active_graph)
 
     existing_stance_pairs = {
-        (stance["claim_id"], stance["target_claim_id"])
+        (stance.source_id, stance.target_id)
         for stance in stances
     }
     existing_stance_undirected = {
-        frozenset({stance["claim_id"], stance["target_claim_id"]})
+        frozenset({stance.source_id, stance.target_id})
         for stance in stances
     }
     existing_attack_undirected = {
-        frozenset({stance["claim_id"], stance["target_claim_id"]})
+        frozenset({stance.source_id, stance.target_id})
         for stance in stances
-        if stance["stance_type"] in _ATTACK_TYPES
+        if stance.relation_type in _ATTACK_TYPES
     }
-    claims_with_stances: set[str] = set()
-    for stance in stances:
-        claims_with_stances.add(stance["claim_id"])
-        claims_with_stances.add(stance["target_claim_id"])
 
     for conflict in conflicts:
         warning_class = conflict.get("warning_class")
@@ -338,20 +304,20 @@ def _collect_claim_graph_relations(
                 if (source_id, target_id) in existing_stance_pairs:
                     continue
                 stances.append(
-                    {
-                        "claim_id": source_id,
-                        "target_claim_id": target_id,
-                        "stance_type": coerce_graph_relation_type("rebuts"),
-                    }
+                    RelationEdge(
+                        source_id=source_id,
+                        target_id=target_id,
+                        relation_type=coerce_graph_relation_type("rebuts"),
+                    )
                 )
             continue
         for source_id, target_id in ((left_id, right_id), (right_id, left_id)):
             stances.append(
-                {
-                    "claim_id": source_id,
-                    "target_claim_id": target_id,
-                    "stance_type": coerce_graph_relation_type("rebuts"),
-                }
+                RelationEdge(
+                    source_id=source_id,
+                    target_id=target_id,
+                    relation_type=coerce_graph_relation_type("rebuts"),
+                )
             )
 
     attacks: set[tuple[str, str]] = set()
@@ -362,22 +328,21 @@ def _collect_claim_graph_relations(
     direct_defeat_relations: list[ProbabilisticRelation] = []
 
     for stance in stances:
-        source_id = stance["claim_id"]
-        target_id = stance["target_claim_id"]
-        stance_type = stance["stance_type"]
+        source_id = stance.source_id
+        target_id = stance.target_id
+        stance_type = stance.relation_type
         if source_id not in claims_by_id or target_id not in claims_by_id:
             continue
         if stance_type in _SUPPORT_TYPES:
             supports.add((source_id, target_id))
-            support_opinion = p_relation_from_stance(stance)
-            if not isinstance(support_opinion, NoCalibration):
+            support_opinion = stance.opinion
+            if support_opinion is not None:
                 support_relations.append(
-                    relation_from_row(
+                    ProbabilisticRelation(
                         kind="support",
                         source=source_id,
                         target=target_id,
                         opinion=support_opinion,
-                        row=stance,
                     )
                 )
             continue
@@ -385,28 +350,26 @@ def _collect_claim_graph_relations(
             continue
 
         attacks.add((source_id, target_id))
-        attack_opinion = p_relation_from_stance(stance)
-        if not isinstance(attack_opinion, NoCalibration):
+        attack_opinion = stance.opinion
+        if attack_opinion is not None:
             attack_relations.append(
-                relation_from_row(
+                ProbabilisticRelation(
                     kind="attack",
                     source=source_id,
                     target=target_id,
                     opinion=attack_opinion,
-                    row=stance,
                 )
             )
 
         if stance_type in _UNCONDITIONAL_TYPES:
             direct_defeats.add((source_id, target_id))
-            if not isinstance(attack_opinion, NoCalibration):
+            if attack_opinion is not None:
                 direct_defeat_relations.append(
-                    relation_from_row(
+                    ProbabilisticRelation(
                         kind="direct_defeat",
                         source=source_id,
                         target=target_id,
                         opinion=attack_opinion,
-                        row=stance,
                     )
                 )
             continue
@@ -421,14 +384,13 @@ def _collect_claim_graph_relations(
                 comparison,
             ):
                 direct_defeats.add((source_id, target_id))
-                if not isinstance(attack_opinion, NoCalibration):
+                if attack_opinion is not None:
                     direct_defeat_relations.append(
-                        relation_from_row(
+                        ProbabilisticRelation(
                             kind="direct_defeat",
                             source=source_id,
                             target=target_id,
                             opinion=attack_opinion,
-                            row=stance,
                         )
                     )
 
