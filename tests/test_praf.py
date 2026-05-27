@@ -10,6 +10,7 @@ import pytest
 from argumentation.dung import ArgumentationFramework, grounded_extension, preferred_extensions
 from argumentation.probabilistic import ProbabilisticAF as ArgumentationProbabilisticAF
 from propstore.families.claims.types import ClaimType
+from propstore.families.relations.declaration import Stance
 from propstore.core.graph_types import ClaimNode
 from propstore.core.id_types import ClaimId
 from propstore.opinion import Opinion
@@ -534,16 +535,15 @@ def test_build_praf_from_store():
         "c2": claim_from_payload({"id": "c2", "concept_id": "x", "type": "parameter"}),
     }
     store.stances_between.return_value = [
-        stance_from_payload({
-            "claim_id": "c1",
-            "target_claim_id": "c2",
-            "stance_type": "undercuts",
-            "confidence": 0.9,
-            "opinion_belief": 0.8,
-            "opinion_disbelief": 0.05,
-            "opinion_uncertainty": 0.15,
-            "opinion_base_rate": 0.5,
-        }),
+        Stance(
+            source_kind="claim",
+            source_id="c1",
+            relation_type="undercuts",
+            target_kind="claim",
+            target_id="c2",
+            confidence=0.9,
+            opinion=Opinion(0.8, 0.05, 0.15, 0.5),
+        ),
     ]
 
     praf = build_praf(store, {"c1", "c2"})
