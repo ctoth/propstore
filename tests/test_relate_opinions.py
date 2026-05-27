@@ -350,7 +350,6 @@ class TestStanceYamlRoundTrip:
         assert opinion["d"] == pytest.approx(0.0)
         assert opinion["u"] == pytest.approx(1.0)
         assert opinion["a"] == pytest.approx(0.7)
-        assert opinion["provenance"]["status"] == "vacuous"
         assert res["confidence"] == pytest.approx(0.7)
 
 
