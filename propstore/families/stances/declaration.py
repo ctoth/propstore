@@ -13,6 +13,11 @@ from quire.lifecycle import ConflictPolicy, FamilyState, FamilyTransition
 from quire.references import ForeignKeySpec
 from quire.versions import VersionId
 
+from propstore.families.claims.declaration import (
+    ClaimSourceDocument,
+    ExtractionProvenanceDocument,
+    ResolutionDocument,
+)
 from propstore.stances import StanceType
 
 
@@ -150,7 +155,46 @@ else:
     StanceDocument.__module__ = __name__
 
 
-from propstore.families.documents.sources import SourceStanceEntryDocument
+class SourceStanceEntry(FamilyModel):
+    pass
+
+
+SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-stance-entry-document",
+        name="source-stance-entry",
+        contract_version=_STANCE_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-stance-entry-document",
+            contract_version=_STANCE_WORLD_CONTRACT_VERSION,
+            doc_type=SourceStanceEntry,
+            placement=FlatYamlPlacement(".source/stances", str),
+        ),
+        identity_field="source_claim",
+    ),
+    model=SourceStanceEntry,
+    fields=(
+        CharterField("source", ClaimSourceDocument, nullable=True),
+        CharterField("produced_by", ExtractionProvenanceDocument, nullable=True),
+        CharterField("source_claim", str, nullable=True),
+        CharterField("perspective_source_claim_id", str, nullable=True),
+        CharterField("target", str, nullable=True),
+        CharterField("type", StanceType, nullable=True, enum_type=StanceType),
+        CharterField("strength", str, nullable=True),
+        CharterField("note", str, nullable=True),
+        CharterField("conditions_differ", str, nullable=True),
+        CharterField("resolution", ResolutionDocument, nullable=True),
+        CharterField("target_justification_id", str, nullable=True),
+        CharterField("artifact_code", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+
+
+SourceStanceEntryDocument: Any = SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER.generated_document()
+SourceStanceEntryDocument.__name__ = "SourceStanceEntryDocument"
+SourceStanceEntryDocument.__qualname__ = "SourceStanceEntryDocument"
+SourceStanceEntryDocument.__module__ = __name__
 
 SOURCE_STANCE_BATCH_SPEC = DocumentBatchSpec(
     batch_name="source-stances",
