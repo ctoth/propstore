@@ -201,6 +201,47 @@ def test_build_compiled_world_graph_preserves_sidecar_rows(graph_build_world) ->
     }
 
 
+def test_build_compiled_world_graph_carries_relation_opinion(graph_build_world) -> None:
+    from propstore.core.graph_build import build_compiled_world_graph
+    from propstore.opinion import Opinion
+
+    opinion = Opinion(0.7, 0.1, 0.2, 0.5)
+
+    class OpinionStore:
+        def __init__(self, base) -> None:
+            self._base = base
+
+        def all_concepts(self):
+            return self._base.all_concepts()
+
+        def claims_for(self, concept_id):
+            return self._base.claims_for(concept_id)
+
+        def all_parameterizations(self):
+            return self._base.all_parameterizations()
+
+        def all_relationships(self):
+            return self._base.all_relationships()
+
+        def all_claim_stances(self):
+            rows = list(self._base.all_claim_stances())
+            rows[0].opinion = opinion
+            return rows
+
+        def conflicts(self, concept_id=None):
+            return self._base.conflicts(concept_id)
+
+    graph = build_compiled_world_graph(OpinionStore(graph_build_world))
+
+    stance_edges = [
+        relation
+        for relation in graph.relations
+        if relation.relation_type is GraphRelationType.REBUTS
+    ]
+    assert stance_edges
+    assert stance_edges[0].opinion is opinion
+
+
 def test_world_relationship_rows_use_concept_relationship_enum(graph_build_world) -> None:
     relationships = graph_build_world.all_relationships()
 
