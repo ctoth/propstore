@@ -399,7 +399,7 @@ def propose_source_concept(
     repo: Repository,
     request: SourceConceptProposalRequest,
 ) -> SourceConceptProposalReport:
-    from propstore.families.documents.sources import SourceConceptFormParametersDocument
+    from propstore.families.concepts.declaration import SourceConceptFormParametersDocument
     from propstore.source import commit_source_concept_proposal
 
     if request.closed and request.form_name != "category":
