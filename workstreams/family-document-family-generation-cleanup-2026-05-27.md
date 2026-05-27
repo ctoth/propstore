@@ -74,7 +74,7 @@ non-persisted semantic value objects with a different name:
   charter documents in `propstore/families/sources/declaration.py`.
 - [x] Replace source concept nested hand-written documents with generated
   charter documents in `propstore/families/concepts/declaration.py`.
-- [ ] Replace source claim/justification nested hand-written documents with
+- [x] Replace source claim/justification nested hand-written documents with
   generated charter documents in `propstore/families/claims/declaration.py`.
 - [ ] Reroute all production imports away from `propstore.families.documents`.
 - [ ] Regenerate/update contract manifest entries that still name
