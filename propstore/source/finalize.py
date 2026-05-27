@@ -12,7 +12,11 @@ from propstore.families.identity.micropubs import (
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from quire.documents import convert_document_value
-from propstore.families.claims.declaration import ProvenanceDocument
+from propstore.families.claims.declaration import (
+    ProvenanceDocument,
+    SourceClaimDocument,
+    SourceJustificationDocument,
+)
 from propstore.families.contexts.declaration import ContextReferenceDocument
 
 from .common import (
@@ -20,17 +24,12 @@ from .common import (
     source_paper_slug,
     source_tag_uri,
 )
-from propstore.families.documents.sources import (
-    SourceClaimDocument,
-    SourceFinalizeReportDocument,
-    SourceJustificationDocument,
-    SourceStanceEntryDocument,
-)
 from propstore.families.micropublications.declaration import (
     MicropublicationDocument,
     MicropublicationEvidenceDocument,
 )
-from propstore.families.sources.declaration import SourceDocument
+from propstore.families.sources.declaration import SourceDocument, SourceFinalizeReportDocument
+from propstore.families.stances.declaration import SourceStanceEntryDocument
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
     source_claim_index as build_source_claim_index,
