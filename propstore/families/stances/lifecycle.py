@@ -37,6 +37,7 @@ from propstore.proposal_lifecycle import (
     ProposalPromotionResult,
     UnknownProposalPath,
 )
+from propstore.opinion import Opinion
 from propstore.stances import StanceType
 
 if TYPE_CHECKING:
@@ -52,6 +53,7 @@ class StanceProposalInput:
     strength: str | None = None
     note: str | None = None
     conditions_differ: str | None = None
+    opinion: Opinion | None = None
     resolution: Mapping[str, object] | None = None
     target_justification_id: str | None = None
     artifact_code: str | None = None
@@ -94,6 +96,7 @@ def _coerce_stance_proposal_input(stance: Mapping[str, object]) -> StanceProposa
         strength=_optional_str(stance.get("strength")),
         note=_optional_str(stance.get("note")),
         conditions_differ=_optional_str(stance.get("conditions_differ")),
+        opinion=cast(Opinion | None, stance.get("opinion")),
         resolution=_optional_mapping(stance.get("resolution")),
         target_justification_id=_optional_str(stance.get("target_justification_id")),
         artifact_code=_optional_str(stance.get("artifact_code")),
@@ -129,6 +132,7 @@ def build_stance_proposal_document(
         "strength": stance.strength,
         "note": stance.note,
         "conditions_differ": stance.conditions_differ,
+        "opinion": stance.opinion,
         "resolution": stance.resolution,
         "target_justification_id": stance.target_justification_id,
         "artifact_code": stance.artifact_code,
