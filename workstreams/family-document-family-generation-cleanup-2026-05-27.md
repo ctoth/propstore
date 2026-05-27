@@ -72,7 +72,7 @@ non-persisted semantic value objects with a different name:
 
 - [x] Replace source value/report hand-written documents with generated
   charter documents in `propstore/families/sources/declaration.py`.
-- [ ] Replace source concept nested hand-written documents with generated
+- [x] Replace source concept nested hand-written documents with generated
   charter documents in `propstore/families/concepts/declaration.py`.
 - [ ] Replace source claim/justification nested hand-written documents with
   generated charter documents in `propstore/families/claims/declaration.py`.
