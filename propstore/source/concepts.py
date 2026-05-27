@@ -6,8 +6,8 @@ from propstore.repository import Repository, retry_live_branch_update
 from propstore.families.registry import SourceRef
 from quire.documents import decode_document_batch_bytes
 
-from propstore.families.concepts.declaration import SOURCE_CONCEPT_BATCH_SPEC
-from propstore.families.documents.sources import (
+from propstore.families.concepts.declaration import (
+    SOURCE_CONCEPT_BATCH_SPEC,
     SourceConceptEntryDocument,
     SourceConceptFormParametersDocument,
     SourceConceptRegistryMatchDocument,
