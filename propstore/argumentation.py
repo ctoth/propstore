@@ -669,12 +669,7 @@ def build_praf_from_shared_input(shared: SharedAnalyzerInput):
     omitted_relations = {
         edge: NoCalibration(
             reason="missing_relation_calibration",
-            missing_fields=(
-                "opinion_belief",
-                "opinion_disbelief",
-                "opinion_uncertainty",
-                "confidence",
-            ),
+            missing_fields=("opinion",),
         )
         for edge in missing_relation_edges
     }
