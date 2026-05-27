@@ -14,7 +14,6 @@ from propstore.core.graph_types import CompiledWorldGraph, RelationEdge
 from propstore.families.claims.declaration import Claim
 from propstore.families.relations.declaration import Stance
 from propstore.opinion import Opinion
-from propstore.stances import StanceType
 from tests.typed_family_fixtures import (
     claim_from_payload,
     claim_node_from_payload,
@@ -81,6 +80,7 @@ class _MockStore:
                     source_id=str(stance.claim_id),
                     target_id=str(stance.target_claim_id),
                     relation_type=coerce_graph_relation_type(stance.stance_type),
+                    opinion=stance.opinion,
                     attributes=tuple(
                         (key, value)
                         for key, value in stance.attribute_mapping().items()
@@ -138,8 +138,7 @@ def _make_claims_and_stances_deterministic():
         {
             "claim_id": "c1", "target_claim_id": "c2",
             "stance_type": "rebuts", "confidence": 0.9,
-            "opinion_belief": 0.95, "opinion_disbelief": 0.03,
-            "opinion_uncertainty": 0.02, "opinion_base_rate": 0.5,
+            "opinion": Opinion(0.95, 0.03, 0.02, 0.5),
         },
     ]
     return claims, stances
@@ -164,15 +163,13 @@ def _make_claims_and_stances_uncertain():
         {
             "claim_id": "c1", "target_claim_id": "c2",
             "stance_type": "rebuts", "confidence": 0.3,
-            "opinion_belief": 0.2, "opinion_disbelief": 0.1,
-            "opinion_uncertainty": 0.7, "opinion_base_rate": 0.15,
+            "opinion": Opinion(0.2, 0.1, 0.7, 0.15),
             # E(omega) = 0.2 + 0.15 * 0.7 = 0.305
         },
         {
             "claim_id": "c2", "target_claim_id": "c1",
             "stance_type": "rebuts", "confidence": 0.95,
-            "opinion_belief": 0.90, "opinion_disbelief": 0.03,
-            "opinion_uncertainty": 0.07, "opinion_base_rate": 0.5,
+            "opinion": Opinion(0.90, 0.03, 0.07, 0.5),
             # E(omega) = 0.90 + 0.5 * 0.07 = 0.935
         },
     ]
@@ -484,13 +481,12 @@ def test_build_praf_deterministic():
             f"P_D has key {defeat} not in framework.defeats"
         )
 
-    # Primitive relation records preserve provenance-bearing uncertainty.
+    # Primitive relation records preserve typed relation opinions.
     assert len(praf.attack_relations) == 1
     attack_relation = praf.attack_relations[0]
     assert attack_relation.kind == "attack"
     assert attack_relation.edge == ("c1", "c2")
-    assert attack_relation.provenance is not None
-    assert attack_relation.provenance.stance_type is StanceType.REBUTS
+    assert attack_relation.opinion == Opinion(0.95, 0.03, 0.02, 0.5)
     assert len(praf.direct_defeat_relations) == 1
     assert praf.direct_defeat_relations[0].edge == ("c1", "c2")
 
@@ -522,15 +518,13 @@ def test_build_praf_uncertain_defeat_probabilities():
         {
             "claim_id": "c1", "target_claim_id": "c2",
             "stance_type": "rebuts", "confidence": 0.3,
-            "opinion_belief": 0.2, "opinion_disbelief": 0.1,
-            "opinion_uncertainty": 0.7, "opinion_base_rate": 0.15,
+            "opinion": Opinion(0.2, 0.1, 0.7, 0.15),
             # E(omega) = 0.2 + 0.15 * 0.7 = 0.305
         },
         {
             "claim_id": "c2", "target_claim_id": "c1",
             "stance_type": "rebuts", "confidence": 0.95,
-            "opinion_belief": 0.90, "opinion_disbelief": 0.03,
-            "opinion_uncertainty": 0.07, "opinion_base_rate": 0.5,
+            "opinion": Opinion(0.90, 0.03, 0.07, 0.5),
             # E(omega) = 0.90 + 0.5 * 0.07 = 0.935
         },
     ]
@@ -646,8 +640,7 @@ def _make_claims_and_stances_decision_criterion_tie():
     ]
     # Symmetric mutual defeats with identical opinions — produces a PrAF tie
     symmetric_opinion = {
-        "opinion_belief": 0.8, "opinion_disbelief": 0.05,
-        "opinion_uncertainty": 0.15, "opinion_base_rate": 0.5,
+        "opinion": Opinion(0.8, 0.05, 0.15, 0.5),
         "confidence": 0.9,
     }
     stances = [
