@@ -6,12 +6,14 @@ from typing import Any, cast
 from propstore.core.conditions.registry import ConceptInfo
 from propstore.families.claims.declaration import (
     ClaimSourceDocument,
+    ExtractionProvenanceDocument,
     SOURCE_CLAIM_BATCH_SPEC,
+    SourceClaimDocument,
+    SourceProvenanceDocument,
 )
 from propstore.families.claims.lifecycle import normalize_source_claims_payload
 from propstore.families.registry import SourceRef
 from propstore.families.claims.types import ClaimType
-from propstore.families.documents.sources import SourceProvenanceDocument
 from propstore.repository import Repository, retry_live_branch_update
 from quire.documents import (
     convert_document_value,
@@ -23,7 +25,6 @@ from .common import (
     normalize_source_slug,
     source_tag_uri,
 )
-from propstore.families.documents.sources import ExtractionProvenanceDocument, SourceClaimDocument
 
 
 def source_concept_handles(repo: Repository, source_name: str) -> set[str]:
