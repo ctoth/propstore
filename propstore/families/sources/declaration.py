@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
@@ -50,10 +50,13 @@ SOURCE_ORIGIN_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceOriginDocument: Any = SOURCE_ORIGIN_CHARTER.generated_document()
-SourceOriginDocument.__name__ = "SourceOriginDocument"
-SourceOriginDocument.__qualname__ = "SourceOriginDocument"
-SourceOriginDocument.__module__ = __name__
+if TYPE_CHECKING:
+    SourceOriginDocument: TypeAlias = Any
+else:
+    SourceOriginDocument: Any = SOURCE_ORIGIN_CHARTER.generated_document()
+    SourceOriginDocument.__name__ = "SourceOriginDocument"
+    SourceOriginDocument.__qualname__ = "SourceOriginDocument"
+    SourceOriginDocument.__module__ = __name__
 
 
 class SourceTrustQuality(FamilyModel):
@@ -83,10 +86,13 @@ SOURCE_TRUST_QUALITY_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceTrustQualityDocument: Any = SOURCE_TRUST_QUALITY_CHARTER.generated_document()
-SourceTrustQualityDocument.__name__ = "SourceTrustQualityDocument"
-SourceTrustQualityDocument.__qualname__ = "SourceTrustQualityDocument"
-SourceTrustQualityDocument.__module__ = __name__
+if TYPE_CHECKING:
+    SourceTrustQualityDocument: TypeAlias = Any
+else:
+    SourceTrustQualityDocument: Any = SOURCE_TRUST_QUALITY_CHARTER.generated_document()
+    SourceTrustQualityDocument.__name__ = "SourceTrustQualityDocument"
+    SourceTrustQualityDocument.__qualname__ = "SourceTrustQualityDocument"
+    SourceTrustQualityDocument.__module__ = __name__
 
 
 class SourceTrust(FamilyModel):
@@ -115,10 +121,13 @@ SOURCE_TRUST_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceTrustDocument: Any = SOURCE_TRUST_CHARTER.generated_document()
-SourceTrustDocument.__name__ = "SourceTrustDocument"
-SourceTrustDocument.__qualname__ = "SourceTrustDocument"
-SourceTrustDocument.__module__ = __name__
+if TYPE_CHECKING:
+    SourceTrustDocument: TypeAlias = Any
+else:
+    SourceTrustDocument: Any = SOURCE_TRUST_CHARTER.generated_document()
+    SourceTrustDocument.__name__ = "SourceTrustDocument"
+    SourceTrustDocument.__qualname__ = "SourceTrustDocument"
+    SourceTrustDocument.__module__ = __name__
 
 
 class SourceMetadata(FamilyModel):
@@ -142,10 +151,13 @@ SOURCE_METADATA_CHARTER: FamilyCharter = FamilyCharter(
     fields=(CharterField("name", str, nullable=False),),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceMetadataDocument: Any = SOURCE_METADATA_CHARTER.generated_document()
-SourceMetadataDocument.__name__ = "SourceMetadataDocument"
-SourceMetadataDocument.__qualname__ = "SourceMetadataDocument"
-SourceMetadataDocument.__module__ = __name__
+if TYPE_CHECKING:
+    SourceMetadataDocument: TypeAlias = Any
+else:
+    SourceMetadataDocument: Any = SOURCE_METADATA_CHARTER.generated_document()
+    SourceMetadataDocument.__name__ = "SourceMetadataDocument"
+    SourceMetadataDocument.__qualname__ = "SourceMetadataDocument"
+    SourceMetadataDocument.__module__ = __name__
 
 
 class SourceParameterizationGroupMerge(FamilyModel):
@@ -173,12 +185,17 @@ SOURCE_PARAMETERIZATION_GROUP_MERGE_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceParameterizationGroupMergeDocument: Any = (
-    SOURCE_PARAMETERIZATION_GROUP_MERGE_CHARTER.generated_document()
-)
-SourceParameterizationGroupMergeDocument.__name__ = "SourceParameterizationGroupMergeDocument"
-SourceParameterizationGroupMergeDocument.__qualname__ = "SourceParameterizationGroupMergeDocument"
-SourceParameterizationGroupMergeDocument.__module__ = __name__
+if TYPE_CHECKING:
+    SourceParameterizationGroupMergeDocument: TypeAlias = Any
+else:
+    SourceParameterizationGroupMergeDocument: Any = (
+        SOURCE_PARAMETERIZATION_GROUP_MERGE_CHARTER.generated_document()
+    )
+    SourceParameterizationGroupMergeDocument.__name__ = "SourceParameterizationGroupMergeDocument"
+    SourceParameterizationGroupMergeDocument.__qualname__ = (
+        "SourceParameterizationGroupMergeDocument"
+    )
+    SourceParameterizationGroupMergeDocument.__module__ = __name__
 
 
 class SourceFinalizeCalibration(FamilyModel):
@@ -206,10 +223,15 @@ SOURCE_FINALIZE_CALIBRATION_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceFinalizeCalibrationDocument: Any = SOURCE_FINALIZE_CALIBRATION_CHARTER.generated_document()
-SourceFinalizeCalibrationDocument.__name__ = "SourceFinalizeCalibrationDocument"
-SourceFinalizeCalibrationDocument.__qualname__ = "SourceFinalizeCalibrationDocument"
-SourceFinalizeCalibrationDocument.__module__ = __name__
+if TYPE_CHECKING:
+    SourceFinalizeCalibrationDocument: TypeAlias = Any
+else:
+    SourceFinalizeCalibrationDocument: Any = (
+        SOURCE_FINALIZE_CALIBRATION_CHARTER.generated_document()
+    )
+    SourceFinalizeCalibrationDocument.__name__ = "SourceFinalizeCalibrationDocument"
+    SourceFinalizeCalibrationDocument.__qualname__ = "SourceFinalizeCalibrationDocument"
+    SourceFinalizeCalibrationDocument.__module__ = __name__
 
 
 class SourceFinalizeReport(FamilyModel):
@@ -250,10 +272,13 @@ SOURCE_FINALIZE_REPORT_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceFinalizeReportDocument: Any = SOURCE_FINALIZE_REPORT_CHARTER.generated_document()
-SourceFinalizeReportDocument.__name__ = "SourceFinalizeReportDocument"
-SourceFinalizeReportDocument.__qualname__ = "SourceFinalizeReportDocument"
-SourceFinalizeReportDocument.__module__ = __name__
+if TYPE_CHECKING:
+    SourceFinalizeReportDocument: TypeAlias = Any
+else:
+    SourceFinalizeReportDocument: Any = SOURCE_FINALIZE_REPORT_CHARTER.generated_document()
+    SourceFinalizeReportDocument.__name__ = "SourceFinalizeReportDocument"
+    SourceFinalizeReportDocument.__qualname__ = "SourceFinalizeReportDocument"
+    SourceFinalizeReportDocument.__module__ = __name__
 
 
 SOURCE_CHARTER: FamilyCharter = FamilyCharter(
