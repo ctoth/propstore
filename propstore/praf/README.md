@@ -33,8 +33,8 @@ surfaces stay here.
 - `enforce_coh(...)`
   - applies the COH rationality constraint to probabilistic argument
     existence opinions.
-- `p_arg_from_claim(...)`, `p_relation_from_stance(...)`
-  - propstore-specific mappings from claim/stance payloads into opinions.
+- `p_arg_from_claim(...)`
+  - propstore-specific mapping from typed claim payloads into opinions.
 
 ## Extraction Rule
 
