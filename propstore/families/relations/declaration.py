@@ -36,6 +36,8 @@ from propstore.stances import VALID_STANCE_TYPES
 
 
 class RelationEdge(FamilyModel):
+    opinion: Opinion | None = None
+
     def __eq__(self, other: object) -> bool:
         return (
             type(self) is type(other)
