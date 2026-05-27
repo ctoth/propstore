@@ -10,12 +10,13 @@ from quire.documents import convert_document_value, document_to_payload
 from quire.references import FamilyReferenceIndex
 
 from propstore.canonical_namespaces import assert_namespace_not_reserved
-from propstore.families.claims.declaration import ClaimDocument, ClaimLogicalIdDocument
-from propstore.families.claims.references import resolve_first_claim_reference_id
-from propstore.families.documents.sources import (
+from propstore.families.claims.declaration import (
+    ClaimDocument,
+    ClaimLogicalIdDocument,
     SourceClaimDocument,
     SourceJustificationDocument,
 )
+from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.identity.claims import (
     compute_claim_version_id,
     derive_claim_artifact_id,
