@@ -543,17 +543,13 @@ class TestConflictDerivedDefeats:
         synthetic_stances = [
             stance
             for stance in shared.stance_rows
-            if {stance["claim_id"], stance["target_claim_id"]} == {"vac_a", "vac_b"}
+            if {stance.source_id, stance.target_id} == {"vac_a", "vac_b"}
         ]
 
         assert len(synthetic_stances) == 2
         for stance in synthetic_stances:
-            assert stance["stance_type"] == "rebuts"
-            assert "confidence" not in stance
-            assert "opinion_belief" not in stance
-            assert "opinion_disbelief" not in stance
-            assert "opinion_uncertainty" not in stance
-            assert "opinion_base_rate" not in stance
+            assert stance.relation_type == "rebuts"
+            assert stance.opinion is None
 
     def test_overlap_conflict_generates_defeats(self, conn):
         """OVERLAP is a real value conflict — should generate defeats.
