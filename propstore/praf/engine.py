@@ -19,7 +19,7 @@ from argumentation.probabilistic import (
 
 from propstore.core.graph_types import ClaimNode
 from propstore.opinion import Opinion, W
-from propstore.probabilistic_relations import ProbabilisticRelation, relation_from_row
+from propstore.probabilistic_relations import ProbabilisticRelation
 from propstore.provenance import Provenance, ProvenanceStatus
 
 
@@ -128,34 +128,6 @@ def _missing_calibration(reason: str, *missing_fields: str) -> NoCalibration:
     )
 
 
-def _opinion_from_payload(
-    payload: Mapping[str, Any],
-    *,
-    prefix: str,
-    operation: str,
-) -> Opinion | NoCalibration | None:
-    b = payload.get(f"{prefix}belief")
-    d = payload.get(f"{prefix}disbelief")
-    u = payload.get(f"{prefix}uncertainty")
-    if b is None or d is None or u is None:
-        return None
-    a = payload.get(f"{prefix}base_rate")
-    if a is None:
-        return _missing_calibration("missing_base_rate", f"{prefix}base_rate")
-    belief = float(b)
-    disbelief = float(d)
-    uncertainty = float(u)
-    base_rate = float(a)
-    return Opinion(
-        belief,
-        disbelief,
-        uncertainty,
-        base_rate,
-        _praf_provenance(ProvenanceStatus.STATED, operation),
-        allow_dogmatic=uncertainty <= 1e-9,  # tautology citation: Josang 2001 dogmatic opinion has u=0.
-    )
-
-
 def _source_prior_opinion(raw: object) -> Opinion | None:
     if raw is None:
         return None
@@ -247,66 +219,6 @@ def _opinion_from_typed_claim(
     operation: str,
 ) -> Opinion | NoCalibration | None:
     return claim.opinion
-
-
-def p_relation_from_stance(stance: dict) -> Opinion | NoCalibration:
-    """Derive an edge-existence opinion from a stance's opinion columns."""
-    opinion = _opinion_from_payload(
-        stance,
-        prefix="opinion_",
-        operation="stance_opinion_columns",
-    )
-    if opinion is not None:
-        if isinstance(opinion, NoCalibration):
-            return opinion
-        return opinion
-
-    confidence = stance.get("confidence")
-    if confidence is not None:
-        confidence_value = float(confidence)
-        if confidence_value <= 1e-12:
-            return _missing_calibration(
-                "zero_confidence_without_opinion",
-                "opinion_belief",
-                "opinion_disbelief",
-                "opinion_uncertainty",
-            )
-        if stance.get("opinion_base_rate") is None:
-            return _missing_calibration("missing_base_rate", "opinion_base_rate")
-        a = float(stance["opinion_base_rate"])
-        if confidence_value >= 1.0 - 1e-12:
-            return _missing_calibration(
-                "raw_confidence_not_evidence",
-                "effective_sample_size",
-                "sample_size",
-            )
-        effective_sample_size = stance.get("effective_sample_size")
-        if effective_sample_size is None:
-            effective_sample_size = stance.get("sample_size")
-        if effective_sample_size is None or float(effective_sample_size) <= 0.0:
-            return _missing_calibration(
-                "missing_evidence_count",
-                "effective_sample_size",
-                "sample_size",
-            )
-        return Opinion.from_probability(
-            confidence_value,
-            float(effective_sample_size),
-            a,
-            provenance=_praf_provenance(ProvenanceStatus.STATED, "stance_confidence"),
-        )
-
-    return _missing_calibration(
-        "missing_relation_calibration",
-        "opinion_belief",
-        "opinion_disbelief",
-        "opinion_uncertainty",
-        "confidence",
-    )
-
-
-def p_defeat_from_stance(stance: dict) -> Opinion | NoCalibration:
-    return p_relation_from_stance(stance)
 
 
 def _has_coh_violation(
@@ -470,12 +382,11 @@ def summarize_defeat_relations(
     for edge, probability in probabilities.items():
         kind = "direct_defeat" if edge in direct_defeats else "derived_defeat"
         records.append(
-            relation_from_row(
+            ProbabilisticRelation(
                 kind=kind,
                 source=edge[0],
                 target=edge[1],
                 opinion=_defeat_summary_opinion(probability),
-                row=None,
                 derived_from=(),
             )
         )
