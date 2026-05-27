@@ -76,10 +76,10 @@ non-persisted semantic value objects with a different name:
   charter documents in `propstore/families/concepts/declaration.py`.
 - [x] Replace source claim/justification nested hand-written documents with
   generated charter documents in `propstore/families/claims/declaration.py`.
-- [ ] Reroute all production imports away from `propstore.families.documents`.
+- [x] Reroute all production imports away from `propstore.families.documents`.
 - [ ] Regenerate/update contract manifest entries that still name
   `propstore.families.documents`.
-- [ ] Run `uv run pyright propstore`.
+- [x] Run `uv run pyright propstore`.
 - [ ] Reinstall and smoke the real CLI with `pks init`.
 
 ### Phase 2 - Existing family nested document cleanup
