@@ -120,10 +120,6 @@ class _ResolutionClaimView:
     value: float | str | None
     provenance: ClaimProvenance | None
     sample_size: int | None
-    opinion_belief: float | None
-    opinion_disbelief: float | None
-    opinion_uncertainty: float | None
-    opinion_base_rate: float | None
     confidence: float | None
 
 
@@ -155,10 +151,6 @@ def _resolution_claim_view(claim: Claim) -> _ResolutionClaimView:
         value=ClaimValueResolver.claim_value(claim),
         provenance=_claim_provenance(claim),
         sample_size=_claim_sample_size(claim),
-        opinion_belief=None,
-        opinion_disbelief=None,
-        opinion_uncertainty=None,
-        opinion_base_rate=None,
         confidence=None,
     )
 
