@@ -349,24 +349,6 @@ class ParameterBindingDocument(msgspec.Struct, kw_only=True, forbid_unknown_fiel
     note: str | None = None
 
 
-class OpinionDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    b: float | int
-    d: float | int
-    u: float | int
-    a: float | int
-    provenance: Provenance
-
-    def __post_init__(self) -> None:
-        for name, value in (("b", self.b), ("d", self.d), ("u", self.u)):
-            if value < -1e-9 or value > 1.0 + 1e-9:
-                raise ValueError(f"{name}={value} not in [0, 1]")
-        if self.a <= 0.0 or self.a >= 1.0:
-            raise ValueError(f"a={self.a} not in (0, 1)")
-        total = float(self.b) + float(self.d) + float(self.u)
-        if abs(total - 1.0) > 1e-9:
-            raise ValueError(f"b + d + u = {total}, expected 1.0")
-
-
 class ResolutionDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     method: str
     embedding_distance: float | int | None = None
@@ -374,7 +356,6 @@ class ResolutionDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=Tru
     model: str | None = None
     pass_number: int | None = None
     confidence: float | int | None = None
-    opinion: OpinionDocument | None = None
 
 
 class StanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
@@ -770,7 +751,6 @@ else:
         FitStatisticsDocument,
         VariableBindingDocument,
         ParameterBindingDocument,
-        OpinionDocument,
         ResolutionDocument,
         StanceDocument,
         AtomicPropositionDocument,
