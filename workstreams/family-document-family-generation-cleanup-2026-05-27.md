@@ -80,7 +80,7 @@ non-persisted semantic value objects with a different name:
 - [x] Regenerate/update contract manifest entries that still name
   `propstore.families.documents`.
 - [x] Run `uv run pyright propstore`.
-- [ ] Reinstall and smoke the real CLI with `pks init`.
+- [x] Reinstall and smoke the real CLI with `pks init`.
 
 ### Phase 2 - Existing family nested document cleanup
 
