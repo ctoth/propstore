@@ -30,6 +30,7 @@ from propstore.families.claims.references import ClaimReferenceRecord
 from propstore.families.claims.declaration import ResolutionDocument
 from propstore.families.stances.declaration import StanceDocument
 from propstore.families.meta.declaration import _WORLD_CONTRACT_VERSION
+from propstore.opinion import Opinion
 from propstore.stances import StanceType, coerce_stance_type
 from propstore.stances import VALID_STANCE_TYPES
 
@@ -56,10 +57,6 @@ class RelationEdge(FamilyModel):
             "embedding_distance",
             "pass_number",
             "confidence",
-            "opinion_belief",
-            "opinion_disbelief",
-            "opinion_uncertainty",
-            "opinion_base_rate",
         ):
             value = getattr(self, key, None)
             if value is not None:
@@ -143,10 +140,7 @@ RELATIONS_CHARTERS: tuple[FamilyCharter, FamilyCharter] = (
                 CharterField("embedding_distance", float),
                 CharterField("pass_number", int),
                 CharterField("confidence", float),
-                CharterField("opinion_belief", float),
-                CharterField("opinion_disbelief", float),
-                CharterField("opinion_uncertainty", float),
-                CharterField("opinion_base_rate", float),
+                CharterField("opinion", Opinion, nullable=True),
             ),
             indexes=(
                 CharterIndex("idx_relation_edge_source", ("source_kind", "source_id")),
@@ -202,7 +196,6 @@ def _resolution_value(resolution: ResolutionDocument | Mapping[str, object], fie
 def _resolution_attributes(resolution: ResolutionDocument | Mapping[str, object] | None) -> dict[str, object]:
     if resolution is None:
         return {}
-    opinion = _resolution_value(resolution, "opinion")
     embedding_distance = _resolution_value(resolution, "embedding_distance")
     confidence = _resolution_value(resolution, "confidence")
     attributes: dict[str, object] = {
@@ -221,22 +214,6 @@ def _resolution_attributes(resolution: ResolutionDocument | Mapping[str, object]
             else float(cast(float | int | str, confidence))
         ),
     }
-    if opinion is not None:
-        if isinstance(opinion, Mapping):
-            attributes.update(
-                opinion_belief=float(cast(float | int | str, opinion["b"])),
-                opinion_disbelief=float(cast(float | int | str, opinion["d"])),
-                opinion_uncertainty=float(cast(float | int | str, opinion["u"])),
-                opinion_base_rate=float(cast(float | int | str, opinion["a"])),
-            )
-        else:
-            opinion_obj = cast(Any, opinion)
-            attributes.update(
-                opinion_belief=float(opinion_obj.b),
-                opinion_disbelief=float(opinion_obj.d),
-                opinion_uncertainty=float(opinion_obj.u),
-                opinion_base_rate=float(opinion_obj.a),
-            )
     return {key: value for key, value in attributes.items() if value is not None}
 
 
