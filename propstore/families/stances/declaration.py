@@ -191,10 +191,26 @@ SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
 )
 
 
-SourceStanceEntryDocument: Any = SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER.generated_document()
-SourceStanceEntryDocument.__name__ = "SourceStanceEntryDocument"
-SourceStanceEntryDocument.__qualname__ = "SourceStanceEntryDocument"
-SourceStanceEntryDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceStanceEntryDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        source: ClaimSourceDocument | None = None
+        produced_by: ExtractionProvenanceDocument | None = None
+        source_claim: str | None = None
+        perspective_source_claim_id: str | None = None
+        target: str | None = None
+        type: StanceType | None = None
+        strength: str | None = None
+        note: str | None = None
+        conditions_differ: str | None = None
+        resolution: ResolutionDocument | None = None
+        target_justification_id: str | None = None
+        artifact_code: str | None = None
+
+else:
+    SourceStanceEntryDocument: Any = SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER.generated_document()
+    SourceStanceEntryDocument.__name__ = "SourceStanceEntryDocument"
+    SourceStanceEntryDocument.__qualname__ = "SourceStanceEntryDocument"
+    SourceStanceEntryDocument.__module__ = __name__
 
 SOURCE_STANCE_BATCH_SPEC = DocumentBatchSpec(
     batch_name="source-stances",

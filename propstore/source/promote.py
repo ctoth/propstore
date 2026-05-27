@@ -274,7 +274,7 @@ def _source_trust_payload(result: SourceTrustResult) -> dict[str, Any]:
         prior_base_rate=result.prior_base_rate,
         derived_from=tuple(firing.rule_id for firing in result.derived_from),
     )
-    return trust.to_payload()
+    return cast(dict[str, Any], document_to_payload(trust))
 
 
 def _commit_promote_time_trust_calibration(
@@ -716,7 +716,7 @@ def resolve_source_concept_promotions(
     for raw_entry, artifact_id, slug, _ in new_concepts.values():
         parameterization_relationships: list[dict[str, Any]] = []
         for relationship in raw_entry.parameterization_relationships:
-            normalized_relationship = relationship.to_payload()
+            normalized_relationship = cast(dict[str, Any], document_to_payload(relationship))
             normalized_inputs: list[str] = []
             for input_ref in normalized_relationship.get("inputs", []) or []:
                 if not isinstance(input_ref, str) or not input_ref:
@@ -741,9 +741,9 @@ def resolve_source_concept_promotions(
             "form": str(raw_entry.form or "structural").strip(),
         }
         if raw_entry.aliases:
-            concept_doc["aliases"] = [alias.to_payload() for alias in raw_entry.aliases]
+            concept_doc["aliases"] = [document_to_payload(alias) for alias in raw_entry.aliases]
         if raw_entry.form_parameters is not None:
-            concept_doc["form_parameters"] = raw_entry.form_parameters.to_payload()
+            concept_doc["form_parameters"] = document_to_payload(raw_entry.form_parameters)
         if parameterization_relationships:
             concept_doc["parameterization_relationships"] = parameterization_relationships
         concept_doc = normalize_canonical_concept_payload(concept_doc, local_handle=slug)

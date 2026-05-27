@@ -1547,10 +1547,17 @@ EXTRACTION_PROVENANCE_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-ExtractionProvenanceDocument: Any = EXTRACTION_PROVENANCE_CHARTER.generated_document()
-ExtractionProvenanceDocument.__name__ = "ExtractionProvenanceDocument"
-ExtractionProvenanceDocument.__qualname__ = "ExtractionProvenanceDocument"
-ExtractionProvenanceDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class ExtractionProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        reader: str | None = None
+        method: str | None = None
+        timestamp: str | None = None
+
+else:
+    ExtractionProvenanceDocument: Any = EXTRACTION_PROVENANCE_CHARTER.generated_document()
+    ExtractionProvenanceDocument.__name__ = "ExtractionProvenanceDocument"
+    ExtractionProvenanceDocument.__qualname__ = "ExtractionProvenanceDocument"
+    ExtractionProvenanceDocument.__module__ = __name__
 
 
 class SourceProvenance(FamilyModel):
@@ -1581,10 +1588,20 @@ SOURCE_PROVENANCE_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceProvenanceDocument: Any = SOURCE_PROVENANCE_CHARTER.generated_document()
-SourceProvenanceDocument.__name__ = "SourceProvenanceDocument"
-SourceProvenanceDocument.__qualname__ = "SourceProvenanceDocument"
-SourceProvenanceDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        paper: str | None = None
+        page: int | None = None
+        figure: str | None = None
+        quote_fragment: str | None = None
+        section: str | None = None
+        table: str | None = None
+
+else:
+    SourceProvenanceDocument: Any = SOURCE_PROVENANCE_CHARTER.generated_document()
+    SourceProvenanceDocument.__name__ = "SourceProvenanceDocument"
+    SourceProvenanceDocument.__qualname__ = "SourceProvenanceDocument"
+    SourceProvenanceDocument.__module__ = __name__
 
 
 class SourceAttackTarget(FamilyModel):
@@ -1612,10 +1629,17 @@ SOURCE_ATTACK_TARGET_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceAttackTargetDocument: Any = SOURCE_ATTACK_TARGET_CHARTER.generated_document()
-SourceAttackTargetDocument.__name__ = "SourceAttackTargetDocument"
-SourceAttackTargetDocument.__qualname__ = "SourceAttackTargetDocument"
-SourceAttackTargetDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceAttackTargetDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        target_claim: str | None = None
+        target_justification_id: str | None = None
+        target_premise_index: int | None = None
+
+else:
+    SourceAttackTargetDocument: Any = SOURCE_ATTACK_TARGET_CHARTER.generated_document()
+    SourceAttackTargetDocument.__name__ = "SourceAttackTargetDocument"
+    SourceAttackTargetDocument.__qualname__ = "SourceAttackTargetDocument"
+    SourceAttackTargetDocument.__module__ = __name__
 
 
 class SourceClaim(FamilyModel):
@@ -1679,10 +1703,51 @@ SOURCE_CLAIM_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
 )
 
 
-SourceClaimDocument: Any = SOURCE_CLAIM_DOCUMENT_CHARTER.generated_document()
-SourceClaimDocument.__name__ = "SourceClaimDocument"
-SourceClaimDocument.__qualname__ = "SourceClaimDocument"
-SourceClaimDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceClaimDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        source: ClaimSourceDocument | None = None
+        produced_by: ExtractionProvenanceDocument | None = None
+        artifact_id: str | None = None
+        logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
+        version_id: str | None = None
+        type: ClaimType | None = None
+        provenance: SourceProvenanceDocument | None = None
+        id: str | None = None
+        body: str | None = None
+        concept: str | None = None
+        concepts: tuple[str, ...] = ()
+        conditions: tuple[CelExpr, ...] = ()
+        context: str | None = None
+        equations: tuple[str, ...] = ()
+        expression: str | None = None
+        fit: FitStatisticsDocument | None = None
+        listener_population: str | None = None
+        lower_bound: float | int | None = None
+        measure: str | None = None
+        methodology: str | None = None
+        name: str | None = None
+        notes: str | None = None
+        parameters: tuple[ParameterBindingDocument, ...] = ()
+        sample_size: int | None = None
+        stage: AlgorithmStage | None = None
+        stances: tuple[StanceDocument, ...] = ()
+        statement: str | None = None
+        sympy: str | None = None
+        target_concept: str | None = None
+        uncertainty: float | int | None = None
+        uncertainty_type: str | None = None
+        unit: str | None = None
+        upper_bound: float | int | None = None
+        value: float | int | None = None
+        variables: tuple[VariableBindingDocument, ...] = ()
+        source_local_id: str | None = None
+        artifact_code: str | None = None
+
+else:
+    SourceClaimDocument: Any = SOURCE_CLAIM_DOCUMENT_CHARTER.generated_document()
+    SourceClaimDocument.__name__ = "SourceClaimDocument"
+    SourceClaimDocument.__qualname__ = "SourceClaimDocument"
+    SourceClaimDocument.__module__ = __name__
 
 
 class SourceJustification(FamilyModel):
@@ -1719,10 +1784,24 @@ SOURCE_JUSTIFICATION_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
 )
 
 
-SourceJustificationDocument: Any = SOURCE_JUSTIFICATION_DOCUMENT_CHARTER.generated_document()
-SourceJustificationDocument.__name__ = "SourceJustificationDocument"
-SourceJustificationDocument.__qualname__ = "SourceJustificationDocument"
-SourceJustificationDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceJustificationDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        source: ClaimSourceDocument | None = None
+        produced_by: ExtractionProvenanceDocument | None = None
+        id: str | None = None
+        conclusion: str | None = None
+        premises: tuple[str, ...] = ()
+        rule_kind: str | None = None
+        rule_strength: str | None = None
+        provenance: SourceProvenanceDocument | None = None
+        attack_target: SourceAttackTargetDocument | None = None
+        artifact_code: str | None = None
+
+else:
+    SourceJustificationDocument: Any = SOURCE_JUSTIFICATION_DOCUMENT_CHARTER.generated_document()
+    SourceJustificationDocument.__name__ = "SourceJustificationDocument"
+    SourceJustificationDocument.__qualname__ = "SourceJustificationDocument"
+    SourceJustificationDocument.__module__ = __name__
 
 CLAIM_BATCH_SPEC = DocumentBatchSpec(
     batch_name="claims",

@@ -93,8 +93,8 @@ def commit_source_justifications_batch(
         raw = tuple(
             convert_document_value(
                 {
-                    **justification.to_payload(),
-                    "produced_by": provenance.to_payload(),
+                    **cast(dict[str, Any], document_to_payload(justification)),
+                    "produced_by": document_to_payload(provenance),
                 },
                 SourceJustificationDocument,
                 source=f"{justifications_file}:justifications[{index}]",
@@ -140,7 +140,7 @@ def commit_source_stances_batch(
             convert_document_value(
                 {
                     **cast(dict[str, Any], document_to_payload(stance)),
-                    "produced_by": provenance.to_payload(),
+                    "produced_by": document_to_payload(provenance),
                 },
                 SourceStanceEntryDocument,
                 source=f"{stances_file}:stances[{index}]",
@@ -199,7 +199,7 @@ def commit_source_justification_proposal(
         if any(value is not None for value in (page, section, quote_fragment, table, figure)):
             justification = convert_document_value(
                 {
-                    **justification.to_payload(),
+                    **cast(dict[str, Any], document_to_payload(justification)),
                     "provenance": SourceProvenanceDocument(
                         paper=normalize_source_slug(source_name),
                         page=page,
@@ -222,7 +222,7 @@ def commit_source_justification_proposal(
         ):
             justification = convert_document_value(
                 {
-                    **justification.to_payload(),
+                    **cast(dict[str, Any], document_to_payload(justification)),
                     "attack_target": SourceAttackTargetDocument(
                         target_claim=attack_target_claim,
                         target_justification_id=attack_target_justification_id,

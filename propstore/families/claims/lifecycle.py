@@ -232,7 +232,7 @@ def normalize_source_justifications_payload(
     for index, justification in enumerate(data, start=1):
         if justification.conclusion is None:
             raise ValueError("justification conclusion must be a non-empty string")
-        normalized = justification.to_payload()
+        normalized = cast(dict[str, Any], document_to_payload(justification))
         normalized["conclusion"] = _require_source_or_primary_claim_id(
             justification.conclusion,
             source=claim_index,
@@ -248,7 +248,7 @@ def normalize_source_justifications_payload(
         ]
         attack_target = justification.attack_target
         if attack_target is not None and attack_target.target_claim is not None:
-            updated_target = attack_target.to_payload()
+            updated_target = cast(dict[str, Any], document_to_payload(attack_target))
             updated_target["target_claim"] = _require_source_or_primary_claim_id(
                 attack_target.target_claim,
                 source=claim_index,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any, TypeAlias
+from typing import TYPE_CHECKING, Any
 
 import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
@@ -51,7 +51,12 @@ SOURCE_ORIGIN_CHARTER: FamilyCharter = FamilyCharter(
     semantic_metadata={"semantic": "propstore.source"},
 )
 if TYPE_CHECKING:
-    SourceOriginDocument: TypeAlias = Any
+    class SourceOriginDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        type: SourceOriginType
+        value: str
+        retrieved: str | None = None
+        content_ref: str | None = None
+
 else:
     SourceOriginDocument: Any = SOURCE_ORIGIN_CHARTER.generated_document()
     SourceOriginDocument.__name__ = "SourceOriginDocument"
@@ -87,7 +92,13 @@ SOURCE_TRUST_QUALITY_CHARTER: FamilyCharter = FamilyCharter(
     semantic_metadata={"semantic": "propstore.source"},
 )
 if TYPE_CHECKING:
-    SourceTrustQualityDocument: TypeAlias = Any
+    class SourceTrustQualityDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        status: ProvenanceStatus
+        b: float | int
+        d: float | int
+        u: float | int
+        a: float | int
+
 else:
     SourceTrustQualityDocument: Any = SOURCE_TRUST_QUALITY_CHARTER.generated_document()
     SourceTrustQualityDocument.__name__ = "SourceTrustQualityDocument"
@@ -122,7 +133,12 @@ SOURCE_TRUST_CHARTER: FamilyCharter = FamilyCharter(
     semantic_metadata={"semantic": "propstore.source"},
 )
 if TYPE_CHECKING:
-    SourceTrustDocument: TypeAlias = Any
+    class SourceTrustDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        status: ProvenanceStatus
+        prior_base_rate: Opinion | None = None
+        quality: SourceTrustQualityDocument | None = None
+        derived_from: tuple[str, ...] = ()
+
 else:
     SourceTrustDocument: Any = SOURCE_TRUST_CHARTER.generated_document()
     SourceTrustDocument.__name__ = "SourceTrustDocument"
@@ -152,7 +168,9 @@ SOURCE_METADATA_CHARTER: FamilyCharter = FamilyCharter(
     semantic_metadata={"semantic": "propstore.source"},
 )
 if TYPE_CHECKING:
-    SourceMetadataDocument: TypeAlias = Any
+    class SourceMetadataDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        name: str
+
 else:
     SourceMetadataDocument: Any = SOURCE_METADATA_CHARTER.generated_document()
     SourceMetadataDocument.__name__ = "SourceMetadataDocument"
@@ -186,7 +204,15 @@ SOURCE_PARAMETERIZATION_GROUP_MERGE_CHARTER: FamilyCharter = FamilyCharter(
     semantic_metadata={"semantic": "propstore.source"},
 )
 if TYPE_CHECKING:
-    SourceParameterizationGroupMergeDocument: TypeAlias = Any
+    class SourceParameterizationGroupMergeDocument(
+        msgspec.Struct,
+        kw_only=True,
+        forbid_unknown_fields=True,
+    ):
+        merged_group: tuple[str, ...]
+        previous_groups: tuple[tuple[str, ...], ...]
+        introduced_by: tuple[str, ...]
+
 else:
     SourceParameterizationGroupMergeDocument: Any = (
         SOURCE_PARAMETERIZATION_GROUP_MERGE_CHARTER.generated_document()
@@ -224,7 +250,15 @@ SOURCE_FINALIZE_CALIBRATION_CHARTER: FamilyCharter = FamilyCharter(
     semantic_metadata={"semantic": "propstore.source"},
 )
 if TYPE_CHECKING:
-    SourceFinalizeCalibrationDocument: TypeAlias = Any
+    class SourceFinalizeCalibrationDocument(
+        msgspec.Struct,
+        kw_only=True,
+        forbid_unknown_fields=True,
+    ):
+        prior_base_rate_status: str
+        source_quality_status: str
+        fallback_to_default_base_rate: bool
+
 else:
     SourceFinalizeCalibrationDocument: Any = (
         SOURCE_FINALIZE_CALIBRATION_CHARTER.generated_document()
@@ -273,7 +307,24 @@ SOURCE_FINALIZE_REPORT_CHARTER: FamilyCharter = FamilyCharter(
     semantic_metadata={"semantic": "propstore.source"},
 )
 if TYPE_CHECKING:
-    SourceFinalizeReportDocument: TypeAlias = Any
+    class SourceFinalizeReportDocument(
+        msgspec.Struct,
+        kw_only=True,
+        forbid_unknown_fields=True,
+    ):
+        kind: str
+        source: str
+        status: str
+        artifact_code_status: str
+        calibration: SourceFinalizeCalibrationDocument
+        micropub_status: str = "not_composed"
+        claim_reference_errors: tuple[str, ...] = ()
+        micropub_coverage_errors: tuple[str, ...] = ()
+        justification_reference_errors: tuple[str, ...] = ()
+        stance_reference_errors: tuple[str, ...] = ()
+        concept_alignment_candidates: tuple[str, ...] = ()
+        parameterization_group_merges: tuple[SourceParameterizationGroupMergeDocument, ...] = ()
+
 else:
     SourceFinalizeReportDocument: Any = SOURCE_FINALIZE_REPORT_CHARTER.generated_document()
     SourceFinalizeReportDocument.__name__ = "SourceFinalizeReportDocument"
