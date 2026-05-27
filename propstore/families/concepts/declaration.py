@@ -22,6 +22,7 @@ from quire.families import FamilyDefinition
 from quire.references import ForeignKeySpec, ReferenceKey
 from quire.versions import VersionId
 
+from propstore.cel_types import CelExpr
 from propstore.core.conditions import (
     check_condition_ir,
     checked_condition_set,
@@ -313,7 +314,92 @@ else:
     ConceptDocument.__module__ = __name__
 
 
-from propstore.families.documents.sources import SourceConceptEntryDocument
+class SourceConceptAliasDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    name: str
+    source: str | None = None
+    note: str | None = None
+
+
+class SourceConceptRegistryMatchDocument(
+    msgspec.Struct,
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    artifact_id: str
+    canonical_name: str | None = None
+
+
+class SourceConceptFormParametersDocument(
+    msgspec.Struct,
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    construction: str | None = None
+    extensible: bool | None = None
+    note: str | None = None
+    reference: str | None = None
+    values: tuple[str, ...] | None = None
+
+
+class SourceParameterizationRelationshipDocument(
+    msgspec.Struct,
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    inputs: tuple[str, ...]
+    formula: str | None = None
+    sympy: str | None = None
+    exactness: Exactness | None = None
+    source: str | None = None
+    bidirectional: bool | None = None
+    conditions: tuple[CelExpr, ...] = ()
+    note: str | None = None
+    canonical_claim: str | None = None
+    fit_statistics: str | None = None
+
+
+class SourceConceptEntry(FamilyModel):
+    pass
+
+
+SOURCE_CONCEPT_ENTRY_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-concept-entry-document",
+        name="source-concept-entry",
+        contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-concept-entry-document",
+            contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+            doc_type=SourceConceptEntry,
+            placement=FlatYamlPlacement(".source/concepts", str),
+        ),
+        identity_field="local_name",
+    ),
+    model=SourceConceptEntry,
+    fields=(
+        CharterField("local_name", str, nullable=True),
+        CharterField("proposed_name", str, nullable=True),
+        CharterField("definition", str, nullable=True),
+        CharterField("form", str, nullable=True),
+        CharterField("aliases", tuple[SourceConceptAliasDocument, ...], default=()),
+        CharterField("form_parameters", SourceConceptFormParametersDocument, nullable=True),
+        CharterField(
+            "parameterization_relationships",
+            tuple[SourceParameterizationRelationshipDocument, ...],
+            default=(),
+        ),
+        CharterField("status", str, nullable=True),
+        CharterField("registry_match", SourceConceptRegistryMatchDocument, nullable=True),
+        CharterField("artifact_code", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+
+
+SourceConceptEntryDocument: Any = SOURCE_CONCEPT_ENTRY_DOCUMENT_CHARTER.generated_document()
+SourceConceptEntryDocument.__name__ = "SourceConceptEntryDocument"
+SourceConceptEntryDocument.__qualname__ = "SourceConceptEntryDocument"
+SourceConceptEntryDocument.__module__ = __name__
 
 SOURCE_CONCEPT_BATCH_SPEC = DocumentBatchSpec(
     batch_name="source-concepts",
