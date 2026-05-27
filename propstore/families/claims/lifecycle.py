@@ -208,11 +208,11 @@ def normalize_promoted_source_claim_artifact(
     context = rewritten_payload.get("context")
     if isinstance(context, str):
         rewritten_payload["context"] = {"id": context}
+    rewritten_payload.setdefault("source", {"paper": source_paper})
     normalized_payload = normalize_canonical_claim_payload(
         rewritten_payload,
         strip_source_local=True,
     )
-    normalized_payload.setdefault("source", {"paper": source_paper})
     return NormalizedPromotedClaimArtifact(
         document=convert_document_value(
             normalized_payload,
