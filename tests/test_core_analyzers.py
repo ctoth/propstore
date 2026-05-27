@@ -7,6 +7,8 @@ import pytest
 
 from propstore.claim_graph import compute_claim_graph_justified_claims
 from propstore.core.graph_types import WorldActivationGraph, ClaimNode, CompiledWorldGraph, RelationEdge
+from propstore.core.id_types import ClaimId
+from propstore.opinion import Opinion
 from argumentation.probabilistic import compute_probabilistic_acceptance
 from tests.conftest import create_argumentation_schema, insert_claim, insert_conflict, insert_stance
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
@@ -127,6 +129,35 @@ def test_shared_claim_graph_analyzer_uses_grounded_over_defeats_only() -> None:
     result = analyze_claim_graph(shared, semantics="grounded")
 
     assert _accepted_extensions(result) == {frozenset({"c1", "c2"})}
+
+
+def test_shared_graph_uses_relation_edge_typed_opinion() -> None:
+    from propstore.argumentation import shared_analyzer_input_from_active_graph
+
+    opinion = Opinion(0.7, 0.1, 0.2, 0.5)
+    active_graph = WorldActivationGraph(
+        compiled=CompiledWorldGraph(
+            claims=(
+                ClaimNode(claim_id=ClaimId("c1"), claim_type="observation"),
+                ClaimNode(claim_id=ClaimId("c2"), claim_type="observation"),
+            ),
+            relations=(
+                RelationEdge(
+                    source_id="c1",
+                    target_id="c2",
+                    relation_type="rebuts",
+                    opinion=opinion,
+                ),
+            ),
+        ),
+        active_claim_ids=(ClaimId("c1"), ClaimId("c2")),
+    )
+
+    shared = shared_analyzer_input_from_active_graph(active_graph)
+
+    assert shared.stance_rows[0].opinion is opinion
+    assert shared.relations.attack_relations[0].opinion is opinion
+    assert shared.relations.direct_defeat_relations[0].opinion is opinion
 
 
 def test_shared_claim_graph_analyzer_matches_current_preferred_and_stable(
@@ -330,9 +361,9 @@ class TestConflictStanceSynthesis:
 
         # The synthetic rebuts stances between A and C must exist
         synthetic_pairs = {
-            (s["claim_id"], s["target_claim_id"])
+            (s.source_id, s.target_id)
             for s in shared.stance_rows
-            if s["stance_type"] == "rebuts"
+            if s.relation_type == "rebuts"
         }
         assert ("cA", "cC") in synthetic_pairs, (
             "Conflict A↔C should produce synthetic rebuts A→C"
@@ -367,9 +398,9 @@ class TestConflictStanceSynthesis:
             stance
             for stance in shared.stance_rows
             if (
-                stance["claim_id"],
-                stance["target_claim_id"],
-                stance["stance_type"],
+                stance.source_id,
+                stance.target_id,
+                stance.relation_type,
             )
             in {
                 ("cA", "cC", "rebuts"),
@@ -379,8 +410,10 @@ class TestConflictStanceSynthesis:
         assert len(synthetic) == 2
 
         for stance in synthetic:
-            assert "confidence" not in stance
-            assert "opinion_belief" not in stance
-            assert "opinion_disbelief" not in stance
-            assert "opinion_uncertainty" not in stance
-            assert "opinion_base_rate" not in stance
+            assert stance.opinion is None
+            attributes = dict(stance.attributes)
+            assert "confidence" not in attributes
+            assert "opinion_belief" not in attributes
+            assert "opinion_disbelief" not in attributes
+            assert "opinion_uncertainty" not in attributes
+            assert "opinion_base_rate" not in attributes
