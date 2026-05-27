@@ -1522,7 +1522,132 @@ if not TYPE_CHECKING:
     JustificationDocument.to_payload = justification_document_to_payload
 
 
-from propstore.families.documents.sources import SourceClaimDocument, SourceJustificationDocument
+class ExtractionProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    reader: str | None = None
+    method: str | None = None
+    timestamp: str | None = None
+
+
+class SourceProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    paper: str | None = None
+    page: int | None = None
+    figure: str | None = None
+    quote_fragment: str | None = None
+    section: str | None = None
+    table: str | None = None
+
+
+class SourceAttackTargetDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    target_claim: str | None = None
+    target_justification_id: str | None = None
+    target_premise_index: int | None = None
+
+
+class SourceClaim(FamilyModel):
+    pass
+
+
+SOURCE_CLAIM_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-claim-document",
+        name="source-claim",
+        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-claim-document",
+            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+            doc_type=SourceClaim,
+            placement=FlatYamlPlacement(".source/claims", str),
+        ),
+        identity_field="id",
+    ),
+    model=SourceClaim,
+    fields=(
+        CharterField("source", ClaimSourceDocument, nullable=True),
+        CharterField("produced_by", ExtractionProvenanceDocument, nullable=True),
+        CharterField("artifact_id", str, nullable=True),
+        CharterField("logical_ids", tuple[ClaimLogicalIdDocument, ...], default=()),
+        CharterField("version_id", str, nullable=True),
+        CharterField("type", ClaimType, nullable=True, enum_type=ClaimType),
+        CharterField("provenance", SourceProvenanceDocument, nullable=True),
+        CharterField("id", str, nullable=True),
+        CharterField("body", str, nullable=True),
+        CharterField("concept", str, nullable=True),
+        CharterField("concepts", tuple[str, ...], default=()),
+        CharterField("conditions", tuple[CelExpr, ...], default=()),
+        CharterField("context", str, nullable=True),
+        CharterField("equations", tuple[str, ...], default=()),
+        CharterField("expression", str, nullable=True),
+        CharterField("fit", FitStatisticsDocument, nullable=True),
+        CharterField("listener_population", str, nullable=True),
+        CharterField("lower_bound", float | int, nullable=True),
+        CharterField("measure", str, nullable=True),
+        CharterField("methodology", str, nullable=True),
+        CharterField("name", str, nullable=True),
+        CharterField("notes", str, nullable=True),
+        CharterField("parameters", tuple[ParameterBindingDocument, ...], default=()),
+        CharterField("sample_size", int, nullable=True),
+        CharterField("stage", AlgorithmStage, nullable=True),
+        CharterField("stances", tuple[StanceDocument, ...], default=()),
+        CharterField("statement", str, nullable=True),
+        CharterField("sympy", str, nullable=True),
+        CharterField("target_concept", str, nullable=True),
+        CharterField("uncertainty", float | int, nullable=True),
+        CharterField("uncertainty_type", str, nullable=True),
+        CharterField("unit", str, nullable=True),
+        CharterField("upper_bound", float | int, nullable=True),
+        CharterField("value", float | int, nullable=True),
+        CharterField("variables", tuple[VariableBindingDocument, ...], default=()),
+        CharterField("source_local_id", str, nullable=True),
+        CharterField("artifact_code", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+
+
+SourceClaimDocument: Any = SOURCE_CLAIM_DOCUMENT_CHARTER.generated_document()
+SourceClaimDocument.__name__ = "SourceClaimDocument"
+SourceClaimDocument.__qualname__ = "SourceClaimDocument"
+SourceClaimDocument.__module__ = __name__
+
+
+class SourceJustification(FamilyModel):
+    pass
+
+
+SOURCE_JUSTIFICATION_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-justification-document",
+        name="source-justification",
+        contract_version=_WORLD_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-justification-document",
+            contract_version=_WORLD_CONTRACT_VERSION,
+            doc_type=SourceJustification,
+            placement=FlatYamlPlacement(".source/justifications", str),
+        ),
+        identity_field="id",
+    ),
+    model=SourceJustification,
+    fields=(
+        CharterField("source", ClaimSourceDocument, nullable=True),
+        CharterField("produced_by", ExtractionProvenanceDocument, nullable=True),
+        CharterField("id", str, nullable=True),
+        CharterField("conclusion", str, nullable=True),
+        CharterField("premises", tuple[str, ...], default=()),
+        CharterField("rule_kind", str, nullable=True),
+        CharterField("rule_strength", str, nullable=True),
+        CharterField("provenance", SourceProvenanceDocument, nullable=True),
+        CharterField("attack_target", SourceAttackTargetDocument, nullable=True),
+        CharterField("artifact_code", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+
+
+SourceJustificationDocument: Any = SOURCE_JUSTIFICATION_DOCUMENT_CHARTER.generated_document()
+SourceJustificationDocument.__name__ = "SourceJustificationDocument"
+SourceJustificationDocument.__qualname__ = "SourceJustificationDocument"
+SourceJustificationDocument.__module__ = __name__
 
 CLAIM_BATCH_SPEC = DocumentBatchSpec(
     batch_name="claims",
