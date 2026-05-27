@@ -43,12 +43,19 @@ from propstore.families.registry import (
     SourceRef,
     StanceRef,
 )
-from propstore.families.concepts.declaration import ConceptDocument
+from propstore.families.concepts.declaration import (
+    ConceptDocument,
+    SourceConceptEntryDocument,
+)
 from propstore.families.concepts.stages import (
     LoadedConcept,
     parse_concept_record_document,
 )
-from propstore.families.claims.declaration import ClaimDocument
+from propstore.families.claims.declaration import (
+    ClaimDocument,
+    SourceClaimDocument,
+    SourceJustificationDocument,
+)
 from propstore.families.claims.references import resolve_first_claim_reference_id
 from propstore.families.claims.types import ClaimType
 from propstore.families.contexts.stages import parse_context_record_document
@@ -66,16 +73,13 @@ from propstore.families.claims.lifecycle import (
     source_concept_ref_requires_mapping,
 )
 from quire.documents import convert_document_value, document_to_payload
-from propstore.families.documents.sources import (
-    SourceClaimDocument,
-    SourceConceptEntryDocument,
-    SourceJustificationDocument,
-    SourceStanceEntryDocument,
+from propstore.families.sources.declaration import (
+    SourceDocument,
     SourceTrustDocument,
+    source_document_payload,
 )
-from propstore.families.sources.declaration import SourceDocument, source_document_payload
 from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
-from propstore.families.stances.declaration import StanceDocument
+from propstore.families.stances.declaration import SourceStanceEntryDocument, StanceDocument
 from propstore.families.identity.justifications import derive_justification_artifact_id
 from propstore.families.identity.stances import derive_stance_artifact_id, stamp_stance_artifact_id
 
