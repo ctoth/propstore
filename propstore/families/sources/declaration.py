@@ -11,13 +11,9 @@ from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyMode
 from quire.families import FamilyDefinition
 from quire.versions import VersionId
 
-from propstore.core.source_types import SourceKind
-from propstore.families.documents.sources import (
-    SourceMetadataDocument,
-    SourceOriginDocument,
-    SourceTrustDocument,
-    SourceTrustQualityDocument,
-)
+from propstore.core.source_types import SourceKind, SourceOriginType
+from propstore.opinion import Opinion
+from propstore.provenance import ProvenanceStatus
 
 
 _SOURCE_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False)
@@ -25,6 +21,71 @@ _SOURCE_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False)
 
 class Source(FamilyModel):
     pass
+
+
+class SourceOriginDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    type: SourceOriginType
+    value: str
+    retrieved: str | None = None
+    content_ref: str | None = None
+
+
+class SourceTrustQualityDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    status: ProvenanceStatus
+    b: float | int
+    d: float | int
+    u: float | int
+    a: float | int
+
+
+class SourceTrustDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    status: ProvenanceStatus
+    prior_base_rate: Opinion | None = None
+    quality: SourceTrustQualityDocument | None = None
+    derived_from: tuple[str, ...] = ()
+
+
+class SourceMetadataDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    name: str
+
+
+class SourceParameterizationGroupMergeDocument(
+    msgspec.Struct,
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    merged_group: tuple[str, ...]
+    previous_groups: tuple[tuple[str, ...], ...]
+    introduced_by: tuple[str, ...]
+
+
+class SourceFinalizeCalibrationDocument(
+    msgspec.Struct,
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    prior_base_rate_status: str
+    source_quality_status: str
+    fallback_to_default_base_rate: bool
+
+
+class SourceFinalizeReportDocument(
+    msgspec.Struct,
+    kw_only=True,
+    forbid_unknown_fields=True,
+):
+    kind: str
+    source: str
+    status: str
+    artifact_code_status: str
+    calibration: SourceFinalizeCalibrationDocument
+    micropub_status: str = "not_composed"
+    claim_reference_errors: tuple[str, ...] = ()
+    micropub_coverage_errors: tuple[str, ...] = ()
+    justification_reference_errors: tuple[str, ...] = ()
+    stance_reference_errors: tuple[str, ...] = ()
+    concept_alignment_candidates: tuple[str, ...] = ()
+    parameterization_group_merges: tuple[SourceParameterizationGroupMergeDocument, ...] = ()
 
 
 SOURCE_CHARTER: FamilyCharter = FamilyCharter(
