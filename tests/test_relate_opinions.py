@@ -1,8 +1,8 @@
 """Tests for opinion algebra wiring in classify.py.
 
 Verifies that the fabricated _CONFIDENCE_MAP lookup table has been replaced
-by categorical_to_opinion() from calibrate.py, and that opinion fields
-flow through resolution dicts, stance YAML, and sidecar correctly.
+by categorical_to_opinion() from calibrate.py, and that stance opinions
+flow through top-level relation fields, stance YAML, and sidecar correctly.
 
 Literature grounding:
 - Josang 2001 (p.8, Def 9): vacuous opinion (0,0,1,a) = total ignorance
@@ -191,12 +191,11 @@ class TestCategoricalToOpinionWithCalibration:
 
 
 # ---------------------------------------------------------------------------
-# Test 3: resolution dict has opinion fields
+# Test 3: stance payload has top-level opinion
 # ---------------------------------------------------------------------------
 
 class TestResolutionDictHasOpinionFields:
-    """The resolution dict produced by classify_stance_async() must contain
-    both confidence (float) and a provenance-bearing opinion document."""
+    """classify_stance_async() returns scalar resolution metadata and a typed opinion."""
 
     @pytest.fixture
     def mock_litellm_response(self):
@@ -226,10 +225,11 @@ class TestResolutionDictHasOpinionFields:
         result = results[0]  # forward stance
         res = result["resolution"]
         assert "confidence" in res
-        assert set(res["opinion"]) == {"b", "d", "u", "a", "provenance"}
-        for key in ("b", "d", "u", "a"):
-            assert isinstance(res["opinion"][key], float), f"opinion.{key} must be float"
-        assert res["opinion"]["provenance"]["status"] == "calibrated"
+        assert "opinion" not in res
+        opinion = result["opinion"]
+        assert isinstance(opinion, Opinion)
+        assert opinion.provenance is not None
+        assert opinion.provenance.status is ProvenanceStatus.CALIBRATED
 
 
 # ---------------------------------------------------------------------------
@@ -238,7 +238,7 @@ class TestResolutionDictHasOpinionFields:
 
 class TestConfidenceEqualsExpectation:
     """Per Josang (2001, p.5, Def 6): E(w) = b + a*u.
-    The resolution confidence must equal the opinion expectation."""
+    The resolution confidence must equal the top-level opinion expectation."""
 
     def test_missing_prior_has_no_expectation(self):
         """Without a sourced prior, no numeric confidence is fabricated."""
@@ -284,11 +284,9 @@ class TestConfidenceEqualsExpectation:
         results = asyncio.run(run())
         result = results[0]
         res = result["resolution"]
-        opinion = res["opinion"]
-        op = Opinion(
-            opinion["b"], opinion["d"], opinion["u"], opinion["a"],
-        )
-        assert res["confidence"] == pytest.approx(op.expectation())
+        opinion = result["opinion"]
+        assert isinstance(opinion, Opinion)
+        assert res["confidence"] == pytest.approx(opinion.expectation())
 
 
 # ---------------------------------------------------------------------------
@@ -315,8 +313,17 @@ class TestStanceYamlRoundTrip:
                 "embedding_model": None,
                 "embedding_distance": None,
                 "confidence": 0.7,
-                "opinion": _opinion_payload(a=0.7),
             },
+            "opinion": Opinion(
+                0.0,
+                0.0,
+                1.0,
+                0.7,
+                provenance=Provenance(
+                    status=ProvenanceStatus.VACUOUS,
+                    witnesses=(),
+                ),
+            ),
         }]
 
         data = yaml.safe_load(
@@ -329,6 +336,7 @@ class TestStanceYamlRoundTrip:
                         strength=str(stances[0]["strength"]),
                         note=str(stances[0]["note"]),
                         conditions_differ=None,
+                        opinion=stances[0]["opinion"],
                         resolution=stances[0]["resolution"],
                     ),
                     "test-model",
@@ -337,20 +345,21 @@ class TestStanceYamlRoundTrip:
         )
 
         res = data["resolution"]
-        assert res["opinion"]["b"] == pytest.approx(0.0)
-        assert res["opinion"]["d"] == pytest.approx(0.0)
-        assert res["opinion"]["u"] == pytest.approx(1.0)
-        assert res["opinion"]["a"] == pytest.approx(0.7)
-        assert res["opinion"]["provenance"]["status"] == "vacuous"
+        opinion = data["opinion"]
+        assert opinion["b"] == pytest.approx(0.0)
+        assert opinion["d"] == pytest.approx(0.0)
+        assert opinion["u"] == pytest.approx(1.0)
+        assert opinion["a"] == pytest.approx(0.7)
+        assert opinion["provenance"]["status"] == "vacuous"
         assert res["confidence"] == pytest.approx(0.7)
 
 
 # ---------------------------------------------------------------------------
-# Test 6: sidecar populates opinion columns
+# Test 6: sidecar populates relation opinion
 # ---------------------------------------------------------------------------
 
 class TestSidecarPopulatesOpinionColumns:
-    def test_opinion_columns_from_stance_yaml(self, tmp_path):
+    def test_opinion_from_stance_yaml(self, tmp_path):
         from propstore.families.relations.declaration import (
             compile_authored_stance_models_with_diagnostics,
         )
@@ -367,11 +376,11 @@ class TestSidecarPopulatesOpinionColumns:
             "strength": "strong",
             "note": "test",
             "artifact_code": "ps:stance:opinion",
+            "opinion": _opinion_payload(a=0.7),
             "resolution": {
                 "method": "nli",
                 "model": "test",
                 "confidence": 0.7,
-                "opinion": _opinion_payload(a=0.7),
             },
         }
         stance_path = stances_dir / "c1.yaml"
@@ -386,19 +395,25 @@ class TestSidecarPopulatesOpinionColumns:
         assert diagnostics == ()
         assert len(models) == 1
         stance = models[0]
-        assert stance.opinion_belief == pytest.approx(0.0)
-        assert stance.opinion_disbelief == pytest.approx(0.0)
-        assert stance.opinion_uncertainty == pytest.approx(1.0)
-        assert stance.opinion_base_rate == pytest.approx(0.7)
+        assert stance.opinion == Opinion(
+            0.0,
+            0.0,
+            1.0,
+            0.7,
+            provenance=Provenance(
+                status=ProvenanceStatus.VACUOUS,
+                witnesses=(),
+            ),
+        )
         assert stance.perspective_source_claim_id == "c1"
 
 
 # ---------------------------------------------------------------------------
-# Test 7: sidecar handles stance resolution without opinion fields
+# Test 7: sidecar handles stance without opinion
 # ---------------------------------------------------------------------------
 
 class TestSidecarHandlesResolutionWithoutOpinion:
-    def test_missing_opinion_fields_become_null(self, tmp_path):
+    def test_missing_opinion_becomes_null(self, tmp_path):
         from propstore.families.relations.declaration import (
             compile_authored_stance_models_with_diagnostics,
         )
@@ -433,9 +448,7 @@ class TestSidecarHandlesResolutionWithoutOpinion:
         assert diagnostics == ()
         assert len(models) == 1
         stance = models[0]
-        assert stance.opinion_belief is None
-        assert stance.opinion_disbelief is None
-        assert stance.opinion_uncertainty is None
+        assert stance.opinion is None
         assert stance.confidence == pytest.approx(0.95)
 
 
@@ -470,7 +483,7 @@ class TestNoneStanceGetsNullConfidence:
 
         results = asyncio.run(run())
         assert results[0]["resolution"]["confidence"] is None
-        assert results[0]["resolution"]["opinion"] is None
+        assert results[0]["opinion"] is None
 
 
 # ---------------------------------------------------------------------------
@@ -619,7 +632,8 @@ class TestCorpusCalibReducesUncertainty:
 
         results = asyncio.run(run())
         result = results[0]
-        assert result["resolution"]["opinion"]["u"] < 1.0
+        assert isinstance(result["opinion"], Opinion)
+        assert result["opinion"].u < 1.0
 
     def test_no_reference_distances_and_no_prior_stays_unresolved(self):
         import asyncio
@@ -646,7 +660,7 @@ class TestCorpusCalibReducesUncertainty:
 
         results = asyncio.run(run())
         result = results[0]
-        assert result["resolution"]["opinion"] is None
+        assert result["opinion"] is None
         assert result["resolution"]["confidence"] is None
         assert result["resolution"]["unresolved_calibration"]["reason"] == "missing_base_rate"
 
@@ -680,7 +694,8 @@ class TestCorpusCalibReducesUncertainty:
 
         results = asyncio.run(run())
         result = results[0]
-        u = result["resolution"]["opinion"]["u"]
+        assert isinstance(result["opinion"], Opinion)
+        u = result["opinion"].u
 
         from propstore.heuristic.calibrate import CorpusCalibrator, categorical_to_opinion
         corpus_op = CorpusCalibrator(reference_distances, corpus_base_rate=0.7).to_opinion(0.3)
