@@ -18,6 +18,7 @@ from propstore.families.claims.declaration import (
     ExtractionProvenanceDocument,
     ResolutionDocument,
 )
+from propstore.opinion import Opinion
 from propstore.stances import StanceType
 
 
@@ -89,6 +90,7 @@ STANCE_CHARTER: FamilyCharter = FamilyCharter(
         CharterField("strength", str, nullable=True),
         CharterField("note", str, nullable=True),
         CharterField("conditions_differ", str, nullable=True),
+        CharterField("opinion", Opinion, nullable=True),
         CharterField(
             "resolution",
             dict[str, Any],
@@ -142,6 +144,7 @@ if TYPE_CHECKING:
         strength: str | None = None
         note: str | None = None
         conditions_differ: str | None = None
+        opinion: Opinion | None = None
         resolution: dict[str, Any] | None = None
         target_justification_id: str | None = None
         classification_model: str | None = None
@@ -183,6 +186,7 @@ SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
         CharterField("strength", str, nullable=True),
         CharterField("note", str, nullable=True),
         CharterField("conditions_differ", str, nullable=True),
+        CharterField("opinion", Opinion, nullable=True),
         CharterField("resolution", ResolutionDocument, nullable=True),
         CharterField("target_justification_id", str, nullable=True),
         CharterField("artifact_code", str, nullable=True),
@@ -202,6 +206,7 @@ if TYPE_CHECKING:
         strength: str | None = None
         note: str | None = None
         conditions_differ: str | None = None
+        opinion: Opinion | None = None
         resolution: ResolutionDocument | None = None
         target_justification_id: str | None = None
         artifact_code: str | None = None
