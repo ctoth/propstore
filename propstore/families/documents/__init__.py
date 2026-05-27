@@ -1,1 +1,0 @@
-"""Artifact document schema modules."""
