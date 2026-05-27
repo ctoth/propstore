@@ -414,6 +414,7 @@ def compile_authored_stance_models_with_diagnostics(
             strength=stance.strength,
             conditions_differ=stance.conditions_differ,
             note=stance.note,
+            opinion=stance.opinion,
             perspective_source_claim_id=str(perspective_source_claim),
             **_resolution_attributes(stance.resolution),
         )
