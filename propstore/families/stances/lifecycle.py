@@ -16,8 +16,8 @@ from quire.lifecycle import (
 )
 from quire.references import FamilyReferenceIndex
 
+from propstore.families.claims.declaration import SourceClaimDocument
 from propstore.families.claims.references import resolve_first_claim_reference_id
-from propstore.families.documents.sources import SourceClaimDocument, SourceStanceEntryDocument
 from propstore.families.identity.stances import stamp_stance_artifact_id
 from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY,
@@ -25,7 +25,11 @@ from propstore.families.registry import (
     PropstoreFamily,
     StanceRef,
 )
-from propstore.families.stances.declaration import STANCE_CHARTER, StanceDocument
+from propstore.families.stances.declaration import (
+    STANCE_CHARTER,
+    SourceStanceEntryDocument,
+    StanceDocument,
+)
 from propstore.proposal_lifecycle import (
     ProposalAlreadyPromoted,
     ProposalPromotionItem,
