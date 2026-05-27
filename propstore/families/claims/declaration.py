@@ -1522,25 +1522,100 @@ if not TYPE_CHECKING:
     JustificationDocument.to_payload = justification_document_to_payload
 
 
-class ExtractionProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    reader: str | None = None
-    method: str | None = None
-    timestamp: str | None = None
+class ExtractionProvenance(FamilyModel):
+    pass
 
 
-class SourceProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    paper: str | None = None
-    page: int | None = None
-    figure: str | None = None
-    quote_fragment: str | None = None
-    section: str | None = None
-    table: str | None = None
+EXTRACTION_PROVENANCE_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="extraction-provenance",
+        name="extraction-provenance",
+        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-extraction-provenance",
+            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+            doc_type=ExtractionProvenance,
+            placement=FlatYamlPlacement(".source/extraction-provenance", str),
+        ),
+        identity_field="reader",
+    ),
+    model=ExtractionProvenance,
+    fields=(
+        CharterField("reader", str, nullable=True),
+        CharterField("method", str, nullable=True),
+        CharterField("timestamp", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+ExtractionProvenanceDocument: Any = EXTRACTION_PROVENANCE_CHARTER.generated_document()
+ExtractionProvenanceDocument.__name__ = "ExtractionProvenanceDocument"
+ExtractionProvenanceDocument.__qualname__ = "ExtractionProvenanceDocument"
+ExtractionProvenanceDocument.__module__ = __name__
 
 
-class SourceAttackTargetDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    target_claim: str | None = None
-    target_justification_id: str | None = None
-    target_premise_index: int | None = None
+class SourceProvenance(FamilyModel):
+    pass
+
+
+SOURCE_PROVENANCE_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-provenance",
+        name="source-provenance",
+        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-provenance",
+            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+            doc_type=SourceProvenance,
+            placement=FlatYamlPlacement(".source/provenance", str),
+        ),
+        identity_field="paper",
+    ),
+    model=SourceProvenance,
+    fields=(
+        CharterField("paper", str, nullable=True),
+        CharterField("page", int, nullable=True),
+        CharterField("figure", str, nullable=True),
+        CharterField("quote_fragment", str, nullable=True),
+        CharterField("section", str, nullable=True),
+        CharterField("table", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+SourceProvenanceDocument: Any = SOURCE_PROVENANCE_CHARTER.generated_document()
+SourceProvenanceDocument.__name__ = "SourceProvenanceDocument"
+SourceProvenanceDocument.__qualname__ = "SourceProvenanceDocument"
+SourceProvenanceDocument.__module__ = __name__
+
+
+class SourceAttackTarget(FamilyModel):
+    pass
+
+
+SOURCE_ATTACK_TARGET_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-attack-target",
+        name="source-attack-target",
+        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-attack-target",
+            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+            doc_type=SourceAttackTarget,
+            placement=FlatYamlPlacement(".source/attack-targets", str),
+        ),
+        identity_field="target_claim",
+    ),
+    model=SourceAttackTarget,
+    fields=(
+        CharterField("target_claim", str, nullable=True),
+        CharterField("target_justification_id", str, nullable=True),
+        CharterField("target_premise_index", int, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+SourceAttackTargetDocument: Any = SOURCE_ATTACK_TARGET_CHARTER.generated_document()
+SourceAttackTargetDocument.__name__ = "SourceAttackTargetDocument"
+SourceAttackTargetDocument.__qualname__ = "SourceAttackTargetDocument"
+SourceAttackTargetDocument.__module__ = __name__
 
 
 class SourceClaim(FamilyModel):
