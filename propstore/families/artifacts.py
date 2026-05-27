@@ -19,16 +19,17 @@ from propstore.families.claims.declaration import (
     AUTHORED_CLAIM_CHARTER,
     JUSTIFICATION_CHARTER,
     ClaimDocument,
-)
-from propstore.families.documents.sources import (
     SourceClaimDocument,
     SourceJustificationDocument,
-    SourceStanceEntryDocument,
 )
 from propstore.families.identity.claims import canonicalize_claim_for_version
 from propstore.families.sources.declaration import SOURCE_CHARTER, SourceDocument
 from propstore.families.sources.declaration import source_document_payload
-from propstore.families.stances.declaration import STANCE_CHARTER, StanceDocument
+from propstore.families.stances.declaration import (
+    STANCE_CHARTER,
+    SourceStanceEntryDocument,
+    StanceDocument,
+)
 from propstore.uri import ni_uri_for_file
 
 if TYPE_CHECKING:
