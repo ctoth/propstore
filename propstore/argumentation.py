@@ -160,6 +160,7 @@ def _relation_edge_from_row(stance: Stance) -> RelationEdge:
         source_id=str(stance.claim_id),
         target_id=str(stance.target_claim_id),
         relation_type=coerce_graph_relation_type(stance.stance_type),
+        opinion=stance.opinion,
         provenance=ProvenanceRecord(
             source_table="relation_edge",
             source_id=(
