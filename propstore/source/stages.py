@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 
 from quire.lifecycle import FamilyRecordWrite
 
-from propstore.families.documents.sources import SourceClaimDocument
+from propstore.families.claims.declaration import SourceClaimDocument
 
 
 @dataclass(frozen=True)
