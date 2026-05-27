@@ -3,10 +3,19 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, cast
 
+from propstore.families.claims.declaration import (
+    ExtractionProvenanceDocument,
+    SOURCE_JUSTIFICATION_BATCH_SPEC,
+    SourceAttackTargetDocument,
+    SourceJustificationDocument,
+    SourceProvenanceDocument,
+)
 from propstore.families.claims.lifecycle import normalize_source_justifications_payload
-from propstore.families.claims.declaration import SOURCE_JUSTIFICATION_BATCH_SPEC
 from propstore.families.stances.lifecycle import normalize_source_stances_payload
-from propstore.families.stances.declaration import SOURCE_STANCE_BATCH_SPEC
+from propstore.families.stances.declaration import (
+    SOURCE_STANCE_BATCH_SPEC,
+    SourceStanceEntryDocument,
+)
 from propstore.families.registry import SourceRef
 from propstore.repository import Repository, retry_live_branch_update
 from quire.documents import (
@@ -18,13 +27,6 @@ from propstore.stances import StanceType, coerce_stance_type
 
 from .common import (
     normalize_source_slug,
-)
-from propstore.families.documents.sources import (
-    ExtractionProvenanceDocument,
-    SourceAttackTargetDocument,
-    SourceJustificationDocument,
-    SourceProvenanceDocument,
-    SourceStanceEntryDocument,
 )
 from .reference_indexes import (
     primary_claim_index as build_primary_claim_index,
