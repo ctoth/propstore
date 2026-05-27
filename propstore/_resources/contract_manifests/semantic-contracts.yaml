@@ -367,7 +367,7 @@ contracts:
       filename: claims.yaml
       kind: fixed-file
     render_document: quire.documents.batch.DocumentBatchCodec.render_document
-    scan_type: propstore.families.documents.sources.SourceClaimDocument
+    scan_type: propstore.families.claims.declaration.SourceClaimDocument
     validate_for_write: null
 - kind: artifact_family
   name: source_concepts
@@ -389,7 +389,7 @@ contracts:
       filename: concepts.yaml
       kind: fixed-file
     render_document: quire.documents.batch.DocumentBatchCodec.render_document
-    scan_type: propstore.families.documents.sources.SourceConceptEntryDocument
+    scan_type: propstore.families.concepts.declaration.SourceConceptEntryDocument
     validate_for_write: null
 - kind: artifact_family
   name: source_document
@@ -419,7 +419,7 @@ contracts:
   body:
     coerce_payload: null
     decode_bytes: null
-    doc_type: propstore.families.documents.sources.SourceFinalizeReportDocument
+    doc_type: propstore.families.sources.declaration.SourceFinalizeReportDocument
     document_payload: null
     encode_document: null
     normalize_for_write: null
@@ -457,7 +457,7 @@ contracts:
       filename: justifications.yaml
       kind: fixed-file
     render_document: quire.documents.batch.DocumentBatchCodec.render_document
-    scan_type: propstore.families.documents.sources.SourceJustificationDocument
+    scan_type: propstore.families.claims.declaration.SourceJustificationDocument
     validate_for_write: null
 - kind: artifact_family
   name: source_metadata
@@ -545,7 +545,7 @@ contracts:
       filename: stances.yaml
       kind: fixed-file
     render_document: quire.documents.batch.DocumentBatchCodec.render_document
-    scan_type: propstore.families.documents.sources.SourceStanceEntryDocument
+    scan_type: propstore.families.stances.declaration.SourceStanceEntryDocument
     validate_for_write: null
 - kind: artifact_family
   name: stance
@@ -1991,13 +1991,13 @@ contracts:
       type: propstore.core.source_types.SourceKind
     - name: origin
       required: true
-      type: propstore.families.documents.sources.SourceOriginDocument
+      type: propstore.families.sources.declaration.SourceOriginDocument
     - name: trust
       required: true
-      type: propstore.families.documents.sources.SourceTrustDocument
+      type: propstore.families.sources.declaration.SourceTrustDocument
     - name: metadata
       required: true
-      type: propstore.families.documents.sources.SourceMetadataDocument | None
+      type: propstore.families.sources.declaration.SourceMetadataDocument | None
     - name: artifact_code
       required: true
       type: str | None
@@ -2801,7 +2801,7 @@ contracts:
     accessor: source_finalize_reports
     artifact_family: source_finalize_report
     artifact_family_contract:
-      doc_type: propstore.families.documents.sources.SourceFinalizeReportDocument
+      doc_type: propstore.families.sources.declaration.SourceFinalizeReportDocument
       placement:
         branch:
           codec: safe_slug
