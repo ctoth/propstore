@@ -34,7 +34,7 @@ def stance_summary(
         total += 1
         stype = row.stance_type
         model = row.attribute_value("resolution_model")
-        opinion_u = row.attribute_value("opinion_uncertainty")
+        opinion = row.opinion
 
         if stype in NON_ATTACK_TYPES:
             excluded_non_attack += 1
@@ -43,8 +43,8 @@ def stance_summary(
         included += 1
         if isinstance(model, str) and model:
             models.add(model)
-        if isinstance(opinion_u, int | float):
-            opinion_value = float(opinion_u)
+        if opinion is not None:
+            opinion_value = float(opinion.u)
             uncertainties.append(opinion_value)
             if opinion_value > 0.99:
                 vacuous_count += 1
