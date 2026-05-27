@@ -18,6 +18,10 @@ Propstore architecture:
   do not replace deleted helpers with aliases, shims, adapters, fallback
   readers, bridge normalizers, repeated field lists, per-field kwargs builders,
   or local type-narrowing blocks.
+- For deletion-first refactors, work one executable vertical slice at a time:
+  delete the old surface for that slice, prove the replacement object/family
+  path with a focused production-path test, commit it, then expand. Do not
+  delete broad multi-module surfaces before one replacement path works.
 - `legacy` is not implied by age. Support old repos/data only when explicitly
   requested; otherwise fail hard at the boundary and delete the old path.
 - Source-local authoring state belongs only in the source subsystem. Canonical
