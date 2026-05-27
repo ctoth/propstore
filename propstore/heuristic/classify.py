@@ -204,6 +204,7 @@ def _build_error_stance(
         "strength": "weak",
         "note": note,
         "conditions_differ": None,
+        "opinion": _vacuous_classifier_opinion("stance_classification_error"),
         "resolution": {
             "method": "nli",
             "model": model_name,
@@ -247,20 +248,6 @@ def _build_error_pair(
     return [forward, reverse]
 
 
-def _opinion_payload(opinion: Opinion | None) -> dict | None:
-    if opinion is None:
-        return None
-    if opinion.provenance is None:
-        raise ValueError("Resolution opinion must carry provenance")
-    return {
-        "b": float(opinion.b),
-        "d": float(opinion.d),
-        "u": float(opinion.u),
-        "a": float(opinion.a),
-        "provenance": opinion.provenance.to_payload(),
-    }
-
-
 def _unresolved_payload(unresolved: BaseRateUnresolved | None) -> dict | None:
     if unresolved is None:
         return None
@@ -295,13 +282,13 @@ def _build_stance_dict(
             "strength": "weak",
             "note": "LLM output shape unknown",
             "conditions_differ": None,
+            "opinion": shape_unknown_opinion,
             "resolution": {
                 "method": "nli",
                 "model": model_name,
                 "embedding_model": embedding_model,
                 "embedding_distance": embedding_distance,
                 "confidence": None,
-                "opinion": _opinion_payload(shape_unknown_opinion),
                 "unresolved_calibration": None,
                 "llm_call_id": llm_call_id,
                 "prompt": prompt,
@@ -346,7 +333,6 @@ def _build_stance_dict(
         "embedding_model": embedding_model,
         "embedding_distance": embedding_distance,
         "confidence": confidence,
-        "opinion": _opinion_payload(opinion),
         "unresolved_calibration": _unresolved_payload(unresolved),
         "llm_call_id": llm_call_id,
         "prompt": prompt,
@@ -360,6 +346,7 @@ def _build_stance_dict(
         "strength": strength,
         "note": raw.get("note", ""),
         "conditions_differ": raw.get("conditions_differ"),
+        "opinion": opinion,
         "resolution": resolution,
     }
 
