@@ -6,9 +6,11 @@ from typing import Any
 
 from quire.references import FamilyReferenceIndex
 
-from propstore.families.concepts.declaration import ConceptDocument
+from propstore.families.concepts.declaration import (
+    ConceptDocument,
+    SourceConceptEntryDocument,
+)
 from propstore.families.concepts.stages import parse_concept_record_document
-from propstore.families.documents.sources import SourceConceptEntryDocument
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
 from propstore.parameterization_groups import build_groups
 from propstore.repository import Repository
