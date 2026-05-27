@@ -70,7 +70,7 @@ non-persisted semantic value objects with a different name:
 
 ### Phase 1 - Restore CLI by fixing the source-local regression
 
-- [ ] Replace source value/report hand-written documents with generated
+- [x] Replace source value/report hand-written documents with generated
   charter documents in `propstore/families/sources/declaration.py`.
 - [ ] Replace source concept nested hand-written documents with generated
   charter documents in `propstore/families/concepts/declaration.py`.
