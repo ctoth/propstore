@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from quire.references import FamilyReferenceIndex, ReferenceKey
 
-from propstore.families.documents.sources import SourceClaimDocument
+from propstore.families.claims.declaration import SourceClaimDocument
 from propstore.families.registry import SourceRef
 
 if TYPE_CHECKING:
