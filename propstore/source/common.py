@@ -11,12 +11,12 @@ from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.provenance import ProvenanceStatus
 from propstore.uri import ni_uri_for_file, source_tag_uri as mint_source_tag_uri
 
-from propstore.families.documents.sources import (
+from propstore.families.sources.declaration import (
+    SourceDocument,
     SourceMetadataDocument,
     SourceOriginDocument,
     SourceTrustDocument,
 )
-from propstore.families.sources.declaration import SourceDocument
 
 
 def normalize_source_slug(name: str) -> str:
