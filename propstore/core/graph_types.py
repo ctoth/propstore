@@ -491,6 +491,7 @@ class RelationEdge:
     source_id: str
     target_id: str
     relation_type: GraphRelationType
+    opinion: Opinion | None = field(default=None, compare=False)
     provenance: ProvenanceRecord | None = None
     derived_from: tuple[tuple[str, str], ...] = ()
     attributes: tuple[tuple[str, Any], ...] = ()
@@ -510,6 +511,9 @@ class RelationEdge:
             "target_id": self.target_id,
             "relation_type": self.relation_type.value,
         }
+        opinion_data = _opinion_to_dict(self.opinion)
+        if opinion_data is not None:
+            data["opinion"] = opinion_data
         if self.provenance is not None:
             data["provenance"] = self.provenance.to_dict()
         if self.derived_from:
@@ -525,6 +529,7 @@ class RelationEdge:
             source_id=str(data["source_id"]),
             target_id=str(data["target_id"]),
             relation_type=coerce_graph_relation_type(data["relation_type"]),
+            opinion=_opinion_from_dict(data.get("opinion")),
             provenance=(
                 None
                 if provenance_data is None
