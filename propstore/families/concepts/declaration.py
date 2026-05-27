@@ -339,10 +339,17 @@ SOURCE_CONCEPT_ALIAS_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceConceptAliasDocument: Any = SOURCE_CONCEPT_ALIAS_CHARTER.generated_document()
-SourceConceptAliasDocument.__name__ = "SourceConceptAliasDocument"
-SourceConceptAliasDocument.__qualname__ = "SourceConceptAliasDocument"
-SourceConceptAliasDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceConceptAliasDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        name: str
+        source: str | None = None
+        note: str | None = None
+
+else:
+    SourceConceptAliasDocument: Any = SOURCE_CONCEPT_ALIAS_CHARTER.generated_document()
+    SourceConceptAliasDocument.__name__ = "SourceConceptAliasDocument"
+    SourceConceptAliasDocument.__qualname__ = "SourceConceptAliasDocument"
+    SourceConceptAliasDocument.__module__ = __name__
 
 
 class SourceConceptRegistryMatch(FamilyModel):
@@ -369,10 +376,22 @@ SOURCE_CONCEPT_REGISTRY_MATCH_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceConceptRegistryMatchDocument: Any = SOURCE_CONCEPT_REGISTRY_MATCH_CHARTER.generated_document()
-SourceConceptRegistryMatchDocument.__name__ = "SourceConceptRegistryMatchDocument"
-SourceConceptRegistryMatchDocument.__qualname__ = "SourceConceptRegistryMatchDocument"
-SourceConceptRegistryMatchDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceConceptRegistryMatchDocument(
+        msgspec.Struct,
+        kw_only=True,
+        forbid_unknown_fields=True,
+    ):
+        artifact_id: str
+        canonical_name: str | None = None
+
+else:
+    SourceConceptRegistryMatchDocument: Any = (
+        SOURCE_CONCEPT_REGISTRY_MATCH_CHARTER.generated_document()
+    )
+    SourceConceptRegistryMatchDocument.__name__ = "SourceConceptRegistryMatchDocument"
+    SourceConceptRegistryMatchDocument.__qualname__ = "SourceConceptRegistryMatchDocument"
+    SourceConceptRegistryMatchDocument.__module__ = __name__
 
 
 class SourceConceptFormParameters(FamilyModel):
@@ -402,12 +421,25 @@ SOURCE_CONCEPT_FORM_PARAMETERS_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceConceptFormParametersDocument: Any = (
-    SOURCE_CONCEPT_FORM_PARAMETERS_CHARTER.generated_document()
-)
-SourceConceptFormParametersDocument.__name__ = "SourceConceptFormParametersDocument"
-SourceConceptFormParametersDocument.__qualname__ = "SourceConceptFormParametersDocument"
-SourceConceptFormParametersDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceConceptFormParametersDocument(
+        msgspec.Struct,
+        kw_only=True,
+        forbid_unknown_fields=True,
+    ):
+        construction: str | None = None
+        extensible: bool | None = None
+        note: str | None = None
+        reference: str | None = None
+        values: tuple[str, ...] | None = None
+
+else:
+    SourceConceptFormParametersDocument: Any = (
+        SOURCE_CONCEPT_FORM_PARAMETERS_CHARTER.generated_document()
+    )
+    SourceConceptFormParametersDocument.__name__ = "SourceConceptFormParametersDocument"
+    SourceConceptFormParametersDocument.__qualname__ = "SourceConceptFormParametersDocument"
+    SourceConceptFormParametersDocument.__module__ = __name__
 
 
 class SourceParameterizationRelationship(FamilyModel):
@@ -442,12 +474,34 @@ SOURCE_PARAMETERIZATION_RELATIONSHIP_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-SourceParameterizationRelationshipDocument: Any = (
-    SOURCE_PARAMETERIZATION_RELATIONSHIP_CHARTER.generated_document()
-)
-SourceParameterizationRelationshipDocument.__name__ = "SourceParameterizationRelationshipDocument"
-SourceParameterizationRelationshipDocument.__qualname__ = "SourceParameterizationRelationshipDocument"
-SourceParameterizationRelationshipDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceParameterizationRelationshipDocument(
+        msgspec.Struct,
+        kw_only=True,
+        forbid_unknown_fields=True,
+    ):
+        inputs: tuple[str, ...]
+        formula: str | None = None
+        sympy: str | None = None
+        exactness: Exactness | None = None
+        source: str | None = None
+        bidirectional: bool | None = None
+        conditions: tuple[CelExpr, ...] = ()
+        note: str | None = None
+        canonical_claim: str | None = None
+        fit_statistics: str | None = None
+
+else:
+    SourceParameterizationRelationshipDocument: Any = (
+        SOURCE_PARAMETERIZATION_RELATIONSHIP_CHARTER.generated_document()
+    )
+    SourceParameterizationRelationshipDocument.__name__ = (
+        "SourceParameterizationRelationshipDocument"
+    )
+    SourceParameterizationRelationshipDocument.__qualname__ = (
+        "SourceParameterizationRelationshipDocument"
+    )
+    SourceParameterizationRelationshipDocument.__module__ = __name__
 
 
 class SourceConceptEntry(FamilyModel):
@@ -488,10 +542,24 @@ SOURCE_CONCEPT_ENTRY_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
 )
 
 
-SourceConceptEntryDocument: Any = SOURCE_CONCEPT_ENTRY_DOCUMENT_CHARTER.generated_document()
-SourceConceptEntryDocument.__name__ = "SourceConceptEntryDocument"
-SourceConceptEntryDocument.__qualname__ = "SourceConceptEntryDocument"
-SourceConceptEntryDocument.__module__ = __name__
+if TYPE_CHECKING:
+    class SourceConceptEntryDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+        local_name: str | None = None
+        proposed_name: str | None = None
+        definition: str | None = None
+        form: str | None = None
+        aliases: tuple[SourceConceptAliasDocument, ...] = ()
+        form_parameters: SourceConceptFormParametersDocument | None = None
+        parameterization_relationships: tuple[SourceParameterizationRelationshipDocument, ...] = ()
+        status: str | None = None
+        registry_match: SourceConceptRegistryMatchDocument | None = None
+        artifact_code: str | None = None
+
+else:
+    SourceConceptEntryDocument: Any = SOURCE_CONCEPT_ENTRY_DOCUMENT_CHARTER.generated_document()
+    SourceConceptEntryDocument.__name__ = "SourceConceptEntryDocument"
+    SourceConceptEntryDocument.__qualname__ = "SourceConceptEntryDocument"
+    SourceConceptEntryDocument.__module__ = __name__
 
 SOURCE_CONCEPT_BATCH_SPEC = DocumentBatchSpec(
     batch_name="source-concepts",

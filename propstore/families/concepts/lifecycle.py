@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
+from quire.documents import document_to_payload
 from quire.references import FamilyReferenceIndex
 
 from propstore.families.concepts.declaration import (
@@ -148,7 +149,7 @@ def projected_source_concepts(
     for projected_entry, raw_entry in zip(projected, concept_entries, strict=False):
         params: list[dict[str, Any]] = []
         for param in raw_entry.parameterization_relationships:
-            resolved = copy.deepcopy(param.to_payload())
+            resolved = cast(dict[str, Any], copy.deepcopy(document_to_payload(param)))
             inputs: list[str] = []
             for input_ref in resolved.get("inputs", []) or []:
                 if not isinstance(input_ref, str) or not input_ref:
