@@ -314,48 +314,140 @@ else:
     ConceptDocument.__module__ = __name__
 
 
-class SourceConceptAliasDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-    name: str
-    source: str | None = None
-    note: str | None = None
+class SourceConceptAlias(FamilyModel):
+    pass
 
 
-class SourceConceptRegistryMatchDocument(
-    msgspec.Struct,
-    kw_only=True,
-    forbid_unknown_fields=True,
-):
-    artifact_id: str
-    canonical_name: str | None = None
+SOURCE_CONCEPT_ALIAS_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-concept-alias",
+        name="source-concept-alias",
+        contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-concept-alias",
+            contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+            doc_type=SourceConceptAlias,
+            placement=FlatYamlPlacement(".source/concept-aliases", str),
+        ),
+        identity_field="name",
+    ),
+    model=SourceConceptAlias,
+    fields=(
+        CharterField("name", str, nullable=False),
+        CharterField("source", str, nullable=True),
+        CharterField("note", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+SourceConceptAliasDocument: Any = SOURCE_CONCEPT_ALIAS_CHARTER.generated_document()
+SourceConceptAliasDocument.__name__ = "SourceConceptAliasDocument"
+SourceConceptAliasDocument.__qualname__ = "SourceConceptAliasDocument"
+SourceConceptAliasDocument.__module__ = __name__
 
 
-class SourceConceptFormParametersDocument(
-    msgspec.Struct,
-    kw_only=True,
-    forbid_unknown_fields=True,
-):
-    construction: str | None = None
-    extensible: bool | None = None
-    note: str | None = None
-    reference: str | None = None
-    values: tuple[str, ...] | None = None
+class SourceConceptRegistryMatch(FamilyModel):
+    pass
 
 
-class SourceParameterizationRelationshipDocument(
-    msgspec.Struct,
-    kw_only=True,
-    forbid_unknown_fields=True,
-):
-    inputs: tuple[str, ...]
-    formula: str | None = None
-    sympy: str | None = None
-    exactness: Exactness | None = None
-    source: str | None = None
-    bidirectional: bool | None = None
-    conditions: tuple[CelExpr, ...] = ()
-    note: str | None = None
-    canonical_claim: str | None = None
-    fit_statistics: str | None = None
+SOURCE_CONCEPT_REGISTRY_MATCH_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-concept-registry-match",
+        name="source-concept-registry-match",
+        contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-concept-registry-match",
+            contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+            doc_type=SourceConceptRegistryMatch,
+            placement=FlatYamlPlacement(".source/concept-registry-matches", str),
+        ),
+        identity_field="artifact_id",
+    ),
+    model=SourceConceptRegistryMatch,
+    fields=(
+        CharterField("artifact_id", str, nullable=False),
+        CharterField("canonical_name", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+SourceConceptRegistryMatchDocument: Any = SOURCE_CONCEPT_REGISTRY_MATCH_CHARTER.generated_document()
+SourceConceptRegistryMatchDocument.__name__ = "SourceConceptRegistryMatchDocument"
+SourceConceptRegistryMatchDocument.__qualname__ = "SourceConceptRegistryMatchDocument"
+SourceConceptRegistryMatchDocument.__module__ = __name__
+
+
+class SourceConceptFormParameters(FamilyModel):
+    pass
+
+
+SOURCE_CONCEPT_FORM_PARAMETERS_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-concept-form-parameters",
+        name="source-concept-form-parameters",
+        contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-concept-form-parameters",
+            contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+            doc_type=SourceConceptFormParameters,
+            placement=FlatYamlPlacement(".source/concept-form-parameters", str),
+        ),
+        identity_field="construction",
+    ),
+    model=SourceConceptFormParameters,
+    fields=(
+        CharterField("construction", str, nullable=True),
+        CharterField("extensible", bool, nullable=True),
+        CharterField("note", str, nullable=True),
+        CharterField("reference", str, nullable=True),
+        CharterField("values", tuple[str, ...], nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+SourceConceptFormParametersDocument: Any = (
+    SOURCE_CONCEPT_FORM_PARAMETERS_CHARTER.generated_document()
+)
+SourceConceptFormParametersDocument.__name__ = "SourceConceptFormParametersDocument"
+SourceConceptFormParametersDocument.__qualname__ = "SourceConceptFormParametersDocument"
+SourceConceptFormParametersDocument.__module__ = __name__
+
+
+class SourceParameterizationRelationship(FamilyModel):
+    pass
+
+
+SOURCE_PARAMETERIZATION_RELATIONSHIP_CHARTER: FamilyCharter = FamilyCharter(
+    family=FamilyDefinition(
+        key="source-parameterization-relationship",
+        name="source-parameterization-relationship",
+        contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+        artifact_family=ArtifactFamily(
+            name="propstore-source-parameterization-relationship",
+            contract_version=AUTHORED_CONCEPT_FAMILY_CONTRACT_VERSION,
+            doc_type=SourceParameterizationRelationship,
+            placement=FlatYamlPlacement(".source/parameterization-relationships", str),
+        ),
+        identity_field="inputs",
+    ),
+    model=SourceParameterizationRelationship,
+    fields=(
+        CharterField("inputs", tuple[str, ...], nullable=False),
+        CharterField("formula", str, nullable=True),
+        CharterField("sympy", str, nullable=True),
+        CharterField("exactness", Exactness, nullable=True, enum_type=Exactness),
+        CharterField("source", str, nullable=True),
+        CharterField("bidirectional", bool, nullable=True),
+        CharterField("conditions", tuple[CelExpr, ...], default=()),
+        CharterField("note", str, nullable=True),
+        CharterField("canonical_claim", str, nullable=True),
+        CharterField("fit_statistics", str, nullable=True),
+    ),
+    semantic_metadata={"semantic": "propstore.source"},
+)
+SourceParameterizationRelationshipDocument: Any = (
+    SOURCE_PARAMETERIZATION_RELATIONSHIP_CHARTER.generated_document()
+)
+SourceParameterizationRelationshipDocument.__name__ = "SourceParameterizationRelationshipDocument"
+SourceParameterizationRelationshipDocument.__qualname__ = "SourceParameterizationRelationshipDocument"
+SourceParameterizationRelationshipDocument.__module__ = __name__
 
 
 class SourceConceptEntry(FamilyModel):
