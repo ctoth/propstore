@@ -195,8 +195,5 @@ def stance_from_payload(payload: Mapping[str, Any]) -> Stance:
         perspective_source_claim_id=str(payload["claim_id"]),
         target_justification_id=payload.get("target_justification_id"),
         confidence=payload.get("confidence"),
-        opinion_belief=payload.get("opinion_belief"),
-        opinion_disbelief=payload.get("opinion_disbelief"),
-        opinion_uncertainty=payload.get("opinion_uncertainty"),
-        opinion_base_rate=payload.get("opinion_base_rate"),
+        opinion=payload.get("opinion"),
     )
