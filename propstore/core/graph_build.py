@@ -294,6 +294,7 @@ def build_compiled_world_graph(store, *, prefer_logical_claim_ids: bool = True) 
                         ),
                     ),
                     relation_type=coerce_graph_relation_type(stance.stance_type.value),
+                    opinion=stance.opinion,
                     provenance=_row_provenance(
                         {
                             "claim_id": str(stance.claim_id),
