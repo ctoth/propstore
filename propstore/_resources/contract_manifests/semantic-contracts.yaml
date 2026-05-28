@@ -1863,18 +1863,9 @@ contracts:
     - name: confidence
       required: true
       type: builtins.float
-    - name: opinion_belief
+    - name: opinion
       required: true
-      type: builtins.float
-    - name: opinion_disbelief
-      required: true
-      type: builtins.float
-    - name: opinion_uncertainty
-      required: true
-      type: builtins.float
-    - name: opinion_base_rate
-      required: true
-      type: builtins.float
+      type: propstore.opinion.Opinion | None
     module: propstore.families.relations.declaration
 - kind: document_schema
   name: RelationshipDocument
@@ -2139,6 +2130,9 @@ contracts:
     - name: conditions_differ
       required: true
       type: str | None
+    - name: opinion
+      required: true
+      type: propstore.opinion.Opinion | None
     - name: resolution
       required: true
       type: dict[str, Any] | None
