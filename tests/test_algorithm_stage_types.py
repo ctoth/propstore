@@ -4,10 +4,9 @@ from typing import get_type_hints
 
 import yaml
 
-from propstore.families.claims.declaration import ClaimDocument
+from propstore.families.claims.declaration import ClaimDocument, SourceClaimDocument
 from tests.family_helpers import load_claim_files
 from propstore.core.algorithm_stage import AlgorithmStage
-from propstore.families.documents.sources import SourceClaimDocument
 from propstore.families.registry import world_catalog
 from tests.claim_model_helpers import make_claim
 
