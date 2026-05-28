@@ -16,7 +16,7 @@ from ast_equiv import canonical_dump
 from quire.documents import DocumentSchemaError
 from propstore.claims import loaded_claim_file_from_payload
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.documents.sources import (
+from propstore.families.sources.declaration import (
     SourceOriginDocument,
     SourceTrustDocument,
 )
