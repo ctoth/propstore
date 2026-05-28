@@ -71,7 +71,7 @@ def test_claim_yaml_fixture_round_trips(
     )
     assert reparsed_payload == document
 
-    encoded = msgspec.yaml.encode(document)
+    encoded = msgspec.yaml.encode(document_to_payload(document))
     reparsed_yaml = convert_document_value(
         msgspec.yaml.decode(encoded),
         document_type,
