@@ -20,7 +20,7 @@ def _schema_object(name: str):
 
 def test_algorithm_stage_annotations_cover_runtime_path() -> None:
     assert get_type_hints(ClaimDocument)["stage"] == AlgorithmStage | None
-    assert get_type_hints(SourceClaimDocument)["stage"] == AlgorithmStage | None
+    assert get_type_hints(SourceClaimDocument)["stage"] == AlgorithmStage
     field = _schema_object("claim_algorithm_payload").field("algorithm_stage")
     assert field.python_type == "builtins.str"
     assert field.metadata["semantic_type"] == "propstore.core.algorithm_stage.AlgorithmStage"
