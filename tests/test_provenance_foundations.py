@@ -248,7 +248,13 @@ def test_source_trust_status_round_trips() -> None:
 
     assert document_to_payload(trust) == {
         "status": "defaulted",
-        "prior_base_rate": {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
+        "prior_base_rate": {
+            "b": 0.0,
+            "d": 0.0,
+            "u": 1.0,
+            "a": 0.5,
+            "allow_dogmatic": False,
+        },
         "quality": {
             "status": "vacuous",
             "b": 0.0,
@@ -256,6 +262,7 @@ def test_source_trust_status_round_trips() -> None:
             "u": 1.0,
             "a": 0.5,
         },
+        "derived_from": [],
     }
 
 
