@@ -13,8 +13,7 @@ from propstore.families.registry import (
     world_schema,
 )
 from propstore.core.source_types import SourceKind
-from propstore.families.documents.sources import SourceTrustDocument
-from propstore.families.sources.declaration import Source
+from propstore.families.sources.declaration import Source, SourceTrustDocument
 from propstore.provenance import ProvenanceStatus
 
 
