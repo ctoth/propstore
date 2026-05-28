@@ -213,9 +213,18 @@ def normalize_promoted_source_claim_artifact(
         rewritten_payload,
         strip_source_local=True,
     )
+    normalized_document = convert_document_value(
+        normalized_payload,
+        ClaimDocument,
+        source=source,
+    )
+    document_payload = document_to_payload(normalized_document)
+    if not isinstance(document_payload, dict):
+        raise TypeError("promoted claim document payload must be a mapping")
+    document_payload["version_id"] = compute_claim_version_id(document_payload)
     return NormalizedPromotedClaimArtifact(
         document=convert_document_value(
-            normalized_payload,
+            document_payload,
             ClaimDocument,
             source=source,
         ),
