@@ -15,8 +15,10 @@ from propstore.families.claims.references import (
     imported_claim_reference_index,
     resolve_first_claim_reference_id,
 )
-from propstore.families.documents.sources import SourceClaimDocument
-from propstore.families.documents.sources import SourceProvenanceDocument
+from propstore.families.claims.declaration import (
+    SourceClaimDocument,
+    SourceProvenanceDocument,
+)
 from propstore.source.reference_indexes import (
     primary_claim_index,
     source_claim_index,
