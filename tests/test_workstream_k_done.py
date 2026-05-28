@@ -17,7 +17,7 @@ def test_workstream_k_done_contract() -> None:
     assert "derive_source_document_trust" not in propstore_sources
     assert "_sanitize_model_key" not in propstore_sources
 
-    from propstore.families.documents.sources import SourceTrustDocument
+    from propstore.families.sources.declaration import SourceTrustDocument
     from propstore.opinion import Opinion
     from propstore.source_trust_argumentation import calibrate_source_trust
 
