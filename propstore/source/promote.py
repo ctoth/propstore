@@ -292,7 +292,7 @@ def _commit_promote_time_trust_calibration(
     source_doc = repo.families.source_documents.require(SourceRef(source_name))
     updated_payload = source_document_payload(source_doc)
     updated_payload["trust"] = _source_trust_payload(calibration)
-    if updated_payload["trust"] == source_doc.trust.to_payload():
+    if updated_payload["trust"] == document_to_payload(source_doc.trust):
         return None
     updated_source_doc = convert_document_value(
         updated_payload,
