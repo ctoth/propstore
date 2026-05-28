@@ -9,7 +9,7 @@ from dulwich.repo import MemoryRepo
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from propstore.families.claims.declaration import OpinionDocument, ResolutionDocument
+from propstore.families.claims.declaration import ResolutionDocument
 from propstore.families.sources.declaration import (
     SourceTrustDocument,
     SourceTrustQualityDocument,
@@ -259,15 +259,6 @@ def test_source_trust_status_round_trips() -> None:
     }
 
 
-def test_opinion_document_requires_provenance() -> None:
-    with pytest.raises(DocumentSchemaError):
-        convert_document_value(
-            {"b": 0.0, "d": 0.0, "u": 1.0, "a": 0.5},
-            OpinionDocument,
-            source="stances.yaml",
-        )
-
-
 def test_resolution_rejects_scalar_opinion_fields() -> None:
     with pytest.raises(DocumentSchemaError):
         convert_document_value(
@@ -283,21 +274,20 @@ def test_resolution_rejects_scalar_opinion_fields() -> None:
         )
 
 
-def test_resolution_uses_single_opinion_document_with_provenance() -> None:
-    resolution = ResolutionDocument(
-        method="nli",
-        confidence=0.5,
-        opinion=OpinionDocument(
-            b=0.0,
-            d=0.0,
-            u=1.0,
-            a=0.5,
-            provenance=_provenance(ProvenanceStatus.VACUOUS, "stance"),
-        ),
-    )
-
-    payload = resolution.to_payload()
-
-    assert set(payload) == {"method", "confidence", "opinion"}
-    assert payload["opinion"]["provenance"]["status"] == "vacuous"
-    assert "opinion_belief" not in payload
+def test_resolution_rejects_nested_opinion_document() -> None:
+    with pytest.raises(DocumentSchemaError):
+        convert_document_value(
+            {
+                "method": "nli",
+                "confidence": 0.5,
+                "opinion": {
+                    "b": 0.0,
+                    "d": 0.0,
+                    "u": 1.0,
+                    "a": 0.5,
+                    "provenance": _provenance(ProvenanceStatus.VACUOUS, "stance").to_payload(),
+                },
+            },
+            ResolutionDocument,
+            source="stances.yaml",
+        )
