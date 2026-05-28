@@ -11,7 +11,7 @@ from propstore.families.meta.declaration import (
     PROPSTORE_WORLD_SCHEMA_VERSION,
 )
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.documents.sources import SourceOriginDocument, SourceTrustDocument
+from propstore.families.sources.declaration import SourceOriginDocument, SourceTrustDocument
 from propstore.families.registry import world_schema
 from propstore.provenance import ProvenanceStatus
 
