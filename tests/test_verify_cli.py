@@ -12,12 +12,12 @@ from hypothesis import strategies as st
 from quire.documents import convert_document_value, decode_document_batch_bytes, encode_yaml_value
 
 from propstore.families.artifacts import stamp_source_artifacts
-from propstore.families.claims.declaration import SOURCE_CLAIM_BATCH_SPEC
-from propstore.families.documents.sources import (
+from propstore.families.claims.declaration import (
+    SOURCE_CLAIM_BATCH_SPEC,
     SourceJustificationDocument,
-    SourceStanceEntryDocument,
 )
 from propstore.families.sources.declaration import SourceDocument
+from propstore.families.stances.declaration import SourceStanceEntryDocument
 from propstore.families.registry import ClaimRef
 from propstore.cli import cli
 from propstore.repository import Repository
