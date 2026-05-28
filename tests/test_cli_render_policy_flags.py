@@ -30,7 +30,7 @@ from pathlib import Path
 import pytest
 import yaml
 from click.testing import CliRunner
-from quire.documents import convert_document
+from quire.documents import convert_document, document_to_payload
 
 from propstore.cli import cli
 from propstore.app.predicates import PredicateAddRequest, add_predicate
@@ -316,13 +316,15 @@ def _seed_authored_reasoning(repo: Repository, concept_aid: str) -> None:
         ),
     )
     justification_payload = stamp_justification_artifact_id(
-        SourceJustificationDocument(
-            id="j_fixture",
-            conclusion="claim_fixture_final",
-            premises=("claim_fixture_draft",),
-            rule_kind="reported_claim",
-            rule_strength="defeasible",
-        ).to_payload()
+        document_to_payload(
+            SourceJustificationDocument(
+                id="j_fixture",
+                conclusion="claim_fixture_final",
+                premises=("claim_fixture_draft",),
+                rule_kind="reported_claim",
+                rule_strength="defeasible",
+            )
+        )
     )
     justification_ref = JustificationRef(str(justification_payload["artifact_code"]))
     repo.families.justifications.save(
