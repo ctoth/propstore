@@ -10,7 +10,7 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from propstore.families.claims.declaration import OpinionDocument, ResolutionDocument
-from propstore.families.documents.sources import (
+from propstore.families.sources.declaration import (
     SourceTrustDocument,
     SourceTrustQualityDocument,
 )
