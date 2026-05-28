@@ -7,8 +7,7 @@ import msgspec.yaml
 import pytest
 from quire.documents import convert_document_value, document_to_payload
 
-from propstore.families.claims.declaration import ClaimDocument
-from propstore.families.documents.sources import SourceClaimDocument
+from propstore.families.claims.declaration import ClaimDocument, SourceClaimDocument
 
 
 FIXTURE_ROOT = Path(__file__).parent / "data" / "claim_roundtrip"
