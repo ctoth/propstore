@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+from quire.documents import document_to_payload
 from quire.family_store import DocumentFamilyStore
 from propstore.families.registry import (
     SourceRef,
@@ -112,7 +113,7 @@ def test_artifact_transaction_writes_multiple_source_artifacts(tmp_path: Path) -
     loaded_source = repo.families.source_documents.require(SourceRef("demo"))
     loaded_report = repo.families.source_finalize_reports.require(SourceRef("demo"))
     assert source_document_payload(loaded_source) == source_document_payload(source_doc)
-    assert loaded_report.to_payload() == report.to_payload()
+    assert document_to_payload(loaded_report) == document_to_payload(report)
 
 
 def test_artifact_store_roundtrips_and_lists_worldlines(tmp_path: Path) -> None:
