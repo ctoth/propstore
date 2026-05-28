@@ -42,14 +42,14 @@ from propstore.families.claims.declaration import (
     ClaimLogicalIdDocument,
     ClaimSourceDocument,
     ProvenanceDocument,
+    SourceJustificationDocument,
 )
 from propstore.families.contexts.declaration import ContextDocument, ContextReferenceDocument
-from propstore.families.documents.sources import (
-    SourceJustificationDocument,
+from propstore.families.sources.declaration import (
+    SourceDocument,
     SourceOriginDocument,
     SourceTrustDocument,
 )
-from propstore.families.sources.declaration import SourceDocument
 from propstore.families.stances.declaration import StanceDocument
 from propstore.families.identity.justifications import stamp_justification_artifact_id
 from propstore.families.identity.stances import stamp_stance_artifact_id
