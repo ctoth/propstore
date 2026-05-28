@@ -7,7 +7,7 @@ import pytest
 from quire.git_store import HeadMismatchError
 
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.documents.sources import (
+from propstore.families.sources.declaration import (
     SourceFinalizeCalibrationDocument,
     SourceFinalizeReportDocument,
 )
