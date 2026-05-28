@@ -8,7 +8,7 @@ from propstore.canonical_namespaces import (
     assert_alias_does_not_target_reserved_namespace,
 )
 from propstore.families.claims.lifecycle import normalize_source_claims_payload
-from propstore.families.documents.sources import SourceClaimDocument
+from propstore.families.claims.declaration import SourceClaimDocument
 
 
 @pytest.mark.parametrize("namespace", sorted(RESERVED_CANONICAL_NAMESPACES))
