@@ -25,7 +25,7 @@ Definition of `KEEP`:
 - No test blesses an old semantic flat mapping path.
 
 Checklist:
-- [ ] `8679fcd5` Delete first handwritten document classes
+- [x] `8679fcd5` DROP - Delete first handwritten document classes
 - [ ] `b6360532` Delete source handwritten document classes
 - [ ] `dd30a90a` Delete merge handwritten document classes
 - [ ] `8986193e` Delete rule handwritten document classes
