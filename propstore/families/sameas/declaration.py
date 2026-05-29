@@ -3,9 +3,8 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
-import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
 from quire.charters import CharterField, FamilyCharter, FamilyModel
 from quire.families import FamilyDefinition
@@ -69,19 +68,7 @@ SAMEAS_CHARTER: FamilyCharter = FamilyCharter(
 
 SAMEAS_CHARTERS: tuple[FamilyCharter, ...] = (SAMEAS_CHARTER,)
 
-if TYPE_CHECKING:
-
-    class SameAsAssertionDocument(msgspec.Struct, forbid_unknown_fields=True):
-        artifact_id: str
-        left_artifact_id: str
-        right_artifact_id: str
-        relation: SameAsRelation
-        evidence_source: str | None = None
-        provenance: dict[str, Any] | None = None
-        confidence: float | None = None
-
-else:
-    SameAsAssertionDocument: Any = SAMEAS_CHARTER.generated_document()
-    SameAsAssertionDocument.__name__ = "SameAsAssertionDocument"
-    SameAsAssertionDocument.__qualname__ = "SameAsAssertionDocument"
-    SameAsAssertionDocument.__module__ = __name__
+SameAsAssertionDocument: Any = SAMEAS_CHARTER.generated_document()
+SameAsAssertionDocument.__name__ = "SameAsAssertionDocument"
+SameAsAssertionDocument.__qualname__ = "SameAsAssertionDocument"
+SameAsAssertionDocument.__module__ = __name__
