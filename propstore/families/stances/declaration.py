@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Annotated, Any
 
-import msgspec
-from quire.artifacts import ArtifactFamily, FlatYamlPlacement
-from quire.charters import CharterField, FamilyCharter, FamilyModel
+from quire.charter_class import CharterDoc, charter, charter_field
+from quire.charters import FamilyCharter
 from quire.documents import DocumentBatchSpec
-from quire.families import FamilyDefinition
 from quire.lifecycle import ConflictPolicy, FamilyState, FamilyTransition
 from quire.references import ForeignKeySpec
 from quire.versions import VersionId
@@ -26,94 +24,15 @@ _STANCE_WORLD_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 
 
-class Stance(FamilyModel):
-    pass
-
-
-STANCE_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="stance",
-        name="stance",
-        contract_version=_STANCE_WORLD_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-stance",
-            contract_version=_STANCE_WORLD_CONTRACT_VERSION,
-            doc_type=Stance,
-            placement=FlatYamlPlacement(".derived/stance", str),
-        ),
-        identity_field="id",
-    ),
-    model=Stance,
-    fields=(
-        CharterField(
-            "id",
-            str,
-            primary_key=True,
-            nullable=False,
-            artifact=True,
-            document_name="artifact_id",
-        ),
-        CharterField(
-            "source_claim",
-            str,
-            nullable=False,
-            foreign_key=ForeignKeySpec(
-                name="stance_source_claim",
-                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-                source_family="stances",
-                source_field="source_claim",
-                target_family="claims",
-                required=False,
-            ),
-        ),
-        CharterField(
-            "target",
-            str,
-            nullable=False,
-            foreign_key=ForeignKeySpec(
-                name="stance_target_claim",
-                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-                source_family="stances",
-                source_field="target",
-                target_family="claims",
-                required=False,
-            ),
-        ),
-        CharterField(
-            "type",
-            StanceType,
-            nullable=False,
-            enum_type=StanceType,
-        ),
-        CharterField("artifact_code", str, artifact=True, nullable=False),
-        CharterField("perspective_source_claim_id", str, nullable=True),
-        CharterField("strength", str, nullable=True),
-        CharterField("note", str, nullable=True),
-        CharterField("conditions_differ", str, nullable=True),
-        CharterField("opinion", Opinion, nullable=True),
-        CharterField(
-            "resolution",
-            dict[str, Any],
-            parse_boundary="json",
-            nullable=True,
-        ),
-        CharterField(
-            "target_justification_id",
-            str,
-            nullable=True,
-            foreign_key=ForeignKeySpec(
-                name="stance_target_justification",
-                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-                source_family="stances",
-                source_field="target_justification_id",
-                target_family="justifications",
-                required=False,
-            ),
-        ),
-        CharterField("classification_model", str, nullable=True),
-        CharterField("classification_date", str, nullable=True),
-        CharterField("promoted_from_sha", str, nullable=True),
-    ),
+@charter(
+    key="stance",
+    name="stance",
+    contract_version=_STANCE_WORLD_CONTRACT_VERSION,
+    placement=".derived/stance",
+    identity_field="id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-stance",
+    model_name="Stance",
     states=(
         FamilyState("proposed", document_label="proposal"),
         FamilyState("canonical", document_label="canonical", terminal=True),
@@ -127,95 +46,111 @@ STANCE_CHARTER: FamilyCharter = FamilyCharter(
             conflict_policy=ConflictPolicy.REPLACE,
         ),
     ),
-    semantic_metadata={"semantic": "propstore.world"},
 )
+class StanceDocument(CharterDoc):
+    artifact_id: Annotated[
+        str,
+        charter_field(
+            column_name="id",
+            primary_key=True,
+            nullable=False,
+            artifact=True,
+        ),
+    ]
+    source_claim: Annotated[
+        str,
+        charter_field(
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="stance_source_claim",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="stances",
+                source_field="source_claim",
+                target_family="claims",
+                required=False,
+            ),
+        ),
+    ]
+    target: Annotated[
+        str,
+        charter_field(
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="stance_target_claim",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="stances",
+                source_field="target",
+                target_family="claims",
+                required=False,
+            ),
+        ),
+    ]
+    type: Annotated[StanceType, charter_field(nullable=False, enum_type=StanceType)]
+    artifact_code: Annotated[str, charter_field(artifact=True, nullable=False)]
+    perspective_source_claim_id: str | None = None
+    strength: str | None = None
+    note: str | None = None
+    conditions_differ: str | None = None
+    opinion: Opinion | None = None
+    resolution: Annotated[
+        dict[str, Any] | None,
+        charter_field(json=True, nullable=True),
+    ] = None
+    target_justification_id: Annotated[
+        str | None,
+        charter_field(
+            nullable=True,
+            foreign_key=ForeignKeySpec(
+                name="stance_target_justification",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="stances",
+                source_field="target_justification_id",
+                target_family="justifications",
+                required=False,
+            ),
+        ),
+    ] = None
+    classification_model: str | None = None
+    classification_date: str | None = None
+    promoted_from_sha: str | None = None
+
+
+STANCE_CHARTER: FamilyCharter = StanceDocument.__charter__
 
 STANCE_CHARTERS: tuple[FamilyCharter, ...] = (STANCE_CHARTER,)
 
-if TYPE_CHECKING:
 
-    class StanceDocument(msgspec.Struct, forbid_unknown_fields=True):
-        artifact_id: str
-        source_claim: str
-        target: str
-        type: StanceType
-        artifact_code: str
-        perspective_source_claim_id: str | None = None
-        strength: str | None = None
-        note: str | None = None
-        conditions_differ: str | None = None
-        opinion: Opinion | None = None
-        resolution: dict[str, Any] | None = None
-        target_justification_id: str | None = None
-        classification_model: str | None = None
-        classification_date: str | None = None
-        promoted_from_sha: str | None = None
-
-else:
-    StanceDocument: Any = STANCE_CHARTER.generated_document()
-    StanceDocument.__name__ = "StanceDocument"
-    StanceDocument.__qualname__ = "StanceDocument"
-    StanceDocument.__module__ = __name__
-
-
-class SourceStanceEntry(FamilyModel):
-    pass
-
-
-SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-stance-entry-document",
-        name="source-stance-entry",
-        contract_version=_STANCE_WORLD_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-stance-entry-document",
-            contract_version=_STANCE_WORLD_CONTRACT_VERSION,
-            doc_type=SourceStanceEntry,
-            placement=FlatYamlPlacement(".source/stances", str),
-        ),
-        identity_field="source_claim",
-    ),
-    model=SourceStanceEntry,
-    fields=(
-        CharterField("source", ClaimSourceDocument, nullable=True),
-        CharterField("produced_by", ExtractionProvenanceDocument, nullable=True),
-        CharterField("source_claim", str, nullable=True),
-        CharterField("perspective_source_claim_id", str, nullable=True),
-        CharterField("target", str, nullable=True),
-        CharterField("type", StanceType, nullable=True, enum_type=StanceType),
-        CharterField("strength", str, nullable=True),
-        CharterField("note", str, nullable=True),
-        CharterField("conditions_differ", str, nullable=True),
-        CharterField("opinion", Opinion, nullable=True),
-        CharterField("resolution", ResolutionDocument, nullable=True),
-        CharterField("target_justification_id", str, nullable=True),
-        CharterField("artifact_code", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
+@charter(
+    key="source-stance-entry-document",
+    name="source-stance-entry",
+    contract_version=_STANCE_WORLD_CONTRACT_VERSION,
+    placement=".source/stances",
+    identity_field="source_claim",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-stance-entry-document",
+    model_name="SourceStanceEntry",
 )
+class SourceStanceEntryDocument(CharterDoc, kw_only=True):
+    source: Annotated[ClaimSourceDocument | None, charter_field(nullable=True)] = None
+    produced_by: Annotated[
+        ExtractionProvenanceDocument | None, charter_field(nullable=True)
+    ] = None
+    source_claim: Annotated[str | None, charter_field(nullable=True)] = None
+    perspective_source_claim_id: Annotated[str | None, charter_field(nullable=True)] = None
+    target: Annotated[str | None, charter_field(nullable=True)] = None
+    type: Annotated[StanceType | None, charter_field(nullable=True, enum_type=StanceType)] = None
+    strength: Annotated[str | None, charter_field(nullable=True)] = None
+    note: Annotated[str | None, charter_field(nullable=True)] = None
+    conditions_differ: Annotated[str | None, charter_field(nullable=True)] = None
+    opinion: Annotated[Opinion | None, charter_field(nullable=True)] = None
+    resolution: Annotated[ResolutionDocument | None, charter_field(nullable=True)] = None
+    target_justification_id: Annotated[str | None, charter_field(nullable=True)] = None
+    artifact_code: Annotated[str | None, charter_field(nullable=True)] = None
 
 
-if TYPE_CHECKING:
-    class SourceStanceEntryDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        source: ClaimSourceDocument | None = None
-        produced_by: ExtractionProvenanceDocument | None = None
-        source_claim: str | None = None
-        perspective_source_claim_id: str | None = None
-        target: str | None = None
-        type: StanceType | None = None
-        strength: str | None = None
-        note: str | None = None
-        conditions_differ: str | None = None
-        opinion: Opinion | None = None
-        resolution: ResolutionDocument | None = None
-        target_justification_id: str | None = None
-        artifact_code: str | None = None
-
-else:
-    SourceStanceEntryDocument: Any = SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER.generated_document()
-    SourceStanceEntryDocument.__name__ = "SourceStanceEntryDocument"
-    SourceStanceEntryDocument.__qualname__ = "SourceStanceEntryDocument"
-    SourceStanceEntryDocument.__module__ = __name__
+SOURCE_STANCE_ENTRY_DOCUMENT_CHARTER: FamilyCharter = (
+    SourceStanceEntryDocument.__charter__
+)
 
 SOURCE_STANCE_BATCH_SPEC = DocumentBatchSpec(
     batch_name="source-stances",
