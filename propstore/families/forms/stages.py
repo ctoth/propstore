@@ -15,7 +15,7 @@ from propstore.core.conditions.registry import KindType
 from propstore.families.forms.models import (
     Form,
     FormAlgebra,
-    FormDocumentProtocol,
+    FormDocument,
 )
 from propstore.propagation import rewrite_parameterization_symbols
 from quire.documents import decode_document_path
@@ -25,10 +25,8 @@ if TYPE_CHECKING:
     from propstore.families.concepts.stages import LoadedConcept
 
 
-def _form_document_type() -> type[Any]:
-    from propstore.families.forms.declaration import FORM_DOCUMENT_TYPE
-
-    return FORM_DOCUMENT_TYPE
+def _form_document_type() -> type[FormDocument]:
+    return FormDocument
 
 
 class FormStage(StrEnum):
@@ -40,7 +38,7 @@ class FormStage(StrEnum):
 @dataclass(frozen=True)
 class LoadedForm:
     filename: str
-    document: FormDocumentProtocol
+    document: FormDocument
 
 
 @dataclass
@@ -100,7 +98,7 @@ def _path_cache_key(forms_dir: Path | KnowledgePath) -> str:
     return forms_dir.cache_key()
 
 
-def parse_form(form_name: str, data: FormDocumentProtocol) -> FormDefinition:
+def parse_form(form_name: str, data: FormDocument) -> FormDefinition:
     raw_kind = data.kind
     if isinstance(raw_kind, str):
         kind = _KIND_MAP.get(raw_kind, KindType.QUANTITY)
@@ -357,7 +355,7 @@ def kind_value_from_form_name(form: str | None) -> str:
 def load_form_definition(
     forms_dir: Path | KnowledgePath,
     form_name: str | None,
-) -> FormDocumentProtocol | None:
+) -> FormDocument | None:
     if not isinstance(form_name, str) or not form_name:
         return None
     form_path = coerce_knowledge_path(forms_dir) / f"{form_name}.yaml"
@@ -367,7 +365,7 @@ def load_form_definition(
     return document
 
 
-def allowed_units_from_form_definition(form_definition: FormDocumentProtocol) -> set[str]:
+def allowed_units_from_form_definition(form_definition: FormDocument) -> set[str]:
     allowed: set[str] = set()
     unit_symbol = form_definition.unit_symbol
     if unit_symbol:

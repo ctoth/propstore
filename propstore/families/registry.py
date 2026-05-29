@@ -58,7 +58,7 @@ from propstore.families.concepts.declaration import (
     SourceConceptEntryDocument,
 )
 from propstore.families.contexts.declaration import CONTEXT_CHARTER
-from propstore.families.forms.declaration import FORM_CHARTER
+from propstore.families.forms.models import FORM_CHARTER
 from propstore.families.merge.declaration import (
     MERGE_MANIFEST_FAMILY_CONTRACT_VERSION,
     MergeManifestDocument,
@@ -920,7 +920,7 @@ def world_charters() -> tuple[FamilyCharter, ...]:
     contexts = import_module("propstore.families.contexts.declaration")
     diagnostics = import_module("propstore.families.diagnostics.declaration")
     embeddings = import_module("propstore.families.embeddings.declaration")
-    forms = import_module("propstore.families.forms.declaration")
+    forms = import_module("propstore.families.forms.models")
     meta = import_module("propstore.families.meta.declaration")
     micropublications = import_module("propstore.families.micropublications.declaration")
     merge = import_module("propstore.families.merge.declaration")

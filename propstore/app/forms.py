@@ -9,12 +9,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from propstore.families.concepts.stages import parse_concept_record_document
-from propstore.families.forms.declaration import FORM_DOCUMENT_TYPE, FormAlternativeDocument
+from propstore.families.forms.declaration import FormAlternativeDocument
+from propstore.families.forms.models import FORM_DOCUMENT_TYPE, FormDocument
 from propstore.families.forms.passes import run_form_pipeline
 from propstore.families.forms.stages import (
     FormCheckedRegistry,
     FormDefinition,
-    FormDocumentProtocol,
     LoadedForm,
     parse_form,
 )
@@ -65,7 +65,7 @@ class FormAddRequest:
 @dataclass(frozen=True)
 class FormAddReport:
     path: Path
-    document: FormDocumentProtocol
+    document: FormDocument
     created: bool
 
 
@@ -185,7 +185,7 @@ def list_form_items(
 
     filter_dims = parse_dims_spec(dims_filter) if dims_filter is not None else None
     items: list[FormListItem] = []
-    forms: list[tuple[FormDocumentProtocol, FormDefinition]] = []
+    forms: list[tuple[FormDocument, FormDefinition]] = []
     for handle in handles:
         document = handle.document
         forms.append((document, parse_form(document.name, document)))

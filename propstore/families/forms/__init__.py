@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 
 def load_form_documents(forms_dir: Path | KnowledgePath) -> list[LoadedForm]:
     from quire.tree_path import coerce_tree_path
-    from propstore.families.forms.declaration import FORM_DOCUMENT_TYPE
+    from propstore.families.forms.models import FORM_DOCUMENT_TYPE
 
     forms_root = coerce_tree_path(forms_dir)
     if not forms_root.exists():

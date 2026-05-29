@@ -8,8 +8,7 @@ from typing import Mapping
 
 from quire.documents import decode_yaml_mapping
 from propstore.families.concepts.declaration import ConceptDocument
-from propstore.families.forms.declaration import FORM_DOCUMENT_TYPE
-from propstore.families.forms.stages import FormDocumentProtocol
+from propstore.families.forms.models import FORM_DOCUMENT_TYPE, FormDocument
 from propstore.families.registry import (
     ConceptFileRef,
     FormRef,
@@ -51,9 +50,9 @@ def initialize_project(root: Path) -> ProjectInitReport:
     return ProjectInitReport(root=root, initialized=True)
 
 
-def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocumentProtocol]]:
+def _seed_form_documents(repo: Repository) -> list[tuple[FormRef, FormDocument]]:
     """Return typed default forms ready for artifact-store persistence."""
-    form_documents: list[tuple[FormRef, FormDocumentProtocol]] = []
+    form_documents: list[tuple[FormRef, FormDocument]] = []
     package_forms_dir = _get_resource("forms")
     if not package_forms_dir.is_dir():
         raise ProjectInitError(
@@ -251,7 +250,7 @@ def _seed_concept_documents(repo: Repository) -> list[tuple[ConceptFileRef, Conc
 
 def _render_seed_form_files(
     repo: Repository,
-    form_documents: list[tuple[FormRef, FormDocumentProtocol]],
+    form_documents: list[tuple[FormRef, FormDocument]],
 ) -> dict[str | Path, bytes]:
     """Render typed seed forms to repo-relative YAML blobs for one commit."""
     rendered: dict[str | Path, bytes] = {}

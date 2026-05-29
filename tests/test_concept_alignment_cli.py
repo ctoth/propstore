@@ -10,7 +10,7 @@ from hypothesis import strategies as st
 
 from propstore.cli import cli
 from propstore.families.concepts.alignment import build_alignment_artifact, classify_relation
-from propstore.families.forms.declaration import FORM_CHARTER
+from propstore.families.forms.models import FORM_CHARTER
 from propstore.families.registry import ConceptFileRef, FormRef
 from propstore.repository import Repository
 

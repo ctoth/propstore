@@ -3,7 +3,7 @@ from __future__ import annotations
 from quire.documents import convert_document
 
 from propstore.families.concepts.declaration import ConceptDocument
-from propstore.families.forms.declaration import FORM_CHARTER
+from propstore.families.forms.models import FORM_CHARTER
 from propstore.families.identity.concepts import (
     derive_concept_artifact_id,
     normalize_canonical_concept_payload,
