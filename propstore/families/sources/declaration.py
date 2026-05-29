@@ -86,7 +86,7 @@ class SourceTrustQualityDocument(CharterDoc):
     artifact_family_name="propstore-source-trust",
     model_name="SourceTrust",
 )
-class SourceTrustDocument(CharterDoc, omit_defaults=True):
+class SourceTrustDocument(CharterDoc):
     status: Annotated[ProvenanceStatus, charter_field(enum_type=ProvenanceStatus)]
     prior_base_rate: Opinion | None = None
     quality: SourceTrustQualityDocument | None = None
