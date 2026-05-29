@@ -289,7 +289,7 @@ def test_claim_and_concept_identity_policy_is_family_owned() -> None:
 
 
 def test_artifact_codes_do_not_own_claim_identity_canonicalization() -> None:
-    path = PROPSTORE / "artifact_codes.py"
+    path = PROPSTORE / "families" / "artifacts.py"
     tree = _parse(path)
     defined_functions = {
         node.name

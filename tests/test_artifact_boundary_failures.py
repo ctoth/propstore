@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 
 from quire.documents import decode_yaml_mapping
-from propstore.families.artifacts import _verify_origin
+from propstore.app.verify import _verify_origin
 
 
 def test_decode_yaml_mapping_rejects_yaml_null():

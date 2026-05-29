@@ -261,24 +261,24 @@ def test_propose_concept_retries_stale_source_branch_write(tmp_path: Path, monke
     init_result = _init_source(runner, repo)
     assert init_result.exit_code == 0, init_result.output
 
-    original_load = source_concepts.load_source_concepts_document
+    original_normalize = source_concepts.normalize_source_concepts_document
     raced = False
 
-    def racing_load(load_repo: Repository, source_name: str):
+    def racing_normalize(normalize_repo: Repository, data):
         nonlocal raced
-        loaded = original_load(load_repo, source_name)
-        if load_repo is repo and not raced:
+        normalized = original_normalize(normalize_repo, data)
+        if normalize_repo is repo and not raced:
             raced = True
             source_concepts.commit_source_concept_proposal(
                 competing_repo,
-                source_name,
+                "demo",
                 local_name="second_concept",
                 definition="Second concept from a concurrent writer.",
                 form="structural",
             )
-        return loaded
+        return normalized
 
-    monkeypatch.setattr(source_concepts, "load_source_concepts_document", racing_load)
+    monkeypatch.setattr(source_concepts, "normalize_source_concepts_document", racing_normalize)
 
     source_concepts.commit_source_concept_proposal(
         repo,

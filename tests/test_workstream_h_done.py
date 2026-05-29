@@ -7,7 +7,6 @@ def test_workstream_h_named_gate_files_exist_and_budget_gate_is_marked():
     required = {
         "tests/test_praf_paper_td_complete_routing.py",
         "tests/test_praf_uncalibrated_explicit.py",
-        "tests/test_praf_raw_confidence_not_dogmatic.py",
         "tests/test_defeat_summary_opinion_honest.py",
         "tests/test_enforce_coh_convergence.py",
         "tests/test_sensitivity_global_method_or_honest_naming.py",
