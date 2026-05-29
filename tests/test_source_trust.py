@@ -343,7 +343,7 @@ def test_source_finalize_leaves_defaulted_trust_for_argumentation_pipeline(tmp_p
     source_doc = yaml.safe_load(repo.git.read_file("source.yaml", commit=branch_tip))
     assert source_doc["trust"]["status"] == "defaulted"
     assert "prior_base_rate" not in source_doc["trust"]
-    assert "derived_from" not in source_doc["trust"]
+    assert source_doc["trust"]["derived_from"] == []
 
 
 def test_world_query_claim_source_does_not_fabricate_source_prior(tmp_path: Path) -> None:
