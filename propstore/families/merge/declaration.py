@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import msgspec
 from quire.artifacts import ArtifactFamily, FlatYamlPlacement
@@ -134,13 +134,7 @@ MERGE_MANIFEST_CHARTER: FamilyCharter = _MergeManifestCharter(
 
 MERGE_MANIFEST_CHARTERS: tuple[FamilyCharter, ...] = (MERGE_MANIFEST_CHARTER,)
 
-if TYPE_CHECKING:
-
-    class MergeManifestDocument(msgspec.Struct, forbid_unknown_fields=True):
-        merge: MergeManifestPayloadDocument
-
-else:
-    MergeManifestDocument: Any = MERGE_MANIFEST_CHARTER.generated_document()
-    MergeManifestDocument.__name__ = "MergeManifestDocument"
-    MergeManifestDocument.__qualname__ = "MergeManifestDocument"
-    MergeManifestDocument.__module__ = __name__
+MergeManifestDocument: Any = MERGE_MANIFEST_CHARTER.generated_document()
+MergeManifestDocument.__name__ = "MergeManifestDocument"
+MergeManifestDocument.__qualname__ = "MergeManifestDocument"
+MergeManifestDocument.__module__ = __name__
