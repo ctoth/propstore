@@ -22,6 +22,7 @@ from propstore.claim_graph import (
     build_argumentation_framework,
     compute_claim_graph_justified_claims,
 )
+from propstore.opinion import Opinion
 from propstore.relation_analysis import stance_summary
 from tests.sqlite_argumentation_store import SQLiteArgumentationStore
 from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
@@ -41,6 +42,20 @@ def _insert_claim(conn, claim_id, concept_id, value, sample_size=None,
     )
 
 
+def _opinion_from_uncertainty(opinion_uncertainty: float | None) -> Opinion | None:
+    """Build a valid Opinion from a bare uncertainty for render-filter tests.
+
+    Mass is placed on belief (b = 1 - u) with no disbelief, base-rate 0.5;
+    u == 1.0 is the vacuous opinion. stance_summary reads only opinion.u, so
+    the b/d split is immaterial to these tests — what matters is that the
+    opinion is present and carries the requested uncertainty.
+    """
+    if opinion_uncertainty is None:
+        return None
+    u = float(opinion_uncertainty)
+    return Opinion(1.0 - u, 0.0, u, 0.5, allow_dogmatic=u >= 1.0)
+
+
 def _insert_stance(conn, claim_id, target, stype, confidence=0.9, model=None,
                    opinion_uncertainty=None):
     insert_stance(
@@ -50,7 +65,7 @@ def _insert_stance(conn, claim_id, target, stype, confidence=0.9, model=None,
         stype,
         confidence=confidence,
         resolution_model=model,
-        opinion_uncertainty=opinion_uncertainty,
+        opinion=_opinion_from_uncertainty(opinion_uncertainty),
     )
 
 

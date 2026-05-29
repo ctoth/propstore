@@ -4,6 +4,8 @@ import asyncio
 import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
+from propstore.provenance import ProvenanceStatus
+
 
 def _claim(id_: str) -> dict[str, str]:
     return {"id": id_, "text": f"{id_} text", "source_paper": "paper"}
@@ -46,10 +48,10 @@ def test_classify_rejects_bidirectional_shape_without_silent_forward_fallback() 
     for result in results:
         resolution = result["resolution"]
         assert resolution["confidence"] is None
-        assert resolution["opinion"]["provenance"]["status"] == "vacuous"
-        assert resolution["opinion"]["provenance"]["operations"] == [
-            "llm_output_shape_unknown"
-        ]
+        opinion = result["opinion"]
+        assert opinion.provenance is not None
+        assert opinion.provenance.status == ProvenanceStatus.VACUOUS
+        assert opinion.provenance.operations == ("llm_output_shape_unknown",)
 
 
 def test_classify_missing_calibration_uses_null_confidence() -> None:
@@ -90,6 +92,6 @@ def test_classify_missing_calibration_uses_null_confidence() -> None:
 
     assert [result["type"] for result in results] == ["supports", "undercuts"]
     for result in results:
-        assert result["resolution"]["opinion"] is None
+        assert result["opinion"] is None
         assert result["resolution"]["confidence"] is None
         assert result["resolution"]["unresolved_calibration"]["reason"] == "missing_base_rate"

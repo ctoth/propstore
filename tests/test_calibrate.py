@@ -484,126 +484,50 @@ class TestCorpusOpinionBDUSumProperty:
         )
 
 
-class TestOpinionSchemaConstraints:
-    """Test that SQLite schema enforces opinion invariants.
+class TestOpinionInvariants:
+    """The ``Opinion`` type enforces Josang opinion invariants at construction.
 
-    Finding 10 (audit-opinion-algebra.md): The schema has opinion_belief,
-    opinion_disbelief, opinion_uncertainty columns but no CHECK constraint
-    enforcing b+d+u=1 or that values are in [0,1]. This means invalid
-    opinions can be persisted without error.
-
-    EXPECTED TO FAIL: no CHECK constraint exists.
+    The relation-opinion storage no longer keeps four scalar
+    ``opinion_belief/_disbelief/_uncertainty/_base_rate`` columns with SQLite
+    CHECK constraints; ``relation_edge.opinion`` is a single typed column
+    holding the serialized ``Opinion``. The invariants Finding 10
+    (audit-opinion-algebra.md) wanted enforced — ``b+d+u=1``, ``b,d,u in
+    [0,1]``, ``a in (0,1)`` — are now enforced by ``Opinion.__init__`` (the
+    doxa kernel), so an invalid opinion can never be constructed, let alone
+    persisted. These tests assert that enforcement at the type layer.
     """
 
-    def test_sqlite_rejects_invalid_opinion_sum(self):
-        """Inserting b=0.9, d=0.9, u=0.9 violates b+d+u=1.
-        The schema should reject this with a constraint error.
-
-        Per Josang 2001 (Def 9, p.7): b+d+u must equal 1.
-        If this constraint is not enforced at the storage layer, invalid
-        opinions can silently enter the system.
-        """
-        conn = sqlite3.connect(":memory:")
-        create_argumentation_schema(conn)
-
-        # Insert FK targets
-        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
-        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
-
-        # This INSERT has b+d+u = 2.7, which is clearly invalid.
-        # A proper CHECK constraint would reject it.
-        with pytest.raises(sqlite3.IntegrityError):
-            insert_stance(
-                conn,
-                "c1",
-                "c2",
-                "supports",
-                confidence=0.8,
-                opinion_belief=0.9,
-                opinion_disbelief=0.9,
-                opinion_uncertainty=0.9,
-                opinion_base_rate=0.5,
-            )
+    def test_rejects_invalid_opinion_sum(self):
+        """b=0.9, d=0.9, u=0.9 violates b+d+u=1 (Josang 2001, Def 9, p.7)."""
+        with pytest.raises(ValueError):
+            Opinion(0.9, 0.9, 0.9, 0.5)
 
     def test_rejects_negative_belief(self):
-        """opinion_belief = -0.1 must raise IntegrityError.
-
-        Per Josang 2001 (Def 1, p.5): b, d, u are in [0, 1].
-        """
-        conn = sqlite3.connect(":memory:")
-        create_argumentation_schema(conn)
-        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
-        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
-
-        with pytest.raises(sqlite3.IntegrityError):
-            insert_stance(
-                conn, "c1", "c2", "supports",
-                confidence=0.8,
-                opinion_belief=-0.1,
-                opinion_disbelief=0.6,
-                opinion_uncertainty=0.5,
-                opinion_base_rate=0.5,
-            )
+        """b=-0.1 is outside [0, 1] (Josang 2001, Def 1, p.5)."""
+        with pytest.raises(ValueError):
+            Opinion(-0.1, 0.6, 0.5, 0.5)
 
     def test_rejects_base_rate_zero(self):
-        """opinion_base_rate = 0.0 must raise IntegrityError.
-
-        Per Josang 2001 (Def 1, p.5): a is in the open interval (0, 1).
-        """
-        conn = sqlite3.connect(":memory:")
-        create_argumentation_schema(conn)
-        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
-        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
-
-        with pytest.raises(sqlite3.IntegrityError):
-            insert_stance(
-                conn, "c1", "c2", "supports",
-                confidence=0.8,
-                opinion_belief=0.3,
-                opinion_disbelief=0.2,
-                opinion_uncertainty=0.5,
-                opinion_base_rate=0.0,
-            )
+        """a=0.0 is outside the open interval (0, 1) (Josang 2001, Def 1, p.5)."""
+        with pytest.raises(ValueError):
+            Opinion(0.3, 0.2, 0.5, 0.0)
 
     def test_rejects_base_rate_one(self):
-        """opinion_base_rate = 1.0 must raise IntegrityError.
+        """a=1.0 is outside the open interval (0, 1) (Josang 2001, Def 1, p.5)."""
+        with pytest.raises(ValueError):
+            Opinion(0.3, 0.2, 0.5, 1.0)
 
-        Per Josang 2001 (Def 1, p.5): a is in the open interval (0, 1).
-        """
+    def test_accepts_null_opinion(self):
+        """A NULL opinion (no opinion attached) is accepted by the schema."""
         conn = sqlite3.connect(":memory:")
         create_argumentation_schema(conn)
         insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
         insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
 
-        with pytest.raises(sqlite3.IntegrityError):
-            insert_stance(
-                conn, "c1", "c2", "supports",
-                confidence=0.8,
-                opinion_belief=0.3,
-                opinion_disbelief=0.2,
-                opinion_uncertainty=0.5,
-                opinion_base_rate=1.0,
-            )
-
-    def test_accepts_null_opinions(self):
-        """All NULL opinion columns must be accepted (no opinion attached)."""
-        conn = sqlite3.connect(":memory:")
-        create_argumentation_schema(conn)
-        insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
-        insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
-
-        # Should not raise — NULLs bypass all opinion constraints
-        insert_stance(
-            conn, "c1", "c2", "supports",
-            confidence=0.8,
-            opinion_belief=None,
-            opinion_disbelief=None,
-            opinion_uncertainty=None,
-            opinion_base_rate=None,
-        )
+        insert_stance(conn, "c1", "c2", "supports", confidence=0.8, opinion=None)
 
     def test_accepts_valid_opinion(self):
-        """Valid b=0.3, d=0.2, u=0.5, a=0.5 must succeed.
+        """Valid b=0.3, d=0.2, u=0.5, a=0.5 constructs and persists.
 
         Per Josang 2001 (Def 1, p.5): b+d+u=1 and a in (0,1).
         """
@@ -612,12 +536,8 @@ class TestOpinionSchemaConstraints:
         insert_claim(conn, "c1", claim_type="parameter", concept_id="concept1", value=1.0, source_paper="paper1")
         insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
 
-        # Should not raise
         insert_stance(
             conn, "c1", "c2", "supports",
             confidence=0.8,
-            opinion_belief=0.3,
-            opinion_disbelief=0.2,
-            opinion_uncertainty=0.5,
-            opinion_base_rate=0.5,
+            opinion=Opinion(0.3, 0.2, 0.5, 0.5),
         )

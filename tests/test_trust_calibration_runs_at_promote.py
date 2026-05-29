@@ -76,5 +76,6 @@ def test_trust_calibration_runs_at_promote(tmp_path: Path) -> None:
         "d": expected_prior.d,
         "u": expected_prior.u,
         "a": expected_prior.a,
+        "allow_dogmatic": expected_prior.allow_dogmatic,
     }
     assert source_after["trust"]["derived_from"] == ["osc-direct-replication"]

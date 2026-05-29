@@ -1,13 +1,18 @@
-"""Tests for opinion columns in claim_stance schema.
+"""Tests for the relation-edge opinion column in the argumentation schema.
 
-Verifies that the four subjective logic opinion columns
-(Josang 2001, Def 9, p.7) are present and functional in claim_stance.
+The relation-opinion storage holds the subjective-logic opinion
+(Josang 2001, Def 9, p.7) as a single typed ``opinion`` column carrying the
+serialized ``Opinion`` (msgspec JSON ``{"b","d","u","a","allow_dogmatic"}``),
+not four scalar ``opinion_belief/_disbelief/_uncertainty/_base_rate`` columns.
+These tests verify the column shape and round-trip behavior.
 
 Page-image grounding:
 papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
 """
 
 import sqlite3
+
+import msgspec
 import pytest
 from hypothesis import given, settings, assume
 from hypothesis import strategies as st
@@ -15,6 +20,13 @@ from hypothesis import strategies as st
 from propstore.opinion import Opinion
 from tests.conftest import create_argumentation_schema, insert_claim, insert_stance
 from tests.sidecar_schema_helpers import build_world_projection_schema
+
+_DROPPED_SCALAR_COLUMNS = (
+    "opinion_belief",
+    "opinion_disbelief",
+    "opinion_uncertainty",
+    "opinion_base_rate",
+)
 
 
 @pytest.fixture
@@ -31,6 +43,17 @@ def _insert_claims(conn):
     insert_claim(conn, "c2", claim_type="parameter", concept_id="concept1", value=2.0, source_paper="paper1")
 
 
+def _select_opinion(conn) -> Opinion | None:
+    """Read the relation-edge ``opinion`` column for c1 and decode it."""
+    row = conn.execute(
+        "SELECT opinion FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
+    ).fetchone()
+    assert row is not None
+    if row[0] is None:
+        return None
+    return msgspec.json.decode(row[0], type=Opinion)
+
+
 @st.composite
 def valid_schema_opinions(draw):
     """Generate valid opinion tuples for storage roundtrip behavior."""
@@ -43,35 +66,37 @@ def valid_schema_opinions(draw):
     return Opinion(b, d, u, a, allow_dogmatic=u < 1e-9)
 
 
-class TestOpinionSchemaColumns:
-    """Test that claim_stance table has the opinion columns after schema creation."""
+class TestOpinionSchemaColumn:
+    """The relation_edge table carries a single typed ``opinion`` column."""
 
-    def test_opinion_columns_exist(self, conn):
-        """claim_stance must have opinion_belief, opinion_disbelief,
-        opinion_uncertainty, opinion_base_rate columns."""
+    def test_opinion_column_exists(self, conn):
+        """relation_edge must have a single ``opinion`` column and none of the
+        four dropped scalar columns."""
         cur = conn.execute("PRAGMA table_info(relation_edge)")
         columns = {row[1] for row in cur.fetchall()}
-        assert "opinion_belief" in columns
-        assert "opinion_disbelief" in columns
-        assert "opinion_uncertainty" in columns
-        assert "opinion_base_rate" in columns
+        assert "opinion" in columns
+        for scalar in _DROPPED_SCALAR_COLUMNS:
+            assert scalar not in columns
 
-    def test_opinion_base_rate_has_no_schema_default(self, conn):
+    def test_opinion_column_has_no_schema_default(self, conn):
         cur = conn.execute("PRAGMA table_info(relation_edge)")
         defaults = {row[1]: row[4] for row in cur.fetchall()}
 
-        assert defaults["opinion_base_rate"] is None
+        assert defaults["opinion"] is None
 
-    def test_sidecar_opinion_base_rate_has_no_schema_default(self):
+    def test_sidecar_opinion_column_has_no_schema_default(self):
         sidecar = sqlite3.connect(":memory:")
         build_world_projection_schema(sidecar)
         cur = sidecar.execute("PRAGMA table_info(relation_edge)")
-        defaults = {row[1]: row[4] for row in cur.fetchall()}
+        columns = {row[1]: row[4] for row in cur.fetchall()}
 
-        assert defaults["opinion_base_rate"] is None
+        assert "opinion" in columns
+        for scalar in _DROPPED_SCALAR_COLUMNS:
+            assert scalar not in columns
+        assert columns["opinion"] is None
 
-    def test_insert_with_opinion_values_roundtrips(self, conn):
-        """INSERT with explicit opinion values should round-trip via SELECT.
+    def test_insert_with_opinion_value_roundtrips(self, conn):
+        """INSERT with an explicit opinion should round-trip via SELECT.
 
         Jøsang's opinion tuple is (belief, disbelief, uncertainty,
         base-rate):
@@ -79,33 +104,27 @@ class TestOpinionSchemaColumns:
         """
         _insert_claims(conn)
 
-        # Insert stance with opinion values: b=0.7, d=0.1, u=0.2, a=0.5
         insert_stance(
             conn, "c1", "c2", "supports",
-            confidence=0.8, opinion_belief=0.7, opinion_disbelief=0.1,
-            opinion_uncertainty=0.2, opinion_base_rate=0.5,
+            confidence=0.8, opinion=Opinion(0.7, 0.1, 0.2, 0.5),
         )
 
-        row = conn.execute(
-            "SELECT opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate "
-            "FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
-        ).fetchone()
-
-        assert row is not None
-        assert abs(row[0] - 0.7) < 1e-9
-        assert abs(row[1] - 0.1) < 1e-9
-        assert abs(row[2] - 0.2) < 1e-9
-        assert abs(row[3] - 0.5) < 1e-9
+        restored = _select_opinion(conn)
+        assert restored is not None
+        assert restored.b == pytest.approx(0.7, abs=1e-9)
+        assert restored.d == pytest.approx(0.1, abs=1e-9)
+        assert restored.u == pytest.approx(0.2, abs=1e-9)
+        assert restored.a == pytest.approx(0.5, abs=1e-9)
 
     @pytest.mark.property
     @given(valid_schema_opinions())
     @settings(deadline=None)
     def test_generated_opinion_tuple_roundtrips_as_opinion(self, opinion):
-        """Generated opinion fields roundtrip through storage as an Opinion.
+        """A generated opinion roundtrips through storage as an Opinion.
 
-        This guards the behavior, not just the presence of nullable columns:
-        b, d, u, and a remain the subjective-logic tuple described by
-        Jøsang 2001 Definition 9.
+        This guards the behavior, not just column presence: b, d, u, and a
+        remain the subjective-logic tuple described by Jøsang 2001
+        Definition 9.
 
         papers/Josang_2001_LogicUncertainProbabilities/pngs/page-006.png
         """
@@ -115,60 +134,34 @@ class TestOpinionSchemaColumns:
         insert_stance(
             conn, "c1", "c2", "supports",
             confidence=opinion.expectation(),
-            opinion_belief=opinion.b,
-            opinion_disbelief=opinion.d,
-            opinion_uncertainty=opinion.u,
-            opinion_base_rate=opinion.a,
+            opinion=opinion,
         )
 
-        row = conn.execute(
-            "SELECT opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate "
-            "FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
-        ).fetchone()
-
-        assert row is not None
-        restored = Opinion(
-            row[0],
-            row[1],
-            row[2],
-            row[3],
-            allow_dogmatic=row[2] < 1e-9,
-        )
+        restored = _select_opinion(conn)
+        assert restored is not None
         assert restored.b == pytest.approx(opinion.b, abs=1e-9)
         assert restored.d == pytest.approx(opinion.d, abs=1e-9)
         assert restored.u == pytest.approx(opinion.u, abs=1e-9)
         assert restored.a == pytest.approx(opinion.a, abs=1e-9)
 
-    def test_insert_without_opinion_values_backward_compat(self, conn):
+    def test_insert_without_opinion_value_is_null(self, conn):
         """Missing opinion evidence remains explicit at the storage boundary.
 
-        Belief, disbelief, and uncertainty remain NULL when no opinion was
-        authored. The base-rate default alone is not treated as an opinion.
+        The opinion column is NULL when no opinion was authored.
         """
         _insert_claims(conn)
 
-        # Insert stance WITHOUT opinion values — backward compat
         insert_stance(conn, "c1", "c2", "supports", confidence=0.9)
 
-        row = conn.execute(
-            "SELECT opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate "
-            "FROM relation_edge WHERE source_kind='claim' AND source_id = 'c1'"
-        ).fetchone()
-
-        assert row is not None
-        assert row[0] is None  # opinion_belief NULL
-        assert row[1] is None  # opinion_disbelief NULL
-        assert row[2] is None  # opinion_uncertainty NULL
-        assert row[3] is None  # opinion_base_rate NULL
+        assert _select_opinion(conn) is None
 
     def test_confidence_column_unaffected(self, conn):
-        """Existing confidence column must be completely unaffected by new columns."""
+        """The confidence column is unaffected by the opinion column."""
         _insert_claims(conn)
 
         insert_stance(
             conn, "c1", "c2", "supports",
-            confidence=0.85, opinion_belief=0.6, opinion_disbelief=0.2,
-            opinion_uncertainty=0.2, opinion_base_rate=0.5,
+            confidence=0.85, opinion=Opinion(0.6, 0.2, 0.2, 0.5),
         )
 
         row = conn.execute(
@@ -177,28 +170,3 @@ class TestOpinionSchemaColumns:
 
         assert row is not None
         assert abs(row[0] - 0.85) < 1e-9
-
-    def test_select_star_returns_opinion_columns(self, conn):
-        """SELECT * must include opinion columns in result dicts."""
-        _insert_claims(conn)
-
-        insert_stance(
-            conn, "c1", "c2", "supports",
-            confidence=0.8, opinion_belief=0.7, opinion_disbelief=0.1,
-            opinion_uncertainty=0.2, opinion_base_rate=0.5,
-        )
-
-        row = conn.execute(
-            """
-            SELECT opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate
-            FROM relation_edge
-            WHERE source_kind='claim' AND source_id = 'c1'
-            """
-        ).fetchone()
-
-        assert row is not None
-        assert row[0] is not None
-        assert abs(row[0] - 0.7) < 1e-9
-        assert abs(row[1] - 0.1) < 1e-9
-        assert abs(row[2] - 0.2) < 1e-9
-        assert abs(row[3] - 0.5) < 1e-9

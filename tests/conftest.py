@@ -9,6 +9,8 @@ import hashlib
 import json
 import os
 import sqlite3
+
+import msgspec
 from sqlite3 import Connection
 import warnings
 from copy import deepcopy
@@ -36,6 +38,7 @@ from propstore.families.identity.logical_ids import (
     normalize_logical_value,
 )
 from propstore.families.forms.stages import FormDefinition
+from propstore.opinion import Opinion
 
 
 TEST_CONTEXT_ID = "ctx_test"
@@ -377,15 +380,7 @@ def create_argumentation_schema(conn: Connection) -> None:
             embedding_distance REAL,
             pass_number INTEGER,
             confidence REAL,
-            opinion_belief REAL,
-            opinion_disbelief REAL,
-            opinion_uncertainty REAL,
-            opinion_base_rate REAL,
-            CHECK(opinion_belief IS NULL OR (opinion_belief >= 0 AND opinion_belief <= 1)),
-            CHECK(opinion_disbelief IS NULL OR (opinion_disbelief >= 0 AND opinion_disbelief <= 1)),
-            CHECK(opinion_uncertainty IS NULL OR (opinion_uncertainty >= 0 AND opinion_uncertainty <= 1)),
-            CHECK(opinion_base_rate IS NULL OR (opinion_base_rate > 0 AND opinion_base_rate < 1)),
-            CHECK(opinion_belief IS NULL OR ABS(opinion_belief + opinion_disbelief + opinion_uncertainty - 1.0) <= 1e-6)
+            opinion TEXT
         );
 
         CREATE TABLE IF NOT EXISTS conflict_witness (
@@ -502,10 +497,7 @@ def insert_stance(
     embedding_distance: float | None = None,
     pass_number: int | None = None,
     confidence: float | None = None,
-    opinion_belief: float | None = None,
-    opinion_disbelief: float | None = None,
-    opinion_uncertainty: float | None = None,
-    opinion_base_rate: float | None = None,
+    opinion: Opinion | None = None,
 ) -> None:
     conn.execute(
         """
@@ -514,8 +506,8 @@ def insert_stance(
             target_justification_id,
             strength, conditions_differ, note, resolution_method, resolution_model,
             embedding_model, embedding_distance, pass_number, confidence,
-            opinion_belief, opinion_disbelief, opinion_uncertainty, opinion_base_rate
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            opinion
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             "claim",
@@ -533,10 +525,7 @@ def insert_stance(
             embedding_distance,
             pass_number,
             confidence,
-            opinion_belief,
-            opinion_disbelief,
-            opinion_uncertainty,
-            opinion_base_rate,
+            None if opinion is None else msgspec.json.encode(opinion).decode(),
         ),
     )
 

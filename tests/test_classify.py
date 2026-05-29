@@ -168,8 +168,9 @@ class TestClassifyReturnsBidirectional:
         for r in results:
             assert required.issubset(r.keys()), f"Missing keys: {required - r.keys()}"
 
-    def test_resolution_has_opinion_keys(self):
+    def test_result_has_top_level_opinion(self):
         from propstore.heuristic.classify import classify_stance_async
+        from propstore.opinion import Opinion
 
         fwd = {"type": "rebuts", "strength": "moderate", "note": "contradicts", "conditions_differ": None}
         rev = {"type": "supports", "strength": "weak", "note": "partial", "conditions_differ": None}
@@ -187,9 +188,10 @@ class TestClassifyReturnsBidirectional:
 
         for r in results:
             if r["type"] != "none":
-                res = r["resolution"]
-                assert set(res["opinion"]) == {"b", "d", "u", "a", "provenance"}
-                assert res["opinion"]["provenance"]["status"] == "vacuous"
+                opinion = r["opinion"]
+                assert isinstance(opinion, Opinion)
+                assert opinion.provenance is not None
+                assert opinion.provenance.status == ProvenanceStatus.VACUOUS
 
 
 # ---------------------------------------------------------------------------
@@ -425,11 +427,11 @@ class TestOpinionAlgebraInvariant:
             if r["type"] == "none":
                 continue
             res = r["resolution"]
-            opinion = res["opinion"]
-            b = opinion["b"]
-            d = opinion["d"]
-            u = opinion["u"]
-            a = opinion["a"]
+            opinion = r["opinion"]
+            b = opinion.b
+            d = opinion.d
+            u = opinion.u
+            a = opinion.a
 
             # b + d + u == 1.0 (Josang 2001, Def 1)
             assert b + d + u == pytest.approx(1.0, abs=1e-9)
@@ -488,6 +490,6 @@ class TestCorpusCalibrationReducesUncertainty:
             ))
 
         # Forward stance (non-none) should have lower uncertainty with corpus data
-        u_with = results_with[0]["resolution"]["opinion"]["u"]
-        u_without = results_without[0]["resolution"]["opinion"]["u"]
+        u_with = results_with[0]["opinion"].u
+        u_without = results_without[0]["opinion"].u
         assert u_with <= u_without + 1e-9

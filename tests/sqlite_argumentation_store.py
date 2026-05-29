@@ -3,7 +3,10 @@ from __future__ import annotations
 from collections.abc import Sequence
 from sqlite3 import Connection
 
+import msgspec
+
 from propstore.families.relations.declaration import ConflictWitness, Stance
+from propstore.opinion import Opinion
 from tests.claim_model_helpers import claim_from_test_payload
 
 
@@ -82,10 +85,7 @@ class SQLiteArgumentationStore:
                 embedding_distance,
                 pass_number,
                 confidence,
-                opinion_belief,
-                opinion_disbelief,
-                opinion_uncertainty,
-                opinion_base_rate
+                opinion
             FROM relation_edge
             WHERE source_kind = 'claim'
               AND target_kind = 'claim'
@@ -111,10 +111,16 @@ class SQLiteArgumentationStore:
                 embedding_distance=row["embedding_distance"],
                 pass_number=row["pass_number"],
                 confidence=row["confidence"],
-                opinion_belief=row["opinion_belief"],
-                opinion_disbelief=row["opinion_disbelief"],
-                opinion_uncertainty=row["opinion_uncertainty"],
-                opinion_base_rate=row["opinion_base_rate"],
+                opinion=(
+                    None
+                    if row["opinion"] is None
+                    else msgspec.json.decode(
+                        row["opinion"]
+                        if isinstance(row["opinion"], (bytes, bytearray))
+                        else str(row["opinion"]),
+                        type=Opinion,
+                    )
+                ),
             )
             for row in rows
         ]

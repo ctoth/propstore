@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import sqlite3
 
+import msgspec
 from fastapi.testclient import TestClient
 
+from propstore.opinion import Opinion
 from propstore.web.app import create_app
 from tests.web_demo_fixture import seed_web_demo_repository
 
@@ -15,11 +17,14 @@ def test_neighborhood_hides_blocked_stance_endpoints(tmp_path) -> None:
             """
             INSERT INTO relation_edge (
                 source_kind, source_id, relation_type, target_kind, target_id,
-                confidence, opinion_belief, opinion_disbelief,
-                opinion_uncertainty, opinion_base_rate
-            ) VALUES ('claim', ?, 'supports', 'claim', ?, 0.9, 0.7, 0.1, 0.2, 0.5)
+                confidence, opinion
+            ) VALUES ('claim', ?, 'supports', 'claim', ?, 0.9, ?)
             """,
-            (fixture.focus_claim_id, fixture.supporter_claim_id),
+            (
+                fixture.focus_claim_id,
+                fixture.supporter_claim_id,
+                msgspec.json.encode(Opinion(0.7, 0.1, 0.2, 0.5)).decode(),
+            ),
         )
 
     client = TestClient(create_app(repository_root=fixture.repo.root))

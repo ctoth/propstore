@@ -18,6 +18,7 @@ from propstore.claim_graph import (
     compute_claim_graph_justified_claims,
 )
 from propstore.argumentation import shared_analyzer_input_from_store
+from propstore.opinion import Opinion
 from argumentation.dung import conflict_free, grounded_extension
 from propstore.praf import build_praf
 from propstore.preference import claim_strength
@@ -136,7 +137,7 @@ def vacuous_opinion_scenario(conn):
         "claim_y",
         "rebuts",
         confidence=0.3,
-        opinion_uncertainty=1.0,
+        opinion=Opinion(0.0, 0.0, 1.0, 0.5),
     )
     conn.commit()
     return conn

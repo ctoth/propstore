@@ -15,10 +15,6 @@ def _claim(claim_id: str) -> _ResolutionClaimView:
         value=None,
         provenance=None,
         sample_size=None,
-        opinion_belief=None,
-        opinion_disbelief=None,
-        opinion_uncertainty=None,
-        opinion_base_rate=None,
         confidence=None,
     )
 

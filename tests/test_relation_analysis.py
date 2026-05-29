@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from propstore.relation_analysis import stance_summary
 from propstore.families.relations.declaration import Stance
+from propstore.opinion import Opinion
 from propstore.stances import StanceType
 
 
@@ -15,7 +16,7 @@ class _TypedStanceStore:
                 target_kind="claim",
                 target_id="claim:b",
                 resolution_model="demo-model",
-                opinion_uncertainty=0.25,
+                opinion=Opinion(0.5, 0.25, 0.25, 0.5),
             ),
             Stance(
                 source_kind="claim",
@@ -23,7 +24,7 @@ class _TypedStanceStore:
                 relation_type=str(StanceType.SUPPORTS),
                 target_kind="claim",
                 target_id="claim:d",
-                opinion_uncertainty=1.0,
+                opinion=Opinion(0.0, 0.0, 1.0, 0.5),
             ),
         ]
 

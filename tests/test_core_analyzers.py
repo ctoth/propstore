@@ -40,10 +40,7 @@ def _insert_stance(
     stance_type: str,
     *,
     confidence: float = 0.9,
-    opinion_belief: float | None = None,
-    opinion_disbelief: float | None = None,
-    opinion_uncertainty: float | None = None,
-    opinion_base_rate: float | None = None,
+    opinion: Opinion | None = None,
 ) -> None:
     insert_stance(
         conn,
@@ -51,10 +48,7 @@ def _insert_stance(
         target_claim_id,
         stance_type,
         confidence=confidence,
-        opinion_belief=opinion_belief,
-        opinion_disbelief=opinion_disbelief,
-        opinion_uncertainty=opinion_uncertainty,
-        opinion_base_rate=opinion_base_rate,
+        opinion=opinion,
     )
 
 
@@ -222,25 +216,15 @@ def test_shared_praf_analyzer_matches_current_acceptance() -> None:
                 source_id="c1",
                 target_id="c2",
                 relation_type="rebuts",
-                attributes={
-                    "confidence": 0.3,
-                    "opinion_belief": 0.2,
-                    "opinion_disbelief": 0.1,
-                    "opinion_uncertainty": 0.7,
-                    "opinion_base_rate": 0.15,
-                },
+                opinion=Opinion(0.2, 0.1, 0.7, 0.15),
+                attributes={"confidence": 0.3},
             ),
             RelationEdge(
                 source_id="c2",
                 target_id="c1",
                 relation_type="rebuts",
-                attributes={
-                    "confidence": 0.95,
-                    "opinion_belief": 0.9,
-                    "opinion_disbelief": 0.03,
-                    "opinion_uncertainty": 0.07,
-                    "opinion_base_rate": 0.5,
-                },
+                opinion=Opinion(0.9, 0.03, 0.07, 0.5),
+                attributes={"confidence": 0.95},
             ),
         ),
     )
@@ -413,7 +397,3 @@ class TestConflictStanceSynthesis:
             assert stance.opinion is None
             attributes = dict(stance.attributes)
             assert "confidence" not in attributes
-            assert "opinion_belief" not in attributes
-            assert "opinion_disbelief" not in attributes
-            assert "opinion_uncertainty" not in attributes
-            assert "opinion_base_rate" not in attributes

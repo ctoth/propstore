@@ -6,6 +6,9 @@ from sqlite3 import Connection
 from dataclasses import dataclass
 from pathlib import Path
 
+import msgspec
+
+from propstore.opinion import Opinion
 from propstore.repository import Repository
 from propstore.compiler.workflows import build_repository_world_store
 
@@ -145,21 +148,25 @@ def _seed_rows(conn: Connection) -> None:
         """
         INSERT INTO relation_edge (
             source_kind, source_id, relation_type, target_kind, target_id,
-            confidence, opinion_belief, opinion_disbelief, opinion_uncertainty,
-            opinion_base_rate
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            confidence, opinion
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        ("claim", "demo_supporter", "supports", "claim", "demo_focus", 0.85, 0.7, 0.1, 0.2, 0.5),
+        (
+            "claim", "demo_supporter", "supports", "claim", "demo_focus", 0.85,
+            msgspec.json.encode(Opinion(0.7, 0.1, 0.2, 0.5)).decode(),
+        ),
     )
     conn.execute(
         """
         INSERT INTO relation_edge (
             source_kind, source_id, relation_type, target_kind, target_id,
-            confidence, opinion_belief, opinion_disbelief, opinion_uncertainty,
-            opinion_base_rate
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            confidence, opinion
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        ("claim", "demo_attacker", "rebuts", "claim", "demo_focus", 0.8, 0.65, 0.15, 0.2, 0.5),
+        (
+            "claim", "demo_attacker", "rebuts", "claim", "demo_focus", 0.8,
+            msgspec.json.encode(Opinion(0.65, 0.15, 0.2, 0.5)).decode(),
+        ),
     )
     conn.execute(
         """
