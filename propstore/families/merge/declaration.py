@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from quire.charter_class import CharterDoc, charter, column
+from typing import Annotated
+
+from quire.charter_class import CharterDoc, charter, charter_field, column
 from quire.charters import FamilyCharter
 from quire.versions import VersionId
 
@@ -98,7 +100,7 @@ class MergeManifestPayloadDocument(CharterDoc):
     ),
 )
 class MergeManifestDocument(CharterDoc):
-    merge: MergeManifestPayloadDocument
+    merge: Annotated[MergeManifestPayloadDocument, charter_field(document_only=True)]
 
 
 MERGE_MANIFEST_CHARTER: FamilyCharter = MergeManifestDocument.__charter__
