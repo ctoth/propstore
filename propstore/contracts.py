@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, get_type_hints
 
 import msgspec
 import quire.contracts as quire_contracts
@@ -229,7 +229,11 @@ def _document_contract(
     contract_version: VersionId,
 ) -> ContractEntry:
     fields = []
-    annotations = getattr(document_type, "__annotations__", {})
+    # Resolve string annotations (PEP 563) and strip `Annotated[...]` charter_field
+    # metadata to the base type, so the serialized contract records the public type
+    # (e.g. `builtins.str`), not the raw declarative annotation. include_extras=False
+    # drops the Annotated wrapper; the old defstruct documents already had clean types.
+    annotations = get_type_hints(document_type)
     for name in getattr(document_type, "__struct_fields__", ()):
         fields.append({
             "name": name,
