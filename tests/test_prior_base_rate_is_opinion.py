@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from quire.documents import convert_document_value
+from quire.documents import convert_document_value, document_to_payload
 
 from propstore.families.claims.types import ClaimType
 from propstore.core.graph_types import ClaimNode
@@ -51,7 +51,7 @@ def test_source_model_serializes_prior_base_rate_as_opinion_payload() -> None:
     )
 
     models = compile_source_models([("demo", source_doc)])
-    prior_payload = models[0].trust.to_payload()["prior_base_rate"]
+    prior_payload = document_to_payload(models[0].trust)["prior_base_rate"]
 
     assert prior_payload == PRIOR_PAYLOAD
 
