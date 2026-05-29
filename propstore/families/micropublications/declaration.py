@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import Any, TYPE_CHECKING
+from collections.abc import Iterable, Sequence
+from typing import Annotated, TYPE_CHECKING
 
 import msgspec
-from quire.artifacts import ArtifactFamily, FlatYamlPlacement
-from quire.charters import CharterField, CharterIndex, CharterRelationship, FamilyCharter, FamilyModel
+from quire.charter_class import CharterDoc, charter, charter_field
+from quire.charters import CharterIndex, CharterRelationship, FamilyCharter, FamilyModel
 from quire.documents import DocumentBatchSpec
-from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex, ForeignKeySpec
 from quire.versions import VersionId
 
@@ -28,7 +27,7 @@ _MICROPUBLICATION_WORLD_CONTRACT_VERSION = VersionId(
 SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION = VersionId("2026.05.21")
 
 
-class MicropublicationEvidenceDocument(msgspec.Struct, forbid_unknown_fields=True):
+class MicropublicationEvidenceDocument(CharterDoc):
     kind: str
     reference: str
 
@@ -38,7 +37,16 @@ def _micropub_validate_non_empty_claims(document: msgspec.Struct) -> None:
         raise ValueError("claims must contain at least one claim reference")
 
 
-class Micropublication(FamilyModel):
+class MicropublicationBehavior:
+    """Row behaviour for the micropublication model.
+
+    ``@charter(model_mixin=...)`` makes the generated SQLAlchemy model inherit
+    this, so the micropublication row keeps its ``claim_ids`` accessor that reads
+    the ordered ``claim_links`` association rows.
+    """
+
+    claim_links: Sequence[MicropublicationClaimLink]
+
     @property
     def claim_ids(self) -> tuple[str, ...]:
         return tuple(
@@ -47,180 +55,159 @@ class Micropublication(FamilyModel):
         )
 
 
-class MicropublicationClaimLink(FamilyModel):
-    pass
-
-
-MICROPUBLICATION_CHARTER: FamilyCharter = FamilyCharter(
-            family=FamilyDefinition(
-                key="micropublication",
-                name="micropublication",
-                contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-micropublication",
-                    contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
-                    doc_type=Micropublication,
-                    placement=FlatYamlPlacement(".derived/micropublication", str),
-                ),
-                identity_field="id",
-            ),
-            model=Micropublication,
-            fields=(
-                CharterField(
-                    "id",
-                    str,
-                    primary_key=True,
-                    nullable=False,
-                    document_name="artifact_id",
-                ),
-                CharterField(
-                    "context_id",
-                    ContextReferenceDocument,
-                    nullable=False,
-                    document_name="context",
-                    foreign_key=ForeignKeySpec(
-                        name="micropub_context",
-                        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-                        source_family="micropubs",
-                        source_field="context.id",
-                        target_family="contexts",
-                    ),
-                ),
-                CharterField(
-                    "claims",
-                    tuple[str, ...],
-                    parse_boundary="json",
-                    nullable=False,
-                    default=(),
-                    foreign_key=ForeignKeySpec(
-                        name="micropub_claims",
-                        contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-                        source_family="micropubs",
-                        source_field="claims[]",
-                        target_family="claims",
-                        many=True,
-                    ),
-                ),
-                CharterField("version_id", str, nullable=True),
-                CharterField(
-                    "assumptions_json",
-                    tuple[str, ...],
-                    parse_boundary="json",
-                    nullable=False,
-                    default=(),
-                    default_sql="'[]'",
-                    document_name="assumptions",
-                ),
-                CharterField(
-                    "evidence_json",
-                    tuple[MicropublicationEvidenceDocument, ...],
-                    parse_boundary="json",
-                    nullable=False,
-                    default=(),
-                    default_sql="'[]'",
-                    document_name="evidence",
-                ),
-                CharterField("stance", str, nullable=True),
-                CharterField(
-                    "provenance_json",
-                    ProvenanceDocument,
-                    parse_boundary="json",
-                    nullable=True,
-                    document_name="provenance",
-                ),
-                CharterField("source_slug", str, nullable=True, document_name="source"),
-            ),
-            indexes=(CharterIndex("idx_micropub_context", ("context_id",)),),
-            relationships=(
-                CharterRelationship(
-                    "claim_links",
-                    target_family="micropublication_claim",
-                    foreign_key="micropublication_id",
-                    back_populates="micropublication",
-                    association_object=True,
-                    order_by=("seq",),
-                ),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-            validators=(_micropub_validate_non_empty_claims,),
-        )
-
-
-MICROPUBLICATION_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
-            family=FamilyDefinition(
-                key="micropublication_claim",
-                name="micropublication_claim",
-                contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-micropublication_claim",
-                    contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
-                    doc_type=MicropublicationClaimLink,
-                    placement=FlatYamlPlacement(".derived/micropublication_claim", str),
-                ),
-                identity_field="micropublication_id",
-            ),
-            model=MicropublicationClaimLink,
-            fields=(
-                CharterField(
-                    "micropublication_id",
-                    str,
-                    primary_key=True,
-                    nullable=False,
-                    foreign_key=ForeignKeySpec(
-                        name="micropublication_claim_micropublication",
-                        contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
-                        source_family="micropublication_claim",
-                        source_field="micropublication_id",
-                        target_family="micropublication",
-                        target_field="id",
-                        required=True,
-                    ),
-                ),
-                CharterField(
-                    "claim_id",
-                    str,
-                    primary_key=True,
-                    nullable=False,
-                    foreign_key=ForeignKeySpec(
-                        name="micropublication_claim_claim",
-                        contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
-                        source_family="micropublication_claim",
-                        source_field="claim_id",
-                        target_family="claim_core",
-                        target_field="id",
-                        required=True,
-                    ),
-                ),
-                CharterField("seq", int, nullable=False),
-            ),
-            indexes=(CharterIndex("idx_micropub_claim", ("claim_id",)),),
-            relationships=(
-                CharterRelationship(
-                    "micropublication",
-                    target_family="micropublication",
-                    foreign_key="micropublication_id",
-                    back_populates="claim_links",
-                    uselist=False,
-                ),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-        )
-
-
 if TYPE_CHECKING:
-    class MicropublicationDocument(msgspec.Struct, forbid_unknown_fields=True):
-        artifact_id: str
-        context: ContextReferenceDocument
-        claims: tuple[str, ...]
-        version_id: str | None = None
-        assumptions: tuple[str, ...] = ()
-        evidence: tuple[MicropublicationEvidenceDocument, ...] = ()
-        stance: str | None = None
-        provenance: ProvenanceDocument | None = None
-        source: str | None = None
+    # ``@charter`` generates these SQLAlchemy-mappable models at runtime (via
+    # ``model_name=``) and binds them into this module's namespace; the static
+    # stubs keep model construction/attribute access type-checking.
+    class Micropublication(MicropublicationBehavior, FamilyModel): ...
 
-else:
-    MicropublicationDocument: Any = MICROPUBLICATION_CHARTER.generated_document()
+    class MicropublicationClaimLink(FamilyModel): ...
+
+
+@charter(
+    key="micropublication",
+    name="micropublication",
+    contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
+    placement=".derived/micropublication",
+    identity_field="id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-micropublication",
+    model_name="Micropublication",
+    model_mixin=MicropublicationBehavior,
+    indexes=(CharterIndex("idx_micropub_context", ("context_id",)),),
+    relationships=(
+        CharterRelationship(
+            "claim_links",
+            target_family="micropublication_claim",
+            foreign_key="micropublication_id",
+            back_populates="micropublication",
+            association_object=True,
+            order_by=("seq",),
+        ),
+    ),
+    validators=(_micropub_validate_non_empty_claims,),
+)
+class MicropublicationDocument(CharterDoc):
+    artifact_id: Annotated[
+        str,
+        charter_field(column_name="id", primary_key=True, nullable=False),
+    ]
+    context: Annotated[
+        ContextReferenceDocument,
+        charter_field(
+            column_name="context_id",
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="micropub_context",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="micropubs",
+                source_field="context.id",
+                target_family="contexts",
+            ),
+        ),
+    ]
+    claims: Annotated[
+        tuple[str, ...],
+        charter_field(
+            json=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="micropub_claims",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="micropubs",
+                source_field="claims[]",
+                target_family="claims",
+                many=True,
+            ),
+        ),
+    ] = ()
+    version_id: str | None = None
+    assumptions: Annotated[
+        tuple[str, ...],
+        charter_field(
+            column_name="assumptions_json",
+            json=True,
+            nullable=False,
+            default_sql="'[]'",
+        ),
+    ] = ()
+    evidence: Annotated[
+        tuple[MicropublicationEvidenceDocument, ...],
+        charter_field(
+            column_name="evidence_json",
+            json=True,
+            nullable=False,
+            default_sql="'[]'",
+        ),
+    ] = ()
+    stance: str | None = None
+    provenance: Annotated[
+        ProvenanceDocument | None,
+        charter_field(column_name="provenance_json", json=True, nullable=True),
+    ] = None
+    source: Annotated[str | None, charter_field(column_name="source_slug", nullable=True)] = None
+
+
+MICROPUBLICATION_CHARTER: FamilyCharter = MicropublicationDocument.__charter__
+
+
+@charter(
+    key="micropublication_claim",
+    name="micropublication_claim",
+    contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
+    placement=".derived/micropublication_claim",
+    identity_field="micropublication_id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-micropublication_claim",
+    model_name="MicropublicationClaimLink",
+    indexes=(CharterIndex("idx_micropub_claim", ("claim_id",)),),
+    relationships=(
+        CharterRelationship(
+            "micropublication",
+            target_family="micropublication",
+            foreign_key="micropublication_id",
+            back_populates="claim_links",
+            uselist=False,
+        ),
+    ),
+)
+class Micropublication_claimDocument(CharterDoc):
+    micropublication_id: Annotated[
+        str,
+        charter_field(
+            primary_key=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="micropublication_claim_micropublication",
+                contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
+                source_family="micropublication_claim",
+                source_field="micropublication_id",
+                target_family="micropublication",
+                target_field="id",
+                required=True,
+            ),
+        ),
+    ]
+    claim_id: Annotated[
+        str,
+        charter_field(
+            primary_key=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="micropublication_claim_claim",
+                contract_version=_MICROPUBLICATION_WORLD_CONTRACT_VERSION,
+                source_family="micropublication_claim",
+                source_field="claim_id",
+                target_family="claim_core",
+                target_field="id",
+                required=True,
+            ),
+        ),
+    ]
+    seq: Annotated[int, charter_field(nullable=False)]
+
+
+MICROPUBLICATION_CLAIM_CHARTER: FamilyCharter = Micropublication_claimDocument.__charter__
 
 
 SOURCE_MICROPUBLICATION_BATCH_SPEC = DocumentBatchSpec(
