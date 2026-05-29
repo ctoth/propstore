@@ -109,7 +109,7 @@ class Provenance(DocumentStruct):
         return payload
 
 
-class _NamedGraphDocument(DocumentStruct):
+class _NamedGraph(DocumentStruct):
     context: dict[str, str] = msgspec.field(name="@context")
     id: str = msgspec.field(name="@id")
     type: str = msgspec.field(name="@type")
@@ -229,7 +229,7 @@ def encode_named_graph(provenance: Provenance) -> bytes:
 
     canonical = _canonical_provenance(provenance, require_graph_name=True)
     graph_id = _require_graph_name(canonical.graph_name)
-    document = _NamedGraphDocument(
+    document = _NamedGraph(
         context=_CONTEXT,
         id=graph_id,
         type="NamedGraph",
@@ -241,7 +241,7 @@ def encode_named_graph(provenance: Provenance) -> bytes:
 def decode_named_graph(payload: bytes) -> Provenance:
     """Decode a JSON-LD named graph payload into a provenance record."""
 
-    document = msgspec.json.decode(payload, type=_NamedGraphDocument, strict=True)
+    document = msgspec.json.decode(payload, type=_NamedGraph, strict=True)
     if document.type != "NamedGraph":
         raise ValueError(f"Unsupported provenance graph type: {document.type!r}")
     provenance = document.provenance

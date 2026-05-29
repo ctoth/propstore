@@ -125,7 +125,7 @@ class ParameterizationRelationshipDocument(CharterDoc, kw_only=True):
     fit_statistics: str | None = None
 
 
-class ConceptIdScanDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=False):
+class ConceptIdScan(msgspec.Struct, kw_only=True, forbid_unknown_fields=False):
     id: str | None = None
     artifact_id: str | None = None
     logical_ids: tuple[ConceptLogicalIdDocument, ...] = ()

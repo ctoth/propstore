@@ -13,7 +13,7 @@ from propstore.families.concepts.declaration import (
     ConceptAliasDocument,
     ConceptDocument,
     ConceptFormParametersDocument,
-    ConceptIdScanDocument,
+    ConceptIdScan,
     ConceptLogicalIdDocument,
     LexicalEntryDocument,
     LexicalFormDocument,
