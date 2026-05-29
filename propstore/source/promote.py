@@ -76,6 +76,7 @@ from quire.documents import convert_document_value, document_to_payload
 from propstore.families.sources.declaration import (
     SourceDocument,
     SourceTrustDocument,
+    source_document_payload,
 )
 from propstore.source_trust_argumentation import SourceTrustResult, calibrate_source_trust
 from propstore.families.stances.declaration import SourceStanceEntryDocument, StanceDocument
@@ -289,7 +290,7 @@ def _commit_promote_time_trust_calibration(
         world_snapshot=promotion_commit_sha,
     )
     source_doc = repo.families.source_documents.require(SourceRef(source_name))
-    updated_payload = source_doc.to_payload()
+    updated_payload = source_document_payload(source_doc)
     updated_payload["trust"] = _source_trust_payload(calibration)
     if updated_payload["trust"] == document_to_payload(source_doc.trust):
         return None

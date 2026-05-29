@@ -9,10 +9,10 @@ before their containers (``SourceTrustQualityDocument`` before
 ``SourceParameterizationGroupMergeDocument`` before
 ``SourceFinalizeReportDocument``).
 
-The three ``Source``-document serialization helpers are methods on
-:class:`SourceDocument` (``to_payload`` / ``encode`` / ``render``);
-``compile_source_models`` stays a free function because it builds SQLAlchemy
-rows from documents.
+The three ``Source``-document serialization helpers
+(``source_document_payload`` / ``encode_source_document`` /
+``render_source_document``) and ``compile_source_models`` stay module-level
+free functions.
 """
 
 from __future__ import annotations
@@ -188,25 +188,6 @@ class SourceDocument(CharterDoc):
     metadata: Annotated[SourceMetadataDocument | None, charter_field(json=True)] = None
     artifact_code: Annotated[str | None, charter_field(artifact=True)] = None
 
-    def to_payload(self) -> dict[str, object]:
-        payload: dict[str, object] = {
-            "id": self.id,
-            "kind": self.kind.value,
-            "origin": document_to_payload(self.origin),
-            "trust": document_to_payload(self.trust),
-        }
-        if self.metadata is not None:
-            payload["metadata"] = document_to_payload(self.metadata)
-        if self.artifact_code is not None:
-            payload["artifact_code"] = self.artifact_code
-        return payload
-
-    def encode(self) -> bytes:
-        return msgspec.yaml.encode(self.to_payload())
-
-    def render(self) -> str:
-        return self.encode().decode("utf-8").rstrip()
-
 
 SOURCE_ORIGIN_CHARTER: FamilyCharter = SourceOriginDocument.__charter__
 SOURCE_TRUST_QUALITY_CHARTER: FamilyCharter = SourceTrustQualityDocument.__charter__
@@ -220,6 +201,28 @@ SOURCE_FINALIZE_CALIBRATION_CHARTER: FamilyCharter = (
 )
 SOURCE_FINALIZE_REPORT_CHARTER: FamilyCharter = SourceFinalizeReportDocument.__charter__
 SOURCE_CHARTER: FamilyCharter = SourceDocument.__charter__
+
+
+def source_document_payload(source_doc: SourceDocument) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "id": source_doc.id,
+        "kind": source_doc.kind.value,
+        "origin": document_to_payload(source_doc.origin),
+        "trust": document_to_payload(source_doc.trust),
+    }
+    if source_doc.metadata is not None:
+        payload["metadata"] = document_to_payload(source_doc.metadata)
+    if source_doc.artifact_code is not None:
+        payload["artifact_code"] = source_doc.artifact_code
+    return payload
+
+
+def encode_source_document(source_doc: SourceDocument) -> bytes:
+    return msgspec.yaml.encode(source_document_payload(source_doc))
+
+
+def render_source_document(source_doc: SourceDocument) -> str:
+    return encode_source_document(source_doc).decode("utf-8").rstrip()
 
 
 def compile_source_models(

@@ -105,6 +105,9 @@ from propstore.families.identity.claims import (
 )
 from propstore.families.sources.declaration import (
     SourceDocument,
+    encode_source_document,
+    render_source_document,
+    source_document_payload,
 )
 from propstore.families.identity.concepts import (
     CONCEPT_VERSION_ID_EXCLUDED_FIELDS,
@@ -384,9 +387,9 @@ CANONICAL_SOURCE_FAMILY = ArtifactFamily["Repository", CanonicalSourceRef, Sourc
     SOURCE_ARTIFACT_FAMILY_CONTRACT_VERSION,
     SourceDocument,
     CANONICAL_SOURCE_PLACEMENT,
-    encode_document=SourceDocument.encode,
-    render_document=SourceDocument.render,
-    document_payload=SourceDocument.to_payload,
+    encode_document=encode_source_document,
+    render_document=render_source_document,
+    document_payload=source_document_payload,
 )
 
 
@@ -687,9 +690,9 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
             artifact_name="source_document",
             document_type=SourceDocument,
             placement=FixedFilePlacement("source.yaml", branch=SOURCE_BRANCH),
-            encode_document=SourceDocument.encode,
-            render_document=SourceDocument.render,
-            document_payload=SourceDocument.to_payload,
+            encode_document=encode_source_document,
+            render_document=render_source_document,
+            document_payload=source_document_payload,
         ),
         _family_definition(
             key=PropstoreFamily.SOURCE_NOTES,

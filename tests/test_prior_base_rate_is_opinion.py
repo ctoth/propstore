@@ -8,6 +8,7 @@ from propstore.core.id_types import ClaimId
 from propstore.families.sources.declaration import (
     SourceDocument,
     compile_source_models,
+    source_document_payload,
 )
 from propstore.opinion import Opinion
 from propstore.praf.engine import p_arg_from_claim
@@ -39,7 +40,7 @@ def test_source_document_prior_base_rate_is_opinion() -> None:
     )
 
     assert source_doc.trust.prior_base_rate == Opinion(**PRIOR_PAYLOAD)
-    assert source_doc.to_payload()["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
+    assert source_document_payload(source_doc)["trust"]["prior_base_rate"] == PRIOR_PAYLOAD
 
 
 def test_source_model_serializes_prior_base_rate_as_opinion_payload() -> None:
