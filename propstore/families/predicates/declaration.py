@@ -3,12 +3,11 @@
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import msgspec
-from quire.artifacts import ArtifactFamily, FlatYamlPlacement
-from quire.charters import CharterField, FamilyCharter, FamilyModel
-from quire.families import FamilyDefinition
+from quire.charter_class import CharterDoc, charter, charter_field
+from quire.charters import FamilyCharter, FamilyModel
 from quire.lifecycle import ConflictPolicy, FamilyState, FamilyTransition
 from quire.versions import VersionId
 
@@ -44,15 +43,22 @@ def _validate_predicate_arity_and_arg_types(doc: msgspec.Struct) -> None:
             validate_predicate_arg_type(str(arg_type))
 
 
-class PredicateDeclarationModel(FamilyModel):
-    pass
+def _validate_predicate_proposal_artifact(doc: msgspec.Struct) -> None:
+    for declaration in getattr(doc, "proposed_declarations"):
+        _validate_predicate_arity_and_arg_types(declaration)
 
 
-class PredicateProposalArtifactModel(FamilyModel):
-    pass
+if TYPE_CHECKING:
+    # ``@charter`` generates these SQLAlchemy-mappable models at runtime (via
+    # ``model_name=``) and binds them into this module's namespace; the static
+    # stubs let this module and external importers type-check model construction
+    # and attribute access while the runtime classes replace them.
+    class PredicateDeclarationModel(FamilyModel): ...
+
+    class PredicateProposalArtifactModel(FamilyModel): ...
 
 
-class PredicateDeclaration(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+class PredicateDeclaration(CharterDoc, kw_only=True):
     name: str
     arity: int
     description: str
@@ -62,7 +68,7 @@ class PredicateDeclaration(msgspec.Struct, kw_only=True, forbid_unknown_fields=T
         _validate_predicate_arity_and_arg_types(self)
 
 
-class PredicateExtractionProvenance(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+class PredicateExtractionProvenance(CharterDoc, kw_only=True):
     """Prompt and source provenance for proposed predicate declarations."""
 
     operations: tuple[str, ...]
@@ -73,78 +79,38 @@ class PredicateExtractionProvenance(msgspec.Struct, kw_only=True, forbid_unknown
     status: str
 
 
-def _validate_predicate_proposal_artifact(doc: msgspec.Struct) -> None:
-    for declaration in getattr(doc, "proposed_declarations"):
-        _validate_predicate_arity_and_arg_types(declaration)
-
-
-PREDICATE_DECLARATION_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="predicate_declaration",
-        name="predicate_declaration",
-        contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-predicate_declaration",
-            contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
-            doc_type=PredicateDeclarationModel,
-            placement=FlatYamlPlacement(".derived/predicate_declaration", str),
-        ),
-        identity_field="id",
-    ),
-    model=PredicateDeclarationModel,
-    fields=(
-        CharterField("id", str, primary_key=True, nullable=False),
-        CharterField("arity", int, nullable=False),
-        CharterField(
-            "arg_types",
-            tuple[str, ...],
-            parse_boundary="json",
-            nullable=False,
-            default=(),
-            default_sql="'[]'",
-        ),
-        CharterField("derived_from", str, nullable=True),
-        CharterField("description", str, nullable=True),
-        CharterField("authoring_group", str, nullable=True),
-        CharterField("promoted_from_sha", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.world"},
+@charter(
+    key="predicate_declaration",
+    name="predicate_declaration",
+    contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
+    placement=".derived/predicate_declaration",
+    identity_field="id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-predicate_declaration",
+    model_name="PredicateDeclarationModel",
     validators=(_validate_predicate_arity_and_arg_types,),
 )
+class PredicateDocument(CharterDoc, kw_only=True):
+    id: Annotated[str, charter_field(primary_key=True)]
+    arity: int
+    arg_types: Annotated[
+        tuple[str, ...], charter_field(json=True, default_sql="'[]'")
+    ] = ()
+    derived_from: str | None = None
+    description: str | None = None
+    authoring_group: str | None = None
+    promoted_from_sha: str | None = None
 
 
-PREDICATE_PROPOSAL_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="predicate_proposal",
-        name="predicate_proposal",
-        contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-predicate_proposal",
-            contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
-            doc_type=PredicateProposalArtifactModel,
-            placement=FlatYamlPlacement(".derived/predicate_proposal", str),
-        ),
-        identity_field="source_paper",
-    ),
-    model=PredicateProposalArtifactModel,
-    fields=(
-        CharterField("source_paper", str, primary_key=True, nullable=False),
-        CharterField(
-            "proposed_declarations",
-            tuple[PredicateDeclaration, ...],
-            parse_boundary="json",
-            nullable=False,
-        ),
-        CharterField(
-            "extraction_provenance",
-            PredicateExtractionProvenance,
-            parse_boundary="json",
-            nullable=False,
-        ),
-        CharterField("extraction_date", str, nullable=False),
-        CharterField("promoted_from_sha", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.world"},
+@charter(
+    key="predicate_proposal",
+    name="predicate_proposal",
+    contract_version=PREDICATE_FAMILY_CONTRACT_VERSION,
+    placement=".derived/predicate_proposal",
+    identity_field="source_paper",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-predicate_proposal",
+    model_name="PredicateProposalArtifactModel",
     validators=(_validate_predicate_proposal_artifact,),
     states=(
         FamilyState("proposed", document_label="proposal"),
@@ -160,37 +126,20 @@ PREDICATE_PROPOSAL_CHARTER: FamilyCharter = FamilyCharter(
         ),
     ),
 )
+class PredicateProposalArtifact(CharterDoc, kw_only=True):
+    source_paper: Annotated[str, charter_field(primary_key=True)]
+    proposed_declarations: Annotated[
+        tuple[PredicateDeclaration, ...], charter_field(json=True)
+    ]
+    extraction_provenance: Annotated[
+        PredicateExtractionProvenance, charter_field(json=True)
+    ]
+    extraction_date: str
+    promoted_from_sha: str | None = None
 
 
-if TYPE_CHECKING:
-
-    class PredicateDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        id: str
-        arity: int
-        arg_types: tuple[str, ...] = ()
-        derived_from: str | None = None
-        description: str | None = None
-        authoring_group: str | None = None
-        promoted_from_sha: str | None = None
-
-    class PredicateProposalArtifact(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        source_paper: str
-        proposed_declarations: tuple[PredicateDeclaration, ...]
-        extraction_provenance: PredicateExtractionProvenance
-        extraction_date: str
-        promoted_from_sha: str | None = None
-
-else:
-    PredicateDocument: Any = PREDICATE_DECLARATION_CHARTER.generated_document()
-    PredicateDocument.__name__ = "PredicateDocument"
-    PredicateDocument.__qualname__ = "PredicateDocument"
-    PredicateDocument.__module__ = __name__
-
-    PredicateProposalArtifact: Any = PREDICATE_PROPOSAL_CHARTER.generated_document()
-    PredicateProposalArtifact.__name__ = "PredicateProposalArtifact"
-    PredicateProposalArtifact.__qualname__ = "PredicateProposalArtifact"
-    PredicateProposalArtifact.__module__ = __name__
-
+PREDICATE_DECLARATION_CHARTER: FamilyCharter = PredicateDocument.__charter__
+PREDICATE_PROPOSAL_CHARTER: FamilyCharter = PredicateProposalArtifact.__charter__
 
 PREDICATE_CHARTERS: tuple[FamilyCharter, ...] = (
     PREDICATE_DECLARATION_CHARTER,
