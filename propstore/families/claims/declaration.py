@@ -586,7 +586,7 @@ class ClaimDocument(CharterDoc, kw_only=True):
         tuple[CelExpr, ...],
         charter_field(json=True, nullable=False, default_sql="'[]'"),
     ] = ()
-    confidence: float | int | None = None
+    confidence: Annotated[float | int | None, charter_field(nullable=True)] = None
     equations: Annotated[
         tuple[str, ...],
         charter_field(json=True, nullable=False, default_sql="'[]'"),
@@ -594,7 +594,7 @@ class ClaimDocument(CharterDoc, kw_only=True):
     expression: str | None = None
     fit: Annotated[FitStatisticsDocument | None, charter_field(json=True, nullable=True)] = None
     listener_population: str | None = None
-    lower_bound: float | int | None = None
+    lower_bound: Annotated[float | int | None, charter_field(nullable=True)] = None
     measure: str | None = None
     methodology: str | None = None
     name: str | None = None
@@ -663,11 +663,11 @@ class ClaimDocument(CharterDoc, kw_only=True):
             ),
         ),
     ] = None
-    uncertainty: float | int | None = None
+    uncertainty: Annotated[float | int | None, charter_field(nullable=True)] = None
     uncertainty_type: str | None = None
     unit: str | None = None
-    upper_bound: float | int | None = None
-    value: float | int | None = None
+    upper_bound: Annotated[float | int | None, charter_field(nullable=True)] = None
+    value: Annotated[float | int | None, charter_field(nullable=True)] = None
     variables: Annotated[
         tuple[VariableBindingDocument, ...],
         charter_field(
@@ -1462,17 +1462,19 @@ class SourceClaimDocument(CharterDoc, kw_only=True):
     source: Annotated[ClaimSourceDocument | None, charter_field(nullable=True)] = None
     produced_by: Annotated[ExtractionProvenanceDocument | None, charter_field(nullable=True)] = None
     artifact_id: Annotated[str | None, charter_field(nullable=True)] = None
-    logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
+    logical_ids: Annotated[
+        tuple[ClaimLogicalIdDocument, ...], charter_field(nullable=True)
+    ] = ()
     version_id: Annotated[str | None, charter_field(nullable=True)] = None
     type: Annotated[ClaimType | None, charter_field(nullable=True, enum_type=ClaimType)] = None
     provenance: Annotated[SourceProvenanceDocument | None, charter_field(nullable=True)] = None
     id: Annotated[str | None, charter_field(nullable=True)] = None
     body: Annotated[str | None, charter_field(nullable=True)] = None
     concept: Annotated[str | None, charter_field(nullable=True)] = None
-    concepts: tuple[str, ...] = ()
-    conditions: tuple[CelExpr, ...] = ()
+    concepts: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
+    conditions: Annotated[tuple[CelExpr, ...], charter_field(nullable=True)] = ()
     context: Annotated[str | None, charter_field(nullable=True)] = None
-    equations: tuple[str, ...] = ()
+    equations: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
     expression: Annotated[str | None, charter_field(nullable=True)] = None
     fit: Annotated[FitStatisticsDocument | None, charter_field(nullable=True)] = None
     listener_population: Annotated[str | None, charter_field(nullable=True)] = None
@@ -1481,10 +1483,12 @@ class SourceClaimDocument(CharterDoc, kw_only=True):
     methodology: Annotated[str | None, charter_field(nullable=True)] = None
     name: Annotated[str | None, charter_field(nullable=True)] = None
     notes: Annotated[str | None, charter_field(nullable=True)] = None
-    parameters: tuple[ParameterBindingDocument, ...] = ()
+    parameters: Annotated[
+        tuple[ParameterBindingDocument, ...], charter_field(nullable=True)
+    ] = ()
     sample_size: Annotated[int | None, charter_field(nullable=True)] = None
     stage: Annotated[AlgorithmStage | None, charter_field(nullable=True)] = None
-    stances: tuple[StanceDocument, ...] = ()
+    stances: Annotated[tuple[StanceDocument, ...], charter_field(nullable=True)] = ()
     statement: Annotated[str | None, charter_field(nullable=True)] = None
     sympy: Annotated[str | None, charter_field(nullable=True)] = None
     target_concept: Annotated[str | None, charter_field(nullable=True)] = None
@@ -1493,7 +1497,9 @@ class SourceClaimDocument(CharterDoc, kw_only=True):
     unit: Annotated[str | None, charter_field(nullable=True)] = None
     upper_bound: Annotated[float | int | None, charter_field(nullable=True)] = None
     value: Annotated[float | int | None, charter_field(nullable=True)] = None
-    variables: tuple[VariableBindingDocument, ...] = ()
+    variables: Annotated[
+        tuple[VariableBindingDocument, ...], charter_field(nullable=True)
+    ] = ()
     source_local_id: Annotated[str | None, charter_field(nullable=True)] = None
     artifact_code: Annotated[str | None, charter_field(nullable=True)] = None
 
@@ -1519,7 +1525,7 @@ class SourceJustificationDocument(CharterDoc, kw_only=True):
     produced_by: Annotated[ExtractionProvenanceDocument | None, charter_field(nullable=True)] = None
     id: Annotated[str | None, charter_field(nullable=True)] = None
     conclusion: Annotated[str | None, charter_field(nullable=True)] = None
-    premises: tuple[str, ...] = ()
+    premises: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
     rule_kind: Annotated[str | None, charter_field(nullable=True)] = None
     rule_strength: Annotated[str | None, charter_field(nullable=True)] = None
     provenance: Annotated[SourceProvenanceDocument | None, charter_field(nullable=True)] = None

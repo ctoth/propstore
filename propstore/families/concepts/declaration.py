@@ -479,7 +479,7 @@ class SourceParameterizationRelationshipDocument(CharterDoc, kw_only=True):
     exactness: Annotated[Exactness | None, charter_field(enum_type=Exactness)] = None
     source: str | None = None
     bidirectional: bool | None = None
-    conditions: tuple[CelExpr, ...] = ()
+    conditions: Annotated[tuple[CelExpr, ...], charter_field(nullable=True)] = ()
     note: str | None = None
     canonical_claim: str | None = None
     fit_statistics: str | None = None
@@ -505,9 +505,13 @@ class SourceConceptEntryDocument(CharterDoc, kw_only=True):
     proposed_name: str | None = None
     definition: str | None = None
     form: str | None = None
-    aliases: tuple[SourceConceptAliasDocument, ...] = ()
+    aliases: Annotated[
+        tuple[SourceConceptAliasDocument, ...], charter_field(nullable=True)
+    ] = ()
     form_parameters: SourceConceptFormParametersDocument | None = None
-    parameterization_relationships: tuple[SourceParameterizationRelationshipDocument, ...] = ()
+    parameterization_relationships: Annotated[
+        tuple[SourceParameterizationRelationshipDocument, ...], charter_field(nullable=True)
+    ] = ()
     status: str | None = None
     registry_match: SourceConceptRegistryMatchDocument | None = None
     artifact_code: str | None = None

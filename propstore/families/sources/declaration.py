@@ -86,11 +86,11 @@ class SourceTrustQualityDocument(CharterDoc):
     artifact_family_name="propstore-source-trust",
     model_name="SourceTrust",
 )
-class SourceTrustDocument(CharterDoc):
+class SourceTrustDocument(CharterDoc, omit_defaults=True):
     status: Annotated[ProvenanceStatus, charter_field(enum_type=ProvenanceStatus)]
     prior_base_rate: Opinion | None = None
     quality: SourceTrustQualityDocument | None = None
-    derived_from: tuple[str, ...] = ()
+    derived_from: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
 
 
 @charter(
@@ -155,13 +155,15 @@ class SourceFinalizeReportDocument(CharterDoc):
     status: str
     artifact_code_status: str
     calibration: SourceFinalizeCalibrationDocument
-    micropub_status: str = "not_composed"
-    claim_reference_errors: tuple[str, ...] = ()
-    micropub_coverage_errors: tuple[str, ...] = ()
-    justification_reference_errors: tuple[str, ...] = ()
-    stance_reference_errors: tuple[str, ...] = ()
-    concept_alignment_candidates: tuple[str, ...] = ()
-    parameterization_group_merges: tuple[SourceParameterizationGroupMergeDocument, ...] = ()
+    micropub_status: Annotated[str, charter_field(nullable=True)] = "not_composed"
+    claim_reference_errors: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
+    micropub_coverage_errors: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
+    justification_reference_errors: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
+    stance_reference_errors: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
+    concept_alignment_candidates: Annotated[tuple[str, ...], charter_field(nullable=True)] = ()
+    parameterization_group_merges: Annotated[
+        tuple[SourceParameterizationGroupMergeDocument, ...], charter_field(nullable=True)
+    ] = ()
 
 
 @charter(
@@ -183,8 +185,8 @@ class SourceFinalizeReportDocument(CharterDoc):
 class SourceDocument(CharterDoc):
     id: Annotated[str, charter_field(column_name="source_id")]
     kind: SourceKind
-    origin: Annotated[SourceOriginDocument, charter_field(json=True)]
-    trust: Annotated[SourceTrustDocument, charter_field(json=True)]
+    origin: Annotated[SourceOriginDocument, charter_field(json=True, nullable=True)]
+    trust: Annotated[SourceTrustDocument, charter_field(json=True, nullable=True)]
     metadata: Annotated[SourceMetadataDocument | None, charter_field(json=True)] = None
     artifact_code: Annotated[str | None, charter_field(artifact=True)] = None
 
