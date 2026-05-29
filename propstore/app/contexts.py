@@ -10,9 +10,7 @@ from propstore.cel_types import to_cel_exprs
 from propstore.families.contexts.lifting import LiftingMode
 from propstore.families.contexts.declaration import (
     ContextDocument,
-    ContextDocumentProtocol,
     LiftingRuleDocument,
-    LiftingRuleDocumentProtocol,
 )
 from propstore.families.contexts.stages import LoadedContext, parse_context_record_document
 from propstore.families.registry import ContextRef, SourceRef
@@ -59,7 +57,7 @@ class ContextAddRequest:
 @dataclass(frozen=True)
 class ContextAddReport:
     filepath: Path
-    document: ContextDocumentProtocol
+    document: ContextDocument
     created: bool
 
 
@@ -540,10 +538,10 @@ def _require_existing_context_id(repo: Repository, name: str) -> str:
 
 
 def _require_lifting_rule(
-    document: ContextDocumentProtocol,
+    document: ContextDocument,
     context_name: str,
     rule_id: str,
-) -> LiftingRuleDocumentProtocol:
+) -> LiftingRuleDocument:
     matches = [rule for rule in (document.lifting_rules or ()) if rule.id == rule_id]
     if not matches:
         raise ContextWorkflowError(
@@ -557,9 +555,9 @@ def _require_lifting_rule(
 
 
 def _replace_context_lifting_rules(
-    document: ContextDocumentProtocol,
-    lifting_rules: tuple[LiftingRuleDocumentProtocol, ...],
-) -> ContextDocumentProtocol:
+    document: ContextDocument,
+    lifting_rules: tuple[LiftingRuleDocument, ...],
+) -> ContextDocument:
     return ContextDocument(
         id=document.id,
         name=document.name,
@@ -581,7 +579,7 @@ def _build_lifting_rule_document(
     conditions: tuple[str, ...],
     mode: LiftingMode,
     justification: str | None,
-) -> LiftingRuleDocumentProtocol:
+) -> LiftingRuleDocument:
     source_context_id = _require_existing_context_id(repo, source_context)
     _validate_lifting_rule_condition_cel(
         repo,

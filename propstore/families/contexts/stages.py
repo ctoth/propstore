@@ -20,7 +20,7 @@ from quire.documents import LoadedDocument
 from enum import StrEnum
 
 if TYPE_CHECKING:
-    from propstore.families.contexts.declaration import ContextDocumentProtocol
+    from propstore.families.contexts.declaration import ContextDocument
 
 
 class ContextStage(StrEnum):
@@ -119,7 +119,7 @@ class LoadedContext:
     @classmethod
     def from_loaded_document(
         cls,
-        document: LoadedDocument[ContextDocumentProtocol],
+        document: LoadedDocument[ContextDocument],
     ) -> LoadedContext:
         return cls.from_record(
             filename=document.filename,
@@ -264,7 +264,7 @@ def _parse_lifting_rules(raw_rules: object) -> tuple[LiftingRule, ...]:
     return tuple(rules)
 
 
-def parse_context_record_document(data: ContextDocumentProtocol) -> ContextRecord:
+def parse_context_record_document(data: ContextDocument) -> ContextRecord:
     return ContextRecord(
         context_id=ContextId(data.id),
         name=data.name,
