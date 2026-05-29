@@ -24,7 +24,6 @@ from propstore.families.claims.declaration import (
 )
 from propstore.families.identity.claims import canonicalize_claim_for_version
 from propstore.families.sources.declaration import SOURCE_CHARTER, SourceDocument
-from propstore.families.sources.declaration import source_document_payload
 from propstore.families.stances.declaration import (
     STANCE_CHARTER,
     SourceStanceEntryDocument,
@@ -584,7 +583,7 @@ def verify_claim_tree(repo: Repository, claim_ref: str, *, commit: str | None = 
     origin_verification = _verify_origin(
         repo,
         source_slug,
-        {} if source_doc is None else source_document_payload(source_doc),
+        {} if source_doc is None else source_doc.to_payload(),
     )
 
     return {

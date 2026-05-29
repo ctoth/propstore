@@ -6,7 +6,7 @@ from propstore.families.registry import SourceRef
 from propstore.repository import Repository
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.source.common import initial_source_document
-from propstore.families.sources.declaration import SourceDocument, source_document_payload
+from propstore.families.sources.declaration import SourceDocument
 from propstore.storage.snapshot import MaterializeConflictError
 
 
@@ -31,7 +31,7 @@ def test_snapshot_can_read_typed_document_from_branch(tmp_path: Path) -> None:
 
     loaded = repo.snapshot.read_document("source.yaml", SourceDocument, branch=branch)
     assert loaded is not None
-    assert source_document_payload(loaded) == source_document_payload(source_doc)
+    assert loaded.to_payload() == source_doc.to_payload()
 
 
 def test_snapshot_lists_directory_entries_with_relpaths(tmp_path: Path) -> None:

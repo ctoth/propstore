@@ -1,388 +1,225 @@
-"""Source charter and derived-store model helpers."""
+"""Source family declarative charter classes, documents, and helpers.
+
+Each charter is a declarative ``@charter`` class: the class IS the typed
+document, and ``@charter`` derives the :class:`~quire.charters.FamilyCharter`
+plus the SQLAlchemy model from it. Nested embedded documents are declared
+before their containers (``SourceTrustQualityDocument`` before
+``SourceTrustDocument`` before ``SourceDocument``;
+``SourceFinalizeCalibrationDocument`` and
+``SourceParameterizationGroupMergeDocument`` before
+``SourceFinalizeReportDocument``).
+
+The three ``Source``-document serialization helpers are methods on
+:class:`SourceDocument` (``to_payload`` / ``encode`` / ``render``);
+``compile_source_models`` stays a free function because it builds SQLAlchemy
+rows from documents.
+"""
 
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Annotated
 
 import msgspec
-from quire.artifacts import ArtifactFamily, FlatYamlPlacement
-from quire.charters import CharterField, CharterIndex, FamilyCharter, FamilyModel
+from quire.charter_class import CharterDoc, charter, charter_field, column
+from quire.charters import CharterIndex, FamilyCharter, FamilyModel
 from quire.documents import document_to_payload
-from quire.families import FamilyDefinition
-from quire.versions import VersionId
 
 from propstore.core.source_types import SourceKind, SourceOriginType
 from propstore.opinion import Opinion
 from propstore.provenance import ProvenanceStatus
 
 
-_SOURCE_CONTRACT_VERSION = VersionId("2026.05.25", allow_placeholder=False)
+_SOURCE_CONTRACT_VERSION = "2026.05.25"
 
-
-class Source(FamilyModel):
-    pass
-
-
-class SourceOrigin(FamilyModel):
-    pass
-
-
-SOURCE_ORIGIN_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-origin",
-        name="source-origin",
-        contract_version=_SOURCE_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-origin",
-            contract_version=_SOURCE_CONTRACT_VERSION,
-            doc_type=SourceOrigin,
-            placement=FlatYamlPlacement(".derived/source-origin", str),
-        ),
-        identity_field="value",
-    ),
-    model=SourceOrigin,
-    fields=(
-        CharterField("type", SourceOriginType, nullable=False, enum_type=SourceOriginType),
-        CharterField("value", str, nullable=False),
-        CharterField("retrieved", str, nullable=True),
-        CharterField("content_ref", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
-)
-SourceOriginDocument: Any = SOURCE_ORIGIN_CHARTER.generated_document()
-SourceOriginDocument.__name__ = "SourceOriginDocument"
-SourceOriginDocument.__qualname__ = "SourceOriginDocument"
-SourceOriginDocument.__module__ = __name__
-
-
-class SourceTrustQuality(FamilyModel):
-    pass
-
-
-SOURCE_TRUST_QUALITY_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-trust-quality",
-        name="source-trust-quality",
-        contract_version=_SOURCE_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-trust-quality",
-            contract_version=_SOURCE_CONTRACT_VERSION,
-            doc_type=SourceTrustQuality,
-            placement=FlatYamlPlacement(".derived/source-trust-quality", str),
-        ),
-        identity_field="status",
-    ),
-    model=SourceTrustQuality,
-    fields=(
-        CharterField("status", ProvenanceStatus, nullable=False, enum_type=ProvenanceStatus),
-        CharterField("b", float | int, nullable=False),
-        CharterField("d", float | int, nullable=False),
-        CharterField("u", float | int, nullable=False),
-        CharterField("a", float | int, nullable=False),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
-)
-SourceTrustQualityDocument: Any = SOURCE_TRUST_QUALITY_CHARTER.generated_document()
-SourceTrustQualityDocument.__name__ = "SourceTrustQualityDocument"
-SourceTrustQualityDocument.__qualname__ = "SourceTrustQualityDocument"
-SourceTrustQualityDocument.__module__ = __name__
-
-
-class SourceTrust(FamilyModel):
-    pass
-
-
-SOURCE_TRUST_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-trust",
-        name="source-trust",
-        contract_version=_SOURCE_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-trust",
-            contract_version=_SOURCE_CONTRACT_VERSION,
-            doc_type=SourceTrust,
-            placement=FlatYamlPlacement(".derived/source-trust", str),
-        ),
-        identity_field="status",
-    ),
-    model=SourceTrust,
-    fields=(
-        CharterField("status", ProvenanceStatus, nullable=False, enum_type=ProvenanceStatus),
-        CharterField("prior_base_rate", Opinion, nullable=True),
-        CharterField("quality", SourceTrustQualityDocument, nullable=True),
-        CharterField("derived_from", tuple[str, ...], default=()),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
-)
-SourceTrustDocument: Any = SOURCE_TRUST_CHARTER.generated_document()
-SourceTrustDocument.__name__ = "SourceTrustDocument"
-SourceTrustDocument.__qualname__ = "SourceTrustDocument"
-SourceTrustDocument.__module__ = __name__
-
-
-class SourceMetadata(FamilyModel):
-    pass
-
-
-SOURCE_METADATA_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-metadata",
-        name="source-metadata",
-        contract_version=_SOURCE_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-metadata",
-            contract_version=_SOURCE_CONTRACT_VERSION,
-            doc_type=SourceMetadata,
-            placement=FlatYamlPlacement(".derived/source-metadata", str),
-        ),
-        identity_field="name",
-    ),
-    model=SourceMetadata,
-    fields=(CharterField("name", str, nullable=False),),
-    semantic_metadata={"semantic": "propstore.source"},
-)
-SourceMetadataDocument: Any = SOURCE_METADATA_CHARTER.generated_document()
-SourceMetadataDocument.__name__ = "SourceMetadataDocument"
-SourceMetadataDocument.__qualname__ = "SourceMetadataDocument"
-SourceMetadataDocument.__module__ = __name__
-
-
-class SourceParameterizationGroupMerge(FamilyModel):
-    pass
-
-
-SOURCE_PARAMETERIZATION_GROUP_MERGE_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-parameterization-group-merge",
-        name="source-parameterization-group-merge",
-        contract_version=_SOURCE_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-parameterization-group-merge",
-            contract_version=_SOURCE_CONTRACT_VERSION,
-            doc_type=SourceParameterizationGroupMerge,
-            placement=FlatYamlPlacement(".derived/source-parameterization-group-merge", str),
-        ),
-        identity_field="merged_group",
-    ),
-    model=SourceParameterizationGroupMerge,
-    fields=(
-        CharterField("merged_group", tuple[str, ...], nullable=False),
-        CharterField("previous_groups", tuple[tuple[str, ...], ...], nullable=False),
-        CharterField("introduced_by", tuple[str, ...], nullable=False),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
-)
-if TYPE_CHECKING:
-    class SourceParameterizationGroupMergeDocument(
-        msgspec.Struct,
-        kw_only=True,
-        forbid_unknown_fields=True,
-    ):
-        merged_group: tuple[str, ...]
-        previous_groups: tuple[tuple[str, ...], ...]
-        introduced_by: tuple[str, ...]
-
-else:
-    SourceParameterizationGroupMergeDocument: Any = (
-        SOURCE_PARAMETERIZATION_GROUP_MERGE_CHARTER.generated_document()
-    )
-    SourceParameterizationGroupMergeDocument.__name__ = "SourceParameterizationGroupMergeDocument"
-    SourceParameterizationGroupMergeDocument.__qualname__ = (
-        "SourceParameterizationGroupMergeDocument"
-    )
-    SourceParameterizationGroupMergeDocument.__module__ = __name__
-
-
-class SourceFinalizeCalibration(FamilyModel):
-    pass
-
-
-SOURCE_FINALIZE_CALIBRATION_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-finalize-calibration",
-        name="source-finalize-calibration",
-        contract_version=_SOURCE_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-finalize-calibration",
-            contract_version=_SOURCE_CONTRACT_VERSION,
-            doc_type=SourceFinalizeCalibration,
-            placement=FlatYamlPlacement(".derived/source-finalize-calibration", str),
-        ),
-        identity_field="prior_base_rate_status",
-    ),
-    model=SourceFinalizeCalibration,
-    fields=(
-        CharterField("prior_base_rate_status", str, nullable=False),
-        CharterField("source_quality_status", str, nullable=False),
-        CharterField("fallback_to_default_base_rate", bool, nullable=False),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
-)
-if TYPE_CHECKING:
-    class SourceFinalizeCalibrationDocument(
-        msgspec.Struct,
-        kw_only=True,
-        forbid_unknown_fields=True,
-    ):
-        prior_base_rate_status: str
-        source_quality_status: str
-        fallback_to_default_base_rate: bool
-
-else:
-    SourceFinalizeCalibrationDocument: Any = (
-        SOURCE_FINALIZE_CALIBRATION_CHARTER.generated_document()
-    )
-    SourceFinalizeCalibrationDocument.__name__ = "SourceFinalizeCalibrationDocument"
-    SourceFinalizeCalibrationDocument.__qualname__ = "SourceFinalizeCalibrationDocument"
-    SourceFinalizeCalibrationDocument.__module__ = __name__
-
-
-class SourceFinalizeReport(FamilyModel):
-    pass
-
-
-SOURCE_FINALIZE_REPORT_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-finalize-report",
-        name="source-finalize-report",
-        contract_version=_SOURCE_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-finalize-report",
-            contract_version=_SOURCE_CONTRACT_VERSION,
-            doc_type=SourceFinalizeReport,
-            placement=FlatYamlPlacement(".derived/source-finalize-report", str),
-        ),
-        identity_field="source",
-    ),
-    model=SourceFinalizeReport,
-    fields=(
-        CharterField("kind", str, nullable=False),
-        CharterField("source", str, nullable=False),
-        CharterField("status", str, nullable=False),
-        CharterField("artifact_code_status", str, nullable=False),
-        CharterField("calibration", SourceFinalizeCalibrationDocument, nullable=False),
-        CharterField("micropub_status", str, default="not_composed"),
-        CharterField("claim_reference_errors", tuple[str, ...], default=()),
-        CharterField("micropub_coverage_errors", tuple[str, ...], default=()),
-        CharterField("justification_reference_errors", tuple[str, ...], default=()),
-        CharterField("stance_reference_errors", tuple[str, ...], default=()),
-        CharterField("concept_alignment_candidates", tuple[str, ...], default=()),
-        CharterField(
-            "parameterization_group_merges",
-            tuple[SourceParameterizationGroupMergeDocument, ...],
-            default=(),
-        ),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
-)
-if TYPE_CHECKING:
-    class SourceFinalizeReportDocument(
-        msgspec.Struct,
-        kw_only=True,
-        forbid_unknown_fields=True,
-    ):
-        kind: str
-        source: str
-        status: str
-        artifact_code_status: str
-        calibration: SourceFinalizeCalibrationDocument
-        micropub_status: str = "not_composed"
-        claim_reference_errors: tuple[str, ...] = ()
-        micropub_coverage_errors: tuple[str, ...] = ()
-        justification_reference_errors: tuple[str, ...] = ()
-        stance_reference_errors: tuple[str, ...] = ()
-        concept_alignment_candidates: tuple[str, ...] = ()
-        parameterization_group_merges: tuple[SourceParameterizationGroupMergeDocument, ...] = ()
-
-else:
-    SourceFinalizeReportDocument: Any = SOURCE_FINALIZE_REPORT_CHARTER.generated_document()
-    SourceFinalizeReportDocument.__name__ = "SourceFinalizeReportDocument"
-    SourceFinalizeReportDocument.__qualname__ = "SourceFinalizeReportDocument"
-    SourceFinalizeReportDocument.__module__ = __name__
-
-
-SOURCE_CHARTER: FamilyCharter = FamilyCharter(
-        family=FamilyDefinition(
-            key="source",
-            name="source",
-            contract_version=_SOURCE_CONTRACT_VERSION,
-            artifact_family=ArtifactFamily(
-                name="propstore-world-source",
-                contract_version=_SOURCE_CONTRACT_VERSION,
-                doc_type=Source,
-                placement=FlatYamlPlacement(".derived/source", str),
-            ),
-            identity_field="slug",
-        ),
-        model=Source,
-        fields=(
-            CharterField("slug", str, primary_key=True, nullable=False, document=False),
-            CharterField("source_id", str, nullable=False, document_name="id"),
-            CharterField("kind", SourceKind, nullable=False),
-            CharterField("origin", SourceOriginDocument, parse_boundary="json"),
-            CharterField("trust", SourceTrustDocument, parse_boundary="json"),
-            CharterField(
-                "metadata",
-                SourceMetadataDocument,
-                parse_boundary="json",
-                nullable=True,
-            ),
-            CharterField(
-                "quality",
-                SourceTrustQualityDocument,
-                parse_boundary="json",
-                nullable=True,
-                document=False,
-            ),
-            CharterField(
-                "derived_from",
-                list,
-                parse_boundary="json",
-                nullable=True,
-                document=False,
-            ),
-            CharterField("artifact_code", str, artifact=True, nullable=True),
-        ),
-        indexes=(CharterIndex("idx_source_source_id", ("source_id",)),),
-        semantic_metadata={"semantic": "propstore.world"},
-    )
 
 if TYPE_CHECKING:
-
-    class SourceDocument(msgspec.Struct, forbid_unknown_fields=True):
-        id: str
-        kind: SourceKind
-        origin: Any
-        trust: Any
-        metadata: Any | None = None
-        artifact_code: str | None = None
-
-else:
-    SourceDocument: Any = SOURCE_CHARTER.generated_document()
-    SourceDocument.__module__ = __name__
+    # ``@charter`` generates this SQLAlchemy-mappable model at runtime (via
+    # ``model_name="Source"``) and binds it into this module's namespace. The
+    # static stub lets ``compile_source_models`` type-check ``Source(...)``
+    # construction and attribute access; the runtime class replaces it.
+    class Source(FamilyModel): ...
 
 
-def source_document_payload(source_doc: SourceDocument) -> dict[str, object]:
-    payload: dict[str, object] = {
-        "id": source_doc.id,
-        "kind": source_doc.kind.value,
-        "origin": document_to_payload(source_doc.origin),
-        "trust": document_to_payload(source_doc.trust),
-    }
-    if source_doc.metadata is not None:
-        payload["metadata"] = document_to_payload(source_doc.metadata)
-    if source_doc.artifact_code is not None:
-        payload["artifact_code"] = source_doc.artifact_code
-    return payload
+@charter(
+    key="source-origin",
+    name="source-origin",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=".derived/source-origin",
+    identity_field="value",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-origin",
+    model_name="SourceOrigin",
+)
+class SourceOriginDocument(CharterDoc):
+    type: Annotated[SourceOriginType, charter_field(enum_type=SourceOriginType)]
+    value: str
+    retrieved: str | None = None
+    content_ref: str | None = None
 
 
-def encode_source_document(source_doc: SourceDocument) -> bytes:
-    return msgspec.yaml.encode(source_document_payload(source_doc))
+@charter(
+    key="source-trust-quality",
+    name="source-trust-quality",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=".derived/source-trust-quality",
+    identity_field="status",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-trust-quality",
+    model_name="SourceTrustQuality",
+)
+class SourceTrustQualityDocument(CharterDoc):
+    status: Annotated[ProvenanceStatus, charter_field(enum_type=ProvenanceStatus)]
+    b: float | int
+    d: float | int
+    u: float | int
+    a: float | int
 
 
-def render_source_document(source_doc: SourceDocument) -> str:
-    return encode_source_document(source_doc).decode("utf-8").rstrip()
+@charter(
+    key="source-trust",
+    name="source-trust",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=".derived/source-trust",
+    identity_field="status",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-trust",
+    model_name="SourceTrust",
+)
+class SourceTrustDocument(CharterDoc):
+    status: Annotated[ProvenanceStatus, charter_field(enum_type=ProvenanceStatus)]
+    prior_base_rate: Opinion | None = None
+    quality: SourceTrustQualityDocument | None = None
+    derived_from: tuple[str, ...] = ()
+
+
+@charter(
+    key="source-metadata",
+    name="source-metadata",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=".derived/source-metadata",
+    identity_field="name",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-metadata",
+    model_name="SourceMetadata",
+)
+class SourceMetadataDocument(CharterDoc):
+    name: str
+
+
+@charter(
+    key="source-parameterization-group-merge",
+    name="source-parameterization-group-merge",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=".derived/source-parameterization-group-merge",
+    identity_field="merged_group",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-parameterization-group-merge",
+    model_name="SourceParameterizationGroupMerge",
+)
+class SourceParameterizationGroupMergeDocument(CharterDoc):
+    merged_group: tuple[str, ...]
+    previous_groups: tuple[tuple[str, ...], ...]
+    introduced_by: tuple[str, ...]
+
+
+@charter(
+    key="source-finalize-calibration",
+    name="source-finalize-calibration",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=".derived/source-finalize-calibration",
+    identity_field="prior_base_rate_status",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-finalize-calibration",
+    model_name="SourceFinalizeCalibration",
+)
+class SourceFinalizeCalibrationDocument(CharterDoc):
+    prior_base_rate_status: str
+    source_quality_status: str
+    fallback_to_default_base_rate: bool
+
+
+@charter(
+    key="source-finalize-report",
+    name="source-finalize-report",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=".derived/source-finalize-report",
+    identity_field="source",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-finalize-report",
+    model_name="SourceFinalizeReport",
+)
+class SourceFinalizeReportDocument(CharterDoc):
+    kind: str
+    source: str
+    status: str
+    artifact_code_status: str
+    calibration: SourceFinalizeCalibrationDocument
+    micropub_status: str = "not_composed"
+    claim_reference_errors: tuple[str, ...] = ()
+    micropub_coverage_errors: tuple[str, ...] = ()
+    justification_reference_errors: tuple[str, ...] = ()
+    stance_reference_errors: tuple[str, ...] = ()
+    concept_alignment_candidates: tuple[str, ...] = ()
+    parameterization_group_merges: tuple[SourceParameterizationGroupMergeDocument, ...] = ()
+
+
+@charter(
+    key="source",
+    name="source",
+    contract_version=_SOURCE_CONTRACT_VERSION,
+    placement=".derived/source",
+    identity_field="slug",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-source",
+    model_name="Source",
+    indexes=(CharterIndex("idx_source_source_id", ("source_id",)),),
+    extra_columns=(
+        column("slug", str, primary_key=True),
+        column("quality", SourceTrustQualityDocument, json=True, nullable=True),
+        column("derived_from", list, json=True, nullable=True),
+    ),
+)
+class SourceDocument(CharterDoc):
+    id: Annotated[str, charter_field(column_name="source_id")]
+    kind: SourceKind
+    origin: Annotated[SourceOriginDocument, charter_field(json=True)]
+    trust: Annotated[SourceTrustDocument, charter_field(json=True)]
+    metadata: Annotated[SourceMetadataDocument | None, charter_field(json=True)] = None
+    artifact_code: Annotated[str | None, charter_field(artifact=True)] = None
+
+    def to_payload(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "id": self.id,
+            "kind": self.kind.value,
+            "origin": document_to_payload(self.origin),
+            "trust": document_to_payload(self.trust),
+        }
+        if self.metadata is not None:
+            payload["metadata"] = document_to_payload(self.metadata)
+        if self.artifact_code is not None:
+            payload["artifact_code"] = self.artifact_code
+        return payload
+
+    def encode(self) -> bytes:
+        return msgspec.yaml.encode(self.to_payload())
+
+    def render(self) -> str:
+        return self.encode().decode("utf-8").rstrip()
+
+
+SOURCE_ORIGIN_CHARTER: FamilyCharter = SourceOriginDocument.__charter__
+SOURCE_TRUST_QUALITY_CHARTER: FamilyCharter = SourceTrustQualityDocument.__charter__
+SOURCE_TRUST_CHARTER: FamilyCharter = SourceTrustDocument.__charter__
+SOURCE_METADATA_CHARTER: FamilyCharter = SourceMetadataDocument.__charter__
+SOURCE_PARAMETERIZATION_GROUP_MERGE_CHARTER: FamilyCharter = (
+    SourceParameterizationGroupMergeDocument.__charter__
+)
+SOURCE_FINALIZE_CALIBRATION_CHARTER: FamilyCharter = (
+    SourceFinalizeCalibrationDocument.__charter__
+)
+SOURCE_FINALIZE_REPORT_CHARTER: FamilyCharter = SourceFinalizeReportDocument.__charter__
+SOURCE_CHARTER: FamilyCharter = SourceDocument.__charter__
 
 
 def compile_source_models(
@@ -400,11 +237,7 @@ def compile_source_models(
                 origin=origin,
                 trust=trust,
                 metadata=source_doc.metadata,
-                quality=(
-                    None
-                    if trust.quality is None
-                    else trust.quality
-                ),
+                quality=(None if trust.quality is None else trust.quality),
                 derived_from=list(trust.derived_from) if trust.derived_from else None,
                 artifact_code=source_doc.artifact_code,
             )

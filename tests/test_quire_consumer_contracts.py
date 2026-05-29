@@ -10,7 +10,7 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from propstore.core.source_types import SourceKind, SourceOriginType
-from propstore.families.sources.declaration import SourceDocument, source_document_payload
+from propstore.families.sources.declaration import SourceDocument
 from propstore.families.registry import SourceRef, semantic_import_roots
 from propstore.repository import Repository
 from propstore.source.common import initial_source_document
@@ -190,7 +190,7 @@ def test_source_documents_with_same_path_are_isolated_by_source_branch(
 
     assert loaded_first is not None
     assert loaded_second is not None
-    assert source_document_payload(loaded_first) == source_document_payload(first_doc)
-    assert source_document_payload(loaded_second) == source_document_payload(second_doc)
-    assert source_document_payload(loaded_first) != source_document_payload(loaded_second)
+    assert loaded_first.to_payload() == first_doc.to_payload()
+    assert loaded_second.to_payload() == second_doc.to_payload()
+    assert loaded_first.to_payload() != loaded_second.to_payload()
     assert repo.snapshot.read_document("source.yaml", SourceDocument, branch="master") is None
