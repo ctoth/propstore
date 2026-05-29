@@ -219,7 +219,58 @@ def build_propstore_contract_manifest() -> ContractManifest:
                     "fields and placement."
                 ),
             ),
+            *_required_relaxation_markers(),
         ),
+    )
+
+
+# Correcting the manifest `required` computation (it compared a field name
+# against a tuple of default VALUES, so every field was recorded required)
+# relaxes `required: true` -> `required: false` on every field that actually
+# carries a default. A relaxation is backward compatible: any reader that
+# previously treated a field as required still accepts documents that now mark
+# it optional. The bytewise contract checker cannot tell a relaxation from a
+# breaking change, so each affected `document_schema` body change needs a
+# compatibility marker at its current contract version.
+_REQUIRED_RELAXATION_MARKERS: tuple[tuple[str, str], ...] = (
+    ("document_schema:AuthoredRuleProposalArtifact", "2026.05.25"),
+    ("document_schema:ClaimDocument", "2026.05.25"),
+    ("document_schema:ContextDocument", "2026.05.25"),
+    ("document_schema:Context_lifting_ruleDocument", "2026.05.25"),
+    ("document_schema:FormDocument", "2026.05.20"),
+    ("document_schema:JustificationDocument", "2026.05.20"),
+    ("document_schema:MicropublicationDocument", "2026.05.20"),
+    ("document_schema:PredicateDocument", "2026.05.25"),
+    ("document_schema:PredicateProposalArtifact", "2026.05.25"),
+    ("document_schema:Relation_edgeDocument", "2026.05.20"),
+    ("document_schema:RuleDocument", "2026.05.25"),
+    ("document_schema:RuleSuperiorityDocument", "2026.05.25"),
+    ("document_schema:SameAsAssertionDocument", "2026.05.25"),
+    ("document_schema:SourceDocument", "2026.05.25"),
+    ("document_schema:WorldlineDefinitionDocument", "2026.05.25"),
+    ("document_schema:WorldlineJournalDocument", "2026.05.25"),
+    ("document_schema:WorldlineResultDocument", "2026.05.25"),
+    ("document_schema:WorldlineRevisionStateDocument", "2026.05.25"),
+    (
+        "document_schema:propstore.families.stances.declaration.StanceDocument",
+        "2026.05.25",
+    ),
+)
+
+
+def _required_relaxation_markers() -> tuple[quire_contracts.CompatibilityMarker, ...]:
+    return tuple(
+        quire_contracts.CompatibilityMarker(
+            contract=contract,
+            contract_version=VersionId(version),
+            reason=(
+                "Corrected manifest `required` computation to real per-field "
+                "optionality (msgspec FieldInfo.required); fields that carry a "
+                "default flip required:true -> required:false. A relaxation, "
+                "backward compatible with prior required readers."
+            ),
+        )
+        for contract, version in _REQUIRED_RELAXATION_MARKERS
     )
 
 
@@ -234,11 +285,20 @@ def _document_contract(
     # (e.g. `builtins.str`), not the raw declarative annotation. include_extras=False
     # drops the Annotated wrapper; the old defstruct documents already had clean types.
     annotations = get_type_hints(document_type)
+    # A field is required iff msgspec reports it has no default (neither a
+    # `default` nor a `default_factory`). The old `name not in
+    # __struct_defaults__` test compared a field NAME against a tuple of default
+    # VALUES, so it was true for essentially every field and recorded every
+    # field as required. `msgspec.structs.fields(...)` exposes the real
+    # per-field `.required` optionality.
+    required_by_name = {
+        info.name: info.required for info in msgspec.structs.fields(document_type)
+    }
     for name in getattr(document_type, "__struct_fields__", ()):
         fields.append({
             "name": name,
             "type": _render_type(annotations.get(name, object)),
-            "required": name not in getattr(document_type, "__struct_defaults__", ()),
+            "required": required_by_name.get(name, True),
         })
     return ContractEntry(
         kind="document_schema",

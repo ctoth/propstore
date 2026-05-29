@@ -822,13 +822,13 @@ contracts:
       required: true
       type: builtins.str
     - name: proposal_state
-      required: true
+      required: false
       type: builtins.str
     - name: page_reference
-      required: true
+      required: false
       type: str | None
     - name: promoted_from_sha
-      required: true
+      required: false
       type: str | None
     module: propstore.families.rules.declaration
 - kind: document_schema
@@ -894,113 +894,113 @@ contracts:
       required: true
       type: propstore.families.contexts.declaration.ContextReferenceDocument
     - name: proposition
-      required: true
+      required: false
       type: propstore.families.claims.declaration.AtomicPropositionDocument | propstore.families.claims.declaration.IstPropositionDocument
         | None
     - name: source
-      required: true
+      required: false
       type: propstore.families.claims.declaration.ClaimSourceDocument | None
     - name: artifact_id
-      required: true
+      required: false
       type: str | None
     - name: artifact_code
-      required: true
+      required: false
       type: str | None
     - name: logical_ids
-      required: true
+      required: false
       type: builtins.tuple
     - name: version_id
-      required: true
+      required: false
       type: str | None
     - name: type
-      required: true
+      required: false
       type: propstore.families.claims.types.ClaimType | None
     - name: provenance
-      required: true
+      required: false
       type: propstore.families.claims.declaration.ProvenanceDocument | None
     - name: id
-      required: true
+      required: false
       type: str | None
     - name: body
-      required: true
+      required: false
       type: str | None
     - name: concepts
-      required: true
+      required: false
       type: builtins.tuple
     - name: conditions
-      required: true
+      required: false
       type: builtins.tuple
     - name: confidence
-      required: true
+      required: false
       type: float | int | None
     - name: equations
-      required: true
+      required: false
       type: builtins.tuple
     - name: expression
-      required: true
+      required: false
       type: str | None
     - name: fit
-      required: true
+      required: false
       type: propstore.families.claims.declaration.FitStatisticsDocument | None
     - name: listener_population
-      required: true
+      required: false
       type: str | None
     - name: lower_bound
-      required: true
+      required: false
       type: float | int | None
     - name: measure
-      required: true
+      required: false
       type: str | None
     - name: methodology
-      required: true
+      required: false
       type: str | None
     - name: name
-      required: true
+      required: false
       type: str | None
     - name: notes
-      required: true
+      required: false
       type: str | None
     - name: output_concept
-      required: true
+      required: false
       type: str | None
     - name: parameters
-      required: true
+      required: false
       type: builtins.tuple
     - name: sample_size
-      required: true
+      required: false
       type: int | None
     - name: stage
-      required: true
+      required: false
       type: typing.Optional
     - name: stances
-      required: true
+      required: false
       type: builtins.tuple
     - name: statement
-      required: true
+      required: false
       type: str | None
     - name: sympy
-      required: true
+      required: false
       type: str | None
     - name: target_concept
-      required: true
+      required: false
       type: str | None
     - name: uncertainty
-      required: true
+      required: false
       type: float | int | None
     - name: uncertainty_type
-      required: true
+      required: false
       type: str | None
     - name: unit
-      required: true
+      required: false
       type: str | None
     - name: upper_bound
-      required: true
+      required: false
       type: float | int | None
     - name: value
-      required: true
+      required: false
       type: float | int | None
     - name: variables
-      required: true
+      required: false
       type: builtins.tuple
     module: propstore.families.claims.declaration
 - kind: document_schema
@@ -1366,19 +1366,19 @@ contracts:
       required: true
       type: builtins.str
     - name: description
-      required: true
+      required: false
       type: str | None
     - name: assumptions
-      required: true
+      required: false
       type: tuple[propstore.cel_types.CelExpr, ...] | None
     - name: parameters
-      required: true
+      required: false
       type: dict[str, str] | None
     - name: perspective
-      required: true
+      required: false
       type: str | None
     - name: lifting_rules
-      required: true
+      required: false
       type: tuple[propstore.families.contexts.declaration.Context_lifting_ruleDocument,
         ...] | None
     module: propstore.families.contexts.declaration
@@ -1442,13 +1442,13 @@ contracts:
       required: true
       type: builtins.str
     - name: conditions
-      required: true
+      required: false
       type: tuple[propstore.cel_types.CelExpr, ...] | None
     - name: mode
-      required: true
+      required: false
       type: builtins.str
     - name: justification
-      required: true
+      required: false
       type: str | None
     module: propstore.families.contexts.declaration
 - kind: document_schema
@@ -1508,43 +1508,43 @@ contracts:
       required: true
       type: builtins.bool
     - name: kind
-      required: true
+      required: false
       type: str | None
     - name: unit_symbol
-      required: true
+      required: false
       type: str | None
     - name: dimensions
-      required: true
+      required: false
       type: dict[str, int] | None
     - name: base
-      required: true
+      required: false
       type: str | None
     - name: qudt
-      required: true
+      required: false
       type: str | None
     - name: parameters
-      required: true
+      required: false
       type: dict[str, Any] | None
     - name: common_alternatives
-      required: true
+      required: false
       type: tuple[propstore.families.forms.declaration.FormAlternativeDocument, ...]
         | None
     - name: delta_alternatives
-      required: true
+      required: false
       type: tuple[propstore.families.forms.declaration.FormAlternativeDocument, ...]
         | None
     - name: note
-      required: true
+      required: false
       type: str | None
     - name: extra_units
-      required: true
+      required: false
       type: tuple[propstore.families.forms.declaration.FormExtraUnitDocument, ...]
         | None
     - name: min
-      required: true
+      required: false
       type: float | None
     - name: max
-      required: true
+      required: false
       type: float | None
     module: propstore.families.forms.models
 - kind: document_schema
@@ -1622,30 +1622,30 @@ contracts:
   body:
     fields:
     - name: id
-      required: true
+      required: false
       type: str | None
     - name: rule_kind
-      required: true
+      required: false
       type: str | None
     - name: conclusion
-      required: true
+      required: false
       type: str | None
     - name: premises
-      required: true
+      required: false
       type: builtins.tuple
     - name: provenance
-      required: true
+      required: false
       type: propstore.families.claims.declaration.JustificationProvenanceDocument
         | None
     - name: rule_strength
-      required: true
+      required: false
       type: str | None
     - name: attack_target
-      required: true
+      required: false
       type: propstore.families.claims.declaration.JustificationAttackTargetDocument
         | None
     - name: artifact_code
-      required: true
+      required: false
       type: str | None
     module: propstore.families.claims.declaration
 - kind: document_schema
@@ -1681,25 +1681,25 @@ contracts:
       required: true
       type: propstore.families.contexts.declaration.ContextReferenceDocument
     - name: claims
-      required: true
+      required: false
       type: builtins.tuple
     - name: version_id
-      required: true
+      required: false
       type: str | None
     - name: assumptions
-      required: true
+      required: false
       type: builtins.tuple
     - name: evidence
-      required: true
+      required: false
       type: builtins.tuple
     - name: stance
-      required: true
+      required: false
       type: str | None
     - name: provenance
-      required: true
+      required: false
       type: propstore.families.claims.declaration.ProvenanceDocument | None
     - name: source
-      required: true
+      required: false
       type: str | None
     module: propstore.families.micropublications.declaration
 - kind: document_schema
@@ -1768,19 +1768,19 @@ contracts:
       required: true
       type: builtins.int
     - name: arg_types
-      required: true
+      required: false
       type: builtins.tuple
     - name: derived_from
-      required: true
+      required: false
       type: str | None
     - name: description
-      required: true
+      required: false
       type: str | None
     - name: authoring_group
-      required: true
+      required: false
       type: str | None
     - name: promoted_from_sha
-      required: true
+      required: false
       type: str | None
     module: propstore.families.predicates.declaration
 - kind: document_schema
@@ -1801,7 +1801,7 @@ contracts:
       required: true
       type: builtins.str
     - name: promoted_from_sha
-      required: true
+      required: false
       type: str | None
     module: propstore.families.predicates.declaration
 - kind: document_schema
@@ -1864,7 +1864,7 @@ contracts:
       required: true
       type: builtins.float
     - name: opinion
-      required: true
+      required: false
       type: propstore.opinion.Opinion | None
     module: propstore.families.relations.declaration
 - kind: document_schema
@@ -1903,22 +1903,22 @@ contracts:
       required: true
       type: propstore.families.rules.declaration.AtomDocument
     - name: body
-      required: true
+      required: false
       type: builtins.tuple
     - name: strength
-      required: true
+      required: false
       type: builtins.str
     - name: source
-      required: true
+      required: false
       type: propstore.families.rules.declaration.RuleSourceDocument | None
     - name: provenance
-      required: true
+      required: false
       type: dict[str, Any] | None
     - name: authoring_group
-      required: true
+      required: false
       type: str | None
     - name: promoted_from_sha
-      required: true
+      required: false
       type: str | None
     module: propstore.families.rules.declaration
 - kind: document_schema
@@ -1933,13 +1933,13 @@ contracts:
       required: true
       type: builtins.str
     - name: source
-      required: true
+      required: false
       type: propstore.families.rules.declaration.RuleSourceDocument | None
     - name: authoring_group
-      required: true
+      required: false
       type: str | None
     - name: promoted_from_sha
-      required: true
+      required: false
       type: str | None
     module: propstore.families.rules.declaration
 - kind: document_schema
@@ -1960,13 +1960,13 @@ contracts:
       required: true
       type: propstore.families.sameas.declaration.SameAsRelation
     - name: evidence_source
-      required: true
+      required: false
       type: str | None
     - name: provenance
-      required: true
+      required: false
       type: dict[str, Any] | None
     - name: confidence
-      required: true
+      required: false
       type: float | None
     module: propstore.families.sameas.declaration
 - kind: document_schema
@@ -1987,10 +1987,10 @@ contracts:
       required: true
       type: propstore.families.sources.declaration.SourceTrustDocument
     - name: metadata
-      required: true
+      required: false
       type: propstore.families.sources.declaration.SourceMetadataDocument | None
     - name: artifact_code
-      required: true
+      required: false
       type: str | None
     module: propstore.families.sources.declaration
 - kind: document_schema
@@ -2005,26 +2005,26 @@ contracts:
       required: true
       type: builtins.tuple
     - name: name
-      required: true
+      required: false
       type: builtins.str
     - name: created
-      required: true
+      required: false
       type: builtins.str
     - name: inputs
-      required: true
+      required: false
       type: propstore.families.worldlines.declaration.WorldlineInputsDocument | None
     - name: policy
-      required: true
+      required: false
       type: propstore.families.worldlines.declaration.WorldlinePolicyDocument | None
     - name: revision
-      required: true
+      required: false
       type: propstore.families.worldlines.declaration.WorldlineRevisionQueryDocument
         | None
     - name: journal
-      required: true
+      required: false
       type: propstore.families.worldlines.declaration.WorldlineJournalDocument | None
     - name: results
-      required: true
+      required: false
       type: propstore.families.worldlines.declaration.WorldlineResultDocument | None
     module: propstore.families.worldlines.declaration
 - kind: document_schema
@@ -2036,7 +2036,7 @@ contracts:
       required: true
       type: builtins.str
     - name: entries
-      required: true
+      required: false
       type: builtins.tuple
     module: propstore.families.worldlines.declaration
 - kind: document_schema
@@ -2057,16 +2057,16 @@ contracts:
       required: true
       type: propstore.families.worldlines.declaration.WorldlineDependenciesDocument
     - name: steps
-      required: true
+      required: false
       type: builtins.tuple
     - name: sensitivity
-      required: true
+      required: false
       type: dict[str, Any] | None
     - name: argumentation
-      required: true
+      required: false
       type: dict[str, Any] | None
     - name: revision
-      required: true
+      required: false
       type: propstore.families.worldlines.declaration.WorldlineRevisionStateDocument
         | None
     module: propstore.families.worldlines.declaration
@@ -2079,23 +2079,23 @@ contracts:
       required: true
       type: builtins.str
     - name: input_atom_id
-      required: true
+      required: false
       type: str | None
     - name: target_atom_ids
-      required: true
+      required: false
       type: builtins.tuple
     - name: result
-      required: true
+      required: false
       type: propstore.families.worldlines.declaration.WorldlineRevisionResultDocument
         | None
     - name: state
-      required: true
+      required: false
       type: dict[str, Any] | None
     - name: status
-      required: true
+      required: false
       type: str | None
     - name: error
-      required: true
+      required: false
       type: str | None
     module: propstore.families.worldlines.declaration
 - kind: document_schema
@@ -2119,34 +2119,34 @@ contracts:
       required: true
       type: builtins.str
     - name: perspective_source_claim_id
-      required: true
+      required: false
       type: str | None
     - name: strength
-      required: true
+      required: false
       type: str | None
     - name: note
-      required: true
+      required: false
       type: str | None
     - name: conditions_differ
-      required: true
+      required: false
       type: str | None
     - name: opinion
-      required: true
+      required: false
       type: propstore.opinion.Opinion | None
     - name: resolution
-      required: true
+      required: false
       type: dict[str, Any] | None
     - name: target_justification_id
-      required: true
+      required: false
       type: str | None
     - name: classification_model
-      required: true
+      required: false
       type: str | None
     - name: classification_date
-      required: true
+      required: false
       type: str | None
     - name: promoted_from_sha
-      required: true
+      required: false
       type: str | None
     module: propstore.families.stances.declaration
 - kind: family-registry
@@ -3359,14 +3359,109 @@ compatible_changes:
   contract_version: 2026.05.25
   reason: Predicate proposal container moved to a generated charter artifact type
     without changing proposal YAML fields or placement.
+- contract: document_schema:AuthoredRuleProposalArtifact
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:ClaimDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:ContextDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:Context_lifting_ruleDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:FormDocument
+  contract_version: 2026.05.20
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:JustificationDocument
+  contract_version: 2026.05.20
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
 - contract: document_schema:JustificationDocument
   contract_version: 2026.05.25
   reason: Claim family cutover moved justification nested document types into the
     claim declaration module without changing the authored YAML fields.
 - contract: document_schema:MicropublicationDocument
+  contract_version: 2026.05.20
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:MicropublicationDocument
   contract_version: 2026.05.25
   reason: Claim family cutover moved claim provenance document ownership into the
     claim declaration module without changing the micropublication YAML fields.
+- contract: document_schema:PredicateDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:PredicateProposalArtifact
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:Relation_edgeDocument
+  contract_version: 2026.05.20
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:RuleDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:RuleSuperiorityDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:SameAsAssertionDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:SourceDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:WorldlineDefinitionDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:WorldlineJournalDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:WorldlineResultDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:WorldlineRevisionStateDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
+- contract: document_schema:propstore.families.stances.declaration.StanceDocument
+  contract_version: 2026.05.25
+  reason: Corrected manifest `required` computation to real per-field optionality
+    (msgspec FieldInfo.required); fields that carry a default flip required:true ->
+    required:false. A relaxation, backward compatible with prior required readers.
 - contract: family-registry:propstore
   contract_version: 2026.05.25
   reason: Context family document ownership moved to generated declaration types with
