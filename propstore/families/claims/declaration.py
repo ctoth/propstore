@@ -16,12 +16,11 @@ from collections.abc import Collection, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, ClassVar, cast
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, cast
 
 import msgspec
-from quire.artifacts import ArtifactFamily, FlatYamlPlacement
+from quire.charter_class import CharterDoc, charter, charter_field, column
 from quire.charters import (
-    CharterField,
     CharterFtsIndex,
     CharterIndex,
     CharterRelationship,
@@ -30,7 +29,6 @@ from quire.charters import (
     FamilyModel,
 )
 from quire.documents import DocumentBatchSpec, document_to_payload
-from quire.families import FamilyDefinition
 from quire.references import FamilyReferenceIndex, ForeignKeySpec, ReferenceKey
 from quire.sqlalchemy_store import DerivedSession
 from quire.versions import VersionId
@@ -304,21 +302,37 @@ def iter_claim_type_contracts() -> tuple[ClaimTypeContract, ...]:
     )
 
 
-class ClaimLogicalIdDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+def _claim_struct_to_payload(self: msgspec.Struct) -> dict[str, Any]:
+    """Bound ``to_payload`` for the embedded Pop-B charter documents."""
+
+    return _claim_struct_payload(self)
+
+
+class ClaimLogicalIdDocument(CharterDoc, kw_only=True):
     namespace: str
     value: str
     confidence: float | int | None = None
     pass_number: int | None = None
 
+    @property
+    def formatted(self) -> str:
+        return claim_logical_id_formatted(self)
 
-class ClaimSourceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
+
+
+class ClaimSourceDocument(CharterDoc, kw_only=True):
     paper: str
     extraction_date: str | None = None
     extraction_model: str | None = None
     extraction_prompt_hash: str | None = None
 
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
-class ProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+
+class ProvenanceDocument(CharterDoc, kw_only=True):
     page: int
     paper: str | None = None
     branch_origin: str | None = None
@@ -328,28 +342,44 @@ class ProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=Tru
     section: str | None = None
     table: str | None = None
 
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
-class FitStatisticsDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+
+class FitStatisticsDocument(CharterDoc, kw_only=True):
     r: float | int | None = None
     r_sd: float | int | None = None
     slope: float | int | None = None
     slope_sd: float | int | None = None
 
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
-class VariableBindingDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+
+class VariableBindingDocument(CharterDoc, kw_only=True):
     concept: str
     symbol: str | None = None
     role: str | None = None
     name: str | None = None
 
+    @property
+    def binding_name(self) -> str | None:
+        return variable_binding_name(self)
 
-class ParameterBindingDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
+
+
+class ParameterBindingDocument(CharterDoc, kw_only=True):
     name: str
     concept: str
     note: str | None = None
 
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
-class ResolutionDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+
+class ResolutionDocument(CharterDoc, kw_only=True):
     method: str
     embedding_distance: float | int | None = None
     embedding_model: str | None = None
@@ -357,8 +387,11 @@ class ResolutionDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=Tru
     pass_number: int | None = None
     confidence: float | int | None = None
 
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
-class StanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
+
+class StanceDocument(CharterDoc, kw_only=True):
     type: StanceType
     target: str
     conditions_differ: str | None = None
@@ -367,14 +400,11 @@ class StanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
     strength: str | None = None
     target_justification_id: str | None = None
 
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
-class AtomicPropositionDocument(
-    msgspec.Struct,
-    tag="atomic",
-    tag_field="kind",
-    kw_only=True,
-    forbid_unknown_fields=True,
-):
+
+class AtomicPropositionDocument(CharterDoc, tag="atomic", tag_field="kind", kw_only=True):
     type: ClaimType
     body: str | None = None
     concepts: tuple[str, ...] = ()
@@ -403,16 +433,16 @@ class AtomicPropositionDocument(
     value: float | int | None = None
     variables: tuple[VariableBindingDocument, ...] = ()
 
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
-class IstPropositionDocument(
-    msgspec.Struct,
-    tag="ist",
-    tag_field="kind",
-    kw_only=True,
-    forbid_unknown_fields=True,
-):
+
+class IstPropositionDocument(CharterDoc, tag="ist", tag_field="kind", kw_only=True):
     context: ContextReferenceDocument
-    proposition: AtomicPropositionDocument | IstPropositionDocument
+    proposition: "AtomicPropositionDocument | IstPropositionDocument"
+
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
 
 def claim_logical_id_formatted(logical_id: ClaimLogicalIdDocument) -> str:
@@ -465,10 +495,6 @@ def claim_document_to_payload(document: ClaimDocument) -> dict[str, Any]:
     return _claim_struct_payload(document)
 
 
-class AuthoredClaim(FamilyModel):
-    pass
-
-
 def _validate_claim_type_contract(document: msgspec.Struct) -> None:
     claim_type = getattr(document, "type")
     if claim_type is None:
@@ -476,40 +502,36 @@ def _validate_claim_type_contract(document: msgspec.Struct) -> None:
     claim_type_contract_for(claim_type)
 
 
-AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="authored_claim",
-        name="authored_claim",
-        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-authored_claim",
-            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-            doc_type=AuthoredClaim,
-            placement=FlatYamlPlacement(".derived/authored_claim", str),
-        ),
-        identity_field="id",
-        reference_keys=(
-            ReferenceKey.field("artifact_id"),
-            ReferenceKey.field("logical_ids[].value"),
-            ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
-        ),
+if TYPE_CHECKING:
+    # ``@charter`` generates this SQLAlchemy-mappable model at runtime (via
+    # ``model_name="AuthoredClaim"``) and binds it into this module's namespace;
+    # the static stub keeps model construction/attribute access type-checking.
+    class AuthoredClaim(FamilyModel): ...
+
+
+@charter(
+    key="authored_claim",
+    name="authored_claim",
+    contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+    placement=".derived/authored_claim",
+    identity_field="id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-authored_claim",
+    model_name="AuthoredClaim",
+    reference_keys=(
+        ReferenceKey.field("artifact_id"),
+        ReferenceKey.field("logical_ids[].value"),
+        ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
     ),
-    model=AuthoredClaim,
-    fields=(
-        CharterField(
-            "id",
-            str | None,
-            primary_key=True,
-            nullable=True,
-            document_name="artifact_id",
-            document_order=3,
-        ),
-        CharterField(
-            "context",
-            ContextReferenceDocument,
-            parse_boundary="json",
+    validators=(_validate_claim_type_contract,),
+)
+class ClaimDocument(CharterDoc, kw_only=True):
+    context: Annotated[
+        ContextReferenceDocument,
+        charter_field(
+            json=True,
             nullable=False,
-            document_order=0,
+            order=0,
             foreign_key=ForeignKeySpec(
                 name="claim_context",
                 contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
@@ -518,45 +540,36 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
                 target_family="contexts",
             ),
         ),
-        CharterField(
-            "proposition",
-            AtomicPropositionDocument | IstPropositionDocument,
-            parse_boundary="json",
-            nullable=True,
-            document_order=1,
-        ),
-        CharterField(
-            "source",
-            ClaimSourceDocument,
-            parse_boundary="json",
-            nullable=True,
-            document_order=2,
-        ),
-        CharterField("artifact_code", str, artifact=True, nullable=True),
-        CharterField(
-            "logical_ids",
-            tuple[ClaimLogicalIdDocument, ...],
-            parse_boundary="json",
+    ]
+    proposition: Annotated[
+        "AtomicPropositionDocument | IstPropositionDocument | None",
+        charter_field(json=True, nullable=True, order=1),
+    ] = None
+    source: Annotated[
+        ClaimSourceDocument | None,
+        charter_field(json=True, nullable=True, order=2),
+    ] = None
+    artifact_id: Annotated[
+        str | None,
+        charter_field(column_name="id", primary_key=True, nullable=True, order=3),
+    ] = None
+    artifact_code: Annotated[str | None, charter_field(artifact=True, nullable=True)] = None
+    logical_ids: Annotated[
+        tuple[ClaimLogicalIdDocument, ...],
+        charter_field(json=True, nullable=False, default_sql="'[]'"),
+    ] = ()
+    version_id: str | None = None
+    type: ClaimType | None = None
+    provenance: Annotated[
+        ProvenanceDocument | None, charter_field(json=True, nullable=True)
+    ] = None
+    id: Annotated[str | None, charter_field(column_name="source_local_id", nullable=True)] = None
+    body: str | None = None
+    concepts: Annotated[
+        tuple[str, ...],
+        charter_field(
+            json=True,
             nullable=False,
-            default=(),
-            default_sql="'[]'",
-        ),
-        CharterField("version_id", str, nullable=True),
-        CharterField("type", ClaimType, nullable=True),
-        CharterField(
-            "provenance",
-            ProvenanceDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-        CharterField("source_local_id", str, document_name="id", nullable=True),
-        CharterField("body", str, nullable=True),
-        CharterField(
-            "concepts",
-            tuple[str, ...],
-            parse_boundary="json",
-            nullable=False,
-            default=(),
             default_sql="'[]'",
             foreign_key=ForeignKeySpec(
                 name="claim_concepts",
@@ -568,39 +581,27 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
                 required=False,
             ),
         ),
-        CharterField(
-            "conditions",
-            tuple[CelExpr, ...],
-            parse_boundary="json",
-            nullable=False,
-            default=(),
-            default_sql="'[]'",
-        ),
-        CharterField("confidence", float | int | None, nullable=True),
-        CharterField(
-            "equations",
-            tuple[str, ...],
-            parse_boundary="json",
-            nullable=False,
-            default=(),
-            default_sql="'[]'",
-        ),
-        CharterField("expression", str, nullable=True),
-        CharterField(
-            "fit",
-            FitStatisticsDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-        CharterField("listener_population", str, nullable=True),
-        CharterField("lower_bound", float | int | None, nullable=True),
-        CharterField("measure", str, nullable=True),
-        CharterField("methodology", str, nullable=True),
-        CharterField("name", str, nullable=True),
-        CharterField("notes", str, nullable=True),
-        CharterField(
-            "output_concept",
-            str,
+    ] = ()
+    conditions: Annotated[
+        tuple[CelExpr, ...],
+        charter_field(json=True, nullable=False, default_sql="'[]'"),
+    ] = ()
+    confidence: float | int | None = None
+    equations: Annotated[
+        tuple[str, ...],
+        charter_field(json=True, nullable=False, default_sql="'[]'"),
+    ] = ()
+    expression: str | None = None
+    fit: Annotated[FitStatisticsDocument | None, charter_field(json=True, nullable=True)] = None
+    listener_population: str | None = None
+    lower_bound: float | int | None = None
+    measure: str | None = None
+    methodology: str | None = None
+    name: str | None = None
+    notes: str | None = None
+    output_concept: Annotated[
+        str | None,
+        charter_field(
             nullable=True,
             foreign_key=ForeignKeySpec(
                 name="claim_output_concept",
@@ -611,12 +612,12 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
                 required=False,
             ),
         ),
-        CharterField(
-            "parameters",
-            tuple[ParameterBindingDocument, ...],
-            parse_boundary="json",
+    ] = None
+    parameters: Annotated[
+        tuple[ParameterBindingDocument, ...],
+        charter_field(
+            json=True,
             nullable=False,
-            default=(),
             default_sql="'[]'",
             foreign_key=ForeignKeySpec(
                 name="claim_parameter_concept",
@@ -627,14 +628,14 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
                 required=False,
             ),
         ),
-        CharterField("sample_size", int, nullable=True),
-        CharterField("stage", AlgorithmStage | None, nullable=True),
-        CharterField(
-            "stances",
-            tuple[StanceDocument, ...],
-            parse_boundary="json",
+    ] = ()
+    sample_size: int | None = None
+    stage: AlgorithmStage | None = None
+    stances: Annotated[
+        tuple[StanceDocument, ...],
+        charter_field(
+            json=True,
             nullable=False,
-            default=(),
             default_sql="'[]'",
             foreign_key=ForeignKeySpec(
                 name="claim_stance_target",
@@ -645,11 +646,12 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
                 required=False,
             ),
         ),
-        CharterField("statement", str, nullable=True),
-        CharterField("sympy", str, nullable=True),
-        CharterField(
-            "target_concept",
-            str,
+    ] = ()
+    statement: str | None = None
+    sympy: str | None = None
+    target_concept: Annotated[
+        str | None,
+        charter_field(
             nullable=True,
             foreign_key=ForeignKeySpec(
                 name="claim_measurement_target_concept",
@@ -660,17 +662,17 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
                 required=False,
             ),
         ),
-        CharterField("uncertainty", float | int | None, nullable=True),
-        CharterField("uncertainty_type", str, nullable=True),
-        CharterField("unit", str, nullable=True),
-        CharterField("upper_bound", float | int | None, nullable=True),
-        CharterField("value", float | int | None, nullable=True),
-        CharterField(
-            "variables",
-            tuple[VariableBindingDocument, ...],
-            parse_boundary="json",
+    ] = None
+    uncertainty: float | int | None = None
+    uncertainty_type: str | None = None
+    unit: str | None = None
+    upper_bound: float | int | None = None
+    value: float | int | None = None
+    variables: Annotated[
+        tuple[VariableBindingDocument, ...],
+        charter_field(
+            json=True,
             nullable=False,
-            default=(),
             default_sql="'[]'",
             foreign_key=ForeignKeySpec(
                 name="claim_variable_concept",
@@ -681,88 +683,20 @@ AUTHORED_CLAIM_CHARTER: FamilyCharter = FamilyCharter(
                 required=False,
             ),
         ),
-    ),
-    semantic_metadata={"semantic": "propstore.world"},
-    validators=(_validate_claim_type_contract,),
-)
+    ] = ()
+
+    @property
+    def primary_logical_id(self) -> str | None:
+        return claim_primary_logical_id(self)
+
+    def to_payload(self) -> dict[str, Any]:
+        return claim_document_to_payload(self)
 
 
-if TYPE_CHECKING:
-
-    class ClaimDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        context: ContextReferenceDocument
-        proposition: AtomicPropositionDocument | IstPropositionDocument | None = None
-        source: ClaimSourceDocument | None = None
-        artifact_id: str | None = None
-        artifact_code: str | None = None
-        logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
-        version_id: str | None = None
-        type: ClaimType | None = None
-        provenance: ProvenanceDocument | None = None
-        id: str | None = None
-        body: str | None = None
-        concepts: tuple[str, ...] = ()
-        conditions: tuple[CelExpr, ...] = ()
-        confidence: float | int | None = None
-        equations: tuple[str, ...] = ()
-        expression: str | None = None
-        fit: FitStatisticsDocument | None = None
-        listener_population: str | None = None
-        lower_bound: float | int | None = None
-        measure: str | None = None
-        methodology: str | None = None
-        name: str | None = None
-        notes: str | None = None
-        output_concept: str | None = None
-        parameters: tuple[ParameterBindingDocument, ...] = ()
-        sample_size: int | None = None
-        stage: AlgorithmStage | None = None
-        stances: tuple[StanceDocument, ...] = ()
-        statement: str | None = None
-        sympy: str | None = None
-        target_concept: str | None = None
-        uncertainty: float | int | None = None
-        uncertainty_type: str | None = None
-        unit: str | None = None
-        upper_bound: float | int | None = None
-        value: float | int | None = None
-        variables: tuple[VariableBindingDocument, ...] = ()
-
-        @property
-        def primary_logical_id(self) -> str | None: ...
-
-        def to_payload(self) -> dict[str, Any]: ...
-
-else:
-    ClaimDocument: Any = AUTHORED_CLAIM_CHARTER.generated_document()
-    ClaimDocument.__name__ = "ClaimDocument"
-    ClaimDocument.__qualname__ = "ClaimDocument"
-    ClaimDocument.__module__ = __name__
-    ClaimDocument.primary_logical_id = property(claim_primary_logical_id)
-    ClaimDocument.to_payload = claim_document_to_payload
-
-    def _claim_bound_payload(document: msgspec.Struct) -> dict[str, Any]:
-        return _claim_struct_payload(document)
-
-    for _claim_payload_type in (
-        ClaimLogicalIdDocument,
-        ClaimSourceDocument,
-        ProvenanceDocument,
-        FitStatisticsDocument,
-        VariableBindingDocument,
-        ParameterBindingDocument,
-        ResolutionDocument,
-        StanceDocument,
-        AtomicPropositionDocument,
-        IstPropositionDocument,
-    ):
-        _claim_payload_type.to_payload = _claim_bound_payload
-    del _claim_payload_type
-    ClaimLogicalIdDocument.formatted = property(claim_logical_id_formatted)
-    VariableBindingDocument.binding_name = property(variable_binding_name)
+AUTHORED_CLAIM_CHARTER: FamilyCharter = ClaimDocument.__charter__
 
 
-class Claim(FamilyModel):
+class ClaimBehavior(FamilyModel):
     def concept_ids_for_role(self, role: ClaimConceptLinkRole) -> tuple[str, ...]:
         return tuple(
             str(link.concept_id)
@@ -920,24 +854,25 @@ class Claim(FamilyModel):
         return {key: value for key, value in source.items() if value is not None}
 
 
-class ClaimConceptLink(FamilyModel):
-    pass
+if TYPE_CHECKING:
+    # ``@charter(model_mixin=ClaimBehavior, model_name="Claim")`` generates the
+    # runtime ``Claim`` SQLAlchemy model (inheriting this behaviour mixin) and binds
+    # it into this module's namespace. The static stub keeps importers that do
+    # ``from ...claims.declaration import Claim`` type-checking against the model.
+    class Claim(ClaimBehavior): ...
 
+    # ``@charter`` generates these SQLAlchemy-mappable models at runtime (via
+    # ``model_name=``) and binds them into this module's namespace; the static
+    # stubs keep model construction/attribute access type-checking.
+    class ClaimConceptLink(FamilyModel): ...
 
-class ClaimNumericPayload(FamilyModel):
-    pass
+    class ClaimNumericPayload(FamilyModel): ...
 
+    class ClaimTextPayload(FamilyModel): ...
 
-class ClaimTextPayload(FamilyModel):
-    pass
+    class ClaimAlgorithmPayload(FamilyModel): ...
 
-
-class ClaimAlgorithmPayload(FamilyModel):
-    pass
-
-
-class ClaimSourceAssertion(FamilyModel):
-    pass
+    class ClaimSourceAssertion(FamilyModel): ...
 
 
 _CLAIM_FTS_SOURCE_QUERY = """
@@ -952,423 +887,402 @@ _CLAIM_FTS_SOURCE_QUERY = """
 """
 
 
-CLAIM_CORE_CHARTER: FamilyCharter = FamilyCharter(
-        family=FamilyDefinition(
-            key="claim_core",
-            name="claim_core",
-            contract_version=_WORLD_CONTRACT_VERSION,
-            artifact_family=ArtifactFamily(
-                name="propstore-world-claim_core",
+@charter(
+    key="claim_core",
+    name="claim_core",
+    contract_version=_WORLD_CONTRACT_VERSION,
+    placement=".derived/claim_core",
+    identity_field="id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-claim_core",
+    model_name="Claim",
+    model_mixin=ClaimBehavior,
+    reference_keys=(
+        ReferenceKey.field("primary_logical_id"),
+        ReferenceKey.field("logical_ids[].value"),
+        ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
+    ),
+    indexes=(
+        CharterIndex("idx_claim_core_target", ("target_concept",)),
+        CharterIndex("idx_claim_core_type", ("type",)),
+        CharterIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)),
+        CharterIndex("idx_claim_core_build_status", ("build_status",)),
+        CharterIndex("idx_claim_core_stage", ("stage",)),
+        CharterIndex("idx_claim_core_promotion_status", ("promotion_status",)),
+    ),
+    fts=(
+        CharterFtsIndex(
+            "claim_fts",
+            "claim_id",
+            ("statement", "conditions", "expression"),
+            source_query=_CLAIM_FTS_SOURCE_QUERY,
+        ),
+    ),
+    vector_caches=(
+        CharterVectorCache(
+            "claim_embeddings",
+            table="claim_vec_{model_identity_hash}_{dimensions}",
+            entity_id_field="id",
+            source_seq_field="seq",
+            source_content_hash_field="content_hash",
+            status_table="embedding_status",
+        ),
+    ),
+    relationships=(
+        CharterRelationship(
+            "concept_links",
+            target_family="claim_concept_link",
+            foreign_key="claim_id",
+            back_populates="claim",
+            association_object=True,
+            order_by=("ordinal",),
+        ),
+        CharterRelationship(
+            "source",
+            target_family="source",
+            foreign_key="source_slug",
+            uselist=False,
+        ),
+        CharterRelationship(
+            "numeric_payload",
+            target_family="claim_numeric_payload",
+            foreign_key="claim_id",
+            back_populates="claim",
+            uselist=False,
+        ),
+        CharterRelationship(
+            "text_payload",
+            target_family="claim_text_payload",
+            foreign_key="claim_id",
+            back_populates="claim",
+            uselist=False,
+        ),
+        CharterRelationship(
+            "algorithm_payload",
+            target_family="claim_algorithm_payload",
+            foreign_key="claim_id",
+            back_populates="claim",
+            uselist=False,
+        ),
+        CharterRelationship(
+            "source_assertions",
+            target_family="claim_source_assertion",
+            foreign_key="claim_id",
+            back_populates="claim",
+            association_object=True,
+            order_by=("ordinal",),
+        ),
+    ),
+)
+class Claim_coreDocument(CharterDoc):
+    id: Annotated[str, charter_field(primary_key=True, nullable=False)]
+    primary_logical_id: Annotated[
+        str, charter_field(nullable=False, default_sql="''", graph_node_label=True)
+    ]
+    logical_ids_json: Annotated[str, charter_field(nullable=False, default_sql="'[]'")]
+    version_id: Annotated[str, charter_field(nullable=False, default_sql="''")]
+    content_hash: Annotated[str, charter_field(nullable=False, default_sql="''")]
+    seq: Annotated[int, charter_field(nullable=False)]
+    type: Annotated[ClaimType, charter_field(nullable=False, graph_metadata=True)]
+    target_concept: Annotated[str, charter_field(nullable=True, graph_metadata=True)]
+    source_slug: Annotated[
+        str,
+        charter_field(
+            nullable=True,
+            foreign_key=ForeignKeySpec(
+                name="claim_source",
                 contract_version=_WORLD_CONTRACT_VERSION,
-                doc_type=Claim,
-                placement=FlatYamlPlacement(".derived/claim_core", str),
-            ),
-            identity_field="id",
-            reference_keys=(
-                ReferenceKey.field("primary_logical_id"),
-                ReferenceKey.field("logical_ids[].value"),
-                ReferenceKey.format("{namespace}:{value}", from_field="logical_ids[]"),
-            ),
-        ),
-        model=Claim,
-        fields=(
-            CharterField("id", str, primary_key=True, nullable=False),
-            CharterField(
-                "primary_logical_id",
-                str,
-                nullable=False,
-                default_sql="''",
-                graph_node_label=True,
-            ),
-            CharterField("logical_ids_json", str, nullable=False, default_sql="'[]'"),
-            CharterField("version_id", str, nullable=False, default_sql="''"),
-            CharterField("content_hash", str, nullable=False, default_sql="''"),
-            CharterField("seq", int, nullable=False),
-            CharterField("type", ClaimType, nullable=False, graph_metadata=True),
-            CharterField("target_concept", str, graph_metadata=True),
-            CharterField(
-                "source_slug",
-                str,
-                foreign_key=ForeignKeySpec(
-                    name="claim_source",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    source_family="claim_core",
-                    source_field="source_slug",
-                    target_family="source",
-                    target_field="slug",
-                    required=False,
-                ),
-            ),
-            CharterField("source_paper", str, nullable=False),
-            CharterField("provenance_page", int, nullable=False),
-            CharterField("provenance_json", str),
-            CharterField("context_id", str),
-            CharterField("premise_kind", str, nullable=False, default_sql="'ordinary'"),
-            CharterField("branch", str),
-            CharterField("build_status", str, nullable=False, default_sql="'ingested'"),
-            CharterField("stage", str),
-            CharterField("promotion_status", str),
-        ),
-        indexes=(
-            CharterIndex("idx_claim_core_target", ("target_concept",)),
-            CharterIndex("idx_claim_core_type", ("type",)),
-            CharterIndex("idx_claim_core_primary_logical_id", ("primary_logical_id",)),
-            CharterIndex("idx_claim_core_build_status", ("build_status",)),
-            CharterIndex("idx_claim_core_stage", ("stage",)),
-            CharterIndex("idx_claim_core_promotion_status", ("promotion_status",)),
-        ),
-        fts_indexes=(
-            CharterFtsIndex(
-                "claim_fts",
-                "claim_id",
-                ("statement", "conditions", "expression"),
-                source_query=_CLAIM_FTS_SOURCE_QUERY,
-            ),
-        ),
-        vector_caches=(
-            CharterVectorCache(
-                "claim_embeddings",
-                table="claim_vec_{model_identity_hash}_{dimensions}",
-                entity_id_field="id",
-                source_seq_field="seq",
-                source_content_hash_field="content_hash",
-                status_table="embedding_status",
-            ),
-        ),
-        relationships=(
-            CharterRelationship(
-                "concept_links",
-                target_family="claim_concept_link",
-                foreign_key="claim_id",
-                back_populates="claim",
-                association_object=True,
-                order_by=("ordinal",),
-            ),
-            CharterRelationship(
-                "source",
+                source_family="claim_core",
+                source_field="source_slug",
                 target_family="source",
-                foreign_key="source_slug",
-                uselist=False,
-            ),
-            CharterRelationship(
-                "numeric_payload",
-                target_family="claim_numeric_payload",
-                foreign_key="claim_id",
-                back_populates="claim",
-                uselist=False,
-            ),
-            CharterRelationship(
-                "text_payload",
-                target_family="claim_text_payload",
-                foreign_key="claim_id",
-                back_populates="claim",
-                uselist=False,
-            ),
-            CharterRelationship(
-                "algorithm_payload",
-                target_family="claim_algorithm_payload",
-                foreign_key="claim_id",
-                back_populates="claim",
-                uselist=False,
-            ),
-            CharterRelationship(
-                "source_assertions",
-                target_family="claim_source_assertion",
-                foreign_key="claim_id",
-                back_populates="claim",
-                association_object=True,
-                order_by=("ordinal",),
+                target_field="slug",
+                required=False,
             ),
         ),
-        semantic_metadata={"semantic": "propstore.world"},
-    )
+    ]
+    source_paper: Annotated[str, charter_field(nullable=False)]
+    provenance_page: Annotated[int, charter_field(nullable=False)]
+    provenance_json: Annotated[str, charter_field(nullable=True)]
+    context_id: Annotated[str, charter_field(nullable=True)]
+    premise_kind: Annotated[str, charter_field(nullable=False, default_sql="'ordinary'")]
+    branch: Annotated[str, charter_field(nullable=True)]
+    build_status: Annotated[str, charter_field(nullable=False, default_sql="'ingested'")]
+    stage: Annotated[str, charter_field(nullable=True)]
+    promotion_status: Annotated[str, charter_field(nullable=True)]
 
 
-CLAIM_CONCEPT_LINK_CHARTER: FamilyCharter = FamilyCharter(
-        family=FamilyDefinition(
-            key="claim_concept_link",
-            name="claim_concept_link",
-            contract_version=_WORLD_CONTRACT_VERSION,
-            artifact_family=ArtifactFamily(
-                name="propstore-world-claim_concept_link",
+CLAIM_CORE_CHARTER: FamilyCharter = Claim_coreDocument.__charter__
+
+
+@charter(
+    key="claim_concept_link",
+    name="claim_concept_link",
+    contract_version=_WORLD_CONTRACT_VERSION,
+    placement=".derived/claim_concept_link",
+    identity_field="claim_id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-claim_concept_link",
+    model_name="ClaimConceptLink",
+    indexes=(
+        CharterIndex("idx_claim_concept_link_claim", ("claim_id",)),
+        CharterIndex("idx_claim_concept_link_concept", ("concept_id",)),
+        CharterIndex("idx_claim_concept_link_role", ("role",)),
+    ),
+    relationships=(
+        CharterRelationship(
+            "claim",
+            target_family="claim_core",
+            foreign_key="claim_id",
+            back_populates="concept_links",
+            uselist=False,
+        ),
+    ),
+)
+class Claim_concept_linkDocument(CharterDoc):
+    claim_id: Annotated[
+        str,
+        charter_field(
+            primary_key=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="claim_concept_link_claim",
                 contract_version=_WORLD_CONTRACT_VERSION,
-                doc_type=ClaimConceptLink,
-                placement=FlatYamlPlacement(".derived/claim_concept_link", str),
-            ),
-            identity_field="claim_id",
-        ),
-        model=ClaimConceptLink,
-        fields=(
-            CharterField(
-                "claim_id",
-                str,
-                primary_key=True,
-                nullable=False,
-                foreign_key=ForeignKeySpec(
-                    name="claim_concept_link_claim",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    source_family="claim_concept_link",
-                    source_field="claim_id",
-                    target_family="claim_core",
-                    target_field="id",
-                    required=True,
-                ),
-            ),
-            CharterField(
-                "concept_id",
-                str,
-                primary_key=True,
-                nullable=False,
-                foreign_key=ForeignKeySpec(
-                    name="claim_concept_link_concept",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    source_family="claim_concept_link",
-                    source_field="concept_id",
-                    target_family="concept",
-                    target_field="id",
-                    required=True,
-                ),
-            ),
-            CharterField("role", ClaimConceptLinkRole, primary_key=True, nullable=False),
-            CharterField("ordinal", int, primary_key=True, nullable=False),
-            CharterField("binding_name", str),
-        ),
-        indexes=(
-            CharterIndex("idx_claim_concept_link_claim", ("claim_id",)),
-            CharterIndex("idx_claim_concept_link_concept", ("concept_id",)),
-            CharterIndex("idx_claim_concept_link_role", ("role",)),
-        ),
-        relationships=(
-            CharterRelationship(
-                "claim",
+                source_family="claim_concept_link",
+                source_field="claim_id",
                 target_family="claim_core",
-                foreign_key="claim_id",
-                back_populates="concept_links",
-                uselist=False,
+                target_field="id",
+                required=True,
             ),
         ),
-        semantic_metadata={"semantic": "propstore.world"},
-    )
+    ]
+    concept_id: Annotated[
+        str,
+        charter_field(
+            primary_key=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="claim_concept_link_concept",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                source_family="claim_concept_link",
+                source_field="concept_id",
+                target_family="concept",
+                target_field="id",
+                required=True,
+            ),
+        ),
+    ]
+    role: Annotated[ClaimConceptLinkRole, charter_field(primary_key=True, nullable=False)]
+    ordinal: Annotated[int, charter_field(primary_key=True, nullable=False)]
+    binding_name: Annotated[str, charter_field(nullable=True)]
+
+
+CLAIM_CONCEPT_LINK_CHARTER: FamilyCharter = Claim_concept_linkDocument.__charter__
+
+
+@charter(
+    key="claim_numeric_payload",
+    name="claim_numeric_payload",
+    contract_version=_WORLD_CONTRACT_VERSION,
+    placement=".derived/claim_numeric_payload",
+    identity_field="claim_id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-claim_numeric_payload",
+    model_name="ClaimNumericPayload",
+    relationships=(
+        CharterRelationship(
+            "claim",
+            target_family="claim_core",
+            foreign_key="claim_id",
+            back_populates="numeric_payload",
+            uselist=False,
+        ),
+    ),
+)
+class Claim_numeric_payloadDocument(CharterDoc):
+    claim_id: Annotated[
+        str,
+        charter_field(
+            primary_key=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="claim_numeric_payload_claim",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                source_family="claim_numeric_payload",
+                source_field="claim_id",
+                target_family="claim_core",
+                target_field="id",
+                required=True,
+            ),
+        ),
+    ]
+    value: Annotated[float, charter_field(nullable=True)]
+    lower_bound: Annotated[float, charter_field(nullable=True)]
+    upper_bound: Annotated[float, charter_field(nullable=True)]
+    uncertainty: Annotated[float, charter_field(nullable=True)]
+    uncertainty_type: Annotated[str, charter_field(nullable=True)]
+    sample_size: Annotated[int, charter_field(nullable=True)]
+    confidence: Annotated[float, charter_field(nullable=True)]
+    unit: Annotated[str, charter_field(nullable=True)]
+    value_si: Annotated[float, charter_field(nullable=True)]
+    lower_bound_si: Annotated[float, charter_field(nullable=True)]
+    upper_bound_si: Annotated[float, charter_field(nullable=True)]
+
+
+@charter(
+    key="claim_text_payload",
+    name="claim_text_payload",
+    contract_version=_WORLD_CONTRACT_VERSION,
+    placement=".derived/claim_text_payload",
+    identity_field="claim_id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-claim_text_payload",
+    model_name="ClaimTextPayload",
+    relationships=(
+        CharterRelationship(
+            "claim",
+            target_family="claim_core",
+            foreign_key="claim_id",
+            back_populates="text_payload",
+            uselist=False,
+        ),
+    ),
+)
+class Claim_text_payloadDocument(CharterDoc):
+    claim_id: Annotated[
+        str,
+        charter_field(
+            primary_key=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="claim_text_payload_claim",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                source_family="claim_text_payload",
+                source_field="claim_id",
+                target_family="claim_core",
+                target_field="id",
+                required=True,
+            ),
+        ),
+    ]
+    conditions_cel: Annotated[str, charter_field(nullable=True)]
+    conditions_ir: Annotated[str, charter_field(nullable=True)]
+    statement: Annotated[str, charter_field(nullable=True)]
+    expression: Annotated[str, charter_field(nullable=True)]
+    sympy_generated: Annotated[str, charter_field(nullable=True)]
+    sympy_error: Annotated[str, charter_field(nullable=True)]
+    name: Annotated[str, charter_field(nullable=True)]
+    measure: Annotated[str, charter_field(nullable=True)]
+    listener_population: Annotated[str, charter_field(nullable=True)]
+    methodology: Annotated[str, charter_field(nullable=True)]
+    notes: Annotated[str, charter_field(nullable=True)]
+    description: Annotated[str, charter_field(nullable=True)]
+    auto_summary: Annotated[str, charter_field(nullable=True)]
+
+
+@charter(
+    key="claim_algorithm_payload",
+    name="claim_algorithm_payload",
+    contract_version=_WORLD_CONTRACT_VERSION,
+    placement=".derived/claim_algorithm_payload",
+    identity_field="claim_id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-claim_algorithm_payload",
+    model_name="ClaimAlgorithmPayload",
+    indexes=(CharterIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
+    relationships=(
+        CharterRelationship(
+            "claim",
+            target_family="claim_core",
+            foreign_key="claim_id",
+            back_populates="algorithm_payload",
+            uselist=False,
+        ),
+    ),
+)
+class Claim_algorithm_payloadDocument(CharterDoc):
+    claim_id: Annotated[
+        str,
+        charter_field(
+            primary_key=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="claim_algorithm_payload_claim",
+                contract_version=_WORLD_CONTRACT_VERSION,
+                source_family="claim_algorithm_payload",
+                source_field="claim_id",
+                target_family="claim_core",
+                target_field="id",
+                required=True,
+            ),
+        ),
+    ]
+    body: Annotated[str, charter_field(nullable=True)]
+    canonical_ast: Annotated[str, charter_field(nullable=True)]
+    variables_json: Annotated[str, charter_field(nullable=True)]
+    algorithm_stage: Annotated[
+        str,
+        charter_field(
+            nullable=True,
+            metadata={"semantic_type": "propstore.core.algorithm_stage.AlgorithmStage"},
+        ),
+    ]
 
 
 CLAIM_PAYLOAD_CHARTERS: tuple[FamilyCharter, FamilyCharter, FamilyCharter] = (
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="claim_numeric_payload",
-                name="claim_numeric_payload",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-claim_numeric_payload",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=ClaimNumericPayload,
-                    placement=FlatYamlPlacement(".derived/claim_numeric_payload", str),
-                ),
-                identity_field="claim_id",
-            ),
-            model=ClaimNumericPayload,
-            fields=(
-                CharterField(
-                    "claim_id",
-                    str,
-                    primary_key=True,
-                    nullable=False,
-                    foreign_key=ForeignKeySpec(
-                        name="claim_numeric_payload_claim",
-                        contract_version=_WORLD_CONTRACT_VERSION,
-                        source_family="claim_numeric_payload",
-                        source_field="claim_id",
-                        target_family="claim_core",
-                        target_field="id",
-                        required=True,
-                    ),
-                ),
-                CharterField("value", float),
-                CharterField("lower_bound", float),
-                CharterField("upper_bound", float),
-                CharterField("uncertainty", float),
-                CharterField("uncertainty_type", str),
-                CharterField("sample_size", int),
-                CharterField("confidence", float),
-                CharterField("unit", str),
-                CharterField("value_si", float),
-                CharterField("lower_bound_si", float),
-                CharterField("upper_bound_si", float),
-            ),
-            relationships=(
-                CharterRelationship(
-                    "claim",
-                    target_family="claim_core",
-                    foreign_key="claim_id",
-                    back_populates="numeric_payload",
-                    uselist=False,
-                ),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-        ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="claim_text_payload",
-                name="claim_text_payload",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-claim_text_payload",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=ClaimTextPayload,
-                    placement=FlatYamlPlacement(".derived/claim_text_payload", str),
-                ),
-                identity_field="claim_id",
-            ),
-            model=ClaimTextPayload,
-            fields=(
-                CharterField(
-                    "claim_id",
-                    str,
-                    primary_key=True,
-                    nullable=False,
-                    foreign_key=ForeignKeySpec(
-                        name="claim_text_payload_claim",
-                        contract_version=_WORLD_CONTRACT_VERSION,
-                        source_family="claim_text_payload",
-                        source_field="claim_id",
-                        target_family="claim_core",
-                        target_field="id",
-                        required=True,
-                    ),
-                ),
-                CharterField("conditions_cel", str),
-                CharterField("conditions_ir", str),
-                CharterField("statement", str),
-                CharterField("expression", str),
-                CharterField("sympy_generated", str),
-                CharterField("sympy_error", str),
-                CharterField("name", str),
-                CharterField("measure", str),
-                CharterField("listener_population", str),
-                CharterField("methodology", str),
-                CharterField("notes", str),
-                CharterField("description", str),
-                CharterField("auto_summary", str),
-            ),
-            relationships=(
-                CharterRelationship(
-                    "claim",
-                    target_family="claim_core",
-                    foreign_key="claim_id",
-                    back_populates="text_payload",
-                    uselist=False,
-                ),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-        ),
-        FamilyCharter(
-            family=FamilyDefinition(
-                key="claim_algorithm_payload",
-                name="claim_algorithm_payload",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                artifact_family=ArtifactFamily(
-                    name="propstore-world-claim_algorithm_payload",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    doc_type=ClaimAlgorithmPayload,
-                    placement=FlatYamlPlacement(".derived/claim_algorithm_payload", str),
-                ),
-                identity_field="claim_id",
-            ),
-            model=ClaimAlgorithmPayload,
-            fields=(
-                CharterField(
-                    "claim_id",
-                    str,
-                    primary_key=True,
-                    nullable=False,
-                    foreign_key=ForeignKeySpec(
-                        name="claim_algorithm_payload_claim",
-                        contract_version=_WORLD_CONTRACT_VERSION,
-                        source_family="claim_algorithm_payload",
-                        source_field="claim_id",
-                        target_family="claim_core",
-                        target_field="id",
-                        required=True,
-                    ),
-                ),
-                CharterField("body", str),
-                CharterField("canonical_ast", str),
-                CharterField("variables_json", str),
-                CharterField(
-                    "algorithm_stage",
-                    str,
-                    metadata={"semantic_type": "propstore.core.algorithm_stage.AlgorithmStage"},
-                ),
-            ),
-            indexes=(CharterIndex("idx_claim_algorithm_stage", ("algorithm_stage",)),),
-            relationships=(
-                CharterRelationship(
-                    "claim",
-                    target_family="claim_core",
-                    foreign_key="claim_id",
-                    back_populates="algorithm_payload",
-                    uselist=False,
-                ),
-            ),
-            semantic_metadata={"semantic": "propstore.world"},
-        ),
-    )
+    Claim_numeric_payloadDocument.__charter__,
+    Claim_text_payloadDocument.__charter__,
+    Claim_algorithm_payloadDocument.__charter__,
+)
 
 
-CLAIM_SOURCE_ASSERTION_CHARTER: FamilyCharter = FamilyCharter(
-        family=FamilyDefinition(
-            key="claim_source_assertion",
-            name="claim_source_assertion",
-            contract_version=_WORLD_CONTRACT_VERSION,
-            artifact_family=ArtifactFamily(
-                name="propstore-world-claim_source_assertion",
+@charter(
+    key="claim_source_assertion",
+    name="claim_source_assertion",
+    contract_version=_WORLD_CONTRACT_VERSION,
+    placement=".derived/claim_source_assertion",
+    identity_field="claim_id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-claim_source_assertion",
+    model_name="ClaimSourceAssertion",
+    indexes=(
+        CharterIndex("idx_claim_source_assertion_claim", ("claim_id",)),
+        CharterIndex("idx_claim_source_assertion_source", ("source_assertion_id",)),
+    ),
+    relationships=(
+        CharterRelationship(
+            "claim",
+            target_family="claim_core",
+            foreign_key="claim_id",
+            back_populates="source_assertions",
+            uselist=False,
+        ),
+    ),
+)
+class Claim_source_assertionDocument(CharterDoc):
+    claim_id: Annotated[
+        str,
+        charter_field(
+            primary_key=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="claim_source_assertion_claim",
                 contract_version=_WORLD_CONTRACT_VERSION,
-                doc_type=ClaimSourceAssertion,
-                placement=FlatYamlPlacement(".derived/claim_source_assertion", str),
-            ),
-            identity_field="claim_id",
-        ),
-        model=ClaimSourceAssertion,
-        fields=(
-            CharterField(
-                "claim_id",
-                str,
-                primary_key=True,
-                nullable=False,
-                foreign_key=ForeignKeySpec(
-                    name="claim_source_assertion_claim",
-                    contract_version=_WORLD_CONTRACT_VERSION,
-                    source_family="claim_source_assertion",
-                    source_field="claim_id",
-                    target_family="claim_core",
-                    target_field="id",
-                    required=True,
-                ),
-            ),
-            CharterField("source_assertion_id", str, nullable=False),
-            CharterField("ordinal", int, primary_key=True, nullable=False),
-        ),
-        indexes=(
-            CharterIndex("idx_claim_source_assertion_claim", ("claim_id",)),
-            CharterIndex("idx_claim_source_assertion_source", ("source_assertion_id",)),
-        ),
-        relationships=(
-            CharterRelationship(
-                "claim",
+                source_family="claim_source_assertion",
+                source_field="claim_id",
                 target_family="claim_core",
-                foreign_key="claim_id",
-                back_populates="source_assertions",
-                uselist=False,
+                target_field="id",
+                required=True,
             ),
         ),
-        semantic_metadata={"semantic": "propstore.world"},
-    )
+    ]
+    source_assertion_id: Annotated[str, charter_field(nullable=False)]
+    ordinal: Annotated[int, charter_field(primary_key=True, nullable=False)]
 
 
-class JustificationProvenanceDocument(
-    msgspec.Struct,
-    kw_only=True,
-    forbid_unknown_fields=True,
-):
+CLAIM_SOURCE_ASSERTION_CHARTER: FamilyCharter = Claim_source_assertionDocument.__charter__
+
+
+class JustificationProvenanceDocument(CharterDoc, kw_only=True):
     paper: str | None = None
     page: int | None = None
     figure: str | None = None
@@ -1376,112 +1290,17 @@ class JustificationProvenanceDocument(
     section: str | None = None
     table: str | None = None
 
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
-class JustificationAttackTargetDocument(
-    msgspec.Struct,
-    kw_only=True,
-    forbid_unknown_fields=True,
-):
+
+class JustificationAttackTargetDocument(CharterDoc, kw_only=True):
     target_claim: str | None = None
     target_justification_id: str | None = None
     target_premise_index: int | None = None
 
-
-JUSTIFICATION_CHARTER: FamilyCharter = FamilyCharter(
-        family=FamilyDefinition(
-            key="justification",
-            name="justification",
-            contract_version=_WORLD_CONTRACT_VERSION,
-            artifact_family=ArtifactFamily(
-                name="propstore-world-justification",
-                contract_version=_WORLD_CONTRACT_VERSION,
-                doc_type=Justification,
-                placement=FlatYamlPlacement(".derived/justification", str),
-            ),
-            identity_field="id",
-            reference_keys=(ReferenceKey.field("id"),),
-        ),
-        model=Justification,
-        fields=(
-            CharterField("id", str, primary_key=True, nullable=True),
-            CharterField(
-                "justification_kind",
-                str,
-                nullable=True,
-                document_name="rule_kind",
-            ),
-            CharterField(
-                "conclusion_claim_id",
-                str,
-                nullable=True,
-                document_name="conclusion",
-                foreign_key=ForeignKeySpec(
-                    name="justification_conclusion",
-                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-                    source_family="justifications",
-                    source_field="conclusion",
-                    target_family="claims",
-                    required=False,
-                ),
-            ),
-            CharterField(
-                "premise_claim_ids",
-                tuple[str, ...],
-                parse_boundary="json",
-                nullable=False,
-                document_name="premises",
-                default=(),
-                foreign_key=ForeignKeySpec(
-                    name="justification_premises",
-                    contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
-                    source_family="justifications",
-                    source_field="premises[]",
-                    target_family="claims",
-                    many=True,
-                    required=False,
-                ),
-            ),
-            CharterField("source_relation_type", str, document=False),
-            CharterField("source_claim_id", str, document=False),
-            CharterField(
-                "provenance_json",
-                JustificationProvenanceDocument,
-                parse_boundary="json",
-                nullable=True,
-                document_name="provenance",
-            ),
-            CharterField(
-                "rule_strength",
-                str,
-                nullable=True,
-                default_sql="'defeasible'",
-            ),
-            CharterField(
-                "attack_target",
-                JustificationAttackTargetDocument,
-                parse_boundary="json",
-                nullable=True,
-            ),
-            CharterField("artifact_code", str, artifact=True, nullable=True),
-        ),
-        semantic_metadata={"semantic": "propstore.world"},
-)
-
-if TYPE_CHECKING:
-
-    class JustificationDocument(msgspec.Struct, forbid_unknown_fields=True):
-        id: str | None = None
-        rule_kind: str | None = None
-        conclusion: str | None = None
-        premises: tuple[str, ...] = ()
-        provenance: JustificationProvenanceDocument | None = None
-        rule_strength: str | None = None
-        attack_target: JustificationAttackTargetDocument | None = None
-        artifact_code: str | None = None
-
-else:
-    JustificationDocument: Any = JUSTIFICATION_CHARTER.generated_document()
-    JustificationDocument.__module__ = __name__
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
 
 
 def justification_document_to_payload(document: JustificationDocument) -> dict[str, Any]:
@@ -1496,292 +1315,222 @@ def justification_document_to_payload(document: JustificationDocument) -> dict[s
     return payload
 
 
-if not TYPE_CHECKING:
-    JustificationProvenanceDocument.to_payload = _claim_bound_payload
-    JustificationAttackTargetDocument.to_payload = _claim_bound_payload
-    JustificationDocument.to_payload = justification_document_to_payload
-
-
-class ExtractionProvenance(FamilyModel):
-    pass
-
-
-EXTRACTION_PROVENANCE_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="extraction-provenance",
-        name="extraction-provenance",
-        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-extraction-provenance",
-            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-            doc_type=ExtractionProvenance,
-            placement=FlatYamlPlacement(".source/extraction-provenance", str),
-        ),
-        identity_field="reader",
+@charter(
+    key="justification",
+    name="justification",
+    contract_version=_WORLD_CONTRACT_VERSION,
+    placement=".derived/justification",
+    identity_field="id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-justification",
+    model_name="Justification",
+    model_mixin=Justification,
+    reference_keys=(ReferenceKey.field("id"),),
+    extra_columns=(
+        column("source_relation_type", str, nullable=True),
+        column("source_claim_id", str, nullable=True),
     ),
-    model=ExtractionProvenance,
-    fields=(
-        CharterField("reader", str, nullable=True),
-        CharterField("method", str, nullable=True),
-        CharterField("timestamp", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
 )
-if TYPE_CHECKING:
-    class ExtractionProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        reader: str | None = None
-        method: str | None = None
-        timestamp: str | None = None
-
-else:
-    ExtractionProvenanceDocument: Any = EXTRACTION_PROVENANCE_CHARTER.generated_document()
-    ExtractionProvenanceDocument.__name__ = "ExtractionProvenanceDocument"
-    ExtractionProvenanceDocument.__qualname__ = "ExtractionProvenanceDocument"
-    ExtractionProvenanceDocument.__module__ = __name__
-
-
-class SourceProvenance(FamilyModel):
-    pass
-
-
-SOURCE_PROVENANCE_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-provenance",
-        name="source-provenance",
-        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-provenance",
-            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-            doc_type=SourceProvenance,
-            placement=FlatYamlPlacement(".source/provenance", str),
+class JustificationDocument(CharterDoc):
+    id: Annotated[str | None, charter_field(primary_key=True, nullable=True)] = None
+    rule_kind: Annotated[
+        str | None, charter_field(column_name="justification_kind", nullable=True)
+    ] = None
+    conclusion: Annotated[
+        str | None,
+        charter_field(
+            column_name="conclusion_claim_id",
+            nullable=True,
+            foreign_key=ForeignKeySpec(
+                name="justification_conclusion",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="justifications",
+                source_field="conclusion",
+                target_family="claims",
+                required=False,
+            ),
         ),
-        identity_field="paper",
-    ),
-    model=SourceProvenance,
-    fields=(
-        CharterField("paper", str, nullable=True),
-        CharterField("page", int, nullable=True),
-        CharterField("figure", str, nullable=True),
-        CharterField("quote_fragment", str, nullable=True),
-        CharterField("section", str, nullable=True),
-        CharterField("table", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
-)
-if TYPE_CHECKING:
-    class SourceProvenanceDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        paper: str | None = None
-        page: int | None = None
-        figure: str | None = None
-        quote_fragment: str | None = None
-        section: str | None = None
-        table: str | None = None
-
-else:
-    SourceProvenanceDocument: Any = SOURCE_PROVENANCE_CHARTER.generated_document()
-    SourceProvenanceDocument.__name__ = "SourceProvenanceDocument"
-    SourceProvenanceDocument.__qualname__ = "SourceProvenanceDocument"
-    SourceProvenanceDocument.__module__ = __name__
-
-
-class SourceAttackTarget(FamilyModel):
-    pass
-
-
-SOURCE_ATTACK_TARGET_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-attack-target",
-        name="source-attack-target",
-        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-attack-target",
-            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-            doc_type=SourceAttackTarget,
-            placement=FlatYamlPlacement(".source/attack-targets", str),
+    ] = None
+    premises: Annotated[
+        tuple[str, ...],
+        charter_field(
+            column_name="premise_claim_ids",
+            json=True,
+            nullable=False,
+            foreign_key=ForeignKeySpec(
+                name="justification_premises",
+                contract_version=SEMANTIC_FOREIGN_KEY_CONTRACT_VERSION,
+                source_family="justifications",
+                source_field="premises[]",
+                target_family="claims",
+                many=True,
+                required=False,
+            ),
         ),
-        identity_field="target_claim",
-    ),
-    model=SourceAttackTarget,
-    fields=(
-        CharterField("target_claim", str, nullable=True),
-        CharterField("target_justification_id", str, nullable=True),
-        CharterField("target_premise_index", int, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
+    ] = ()
+    provenance: Annotated[
+        JustificationProvenanceDocument | None,
+        charter_field(column_name="provenance_json", json=True, nullable=True),
+    ] = None
+    rule_strength: Annotated[
+        str | None, charter_field(nullable=True, default_sql="'defeasible'")
+    ] = None
+    attack_target: Annotated[
+        JustificationAttackTargetDocument | None,
+        charter_field(json=True, nullable=True),
+    ] = None
+    artifact_code: Annotated[str | None, charter_field(artifact=True, nullable=True)] = None
+
+    def to_payload(self) -> dict[str, Any]:
+        return justification_document_to_payload(self)
+
+
+JUSTIFICATION_CHARTER: FamilyCharter = JustificationDocument.__charter__
+
+
+@charter(
+    key="extraction-provenance",
+    name="extraction-provenance",
+    contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+    placement=".source/extraction-provenance",
+    identity_field="reader",
+    semantic="propstore.source",
+    artifact_family_name="propstore-extraction-provenance",
+    model_name="ExtractionProvenance",
 )
-if TYPE_CHECKING:
-    class SourceAttackTargetDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        target_claim: str | None = None
-        target_justification_id: str | None = None
-        target_premise_index: int | None = None
-
-else:
-    SourceAttackTargetDocument: Any = SOURCE_ATTACK_TARGET_CHARTER.generated_document()
-    SourceAttackTargetDocument.__name__ = "SourceAttackTargetDocument"
-    SourceAttackTargetDocument.__qualname__ = "SourceAttackTargetDocument"
-    SourceAttackTargetDocument.__module__ = __name__
+class ExtractionProvenanceDocument(CharterDoc, kw_only=True):
+    reader: str | None = None
+    method: str | None = None
+    timestamp: str | None = None
 
 
-class SourceClaim(FamilyModel):
-    pass
+EXTRACTION_PROVENANCE_CHARTER: FamilyCharter = ExtractionProvenanceDocument.__charter__
 
 
-SOURCE_CLAIM_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-claim-document",
-        name="source-claim",
-        contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-claim-document",
-            contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
-            doc_type=SourceClaim,
-            placement=FlatYamlPlacement(".source/claims", str),
-        ),
-        identity_field="id",
-    ),
-    model=SourceClaim,
-    fields=(
-        CharterField("source", ClaimSourceDocument, nullable=True),
-        CharterField("produced_by", ExtractionProvenanceDocument, nullable=True),
-        CharterField("artifact_id", str, nullable=True),
-        CharterField("logical_ids", tuple[ClaimLogicalIdDocument, ...], default=()),
-        CharterField("version_id", str, nullable=True),
-        CharterField("type", ClaimType, nullable=True, enum_type=ClaimType),
-        CharterField("provenance", SourceProvenanceDocument, nullable=True),
-        CharterField("id", str, nullable=True),
-        CharterField("body", str, nullable=True),
-        CharterField("concept", str, nullable=True),
-        CharterField("concepts", tuple[str, ...], default=()),
-        CharterField("conditions", tuple[CelExpr, ...], default=()),
-        CharterField("context", str, nullable=True),
-        CharterField("equations", tuple[str, ...], default=()),
-        CharterField("expression", str, nullable=True),
-        CharterField("fit", FitStatisticsDocument, nullable=True),
-        CharterField("listener_population", str, nullable=True),
-        CharterField("lower_bound", float | int, nullable=True),
-        CharterField("measure", str, nullable=True),
-        CharterField("methodology", str, nullable=True),
-        CharterField("name", str, nullable=True),
-        CharterField("notes", str, nullable=True),
-        CharterField("parameters", tuple[ParameterBindingDocument, ...], default=()),
-        CharterField("sample_size", int, nullable=True),
-        CharterField("stage", AlgorithmStage, nullable=True),
-        CharterField("stances", tuple[StanceDocument, ...], default=()),
-        CharterField("statement", str, nullable=True),
-        CharterField("sympy", str, nullable=True),
-        CharterField("target_concept", str, nullable=True),
-        CharterField("uncertainty", float | int, nullable=True),
-        CharterField("uncertainty_type", str, nullable=True),
-        CharterField("unit", str, nullable=True),
-        CharterField("upper_bound", float | int, nullable=True),
-        CharterField("value", float | int, nullable=True),
-        CharterField("variables", tuple[VariableBindingDocument, ...], default=()),
-        CharterField("source_local_id", str, nullable=True),
-        CharterField("artifact_code", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
+@charter(
+    key="source-provenance",
+    name="source-provenance",
+    contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+    placement=".source/provenance",
+    identity_field="paper",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-provenance",
+    model_name="SourceProvenance",
 )
+class SourceProvenanceDocument(CharterDoc, kw_only=True):
+    paper: str | None = None
+    page: int | None = None
+    figure: str | None = None
+    quote_fragment: str | None = None
+    section: str | None = None
+    table: str | None = None
 
 
-if TYPE_CHECKING:
-    class SourceClaimDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        source: ClaimSourceDocument | None = None
-        produced_by: ExtractionProvenanceDocument | None = None
-        artifact_id: str | None = None
-        logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
-        version_id: str | None = None
-        type: ClaimType | None = None
-        provenance: SourceProvenanceDocument | None = None
-        id: str | None = None
-        body: str | None = None
-        concept: str | None = None
-        concepts: tuple[str, ...] = ()
-        conditions: tuple[CelExpr, ...] = ()
-        context: str | None = None
-        equations: tuple[str, ...] = ()
-        expression: str | None = None
-        fit: FitStatisticsDocument | None = None
-        listener_population: str | None = None
-        lower_bound: float | int | None = None
-        measure: str | None = None
-        methodology: str | None = None
-        name: str | None = None
-        notes: str | None = None
-        parameters: tuple[ParameterBindingDocument, ...] = ()
-        sample_size: int | None = None
-        stage: AlgorithmStage | None = None
-        stances: tuple[StanceDocument, ...] = ()
-        statement: str | None = None
-        sympy: str | None = None
-        target_concept: str | None = None
-        uncertainty: float | int | None = None
-        uncertainty_type: str | None = None
-        unit: str | None = None
-        upper_bound: float | int | None = None
-        value: float | int | None = None
-        variables: tuple[VariableBindingDocument, ...] = ()
-        source_local_id: str | None = None
-        artifact_code: str | None = None
-
-else:
-    SourceClaimDocument: Any = SOURCE_CLAIM_DOCUMENT_CHARTER.generated_document()
-    SourceClaimDocument.__name__ = "SourceClaimDocument"
-    SourceClaimDocument.__qualname__ = "SourceClaimDocument"
-    SourceClaimDocument.__module__ = __name__
+SOURCE_PROVENANCE_CHARTER: FamilyCharter = SourceProvenanceDocument.__charter__
 
 
-class SourceJustification(FamilyModel):
-    pass
-
-
-SOURCE_JUSTIFICATION_DOCUMENT_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="source-justification-document",
-        name="source-justification",
-        contract_version=_WORLD_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-source-justification-document",
-            contract_version=_WORLD_CONTRACT_VERSION,
-            doc_type=SourceJustification,
-            placement=FlatYamlPlacement(".source/justifications", str),
-        ),
-        identity_field="id",
-    ),
-    model=SourceJustification,
-    fields=(
-        CharterField("source", ClaimSourceDocument, nullable=True),
-        CharterField("produced_by", ExtractionProvenanceDocument, nullable=True),
-        CharterField("id", str, nullable=True),
-        CharterField("conclusion", str, nullable=True),
-        CharterField("premises", tuple[str, ...], default=()),
-        CharterField("rule_kind", str, nullable=True),
-        CharterField("rule_strength", str, nullable=True),
-        CharterField("provenance", SourceProvenanceDocument, nullable=True),
-        CharterField("attack_target", SourceAttackTargetDocument, nullable=True),
-        CharterField("artifact_code", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.source"},
+@charter(
+    key="source-attack-target",
+    name="source-attack-target",
+    contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+    placement=".source/attack-targets",
+    identity_field="target_claim",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-attack-target",
+    model_name="SourceAttackTarget",
 )
+class SourceAttackTargetDocument(CharterDoc, kw_only=True):
+    target_claim: str | None = None
+    target_justification_id: str | None = None
+    target_premise_index: int | None = None
 
 
-if TYPE_CHECKING:
-    class SourceJustificationDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        source: ClaimSourceDocument | None = None
-        produced_by: ExtractionProvenanceDocument | None = None
-        id: str | None = None
-        conclusion: str | None = None
-        premises: tuple[str, ...] = ()
-        rule_kind: str | None = None
-        rule_strength: str | None = None
-        provenance: SourceProvenanceDocument | None = None
-        attack_target: SourceAttackTargetDocument | None = None
-        artifact_code: str | None = None
+SOURCE_ATTACK_TARGET_CHARTER: FamilyCharter = SourceAttackTargetDocument.__charter__
 
-else:
-    SourceJustificationDocument: Any = SOURCE_JUSTIFICATION_DOCUMENT_CHARTER.generated_document()
-    SourceJustificationDocument.__name__ = "SourceJustificationDocument"
-    SourceJustificationDocument.__qualname__ = "SourceJustificationDocument"
-    SourceJustificationDocument.__module__ = __name__
+
+@charter(
+    key="source-claim-document",
+    name="source-claim",
+    contract_version=AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION,
+    placement=".source/claims",
+    identity_field="id",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-claim-document",
+    model_name="SourceClaim",
+)
+class SourceClaimDocument(CharterDoc, kw_only=True):
+    source: Annotated[ClaimSourceDocument | None, charter_field(nullable=True)] = None
+    produced_by: Annotated[ExtractionProvenanceDocument | None, charter_field(nullable=True)] = None
+    artifact_id: Annotated[str | None, charter_field(nullable=True)] = None
+    logical_ids: tuple[ClaimLogicalIdDocument, ...] = ()
+    version_id: Annotated[str | None, charter_field(nullable=True)] = None
+    type: Annotated[ClaimType | None, charter_field(nullable=True, enum_type=ClaimType)] = None
+    provenance: Annotated[SourceProvenanceDocument | None, charter_field(nullable=True)] = None
+    id: Annotated[str | None, charter_field(nullable=True)] = None
+    body: Annotated[str | None, charter_field(nullable=True)] = None
+    concept: Annotated[str | None, charter_field(nullable=True)] = None
+    concepts: tuple[str, ...] = ()
+    conditions: tuple[CelExpr, ...] = ()
+    context: Annotated[str | None, charter_field(nullable=True)] = None
+    equations: tuple[str, ...] = ()
+    expression: Annotated[str | None, charter_field(nullable=True)] = None
+    fit: Annotated[FitStatisticsDocument | None, charter_field(nullable=True)] = None
+    listener_population: Annotated[str | None, charter_field(nullable=True)] = None
+    lower_bound: Annotated[float | int | None, charter_field(nullable=True)] = None
+    measure: Annotated[str | None, charter_field(nullable=True)] = None
+    methodology: Annotated[str | None, charter_field(nullable=True)] = None
+    name: Annotated[str | None, charter_field(nullable=True)] = None
+    notes: Annotated[str | None, charter_field(nullable=True)] = None
+    parameters: tuple[ParameterBindingDocument, ...] = ()
+    sample_size: Annotated[int | None, charter_field(nullable=True)] = None
+    stage: Annotated[AlgorithmStage | None, charter_field(nullable=True)] = None
+    stances: tuple[StanceDocument, ...] = ()
+    statement: Annotated[str | None, charter_field(nullable=True)] = None
+    sympy: Annotated[str | None, charter_field(nullable=True)] = None
+    target_concept: Annotated[str | None, charter_field(nullable=True)] = None
+    uncertainty: Annotated[float | int | None, charter_field(nullable=True)] = None
+    uncertainty_type: Annotated[str | None, charter_field(nullable=True)] = None
+    unit: Annotated[str | None, charter_field(nullable=True)] = None
+    upper_bound: Annotated[float | int | None, charter_field(nullable=True)] = None
+    value: Annotated[float | int | None, charter_field(nullable=True)] = None
+    variables: tuple[VariableBindingDocument, ...] = ()
+    source_local_id: Annotated[str | None, charter_field(nullable=True)] = None
+    artifact_code: Annotated[str | None, charter_field(nullable=True)] = None
+
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
+
+
+SOURCE_CLAIM_DOCUMENT_CHARTER: FamilyCharter = SourceClaimDocument.__charter__
+
+
+@charter(
+    key="source-justification-document",
+    name="source-justification",
+    contract_version=_WORLD_CONTRACT_VERSION,
+    placement=".source/justifications",
+    identity_field="id",
+    semantic="propstore.source",
+    artifact_family_name="propstore-source-justification-document",
+    model_name="SourceJustification",
+)
+class SourceJustificationDocument(CharterDoc, kw_only=True):
+    source: Annotated[ClaimSourceDocument | None, charter_field(nullable=True)] = None
+    produced_by: Annotated[ExtractionProvenanceDocument | None, charter_field(nullable=True)] = None
+    id: Annotated[str | None, charter_field(nullable=True)] = None
+    conclusion: Annotated[str | None, charter_field(nullable=True)] = None
+    premises: tuple[str, ...] = ()
+    rule_kind: Annotated[str | None, charter_field(nullable=True)] = None
+    rule_strength: Annotated[str | None, charter_field(nullable=True)] = None
+    provenance: Annotated[SourceProvenanceDocument | None, charter_field(nullable=True)] = None
+    attack_target: Annotated[SourceAttackTargetDocument | None, charter_field(nullable=True)] = None
+    artifact_code: Annotated[str | None, charter_field(nullable=True)] = None
+
+    def to_payload(self) -> dict[str, Any]:
+        return _claim_struct_to_payload(self)
+
+
+SOURCE_JUSTIFICATION_DOCUMENT_CHARTER: FamilyCharter = SourceJustificationDocument.__charter__
 
 CLAIM_BATCH_SPEC = DocumentBatchSpec(
     batch_name="claims",
