@@ -2,19 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-import msgspec
-from quire.artifacts import ArtifactFamily, FlatYamlPlacement
-from quire.charters import CharterField, FamilyCharter, FamilyModel
-from quire.families import FamilyDefinition
+from quire.charter_class import CharterDoc, charter, column
+from quire.charters import FamilyCharter
 from quire.versions import VersionId
 
 
 MERGE_MANIFEST_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 
 
-class MergeManifestWitnessDocument(msgspec.Struct, forbid_unknown_fields=True):
+class MergeManifestWitnessDocument(CharterDoc):
     source_artifact_id: str
     source_paper: str | None = None
     source_page: int | None = None
@@ -22,7 +18,7 @@ class MergeManifestWitnessDocument(msgspec.Struct, forbid_unknown_fields=True):
     rule_chain: tuple[str, ...] = ()
 
 
-class MergeManifestArgumentDocument(msgspec.Struct, forbid_unknown_fields=True):
+class MergeManifestArgumentDocument(CharterDoc):
     assertion_id: str
     artifact_id: str
     logical_id: str
@@ -32,7 +28,7 @@ class MergeManifestArgumentDocument(msgspec.Struct, forbid_unknown_fields=True):
     materialized: bool = False
 
 
-class MergeSemanticCandidateArgumentDocument(msgspec.Struct, forbid_unknown_fields=True):
+class MergeSemanticCandidateArgumentDocument(CharterDoc):
     assertion_id: str
     logical_id: str
     artifact_id: str
@@ -40,14 +36,14 @@ class MergeSemanticCandidateArgumentDocument(msgspec.Struct, forbid_unknown_fiel
     source_paper: str | None = None
 
 
-class MergeSemanticCandidateDetailDocument(msgspec.Struct, forbid_unknown_fields=True):
+class MergeSemanticCandidateDetailDocument(CharterDoc):
     assertion_ids: tuple[str, ...] = ()
     logical_ids: tuple[str, ...] = ()
     artifact_ids: tuple[str, ...] = ()
     arguments: tuple[MergeSemanticCandidateArgumentDocument, ...] = ()
 
 
-class MergeManifestPayloadDocument(msgspec.Struct, forbid_unknown_fields=True):
+class MergeManifestPayloadDocument(CharterDoc):
     branch_a: str
     branch_b: str
     arguments: tuple[MergeManifestArgumentDocument, ...] = ()
@@ -55,86 +51,56 @@ class MergeManifestPayloadDocument(msgspec.Struct, forbid_unknown_fields=True):
     semantic_candidate_details: tuple[MergeSemanticCandidateDetailDocument, ...] = ()
 
 
-class MergeManifest(FamilyModel):
-    pass
-
-
-class _MergeManifestCharter(FamilyCharter):
-    def generated_document(self, state: str | None = None) -> type[msgspec.Struct]:
-        cached = self._generated_document_cache.get(state)
-        if cached is not None:
-            return cached
-
-        document_type = msgspec.defstruct(
-            "MergeManifestDocument",
-            [("merge", MergeManifestPayloadDocument)],
-            module=__name__,
-            forbid_unknown_fields=True,
-        )
-        self._generated_document_cache[state] = document_type
-        return document_type
-
-
-MERGE_MANIFEST_CHARTER: FamilyCharter = _MergeManifestCharter(
-    family=FamilyDefinition(
-        key="merge_manifest",
-        name="merge_manifest",
-        contract_version=MERGE_MANIFEST_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-merge_manifest",
-            contract_version=MERGE_MANIFEST_FAMILY_CONTRACT_VERSION,
-            doc_type=MergeManifest,
-            placement=FlatYamlPlacement(".derived/merge_manifest", str),
-        ),
-        identity_field="id",
-    ),
-    model=MergeManifest,
-    fields=(
-        CharterField(
+@charter(
+    key="merge_manifest",
+    name="merge_manifest",
+    contract_version=MERGE_MANIFEST_FAMILY_CONTRACT_VERSION,
+    placement=".derived/merge_manifest",
+    identity_field="id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-merge_manifest",
+    model_name="MergeManifest",
+    extra_columns=(
+        column(
             "id",
             str,
             primary_key=True,
             nullable=False,
             default="merge_manifest",
             default_sql="'merge_manifest'",
-            document=False,
         ),
-        CharterField("branch_a", str, nullable=False, document=False),
-        CharterField("branch_b", str, nullable=False, document=False),
-        CharterField(
+        column("branch_a", str, nullable=False),
+        column("branch_b", str, nullable=False),
+        column(
             "arguments",
             tuple[MergeManifestArgumentDocument, ...],
-            parse_boundary="json",
+            json=True,
             nullable=False,
             default=(),
             default_sql="'[]'",
-            document=False,
         ),
-        CharterField(
+        column(
             "semantic_candidates",
             tuple[tuple[str, ...], ...],
-            parse_boundary="json",
+            json=True,
             nullable=False,
             default=(),
             default_sql="'[]'",
-            document=False,
         ),
-        CharterField(
+        column(
             "semantic_candidate_details",
             tuple[MergeSemanticCandidateDetailDocument, ...],
-            parse_boundary="json",
+            json=True,
             nullable=False,
             default=(),
             default_sql="'[]'",
-            document=False,
         ),
     ),
-    semantic_metadata={"semantic": "propstore.world"},
 )
+class MergeManifestDocument(CharterDoc):
+    merge: MergeManifestPayloadDocument
+
+
+MERGE_MANIFEST_CHARTER: FamilyCharter = MergeManifestDocument.__charter__
 
 MERGE_MANIFEST_CHARTERS: tuple[FamilyCharter, ...] = (MERGE_MANIFEST_CHARTER,)
-
-MergeManifestDocument: Any = MERGE_MANIFEST_CHARTER.generated_document()
-MergeManifestDocument.__name__ = "MergeManifestDocument"
-MergeManifestDocument.__qualname__ = "MergeManifestDocument"
-MergeManifestDocument.__module__ = __name__
