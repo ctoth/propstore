@@ -50,18 +50,10 @@ SOURCE_ORIGIN_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-if TYPE_CHECKING:
-    class SourceOriginDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        type: SourceOriginType
-        value: str
-        retrieved: str | None = None
-        content_ref: str | None = None
-
-else:
-    SourceOriginDocument: Any = SOURCE_ORIGIN_CHARTER.generated_document()
-    SourceOriginDocument.__name__ = "SourceOriginDocument"
-    SourceOriginDocument.__qualname__ = "SourceOriginDocument"
-    SourceOriginDocument.__module__ = __name__
+SourceOriginDocument: Any = SOURCE_ORIGIN_CHARTER.generated_document()
+SourceOriginDocument.__name__ = "SourceOriginDocument"
+SourceOriginDocument.__qualname__ = "SourceOriginDocument"
+SourceOriginDocument.__module__ = __name__
 
 
 class SourceTrustQuality(FamilyModel):
@@ -91,19 +83,10 @@ SOURCE_TRUST_QUALITY_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-if TYPE_CHECKING:
-    class SourceTrustQualityDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        status: ProvenanceStatus
-        b: float | int
-        d: float | int
-        u: float | int
-        a: float | int
-
-else:
-    SourceTrustQualityDocument: Any = SOURCE_TRUST_QUALITY_CHARTER.generated_document()
-    SourceTrustQualityDocument.__name__ = "SourceTrustQualityDocument"
-    SourceTrustQualityDocument.__qualname__ = "SourceTrustQualityDocument"
-    SourceTrustQualityDocument.__module__ = __name__
+SourceTrustQualityDocument: Any = SOURCE_TRUST_QUALITY_CHARTER.generated_document()
+SourceTrustQualityDocument.__name__ = "SourceTrustQualityDocument"
+SourceTrustQualityDocument.__qualname__ = "SourceTrustQualityDocument"
+SourceTrustQualityDocument.__module__ = __name__
 
 
 class SourceTrust(FamilyModel):
@@ -132,18 +115,10 @@ SOURCE_TRUST_CHARTER: FamilyCharter = FamilyCharter(
     ),
     semantic_metadata={"semantic": "propstore.source"},
 )
-if TYPE_CHECKING:
-    class SourceTrustDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        status: ProvenanceStatus
-        prior_base_rate: Opinion | None = None
-        quality: SourceTrustQualityDocument | None = None
-        derived_from: tuple[str, ...] = ()
-
-else:
-    SourceTrustDocument: Any = SOURCE_TRUST_CHARTER.generated_document()
-    SourceTrustDocument.__name__ = "SourceTrustDocument"
-    SourceTrustDocument.__qualname__ = "SourceTrustDocument"
-    SourceTrustDocument.__module__ = __name__
+SourceTrustDocument: Any = SOURCE_TRUST_CHARTER.generated_document()
+SourceTrustDocument.__name__ = "SourceTrustDocument"
+SourceTrustDocument.__qualname__ = "SourceTrustDocument"
+SourceTrustDocument.__module__ = __name__
 
 
 class SourceMetadata(FamilyModel):
@@ -167,15 +142,10 @@ SOURCE_METADATA_CHARTER: FamilyCharter = FamilyCharter(
     fields=(CharterField("name", str, nullable=False),),
     semantic_metadata={"semantic": "propstore.source"},
 )
-if TYPE_CHECKING:
-    class SourceMetadataDocument(msgspec.Struct, kw_only=True, forbid_unknown_fields=True):
-        name: str
-
-else:
-    SourceMetadataDocument: Any = SOURCE_METADATA_CHARTER.generated_document()
-    SourceMetadataDocument.__name__ = "SourceMetadataDocument"
-    SourceMetadataDocument.__qualname__ = "SourceMetadataDocument"
-    SourceMetadataDocument.__module__ = __name__
+SourceMetadataDocument: Any = SOURCE_METADATA_CHARTER.generated_document()
+SourceMetadataDocument.__name__ = "SourceMetadataDocument"
+SourceMetadataDocument.__qualname__ = "SourceMetadataDocument"
+SourceMetadataDocument.__module__ = __name__
 
 
 class SourceParameterizationGroupMerge(FamilyModel):
