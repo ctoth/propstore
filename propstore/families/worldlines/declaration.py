@@ -1,13 +1,12 @@
-"""Worldline family charters and generated document types."""
+"""Worldline family charters and declarative document types."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Annotated, Any
 
 import msgspec
-from quire.artifacts import ArtifactFamily, FlatYamlPlacement
-from quire.charters import CharterField, FamilyCharter, FamilyModel
-from quire.families import FamilyDefinition
+from quire.charter_class import CharterDoc, charter, charter_field
+from quire.charters import FamilyCharter
 from quire.versions import VersionId
 
 from propstore.cel_types import CelExpr
@@ -16,22 +15,23 @@ from propstore.cel_types import CelExpr
 WORLDLINES_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 
 
-class WorldlineAssumptionDocument(msgspec.Struct, forbid_unknown_fields=True):
+# ---------------------------------------------------------------------------
+# Nested Pop-B document structs (json-embedded; not independently chartered).
+#
+# Intra-file order is define-before-use: leaf structs first, then structs that
+# embed them, then the four charter documents in the dependency chain
+# RevisionResult -> RevisionState -> Result -> Definition.
+# ---------------------------------------------------------------------------
+
+
+class WorldlineAssumptionDocument(CharterDoc):
     assumption_id: str
     kind: str
     source: str
     cel: CelExpr
 
 
-class WorldlineInputsDocument(msgspec.Struct, forbid_unknown_fields=True):
-    bindings: dict[str, Any] = msgspec.field(default_factory=dict)
-    context_id: str | None = None
-    effective_assumptions: tuple[CelExpr, ...] = ()
-    assumptions: tuple[WorldlineAssumptionDocument, ...] = ()
-    overrides: dict[str, float | str] = msgspec.field(default_factory=dict)
-
-
-class WorldlinePolicyDocument(msgspec.Struct, forbid_unknown_fields=True):
+class WorldlinePolicyDocument(CharterDoc):
     reasoning_backend: str | None = None
     strategy: str | None = None
     semantics: str | None = None
@@ -55,14 +55,44 @@ class WorldlinePolicyDocument(msgspec.Struct, forbid_unknown_fields=True):
     concept_strategies: dict[str, str] = msgspec.field(default_factory=dict)
 
 
-class WorldlineVariableRefDocument(msgspec.Struct, forbid_unknown_fields=True):
+class WorldlineVariableRefDocument(CharterDoc):
     name: str | None = None
     symbol: str | None = None
     concept_id: str | None = None
     value: str | None = None
 
 
-class WorldlineInputSourceDocument(msgspec.Struct, forbid_unknown_fields=True):
+class WorldlineStepDocument(CharterDoc):
+    concept: str
+    source: str
+    value: float | str | None = None
+    claim_id: str | None = None
+    strategy: str | None = None
+    reason: str | None = None
+    formula: str | None = None
+
+
+class WorldlineDependenciesDocument(CharterDoc):
+    claims: tuple[str, ...] = ()
+    stances: tuple[str, ...] = ()
+    contexts: tuple[str, ...] = ()
+
+
+class WorldlineRevisionAtomDocument(CharterDoc):
+    kind: str = "claim"
+    id: str | None = None
+    atom_id: str | None = None
+    value: float | str | None = None
+
+
+class WorldlineRevisionResultDocument(CharterDoc):
+    accepted_atom_ids: tuple[str, ...] = ()
+    rejected_atom_ids: tuple[str, ...] = ()
+    incision_set: tuple[str, ...] = ()
+    explanation: dict[str, Any] | None = None
+
+
+class WorldlineInputSourceDocument(CharterDoc):
     source: str
     value: float | str | None = None
     claim_id: str | None = None
@@ -74,7 +104,15 @@ class WorldlineInputSourceDocument(msgspec.Struct, forbid_unknown_fields=True):
     )
 
 
-class WorldlineTargetValueDocument(msgspec.Struct, forbid_unknown_fields=True):
+class WorldlineInputsDocument(CharterDoc):
+    bindings: dict[str, Any] = msgspec.field(default_factory=dict)
+    context_id: str | None = None
+    effective_assumptions: tuple[CelExpr, ...] = ()
+    assumptions: tuple[WorldlineAssumptionDocument, ...] = ()
+    overrides: dict[str, float | str] = msgspec.field(default_factory=dict)
+
+
+class WorldlineTargetValueDocument(CharterDoc):
     status: str
     value: float | str | None = None
     source: str | None = None
@@ -95,30 +133,7 @@ class WorldlineTargetValueDocument(msgspec.Struct, forbid_unknown_fields=True):
     )
 
 
-class WorldlineStepDocument(msgspec.Struct, forbid_unknown_fields=True):
-    concept: str
-    source: str
-    value: float | str | None = None
-    claim_id: str | None = None
-    strategy: str | None = None
-    reason: str | None = None
-    formula: str | None = None
-
-
-class WorldlineDependenciesDocument(msgspec.Struct, forbid_unknown_fields=True):
-    claims: tuple[str, ...] = ()
-    stances: tuple[str, ...] = ()
-    contexts: tuple[str, ...] = ()
-
-
-class WorldlineRevisionAtomDocument(msgspec.Struct, forbid_unknown_fields=True):
-    kind: str = "claim"
-    id: str | None = None
-    atom_id: str | None = None
-    value: float | str | None = None
-
-
-class WorldlineRevisionQueryDocument(msgspec.Struct, forbid_unknown_fields=True):
+class WorldlineRevisionQueryDocument(CharterDoc):
     operation: str
     atom: WorldlineRevisionAtomDocument | None = None
     target: str | None = None
@@ -131,254 +146,114 @@ class WorldlineRevisionQueryDocument(msgspec.Struct, forbid_unknown_fields=True)
     max_alphabet_size: int | None = None
 
 
-class WorldlineRevisionResultDocument(msgspec.Struct, forbid_unknown_fields=True):
-    accepted_atom_ids: tuple[str, ...] = ()
-    rejected_atom_ids: tuple[str, ...] = ()
-    incision_set: tuple[str, ...] = ()
-    explanation: dict[str, Any] | None = None
+# ---------------------------------------------------------------------------
+# Charter documents (the @charter-decorated classes ARE the documents).
+# ---------------------------------------------------------------------------
 
 
-class WorldlineDefinition(FamilyModel):
-    pass
-
-
-class WorldlineResult(FamilyModel):
-    pass
-
-
-class WorldlineRevisionState(FamilyModel):
-    pass
-
-
-class WorldlineJournal(FamilyModel):
-    pass
-
-
-WORLDLINE_REVISION_STATE_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="worldline_revision_state",
-        name="worldline_revision_state",
-        contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-worldline_revision_state",
-            contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-            doc_type=WorldlineRevisionState,
-            placement=FlatYamlPlacement(".derived/worldline_revision_state", str),
-        ),
-        identity_field="operation",
-    ),
-    model=WorldlineRevisionState,
-    fields=(
-        CharterField("operation", str, primary_key=True, nullable=False),
-        CharterField("input_atom_id", str, nullable=True),
-        CharterField(
-            "target_atom_ids",
-            tuple[str, ...],
-            parse_boundary="json",
-            nullable=False,
-            default=(),
-            default_sql="'[]'",
-        ),
-        CharterField(
-            "result",
-            WorldlineRevisionResultDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-        CharterField("state", dict[str, Any], parse_boundary="json", nullable=True),
-        CharterField("status", str, nullable=True),
-        CharterField("error", str, nullable=True),
-    ),
-    semantic_metadata={"semantic": "propstore.world"},
+@charter(
+    key="worldline_revision_state",
+    name="worldline_revision_state",
+    contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
+    placement=".derived/worldline_revision_state",
+    identity_field="operation",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-worldline_revision_state",
+    model_name="WorldlineRevisionState",
 )
-
-if TYPE_CHECKING:
-
-    class WorldlineRevisionStateDocument(msgspec.Struct, forbid_unknown_fields=True):
-        operation: str
-        input_atom_id: str | None = None
-        target_atom_ids: tuple[str, ...] = ()
-        result: WorldlineRevisionResultDocument | None = None
-        state: dict[str, Any] | None = None
-        status: str | None = None
-        error: str | None = None
-
-else:
-    WorldlineRevisionStateDocument: Any = (
-        WORLDLINE_REVISION_STATE_CHARTER.generated_document()
-    )
-    WorldlineRevisionStateDocument.__name__ = "WorldlineRevisionStateDocument"
-    WorldlineRevisionStateDocument.__qualname__ = "WorldlineRevisionStateDocument"
-    WorldlineRevisionStateDocument.__module__ = __name__
+class WorldlineRevisionStateDocument(CharterDoc):
+    operation: Annotated[str, charter_field(primary_key=True)]
+    input_atom_id: str | None = None
+    target_atom_ids: Annotated[
+        tuple[str, ...], charter_field(json=True, default_sql="'[]'")
+    ] = ()
+    result: Annotated[
+        WorldlineRevisionResultDocument | None, charter_field(json=True)
+    ] = None
+    state: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
+    status: str | None = None
+    error: str | None = None
 
 
-WORLDLINE_JOURNAL_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="worldline_journal",
-        name="worldline_journal",
-        contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-worldline_journal",
-            contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-            doc_type=WorldlineJournal,
-            placement=FlatYamlPlacement(".derived/worldline_journal", str),
-        ),
-        identity_field="schema_version",
-    ),
-    model=WorldlineJournal,
-    fields=(
-        CharterField("schema_version", str, primary_key=True, nullable=False),
-        CharterField(
-            "entries",
-            tuple[dict[str, Any], ...],
-            parse_boundary="json",
-            nullable=False,
-            default=(),
-            default_sql="'[]'",
-        ),
-    ),
-    semantic_metadata={"semantic": "propstore.world"},
+@charter(
+    key="worldline_journal",
+    name="worldline_journal",
+    contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
+    placement=".derived/worldline_journal",
+    identity_field="schema_version",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-worldline_journal",
+    model_name="WorldlineJournal",
 )
-
-if TYPE_CHECKING:
-
-    class WorldlineJournalDocument(msgspec.Struct, forbid_unknown_fields=True):
-        schema_version: str
-        entries: tuple[dict[str, Any], ...] = ()
-
-else:
-    WorldlineJournalDocument: Any = WORLDLINE_JOURNAL_CHARTER.generated_document()
-    WorldlineJournalDocument.__name__ = "WorldlineJournalDocument"
-    WorldlineJournalDocument.__qualname__ = "WorldlineJournalDocument"
-    WorldlineJournalDocument.__module__ = __name__
+class WorldlineJournalDocument(CharterDoc):
+    schema_version: Annotated[str, charter_field(primary_key=True)]
+    entries: Annotated[
+        tuple[dict[str, Any], ...], charter_field(json=True, default_sql="'[]'")
+    ] = ()
 
 
-WORLDLINE_RESULT_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="worldline_result",
-        name="worldline_result",
-        contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-worldline_result",
-            contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-            doc_type=WorldlineResult,
-            placement=FlatYamlPlacement(".derived/worldline_result", str),
-        ),
-        identity_field="content_hash",
-    ),
-    model=WorldlineResult,
-    fields=(
-        CharterField("computed", str, nullable=False),
-        CharterField("content_hash", str, primary_key=True, nullable=False),
-        CharterField(
-            "target_values",
-            dict[str, WorldlineTargetValueDocument],
-            document_name="values",
-            parse_boundary="json",
-            nullable=False,
-        ),
-        CharterField(
-            "dependencies",
-            WorldlineDependenciesDocument,
-            parse_boundary="json",
-            nullable=False,
-        ),
-        CharterField(
-            "steps",
-            tuple[WorldlineStepDocument, ...],
-            parse_boundary="json",
-            nullable=False,
-            default=(),
-            default_sql="'[]'",
-        ),
-        CharterField("sensitivity", dict[str, Any], parse_boundary="json", nullable=True),
-        CharterField("argumentation", dict[str, Any], parse_boundary="json", nullable=True),
-        CharterField(
-            "revision",
-            WorldlineRevisionStateDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-    ),
-    semantic_metadata={"semantic": "propstore.world"},
+@charter(
+    key="worldline_result",
+    name="worldline_result",
+    contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
+    placement=".derived/worldline_result",
+    identity_field="content_hash",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-worldline_result",
+    model_name="WorldlineResult",
 )
+class WorldlineResultDocument(CharterDoc):
+    computed: str
+    content_hash: Annotated[str, charter_field(primary_key=True)]
+    values: Annotated[
+        dict[str, WorldlineTargetValueDocument],
+        charter_field(column_name="target_values", json=True),
+    ]
+    dependencies: Annotated[
+        WorldlineDependenciesDocument, charter_field(json=True)
+    ]
+    steps: Annotated[
+        tuple[WorldlineStepDocument, ...],
+        charter_field(json=True, default_sql="'[]'"),
+    ] = ()
+    sensitivity: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
+    argumentation: Annotated[dict[str, Any] | None, charter_field(json=True)] = None
+    revision: Annotated[
+        WorldlineRevisionStateDocument | None, charter_field(json=True)
+    ] = None
 
-if TYPE_CHECKING:
 
-    class WorldlineResultDocument(msgspec.Struct, forbid_unknown_fields=True):
-        computed: str
-        content_hash: str
-        values: dict[str, WorldlineTargetValueDocument]
-        dependencies: WorldlineDependenciesDocument
-        steps: tuple[WorldlineStepDocument, ...] = ()
-        sensitivity: dict[str, Any] | None = None
-        argumentation: dict[str, Any] | None = None
-        revision: WorldlineRevisionStateDocument | None = None
-
-else:
-    WorldlineResultDocument: Any = WORLDLINE_RESULT_CHARTER.generated_document()
-    WorldlineResultDocument.__name__ = "WorldlineResultDocument"
-    WorldlineResultDocument.__qualname__ = "WorldlineResultDocument"
-    WorldlineResultDocument.__module__ = __name__
-
-
-WORLDLINE_DEFINITION_CHARTER: FamilyCharter = FamilyCharter(
-    family=FamilyDefinition(
-        key="worldline_definition",
-        name="worldline_definition",
-        contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-        artifact_family=ArtifactFamily(
-            name="propstore-world-worldline_definition",
-            contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
-            doc_type=WorldlineDefinition,
-            placement=FlatYamlPlacement(".derived/worldline_definition", str),
-        ),
-        identity_field="id",
-    ),
-    model=WorldlineDefinition,
-    fields=(
-        CharterField("id", str, primary_key=True, nullable=False),
-        CharterField(
-            "targets",
-            tuple[str, ...],
-            parse_boundary="json",
-            nullable=False,
-        ),
-        CharterField("name", str, nullable=False, default="", default_sql="''"),
-        CharterField("created", str, nullable=False, default="", default_sql="''"),
-        CharterField(
-            "inputs",
-            WorldlineInputsDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-        CharterField(
-            "policy",
-            WorldlinePolicyDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-        CharterField(
-            "revision",
-            WorldlineRevisionQueryDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-        CharterField(
-            "journal",
-            WorldlineJournalDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-        CharterField(
-            "results",
-            WorldlineResultDocument,
-            parse_boundary="json",
-            nullable=True,
-        ),
-    ),
-    semantic_metadata={"semantic": "propstore.world"},
+@charter(
+    key="worldline_definition",
+    name="worldline_definition",
+    contract_version=WORLDLINES_FAMILY_CONTRACT_VERSION,
+    placement=".derived/worldline_definition",
+    identity_field="id",
+    semantic="propstore.world",
+    artifact_family_name="propstore-world-worldline_definition",
+    model_name="WorldlineDefinition",
 )
+class WorldlineDefinitionDocument(CharterDoc):
+    id: Annotated[str, charter_field(primary_key=True)]
+    targets: Annotated[tuple[str, ...], charter_field(json=True)]
+    name: Annotated[str, charter_field(default_sql="''")] = ""
+    created: Annotated[str, charter_field(default_sql="''")] = ""
+    inputs: Annotated[WorldlineInputsDocument | None, charter_field(json=True)] = None
+    policy: Annotated[WorldlinePolicyDocument | None, charter_field(json=True)] = None
+    revision: Annotated[
+        WorldlineRevisionQueryDocument | None, charter_field(json=True)
+    ] = None
+    journal: Annotated[WorldlineJournalDocument | None, charter_field(json=True)] = None
+    results: Annotated[WorldlineResultDocument | None, charter_field(json=True)] = None
+
+
+WORLDLINE_REVISION_STATE_CHARTER: FamilyCharter = (
+    WorldlineRevisionStateDocument.__charter__
+)
+WORLDLINE_JOURNAL_CHARTER: FamilyCharter = WorldlineJournalDocument.__charter__
+WORLDLINE_RESULT_CHARTER: FamilyCharter = WorldlineResultDocument.__charter__
+WORLDLINE_DEFINITION_CHARTER: FamilyCharter = WorldlineDefinitionDocument.__charter__
+
 
 WORLDLINE_CHARTERS: tuple[FamilyCharter, ...] = (
     WORLDLINE_DEFINITION_CHARTER,
@@ -386,24 +261,3 @@ WORLDLINE_CHARTERS: tuple[FamilyCharter, ...] = (
     WORLDLINE_REVISION_STATE_CHARTER,
     WORLDLINE_JOURNAL_CHARTER,
 )
-
-if TYPE_CHECKING:
-
-    class WorldlineDefinitionDocument(msgspec.Struct, forbid_unknown_fields=True):
-        id: str
-        targets: tuple[str, ...]
-        name: str = ""
-        created: str = ""
-        inputs: WorldlineInputsDocument | None = None
-        policy: WorldlinePolicyDocument | None = None
-        revision: WorldlineRevisionQueryDocument | None = None
-        journal: WorldlineJournalDocument | None = None
-        results: WorldlineResultDocument | None = None
-
-else:
-    WorldlineDefinitionDocument: Any = (
-        WORLDLINE_DEFINITION_CHARTER.generated_document()
-    )
-    WorldlineDefinitionDocument.__name__ = "WorldlineDefinitionDocument"
-    WorldlineDefinitionDocument.__qualname__ = "WorldlineDefinitionDocument"
-    WorldlineDefinitionDocument.__module__ = __name__
