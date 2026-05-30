@@ -63,7 +63,7 @@ def concept_proposal_branch(repo: Repository | None = None) -> str:
     return family.address_for(
         cast(Repository, object()) if repo is None else repo,
         ConceptAlignmentRef("placeholder"),
-    ).branch
+    ).require_branch()
 
 
 def _proposal_lexical_entry(proposal: Mapping[str, Any]) -> LexicalEntry:

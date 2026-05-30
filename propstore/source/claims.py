@@ -406,7 +406,7 @@ def commit_source_claim_proposal(
     table: str | None = None,
     figure: str | None = None,
 ) -> SourceClaimDocument:
-    branch = repo.families.source_claims.address(SourceRef(source_name)).branch
+    branch = repo.families.source_claims.address(SourceRef(source_name)).require_branch()
     source_doc = repo.families.source_documents.require(SourceRef(source_name))
     normalized_claim_type = ClaimType(claim_type)
 

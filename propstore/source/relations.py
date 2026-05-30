@@ -177,7 +177,7 @@ def commit_source_justification_proposal(
     attack_target_justification_id: str | None = None,
     attack_target_premise_index: int | None = None,
 ) -> SourceJustificationDocument:
-    branch = repo.families.source_justifications.address(SourceRef(source_name)).branch
+    branch = repo.families.source_justifications.address(SourceRef(source_name)).require_branch()
     _validate_justification_rule_fields(
         rule_kind=rule_kind,
         rule_strength=rule_strength,
@@ -264,7 +264,7 @@ def commit_source_stance_proposal(
     strength: str | None = None,
     note: str | None = None,
 ) -> SourceStanceEntryDocument:
-    branch = repo.families.source_stances.address(SourceRef(source_name)).branch
+    branch = repo.families.source_stances.address(SourceRef(source_name)).require_branch()
     normalized_stance_type = coerce_stance_type(stance_type)
     assert normalized_stance_type is not None
 

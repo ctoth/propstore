@@ -217,7 +217,7 @@ def finalize_source(repo: Repository, request: SourceNamedRequest) -> SourceBran
         request.name,
         source_doc=source_doc,
     )
-    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
     return SourceBranchReport(branch=branch)
 
 
@@ -248,7 +248,7 @@ def promote_source(
     total_claims = len(claims_doc) if claims_doc is not None else 0
     blocked_count = len(promotion.blocked_claims)
     promoted_count = max(0, total_claims - blocked_count)
-    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
     return SourcePromoteReport(
         branch=branch,
         total_claims=total_claims,
@@ -266,7 +266,7 @@ def inspect_source(repo: Repository, request: SourceNamedRequest):
 
 
 def sync_source(repo: Repository, request: SourceSyncRequest) -> SourceSyncReport:
-    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
     destination = request.output_dir
     if destination is None:
         destination = repo.root.parent / "papers" / source_paper_slug(request.name)
@@ -294,7 +294,7 @@ def write_source_notes(
     from propstore.source import commit_source_notes
 
     commit_source_notes(repo, request.name, request.batch_file)
-    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
     return SourceBranchReport(branch=branch)
 
 
@@ -305,7 +305,7 @@ def write_source_metadata(
     from propstore.source import commit_source_metadata
 
     commit_source_metadata(repo, request.name, request.batch_file)
-    branch = repo.families.source_documents.address(SourceRef(request.name)).branch
+    branch = repo.families.source_documents.address(SourceRef(request.name)).require_branch()
     return SourceBranchReport(branch=branch)
 
 
@@ -546,5 +546,5 @@ def _auto_finalize_source(repo: Repository, name: str) -> SourceBatchReport:
         name,
         source_doc=source_doc,
     )
-    branch = repo.families.source_documents.address(SourceRef(name)).branch
+    branch = repo.families.source_documents.address(SourceRef(name)).require_branch()
     return SourceBatchReport(branch=branch, auto_finalized_branch=branch)

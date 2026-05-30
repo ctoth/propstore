@@ -283,7 +283,7 @@ def _commit_promote_time_trust_calibration(
     *,
     promotion_commit_sha: str,
 ) -> str | None:
-    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
+    branch = repo.families.source_documents.address(SourceRef(source_name)).require_branch()
     calibration = calibrate_source_trust(
         repo,
         source_name,
@@ -612,7 +612,7 @@ def _assemble_source_promotion_plan(
         slug=slug,
         source_branch=repo.families.source_documents.address(
             SourceRef(source_name)
-        ).branch,
+        ).require_branch(),
         writes=writes,
         blocked_claims=tuple(blocked_claims),
         blocked_reasons=blocked_reasons,
@@ -867,7 +867,7 @@ def collect_source_promotion_blocked_facts(
         blocked_concept_refs=concept_resolution.blocked_concept_refs,
     )
     slug = source_paper_slug(source_name)
-    source_branch = repo.families.source_claims.address(SourceRef(source_name)).branch
+    source_branch = repo.families.source_claims.address(SourceRef(source_name)).require_branch()
     source_paper = _promoted_claim_source_paper(claims_doc, fallback_slug=slug)
     facts: list[PromotionBlockedClaimFact] = []
     for claim in claims_doc:

@@ -113,7 +113,7 @@ def commit_source_concept_proposal(
         )
         return doc
 
-    branch = repo.families.source_concepts.address(SourceRef(source_name)).branch
+    branch = repo.families.source_concepts.address(SourceRef(source_name)).require_branch()
     doc = retry_live_branch_update(repo, branch, update)
     for normalized_entry in doc:
         if normalized_entry.local_name == local_name:

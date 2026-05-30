@@ -105,7 +105,7 @@ def init_source_branch(
     origin_value: str,
     content_file: Path | None = None,
 ) -> str:
-    branch = repo.families.source_documents.address(SourceRef(name)).branch
+    branch = repo.families.source_documents.address(SourceRef(name)).require_branch()
     git = repo.git
     if git is None:
         raise ValueError("source branches require a git-backed repository")

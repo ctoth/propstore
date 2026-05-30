@@ -233,7 +233,7 @@ def finalize_source_branch(
         micropub_status = "blocked"
     else:
         micropub_status = "complete" if micropubs_doc is not None else "empty"
-    branch = repo.families.source_documents.address(SourceRef(source_name)).branch
+    branch = repo.families.source_documents.address(SourceRef(source_name)).require_branch()
     ready = (
         not claim_errors
         and not micropub_coverage_errors
