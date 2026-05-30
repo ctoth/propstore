@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 from quire.contracts import ContractManifest, check_contract_manifest
 
 from propstore.contracts import (
-    CONTRACT_MANIFEST_PATH,
     build_propstore_contract_manifest,
     iter_artifact_families,
     iter_claim_type_contracts,
     iter_semantic_foreign_keys,
+)
+from propstore.repository import Repository
+from propstore.families.registry import SchemaRef
+
+_HEAD_MANIFEST_HELPER = (
+    Path(__file__).resolve().parent.parent
+    / "scripts"
+    / "build_head_contract_manifest.py"
 )
 from propstore.families.identity.claims import (
     CLAIM_SOURCE_LOCAL_FIELDS,
@@ -124,22 +132,27 @@ def test_claim_and_concept_family_contracts_include_identity_policy() -> None:
     assert concept_policy["source_local_fields"] == []
 
 
-def test_checked_in_contract_manifest_is_current() -> None:
-    expected = Path(CONTRACT_MANIFEST_PATH).read_bytes()
-    actual = build_propstore_contract_manifest().to_yaml()
+def test_materialized_schema_ref_round_trips_fresh_build(tmp_path: Path) -> None:
+    repo = Repository.init(tmp_path / "knowledge")
 
-    assert actual == expected
+    loaded = repo.families.schema.load(SchemaRef())
+    assert loaded == build_propstore_contract_manifest()
+
+    # The same value is reachable through the convenience accessor.
+    assert repo.read_schema_ref() == build_propstore_contract_manifest()
 
 
 def test_contract_manifest_changes_require_version_bumps_against_head() -> None:
-    relative_path = Path(CONTRACT_MANIFEST_PATH).relative_to(Path.cwd()).as_posix()
     result = subprocess.run(
-        ["git", "show", f"HEAD:{relative_path}"],
+        [sys.executable, str(_HEAD_MANIFEST_HELPER)],
         check=False,
         capture_output=True,
     )
     if result.returncode != 0:
-        pytest.skip("checked-in contract manifest is not available from git HEAD")
+        pytest.skip(
+            "contract manifest at git HEAD is not buildable here: "
+            + result.stderr.decode("utf-8", "replace")
+        )
 
     try:
         previous = ContractManifest.from_yaml(result.stdout)

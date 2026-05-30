@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, get_type_hints
 
 import msgspec
@@ -15,12 +14,16 @@ if TYPE_CHECKING:
 
 PROPSTORE_REGISTRY_CONTRACT_VERSION = VersionId("2026.05.02")
 SEMANTIC_PASS_CONTRACT_VERSION = VersionId("2026.04.20")
-CONTRACT_MANIFEST_PATH = (
-    Path(__file__).resolve().parent
-    / "_resources"
-    / "contract_manifests"
-    / "semantic-contracts.yaml"
-)
+
+
+def encode_schema_manifest(manifest: ContractManifest) -> bytes:
+    """Encode the contract manifest as the schema family's blob bytes."""
+    return manifest.to_yaml()
+
+
+def decode_schema_manifest(raw: bytes, source: str) -> ContractManifest:
+    """Decode the schema family's blob bytes back into a contract manifest."""
+    return ContractManifest.from_yaml(raw)
 
 
 def iter_artifact_families() -> tuple[ArtifactFamily[Any, Any, Any], ...]:
@@ -411,9 +414,3 @@ def _render_type(value: object) -> str:
     if module and qualname:
         return f"{module}.{qualname}"
     return str(value).replace("typing.", "")
-
-
-def write_propstore_contract_manifest(path: Path = CONTRACT_MANIFEST_PATH) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(build_propstore_contract_manifest().to_yaml())
-    return path

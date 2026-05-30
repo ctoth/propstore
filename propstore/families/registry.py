@@ -12,6 +12,7 @@ from quire.schema_catalog import SchemaCatalog
 from quire.sqlalchemy_schema import SqlAlchemySchema, build_sqlalchemy_schema
 from quire.artifacts import (
     ArtifactFamily,
+    BlobRefPlacement,
     BranchPlacement,
     FixedFilePlacement,
     FlatYamlPlacement,
@@ -22,6 +23,7 @@ from quire.artifacts import (
     TemplateFilePlacement,
     batch_artifact_family,
 )
+from quire import ContractManifest
 from quire.families import FamilyDefinition, FamilyIdentityPolicy, FamilyRegistry
 from quire.documents import (
     coerce_json_mapping,
@@ -35,9 +37,10 @@ from quire.documents import (
     render_json_mapping,
 )
 from quire.references import ForeignKeySpec, ReferenceKey
-from quire.refs import single_field_ref_type, singleton_ref_type
+from quire.refs import RefName, single_field_ref_type, singleton_ref_type
 from quire.versions import VersionId
 
+from propstore.contracts import decode_schema_manifest, encode_schema_manifest
 from propstore.families.addresses import SemanticFamilyAddress
 from propstore.families.claims.declaration import (
     AUTHORED_CLAIM_CHARTER,
@@ -199,6 +202,10 @@ if TYPE_CHECKING:
     class MergeManifestRef:
         pass
 
+    @dataclass(frozen=True)
+    class SchemaRef:
+        pass
+
 
 class PropstoreFamily(str, Enum):
     CLAIMS = "claims"
@@ -228,6 +235,7 @@ class PropstoreFamily(str, Enum):
     PROPOSAL_RULES = "proposal_rules"
     CONCEPT_ALIGNMENTS = "concept_alignments"
     MERGE_MANIFESTS = "merge_manifests"
+    SCHEMA = "schema"
 
 
 if not TYPE_CHECKING:
@@ -257,6 +265,7 @@ if not TYPE_CHECKING:
     SameAsAssertionRef = single_field_ref_type("SameAsAssertionRef", "artifact_id", module=__name__)
     ConceptAlignmentRef = single_field_ref_type("ConceptAlignmentRef", "slug", module=__name__)
     MergeManifestRef = singleton_ref_type("MergeManifestRef", module=__name__)
+    SchemaRef = singleton_ref_type("SchemaRef", module=__name__)
 
 
 ARTIFACT_FAMILY_CONTRACT_VERSION = AUTHORED_CLAIM_FAMILY_CONTRACT_VERSION
@@ -285,6 +294,9 @@ CONTEXT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 CONTEXT_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 JUSTIFICATION_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
 JUSTIFICATION_ARTIFACT_FAMILY_CONTRACT_VERSION = VersionId("2026.05.25")
+SCHEMA_FAMILY_CONTRACT_VERSION = VersionId("2026.05.29")
+
+PROPSTORE_SCHEMA_REF = RefName("refs/propstore/schema")
 
 CONTEXT_DOCUMENT_TYPE = CONTEXT_CHARTER.generated_document()
 FORM_DOCUMENT_TYPE = FORM_CHARTER.generated_document()
@@ -856,6 +868,19 @@ PROPSTORE_FAMILY_REGISTRY = FamilyRegistry(
                 "merge/manifest.yaml",
                 ref_factory=MergeManifestRef,
                 branch=PRIMARY_ARTIFACT_BRANCH,
+            ),
+        ),
+        FamilyDefinition(
+            key=PropstoreFamily.SCHEMA,
+            name=PropstoreFamily.SCHEMA.value,
+            contract_version=SCHEMA_FAMILY_CONTRACT_VERSION,
+            artifact_family=ArtifactFamily["Repository", "SchemaRef", ContractManifest](
+                "schema",
+                SCHEMA_FAMILY_CONTRACT_VERSION,
+                ContractManifest,
+                BlobRefPlacement(PROPSTORE_SCHEMA_REF, ref_factory=SchemaRef),
+                encode_document=encode_schema_manifest,
+                decode_bytes=decode_schema_manifest,
             ),
         ),
     ),

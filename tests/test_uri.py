@@ -23,10 +23,7 @@ _URI_TOKENS = st.text(_TOKEN_CHARS, min_size=1, max_size=32).filter(
 
 def test_repository_uri_authority_reads_repo_config(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.git.commit_files(
-        {"propstore.yaml": b"uri_authority: example.com,2026\n"},
-        "Set repository config",
-    )
+    repo.write_bootstrap_manifest(uri_authority="example.com,2026")
 
     assert str(repo.uri_authority) == "example.com,2026"
 

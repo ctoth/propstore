@@ -8,13 +8,15 @@ from functools import cached_property
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import TypeVar
 
+from quire import ContractManifest, check_contract_manifest
 from quire.derived_store import DerivedStoreManager
-from quire.documents import DocumentStruct, decode_document_bytes
 from quire.git_store import GitStore, HeadMismatchError
 from quire.refs import RefName
 from quire.tree_path import FilesystemTreePath as FilesystemKnowledgePath, GitTreePath as GitKnowledgePath, TreePath as KnowledgePath
+from propstore.contracts import build_propstore_contract_manifest
 from propstore.families.registry import (
     PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION,
+    SchemaRef,
 )
 from propstore.storage import PROPSTORE_GIT_POLICY
 from propstore.uri import DEFAULT_URI_AUTHORITY
@@ -22,16 +24,11 @@ from propstore.uri_authority import TaggingAuthority, parse_tagging_authority
 
 PROPSTORE_BOOTSTRAP_REF = RefName("refs/propstore/bootstrap")
 PROPSTORE_REPOSITORY_FORMAT_VERSION = "2026.04.store-only-init"
-REPOSITORY_CONFIG_PATH = "propstore.yaml"
 TUpdate = TypeVar("TUpdate")
 
 
 class RepositoryNotFound(Exception):
     """Raised when no knowledge/ directory can be found."""
-
-
-class RepositoryConfigDocument(DocumentStruct):
-    uri_authority: str | None = None
 
 
 class Repository:
@@ -56,18 +53,13 @@ class Repository:
     def config(self) -> dict[str, TaggingAuthority]:
         if self.git is None:
             return {}
-        try:
-            payload = self.git.read_file(REPOSITORY_CONFIG_PATH)
-        except FileNotFoundError:
+        manifest = _read_bootstrap_manifest(self.git)
+        if manifest is None:
             return {}
-        loaded = decode_document_bytes(
-            payload,
-            RepositoryConfigDocument,
-            source=REPOSITORY_CONFIG_PATH,
-        )
+        raw_authority = manifest.get("uri_authority")
         config: dict[str, TaggingAuthority] = {}
-        if loaded.uri_authority is not None:
-            config["uri_authority"] = parse_tagging_authority(loaded.uri_authority)
+        if isinstance(raw_authority, str):
+            config["uri_authority"] = parse_tagging_authority(raw_authority)
         return config
 
     @property
@@ -126,8 +118,42 @@ class Repository:
             return False
         return _read_bootstrap_manifest(GitStore.open(root, policy=PROPSTORE_GIT_POLICY)) is not None
 
-    def write_bootstrap_manifest(self, *, seed_commit: str | None = None) -> None:
-        _write_bootstrap_manifest(self.git, seed_commit=seed_commit)
+    def write_bootstrap_manifest(
+        self,
+        *,
+        seed_commit: str | None = None,
+        uri_authority: str | None = None,
+    ) -> None:
+        _write_bootstrap_manifest(
+            self.git,
+            seed_commit=seed_commit,
+            uri_authority=uri_authority,
+        )
+
+    def write_schema_ref(self) -> None:
+        """Materialize the contract schema to ``refs/propstore/schema``."""
+        self.families.schema.save(
+            SchemaRef(),
+            build_propstore_contract_manifest(),
+            message="Materialize propstore contract schema",
+        )
+
+    def read_schema_ref(self) -> ContractManifest | None:
+        """Load the materialized contract schema, or None if absent."""
+        return self.families.schema.load(SchemaRef())
+
+    def check_schema_compatibility(self) -> None:
+        """Check the freshly-built schema against the materialized ref.
+
+        Raises ``ContractManifestError`` when a charter change lacks a
+        version bump. When the ref is absent there is nothing to compare
+        against, so the check is a no-op. The schema is never auto-checked on
+        open; this is an explicit dev/CI guard exposed through ``--check``.
+        """
+        previous = self.read_schema_ref()
+        if previous is None:
+            return
+        check_contract_manifest(previous, build_propstore_contract_manifest())
 
     @contextmanager
     def mutation_guard(self):
@@ -177,6 +203,7 @@ class Repository:
         GitStore.init(root, policy=PROPSTORE_GIT_POLICY)
         repo = cls(root)
         repo.write_bootstrap_manifest()
+        repo.write_schema_ref()
         return repo
 
 
@@ -238,19 +265,30 @@ def _safe_tree_export_target(destination_root: Path, relpath: str) -> Path:
     return target
 
 
-def _bootstrap_manifest(seed_commit: str | None) -> dict[str, object]:
-    return {
+def _bootstrap_manifest(
+    seed_commit: str | None,
+    uri_authority: str | None = None,
+) -> dict[str, object]:
+    manifest: dict[str, object] = {
         "repository_format_version": PROPSTORE_REPOSITORY_FORMAT_VERSION,
         "family_registry_contract_version": str(PROPSTORE_FAMILY_REGISTRY_CONTRACT_VERSION),
         "seed_bundle_version": "packaged-defaults",
         "seed_commit": seed_commit,
         "primary_branch": "master",
     }
+    if uri_authority is not None:
+        manifest["uri_authority"] = uri_authority
+    return manifest
 
 
-def _write_bootstrap_manifest(git, *, seed_commit: str | None) -> None:
+def _write_bootstrap_manifest(
+    git,
+    *,
+    seed_commit: str | None,
+    uri_authority: str | None = None,
+) -> None:
     payload = json.dumps(
-        _bootstrap_manifest(seed_commit),
+        _bootstrap_manifest(seed_commit, uri_authority),
         sort_keys=True,
         separators=(",", ":"),
     ).encode("utf-8")

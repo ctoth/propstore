@@ -57,10 +57,7 @@ def test_default_uri_authority_is_typed() -> None:
 
 def test_repository_config_validates_uri_authority_at_load(tmp_path: Path) -> None:
     repo = Repository.init(tmp_path / "knowledge")
-    repo.git.commit_files(
-        {"propstore.yaml": b"uri_authority: contains spaces,2026\n"},
-        "Set malformed repository config",
-    )
+    repo.write_bootstrap_manifest(uri_authority="contains spaces,2026")
 
     with pytest.raises(MalformedTaggingAuthority):
         _ = repo.config
