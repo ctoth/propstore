@@ -24,11 +24,11 @@ dependencies = [
     "pint>=0.25.3",
     "dulwich>=1.1.0",
     "gunray @ git+https://github.com/ctoth/gunray.git@a06da9c06a8c20262edec56f8a1f55dc1901781d",
-    "quire",
+    "quire @ git+https://github.com/ctoth/quire@4e6b2eacbb081b79426693b9244661b13006aa80",
     "fastapi>=0.136.0",
     "uvicorn>=0.45.0",
     "linkml-runtime>=1.9.3,<1.10",
-    "formal-belief-set",
+    "formal-belief-set @ git+https://github.com/ctoth/belief-set@2ebe82cab23a3f379d7c8d1b62eac7ccd12977bd",
     "rfc8785>=0.1.4",
     "jinja2>=3.1",
 ]
@@ -77,10 +77,6 @@ markers = [
     "migration: temporary migration or cutover protection tests",
     "slow: intentionally slow tests or suites",
 ]
-
-[tool.uv.sources]
-formal-belief-set = { git = "https://github.com/ctoth/belief-set", rev = "2ebe82cab23a3f379d7c8d1b62eac7ccd12977bd" }
-quire = { git = "https://github.com/ctoth/quire", rev = "4e6b2eacbb081b79426693b9244661b13006aa80" }
 
 [dependency-groups]
 dev = [
