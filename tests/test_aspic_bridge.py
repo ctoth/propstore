@@ -63,6 +63,7 @@ from propstore.aspic_bridge import (
     csaf_to_projection,
     build_aspic_projection,
 )
+from propstore.aspic_bridge.build import compile_bridge_context
 from propstore.core.literal_keys import claim_key
 from propstore.families.claims.declaration import Claim, ClaimNumericPayload
 from propstore.families.relations.declaration import Stance
@@ -852,12 +853,17 @@ class TestBuildBridgeCsaf:
     def test_every_claim_literal_in_language(self, graph):
         """Every active claim appears as a Literal in the CSAF language."""
         claims, justifications, stances = graph
-        csaf = build_bridge_csaf(claims, justifications, stances, bundle=GroundedRulesBundle.empty())
+        compiled = compile_bridge_context(
+            claims,
+            justifications,
+            stances,
+            bundle=GroundedRulesBundle.empty(),
+        )
         literals = claims_to_literals(claims)
         for claim in claims:
             claim_id = _claim_id(claim)
             lit = literals[claim_key(claim_id)]
-            assert lit in csaf.system.language, (
+            assert lit in compiled.system.language, (
                 f"Claim {claim_id} literal not in CSAF language"
             )
 
