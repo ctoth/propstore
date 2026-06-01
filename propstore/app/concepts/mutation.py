@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from copy import deepcopy
 from datetime import date
 from functools import wraps
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+from msgspec.structs import replace as replace_document
+from quire.documents import LoadedDocument
 
 if TYPE_CHECKING:
     from propstore.repository import Repository
@@ -33,21 +36,33 @@ from propstore.families.concepts.passes import (
     run_concept_pipeline,
 )
 from propstore.families.concepts.stages import (
-    LoadedConcept,
-    concept_document_to_payload,
-    concept_document_to_record_payload,
-    parse_concept_record,
-    parse_concept_record_document,
+    normalize_loaded_concepts,
 )
 from propstore.families.claims.declaration import ClaimDocument
-from propstore.families.concepts.declaration import ConceptDocument
+from propstore.families.concepts.declaration import (
+    ConceptAliasDocument,
+    ConceptDocument,
+    ConceptFormParametersDocument,
+    ConceptRelationshipDocument,
+    ParameterizationRelationshipDocument,
+)
+from propstore.core.lemon.description_kinds import DescriptionKind, ParticipantSlot
+from propstore.core.lemon.proto_roles import GradedEntailment, ProtoRoleBundle
+from propstore.core.lemon.qualia import (
+    QualiaReference,
+    QualiaRole,
+    QualiaStructure,
+    TypeConstraint,
+)
+from propstore.core.lemon.references import OntologyReference
 from propstore.families.identity.claims import normalize_canonical_claim_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
-from propstore.families.identity.logical_ids import primary_logical_id
 from propstore.families.registry import ClaimRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
+from propstore.families.concepts.types import ConceptRelationshipType, ConceptStatus
 from propstore.semantic_passes.types import PipelineResult
 from propstore.app.repository_views import AppRepositoryViewRequest
+from propstore.provenance import Provenance, ProvenanceStatus, ProvenanceWitness
 
 RELATIONSHIP_TYPES = tuple(sorted(VALID_CONCEPT_RELATIONSHIP_TYPES))
 QUALIA_ROLES = ("formal", "constitutive", "telic", "agentive")
@@ -360,17 +375,17 @@ def list_concepts(
 
     entries: list[ConceptListEntry] = []
     for concept_entry in loaded_concepts:
-        data = concept_entry.record.to_payload()
-        concept_domain = str(data.get("domain", ""))
-        concept_status = str(data.get("status", ""))
+        document = concept_entry.document
+        concept_domain = document.domain or ""
+        concept_status = document.status.value
         if request.domain and concept_domain != request.domain:
             continue
         if request.status and concept_status != request.status:
             continue
         entries.append(
             ConceptListEntry(
-                handle=_concept_display_handle(data),
-                canonical_name=str(data.get("canonical_name", "?")),
+                handle=_concept_display_handle(document),
+                canonical_name=document.lexical_entry.canonical_form.written_rep,
                 status=concept_status,
             )
         )
@@ -380,29 +395,21 @@ def list_concepts(
 def list_concept_categories(repo: Repository) -> ConceptCategoriesReport:
     entries: list[ConceptCategoryEntry] = []
     for concept_entry in _loaded_concepts(repo):
-        data = concept_entry.record.to_payload()
-        if data.get("form") != "category":
+        document = concept_entry.document
+        if document.lexical_entry.physical_dimension_form != "category":
             continue
-        raw_form_parameters = data.get("form_parameters")
-        if raw_form_parameters is None:
-            form_parameters: Mapping[str, object] = {}
-        elif isinstance(raw_form_parameters, Mapping):
-            form_parameters = raw_form_parameters
-        else:
-            raise ConceptDisplayError(
-                f"'{data.get('canonical_name')}' form_parameters must be a mapping"
-            )
-        raw_values = form_parameters.get("values", [])
-        values = (
-            tuple(str(value) for value in raw_values)
-            if isinstance(raw_values, list)
-            else ()
+        form_parameters = document.form_parameters
+        values = () if form_parameters is None or form_parameters.values is None else form_parameters.values
+        extensible = (
+            True
+            if form_parameters is None or form_parameters.extensible is None
+            else form_parameters.extensible
         )
         entries.append(
             ConceptCategoryEntry(
-                canonical_name=str(data["canonical_name"]),
+                canonical_name=document.lexical_entry.canonical_form.written_rep,
                 values=values,
-                extensible=bool(form_parameters.get("extensible", True)),
+                extensible=extensible,
             )
         )
     return ConceptCategoriesReport(entries=tuple(entries))
@@ -427,9 +434,7 @@ def show_concept(
     concept_entry = _find_concept_entry(repo, handle)
     if concept_entry is None:
         raise UnknownConceptError(handle)
-    ref = _concept_ref(concept_entry)
-    document = _concept_document(repo, ref, concept_entry.record.to_payload())
-    return ConceptShowReport(rendered=repo.families.concepts.render(document))
+    return ConceptShowReport(rendered=repo.families.concepts.render(concept_entry.document))
 
 
 def build_concept_alignment(
@@ -575,9 +580,9 @@ def _rewrite_condition_list(
     conditions: object,
     old_name: str,
     new_name: str,
-) -> tuple[object, bool]:
-    if not isinstance(conditions, list):
-        return conditions, False
+) -> tuple[Sequence[object], bool]:
+    if not isinstance(conditions, Sequence) or isinstance(conditions, str):
+        return (), False
     changed = False
     rewritten: list[object] = []
     for condition in conditions:
@@ -590,23 +595,42 @@ def _rewrite_condition_list(
     return rewritten, changed
 
 
-def _rewrite_concept_conditions(data: dict, old_name: str, new_name: str) -> bool:
+def _rewrite_concept_conditions(
+    document: ConceptDocument, old_name: str, new_name: str
+) -> tuple[ConceptDocument, bool]:
     changed = False
-    for rel in data.get("relationships", []) or []:
+    relationships: list[ConceptRelationshipDocument] = []
+    for rel in document.relationships:
         rewritten, rel_changed = _rewrite_condition_list(
-            rel.get("conditions"), old_name, new_name
+            rel.conditions, old_name, new_name
         )
-        if rel_changed:
-            rel["conditions"] = rewritten
-            changed = True
-    for param in data.get("parameterization_relationships", []) or []:
+        relationships.append(
+            replace_document(rel, conditions=tuple(rewritten))
+            if rel_changed
+            else rel
+        )
+        changed = changed or rel_changed
+    parameterizations: list[ParameterizationRelationshipDocument] = []
+    for param in document.parameterization_relationships:
         rewritten, param_changed = _rewrite_condition_list(
-            param.get("conditions"), old_name, new_name
+            param.conditions, old_name, new_name
         )
-        if param_changed:
-            param["conditions"] = rewritten
-            changed = True
-    return changed
+        parameterizations.append(
+            replace_document(param, conditions=tuple(rewritten))
+            if param_changed
+            else param
+        )
+        changed = changed or param_changed
+    if not changed:
+        return document, False
+    return (
+        replace_document(
+            document,
+            relationships=tuple(relationships),
+            parameterization_relationships=tuple(parameterizations),
+        ),
+        True,
+    )
 
 
 def _rewrite_claim_conditions(
@@ -632,7 +656,7 @@ def _rewrite_claim_conditions(
     return changed
 
 
-def _concept_ref(concept_entry: LoadedConcept) -> ConceptFileRef:
+def _concept_ref(concept_entry: LoadedDocument[ConceptDocument]) -> ConceptFileRef:
     return ConceptFileRef(concept_entry.filename)
 
 
@@ -666,13 +690,6 @@ def _concept_document(repo: Repository, ref: ConceptFileRef, data: dict) -> Conc
     )
 
 
-def _canonical_concept_document(
-    repo: Repository, ref: ConceptFileRef, data: dict
-) -> ConceptDocument:
-    document = _concept_document(repo, ref, data)
-    return _concept_document(repo, ref, concept_document_to_payload(document))
-
-
 def _claims_document(
     repo: Repository, ref: ClaimRef, data: dict
 ) -> ClaimDocument:
@@ -682,29 +699,23 @@ def _claims_document(
     )
 
 
-def _concept_artifact_payload(concept_entry: LoadedConcept) -> dict:
-    if concept_entry.document is not None:
-        return concept_document_to_payload(concept_entry.document)
-    return _normalize_concept_data(concept_entry.record.to_payload())
-
-
-def _concept_display_handle(data: dict) -> str:
-    lexical_entry = data.get("lexical_entry")
-    lexical_name = None
-    if isinstance(lexical_entry, dict):
-        canonical_form = lexical_entry.get("canonical_form")
-        if isinstance(canonical_form, dict):
-            lexical_name = canonical_form.get("written_rep")
+def _concept_display_handle(document: ConceptDocument) -> str:
+    logical_id = None
+    if document.logical_ids:
+        first = document.logical_ids[0]
+        logical_id = f"{first.namespace}:{first.value}"
+    lexical_name = document.lexical_entry.canonical_form.written_rep
     return (
-        primary_logical_id(data)
-        or data.get("canonical_name")
+        logical_id
         or lexical_name
-        or data.get("artifact_id")
+        or document.artifact_id
         or "?"
     )
 
 
-def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | None:
+def _find_concept_entry(
+    repo: Repository, id_or_name: str
+) -> LoadedDocument[ConceptDocument] | None:
     tree = repo.tree()
     concept_index = repo.families.concepts.reference_index()
     artifact_id = concept_index.resolve_id(id_or_name)
@@ -713,10 +724,10 @@ def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | No
     for handle in repo.families.concepts.iter_handles():
         if handle.document.artifact_id != artifact_id:
             continue
-        return LoadedConcept(
+        return LoadedDocument(
             filename=handle.ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
+            artifact_path=tree / handle.address.require_path(),
+            store_root=tree,
             document=handle.document,
         )
     return None
@@ -724,7 +735,7 @@ def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | No
 
 def _require_concept_entry(
     repo: Repository, handle: str, *, label: str = "Concept"
-) -> LoadedConcept:
+) -> LoadedDocument[ConceptDocument]:
     concept_entry = _find_concept_entry(repo, handle)
     if concept_entry is None:
         raise ConceptMutationError(f"{label} '{handle}' not found")
@@ -741,47 +752,34 @@ def _require_concept_artifact_id(repo: Repository, handle: str, *, label: str) -
 
 def _require_concept_reference(
     repo: Repository, handle: str, *, label: str
-) -> dict[str, str]:
+) -> OntologyReference:
     concept_entry = _require_concept_entry(repo, handle, label=label)
     document = concept_entry.document
     artifact_id = document.artifact_id
     if not isinstance(artifact_id, str) or not artifact_id:
         raise ConceptMutationError(f"{label} '{handle}' does not have an artifact_id")
-    reference: dict[str, str] = {"uri": artifact_id}
     canonical_name = document.lexical_entry.canonical_form.written_rep
-    if isinstance(canonical_name, str) and canonical_name:
-        reference["label"] = canonical_name
-    return reference
+    return OntologyReference(uri=artifact_id, label=canonical_name)
 
 
-def _provenance_payload(
+def _provenance_document(
     *,
     asserter: str,
     timestamp: str,
     source_artifact_code: str,
     method: str,
-) -> dict[str, object]:
-    return {
-        "status": "stated",
-        "witnesses": [
-            {
-                "asserter": asserter,
-                "timestamp": timestamp,
-                "source_artifact_code": source_artifact_code,
-                "method": method,
-            }
-        ],
-    }
-
-
-def _first_lexical_sense(data: dict) -> dict:
-    lexical_entry = data.get("lexical_entry")
-    if not isinstance(lexical_entry, dict):
-        raise ConceptMutationError("concept is missing lexical_entry")
-    senses = lexical_entry.get("senses")
-    if not isinstance(senses, list) or not senses or not isinstance(senses[0], dict):
-        raise ConceptMutationError("concept lexical_entry requires at least one sense")
-    return senses[0]
+) -> Provenance:
+    return Provenance(
+        status=ProvenanceStatus.STATED,
+        witnesses=(
+            ProvenanceWitness(
+                asserter=asserter,
+                timestamp=timestamp,
+                source_artifact_code=source_artifact_code,
+                method=method,
+            ),
+        ),
+    )
 
 
 def _form_registry(repo: Repository) -> dict[str, FormDefinition]:
@@ -792,16 +790,15 @@ def _form_registry(repo: Repository) -> dict[str, FormDefinition]:
     }
 
 
-def _loaded_concepts(repo: Repository) -> list[LoadedConcept]:
+def _loaded_concepts(repo: Repository) -> list[LoadedDocument[ConceptDocument]]:
     tree = repo.tree()
-    concepts: list[LoadedConcept] = []
+    concepts: list[LoadedDocument[ConceptDocument]] = []
     for handle in repo.families.concepts.iter_handles():
         concepts.append(
-            LoadedConcept(
+            LoadedDocument(
                 filename=handle.ref.name,
-                source_path=tree / handle.address.require_path(),
-                knowledge_root=tree,
-                record=parse_concept_record_document(handle.document),
+                artifact_path=tree / handle.address.require_path(),
+                store_root=tree,
                 document=handle.document,
             )
         )
@@ -830,7 +827,7 @@ def _render_diagnostic(diagnostic: object) -> str:
 
 def _run_concept_validation(
     repo: Repository,
-    concepts: list[LoadedConcept],
+    concepts: list[LoadedDocument[ConceptDocument]],
 ) -> PipelineResult[object]:
     tree = repo.tree()
     claim_files = [
@@ -843,7 +840,7 @@ def _run_concept_validation(
         for handle in repo.families.claims.iter_handles()
     ]
     return run_concept_pipeline(
-        concepts,
+        normalize_loaded_concepts(concepts),
         context=ConceptPipelineContext(
             form_registry=_form_registry(repo),
             claim_index=build_compiler_claim_index(claim_files),
@@ -853,7 +850,7 @@ def _run_concept_validation(
 
 def _validate_updated_concept(
     repo: Repository,
-    concept_entry: LoadedConcept,
+    concept_entry: LoadedDocument[ConceptDocument],
     document: ConceptDocument,
 ) -> tuple[str, ...]:
     ref = _concept_ref(concept_entry)
@@ -863,21 +860,19 @@ def _validate_updated_concept(
         loaded_ref = handle.ref
         if loaded_ref == ref:
             concepts.append(
-                LoadedConcept(
+                LoadedDocument(
                     filename=loaded_ref.name,
-                    source_path=tree / repo.families.concepts.address(ref).require_path(),
-                    knowledge_root=tree,
-                    record=parse_concept_record_document(document),
+                    artifact_path=tree / repo.families.concepts.address(ref).require_path(),
+                    store_root=tree,
                     document=document,
                 )
             )
             continue
         concepts.append(
-            LoadedConcept(
+            LoadedDocument(
                 filename=loaded_ref.name,
-                source_path=tree / handle.address.require_path(),
-                knowledge_root=tree,
-                record=parse_concept_record_document(handle.document),
+                artifact_path=tree / handle.address.require_path(),
+                store_root=tree,
                 document=handle.document,
             )
         )
@@ -888,21 +883,26 @@ def _validate_updated_concept(
 
 
 def _apply_proto_role_entailment(
-    bundle: dict[str, object],
+    bundle: ProtoRoleBundle,
     *,
     role_kind: str,
-    entailment: dict[str, object],
-) -> None:
-    key = (
-        "proto_agent_entailments"
-        if role_kind == "agent"
-        else "proto_patient_entailments"
+    entailment: GradedEntailment,
+) -> ProtoRoleBundle:
+    if role_kind == "agent":
+        return replace_document(
+            bundle,
+            proto_agent_entailments=(
+                *bundle.proto_agent_entailments,
+                entailment,
+            ),
+        )
+    return replace_document(
+        bundle,
+        proto_patient_entailments=(
+            *bundle.proto_patient_entailments,
+            entailment,
+        ),
     )
-    entailments = bundle.get(key)
-    if not isinstance(entailments, list):
-        entailments = []
-    entailments.append(entailment)
-    bundle[key] = entailments
 
 
 @_serialized_concept_mutation
@@ -953,11 +953,10 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
 
         concepts = _loaded_concepts(repo)
         concepts.append(
-            LoadedConcept(
+            LoadedDocument(
                 filename=request.name,
-                source_path=semantic_path,
-                knowledge_root=repo.tree(),
-                record=parse_concept_record_document(document),
+                artifact_path=semantic_path,
+                store_root=repo.tree(),
                 document=document,
             )
         )
@@ -974,14 +973,14 @@ def add_concept(repo: Repository, request: ConceptAddRequest) -> ConceptMutation
             document,
             message=(
                 f"Add concept: {request.name} "
-                f"({_concept_display_handle(concept_document_to_record_payload(document))})"
+                f"({_concept_display_handle(document)})"
             ),
         )
         return ConceptMutationReport(
             lines=(
                 "Created "
                 f"{filepath} with logical ID "
-                f"{_concept_display_handle(concept_document_to_record_payload(document))}",
+                f"{_concept_display_handle(document)}",
             ),
             warnings=warnings,
         )
@@ -998,31 +997,25 @@ def add_concept_alias(
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
     filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
-    data = deepcopy(concept_entry.record.to_payload())
+    document = concept_entry.document
 
     warnings: list[str] = []
-    tree = repo.tree()
     for handle in repo.families.concepts.iter_handles():
         other_ref = handle.ref
         if other_ref == ref:
             continue
         other_document = handle.document
-        other_entry = LoadedConcept(
-            filename=other_ref.name,
-            source_path=tree / handle.address.require_path(),
-            knowledge_root=tree,
-            record=parse_concept_record_document(other_document),
-            document=other_document,
-        )
-        if other_entry.record.to_payload().get("canonical_name") == request.name:
+        if other_document.lexical_entry.canonical_form.written_rep == request.name:
             warnings.append(
                 f"alias '{request.name}' matches canonical_name of "
-                f"concept '{other_entry.record.artifact_id}'"
+                f"concept '{other_document.artifact_id}'"
             )
 
-    new_alias: dict[str, str] = {"name": request.name, "source": request.source}
-    if request.note:
-        new_alias["note"] = request.note
+    new_alias = ConceptAliasDocument(
+        name=request.name,
+        source=request.source,
+        note=request.note,
+    )
 
     if request.dry_run:
         return ConceptMutationReport(
@@ -1030,22 +1023,21 @@ def add_concept_alias(
             warnings=tuple(warnings),
         )
 
-    aliases = data.get("aliases") or []
-    aliases.append(new_alias)
-    data["aliases"] = aliases
-    data["last_modified"] = str(date.today())
-    data = _normalize_concept_data(data)
-    document = _concept_document(repo, ref, data)
+    updated_document = replace_document(
+        document,
+        aliases=(*document.aliases, new_alias),
+        last_modified=str(date.today()),
+    )
     repo.families.concepts.save(
         ref,
-        document,
-        message=f"Add alias '{request.name}' to {_concept_display_handle(data)}",
+        updated_document,
+        message=f"Add alias '{request.name}' to {_concept_display_handle(updated_document)}",
     )
 
     return ConceptMutationReport(
         lines=(
             f"Added alias '{request.name}' to "
-            f"{_concept_display_handle(data)} ({filepath.stem})",
+            f"{_concept_display_handle(updated_document)} ({filepath.stem})",
         ),
         warnings=tuple(warnings),
     )
@@ -1061,8 +1053,7 @@ def rename_concept(
     new_ref = ConceptFileRef(request.name)
 
     filepath = repo.root / Path(repo.families.concepts.address(old_ref).require_path())
-    data = deepcopy(concept_entry.record.to_payload())
-    old_name = data.get("canonical_name", filepath.stem)
+    old_name = concept_entry.document.lexical_entry.canonical_form.written_rep
     new_path = repo.root / Path(repo.families.concepts.address(new_ref).require_path())
     new_semantic_path = (
         repo.tree() / repo.families.concepts.address(new_ref).require_path()
@@ -1083,35 +1074,50 @@ def rename_concept(
         )
 
     loaded_concepts = _loaded_concepts(repo)
-    updated_concepts: list[tuple[ConceptFileRef, ConceptFileRef, LoadedConcept]] = []
+    updated_concepts: list[
+        tuple[ConceptFileRef, ConceptFileRef, LoadedDocument[ConceptDocument]]
+    ] = []
     changed_concept_refs: set[ConceptFileRef] = set()
-    for concept_record in loaded_concepts:
-        concept_ref = _concept_ref(concept_record)
-        concept_data = deepcopy(concept_record.record.to_payload())
+    for loaded_document in loaded_concepts:
+        concept_ref = _concept_ref(loaded_document)
+        concept_document = loaded_document.document
         updated_ref = concept_ref
         if concept_ref == old_ref:
-            concept_data["canonical_name"] = request.name
-            concept_data["last_modified"] = str(date.today())
+            lexical_entry = concept_document.lexical_entry
+            canonical_form = replace_document(
+                lexical_entry.canonical_form,
+                written_rep=request.name,
+            )
+            concept_document = replace_document(
+                concept_document,
+                lexical_entry=replace_document(
+                    lexical_entry,
+                    canonical_form=canonical_form,
+                ),
+                last_modified=str(date.today()),
+            )
             updated_ref = new_ref
             changed_concept_refs.add(concept_ref)
-        if _rewrite_concept_conditions(concept_data, str(old_name), request.name):
+        concept_document, conditions_changed = _rewrite_concept_conditions(
+            concept_document,
+            old_name,
+            request.name,
+        )
+        if conditions_changed:
             changed_concept_refs.add(concept_ref)
-        concept_data = _normalize_concept_data(concept_data)
-        concept_document = _concept_document(repo, updated_ref, concept_data)
         updated_concepts.append(
             (
                 concept_ref,
                 updated_ref,
-                LoadedConcept(
+                LoadedDocument(
                     filename=(
                         request.name
                         if updated_ref == new_ref
-                        else concept_record.filename
+                        else loaded_document.filename
                     ),
-                    source_path=repo.tree()
+                    artifact_path=repo.tree()
                     / repo.families.concepts.address(updated_ref).require_path(),
-                    knowledge_root=concept_record.knowledge_root,
-                    record=parse_concept_record_document(concept_document),
+                    store_root=loaded_document.store_root,
                     document=concept_document,
                 ),
             )
@@ -1162,7 +1168,7 @@ def rename_concept(
                 )
             )
         compilation_context = build_compilation_context_from_loaded(
-            [entry for _, _, entry in updated_concepts],
+            normalize_loaded_concepts([entry for _, _, entry in updated_concepts]),
             form_registry=_form_registry(repo),
             claim_files=[entry for _, entry in updated_claim_files],
         )
@@ -1184,21 +1190,13 @@ def rename_concept(
                 transaction.concepts.move(
                     old_ref,
                     new_ref,
-                    _concept_document(
-                        repo,
-                        updated_ref,
-                        updated_concept.record.to_payload(),
-                    ),
+                    updated_concept.document,
                 )
                 continue
             if original_ref in changed_concept_refs:
                 transaction.concepts.save(
                     updated_ref,
-                    _concept_document(
-                        repo,
-                        updated_ref,
-                        updated_concept.record.to_payload(),
-                    ),
+                    updated_concept.document,
                 )
 
         for claim_ref, updated_claim_file in updated_claim_files:
@@ -1218,7 +1216,7 @@ def rename_concept(
         None,
     )
     logical_id = (
-        _concept_display_handle(renamed_entry.record.to_payload())
+        _concept_display_handle(renamed_entry.document)
         if renamed_entry is not None
         else request.name
     )
@@ -1244,42 +1242,43 @@ def deprecate_concept(
     replacement_entry = _require_concept_entry(
         repo, request.replaced_by, label="Replacement concept"
     )
-    replacement_data = replacement_entry.record.to_payload()
-    if replacement_data.get("status") == "deprecated":
+    replacement_document = replacement_entry.document
+    if replacement_document.status is ConceptStatus.DEPRECATED:
         raise ConceptMutationError(
             f"Replacement concept '{request.replaced_by}' is itself deprecated"
         )
 
-    data = deepcopy(concept_entry.record.to_payload())
     if request.dry_run:
         return ConceptMutationReport(
             lines=(
-                f"Would deprecate {_concept_display_handle(data)} ({filepath.stem})",
-                f"  replaced_by: {_concept_display_handle(replacement_data)}",
+                f"Would deprecate {_concept_display_handle(concept_entry.document)} ({filepath.stem})",
+                f"  replaced_by: {_concept_display_handle(replacement_document)}",
             )
         )
 
-    data["status"] = "deprecated"
-    replacement_artifact_id = replacement_data.get("artifact_id")
+    replacement_artifact_id = replacement_document.artifact_id
     if not isinstance(replacement_artifact_id, str) or not replacement_artifact_id:
         raise ConceptMutationError(
             f"Replacement concept '{request.replaced_by}' does not have an artifact_id"
         )
-    data["replaced_by"] = replacement_artifact_id
-    data["last_modified"] = str(date.today())
-    data = _normalize_concept_data(data)
+    updated_document = replace_document(
+        concept_entry.document,
+        status=ConceptStatus.DEPRECATED,
+        replaced_by=replacement_artifact_id,
+        last_modified=str(date.today()),
+    )
     repo.families.concepts.save(
         ref,
-        _concept_document(repo, ref, data),
+        updated_document,
         message=(
-            f"Deprecate {_concept_display_handle(data)}, replaced by "
-            f"{_concept_display_handle(replacement_data)}"
+            f"Deprecate {_concept_display_handle(updated_document)}, replaced by "
+            f"{_concept_display_handle(replacement_document)}"
         ),
     )
     return ConceptMutationReport(
         lines=(
-            f"Deprecated {_concept_display_handle(data)} ({filepath.stem}), "
-            f"replaced by {_concept_display_handle(replacement_data)}",
+            f"Deprecated {_concept_display_handle(updated_document)} ({filepath.stem}), "
+            f"replaced by {_concept_display_handle(replacement_document)}",
         )
     )
 
@@ -1294,26 +1293,24 @@ def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutat
     filepath = repo.root / Path(repo.families.concepts.address(ref).require_path())
 
     target_entry = _require_concept_entry(repo, request.target_id, label="Target concept")
-    target_data = target_entry.record.to_payload()
-    target_artifact_id = target_data.get("artifact_id")
+    target_document = target_entry.document
+    target_artifact_id = target_document.artifact_id
     if not isinstance(target_artifact_id, str) or not target_artifact_id:
         raise ConceptMutationError(
             f"Target concept '{request.target_id}' does not have an artifact_id"
         )
 
-    data = deepcopy(concept_entry.record.to_payload())
-    relationship: dict[str, object] = {
-        "type": request.rel_type,
-        "target": target_artifact_id,
-    }
-    if request.paper_source:
-        relationship["source"] = request.paper_source
-    if request.note:
-        relationship["note"] = request.note
-    if request.conditions:
-        relationship["conditions"] = [
-            condition.strip() for condition in request.conditions.split(",")
-        ]
+    relationship = ConceptRelationshipDocument(
+        type=ConceptRelationshipType(request.rel_type),
+        target=target_artifact_id,
+        source=request.paper_source,
+        note=request.note,
+        conditions=(
+            tuple(condition.strip() for condition in request.conditions.split(","))
+            if request.conditions
+            else ()
+        ),
+    )
 
     if request.dry_run:
         return ConceptMutationReport(
@@ -1322,34 +1319,25 @@ def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutat
             )
         )
 
-    relationships = data.get("relationships") or []
-    relationships.append(relationship)
-    data["relationships"] = relationships
-    data["last_modified"] = str(date.today())
-    data = _normalize_concept_data(data)
-    updated_document = _concept_document(repo, ref, data)
+    updated_document = replace_document(
+        concept_entry.document,
+        relationships=(*concept_entry.document.relationships, relationship),
+        last_modified=str(date.today()),
+    )
 
     updated_concepts = []
-    for concept_record in _loaded_concepts(repo):
-        concept_ref = _concept_ref(concept_record)
-        concept_path = repo.root / Path(
-            repo.families.concepts.address(concept_ref).require_path()
-        )
+    for loaded_document in _loaded_concepts(repo):
+        concept_ref = _concept_ref(loaded_document)
         updated_concepts.append(
-            LoadedConcept(
-                filename=concept_record.filename,
-                source_path=repo.tree()
+            LoadedDocument(
+                filename=loaded_document.filename,
+                artifact_path=repo.tree()
                 / repo.families.concepts.address(concept_ref).require_path(),
-                knowledge_root=concept_record.knowledge_root,
-                record=parse_concept_record(
-                    concept_document_to_record_payload(updated_document)
-                    if concept_path == filepath
-                    else concept_record.record.to_payload(),
-                ),
+                store_root=loaded_document.store_root,
                 document=(
                     updated_document
-                    if concept_path == filepath
-                    else concept_record.document
+                    if concept_ref == ref
+                    else loaded_document.document
                 ),
             )
         )
@@ -1362,14 +1350,14 @@ def link_concepts(repo: Repository, request: ConceptLinkRequest) -> ConceptMutat
         ref,
         updated_document,
         message=(
-            f"Link {_concept_display_handle(data)} {request.rel_type} "
-            f"{_concept_display_handle(target_data)}"
+            f"Link {_concept_display_handle(updated_document)} {request.rel_type} "
+            f"{_concept_display_handle(target_document)}"
         ),
     )
     return ConceptMutationReport(
         lines=(
-            f"Added {request.rel_type} -> {_concept_display_handle(target_data)} "
-            f"on {_concept_display_handle(data)} ({filepath.stem})",
+            f"Added {request.rel_type} -> {_concept_display_handle(target_document)} "
+            f"on {_concept_display_handle(updated_document)} ({filepath.stem})",
         ),
         warnings=warnings,
     )
@@ -1384,52 +1372,73 @@ def add_concept_qualia(
     snapshot = _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
-    data = _concept_artifact_payload(concept_entry)
-    sense = _first_lexical_sense(data)
+    document = concept_entry.document
+    senses = document.lexical_entry.senses
+    if not senses:
+        raise ConceptMutationError("concept lexical_entry requires at least one sense")
+    sense = senses[0]
 
-    qualia = sense.get("qualia")
-    if not isinstance(qualia, dict):
-        qualia = {}
-    role_entries = qualia.get(request.role)
-    if not isinstance(role_entries, list):
-        role_entries = []
-    entry: dict[str, object] = {
-        "reference": _require_concept_reference(
+    qualia = sense.qualia or QualiaStructure()
+    entry = QualiaReference(
+        reference=_require_concept_reference(
             repo, request.target_concept, label="Target concept"
         ),
-        "provenance": _provenance_payload(
+        provenance=_provenance_document(
             asserter=request.asserter,
             timestamp=request.timestamp,
             source_artifact_code=request.source_artifact_code,
             method=request.method,
         ),
-    }
-    if request.type_constraint is not None:
-        entry["type_constraint"] = {
-            "reference": _require_concept_reference(
-                repo,
-                request.type_constraint,
-                label="Type constraint",
+        type_constraint=(
+            TypeConstraint(
+                reference=_require_concept_reference(
+                    repo,
+                    request.type_constraint,
+                    label="Type constraint",
+                )
             )
-        }
-    role_entries.append(entry)
-    qualia[request.role] = role_entries
-    sense["qualia"] = qualia
-    data["last_modified"] = str(date.today())
-    document = _canonical_concept_document(repo, ref, data)
-    data = concept_document_to_record_payload(document)
+            if request.type_constraint is not None
+            else None
+        ),
+    )
+    role = QualiaRole(request.role)
+    if role is QualiaRole.FORMAL:
+        qualia = replace_document(qualia, formal=(*qualia.formal, entry))
+    elif role is QualiaRole.CONSTITUTIVE:
+        qualia = replace_document(
+            qualia,
+            constitutive=(*qualia.constitutive, entry),
+        )
+    elif role is QualiaRole.TELIC:
+        qualia = replace_document(qualia, telic=(*qualia.telic, entry))
+    else:
+        qualia = replace_document(qualia, agentive=(*qualia.agentive, entry))
+
+    updated_sense = replace_document(sense, qualia=qualia)
+    updated_document = replace_document(
+        document,
+        lexical_entry=replace_document(
+            document.lexical_entry,
+            senses=(updated_sense, *senses[1:]),
+        ),
+        last_modified=str(date.today()),
+    )
 
     if request.dry_run:
-        return ConceptMutationReport(lines=(repo.families.concepts.render(document),))
+        return ConceptMutationReport(
+            lines=(repo.families.concepts.render(updated_document),)
+        )
 
-    warnings = _validate_updated_concept(repo, concept_entry, document)
+    warnings = _validate_updated_concept(repo, concept_entry, updated_document)
     repo.families.concepts.save(
         ref,
-        document,
-        message=f"Add {request.role} qualia to {_concept_display_handle(data)}",
+        updated_document,
+        message=f"Add {request.role} qualia to {_concept_display_handle(updated_document)}",
     )
     return ConceptMutationReport(
-        lines=(f"Added {request.role} qualia to {_concept_display_handle(data)}",),
+        lines=(
+            f"Added {request.role} qualia to {_concept_display_handle(updated_document)}",
+        ),
         warnings=warnings,
     )
 
@@ -1441,47 +1450,62 @@ def set_concept_description_kind(
     snapshot = _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
-    data = _concept_artifact_payload(concept_entry)
-    sense = _first_lexical_sense(data)
+    document = concept_entry.document
+    senses = document.lexical_entry.senses
+    if not senses:
+        raise ConceptMutationError("concept lexical_entry requires at least one sense")
+    sense = senses[0]
 
-    slot_payloads: list[dict[str, object]] = []
+    slots: list[ParticipantSlot] = []
     for raw_slot in request.slots:
         slot_name, separator, type_handle = raw_slot.partition("=")
         if not separator or not slot_name or not type_handle:
             raise ConceptMutationError("slot must use name=type-concept")
-        slot_payloads.append(
-            {
-                "name": slot_name,
-                "type_constraint": _require_concept_reference(
+        slots.append(
+            ParticipantSlot(
+                name=slot_name,
+                type_constraint=_require_concept_reference(
                     repo,
                     type_handle,
                     label=f"Slot '{slot_name}' type constraint",
                 ),
-            }
+            )
         )
 
-    sense["description_kind"] = {
-        "name": request.name,
-        "reference": _require_concept_reference(
-            repo, request.reference_handle, label="Description-kind reference"
+    updated_sense = replace_document(
+        sense,
+        description_kind=DescriptionKind(
+            name=request.name,
+            reference=_require_concept_reference(
+                repo,
+                request.reference_handle,
+                label="Description-kind reference",
+            ),
+            slots=tuple(slots),
         ),
-        "slots": slot_payloads,
-    }
-    data["last_modified"] = str(date.today())
-    document = _canonical_concept_document(repo, ref, data)
-    data = concept_document_to_record_payload(document)
+    )
+    updated_document = replace_document(
+        document,
+        lexical_entry=replace_document(
+            document.lexical_entry,
+            senses=(updated_sense, *senses[1:]),
+        ),
+        last_modified=str(date.today()),
+    )
 
     if request.dry_run:
-        return ConceptMutationReport(lines=(repo.families.concepts.render(document),))
+        return ConceptMutationReport(
+            lines=(repo.families.concepts.render(updated_document),)
+        )
 
-    warnings = _validate_updated_concept(repo, concept_entry, document)
+    warnings = _validate_updated_concept(repo, concept_entry, updated_document)
     repo.families.concepts.save(
         ref,
-        document,
-        message=f"Set description kind on {_concept_display_handle(data)}",
+        updated_document,
+        message=f"Set description kind on {_concept_display_handle(updated_document)}",
     )
     return ConceptMutationReport(
-        lines=(f"Set description kind on {_concept_display_handle(data)}",),
+        lines=(f"Set description kind on {_concept_display_handle(updated_document)}",),
         warnings=warnings,
     )
 
@@ -1495,71 +1519,82 @@ def add_concept_proto_role(
     snapshot = _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_id)
     ref = _concept_ref(concept_entry)
-    data = _concept_artifact_payload(concept_entry)
-    sense = _first_lexical_sense(data)
+    document = concept_entry.document
+    senses = document.lexical_entry.senses
+    if not senses:
+        raise ConceptMutationError("concept lexical_entry requires at least one sense")
+    sense = senses[0]
 
-    entailment = {
-        "property": request.property_name,
-        "value": request.value,
-        "provenance": _provenance_payload(
+    entailment = GradedEntailment(
+        property=request.property_name,
+        value=request.value,
+        provenance=_provenance_document(
             asserter=request.asserter,
             timestamp=request.timestamp,
             source_artifact_code=request.source_artifact_code,
             method=request.method,
         ),
-    }
-    role_bundles = sense.get("role_bundles")
-    if not isinstance(role_bundles, dict):
-        role_bundles = {}
-    bundle = role_bundles.get(request.role_name)
-    if not isinstance(bundle, dict):
-        bundle = {}
-    _apply_proto_role_entailment(
+    )
+    role_bundles = dict(sense.role_bundles or {})
+    bundle = role_bundles.get(request.role_name) or ProtoRoleBundle()
+    role_bundles[request.role_name] = _apply_proto_role_entailment(
         bundle,
         role_kind=request.role_kind,
         entailment=entailment,
     )
-    role_bundles[request.role_name] = bundle
-    sense["role_bundles"] = role_bundles
 
-    description_kind = sense.get("description_kind")
-    if isinstance(description_kind, dict):
-        slots = description_kind.get("slots")
-        if isinstance(slots, list):
-            for slot in slots:
-                if not isinstance(slot, dict) or slot.get("name") != request.role_name:
-                    continue
-                slot_bundle = slot.get("proto_role_bundle")
-                if not isinstance(slot_bundle, dict):
-                    slot_bundle = {}
-                _apply_proto_role_entailment(
-                    slot_bundle,
-                    role_kind=request.role_kind,
-                    entailment=deepcopy(entailment),
+    description_kind = sense.description_kind
+    if description_kind is not None:
+        slots: list[ParticipantSlot] = []
+        for slot in description_kind.slots:
+            if slot.name != request.role_name:
+                slots.append(slot)
+                continue
+            slot_bundle = slot.proto_role_bundle or ProtoRoleBundle()
+            slots.append(
+                replace_document(
+                    slot,
+                    proto_role_bundle=_apply_proto_role_entailment(
+                        slot_bundle,
+                        role_kind=request.role_kind,
+                        entailment=entailment,
+                    ),
                 )
-                slot["proto_role_bundle"] = slot_bundle
-                break
+            )
+        description_kind = replace_document(description_kind, slots=tuple(slots))
 
-    data["last_modified"] = str(date.today())
-    document = _canonical_concept_document(repo, ref, data)
-    data = concept_document_to_record_payload(document)
+    updated_sense = replace_document(
+        sense,
+        role_bundles=role_bundles,
+        description_kind=description_kind,
+    )
+    updated_document = replace_document(
+        document,
+        lexical_entry=replace_document(
+            document.lexical_entry,
+            senses=(updated_sense, *senses[1:]),
+        ),
+        last_modified=str(date.today()),
+    )
 
     if request.dry_run:
-        return ConceptMutationReport(lines=(repo.families.concepts.render(document),))
+        return ConceptMutationReport(
+            lines=(repo.families.concepts.render(updated_document),)
+        )
 
-    warnings = _validate_updated_concept(repo, concept_entry, document)
+    warnings = _validate_updated_concept(repo, concept_entry, updated_document)
     repo.families.concepts.save(
         ref,
-        document,
+        updated_document,
         message=(
             f"Add {request.role_kind} proto-role {request.property_name} "
-            f"to {_concept_display_handle(data)}"
+            f"to {_concept_display_handle(updated_document)}"
         ),
     )
     return ConceptMutationReport(
         lines=(
             f"Added {request.role_kind} proto-role {request.property_name} "
-            f"to {_concept_display_handle(data)}",
+            f"to {_concept_display_handle(updated_document)}",
         ),
         warnings=warnings,
     )
@@ -1572,35 +1607,26 @@ def add_concept_value(
     snapshot = _require_snapshot(repo)
     concept_entry = _require_concept_entry(repo, request.concept_name)
     ref = _concept_ref(concept_entry)
+    document = concept_entry.document
 
-    data = deepcopy(concept_entry.record.to_payload())
-    if data.get("form") != "category":
+    if document.lexical_entry.physical_dimension_form != "category":
         raise ConceptMutationError(
             f"'{request.concept_name}' is not a category concept "
-            f"(form={data.get('form')})"
+            f"(form={document.lexical_entry.physical_dimension_form})"
         )
 
-    raw_form_parameters = data.get("form_parameters")
-    if raw_form_parameters is None:
-        form_parameters: dict[str, object] = {}
-    elif isinstance(raw_form_parameters, dict):
-        form_parameters = raw_form_parameters
-    else:
-        raise ConceptMutationError(
-            f"'{request.concept_name}' form_parameters must be a mapping"
-        )
-    extensible = form_parameters.get("extensible", True)
+    form_parameters = document.form_parameters or ConceptFormParametersDocument()
+    extensible = (
+        True
+        if form_parameters.extensible is None
+        else form_parameters.extensible
+    )
     if not extensible:
         raise ConceptMutationError(
             f"'{request.concept_name}' is not extensible - cannot add values"
         )
 
-    raw_values = form_parameters.get("values", [])
-    if not isinstance(raw_values, list):
-        raise ConceptMutationError(
-            f"'{request.concept_name}' form_parameters.values must be a list"
-        )
-    values = raw_values
+    values = form_parameters.values or ()
     if request.value in values:
         raise ConceptMutationError(
             f"Value '{request.value}' already exists in '{request.concept_name}'"
@@ -1610,23 +1636,24 @@ def add_concept_value(
         return ConceptMutationReport(
             lines=(
                 f"Would add '{request.value}' to "
-                f"{request.concept_name} values: {values + [request.value]}",
+                f"{request.concept_name} values: {(*values, request.value)}",
             )
         )
 
-    values.append(request.value)
-    form_parameters["values"] = values
-    data["form_parameters"] = form_parameters
-    data["last_modified"] = str(date.today())
-    data = _normalize_concept_data(data)
+    updated_values = (*values, request.value)
+    updated_document = replace_document(
+        document,
+        form_parameters=replace_document(form_parameters, values=updated_values),
+        last_modified=str(date.today()),
+    )
     repo.families.concepts.save(
         ref,
-        _concept_document(repo, ref, data),
+        updated_document,
         message=f"Add value '{request.value}' to {request.concept_name}",
     )
     return ConceptMutationReport(
         lines=(
             f"Added '{request.value}' to "
-            f"{request.concept_name} - values: {', '.join(str(value) for value in values)}",
+            f"{request.concept_name} - values: {', '.join(str(value) for value in updated_values)}",
         )
     )
