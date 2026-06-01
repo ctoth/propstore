@@ -57,7 +57,10 @@ class FunctionRemoval:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Delete Python functions and methods whose names match glob patterns."
+        description=(
+            "Delete Python functions and methods whose names match glob patterns "
+            "or whose source contains requested text."
+        )
     )
     parser.add_argument(
         "paths",
@@ -71,6 +74,13 @@ def parse_args() -> argparse.Namespace:
         dest="patterns",
         default=None,
         help="Function-name glob. May be repeated.",
+    )
+    parser.add_argument(
+        "--containing",
+        action="append",
+        dest="containing",
+        default=None,
+        help="Delete functions whose source contains this exact text. May be repeated.",
     )
     parser.add_argument(
         "--root",
@@ -102,8 +112,12 @@ def _python_files(root: Path, paths: tuple[str, ...]) -> list[Path]:
     ]
 
 
-def _matches(name: str, patterns: tuple[str, ...]) -> bool:
+def _matches_name(name: str, patterns: tuple[str, ...]) -> bool:
     return any(fnmatch.fnmatchcase(name, pattern) for pattern in patterns)
+
+
+def _matches_source(source: str, containing: tuple[str, ...]) -> bool:
+    return any(text in source for text in containing)
 
 
 def _function_start(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
@@ -115,16 +129,21 @@ def _matching_ranges(
     source: str,
     path: str,
     patterns: tuple[str, ...],
+    containing: tuple[str, ...],
 ) -> list[FunctionRemoval]:
     tree = ast.parse(source, filename=path, type_comments=True)
+    lines = source.splitlines(keepends=True)
     removals: list[FunctionRemoval] = []
     for node in ast.walk(tree):
         if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             continue
-        if not _matches(node.name, patterns):
-            continue
         if node.end_lineno is None:
             raise ValueError(f"{path}:{node.lineno}: missing function end line")
+        function_source = "".join(lines[_function_start(node) - 1 : node.end_lineno])
+        if not _matches_name(node.name, patterns) and not _matches_source(
+            function_source, containing
+        ):
+            continue
         removals.append(
             FunctionRemoval(
                 name=node.name,
@@ -166,6 +185,7 @@ def _planned_changes(
     root: Path,
     files: list[Path],
     patterns: tuple[str, ...],
+    containing: tuple[str, ...],
 ) -> tuple[ChangeSet, list[FunctionRemoval]]:
     changes = ChangeSet("delete matching functions")
     all_removals: list[FunctionRemoval] = []
@@ -173,7 +193,7 @@ def _planned_changes(
         relative = path.relative_to(root).as_posix()
         resource = project.get_file(relative)
         source = resource.read()
-        removals = _matching_ranges(source, relative, patterns)
+        removals = _matching_ranges(source, relative, patterns, containing)
         if not removals:
             continue
         updated = _delete_ranges(source, removals)
@@ -199,11 +219,12 @@ def main() -> int:
     args = parse_args()
     root = Path(args.root).resolve()
     patterns = tuple(args.patterns or DEFAULT_PATTERNS)
+    containing = tuple(args.containing or ())
     files = _python_files(root, tuple(args.paths))
 
     project = Project(str(root), ropefolder=None, ignored_resources=IGNORED_RESOURCES)
     try:
-        changes, removals = _planned_changes(project, root, files, patterns)
+        changes, removals = _planned_changes(project, root, files, patterns, containing)
         for removal in removals:
             print(
                 f"{removal.path}:{removal.start_line}-{removal.end_line}: "
