@@ -120,9 +120,67 @@ def _matches_source(source: str, containing: tuple[str, ...]) -> bool:
     return any(text in source for text in containing)
 
 
-def _function_start(node: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
+FunctionNode = ast.FunctionDef | ast.AsyncFunctionDef
+ClassNode = ast.ClassDef
+
+
+def _decorated_start(node: FunctionNode | ClassNode) -> int:
     decorator_lines = [decorator.lineno for decorator in node.decorator_list]
     return min([node.lineno, *decorator_lines])
+
+
+def _node_range(node: ast.AST) -> tuple[int, int]:
+    if not hasattr(node, "lineno") or not hasattr(node, "end_lineno"):
+        raise ValueError(f"{type(node).__name__} has no source range")
+    end_line = node.end_lineno
+    if end_line is None:
+        raise ValueError(f"{type(node).__name__} has no end line")
+    if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
+        return _decorated_start(node), end_line
+    return node.lineno, end_line
+
+
+def _covers(removal: FunctionRemoval, node: ast.AST) -> bool:
+    start_line, end_line = _node_range(node)
+    return removal.start_line <= start_line and end_line <= removal.end_line
+
+
+def _ignorable_class_body_node(node: ast.AST) -> bool:
+    return isinstance(node, ast.Pass) or (
+        isinstance(node, ast.Expr)
+        and isinstance(node.value, ast.Constant)
+        and isinstance(node.value.value, str)
+    )
+
+
+def _deleted_by(removals: list[FunctionRemoval], node: ast.AST) -> bool:
+    return any(_covers(removal, node) for removal in removals)
+
+
+def _classes_empty_after_function_removal(
+    tree: ast.AST, removals: list[FunctionRemoval], path: str
+) -> list[FunctionRemoval]:
+    class_removals: list[FunctionRemoval] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.ClassDef):
+            continue
+        if node.end_lineno is None:
+            raise ValueError(f"{path}:{node.lineno}: missing class end line")
+        substantive_nodes = [
+            child for child in node.body if not _ignorable_class_body_node(child)
+        ]
+        if not substantive_nodes:
+            continue
+        if all(_deleted_by(removals, child) for child in substantive_nodes):
+            class_removals.append(
+                FunctionRemoval(
+                    name=node.name,
+                    path=path,
+                    start_line=_decorated_start(node),
+                    end_line=node.end_lineno,
+                )
+            )
+    return class_removals
 
 
 def _matching_ranges(
@@ -139,7 +197,7 @@ def _matching_ranges(
             continue
         if node.end_lineno is None:
             raise ValueError(f"{path}:{node.lineno}: missing function end line")
-        function_source = "".join(lines[_function_start(node) - 1 : node.end_lineno])
+        function_source = "".join(lines[_decorated_start(node) - 1 : node.end_lineno])
         if not _matches_name(node.name, patterns) and not _matches_source(
             function_source, containing
         ):
@@ -148,10 +206,11 @@ def _matching_ranges(
             FunctionRemoval(
                 name=node.name,
                 path=path,
-                start_line=_function_start(node),
+                start_line=_decorated_start(node),
                 end_line=node.end_lineno,
             )
         )
+    removals.extend(_classes_empty_after_function_removal(tree, removals, path))
     return sorted(removals, key=lambda item: (item.start_line, item.end_line))
 
 
