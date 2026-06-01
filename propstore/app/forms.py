@@ -8,7 +8,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from propstore.families.concepts.stages import parse_concept_record_document
 from propstore.families.forms.declaration import FormAlternativeDocument
 from propstore.families.forms.models import FORM_DOCUMENT_TYPE, FormDocument
 from propstore.families.forms.passes import run_form_pipeline
@@ -291,9 +290,9 @@ def form_references(repo: Repository, name: str) -> tuple[str, ...]:
     for handle in repo.families.concepts.iter_handles():
         ref = handle.ref
         document = handle.document
-        record = parse_concept_record_document(document)
-        if record.form == name:
-            references.append(f"{record.artifact_id} ({ref.name})")
+        form = document.lexical_entry.physical_dimension_form
+        if form == name:
+            references.append(f"{document.artifact_id} ({ref.name})")
     return tuple(references)
 
 
@@ -347,8 +346,8 @@ def validate_forms(repo: Repository, name: str | None = None) -> FormValidationR
 
     for handle in repo.families.concepts.iter_handles():
         ref = handle.ref
-        record = parse_concept_record_document(handle.document)
-        form_ref = record.form
+        document = handle.document
+        form_ref = document.lexical_entry.physical_dimension_form
         if form_ref and form_ref not in form_registry and form_ref not in all_forms:
             errors.append(f"concept {ref.name}: references missing form '{form_ref}'")
 
