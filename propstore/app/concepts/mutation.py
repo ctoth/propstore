@@ -43,7 +43,7 @@ from propstore.families.claims.declaration import ClaimDocument
 from propstore.families.concepts.declaration import ConceptDocument
 from propstore.families.identity.claims import normalize_canonical_claim_payload
 from propstore.families.identity.concepts import normalize_canonical_concept_payload
-from propstore.families.identity.logical_ids import format_logical_id, primary_logical_id
+from propstore.families.identity.logical_ids import primary_logical_id
 from propstore.families.registry import ClaimRef, ConceptFileRef
 from propstore.families.forms.stages import FormDefinition, parse_form
 from propstore.semantic_passes.types import PipelineResult
@@ -706,31 +706,19 @@ def _concept_display_handle(data: dict) -> str:
 
 def _find_concept_entry(repo: Repository, id_or_name: str) -> LoadedConcept | None:
     tree = repo.tree()
+    concept_index = repo.families.concepts.reference_index()
+    artifact_id = concept_index.resolve_id(id_or_name)
+    if artifact_id is None:
+        return None
     for handle in repo.families.concepts.iter_handles():
-        concept = LoadedConcept(
+        if handle.document.artifact_id != artifact_id:
+            continue
+        return LoadedConcept(
             filename=handle.ref.name,
             source_path=tree / handle.address.require_path(),
             knowledge_root=tree,
-            record=parse_concept_record_document(handle.document),
             document=handle.document,
         )
-        if handle.ref.name == id_or_name:
-            return concept
-        data = concept.record.to_payload()
-        if data.get("canonical_name") == id_or_name:
-            return concept
-        if data.get("artifact_id") == id_or_name:
-            return concept
-        logical_ids = data.get("logical_ids")
-        if isinstance(logical_ids, list):
-            for entry in logical_ids:
-                if isinstance(entry, dict) and format_logical_id(entry) == id_or_name:
-                    return concept
-        aliases = data.get("aliases")
-        if isinstance(aliases, list):
-            for alias in aliases:
-                if isinstance(alias, dict) and alias.get("name") == id_or_name:
-                    return concept
     return None
 
 
@@ -745,7 +733,7 @@ def _require_concept_entry(
 
 def _require_concept_artifact_id(repo: Repository, handle: str, *, label: str) -> str:
     concept_entry = _require_concept_entry(repo, handle, label=label)
-    artifact_id = concept_entry.record.to_payload().get("artifact_id")
+    artifact_id = concept_entry.document.artifact_id
     if not isinstance(artifact_id, str) or not artifact_id:
         raise ConceptMutationError(f"{label} '{handle}' does not have an artifact_id")
     return artifact_id
@@ -755,12 +743,12 @@ def _require_concept_reference(
     repo: Repository, handle: str, *, label: str
 ) -> dict[str, str]:
     concept_entry = _require_concept_entry(repo, handle, label=label)
-    data = concept_entry.record.to_payload()
-    artifact_id = data.get("artifact_id")
+    document = concept_entry.document
+    artifact_id = document.artifact_id
     if not isinstance(artifact_id, str) or not artifact_id:
         raise ConceptMutationError(f"{label} '{handle}' does not have an artifact_id")
     reference: dict[str, str] = {"uri": artifact_id}
-    canonical_name = data.get("canonical_name")
+    canonical_name = document.lexical_entry.canonical_form.written_rep
     if isinstance(canonical_name, str) and canonical_name:
         reference["label"] = canonical_name
     return reference
